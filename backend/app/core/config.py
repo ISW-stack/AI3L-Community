@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://:changeme_redis@redis:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://:changeme_redis@redis:6379/2"
 
+    # Super Admin (bootstrap)
+    SUPER_ADMIN_USERNAME: str = "superadmin"
+    SUPER_ADMIN_PASSWORD: str = "changeme_admin"
+
     # Sentry
     SENTRY_DSN: str = ""
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1

@@ -15,10 +15,9 @@ if config.config_file_name is not None:
 # Set the database URL from settings
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
-# Placeholder for Phase 1 models
-# from app.models import Base
-# target_metadata = Base.metadata
-target_metadata = None
+from app.models import Base  # noqa: E402
+
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:

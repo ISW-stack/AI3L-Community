@@ -1,0 +1,29 @@
+from pydantic import BaseModel, Field
+
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    display_name: str
+    role: str
+    avatar_url: str | None = None
+    orcid: str | None = None
+    affiliation: str | None = None
+    bio: str | None = None
+
+
+class UserUpdateRequest(BaseModel):
+    display_name: str | None = Field(None, max_length=100)
+    bio: str | None = Field(None, max_length=500)
+    affiliation: str | None = Field(None, max_length=200)
+    orcid: str | None = Field(None, max_length=50)
+
+
+class CreateAccountRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: str = Field(..., max_length=100)
+
+
+class ApplyMemberRequest(BaseModel):
+    description: str = Field(..., max_length=500)

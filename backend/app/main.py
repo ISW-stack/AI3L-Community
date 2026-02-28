@@ -12,6 +12,26 @@ from app.core.redis import close_redis, init_redis
 from app.api.v1.router import api_v1_router
 
 
+async def bootstrap_super_admin() -> None:
+    """Create initial Super Admin from .env if it doesn't exist yet."""
+    from app.services.user import create_user, user_exists_by_username
+
+    username = settings.SUPER_ADMIN_USERNAME
+    password = settings.SUPER_ADMIN_PASSWORD
+
+    if await user_exists_by_username(username):
+        logger.info("Super Admin already exists, skipping bootstrap")
+        return
+
+    await create_user(
+        username=username,
+        password=password,
+        role="SUPER_ADMIN",
+        display_name="Super Admin",
+    )
+    logger.info("Super Admin bootstrapped from .env", extra={"username": username})
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Startup
@@ -20,6 +40,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     await init_db_pool(settings.DATABASE_URL)
     await init_redis(settings.REDIS_URL)
+
+    # Bootstrap Super Admin (requires DB to be ready)
+    try:
+        await bootstrap_super_admin()
+    except Exception as e:
+        logger.warning(f"Super Admin bootstrap skipped: {e}")
 
     logger.info("All dependencies initialized")
     yield
