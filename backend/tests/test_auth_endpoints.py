@@ -111,14 +111,17 @@ class TestRegisterEndpoint:
     @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
     @patch(f"{_EP}.create_user", new_callable=AsyncMock)
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=False)
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_success(self, mock_captcha, mock_exists, mock_create, mock_session, client: AsyncClient):
+    async def test_register_success(self, mock_captcha, mock_invite, mock_exists, mock_create, mock_session, client: AsyncClient):
+        mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
         mock_create.return_value = make_user_dict(username="newuser", role="MEMBER")
 
         resp = await client.post("/api/v1/auth/register", json={
             "username": "newuser",
             "password": "Password1",
             "display_name": "New User",
+            "invite_code": "VALID-CODE",
             "captcha_id": "cap-1",
             "captcha_code": "ABCD",
         })
@@ -127,13 +130,42 @@ class TestRegisterEndpoint:
         assert data["token"] == "tok"
         assert data["requires_consent"] is True
 
+    async def test_register_without_invite_code(self, client: AsyncClient):
+        """POST /auth/register without invite_code → 422 validation error."""
+        resp = await client.post("/api/v1/auth/register", json={
+            "username": "newuser",
+            "password": "Password1",
+            "display_name": "New User",
+            "captcha_id": "cap-1",
+            "captcha_code": "ABCD",
+        })
+        assert resp.status_code == 422
+
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
+    @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
+    async def test_register_invalid_invite_code(self, mock_captcha, mock_invite, client: AsyncClient):
+        """POST /auth/register with invalid invite code → 400."""
+        resp = await client.post("/api/v1/auth/register", json={
+            "username": "newuser",
+            "password": "Password1",
+            "display_name": "New User",
+            "invite_code": "BAD-CODE",
+            "captcha_id": "cap-1",
+            "captcha_code": "ABCD",
+        })
+        assert resp.status_code == 400
+        assert "invite code" in resp.json()["detail"].lower()
+
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_duplicate_username(self, mock_captcha, mock_exists, client: AsyncClient):
+    async def test_register_duplicate_username(self, mock_captcha, mock_exists, mock_invite, client: AsyncClient):
+        mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
         resp = await client.post("/api/v1/auth/register", json={
             "username": "existing",
             "password": "Password1",
             "display_name": "Existing",
+            "invite_code": "VALID-CODE",
             "captcha_id": "cap-1",
             "captcha_code": "ABCD",
         })

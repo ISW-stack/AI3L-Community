@@ -77,11 +77,12 @@ export const useAuthStore = defineStore('auth', () => {
     requiresConsent.value = data.requires_consent ?? false
   }
 
-  async function register(username: string, password: string, displayName: string, captchaId: string, captchaCode: string) {
+  async function register(username: string, password: string, displayName: string, inviteCode: string, captchaId: string, captchaCode: string) {
     const { data } = await api.post('/auth/register', {
       username,
       password,
       display_name: displayName,
+      invite_code: inviteCode,
       captcha_id: captchaId,
       captcha_code: captchaCode,
     })

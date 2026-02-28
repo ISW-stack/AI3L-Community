@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 
 from app.core.deps import get_current_user, require_role
 from app.core.security import validate_password_policy
@@ -105,6 +105,17 @@ async def upload_avatar(
             detail="File size exceeds 2MB limit.",
         )
 
+    # Storage quota check
+    from app.core.config import settings as _settings
+    from app.services.user import get_user_storage_used
+
+    used = get_user_storage_used(current_user["sub"])
+    if used + len(data) > _settings.MAX_USER_STORAGE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Storage quota exceeded (1 GB limit).",
+        )
+
     from app.core.storage import generate_avatar_key, upload_file
 
     ext = ".png" if file.content_type == "image/png" else ".jpg"
@@ -176,8 +187,8 @@ async def delete_my_account(
     response_model=UserListResponse,
 )
 async def get_all_users(
-    offset: int = 0,
-    limit: int = 50,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> UserListResponse:
     users, total = await list_users(offset=offset, limit=limit)
@@ -325,8 +336,8 @@ async def unban_user_endpoint(
 
 @router.get("/admin/audit-logs")
 async def get_audit_logs(
-    page: int = 1,
-    page_size: int = 50,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
     user_id: str | None = None,
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
 ) -> dict:

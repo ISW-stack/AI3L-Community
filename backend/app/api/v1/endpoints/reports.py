@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.deps import require_role
 from app.schemas.report import (
@@ -40,8 +40,8 @@ async def report_post(
 @router.get("/admin/reports", response_model=PostReportListResponse)
 async def get_reports(
     status_filter: str | None = None,
-    offset: int = 0,
-    limit: int = 50,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> PostReportListResponse:
     reports, total = await list_reports(status_filter=status_filter, offset=offset, limit=limit)

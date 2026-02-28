@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.deps import get_current_user, require_role
 from app.schemas.post import PostListResponse, PostResponse
@@ -26,8 +26,8 @@ router = APIRouter(prefix="/sigs", tags=["sigs"])
 
 @router.get("", response_model=SigListResponse)
 async def get_sigs(
-    offset: int = 0,
-    limit: int = 50,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> SigListResponse:
     sigs, total = await list_sigs(offset=offset, limit=limit)
@@ -76,8 +76,8 @@ async def assign_sig_sub_admin(
 @router.get("/{sig_id}/members", response_model=SigMemberListResponse)
 async def get_sig_members(
     sig_id: uuid.UUID,
-    offset: int = 0,
-    limit: int = 50,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> SigMemberListResponse:
     members, total = await list_sig_members(sig_id, offset=offset, limit=limit)
@@ -90,8 +90,8 @@ async def get_sig_members(
 @router.get("/{sig_id}/posts", response_model=PostListResponse)
 async def get_sig_posts(
     sig_id: uuid.UUID,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
     posts, total, total_pages = await list_posts(page=page, page_size=page_size, sig_id=str(sig_id))

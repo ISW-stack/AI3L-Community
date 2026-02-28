@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     # FastAPI
     FASTAPI_ENV: str = "development"
-    FASTAPI_DEBUG: bool = True
+    FASTAPI_DEBUG: bool = False
     FASTAPI_HOST: str = "0.0.0.0"
     FASTAPI_PORT: int = 8000
     FASTAPI_WORKERS: int = 1
@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     # Datadog
     DD_AGENT_HOST: str = ""
     DD_TRACE_ENABLED: bool = False
+
+    # Storage quota
+    MAX_USER_STORAGE_BYTES: int = 1_073_741_824  # 1 GB
+
+    # VirusTotal
+    VT_API_KEY: str = ""
 
     # Logging
     LOG_LEVEL: str = "DEBUG"

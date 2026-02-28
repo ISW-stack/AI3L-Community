@@ -1,5 +1,7 @@
 """File upload validation: magic number (byte signature) checks and sanitization."""
 
+from io import BytesIO
+
 # Magic number signatures for allowed file types
 MAGIC_NUMBERS = {
     "image/png": [b"\x89PNG\r\n\x1a\n"],
@@ -37,6 +39,40 @@ def get_content_type_from_extension(filename: str) -> str | None:
     return ALLOWED_EXTENSIONS.get(ext)
 
 
+_PDF_DANGEROUS_KEYS = {"/JS", "/JavaScript", "/AA", "/OpenAction"}
+
+
+def sanitize_pdf(data: bytes) -> bytes:
+    """Remove JavaScript, auto-actions, and macros from a PDF."""
+    from pypdf import PdfReader, PdfWriter
+
+    reader = PdfReader(BytesIO(data))
+    writer = PdfWriter()
+
+    for page in reader.pages:
+        writer.add_page(page)
+
+    # Copy metadata
+    if reader.metadata:
+        writer.add_metadata(reader.metadata)
+
+    # Strip dangerous keys from the root object
+    if hasattr(writer, "_root_object"):
+        for key in _PDF_DANGEROUS_KEYS:
+            if key in writer._root_object:
+                del writer._root_object[key]
+
+    # Strip dangerous keys from each page
+    for page in writer.pages:
+        for key in _PDF_DANGEROUS_KEYS:
+            if key in page:
+                del page[key]
+
+    buf = BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
+
 def sanitize_html(html_content: str) -> str:
     """Sanitize HTML content using bleach. Allows safe tags for rich text."""
     import bleach
@@ -50,7 +86,6 @@ def sanitize_html(html_content: str) -> str:
     allowed_attrs = {
         "a": ["href", "title", "target", "rel"],
         "img": ["src", "alt", "width", "height"],
-        "span": ["style"],
         "td": ["colspan", "rowspan"],
         "th": ["colspan", "rowspan"],
     }

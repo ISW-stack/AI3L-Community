@@ -147,6 +147,25 @@ services:
     networks:
       - ai3l-network
 
+  celery-beat:
+    build: ./backend
+    restart: unless-stopped
+    command: ["celery", "-A", "app.celery_app:celery", "beat", "--loglevel=info"]
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    networks:
+      - ai3l-network
+
   minio:
     image: minio/minio:latest
     restart: unless-stopped

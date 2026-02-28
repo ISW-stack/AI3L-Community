@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 
 from fastapi import Request, Response
 from loguru import logger
@@ -10,6 +11,7 @@ from app.core.redis import get_redis
 
 IDEMPOTENCY_TTL = 300  # 5 minutes
 IDEMPOTENCY_HEADER = "Idempotency-Key"
+_IDEM_KEY_RE = re.compile(r"^[a-zA-Z0-9\-]{1,256}$")
 
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):
@@ -19,6 +21,9 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         idem_key = request.headers.get(IDEMPOTENCY_HEADER)
         if not idem_key:
+            return await call_next(request)
+
+        if not _IDEM_KEY_RE.match(idem_key):
             return await call_next(request)
 
         # Namespace key by user (from JWT sub) to prevent cross-user collisions

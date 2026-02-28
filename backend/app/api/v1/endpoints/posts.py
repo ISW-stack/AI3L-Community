@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
@@ -49,8 +49,8 @@ async def create_new_post(
 
 @router.get("", response_model=PostListResponse)
 async def get_posts_list(
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     category_id: str | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:

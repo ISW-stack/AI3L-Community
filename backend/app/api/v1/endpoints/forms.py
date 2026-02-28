@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.database import get_pool
@@ -103,8 +103,8 @@ async def create_new_form(
 @router.get("/sigs/{sig_id}/forms", response_model=FormListResponse)
 async def get_sig_forms(
     sig_id: uuid.UUID,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> FormListResponse:
     forms, total = await list_forms_by_sig(sig_id, page=page, page_size=page_size)

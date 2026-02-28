@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.deps import get_current_user, require_role
 from app.core.file_validation import sanitize_html
@@ -20,8 +20,8 @@ router = APIRouter(prefix="/posts/{post_id}/comments", tags=["comments"])
 @router.get("", response_model=CommentListResponse)
 async def get_comments(
     post_id: uuid.UUID,
-    offset: int = 0,
-    limit: int = 50,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     current_user: dict = Depends(get_current_user),
 ) -> CommentListResponse:
     # Verify post exists

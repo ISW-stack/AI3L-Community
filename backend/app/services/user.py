@@ -184,6 +184,22 @@ async def unban_user(user_id: uuid.UUID) -> bool:
     return True
 
 
+def get_user_storage_used(user_id: str) -> int:
+    """Return total bytes stored for a user across editor/ and avatars/ prefixes."""
+    from app.core.config import settings
+    from app.core.storage import get_storage
+
+    client = get_storage()
+    bucket = settings.MINIO_BUCKET_NAME
+    total = 0
+    for prefix in [f"editor/{user_id}/", f"avatars/{user_id}/"]:
+        paginator = client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                total += obj["Size"]
+    return total
+
+
 async def list_users(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:
     pool = get_pool()
     async with pool.acquire() as conn:
