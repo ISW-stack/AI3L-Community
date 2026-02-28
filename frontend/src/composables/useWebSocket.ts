@@ -38,6 +38,18 @@ export function useWebSocket() {
         } else if (msg.type === 'FORCE_LOGOUT') {
           auth.clearSession()
           router.push({ name: 'login' })
+        } else if (msg.type === 'NEW_NOTIFICATION') {
+          window.dispatchEvent(
+            new CustomEvent('app:notification', { detail: msg.notification }),
+          )
+          window.dispatchEvent(
+            new CustomEvent('app:toast', {
+              detail: {
+                message: msg.notification?.message || 'New notification',
+                type: 'info',
+              },
+            }),
+          )
         }
       } catch {
         // ignore parse errors

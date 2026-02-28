@@ -194,8 +194,17 @@ async def update_post(
 
 async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = False) -> bool:
     pool = get_pool()
+    post_owner_id: str | None = None
     async with pool.acquire() as conn:
         if is_admin:
+            # Fetch owner before delete so we can notify them
+            owner_row = await conn.fetchrow(
+                "SELECT user_id FROM posts WHERE id = $1 AND is_deleted = false",
+                post_id,
+            )
+            if owner_row:
+                post_owner_id = str(owner_row["user_id"])
+
             result = await conn.execute(
                 "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
                 post_id,
@@ -209,7 +218,24 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
         deleted = result == "UPDATE 1"
         if deleted:
             logger.info("Post deleted", extra={"post_id": str(post_id)})
-        return deleted
+
+    # Notify post owner when admin deletes their post
+    if deleted and is_admin and post_owner_id and post_owner_id != user_id:
+        try:
+            from app.services.notification import create_notification
+
+            await create_notification(
+                user_id=post_owner_id,
+                trigger_user_id=user_id,
+                action_type="SYSTEM",
+                entity_type="post",
+                entity_id=str(post_id),
+                message="Your post was removed by an administrator",
+            )
+        except Exception:
+            pass
+
+    return deleted
 
 
 async def get_post_history(post_id: uuid.UUID) -> list[dict]:

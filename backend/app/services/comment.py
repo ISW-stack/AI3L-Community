@@ -93,8 +93,65 @@ async def create_comment(
                 post_id,
             )
 
-            logger.info("Comment created", extra={"comment_id": str(comment_id), "post_id": str(post_id)})
-            return _row_to_comment(dict(row))
+            comment_dict = _row_to_comment(dict(row))
+            commenter_name = comment_dict["author"]["display_name"] or comment_dict["author"]["username"]
+
+            # --- Notification triggers (best-effort, outside transaction) ---
+            # Collect notification targets
+            mention_targets: list[tuple[str, str]] = []  # (user_id, comment_id)
+            reply_target: tuple[str, str] | None = None
+
+            # MENTION notifications
+            if mentions:
+                mentioned_rows = await conn.fetch(
+                    "SELECT id, username FROM users WHERE username = ANY($1) AND is_deleted = false",
+                    mentions,
+                )
+                for mrow in mentioned_rows:
+                    target_uid = str(mrow["id"])
+                    if target_uid != user_id:
+                        mention_targets.append((target_uid, str(comment_id)))
+
+            # REPLY notification
+            if parent_uuid:
+                parent_row = await conn.fetchrow(
+                    "SELECT user_id FROM comments WHERE id = $1",
+                    parent_uuid,
+                )
+                if parent_row and str(parent_row["user_id"]) != user_id:
+                    reply_target = (str(parent_row["user_id"]), str(comment_id))
+
+    # Fire notifications outside the transaction
+    from app.services.notification import create_notification
+
+    for target_uid, cid in mention_targets:
+        try:
+            await create_notification(
+                user_id=target_uid,
+                trigger_user_id=user_id,
+                action_type="MENTION",
+                entity_type="comment",
+                entity_id=cid,
+                message=f"{commenter_name} mentioned you in a comment",
+            )
+        except Exception:
+            pass
+
+    if reply_target:
+        try:
+            await create_notification(
+                user_id=reply_target[0],
+                trigger_user_id=user_id,
+                action_type="REPLY",
+                entity_type="comment",
+                entity_id=reply_target[1],
+                message=f"{commenter_name} replied to your comment",
+            )
+        except Exception:
+            pass
+
+    logger.info("Comment created", extra={"comment_id": str(comment_id), "post_id": str(post_id)})
+    return comment_dict
 
 
 async def list_comments(

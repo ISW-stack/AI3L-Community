@@ -97,4 +97,28 @@ async def review_application(
                     extra={"user_id": str(row["user_id"])},
                 )
 
-            return dict(row)
+            result = dict(row)
+
+    # Fire notification outside the transaction
+    applicant_uid = str(result["user_id"])
+    reviewer_uid = str(reviewer_id)
+    if action == "APPROVED":
+        msg = "Your membership application was approved"
+    else:
+        msg = "Your membership application was rejected"
+
+    try:
+        from app.services.notification import create_notification
+
+        await create_notification(
+            user_id=applicant_uid,
+            trigger_user_id=reviewer_uid,
+            action_type="SYSTEM",
+            entity_type=None,
+            entity_id=None,
+            message=msg,
+        )
+    except Exception:
+        pass
+
+    return result

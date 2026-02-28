@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import NotificationBell from '@/components/NotificationBell.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -57,6 +58,9 @@ async function handleLogout() {
                 Reports
               </router-link>
             </template>
+
+            <!-- Notification bell -->
+            <NotificationBell />
 
             <!-- User dropdown -->
             <div class="relative">
