@@ -1,0 +1,44 @@
+# Force LF line endings for files that will run inside Linux containers
+# Critical for Windows → Linux container compatibility
+
+# Shell scripts
+*.sh        text eol=lf
+
+# Docker
+Dockerfile  text eol=lf
+*.dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+
+# Nginx
+*.conf      text eol=lf
+
+# Python
+*.py        text eol=lf
+*.pyi       text eol=lf
+
+# Alembic
+*.mako      text eol=lf
+alembic.ini text eol=lf
+
+# Config
+*.toml      text eol=lf
+*.cfg       text eol=lf
+*.ini       text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+
+# Web
+*.html      text eol=lf
+*.css       text eol=lf
+*.js        text eol=lf
+*.ts        text eol=lf
+*.vue       text eol=lf
+*.json      text eol=lf
+
+# Markdown / Text
+*.md        text eol=lf
+*.txt       text eol=lf
+
+# Git
+.gitignore  text eol=lf
+.gitattributes text eol=lf

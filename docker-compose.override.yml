@@ -1,0 +1,24 @@
+# Development overrides
+# This file is automatically loaded by docker compose alongside docker-compose.yml
+# Do NOT use this file in production
+
+services:
+  fastapi:
+    ports:
+      - "18000:8000"
+    volumes:
+      - ./backend:/app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  postgres:
+    ports:
+      - "15432:5432"
+
+  redis:
+    ports:
+      - "16379:6379"
+
+  minio:
+    ports:
+      - "19000:9000"
+      - "19001:9001"

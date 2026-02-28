@@ -1,0 +1,83 @@
+# =====================
+# Python
+# =====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# =====================
+# Node.js
+# =====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+frontend/dist/
+
+# =====================
+# IDE / Editor
+# =====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# =====================
+# Environment
+# =====================
+.env
+.env.local
+.env.*.local
+
+# =====================
+# Docker data volumes
+# =====================
+pgdata/
+redis-data/
+minio-data/
+
+# =====================
+# Logs
+# =====================
+*.log
+logs/
+
+# =====================
+# SSL certificates
+# =====================
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+!nginx/ssl/.gitkeep
+
+# =====================
+# Testing
+# =====================
+.coverage
+htmlcov/
+.pytest_cache/
+coverage/
+
+# =====================
+# Misc
+# =====================
+*.bak
+*.tmp
