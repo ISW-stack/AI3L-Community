@@ -5,6 +5,7 @@ class PostCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
     content: str = Field(..., min_length=1)
     category_id: str | None = None
+    sig_id: str | None = None
     keywords: list[str] | None = Field(None, max_length=15)
     allow_comments: bool = True
 

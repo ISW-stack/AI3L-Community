@@ -36,6 +36,7 @@ async def create_new_post(
             title=req.title,
             content=sanitize_html(req.content),
             category_id=req.category_id,
+            sig_id=req.sig_id,
             keywords=req.keywords,
             allow_comments=req.allow_comments,
         )

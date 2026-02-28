@@ -18,7 +18,7 @@ class Post(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("categories.id"), nullable=True, index=True
     )
     sig_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True, index=True
+        UUID(as_uuid=True), ForeignKey("sigs.id"), nullable=True, index=True
     )
 
     title: Mapped[str] = mapped_column(String(300), nullable=False)
@@ -39,6 +39,7 @@ class Post(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # Relationships
     author = relationship("User", lazy="selectin")
     category = relationship("Category", back_populates="posts", lazy="selectin")
+    sig = relationship("Sig", lazy="selectin")
     comments = relationship("Comment", back_populates="post", lazy="noload")
     history = relationship("PostHistory", back_populates="post", lazy="noload")
 

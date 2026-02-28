@@ -71,6 +71,7 @@ async def create_post(
     title: str,
     content: str,
     category_id: str | None = None,
+    sig_id: str | None = None,
     keywords: list[str] | None = None,
     allow_comments: bool = True,
 ) -> dict:
@@ -80,13 +81,14 @@ async def create_post(
     pool = get_pool()
     post_id = uuid.uuid4()
     cat_uuid = uuid.UUID(category_id) if category_id else None
+    sig_uuid = uuid.UUID(sig_id) if sig_id else None
 
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             f"""
             WITH inserted AS (
-                INSERT INTO posts (id, user_id, title, content, category_id, keywords, allow_comments)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                INSERT INTO posts (id, user_id, title, content, category_id, sig_id, keywords, allow_comments)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
             )
             {_POST_SELECT.replace("FROM posts p", "FROM inserted p")}
@@ -96,6 +98,7 @@ async def create_post(
             title,
             content,
             cat_uuid,
+            sig_uuid,
             keywords,
             allow_comments,
         )
