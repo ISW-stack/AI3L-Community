@@ -170,11 +170,34 @@ services:
     networks:
       - ai3l-network
 
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:7
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    environment:
+      DD_API_KEY: ${DD_API_KEY:-}
+      DD_SITE: ${DD_SITE:-datadoghq.com}
+      DD_APM_ENABLED: "true"
+      DD_LOGS_ENABLED: "true"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    networks:
+      - ai3l-network
+
 volumes:
   pgdata:
   redis-data:
   minio-data:
   certbot-webroot:
+  backups:
 
 networks:
   ai3l-network:

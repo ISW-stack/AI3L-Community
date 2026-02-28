@@ -1,8 +1,20 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
+# Datadog tracing — must be patched before FastAPI import
+try:
+    from app.core.config import settings as _early_settings
+
+    if _early_settings.DD_TRACE_ENABLED:
+        from ddtrace import patch_all
+
+        patch_all()
+except Exception:
+    pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from loguru import logger
 
 from app.core.config import settings
@@ -97,5 +109,12 @@ app.add_middleware(
 from app.middleware.idempotency import IdempotencyMiddleware  # noqa: E402
 
 app.add_middleware(IdempotencyMiddleware)
+
+# Trusted host middleware — prevents Host header attacks in production
+if not settings.is_development:
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"],  # TODO: restrict to your actual domain(s) in production
+    )
 
 app.include_router(api_v1_router, prefix="/api/v1")

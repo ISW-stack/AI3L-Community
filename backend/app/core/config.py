@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1
 
+    # Datadog
+    DD_AGENT_HOST: str = ""
+    DD_TRACE_ENABLED: bool = False
+
     # Logging
     LOG_LEVEL: str = "DEBUG"
     LOG_FORMAT: str = "json"

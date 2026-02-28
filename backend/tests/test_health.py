@@ -13,9 +13,13 @@ async def test_health_check_healthy(
     # Mock PostgreSQL
     mock_conn = AsyncMock()
     mock_conn.fetchval = AsyncMock(return_value=1)
-    mock_pool = AsyncMock()
-    mock_pool.acquire.return_value.__aenter__ = AsyncMock(return_value=mock_conn)
-    mock_pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=mock_conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+
+    mock_pool = MagicMock()
+    mock_pool.acquire.return_value = cm
     mock_get_pool.return_value = mock_pool
 
     # Mock Redis

@@ -30,13 +30,27 @@ from app.services.user import (
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+def _resolve_avatar_url(avatar_url: str | None) -> str | None:
+    """If avatar_url is a MinIO object key (no 'http'), generate a fresh presigned URL."""
+    if not avatar_url:
+        return None
+    if avatar_url.startswith("http://") or avatar_url.startswith("https://"):
+        return avatar_url
+    try:
+        from app.core.storage import generate_presigned_url
+
+        return generate_presigned_url(avatar_url, expires_in=86400 * 7)  # 7-day URL
+    except Exception:
+        return avatar_url
+
+
 def _user_to_response(user: dict) -> UserResponse:
     return UserResponse(
         id=str(user["id"]),
         username=user["username"],
         display_name=user["display_name"],
         role=user["role"],
-        avatar_url=user.get("avatar_url"),
+        avatar_url=_resolve_avatar_url(user.get("avatar_url")),
         orcid=user.get("orcid"),
         affiliation=user.get("affiliation"),
         bio=user.get("bio"),
@@ -91,16 +105,16 @@ async def upload_avatar(
             detail="File size exceeds 2MB limit.",
         )
 
-    from app.core.storage import generate_avatar_key, generate_presigned_url, upload_file
+    from app.core.storage import generate_avatar_key, upload_file
 
     ext = ".png" if file.content_type == "image/png" else ".jpg"
     key = generate_avatar_key(current_user["sub"], ext)
     upload_file(data, key, file.content_type)
 
-    avatar_url = generate_presigned_url(key, expires_in=86400 * 7)  # 7-day URL
+    # Store the MinIO object key (not presigned URL) — fresh URLs generated on read
     user = await update_user_profile(
         user_id=uuid.UUID(current_user["sub"]),
-        avatar_url=avatar_url,
+        avatar_url=key,
     )
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
