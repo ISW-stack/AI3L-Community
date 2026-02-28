@@ -77,6 +77,23 @@ const router = createRouter({
       name: 'sig-detail',
       component: () => import('@/views/sigs/SigDetailView.vue'),
     },
+    {
+      path: '/sigs/:sigId/forms/new',
+      name: 'form-create',
+      component: () => import('@/views/forms/FormBuilderView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/forms/:formId',
+      name: 'form-view',
+      component: () => import('@/views/forms/FormView.vue'),
+    },
+    {
+      path: '/forms/:formId/edit',
+      name: 'form-edit',
+      component: () => import('@/views/forms/FormBuilderView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

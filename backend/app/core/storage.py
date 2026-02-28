@@ -74,3 +74,18 @@ def delete_file(key: str) -> None:
 def generate_avatar_key(user_id: str, extension: str) -> str:
     """Generate unique storage key for avatar."""
     return f"avatars/{user_id}/{uuid.uuid4().hex}{extension}"
+
+
+def generate_form_banner_key(form_id: str, extension: str) -> str:
+    """Generate unique storage key for form banner."""
+    return f"forms/banners/{form_id}/{uuid.uuid4().hex}{extension}"
+
+
+def generate_form_upload_key(form_id: str, extension: str) -> str:
+    """Generate unique storage key for form file upload."""
+    return f"forms/uploads/{form_id}/{uuid.uuid4().hex}{extension}"
+
+
+def generate_form_export_key(form_id: str, task_id: str) -> str:
+    """Generate storage key for form CSV export."""
+    return f"exports/forms/{form_id}/{task_id}.csv"

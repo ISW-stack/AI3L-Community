@@ -1,6 +1,7 @@
 from app.models.base import Base
 from app.models.category import Category
 from app.models.comment import Comment
+from app.models.form import Form, FormResponse
 from app.models.invite_code import InviteCode
 from app.models.membership_application import ApplicationStatus, MembershipApplication
 from app.models.post import Post
@@ -14,6 +15,8 @@ __all__ = [
     "Base",
     "Category",
     "Comment",
+    "Form",
+    "FormResponse",
     "InviteCode",
     "MembershipApplication",
     "ApplicationStatus",

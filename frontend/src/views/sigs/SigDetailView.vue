@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/composables/api'
 import DOMPurify from 'dompurify'
+import { useAuthStore } from '@/stores/auth'
 
 interface Sig {
   id: string
@@ -46,7 +47,22 @@ interface Post {
   updated_at: string
 }
 
+interface SigForm {
+  id: string
+  sig_id: string
+  title: string
+  description: string | null
+  deadline: string | null
+  max_respondents: number | null
+  response_count: number
+  is_active: boolean
+  created_by_name: string
+  created_at: string
+  user_is_sig_admin: boolean
+}
+
 const route = useRoute()
+const auth = useAuthStore()
 const sigId = computed(() => route.params.id as string)
 
 const sig = ref<Sig | null>(null)
@@ -54,8 +70,16 @@ const members = ref<SigMember[]>([])
 const membersTotal = ref(0)
 const posts = ref<Post[]>([])
 const postsTotal = ref(0)
+const forms = ref<SigForm[]>([])
+const formsTotal = ref(0)
 const loading = ref(true)
-const activeTab = ref<'posts' | 'members'>('posts')
+const activeTab = ref<'posts' | 'members' | 'forms'>('posts')
+
+const canCreateForm = computed(() => {
+  if (auth.isAdmin) return true
+  if (forms.value.length > 0 && forms.value[0].user_is_sig_admin) return true
+  return false
+})
 
 async function fetchSig() {
   loading.value = true
@@ -89,10 +113,21 @@ async function fetchMembers() {
   }
 }
 
-function switchTab(tab: 'posts' | 'members') {
+async function fetchForms() {
+  try {
+    const { data } = await api.get(`/sigs/${sigId.value}/forms`)
+    forms.value = data.forms
+    formsTotal.value = data.total
+  } catch {
+    // silent
+  }
+}
+
+function switchTab(tab: 'posts' | 'members' | 'forms') {
   activeTab.value = tab
   if (tab === 'posts') fetchPosts()
-  else fetchMembers()
+  else if (tab === 'members') fetchMembers()
+  else fetchForms()
 }
 
 onMounted(() => {
@@ -140,6 +175,13 @@ onMounted(() => {
           :class="activeTab === 'members' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
         >
           Members ({{ membersTotal }})
+        </button>
+        <button
+          @click="switchTab('forms')"
+          class="px-4 py-2 text-sm rounded-lg transition"
+          :class="activeTab === 'forms' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        >
+          Forms ({{ formsTotal }})
         </button>
       </div>
 
@@ -202,6 +244,43 @@ onMounted(() => {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Forms tab -->
+      <div v-if="activeTab === 'forms'">
+        <div v-if="canCreateForm" class="mb-4">
+          <router-link :to="`/sigs/${sigId}/forms/new`"
+            class="inline-block text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            + Create Form
+          </router-link>
+        </div>
+        <div v-if="forms.length === 0" class="text-center text-gray-400 py-8 text-sm">
+          No forms in this SIG yet.
+        </div>
+        <div v-else class="grid gap-4 sm:grid-cols-2">
+          <router-link
+            v-for="f in forms"
+            :key="f.id"
+            :to="`/forms/${f.id}`"
+            class="block bg-white rounded-xl shadow p-4 hover:shadow-md transition"
+          >
+            <div class="flex items-start justify-between mb-2">
+              <h3 class="font-semibold text-gray-900">{{ f.title }}</h3>
+              <span
+                class="text-xs px-2 py-0.5 rounded-full shrink-0 ml-2"
+                :class="f.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+              >
+                {{ f.is_active ? 'Active' : 'Closed' }}
+              </span>
+            </div>
+            <p v-if="f.description" class="text-xs text-gray-500 mb-2 line-clamp-2">{{ f.description }}</p>
+            <div class="flex items-center gap-3 text-xs text-gray-400">
+              <span>{{ f.response_count }} response(s)</span>
+              <span v-if="f.deadline">Deadline: {{ new Date(f.deadline).toLocaleDateString() }}</span>
+              <span>By {{ f.created_by_name }}</span>
+            </div>
+          </router-link>
         </div>
       </div>
     </template>
