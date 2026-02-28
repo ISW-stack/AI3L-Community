@@ -1,15 +1,23 @@
 from app.models.base import Base
+from app.models.category import Category
+from app.models.comment import Comment
 from app.models.invite_code import InviteCode
 from app.models.membership_application import ApplicationStatus, MembershipApplication
+from app.models.post import Post
+from app.models.post_history import PostHistory
 from app.models.privacy_consent import PrivacyConsent
 from app.models.user import User, UserRole
 
 __all__ = [
     "Base",
-    "User",
-    "UserRole",
+    "Category",
+    "Comment",
     "InviteCode",
     "MembershipApplication",
     "ApplicationStatus",
+    "Post",
+    "PostHistory",
     "PrivacyConsent",
+    "User",
+    "UserRole",
 ]

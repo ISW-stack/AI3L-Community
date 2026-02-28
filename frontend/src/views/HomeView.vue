@@ -17,7 +17,10 @@ const auth = useAuthStore()
         <h2 class="text-xl font-semibold text-gray-900 mb-2">
           {{ auth.isGuest ? 'Welcome, Guest' : `Welcome back, ${auth.user?.display_name}` }}
         </h2>
-        <p class="text-gray-600">The forum and more features are under development. Stay tuned!</p>
+        <p class="text-gray-600">Explore discussions and share your research.</p>
+        <router-link to="/forum" class="inline-block mt-3 text-sm text-blue-600 hover:underline font-medium">
+          Browse Forum &rarr;
+        </router-link>
       </div>
 
       <div v-if="auth.isGuest" class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">

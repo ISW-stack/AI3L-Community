@@ -31,6 +31,9 @@ async function handleLogout() {
 
         <!-- Right side -->
         <div class="flex items-center gap-4">
+          <!-- Forum link (visible to all) -->
+          <router-link to="/forum" class="text-sm text-gray-600 hover:text-gray-900">Forum</router-link>
+
           <template v-if="auth.isAuthenticated">
             <!-- Admin links -->
             <template v-if="auth.isAdmin">
