@@ -232,6 +232,7 @@ async def list_posts(
     page: int = 1,
     page_size: int = 20,
     category_id: str | None = None,
+    sig_id: str | None = None,
 ) -> tuple[list[dict], int, int]:
     """Returns (posts, total, total_pages)."""
     pool = get_pool()
@@ -244,6 +245,11 @@ async def list_posts(
     if category_id:
         where += f" AND p.category_id = ${idx}"
         params.append(uuid.UUID(category_id))
+        idx += 1
+
+    if sig_id:
+        where += f" AND p.sig_id = ${idx}"
+        params.append(uuid.UUID(sig_id))
         idx += 1
 
     async with pool.acquire() as conn:

@@ -15,6 +15,7 @@ _connections: dict[str, set[WebSocket]] = defaultdict(set)
 
 PING_INTERVAL = 30  # seconds
 PING_TIMEOUT = 90  # seconds
+GUEST_SESSION_TIMEOUT = 45 * 60  # 45 minutes in seconds
 
 
 async def _authenticate_ws(token: str) -> dict | None:
@@ -51,8 +52,18 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
     _connections[user_id].add(ws)
     logger.info("WebSocket connected", extra={"user_id": user_id, "role": role})
 
+    guest_timeout_task = None
     try:
         last_pong = asyncio.get_event_loop().time()
+
+        # Schedule guest force-logout after 45 minutes
+        if role == "GUEST":
+            async def _guest_timeout():
+                await asyncio.sleep(GUEST_SESSION_TIMEOUT)
+                logger.info("Guest session timeout", extra={"user_id": user_id})
+                await force_logout(user_id)
+
+            guest_timeout_task = asyncio.create_task(_guest_timeout())
 
         async def ping_loop():
             nonlocal last_pong
@@ -83,6 +94,8 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
         logger.error("WebSocket error", extra={"user_id": user_id, "error": str(e)})
     finally:
         ping_task.cancel()
+        if guest_timeout_task:
+            guest_timeout_task.cancel()
         _connections[user_id].discard(ws)
         if not _connections[user_id]:
             del _connections[user_id]

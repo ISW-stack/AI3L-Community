@@ -10,7 +10,8 @@ from app.schemas.comment import (
     CommentResponse,
     ReactionRequest,
 )
-from app.services.comment import add_reaction, create_comment, list_comments
+from app.schemas.auth import MessageResponse
+from app.services.comment import add_reaction, create_comment, list_comments, soft_delete_comment
 from app.services.post import get_post_by_id
 
 router = APIRouter(prefix="/posts/{post_id}/comments", tags=["comments"])
@@ -52,6 +53,19 @@ async def create_new_comment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return CommentResponse(**comment)
+
+
+@router.delete("/{comment_id}", response_model=MessageResponse)
+async def delete_comment(
+    post_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> MessageResponse:
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    deleted = await soft_delete_comment(comment_id, current_user["sub"], is_admin)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")
+    return MessageResponse(message="Comment deleted.")
 
 
 @router.post(

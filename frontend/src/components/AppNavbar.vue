@@ -33,6 +33,7 @@ async function handleLogout() {
         <div class="flex items-center gap-4">
           <!-- Forum link (visible to all) -->
           <router-link to="/forum" class="text-sm text-gray-600 hover:text-gray-900">Forum</router-link>
+          <router-link to="/sigs" class="text-sm text-gray-600 hover:text-gray-900">SIGs</router-link>
 
           <template v-if="auth.isAuthenticated">
             <!-- Admin links -->
@@ -48,6 +49,12 @@ async function handleLogout() {
                 class="text-sm text-gray-600 hover:text-gray-900"
               >
                 Applications
+              </router-link>
+              <router-link
+                to="/admin/reports"
+                class="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Reports
               </router-link>
             </template>
 

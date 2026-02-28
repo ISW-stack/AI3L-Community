@@ -61,6 +61,22 @@ const router = createRouter({
       component: () => import('@/views/admin/ApplicationsView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
     },
+    {
+      path: '/admin/reports',
+      name: 'admin-reports',
+      component: () => import('@/views/admin/ReportsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/sigs',
+      name: 'sigs',
+      component: () => import('@/views/sigs/SigsDirectoryView.vue'),
+    },
+    {
+      path: '/sigs/:id',
+      name: 'sig-detail',
+      component: () => import('@/views/sigs/SigDetailView.vue'),
+    },
   ],
 })
 

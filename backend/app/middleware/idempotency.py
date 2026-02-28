@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from app.core.redis import get_redis
 
 IDEMPOTENCY_TTL = 300  # 5 minutes
-IDEMPOTENCY_HEADER = "X-Idempotency-Key"
+IDEMPOTENCY_HEADER = "Idempotency-Key"
 
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):

@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/composables/api'
+import DOMPurify from 'dompurify'
+import TiptapEditor from '@/components/TiptapEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -173,6 +175,52 @@ async function submitComment() {
   }
 }
 
+async function deleteComment(commentId: string) {
+  if (!confirm('Are you sure you want to delete this comment?')) return
+  try {
+    await api.delete(`/posts/${postId.value}/comments/${commentId}`)
+    await fetchComments()
+    if (post.value && post.value.comment_count > 0) post.value.comment_count--
+  } catch {
+    // silent
+  }
+}
+
+function canDeleteComment(comment: Comment): boolean {
+  if (auth.isAdmin) return true
+  if (auth.user && comment.author.id === auth.user.id) return true
+  return false
+}
+
+// Report
+const showReportModal = ref(false)
+const reportReason = ref('')
+const reportSaving = ref(false)
+const reportMessage = ref('')
+
+async function submitReport() {
+  if (!reportReason.value.trim()) return
+  reportSaving.value = true
+  reportMessage.value = ''
+  try {
+    await api.post(`/posts/${postId.value}/report`, { reason: reportReason.value })
+    showReportModal.value = false
+    reportReason.value = ''
+    reportMessage.value = ''
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    reportMessage.value = err.response?.data?.detail || 'Failed to submit report.'
+  } finally {
+    reportSaving.value = false
+  }
+}
+
+const canReport = computed(() => {
+  if (!auth.isAuthenticated || auth.isGuest) return false
+  if (!post.value || !auth.user) return false
+  return post.value.author.id !== auth.user.id
+})
+
 async function toggleReaction(commentId: string, reaction: string) {
   try {
     await api.post(`/posts/${postId.value}/comments/${commentId}/reactions`, { reaction })
@@ -222,11 +270,7 @@ onMounted(() => {
           maxlength="300"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
         />
-        <textarea
-          v-model="editContent"
-          rows="12"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-mono text-sm"
-        ></textarea>
+        <TiptapEditor v-model="editContent" />
         <div class="flex gap-3">
           <button
             @click="saveEdit"
@@ -261,13 +305,14 @@ onMounted(() => {
               </div>
             </div>
 
-            <div v-if="canModify" class="flex gap-2 shrink-0">
-              <button @click="startEdit" class="text-sm text-blue-600 hover:underline">Edit</button>
-              <button @click="deletePost" class="text-sm text-red-600 hover:underline">Delete</button>
+            <div class="flex gap-2 shrink-0">
+              <button v-if="canModify" @click="startEdit" class="text-sm text-blue-600 hover:underline">Edit</button>
+              <button v-if="canModify" @click="deletePost" class="text-sm text-red-600 hover:underline">Delete</button>
+              <button v-if="canReport" @click="showReportModal = true" class="text-sm text-orange-600 hover:underline">Report</button>
             </div>
           </div>
 
-          <div class="prose prose-sm max-w-none text-gray-700 mb-4" v-html="post.content"></div>
+          <div class="prose prose-sm max-w-none text-gray-700 mb-4" v-html="DOMPurify.sanitize(post.content)"></div>
 
           <div v-if="post.keywords?.length" class="flex gap-1 flex-wrap mb-3">
             <span
@@ -339,7 +384,7 @@ onMounted(() => {
                 <span class="text-sm font-medium text-gray-900">{{ comment.author.display_name }}</span>
                 <span class="text-xs text-gray-400">{{ new Date(comment.created_at).toLocaleString() }}</span>
               </div>
-              <p class="text-sm text-gray-700 mb-2" v-html="comment.content"></p>
+              <p class="text-sm text-gray-700 mb-2" v-html="DOMPurify.sanitize(comment.content)"></p>
               <div class="flex items-center gap-3">
                 <!-- Reactions -->
                 <button
@@ -360,6 +405,15 @@ onMounted(() => {
                   class="text-xs text-gray-400 hover:text-blue-600"
                 >
                   Reply
+                </button>
+
+                <!-- Delete -->
+                <button
+                  v-if="canDeleteComment(comment)"
+                  @click="deleteComment(comment.id)"
+                  class="text-xs text-red-400 hover:text-red-600"
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -382,7 +436,38 @@ onMounted(() => {
             <span class="text-xs text-gray-400">{{ new Date(item.edited_at).toLocaleString() }}</span>
           </div>
           <h4 class="text-sm font-semibold text-gray-800 mb-1">{{ item.title }}</h4>
-          <div class="text-sm text-gray-600 prose prose-sm max-w-none" v-html="item.content"></div>
+          <div class="text-sm text-gray-600 prose prose-sm max-w-none" v-html="DOMPurify.sanitize(item.content)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div v-if="showReportModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold">Report Post</h2>
+          <button @click="showReportModal = false" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div v-if="reportMessage" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-2 mb-3 text-xs">
+          {{ reportMessage }}
+        </div>
+        <textarea
+          v-model="reportReason"
+          rows="4"
+          placeholder="Describe why you are reporting this post..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm mb-3"
+        ></textarea>
+        <div class="flex gap-3 justify-end">
+          <button @click="showReportModal = false" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">
+            Cancel
+          </button>
+          <button
+            @click="submitReport"
+            :disabled="reportSaving || !reportReason.trim()"
+            class="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 disabled:opacity-50"
+          >
+            {{ reportSaving ? 'Submitting...' : 'Submit Report' }}
+          </button>
         </div>
       </div>
     </div>

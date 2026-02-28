@@ -5,7 +5,9 @@ from app.models.invite_code import InviteCode
 from app.models.membership_application import ApplicationStatus, MembershipApplication
 from app.models.post import Post
 from app.models.post_history import PostHistory
+from app.models.post_report import PostReport
 from app.models.privacy_consent import PrivacyConsent
+from app.models.sig import Sig, SigMember
 from app.models.user import User, UserRole
 
 __all__ = [
@@ -17,7 +19,10 @@ __all__ = [
     "ApplicationStatus",
     "Post",
     "PostHistory",
+    "PostReport",
     "PrivacyConsent",
+    "Sig",
+    "SigMember",
     "User",
     "UserRole",
 ]

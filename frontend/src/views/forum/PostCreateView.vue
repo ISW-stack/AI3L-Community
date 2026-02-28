@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/composables/api'
+import TiptapEditor from '@/components/TiptapEditor.vue'
 
 const router = useRouter()
 
@@ -105,13 +106,7 @@ onMounted(fetchCategories)
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
-        <textarea
-          v-model="content"
-          rows="12"
-          required
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-mono text-sm"
-          placeholder="Write your post content here. HTML is supported."
-        ></textarea>
+        <TiptapEditor v-model="content" />
       </div>
 
       <div>

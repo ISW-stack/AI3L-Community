@@ -7,6 +7,7 @@ import api from '@/composables/api'
 const router = useRouter()
 const auth = useAuthStore()
 
+const inviteCode = ref('')
 const displayName = ref('')
 const captchaId = ref('')
 const captchaCode = ref('')
@@ -25,7 +26,7 @@ async function handleGuestLogin() {
   error.value = ''
   loading.value = true
   try {
-    await auth.guestLogin(displayName.value, captchaId.value, captchaCode.value)
+    await auth.guestLogin(inviteCode.value, displayName.value, captchaId.value, captchaCode.value)
     router.push('/')
   } catch (e: any) {
     error.value = e.response?.data?.detail || 'Guest login failed. Please try again.'
@@ -51,6 +52,17 @@ loadCaptcha()
       </div>
 
       <form @submit.prevent="handleGuestLogin" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Invite Code</label>
+          <input
+            v-model="inviteCode"
+            type="text"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            placeholder="Enter your invite code"
+          />
+        </div>
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
           <input

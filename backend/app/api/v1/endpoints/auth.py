@@ -51,8 +51,15 @@ async def login(req: LoginRequest) -> TokenResponse:
     return TokenResponse(token=token, role=user["role"], expires_in=expires_in)
 
 
-@router.post("/guest", response_model=TokenResponse)
-async def login_as_guest(req: GuestLoginRequest) -> TokenResponse:
+@router.post("/guest/{invite_code}", response_model=TokenResponse)
+async def login_as_guest(invite_code: str, req: GuestLoginRequest) -> TokenResponse:
+    invite = await get_invite_code(invite_code)
+    if invite is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid or expired invite code.",
+        )
+
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -62,7 +69,7 @@ async def login_as_guest(req: GuestLoginRequest) -> TokenResponse:
     result = await guest_login(req.display_name)
     if result is None:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Guest capacity reached. Please try again later.",
         )
 
@@ -126,7 +133,7 @@ async def heartbeat(current_user: dict = Depends(get_current_user)) -> MessageRe
 
 @router.post("/invite-code", response_model=InviteCodeResponse)
 async def generate_invite_code(
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> InviteCodeResponse:
     code, expires_at = await create_invite_code(current_user["sub"])
     return InviteCodeResponse(

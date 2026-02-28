@@ -8,6 +8,8 @@ from app.api.v1.endpoints import (
     files,
     health,
     posts,
+    reports,
+    sigs,
     users,
     ws,
 )
@@ -22,4 +24,6 @@ api_v1_router.include_router(categories.router)
 api_v1_router.include_router(posts.router)
 api_v1_router.include_router(comments.router)
 api_v1_router.include_router(files.router)
+api_v1_router.include_router(reports.router)
+api_v1_router.include_router(sigs.router)
 api_v1_router.include_router(ws.router)

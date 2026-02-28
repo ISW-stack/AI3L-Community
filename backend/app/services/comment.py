@@ -117,6 +117,40 @@ async def list_comments(
         return [_row_to_comment(dict(r)) for r in rows], total
 
 
+async def soft_delete_comment(
+    comment_id: uuid.UUID,
+    user_id: str,
+    is_admin: bool = False,
+) -> bool:
+    """Soft-delete a comment and decrement the post's comment_count."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            if is_admin:
+                row = await conn.fetchrow(
+                    "UPDATE comments SET is_deleted = true, updated_at = NOW() "
+                    "WHERE id = $1 AND is_deleted = false RETURNING post_id",
+                    comment_id,
+                )
+            else:
+                row = await conn.fetchrow(
+                    "UPDATE comments SET is_deleted = true, updated_at = NOW() "
+                    "WHERE id = $1 AND user_id = $2 AND is_deleted = false RETURNING post_id",
+                    comment_id,
+                    uuid.UUID(user_id),
+                )
+
+            if not row:
+                return False
+
+            await conn.execute(
+                "UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = $1",
+                row["post_id"],
+            )
+            logger.info("Comment deleted", extra={"comment_id": str(comment_id)})
+            return True
+
+
 async def add_reaction(
     comment_id: uuid.UUID,
     user_id: str,

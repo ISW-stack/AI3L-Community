@@ -62,8 +62,8 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchProfile()
   }
 
-  async function guestLogin(displayName: string, captchaId: string, captchaCode: string) {
-    const { data } = await api.post('/auth/guest', {
+  async function guestLogin(inviteCode: string, displayName: string, captchaId: string, captchaCode: string) {
+    const { data } = await api.post(`/auth/guest/${encodeURIComponent(inviteCode)}`, {
       display_name: displayName,
       captcha_id: captchaId,
       captcha_code: captchaCode,
