@@ -71,11 +71,13 @@ export const useAuthStore = defineStore('auth', () => {
     setSession(data.token, data.role, data.expires_in)
   }
 
-  async function register(username: string, password: string, displayName: string) {
+  async function register(username: string, password: string, displayName: string, captchaId: string, captchaCode: string) {
     const { data } = await api.post('/auth/register', {
       username,
       password,
       display_name: displayName,
+      captcha_id: captchaId,
+      captcha_code: captchaCode,
     })
     setSession(data.token, data.role, data.expires_in)
     await fetchProfile()

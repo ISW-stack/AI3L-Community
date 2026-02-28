@@ -23,6 +23,8 @@ class CreateAccountRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., max_length=100)
+    captcha_id: str
+    captcha_code: str
 
 
 class ApplyMemberRequest(BaseModel):

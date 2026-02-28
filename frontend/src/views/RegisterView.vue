@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/composables/api'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -10,8 +11,18 @@ const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const displayName = ref('')
+const captchaId = ref('')
+const captchaCode = ref('')
+const captchaImage = ref('')
 const error = ref('')
 const loading = ref(false)
+
+async function loadCaptcha() {
+  const { data } = await api.get('/auth/captcha')
+  captchaId.value = data.captcha_id
+  captchaImage.value = data.image_base64
+  captchaCode.value = ''
+}
 
 const passwordChecks = computed(() => ({
   length: password.value.length >= 8,
@@ -39,14 +50,17 @@ async function handleRegister() {
   error.value = ''
   loading.value = true
   try {
-    await auth.register(username.value, password.value, displayName.value)
+    await auth.register(username.value, password.value, displayName.value, captchaId.value, captchaCode.value)
     router.push('/')
   } catch (e: any) {
     error.value = e.response?.data?.detail || 'Registration failed. Please try again.'
+    await loadCaptcha()
   } finally {
     loading.value = false
   }
 }
+
+loadCaptcha()
 </script>
 
 <template>
@@ -108,6 +122,28 @@ async function handleRegister() {
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           <p v-if="confirmPassword && !passwordsMatch" class="text-red-500 text-xs mt-1">Passwords do not match</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Captcha</label>
+          <div class="flex gap-3 items-center">
+            <input
+              v-model="captchaCode"
+              type="text"
+              required
+              maxlength="4"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              placeholder="Enter captcha code"
+            />
+            <img
+              v-if="captchaImage"
+              :src="captchaImage"
+              alt="captcha"
+              class="h-10 rounded cursor-pointer"
+              @click="loadCaptcha"
+              title="Click to refresh captcha"
+            />
+          </div>
         </div>
 
         <button
