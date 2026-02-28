@@ -1,0 +1,15 @@
+# Default owner for everything
+* @Isaries
+
+# Backend
+/backend/ @Isaries
+# /backend/ @Isaries @backend-collaborator-username
+
+# Frontend
+/frontend/ @Isaries
+# /frontend/ @Isaries @frontend-collaborator-username
+
+# Infrastructure / DevOps
+/docker-compose*.yml @Isaries
+/nginx/ @Isaries
+/.github/ @Isaries
