@@ -27,3 +27,19 @@ class CreateAccountRequest(BaseModel):
 
 class ApplyMemberRequest(BaseModel):
     description: str = Field(..., max_length=500)
+
+
+class AdminCreateAccountRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: str = Field(..., max_length=100)
+    role: str = Field(default="MEMBER")
+
+
+class RoleUpdateRequest(BaseModel):
+    role: str
+
+
+class UserListResponse(BaseModel):
+    users: list[UserResponse]
+    total: int

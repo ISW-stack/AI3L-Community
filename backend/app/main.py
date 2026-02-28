@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.database import close_db_pool, init_db_pool
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
+from app.core.storage import init_storage
 from app.api.v1.router import api_v1_router
 
 
@@ -40,6 +41,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     await init_db_pool(settings.DATABASE_URL)
     await init_redis(settings.REDIS_URL)
+
+    try:
+        init_storage()
+    except Exception as e:
+        logger.warning(f"Storage init skipped: {e}")
 
     # Bootstrap Super Admin (requires DB to be ready)
     try:
@@ -73,5 +79,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
+
+from app.middleware.idempotency import IdempotencyMiddleware  # noqa: E402
+
+app.add_middleware(IdempotencyMiddleware)
 
 app.include_router(api_v1_router, prefix="/api/v1")

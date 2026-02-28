@@ -1,44 +1,51 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 
-const apiStatus = ref<string>('checking...')
-
-onMounted(async () => {
-  try {
-    const res = await fetch('/api/v1/health')
-    const data = await res.json()
-    apiStatus.value = data.status
-  } catch {
-    apiStatus.value = 'unavailable (backend not running)'
-  }
-})
+const auth = useAuthStore()
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center space-y-6 p-8">
+  <div class="max-w-4xl mx-auto py-12 px-4">
+    <div class="text-center space-y-4 mb-12">
       <h1 class="text-4xl font-bold text-gray-900">AI3L Community</h1>
-      <p class="text-lg text-gray-600">Academic Exchange Platform</p>
+      <p class="text-lg text-gray-600">AI in Language Learning and Literacy - Academic Exchange Platform</p>
+    </div>
 
-      <div class="mt-8 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          Stack Status
+    <!-- Authenticated view -->
+    <div v-if="auth.isAuthenticated" class="space-y-6">
+      <div class="bg-white rounded-xl shadow p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-2">
+          {{ auth.isGuest ? 'Welcome, Guest' : `Welcome back, ${auth.user?.display_name}` }}
         </h2>
-        <div class="space-y-1 text-sm text-gray-700">
-          <p>Vue 3 + TypeScript + Vite + Tailwind CSS</p>
-          <p>
-            API:
-            <span
-              :class="{
-                'text-green-600 font-medium': apiStatus === 'healthy',
-                'text-red-500': apiStatus !== 'healthy',
-              }"
-            >
-              {{ apiStatus }}
-            </span>
-          </p>
-        </div>
+        <p class="text-gray-600">The forum and more features are under development. Stay tuned!</p>
       </div>
+
+      <div v-if="auth.isGuest" class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
+        You are browsing as a guest. Your session lasts 45 minutes.
+        <router-link to="/register" class="font-medium underline">Sign up</router-link>
+        for full access.
+      </div>
+    </div>
+
+    <!-- Unauthenticated view -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <router-link to="/login" class="bg-white rounded-xl shadow p-6 hover:shadow-md transition text-center">
+        <div class="text-3xl mb-2">🔑</div>
+        <h3 class="font-semibold text-gray-900">Log In</h3>
+        <p class="text-sm text-gray-500 mt-1">Sign in with your credentials</p>
+      </router-link>
+
+      <router-link to="/register" class="bg-white rounded-xl shadow p-6 hover:shadow-md transition text-center">
+        <div class="text-3xl mb-2">📝</div>
+        <h3 class="font-semibold text-gray-900">Sign Up</h3>
+        <p class="text-sm text-gray-500 mt-1">Create a new account</p>
+      </router-link>
+
+      <router-link to="/guest" class="bg-white rounded-xl shadow p-6 hover:shadow-md transition text-center">
+        <div class="text-3xl mb-2">👀</div>
+        <h3 class="font-semibold text-gray-900">Guest Access</h3>
+        <p class="text-sm text-gray-500 mt-1">Browse without signing up</p>
+      </router-link>
     </div>
   </div>
 </template>

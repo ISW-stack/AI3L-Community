@@ -1,0 +1,86 @@
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.core.deps import get_current_user, require_role
+from app.schemas.application import (
+    ApplicationListResponse,
+    ApplicationResponse,
+    ReviewApplicationRequest,
+)
+from app.schemas.auth import MessageResponse
+from app.schemas.user import ApplyMemberRequest
+from app.services.application import (
+    create_application,
+    list_applications,
+    review_application,
+)
+
+router = APIRouter(tags=["applications"])
+
+
+def _app_to_response(app: dict) -> ApplicationResponse:
+    return ApplicationResponse(
+        id=str(app["id"]),
+        user_id=str(app["user_id"]),
+        username=app.get("username", ""),
+        display_name=app.get("display_name", ""),
+        description=app["description"],
+        status=app["status"],
+        reviewed_by=str(app["reviewed_by"]) if app.get("reviewed_by") else None,
+        reviewed_at=app["reviewed_at"].isoformat() if app.get("reviewed_at") else None,
+        created_at=app["created_at"].isoformat(),
+    )
+
+
+@router.post("/users/apply-member", response_model=MessageResponse)
+async def apply_for_membership(
+    req: ApplyMemberRequest,
+    current_user: dict = Depends(get_current_user),
+) -> MessageResponse:
+    if current_user["role"] != "GUEST":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only guests can apply for membership.",
+        )
+
+    try:
+        await create_application(uuid.UUID(current_user["sub"]), req.description)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+    return MessageResponse(message="Application submitted successfully.")
+
+
+@router.get("/admin/applications", response_model=ApplicationListResponse)
+async def get_applications(
+    status_filter: str | None = Query(None, alias="status"),
+    offset: int = 0,
+    limit: int = 50,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> ApplicationListResponse:
+    apps, total = await list_applications(status_filter=status_filter, offset=offset, limit=limit)
+    return ApplicationListResponse(
+        applications=[_app_to_response(a) for a in apps],
+        total=total,
+    )
+
+
+@router.put("/admin/applications/{app_id}/review", response_model=MessageResponse)
+async def review_membership_application(
+    app_id: uuid.UUID,
+    req: ReviewApplicationRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> MessageResponse:
+    result = await review_application(
+        app_id=app_id,
+        reviewer_id=uuid.UUID(current_user["sub"]),
+        action=req.action,
+    )
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found or already reviewed.",
+        )
+
+    return MessageResponse(message=f"Application {req.action.lower()}.")
