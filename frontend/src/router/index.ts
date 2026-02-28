@@ -43,6 +43,7 @@ const router = createRouter({
       path: '/forum',
       name: 'forum',
       component: () => import('@/views/forum/ForumView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/forum/create',
@@ -54,6 +55,7 @@ const router = createRouter({
       path: '/forum/:id',
       name: 'forum-post',
       component: () => import('@/views/forum/PostDetailView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/admin/users',
@@ -83,11 +85,13 @@ const router = createRouter({
       path: '/sigs',
       name: 'sigs',
       component: () => import('@/views/sigs/SigsDirectoryView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/sigs/:id',
       name: 'sig-detail',
       component: () => import('@/views/sigs/SigDetailView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/sigs/:sigId/forms/new',
@@ -99,6 +103,7 @@ const router = createRouter({
       path: '/forms/:formId',
       name: 'form-view',
       component: () => import('@/views/forms/FormView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/forms/:formId/edit',

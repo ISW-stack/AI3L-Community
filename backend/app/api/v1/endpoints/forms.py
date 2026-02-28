@@ -105,14 +105,12 @@ async def get_sig_forms(
     sig_id: uuid.UUID,
     page: int = 1,
     page_size: int = 20,
-    current_user: dict | None = Depends(_get_optional_user),
+    current_user: dict = Depends(get_current_user),
 ) -> FormListResponse:
     forms, total = await list_forms_by_sig(sig_id, page=page, page_size=page_size)
-    is_sig_admin = False
-    if current_user:
-        is_sig_admin = await _check_sig_admin(
-            sig_id, current_user["sub"], current_user["role"]
-        )
+    is_sig_admin = await _check_sig_admin(
+        sig_id, current_user["sub"], current_user["role"]
+    )
     for f in forms:
         f["user_is_sig_admin"] = is_sig_admin
     return FormListResponse(
@@ -124,18 +122,16 @@ async def get_sig_forms(
 @router.get("/forms/{form_id}", response_model=FormResponseSchema)
 async def get_form(
     form_id: uuid.UUID,
-    current_user: dict | None = Depends(_get_optional_user),
+    current_user: dict = Depends(get_current_user),
 ) -> FormResponseSchema:
     form = await get_form_by_id(form_id)
     if form is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Form not found."
         )
-    is_sig_admin = False
-    if current_user:
-        is_sig_admin = await _check_sig_admin(
-            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
-        )
+    is_sig_admin = await _check_sig_admin(
+        uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+    )
     form["user_is_sig_admin"] = is_sig_admin
     return FormResponseSchema(**form)
 

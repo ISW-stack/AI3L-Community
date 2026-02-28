@@ -52,6 +52,7 @@ async def get_posts_list(
     page: int = 1,
     page_size: int = 20,
     category_id: str | None = None,
+    current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
     posts, total, total_pages = await list_posts(
         page=page, page_size=page_size, category_id=category_id
@@ -60,7 +61,10 @@ async def get_posts_list(
 
 
 @router.post("/search", response_model=PostListResponse)
-async def search_posts_endpoint(req: PostSearchRequest) -> PostListResponse:
+async def search_posts_endpoint(
+    req: PostSearchRequest,
+    current_user: dict = Depends(get_current_user),
+) -> PostListResponse:
     posts, total, total_pages = await search_posts(
         keyword=req.keyword,
         category_id=req.category_id,
@@ -75,7 +79,10 @@ async def search_posts_endpoint(req: PostSearchRequest) -> PostListResponse:
 
 
 @router.get("/{post_id}", response_model=PostResponse)
-async def get_post(post_id: uuid.UUID) -> PostResponse:
+async def get_post(
+    post_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+) -> PostResponse:
     post = await get_post_by_id(post_id)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")

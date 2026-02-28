@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.core.deps import require_role
+from app.core.deps import get_current_user, require_role
 from app.schemas.category import CategoryCreateRequest, CategoryListResponse, CategoryResponse
 from app.services.category import category_exists, create_category, list_categories
 
@@ -8,7 +8,9 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 
 @router.get("", response_model=CategoryListResponse)
-async def get_categories() -> CategoryListResponse:
+async def get_categories(
+    current_user: dict = Depends(get_current_user),
+) -> CategoryListResponse:
     categories = await list_categories()
     items = [
         CategoryResponse(

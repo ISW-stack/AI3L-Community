@@ -22,6 +22,7 @@ async def get_comments(
     post_id: uuid.UUID,
     offset: int = 0,
     limit: int = 50,
+    current_user: dict = Depends(get_current_user),
 ) -> CommentListResponse:
     # Verify post exists
     post = await get_post_by_id(post_id)

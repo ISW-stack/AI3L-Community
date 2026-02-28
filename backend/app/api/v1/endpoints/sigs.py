@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.core.deps import require_role
+from app.core.deps import get_current_user, require_role
 from app.schemas.post import PostListResponse, PostResponse
 from app.schemas.sig import (
     SigCreateRequest,
@@ -28,6 +28,7 @@ router = APIRouter(prefix="/sigs", tags=["sigs"])
 async def get_sigs(
     offset: int = 0,
     limit: int = 50,
+    current_user: dict = Depends(get_current_user),
 ) -> SigListResponse:
     sigs, total = await list_sigs(offset=offset, limit=limit)
     return SigListResponse(
@@ -49,7 +50,10 @@ async def create_new_sig(
 
 
 @router.get("/{sig_id}", response_model=SigResponse)
-async def get_sig(sig_id: uuid.UUID) -> SigResponse:
+async def get_sig(
+    sig_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+) -> SigResponse:
     sig = await get_sig_by_id(sig_id)
     if sig is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
@@ -74,6 +78,7 @@ async def get_sig_members(
     sig_id: uuid.UUID,
     offset: int = 0,
     limit: int = 50,
+    current_user: dict = Depends(get_current_user),
 ) -> SigMemberListResponse:
     members, total = await list_sig_members(sig_id, offset=offset, limit=limit)
     return SigMemberListResponse(
@@ -87,6 +92,7 @@ async def get_sig_posts(
     sig_id: uuid.UUID,
     page: int = 1,
     page_size: int = 20,
+    current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
     posts, total, total_pages = await list_posts(page=page, page_size=page_size, sig_id=str(sig_id))
     return PostListResponse(

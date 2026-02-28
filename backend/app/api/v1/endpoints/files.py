@@ -58,6 +58,16 @@ async def get_presigned_url(
     key: str,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
-    """Get a presigned download URL for a stored file."""
+    """Get a presigned download URL for a stored file.
+
+    Admins can access any file. Members can only access their own uploads.
+    """
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    owns_file = key.startswith(f"editor/{current_user['sub']}/") or key.startswith(f"avatars/{current_user['sub']}")
+    if not is_admin and not owns_file:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this file.",
+        )
     url = generate_presigned_url(key, expires_in=3600)
     return {"url": url, "key": key}
