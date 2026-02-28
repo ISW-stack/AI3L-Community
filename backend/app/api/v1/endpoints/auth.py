@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.deps import get_current_user, require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.security import validate_password_policy
 from app.schemas.auth import (
     CaptchaResponse,
@@ -32,7 +33,7 @@ async def get_captcha() -> CaptchaResponse:
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest) -> TokenResponse:
+async def login(req: LoginRequest, request: Request) -> TokenResponse:
     # Verify captcha first
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise HTTPException(
@@ -42,13 +43,32 @@ async def login(req: LoginRequest) -> TokenResponse:
 
     user = await authenticate_user(req.username, req.password)
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password.",
-        )
+        raise AppError(ErrorCode.AUTH_001, 401, "Invalid username or password.")
+
+    # Check banned
+    if user.get("is_banned"):
+        reason = user.get("ban_reason") or "No reason provided"
+        raise AppError(ErrorCode.AUTH_004, 403, f"Account is banned: {reason}")
 
     token, expires_in = await create_session(str(user["id"]), user["role"])
-    return TokenResponse(token=token, role=user["role"], expires_in=expires_in)
+
+    # Check privacy consent
+    from app.services.privacy_consent import has_consent
+
+    needs_consent = not await has_consent(str(user["id"]))
+
+    # Audit log (best-effort)
+    try:
+        from app.services.audit import log_action
+
+        ip = request.client.host if request.client else None
+        await log_action(str(user["id"]), "LOGIN", ip_address=ip)
+    except Exception:
+        pass
+
+    return TokenResponse(
+        token=token, role=user["role"], expires_in=expires_in, requires_consent=needs_consent
+    )
 
 
 @router.post("/guest/{invite_code}", response_model=TokenResponse)
@@ -68,27 +88,35 @@ async def login_as_guest(invite_code: str, req: GuestLoginRequest) -> TokenRespo
 
     result = await guest_login(req.display_name)
     if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Guest capacity reached. Please try again later.",
-        )
+        raise AppError(ErrorCode.AUTH_003, 429, "Guest capacity reached. Please try again later.")
 
     token, expires_in = result
-    return TokenResponse(token=token, role="GUEST", expires_in=expires_in)
+    # Guests always see consent modal on each session
+    return TokenResponse(token=token, role="GUEST", expires_in=expires_in, requires_consent=True)
 
 
 @router.post("/logout", response_model=MessageResponse)
-async def logout(current_user: dict = Depends(get_current_user)) -> MessageResponse:
+async def logout(request: Request, current_user: dict = Depends(get_current_user)) -> MessageResponse:
     await destroy_session(
         user_id=current_user["sub"],
         role=current_user["role"],
         jti=current_user["jti"],
     )
+
+    # Audit log (best-effort)
+    try:
+        from app.services.audit import log_action
+
+        ip = request.client.host if request.client else None
+        await log_action(current_user["sub"], "LOGOUT", ip_address=ip)
+    except Exception:
+        pass
+
     return MessageResponse(message="Logged out successfully.")
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: CreateAccountRequest) -> TokenResponse:
+async def register(req: CreateAccountRequest, request: Request) -> TokenResponse:
     # Verify captcha
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise HTTPException(
@@ -115,7 +143,11 @@ async def register(req: CreateAccountRequest) -> TokenResponse:
     )
 
     token, expires_in = await create_session(str(user["id"]), user["role"])
-    return TokenResponse(token=token, role=user["role"], expires_in=expires_in)
+
+    # New user always requires consent
+    return TokenResponse(
+        token=token, role=user["role"], expires_in=expires_in, requires_consent=True
+    )
 
 
 @router.post("/heartbeat", response_model=MessageResponse)
@@ -124,10 +156,7 @@ async def heartbeat(current_user: dict = Depends(get_current_user)) -> MessageRe
 
     refreshed = await refresh_session_ttl(current_user["sub"], current_user["role"])
     if not refreshed:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session not found.",
-        )
+        raise AppError(ErrorCode.AUTH_001, 401, "Session not found.")
     return MessageResponse(message="Session refreshed.")
 
 

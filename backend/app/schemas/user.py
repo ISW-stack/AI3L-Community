@@ -10,6 +10,8 @@ class UserResponse(BaseModel):
     orcid: str | None = None
     affiliation: str | None = None
     bio: str | None = None
+    is_banned: bool = False
+    ban_reason: str | None = None
 
 
 class UserUpdateRequest(BaseModel):
@@ -40,6 +42,10 @@ class AdminCreateAccountRequest(BaseModel):
 
 class RoleUpdateRequest(BaseModel):
     role: str
+
+
+class BanRequest(BaseModel):
+    reason: str = Field(..., max_length=500)
 
 
 class UserListResponse(BaseModel):

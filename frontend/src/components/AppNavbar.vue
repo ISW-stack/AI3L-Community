@@ -58,6 +58,13 @@ async function handleLogout() {
                 Reports
               </router-link>
             </template>
+            <router-link
+              v-if="auth.isSuperAdmin"
+              to="/admin/audit-logs"
+              class="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Audit Logs
+            </router-link>
 
             <!-- Notification bell -->
             <NotificationBell />

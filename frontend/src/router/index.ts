@@ -74,6 +74,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
+      path: '/admin/audit-logs',
+      name: 'admin-audit-logs',
+      component: () => import('@/views/admin/AuditLogsView.vue'),
+      meta: { requiresAuth: true, requiresSuperAdmin: true },
+    },
+    {
       path: '/sigs',
       name: 'sigs',
       component: () => import('@/views/sigs/SigsDirectoryView.vue'),
@@ -118,6 +124,11 @@ router.beforeEach((to) => {
 
   // Check admin access
   if (to.meta.requiresAdmin && !auth.isAdmin) {
+    return { name: 'home' }
+  }
+
+  // Check super admin access
+  if (to.meta.requiresSuperAdmin && !auth.isSuperAdmin) {
     return { name: 'home' }
   }
 })

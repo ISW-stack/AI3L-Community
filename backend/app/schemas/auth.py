@@ -23,6 +23,7 @@ class TokenResponse(BaseModel):
     token: str
     role: str
     expires_in: int  # seconds
+    requires_consent: bool = False
 
 
 class InviteCodeResponse(BaseModel):
@@ -33,3 +34,8 @@ class InviteCodeResponse(BaseModel):
 class MessageResponse(BaseModel):
     status: str = "success"
     message: str = ""
+
+
+class ErrorResponse(BaseModel):
+    code: str
+    message: str

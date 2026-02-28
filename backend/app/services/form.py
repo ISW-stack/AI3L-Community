@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from loguru import logger
 
 from app.core.database import get_pool
+from app.core.errors import AppError, ErrorCode
 
 _MAX_ACTIVE_FORMS_PER_SIG = 20
 
@@ -253,7 +254,7 @@ async def submit_response(
             # 2. Check not expired
             now = datetime.now(timezone.utc)
             if form["deadline"] and form["deadline"] < now:
-                raise ValueError("This form has passed its deadline.")
+                raise AppError(ErrorCode.FORM_001, 400, "This form has passed its deadline.")
 
             # 3. Check not full
             response_count = await conn.fetchval(

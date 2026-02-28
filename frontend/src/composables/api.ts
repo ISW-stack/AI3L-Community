@@ -17,23 +17,64 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Response: handle 401 and 429
+// Response: handle structured error codes, 401, 429
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    const detail = error.response?.data?.detail
+    const code: string | undefined = typeof detail === 'object' ? detail?.code : undefined
+    const message: string =
+      typeof detail === 'object' ? detail?.message : typeof detail === 'string' ? detail : ''
+
+    // AUTH_004 — account banned
+    if (code === 'AUTH_004') {
+      const auth = useAuthStore()
+      auth.clearSession()
+      window.dispatchEvent(
+        new CustomEvent('app:toast', {
+          detail: { message: message || 'Your account has been banned.', type: 'error' },
+        }),
+      )
+      router.push({ name: 'login' })
+      return Promise.reject(error)
+    }
+
+    // AUTH_001 / AUTH_002 — token expired or revoked
+    if (code === 'AUTH_001' || code === 'AUTH_002' || (status === 401 && !code)) {
       const auth = useAuthStore()
       auth.clearSession()
       router.push({ name: 'login' })
+      return Promise.reject(error)
     }
 
-    if (error.response?.status === 429) {
+    // AUTH_003 — guest capacity reached
+    if (code === 'AUTH_003') {
+      window.dispatchEvent(
+        new CustomEvent('app:toast', {
+          detail: { message: message || 'Guest capacity reached. Please try again later.', type: 'warning' },
+        }),
+      )
+      return Promise.reject(error)
+    }
+
+    // 429 — rate limit
+    if (status === 429) {
       const retryAfter = error.response.headers['retry-after']
       const msg = retryAfter
         ? `Too many requests. Please retry after ${retryAfter} seconds.`
-        : 'Too many requests. Please try again later.'
-      // Dispatch a custom event for toast notification
+        : message || 'Too many requests. Please try again later.'
       window.dispatchEvent(new CustomEvent('app:toast', { detail: { message: msg, type: 'warning' } }))
+      return Promise.reject(error)
+    }
+
+    // Generic structured error — dispatch toast with message if available
+    if (code && message) {
+      window.dispatchEvent(
+        new CustomEvent('app:toast', {
+          detail: { message, type: 'error' },
+        }),
+      )
     }
 
     return Promise.reject(error)

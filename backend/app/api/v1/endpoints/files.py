@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
 from app.core.deps import require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import (
     MAX_EDITOR_FILE_SIZE,
     get_content_type_from_extension,
@@ -36,10 +37,7 @@ async def upload_editor_file(
         )
 
     if not validate_magic_number(data, expected_type):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File content does not match its extension (invalid magic number).",
-        )
+        raise AppError(ErrorCode.FILE_001, 400, "File content does not match its extension (invalid magic number).")
 
     ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     key = f"editor/{current_user['sub']}/{uuid.uuid4().hex}{ext}"

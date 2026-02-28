@@ -5,6 +5,7 @@ from fastapi import Request, Response
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from app.core.errors import ErrorCode
 from app.core.redis import get_redis
 
 IDEMPOTENCY_TTL = 300  # 5 minutes
@@ -34,6 +35,13 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         cached = await redis.get(redis_key)
         if cached:
             data = json.loads(cached)
+            if data.get("status") == "processing":
+                conflict_body = json.dumps({"detail": {"code": ErrorCode.SYS_409.value, "message": "Duplicate request is still processing."}})
+                return Response(
+                    content=conflict_body,
+                    status_code=409,
+                    headers={"Content-Type": "application/json", IDEMPOTENCY_HEADER: idem_key},
+                )
             logger.debug("Idempotency cache hit", extra={"key": idem_key})
             return Response(
                 content=data["body"],

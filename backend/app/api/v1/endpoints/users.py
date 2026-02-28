@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 
 from app.core.deps import get_current_user, require_role
 from app.core.security import validate_password_policy
@@ -8,6 +8,7 @@ from app.models.user import UserRole
 from app.schemas.auth import MessageResponse
 from app.schemas.user import (
     AdminCreateAccountRequest,
+    BanRequest,
     RoleUpdateRequest,
     UserListResponse,
     UserResponse,
@@ -16,9 +17,11 @@ from app.schemas.user import (
 from app.services.auth import destroy_session
 from app.services.user import (
     anonymize_user,
+    ban_user,
     create_user,
     get_user_by_id,
     list_users,
+    unban_user,
     update_user_profile,
     update_user_role,
     user_exists_by_username,
@@ -37,6 +40,8 @@ def _user_to_response(user: dict) -> UserResponse:
         orcid=user.get("orcid"),
         affiliation=user.get("affiliation"),
         bio=user.get("bio"),
+        is_banned=user.get("is_banned", False),
+        ban_reason=user.get("ban_reason"),
     )
 
 
@@ -102,8 +107,33 @@ async def upload_avatar(
     return _user_to_response(user)
 
 
+@router.post("/me/consent", response_model=MessageResponse)
+async def accept_privacy_consent(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> MessageResponse:
+    """Record user's acceptance of the privacy consent."""
+    ip = request.client.host if request.client else "unknown"
+    user_id = current_user["sub"]
+    role = current_user.get("role")
+
+    if role == "GUEST":
+        from app.services.privacy_consent import create_guest_consent
+
+        await create_guest_consent(user_id)
+    else:
+        from app.services.privacy_consent import create_consent
+
+        await create_consent(user_id, ip)
+
+    return MessageResponse(message="Privacy consent recorded.")
+
+
 @router.delete("/me", response_model=MessageResponse)
-async def delete_my_account(current_user: dict = Depends(get_current_user)) -> MessageResponse:
+async def delete_my_account(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+) -> MessageResponse:
     """GDPR anonymization: overwrite PII and invalidate session."""
     user_id = uuid.UUID(current_user["sub"])
     deleted = await anonymize_user(user_id)
@@ -111,6 +141,16 @@ async def delete_my_account(current_user: dict = Depends(get_current_user)) -> M
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
     await destroy_session(current_user["sub"], current_user["role"], current_user["jti"])
+
+    # Audit log (best-effort)
+    try:
+        from app.services.audit import log_action
+
+        ip = request.client.host if request.client else None
+        await log_action(current_user["sub"], "ACCOUNT_DELETE", target_type="user", target_id=current_user["sub"], ip_address=ip)
+    except Exception:
+        pass
+
     return MessageResponse(message="Account deleted and anonymized.")
 
 
@@ -173,6 +213,7 @@ async def admin_create_account(
 async def change_user_role(
     user_id: uuid.UUID,
     req: RoleUpdateRequest,
+    request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
 ) -> UserResponse:
     valid_roles = {r.value for r in UserRole if r != UserRole.GUEST}
@@ -197,9 +238,85 @@ async def change_user_role(
     from app.core.redis import get_redis
 
     redis = get_redis()
-    old_role = user.get("role", req.role)
-    # Try to delete sessions for all possible roles
     for role in [r.value for r in UserRole]:
         await redis.delete(f"session:{role}:{user_id}")
 
+    # Audit log (best-effort)
+    try:
+        from app.services.audit import log_action
+
+        ip = request.client.host if request.client else None
+        await log_action(current_user["sub"], "ROLE_CHANGE", target_type="user", target_id=str(user_id), ip_address=ip)
+    except Exception:
+        pass
+
     return _user_to_response(user)
+
+
+@router.post("/{user_id}/ban", response_model=MessageResponse)
+async def ban_user_endpoint(
+    user_id: uuid.UUID,
+    req: BanRequest,
+    request: Request,
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> MessageResponse:
+    """Ban a user: set is_banned=true, revoke all sessions, force logout via WS."""
+    if str(user_id) == current_user["sub"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot ban yourself.",
+        )
+
+    result = await ban_user(user_id, req.reason)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    # Audit log (best-effort)
+    try:
+        from app.services.audit import log_action
+
+        ip = request.client.host if request.client else None
+        await log_action(current_user["sub"], "BAN", target_type="user", target_id=str(user_id), ip_address=ip)
+    except Exception:
+        pass
+
+    return MessageResponse(message="User has been banned.")
+
+
+@router.post("/{user_id}/unban", response_model=MessageResponse)
+async def unban_user_endpoint(
+    user_id: uuid.UUID,
+    request: Request,
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> MessageResponse:
+    """Unban a user: set is_banned=false, clear ban_reason."""
+    result = await unban_user(user_id)
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    # Audit log (best-effort)
+    try:
+        from app.services.audit import log_action
+
+        ip = request.client.host if request.client else None
+        await log_action(current_user["sub"], "UNBAN", target_type="user", target_id=str(user_id), ip_address=ip)
+    except Exception:
+        pass
+
+    return MessageResponse(message="User has been unbanned.")
+
+
+# --- Audit Logs (admin) ---
+
+
+@router.get("/admin/audit-logs")
+async def get_audit_logs(
+    page: int = 1,
+    page_size: int = 50,
+    user_id: str | None = None,
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> dict:
+    from app.services.audit import list_audit_logs
+
+    logs, total = await list_audit_logs(page=page, page_size=page_size, user_id_filter=user_id)
+    return {"logs": logs, "total": total, "page": page, "page_size": page_size}

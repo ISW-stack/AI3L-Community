@@ -138,6 +138,52 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
         return deleted
 
 
+async def ban_user(user_id: uuid.UUID, reason: str) -> bool:
+    """Ban a user: set is_banned=true, revoke all sessions, send WS FORCE_LOGOUT."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE users SET is_banned = true, ban_reason = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false",
+            reason,
+            user_id,
+        )
+        if result != "UPDATE 1":
+            return False
+
+    # Revoke all Redis sessions for this user
+    from app.core.redis import get_redis
+
+    redis = get_redis()
+    for role in [r.value for r in UserRole]:
+        await redis.delete(f"session:{role}:{user_id}")
+
+    # Force logout via WebSocket (best-effort)
+    try:
+        from app.api.v1.endpoints.ws import force_logout
+
+        await force_logout(str(user_id))
+    except Exception:
+        pass
+
+    logger.info("User banned", extra={"user_id": str(user_id), "reason": reason})
+    return True
+
+
+async def unban_user(user_id: uuid.UUID) -> bool:
+    """Unban a user: set is_banned=false, clear ban_reason."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE users SET is_banned = false, ban_reason = NULL, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
+            user_id,
+        )
+        if result != "UPDATE 1":
+            return False
+
+    logger.info("User unbanned", extra={"user_id": str(user_id)})
+    return True
+
+
 async def list_users(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:
     pool = get_pool()
     async with pool.acquire() as conn:

@@ -39,6 +39,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging(level=settings.LOG_LEVEL, fmt=settings.LOG_FORMAT)
     logger.info("Starting AI3L Community API")
 
+    # Sentry SDK initialization
+    if settings.SENTRY_DSN:
+        try:
+            import sentry_sdk
+
+            sentry_sdk.init(
+                dsn=settings.SENTRY_DSN,
+                traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+                environment=settings.FASTAPI_ENV,
+            )
+            logger.info("Sentry SDK initialized")
+        except Exception as e:
+            logger.warning(f"Sentry init failed: {e}")
+
     await init_db_pool(settings.DATABASE_URL)
     await init_redis(settings.REDIS_URL)
 

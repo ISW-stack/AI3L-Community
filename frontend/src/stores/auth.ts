@@ -11,6 +11,8 @@ interface UserProfile {
   orcid: string | null
   affiliation: string | null
   bio: string | null
+  is_banned?: boolean
+  ban_reason?: string | null
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -18,6 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
   const role = ref<string | null>(localStorage.getItem('role'))
   const expiresAt = ref<number>(Number(localStorage.getItem('expiresAt') || '0'))
   const user = ref<UserProfile | null>(null)
+  const requiresConsent = ref<boolean>(false)
 
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 
@@ -43,6 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = null
     expiresAt.value = 0
     user.value = null
+    requiresConsent.value = false
 
     localStorage.removeItem('token')
     localStorage.removeItem('role')
@@ -59,6 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
       captcha_code: captchaCode,
     })
     setSession(data.token, data.role, data.expires_in)
+    requiresConsent.value = data.requires_consent ?? false
     await fetchProfile()
   }
 
@@ -69,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
       captcha_code: captchaCode,
     })
     setSession(data.token, data.role, data.expires_in)
+    requiresConsent.value = data.requires_consent ?? false
   }
 
   async function register(username: string, password: string, displayName: string, captchaId: string, captchaCode: string) {
@@ -80,6 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
       captcha_code: captchaCode,
     })
     setSession(data.token, data.role, data.expires_in)
+    requiresConsent.value = data.requires_consent ?? false
     await fetchProfile()
   }
 
@@ -135,6 +142,7 @@ export const useAuthStore = defineStore('auth', () => {
     role,
     expiresAt,
     user,
+    requiresConsent,
     isAuthenticated,
     isAdmin,
     isSuperAdmin,

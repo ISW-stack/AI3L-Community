@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.deps import get_current_user, require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
 from app.schemas.post import (
     PostCreateRequest,
@@ -102,7 +103,7 @@ async def update_existing_post(
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise AppError(ErrorCode.SYS_409, 409, str(e))
 
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
@@ -112,12 +113,23 @@ async def update_existing_post(
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(
     post_id: uuid.UUID,
+    request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> None:
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     deleted = await soft_delete_post(post_id, current_user["sub"], is_admin=is_admin)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not authorized.")
+
+    # Audit log for admin delete (best-effort)
+    if is_admin:
+        try:
+            from app.services.audit import log_action
+
+            ip = request.client.host if request.client else None
+            await log_action(current_user["sub"], "ADMIN_DELETE_POST", target_type="post", target_id=str(post_id), ip_address=ip)
+        except Exception:
+            pass
 
 
 @router.get("/{post_id}/history", response_model=PostHistoryResponse)
