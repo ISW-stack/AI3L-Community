@@ -154,6 +154,33 @@ async def create_comment(
     return comment_dict
 
 
+async def update_comment(
+    comment_id: uuid.UUID,
+    user_id: str,
+    content: str,
+) -> dict | None:
+    """Update comment content. Only the owner can edit."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            f"""
+            WITH updated AS (
+                UPDATE comments SET content = $1, updated_at = NOW()
+                WHERE id = $2 AND user_id = $3 AND is_deleted = false
+                RETURNING *
+            )
+            {_COMMENT_SELECT.replace("FROM comments cm", "FROM updated cm")}
+            """,
+            content,
+            comment_id,
+            uuid.UUID(user_id),
+        )
+        if not row:
+            return None
+        logger.info("Comment updated", extra={"comment_id": str(comment_id)})
+        return _row_to_comment(dict(row))
+
+
 async def list_comments(
     post_id: uuid.UUID,
     offset: int = 0,

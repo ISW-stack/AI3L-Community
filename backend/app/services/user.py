@@ -3,7 +3,7 @@ import uuid
 from loguru import logger
 
 from app.core.database import get_pool
-from app.core.security import hash_password
+from app.core.security import hash_password, validate_password_policy, verify_password
 from app.models.user import UserRole
 
 
@@ -198,6 +198,34 @@ def get_user_storage_used(user_id: str) -> int:
             for obj in page.get("Contents", []):
                 total += obj["Size"]
     return total
+
+
+async def change_password(user_id: uuid.UUID, old_password: str, new_password: str) -> bool:
+    """Verify old password, validate policy, hash new, update. Returns True on success."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT password_hash FROM users WHERE id = $1 AND is_deleted = false",
+            user_id,
+        )
+        if not row:
+            raise ValueError("User not found.")
+
+        if not verify_password(old_password, row["password_hash"]):
+            raise ValueError("Current password is incorrect.")
+
+        error = validate_password_policy(new_password)
+        if error:
+            raise ValueError(error)
+
+        new_hash = hash_password(new_password)
+        await conn.execute(
+            "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2",
+            new_hash,
+            user_id,
+        )
+        logger.info("Password changed", extra={"user_id": str(user_id)})
+        return True
 
 
 async def list_users(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:

@@ -112,9 +112,11 @@ app.add_middleware(IdempotencyMiddleware)
 
 # Trusted host middleware — prevents Host header attacks in production
 if not settings.is_development:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=["*"],  # TODO: restrict to your actual domain(s) in production
+    _trusted = (
+        [h.strip() for h in settings.TRUSTED_HOSTS.split(",") if h.strip()]
+        if settings.TRUSTED_HOSTS
+        else ["*"]
     )
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=_trusted)
 
 app.include_router(api_v1_router, prefix="/api/v1")

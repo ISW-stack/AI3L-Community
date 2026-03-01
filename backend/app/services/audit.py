@@ -15,6 +15,13 @@ async def log_action(
 ) -> None:
     """Insert an audit log record (best-effort)."""
     try:
+        # Validate user_id is a valid UUID to avoid asyncpg DataError
+        try:
+            user_uuid = uuid.UUID(user_id)
+        except (ValueError, AttributeError):
+            logger.warning("Invalid user_id for audit log", extra={"user_id": user_id, "action": action})
+            return
+
         pool = get_pool()
         log_id = uuid.uuid4()
         target_uuid = uuid.UUID(target_id) if target_id else None
@@ -25,7 +32,7 @@ async def log_action(
                 VALUES ($1, $2, $3, $4, $5, $6)
                 """,
                 log_id,
-                uuid.UUID(user_id),
+                user_uuid,
                 action,
                 target_type,
                 target_uuid,

@@ -52,10 +52,11 @@ async def get_posts_list(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     category_id: str | None = None,
+    sort: str = Query("newest", pattern="^(newest|oldest|most_comments)$"),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
     posts, total, total_pages = await list_posts(
-        page=page, page_size=page_size, category_id=category_id
+        page=page, page_size=page_size, category_id=category_id, sort=sort
     )
     return PostListResponse(posts=posts, total=total, current_page=page, total_pages=total_pages)
 

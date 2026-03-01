@@ -118,14 +118,26 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
 
 
 async def get_invite_code(invite_code: str) -> dict | None:
-    """Verify invite code exists and is not expired."""
+    """Verify invite code exists, is not expired, and has not been consumed."""
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT * FROM invite_codes WHERE code = $1 AND expires_at > NOW()",
+            "SELECT * FROM invite_codes WHERE code = $1 AND expires_at > NOW() AND consumed_at IS NULL",
             invite_code,
         )
         return dict(row) if row else None
+
+
+async def consume_invite_code(code: str, user_id: str) -> None:
+    """Mark an invite code as consumed by the given user."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE invite_codes SET consumed_at = NOW(), consumed_by = $1 WHERE code = $2",
+            uuid.UUID(user_id),
+            code,
+        )
+    logger.info("Invite code consumed", extra={"code": code, "user_id": user_id})
 
 
 async def create_invite_code(user_id: str) -> tuple[str, datetime]:

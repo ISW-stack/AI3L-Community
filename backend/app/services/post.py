@@ -257,15 +257,24 @@ async def get_post_history(post_id: uuid.UUID) -> list[dict]:
         ]
 
 
+_SORT_MAP = {
+    "newest": "p.created_at DESC",
+    "oldest": "p.created_at ASC",
+    "most_comments": "p.comment_count DESC, p.created_at DESC",
+}
+
+
 async def list_posts(
     page: int = 1,
     page_size: int = 20,
     category_id: str | None = None,
     sig_id: str | None = None,
+    sort: str = "newest",
 ) -> tuple[list[dict], int, int]:
     """Returns (posts, total, total_pages)."""
     pool = get_pool()
     offset = (page - 1) * page_size
+    order_by = _SORT_MAP.get(sort, _SORT_MAP["newest"])
 
     where = "WHERE p.is_deleted = false"
     params: list = []
@@ -290,7 +299,7 @@ async def list_posts(
 
         params.extend([page_size, offset])
         rows = await conn.fetch(
-            f"{_POST_SELECT} {where} ORDER BY p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",
+            f"{_POST_SELECT} {where} ORDER BY {order_by} LIMIT ${idx} OFFSET ${idx + 1}",
             *params,
         )
         return [_row_to_post(dict(r)) for r in rows], total, total_pages

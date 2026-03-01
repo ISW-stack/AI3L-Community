@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     # VirusTotal
     VT_API_KEY: str = ""
 
+    # Trusted Hosts (comma-separated, e.g. "example.com,api.example.com")
+    TRUSTED_HOSTS: str = ""
+
     # Logging
     LOG_LEVEL: str = "DEBUG"
     LOG_FORMAT: str = "json"

@@ -6,6 +6,11 @@ class SigCreateRequest(BaseModel):
     description: str | None = Field(None, max_length=2000)
 
 
+class SigUpdateRequest(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=2000)
+
+
 class SigResponse(BaseModel):
     id: str
     name: str

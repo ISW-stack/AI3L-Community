@@ -31,5 +31,9 @@ class CommentListResponse(BaseModel):
     total: int
 
 
+class CommentUpdateRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=5000)
+
+
 class ReactionRequest(BaseModel):
     reaction: str = Field(..., pattern="^(LIKE|SMILE|CRY)$")

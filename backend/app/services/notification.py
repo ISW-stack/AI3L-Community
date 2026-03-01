@@ -154,6 +154,21 @@ async def mark_all_as_read(user_id: str) -> int:
         return count
 
 
+async def delete_notification(notification_id: uuid.UUID, user_id: str) -> bool:
+    """Hard-delete a notification (owner only)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM notifications WHERE id = $1 AND user_id = $2",
+            notification_id,
+            uuid.UUID(user_id),
+        )
+        deleted = result == "DELETE 1"
+        if deleted:
+            logger.info("Notification deleted", extra={"notification_id": str(notification_id)})
+        return deleted
+
+
 async def get_unread_count(user_id: str) -> int:
     pool = get_pool()
     async with pool.acquire() as conn:

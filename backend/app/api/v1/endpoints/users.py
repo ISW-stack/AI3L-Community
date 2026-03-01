@@ -9,6 +9,7 @@ from app.schemas.auth import MessageResponse
 from app.schemas.user import (
     AdminCreateAccountRequest,
     BanRequest,
+    ChangePasswordRequest,
     RoleUpdateRequest,
     UserListResponse,
     UserResponse,
@@ -18,6 +19,7 @@ from app.services.auth import destroy_session
 from app.services.user import (
     anonymize_user,
     ban_user,
+    change_password,
     create_user,
     get_user_by_id,
     list_users,
@@ -130,6 +132,26 @@ async def upload_avatar(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return _user_to_response(user)
+
+
+@router.put("/me/password", response_model=MessageResponse)
+async def change_my_password(
+    req: ChangePasswordRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> MessageResponse:
+    """Change password: verify current, validate new, update, destroy session."""
+    try:
+        await change_password(
+            user_id=uuid.UUID(current_user["sub"]),
+            old_password=req.current_password,
+            new_password=req.new_password,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Destroy current session so user must re-login
+    await destroy_session(current_user["sub"], current_user["role"], current_user["jti"])
+    return MessageResponse(message="Password changed successfully. Please log in again.")
 
 
 @router.post("/me/consent", response_model=MessageResponse)

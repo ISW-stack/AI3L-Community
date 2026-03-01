@@ -12,13 +12,15 @@ from tests.conftest import make_user_dict
 _EP = "app.api.v1.endpoints.auth"
 
 
+
 class TestLoginEndpoint:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch("app.services.privacy_consent.has_consent", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
     @patch(f"{_EP}.authenticate_user", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     async def test_login_success(
-        self, mock_captcha, mock_auth, mock_session, mock_consent, client: AsyncClient
+        self, mock_captcha, mock_auth, mock_session, mock_consent, mock_rl, client: AsyncClient
     ):
         user = make_user_dict(username="alice", role="MEMBER")
         mock_auth.return_value = user
@@ -34,8 +36,9 @@ class TestLoginEndpoint:
         assert data["token"] == "tok"
         assert data["role"] == "MEMBER"
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=False)
-    async def test_login_invalid_captcha(self, mock_captcha, client: AsyncClient):
+    async def test_login_invalid_captcha(self, mock_captcha, mock_rl, client: AsyncClient):
         resp = await client.post("/api/v1/auth/login", json={
             "username": "alice",
             "password": "Password1",
@@ -44,9 +47,10 @@ class TestLoginEndpoint:
         })
         assert resp.status_code == 400
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.authenticate_user", new_callable=AsyncMock, return_value=None)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_login_wrong_credentials(self, mock_captcha, mock_auth, client: AsyncClient):
+    async def test_login_wrong_credentials(self, mock_captcha, mock_auth, mock_rl, client: AsyncClient):
         resp = await client.post("/api/v1/auth/login", json={
             "username": "alice",
             "password": "wrong",
@@ -57,9 +61,10 @@ class TestLoginEndpoint:
         data = resp.json()
         assert data["detail"]["code"] == "AUTH_001"
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.authenticate_user", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_login_banned_user(self, mock_captcha, mock_auth, client: AsyncClient):
+    async def test_login_banned_user(self, mock_captcha, mock_auth, mock_rl, client: AsyncClient):
         user = make_user_dict(username="banned", is_banned=True, ban_reason="spam")
         mock_auth.return_value = user
 
@@ -75,10 +80,11 @@ class TestLoginEndpoint:
 
 
 class TestGuestLoginEndpoint:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("gtok", 2700))
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
-    async def test_guest_login_success(self, mock_invite, mock_captcha, mock_guest, client: AsyncClient):
+    async def test_guest_login_success(self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient):
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
         resp = await client.post("/api/v1/auth/guest/INV-123", json={
@@ -92,10 +98,11 @@ class TestGuestLoginEndpoint:
         assert data["role"] == "GUEST"
         assert data["requires_consent"] is True
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=None)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
-    async def test_guest_login_capacity_reached(self, mock_invite, mock_captcha, mock_guest, client: AsyncClient):
+    async def test_guest_login_capacity_reached(self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient):
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
         resp = await client.post("/api/v1/auth/guest/INV-123", json={
@@ -108,12 +115,14 @@ class TestGuestLoginEndpoint:
 
 
 class TestRegisterEndpoint:
+    @patch(f"{_EP}.consume_invite_code", new_callable=AsyncMock)
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
     @patch(f"{_EP}.create_user", new_callable=AsyncMock)
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=False)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_success(self, mock_captcha, mock_invite, mock_exists, mock_create, mock_session, client: AsyncClient):
+    async def test_register_success(self, mock_captcha, mock_invite, mock_exists, mock_create, mock_session, mock_rl, mock_consume, client: AsyncClient):
         mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
         mock_create.return_value = make_user_dict(username="newuser", role="MEMBER")
 
@@ -141,9 +150,10 @@ class TestRegisterEndpoint:
         })
         assert resp.status_code == 422
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_invalid_invite_code(self, mock_captcha, mock_invite, client: AsyncClient):
+    async def test_register_invalid_invite_code(self, mock_captcha, mock_invite, mock_rl, client: AsyncClient):
         """POST /auth/register with invalid invite code → 400."""
         resp = await client.post("/api/v1/auth/register", json={
             "username": "newuser",
@@ -156,10 +166,11 @@ class TestRegisterEndpoint:
         assert resp.status_code == 400
         assert "invite code" in resp.json()["detail"].lower()
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_duplicate_username(self, mock_captcha, mock_exists, mock_invite, client: AsyncClient):
+    async def test_register_duplicate_username(self, mock_captcha, mock_exists, mock_invite, mock_rl, client: AsyncClient):
         mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
         resp = await client.post("/api/v1/auth/register", json={
             "username": "existing",

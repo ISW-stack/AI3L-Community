@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
+from app.core.rate_limit import check_rate_limit
 from app.core.security import validate_password_policy
 from app.schemas.auth import (
     CaptchaResponse,
@@ -14,6 +15,7 @@ from app.schemas.auth import (
 from app.schemas.user import CreateAccountRequest
 from app.services.auth import (
     authenticate_user,
+    consume_invite_code,
     create_invite_code,
     create_session,
     destroy_session,
@@ -34,6 +36,11 @@ async def get_captcha() -> CaptchaResponse:
 
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, request: Request) -> TokenResponse:
+    # Rate limit: 10 attempts/minute per IP
+    ip = request.client.host if request.client else "unknown"
+    if not await check_rate_limit(f"rl:login:{ip}", 10, 60):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+
     # Verify captcha first
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise HTTPException(
@@ -72,7 +79,12 @@ async def login(req: LoginRequest, request: Request) -> TokenResponse:
 
 
 @router.post("/guest/{invite_code}", response_model=TokenResponse)
-async def login_as_guest(invite_code: str, req: GuestLoginRequest) -> TokenResponse:
+async def login_as_guest(invite_code: str, req: GuestLoginRequest, request: Request) -> TokenResponse:
+    # Rate limit: 10 attempts/minute per IP
+    ip = request.client.host if request.client else "unknown"
+    if not await check_rate_limit(f"rl:guest:{ip}", 10, 60):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+
     invite = await get_invite_code(invite_code)
     if invite is None:
         raise HTTPException(
@@ -117,6 +129,11 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
 
 @router.post("/register", response_model=TokenResponse)
 async def register(req: CreateAccountRequest, request: Request) -> TokenResponse:
+    # Rate limit: 5 attempts/minute per IP
+    ip = request.client.host if request.client else "unknown"
+    if not await check_rate_limit(f"rl:register:{ip}", 5, 60):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+
     # Verify captcha
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise HTTPException(
@@ -149,6 +166,9 @@ async def register(req: CreateAccountRequest, request: Request) -> TokenResponse
         password=req.password,
         display_name=req.display_name,
     )
+
+    # Mark invite code as consumed
+    await consume_invite_code(req.invite_code, str(user["id"]))
 
     token, expires_in = await create_session(str(user["id"]), user["role"])
 

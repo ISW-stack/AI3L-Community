@@ -1,8 +1,11 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.deps import get_current_user, require_role
-from app.schemas.category import CategoryCreateRequest, CategoryListResponse, CategoryResponse
-from app.services.category import category_exists, create_category, list_categories
+from app.schemas.auth import MessageResponse
+from app.schemas.category import CategoryCreateRequest, CategoryListResponse, CategoryResponse, CategoryUpdateRequest
+from app.services.category import category_exists, create_category, delete_category, list_categories, update_category
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
@@ -37,3 +40,29 @@ async def create_new_category(
         name=cat["name"],
         description=cat.get("description"),
     )
+
+
+@router.put("/{category_id}", response_model=CategoryResponse)
+async def update_existing_category(
+    category_id: uuid.UUID,
+    req: CategoryUpdateRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> CategoryResponse:
+    cat = await update_category(category_id, name=req.name, description=req.description)
+    if cat is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
+    return CategoryResponse(
+        id=str(cat["id"]),
+        name=cat["name"],
+        description=cat.get("description"),
+    )
+
+
+@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_existing_category(
+    category_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> None:
+    deleted = await delete_category(category_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")

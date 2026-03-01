@@ -83,6 +83,128 @@ async def get_sig_by_id(sig_id: uuid.UUID) -> dict | None:
         return _row_to_sig(dict(row), row.get("creator_display_name"))
 
 
+async def update_sig(sig_id: uuid.UUID, name: str | None = None, description: str | None = None) -> dict | None:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        current = await conn.fetchrow(
+            "SELECT * FROM sigs WHERE id = $1 AND is_deleted = false",
+            sig_id,
+        )
+        if not current:
+            return None
+
+        new_name = name if name is not None else current["name"]
+        new_desc = description if description is not None else current["description"]
+
+        row = await conn.fetchrow(
+            """
+            UPDATE sigs SET name = $1, description = $2, updated_at = NOW()
+            WHERE id = $3 AND is_deleted = false
+            RETURNING *
+            """,
+            new_name,
+            new_desc,
+            sig_id,
+        )
+        if not row:
+            return None
+
+        creator = await conn.fetchrow(
+            "SELECT display_name FROM users WHERE id = $1",
+            row["created_by"],
+        )
+        logger.info("SIG updated", extra={"sig_id": str(sig_id)})
+        return _row_to_sig(dict(row), creator["display_name"] if creator else None)
+
+
+async def soft_delete_sig(sig_id: uuid.UUID) -> bool:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            result = await conn.execute(
+                "UPDATE sigs SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
+                sig_id,
+            )
+            if result != "UPDATE 1":
+                return False
+            # Soft-delete SIG's posts
+            await conn.execute(
+                "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE sig_id = $1 AND is_deleted = false",
+                sig_id,
+            )
+            logger.info("SIG soft-deleted", extra={"sig_id": str(sig_id)})
+            return True
+
+
+async def remove_member(sig_id: uuid.UUID, user_id: str) -> bool:
+    pool = get_pool()
+    user_uuid = uuid.UUID(user_id)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            result = await conn.execute(
+                "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+                sig_id,
+                user_uuid,
+            )
+            if result != "DELETE 1":
+                return False
+            await conn.execute(
+                "UPDATE sigs SET member_count = GREATEST(member_count - 1, 0) WHERE id = $1",
+                sig_id,
+            )
+            logger.info("SIG member removed", extra={"sig_id": str(sig_id), "user_id": user_id})
+            return True
+
+
+async def leave_sig(sig_id: uuid.UUID, user_id: str) -> bool:
+    """Leave a SIG. Validates user is not the last ADMIN."""
+    pool = get_pool()
+    user_uuid = uuid.UUID(user_id)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            member = await conn.fetchrow(
+                "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+                sig_id,
+                user_uuid,
+            )
+            if not member:
+                return False
+
+            if member["role"] == "ADMIN":
+                admin_count = await conn.fetchval(
+                    "SELECT COUNT(*) FROM sig_members WHERE sig_id = $1 AND role = 'ADMIN'",
+                    sig_id,
+                )
+                if admin_count <= 1:
+                    raise ValueError("Cannot leave: you are the last admin of this SIG.")
+
+            result = await conn.execute(
+                "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+                sig_id,
+                user_uuid,
+            )
+            if result != "DELETE 1":
+                return False
+            await conn.execute(
+                "UPDATE sigs SET member_count = GREATEST(member_count - 1, 0) WHERE id = $1",
+                sig_id,
+            )
+            logger.info("User left SIG", extra={"sig_id": str(sig_id), "user_id": user_id})
+            return True
+
+
+async def get_member_role(sig_id: uuid.UUID, user_id: str) -> str | None:
+    """Check if user is a member of the SIG and return their role."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+            sig_id,
+            uuid.UUID(user_id),
+        )
+        return row["role"] if row else None
+
+
 async def assign_sub_admin(sig_id: uuid.UUID, user_id: str) -> dict:
     pool = get_pool()
     user_uuid = uuid.UUID(user_id)

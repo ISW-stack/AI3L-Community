@@ -37,6 +37,49 @@ async def get_category_by_id(category_id: uuid.UUID) -> dict | None:
         return dict(row) if row else None
 
 
+async def update_category(
+    category_id: uuid.UUID,
+    name: str | None = None,
+    description: str | None = None,
+) -> dict | None:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        current = await conn.fetchrow("SELECT * FROM categories WHERE id = $1", category_id)
+        if not current:
+            return None
+
+        new_name = name if name is not None else current["name"]
+        new_desc = description if description is not None else current["description"]
+
+        row = await conn.fetchrow(
+            "UPDATE categories SET name = $1, description = $2 WHERE id = $3 RETURNING *",
+            new_name,
+            new_desc,
+            category_id,
+        )
+        logger.info("Category updated", extra={"category_id": str(category_id)})
+        return dict(row) if row else None
+
+
+async def delete_category(category_id: uuid.UUID) -> bool:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Nullify category_id on referencing posts
+            await conn.execute(
+                "UPDATE posts SET category_id = NULL WHERE category_id = $1",
+                category_id,
+            )
+            result = await conn.execute(
+                "DELETE FROM categories WHERE id = $1",
+                category_id,
+            )
+            deleted = result == "DELETE 1"
+            if deleted:
+                logger.info("Category deleted", extra={"category_id": str(category_id)})
+            return deleted
+
+
 async def category_exists(name: str) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:

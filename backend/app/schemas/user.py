@@ -49,6 +49,11 @@ class BanRequest(BaseModel):
     reason: str = Field(..., max_length=500)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
+
 class UserListResponse(BaseModel):
     users: list[UserResponse]
     total: int

@@ -4,21 +4,28 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.deps import get_current_user, require_role
 from app.schemas.post import PostListResponse, PostResponse
+from app.schemas.auth import MessageResponse
 from app.schemas.sig import (
     SigCreateRequest,
     SigListResponse,
     SigMemberListResponse,
     SigMemberResponse,
     SigResponse,
+    SigUpdateRequest,
     SubAdminAssignRequest,
 )
 from app.services.post import list_posts
 from app.services.sig import (
     assign_sub_admin,
     create_sig,
+    get_member_role,
     get_sig_by_id,
+    leave_sig,
     list_sig_members,
     list_sigs,
+    remove_member,
+    soft_delete_sig,
+    update_sig,
 )
 
 router = APIRouter(prefix="/sigs", tags=["sigs"])
@@ -58,6 +65,72 @@ async def get_sig(
     if sig is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
     return SigResponse(**sig)
+
+
+@router.put("/{sig_id}", response_model=SigResponse)
+async def update_existing_sig(
+    sig_id: uuid.UUID,
+    req: SigUpdateRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> SigResponse:
+    # Allow SUPER_ADMIN, ADMIN, or SIG ADMIN
+    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    if not is_global_admin:
+        sig_role = await get_member_role(sig_id, current_user["sub"])
+        if sig_role != "ADMIN":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+
+    sig = await update_sig(sig_id, name=req.name, description=req.description)
+    if sig is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
+    return SigResponse(**sig)
+
+
+@router.delete("/{sig_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_sig(
+    sig_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> None:
+    deleted = await soft_delete_sig(sig_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
+
+
+@router.delete("/{sig_id}/members/me", response_model=MessageResponse)
+async def leave_sig_endpoint(
+    sig_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> MessageResponse:
+    try:
+        left = await leave_sig(sig_id, current_user["sub"])
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    if not left:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not a member of this SIG.")
+    return MessageResponse(message="Left SIG successfully.")
+
+
+@router.delete("/{sig_id}/members/{user_id}", response_model=MessageResponse)
+async def remove_sig_member(
+    sig_id: uuid.UUID,
+    user_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> MessageResponse:
+    # Allow SUPER_ADMIN, ADMIN, or SIG ADMIN
+    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    if not is_global_admin:
+        sig_role = await get_member_role(sig_id, current_user["sub"])
+        if sig_role != "ADMIN":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+
+    # Prevent removing self via this endpoint
+    if str(user_id) == current_user["sub"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Use the leave endpoint to remove yourself.")
+
+    removed = await remove_member(sig_id, str(user_id))
+    if not removed:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found.")
+    return MessageResponse(message="Member removed.")
 
 
 @router.post("/{sig_id}/sub-admin", response_model=SigMemberResponse)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/composables/api'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
@@ -62,6 +62,7 @@ interface SigForm {
 }
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const sigId = computed(() => route.params.id as string)
 
@@ -75,11 +76,32 @@ const formsTotal = ref(0)
 const loading = ref(true)
 const activeTab = ref<'posts' | 'members' | 'forms'>('posts')
 
+// Edit state
+const editing = ref(false)
+const editName = ref('')
+const editDescription = ref('')
+const editSaving = ref(false)
+
+// Delete confirmation
+const showDeleteConfirm = ref(false)
+
+// User's SIG role
+const userSigRole = ref<string | null>(null)
+
+const isSigAdmin = computed(() => userSigRole.value === 'ADMIN' || userSigRole.value === 'SUB_ADMIN')
+const canEdit = computed(() => auth.isAdmin || isSigAdmin.value)
+const canDelete = computed(() => auth.isAdmin)
+const canLeave = computed(() => userSigRole.value !== null && !(isSigAdmin.value && sig.value && sig.value.member_count <= 1))
 const canCreateForm = computed(() => {
   if (auth.isAdmin) return true
   if (forms.value.length > 0 && forms.value[0].user_is_sig_admin) return true
   return false
 })
+
+function canRemoveMember(m: SigMember) {
+  if (m.user_id === auth.user?.id) return false
+  return auth.isAdmin || isSigAdmin.value
+}
 
 async function fetchSig() {
   loading.value = true
@@ -108,6 +130,9 @@ async function fetchMembers() {
     const { data } = await api.get(`/sigs/${sigId.value}/members`)
     members.value = data.members
     membersTotal.value = data.total
+    // Determine current user's SIG role
+    const me = members.value.find((m) => m.user_id === auth.user?.id)
+    userSigRole.value = me?.role ?? null
   } catch {
     // silent
   }
@@ -130,9 +155,87 @@ function switchTab(tab: 'posts' | 'members' | 'forms') {
   else fetchForms()
 }
 
+function startEdit() {
+  if (!sig.value) return
+  editName.value = sig.value.name
+  editDescription.value = sig.value.description || ''
+  editing.value = true
+}
+
+function cancelEdit() {
+  editing.value = false
+}
+
+async function saveEdit() {
+  editSaving.value = true
+  try {
+    const { data } = await api.put(`/sigs/${sigId.value}`, {
+      name: editName.value,
+      description: editDescription.value || null,
+    })
+    sig.value = data
+    editing.value = false
+  } catch (e: any) {
+    window.dispatchEvent(
+      new CustomEvent('app:toast', {
+        detail: { message: e.response?.data?.detail || 'Failed to update SIG.', type: 'error' },
+      }),
+    )
+  } finally {
+    editSaving.value = false
+  }
+}
+
+async function deleteSig() {
+  try {
+    await api.delete(`/sigs/${sigId.value}`)
+    router.push('/sigs')
+  } catch (e: any) {
+    window.dispatchEvent(
+      new CustomEvent('app:toast', {
+        detail: { message: e.response?.data?.detail || 'Failed to delete SIG.', type: 'error' },
+      }),
+    )
+  } finally {
+    showDeleteConfirm.value = false
+  }
+}
+
+async function leaveSig() {
+  try {
+    await api.delete(`/sigs/${sigId.value}/members/me`)
+    await fetchSig()
+    await fetchMembers()
+    window.dispatchEvent(
+      new CustomEvent('app:toast', { detail: { message: 'You have left the SIG.', type: 'info' } }),
+    )
+  } catch (e: any) {
+    window.dispatchEvent(
+      new CustomEvent('app:toast', {
+        detail: { message: e.response?.data?.detail || 'Failed to leave SIG.', type: 'error' },
+      }),
+    )
+  }
+}
+
+async function removeMember(userId: string) {
+  try {
+    await api.delete(`/sigs/${sigId.value}/members/${userId}`)
+    await fetchSig()
+    await fetchMembers()
+  } catch (e: any) {
+    window.dispatchEvent(
+      new CustomEvent('app:toast', {
+        detail: { message: e.response?.data?.detail || 'Failed to remove member.', type: 'error' },
+      }),
+    )
+  }
+}
+
 onMounted(() => {
   fetchSig()
   fetchPosts()
+  fetchMembers()
 })
 </script>
 
@@ -151,52 +254,102 @@ onMounted(() => {
 
     <template v-else>
       <div class="bg-white rounded-xl shadow p-6 mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ sig.name }}</h1>
-        <p v-if="sig.description" class="text-sm text-gray-600 mb-3" v-html="DOMPurify.sanitize(sig.description)"></p>
-        <div class="flex items-center gap-4 text-xs text-gray-400">
-          <span>Created by {{ sig.creator_display_name || 'Unknown' }}</span>
-          <span>{{ sig.member_count }} member(s)</span>
-          <span>{{ new Date(sig.created_at).toLocaleDateString() }}</span>
+        <!-- View mode -->
+        <template v-if="!editing">
+          <div class="flex items-start justify-between">
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ sig.name }}</h1>
+              <p v-if="sig.description" class="text-sm text-gray-600 mb-3" v-html="DOMPurify.sanitize(sig.description)"></p>
+            </div>
+            <div class="flex gap-2 shrink-0 ml-4">
+              <button v-if="canEdit" @click="startEdit"
+                class="text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">
+                Edit
+              </button>
+              <button v-if="canLeave && userSigRole !== 'ADMIN'" @click="leaveSig"
+                class="text-sm bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-lg hover:bg-yellow-100 transition">
+                Leave SIG
+              </button>
+              <button v-if="canDelete" @click="showDeleteConfirm = true"
+                class="text-sm bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                Delete SIG
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-gray-400">
+            <span>Created by {{ sig.creator_display_name || 'Unknown' }}</span>
+            <span>{{ sig.member_count }} member(s)</span>
+            <span>{{ new Date(sig.created_at).toLocaleDateString() }}</span>
+          </div>
+        </template>
+
+        <!-- Edit mode -->
+        <template v-else>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input v-model="editName" type="text" maxlength="200"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea v-model="editDescription" maxlength="2000" rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"></textarea>
+            </div>
+            <div class="flex gap-2">
+              <button @click="saveEdit" :disabled="editSaving"
+                class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
+                {{ editSaving ? 'Saving...' : 'Save' }}
+              </button>
+              <button @click="cancelEdit"
+                class="text-sm bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Delete confirmation modal -->
+      <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-lg p-6 max-w-sm mx-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Delete SIG?</h3>
+          <p class="text-sm text-gray-600 mb-4">This will soft-delete this SIG and all its posts. This action cannot be easily undone.</p>
+          <div class="flex gap-2 justify-end">
+            <button @click="showDeleteConfirm = false"
+              class="text-sm bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
+              Cancel
+            </button>
+            <button @click="deleteSig"
+              class="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+              Delete
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Tabs -->
       <div class="flex gap-1 mb-4">
-        <button
-          @click="switchTab('posts')"
-          class="px-4 py-2 text-sm rounded-lg transition"
-          :class="activeTab === 'posts' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-        >
+        <button @click="switchTab('posts')" class="px-4 py-2 text-sm rounded-lg transition"
+          :class="activeTab === 'posts' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
           Posts ({{ postsTotal }})
         </button>
-        <button
-          @click="switchTab('members')"
-          class="px-4 py-2 text-sm rounded-lg transition"
-          :class="activeTab === 'members' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-        >
+        <button @click="switchTab('members')" class="px-4 py-2 text-sm rounded-lg transition"
+          :class="activeTab === 'members' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
           Members ({{ membersTotal }})
         </button>
-        <button
-          @click="switchTab('forms')"
-          class="px-4 py-2 text-sm rounded-lg transition"
-          :class="activeTab === 'forms' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-        >
+        <button @click="switchTab('forms')" class="px-4 py-2 text-sm rounded-lg transition"
+          :class="activeTab === 'forms' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
           Forms ({{ formsTotal }})
         </button>
       </div>
 
       <!-- Posts tab -->
       <div v-if="activeTab === 'posts'">
-        <div v-if="posts.length === 0" class="text-center text-gray-400 py-8 text-sm">
-          No posts in this SIG yet.
-        </div>
+        <div v-if="posts.length === 0" class="text-center text-gray-400 py-8 text-sm">No posts in this SIG yet.</div>
         <div v-else class="space-y-3">
-          <router-link
-            v-for="p in posts"
-            :key="p.id"
-            :to="`/forum/${p.id}`"
-            class="block bg-white rounded-xl shadow p-4 hover:shadow-md transition"
-          >
+          <router-link v-for="p in posts" :key="p.id" :to="`/forum/${p.id}`"
+            class="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
             <h3 class="font-semibold text-gray-900 mb-1">{{ p.title }}</h3>
             <div class="flex items-center gap-3 text-xs text-gray-400">
               <span>{{ p.author.display_name }}</span>
@@ -209,9 +362,7 @@ onMounted(() => {
 
       <!-- Members tab -->
       <div v-if="activeTab === 'members'">
-        <div v-if="members.length === 0" class="text-center text-gray-400 py-8 text-sm">
-          No members yet.
-        </div>
+        <div v-if="members.length === 0" class="text-center text-gray-400 py-8 text-sm">No members yet.</div>
         <div v-else class="bg-white rounded-xl shadow overflow-hidden">
           <table class="w-full text-sm">
             <thead class="bg-gray-50 border-b">
@@ -220,6 +371,7 @@ onMounted(() => {
                 <th class="text-left px-4 py-3 font-medium text-gray-600">Username</th>
                 <th class="text-left px-4 py-3 font-medium text-gray-600">Role</th>
                 <th class="text-left px-4 py-3 font-medium text-gray-600">Joined</th>
+                <th v-if="canEdit" class="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -227,19 +379,21 @@ onMounted(() => {
                 <td class="px-4 py-3 text-gray-900">{{ m.display_name }}</td>
                 <td class="px-4 py-3 text-gray-500">{{ m.username }}</td>
                 <td class="px-4 py-3">
-                  <span
-                    class="text-xs px-2 py-0.5 rounded-full"
+                  <span class="text-xs px-2 py-0.5 rounded-full"
                     :class="{
                       'bg-orange-100 text-orange-700': m.role === 'ADMIN',
                       'bg-purple-100 text-purple-700': m.role === 'SUB_ADMIN',
                       'bg-blue-100 text-blue-700': m.role === 'MEMBER',
-                    }"
-                  >
+                    }">
                     {{ m.role }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-gray-400 text-xs">
-                  {{ new Date(m.created_at).toLocaleDateString() }}
+                <td class="px-4 py-3 text-gray-400 text-xs">{{ new Date(m.created_at).toLocaleDateString() }}</td>
+                <td v-if="canEdit" class="px-4 py-3">
+                  <button v-if="canRemoveMember(m)" @click="removeMember(m.user_id)"
+                    class="text-xs text-red-600 hover:underline">
+                    Remove
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -255,22 +409,14 @@ onMounted(() => {
             + Create Form
           </router-link>
         </div>
-        <div v-if="forms.length === 0" class="text-center text-gray-400 py-8 text-sm">
-          No forms in this SIG yet.
-        </div>
+        <div v-if="forms.length === 0" class="text-center text-gray-400 py-8 text-sm">No forms in this SIG yet.</div>
         <div v-else class="grid gap-4 sm:grid-cols-2">
-          <router-link
-            v-for="f in forms"
-            :key="f.id"
-            :to="`/forms/${f.id}`"
-            class="block bg-white rounded-xl shadow p-4 hover:shadow-md transition"
-          >
+          <router-link v-for="f in forms" :key="f.id" :to="`/forms/${f.id}`"
+            class="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
             <div class="flex items-start justify-between mb-2">
               <h3 class="font-semibold text-gray-900">{{ f.title }}</h3>
-              <span
-                class="text-xs px-2 py-0.5 rounded-full shrink-0 ml-2"
-                :class="f.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
-              >
+              <span class="text-xs px-2 py-0.5 rounded-full shrink-0 ml-2"
+                :class="f.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
                 {{ f.is_active ? 'Active' : 'Closed' }}
               </span>
             </div>
