@@ -24,8 +24,7 @@ async def _cleanup() -> dict:
         pool = get_pool()
 
     async with pool.acquire() as conn:
-        result = await conn.execute(
-            """
+        result = await conn.execute("""
             UPDATE users SET
                 username = 'Deleted_Guest_' || LEFT(id::text, 8),
                 display_name = 'Deleted Guest',
@@ -39,8 +38,7 @@ async def _cleanup() -> dict:
             WHERE role = 'GUEST'
               AND is_deleted = false
               AND created_at < NOW() - INTERVAL '24 hours'
-            """
-        )
+            """)
 
     # Parse "UPDATE N"
     count = int(result.split()[-1]) if result else 0

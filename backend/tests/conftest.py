@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-
 _TEST_CSRF_TOKEN = "test-csrf-token"
 
 
