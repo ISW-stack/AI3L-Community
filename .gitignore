@@ -77,6 +77,13 @@ htmlcov/
 coverage/
 
 # =====================
+# Claude Code
+# =====================
+.claude/
+CLAUDE.md
+*.md.resolved
+
+# =====================
 # Misc
 # =====================
 *.bak
