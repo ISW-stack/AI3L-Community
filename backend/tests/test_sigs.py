@@ -1,4 +1,7 @@
-"""Tests for SIGs endpoints — list, create, get, not-found, remove member, assign sub-admin, list members, list posts."""
+"""Tests for SIGs endpoints.
+
+list, create, get, not-found, remove member, assign sub-admin, list members, list posts.
+"""
 
 import uuid
 from datetime import datetime, timezone

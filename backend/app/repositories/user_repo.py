@@ -77,7 +77,7 @@ async def update_role(user_id: uuid.UUID, new_role: str) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false RETURNING *",
+            "UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false RETURNING *",  # noqa: E501
             new_role,
             user_id,
         )
@@ -111,7 +111,7 @@ async def set_ban(user_id: uuid.UUID, reason: str) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
-            "UPDATE users SET is_banned = true, ban_reason = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false",
+            "UPDATE users SET is_banned = true, ban_reason = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false",  # noqa: E501
             reason,
             user_id,
         )
@@ -122,7 +122,7 @@ async def clear_ban(user_id: uuid.UUID) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
-            "UPDATE users SET is_banned = false, ban_reason = NULL, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
+            "UPDATE users SET is_banned = false, ban_reason = NULL, updated_at = NOW() WHERE id = $1 AND is_deleted = false",  # noqa: E501
             user_id,
         )
         return result == "UPDATE 1"
@@ -133,7 +133,7 @@ async def list_all(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:
     async with pool.acquire() as conn:
         total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE is_deleted = false")
         rows = await conn.fetch(
-            "SELECT * FROM users WHERE is_deleted = false ORDER BY created_at DESC OFFSET $1 LIMIT $2",
+            "SELECT * FROM users WHERE is_deleted = false ORDER BY created_at DESC OFFSET $1 LIMIT $2",  # noqa: E501
             offset,
             limit,
         )

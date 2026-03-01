@@ -7,7 +7,7 @@ async def insert(report_id: uuid.UUID, post_id: uuid.UUID, user_id: uuid.UUID, r
     pool = get_pool()
     async with pool.acquire() as conn:
         existing = await conn.fetchval(
-            "SELECT id FROM post_reports WHERE post_id = $1 AND user_id = $2 AND status = 'PENDING'",
+            "SELECT id FROM post_reports WHERE post_id = $1 AND user_id = $2 AND status = 'PENDING'",  # noqa: E501
             post_id,
             user_id,
         )
@@ -51,7 +51,7 @@ async def find_many(
         )
         params.extend([limit, offset])
         rows = await conn.fetch(
-            f"SELECT * FROM post_reports {where} ORDER BY created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",
+            f"SELECT * FROM post_reports {where} ORDER BY created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
             *params,
         )
         return [dict(r) for r in rows], total

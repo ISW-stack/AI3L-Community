@@ -1,9 +1,8 @@
 """Tests for app.services.user + app.api.v1.endpoints.users."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient
 
 from tests.conftest import make_user_dict

@@ -87,7 +87,7 @@ async def find_many(
             post_id,
         )
         rows = await conn.fetch(
-            f"{_COMMENT_SELECT} WHERE cm.post_id = $1 AND cm.is_deleted = false ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",
+            f"{_COMMENT_SELECT} WHERE cm.post_id = $1 AND cm.is_deleted = false ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",  # noqa: E501
             post_id,
             limit,
             offset,

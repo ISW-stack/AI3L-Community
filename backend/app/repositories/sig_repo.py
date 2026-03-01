@@ -101,13 +101,13 @@ async def soft_delete(sig_id: uuid.UUID) -> bool:
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await conn.execute(
-                "UPDATE sigs SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
+                "UPDATE sigs SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",  # noqa: E501
                 sig_id,
             )
             if result != "UPDATE 1":
                 return False
             await conn.execute(
-                "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE sig_id = $1 AND is_deleted = false",
+                "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE sig_id = $1 AND is_deleted = false",  # noqa: E501
                 sig_id,
             )
             return True

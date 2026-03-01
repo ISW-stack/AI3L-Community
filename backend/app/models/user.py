@@ -1,9 +1,7 @@
 import enum
-import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, String, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin

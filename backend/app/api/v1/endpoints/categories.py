@@ -3,7 +3,6 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.deps import get_current_user, require_role
-from app.schemas.auth import MessageResponse
 from app.schemas.category import (
     CategoryCreateRequest,
     CategoryListResponse,

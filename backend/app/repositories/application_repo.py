@@ -8,7 +8,7 @@ async def insert(app_id: uuid.UUID, user_id: uuid.UUID, description: str) -> dic
     pool = get_pool()
     async with pool.acquire() as conn:
         existing = await conn.fetchval(
-            "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",
+            "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",  # noqa: E501
             user_id,
         )
         if existing > 0:
@@ -97,7 +97,7 @@ async def find_pending_by_user(user_id: uuid.UUID) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         count = await conn.fetchval(
-            "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",
+            "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",  # noqa: E501
             user_id,
         )
         return count > 0

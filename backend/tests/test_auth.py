@@ -1,9 +1,6 @@
 """Tests for app.services.auth — session management, authentication, guest login."""
 
-import uuid
 from unittest.mock import AsyncMock, patch
-
-import pytest
 
 from tests.conftest import make_user_dict
 

@@ -17,7 +17,7 @@ async def insert(
         row = await conn.fetchrow(
             """
             WITH inserted AS (
-                INSERT INTO notifications (id, user_id, trigger_user_id, action_type, entity_type, entity_id, message)
+                INSERT INTO notifications (id, user_id, trigger_user_id, action_type, entity_type, entity_id, message)  # noqa: E501
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
             )
@@ -88,7 +88,7 @@ async def mark_read(notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
-            "UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2 AND is_read = false",
+            "UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2 AND is_read = false",  # noqa: E501
             notification_id,
             user_id,
         )

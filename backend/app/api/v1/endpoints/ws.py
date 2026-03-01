@@ -60,7 +60,6 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)):
             guest_timeout_task = asyncio.create_task(_guest_timeout())
 
         async def ping_loop():
-            nonlocal last_pong
             while True:
                 await asyncio.sleep(WS_PING_INTERVAL)
                 now = asyncio.get_event_loop().time()

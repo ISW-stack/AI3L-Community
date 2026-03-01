@@ -1,9 +1,11 @@
-"""Tests for app.api.v1.endpoints.auth — login, register, logout, guest, heartbeat, ws-ticket, CSRF."""
+"""Tests for app.api.v1.endpoints.auth.
+
+login, register, logout, guest, heartbeat, ws-ticket, CSRF.
+"""
 
 import uuid
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient
 
 from tests.conftest import make_user_dict

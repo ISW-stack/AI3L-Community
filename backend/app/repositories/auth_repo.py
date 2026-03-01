@@ -8,7 +8,7 @@ async def find_invite_code(code: str) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT * FROM invite_codes WHERE code = $1 AND expires_at > NOW() AND consumed_at IS NULL",
+            "SELECT * FROM invite_codes WHERE code = $1 AND expires_at > NOW() AND consumed_at IS NULL",  # noqa: E501
             code,
         )
         return dict(row) if row else None

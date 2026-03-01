@@ -1,4 +1,7 @@
-"""Tests for applications endpoints — apply success, non-guest rejected, list admin, review approve."""
+"""Tests for applications endpoints.
+
+apply success, non-guest rejected, list admin, review approve.
+"""
 
 import uuid
 from datetime import datetime, timezone

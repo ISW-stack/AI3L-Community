@@ -3,8 +3,6 @@
 import uuid
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 
 class TestCreateConsent:
     @patch("app.repositories.privacy_repo.get_pool")

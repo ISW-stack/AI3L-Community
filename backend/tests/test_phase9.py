@@ -2,11 +2,11 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from tests.conftest import _make_auth_headers, make_user_dict
+from tests.conftest import make_user_dict
 
 _EP = "app.api.v1.endpoints"
 

@@ -1,10 +1,8 @@
 """Tests for file upload validation — magic number check, path traversal, PDF sanitization."""
 
-import uuid
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient
 
 from app.core.file_validation import validate_magic_number

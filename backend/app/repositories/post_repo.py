@@ -35,7 +35,7 @@ async def insert(
         row = await conn.fetchrow(
             f"""
             WITH inserted AS (
-                INSERT INTO posts (id, user_id, title, content, category_id, sig_id, keywords, allow_comments)
+                INSERT INTO posts (id, user_id, title, content, category_id, sig_id, keywords, allow_comments)  # noqa: E501
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
             )
@@ -163,13 +163,13 @@ async def soft_delete(post_id: uuid.UUID, user_id: uuid.UUID | None = None) -> b
     async with pool.acquire() as conn:
         if user_id:
             result = await conn.execute(
-                "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND user_id = $2 AND is_deleted = false",
+                "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND user_id = $2 AND is_deleted = false",  # noqa: E501
                 post_id,
                 user_id,
             )
         else:
             result = await conn.execute(
-                "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
+                "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",  # noqa: E501
                 post_id,
             )
         return result == "UPDATE 1"
