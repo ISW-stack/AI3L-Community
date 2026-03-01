@@ -3,7 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 
 from app.converters.user_converter import user_to_response
-from app.core.async_storage import get_user_storage_used, upload_file as async_upload_file
+from app.core.async_storage import get_user_storage_used
+from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.deps import get_current_user, require_role
 from app.core.event_bus import emit

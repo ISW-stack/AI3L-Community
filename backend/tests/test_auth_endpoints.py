@@ -320,6 +320,7 @@ class TestGenerateInviteCode:
     async def test_generate_invite_code(self, mock_create, client: AsyncClient):
         """POST /auth/invite-code → 200 for member."""
         from datetime import datetime, timezone
+
         from app.core.deps import get_current_user
         from app.main import app
 

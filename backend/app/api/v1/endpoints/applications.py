@@ -11,11 +11,7 @@ from app.schemas.application import (
 )
 from app.schemas.auth import MessageResponse
 from app.schemas.user import ApplyMemberRequest
-from app.services.application import (
-    create_application,
-    list_applications,
-    review_application,
-)
+from app.services.application import create_application, list_applications, review_application
 
 router = APIRouter(tags=["applications"])
 

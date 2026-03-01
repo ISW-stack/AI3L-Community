@@ -1,5 +1,5 @@
-from redis.asyncio import Redis
 from loguru import logger
+from redis.asyncio import Redis
 
 _redis: Redis | None = None
 

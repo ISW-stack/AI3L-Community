@@ -5,11 +5,7 @@ from loguru import logger
 
 from app.core.constants import MAX_GUESTS
 from app.core.redis import get_redis
-from app.core.security import (
-    ROLE_TTL_MAP,
-    create_access_token,
-    verify_password,
-)
+from app.core.security import ROLE_TTL_MAP, create_access_token, verify_password
 from app.repositories import auth_repo
 from app.services.user import get_user_by_username
 

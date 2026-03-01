@@ -1,5 +1,5 @@
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 # Datadog tracing — must be patched before FastAPI import
 try:
@@ -14,16 +14,16 @@ except Exception:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 from loguru import logger
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from app.api.v1.router import api_v1_router
 from app.core.config import settings
 from app.core.csrf import CSRFMiddleware
 from app.core.database import close_db_pool, init_db_pool
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
 from app.core.storage import init_storage
-from app.api.v1.router import api_v1_router
 
 
 async def bootstrap_super_admin() -> None:

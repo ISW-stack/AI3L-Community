@@ -2,13 +2,11 @@
 
 import asyncio
 
-from app.core.storage import (
-    delete_file as _sync_delete,
-    generate_avatar_key,
-    generate_presigned_url as _sync_presigned,
-    get_storage,
-    upload_file as _sync_upload,
-)
+from app.core.storage import delete_file as _sync_delete
+from app.core.storage import generate_avatar_key
+from app.core.storage import generate_presigned_url as _sync_presigned
+from app.core.storage import get_storage
+from app.core.storage import upload_file as _sync_upload
 
 
 async def upload_file(data: bytes, key: str, content_type: str) -> str:

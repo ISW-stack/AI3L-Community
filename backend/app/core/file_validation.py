@@ -2,11 +2,11 @@
 
 from io import BytesIO
 
-from app.core.constants import (
+from app.core.constants import (  # noqa: F401
     AVATAR_ALLOWED_TYPES,
     MAX_AVATAR_SIZE,
     MAX_EDITOR_FILE_SIZE,
-)  # noqa: F401
+)
 
 # Magic number signatures for allowed file types
 MAGIC_NUMBERS = {

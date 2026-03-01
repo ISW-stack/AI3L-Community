@@ -3,8 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.deps import get_current_user, require_role
-from app.schemas.post import PostListResponse, PostResponse
 from app.schemas.auth import MessageResponse
+from app.schemas.post import PostListResponse, PostResponse
 from app.schemas.sig import (
     SigCreateRequest,
     SigListResponse,

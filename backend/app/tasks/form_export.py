@@ -8,7 +8,7 @@ from loguru import logger
 
 from app.celery_app import celery
 from app.core.config import settings
-from app.core.database import init_db_pool, get_pool
+from app.core.database import get_pool, init_db_pool
 from app.core.storage import (
     generate_form_export_key,
     generate_presigned_url,

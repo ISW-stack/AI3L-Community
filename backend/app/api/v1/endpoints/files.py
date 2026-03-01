@@ -3,11 +3,9 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
-from app.core.async_storage import (
-    generate_presigned_url as async_presigned_url,
-    get_user_storage_used,
-    upload_file as async_upload_file,
-)
+from app.core.async_storage import generate_presigned_url as async_presigned_url
+from app.core.async_storage import get_user_storage_used
+from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.deps import require_role
 from app.core.file_validation import validate_editor_file
