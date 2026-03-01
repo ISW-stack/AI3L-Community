@@ -3,6 +3,8 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/composables/api'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -214,8 +216,8 @@ onMounted(() => {
     </div>
 
     <!-- Post List -->
-    <div v-if="loading" class="text-center text-gray-400 py-12">Loading...</div>
-    <div v-else-if="posts.length === 0" class="text-center text-gray-400 py-12">No posts found</div>
+    <SkeletonLoader v-if="loading" :lines="3" variant="card" />
+    <EmptyState v-else-if="posts.length === 0" message="No posts found" title="Nothing here yet" action-label="Create Post" action-to="/forum/create" />
 
     <div class="space-y-3">
       <router-link

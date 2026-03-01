@@ -111,6 +111,23 @@ const router = createRouter({
       component: () => import('@/views/forms/FormBuilderView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin',
+      name: 'admin-dashboard',
+      component: () => import('@/views/admin/AdminDashboardView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/invite-codes',
+      name: 'admin-invite-codes',
+      component: () => import('@/views/admin/InviteCodesView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue'),
+    },
   ],
 })
 

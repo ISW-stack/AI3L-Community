@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '@/composables/api'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface Sig {
   id: string
@@ -36,11 +38,9 @@ onMounted(fetchSigs)
   <div class="max-w-5xl mx-auto py-8 px-4">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Special Interest Groups</h1>
 
-    <div v-if="loading" class="text-center text-gray-400 py-12">Loading...</div>
+    <SkeletonLoader v-if="loading" :lines="3" variant="card" />
 
-    <div v-else-if="sigs.length === 0" class="text-center text-gray-400 py-12">
-      No SIGs have been created yet.
-    </div>
+    <EmptyState v-else-if="sigs.length === 0" message="No SIGs have been created yet." title="No SIGs" />
 
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <router-link

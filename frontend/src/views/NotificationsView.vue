@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/composables/api'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface TriggerUser {
   id: string
@@ -117,11 +119,9 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div v-if="loading" class="text-center py-12 text-gray-400">Loading...</div>
+    <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
-    <div v-else-if="notifications.length === 0" class="text-center py-12">
-      <p class="text-gray-400">No notifications yet.</p>
-    </div>
+    <EmptyState v-else-if="notifications.length === 0" message="No notifications yet." title="All Caught Up" />
 
     <div v-else class="bg-white rounded-xl shadow border border-gray-200 divide-y divide-gray-100">
       <button

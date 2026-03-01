@@ -40,6 +40,12 @@ async function handleLogout() {
             <!-- Admin links -->
             <template v-if="auth.isAdmin">
               <router-link
+                to="/admin"
+                class="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Dashboard
+              </router-link>
+              <router-link
                 to="/admin/users"
                 class="text-sm text-gray-600 hover:text-gray-900"
               >
@@ -56,6 +62,12 @@ async function handleLogout() {
                 class="text-sm text-gray-600 hover:text-gray-900"
               >
                 Reports
+              </router-link>
+              <router-link
+                to="/admin/invite-codes"
+                class="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Invite Codes
               </router-link>
             </template>
             <router-link

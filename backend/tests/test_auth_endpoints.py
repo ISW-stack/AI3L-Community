@@ -212,3 +212,51 @@ class TestHeartbeatEndpoint:
             assert resp.status_code == 200
         finally:
             app.dependency_overrides.pop(get_current_user, None)
+
+
+class TestGetCaptcha:
+    @patch(f"{_EP}.generate_captcha", new_callable=AsyncMock, return_value=("cap-id-1", "base64data"))
+    async def test_get_captcha(self, mock_captcha, client: AsyncClient):
+        """GET /auth/captcha → 200 with captcha_id and image."""
+        resp = await client.get("/api/v1/auth/captcha")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["captcha_id"] == "cap-id-1"
+        assert data["image_base64"] == "base64data"
+
+
+class TestGenerateInviteCode:
+    @patch(f"{_EP}.create_invite_code", new_callable=AsyncMock)
+    async def test_generate_invite_code(self, mock_create, client: AsyncClient):
+        """POST /auth/invite-code → 200 for member."""
+        from datetime import datetime, timezone
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        mock_create.return_value = ("INV-NEWCODE", datetime(2026, 4, 1, tzinfo=timezone.utc))
+
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post("/api/v1/auth/invite-code", headers={"Authorization": "Bearer fake"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["invite_code"] == "INV-NEWCODE"
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+
+class TestVerifyInviteCode:
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
+    async def test_verify_valid(self, mock_get, client: AsyncClient):
+        """GET /auth/invite-code/{code} → 200 for valid code."""
+        mock_get.return_value = {"code": "INV-VALID", "id": uuid.uuid4()}
+        resp = await client.get("/api/v1/auth/invite-code/INV-VALID")
+        assert resp.status_code == 200
+        assert "valid" in resp.json()["message"].lower()
+
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
+    async def test_verify_invalid(self, mock_get, client: AsyncClient):
+        """GET /auth/invite-code/{code} → 404 for invalid code."""
+        resp = await client.get("/api/v1/auth/invite-code/BAD-CODE")
+        assert resp.status_code == 404
