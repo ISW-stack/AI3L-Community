@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-_SVC = "app.services.category"
+_REPO = "app.repositories.category_repo"
 
 
 def _override_auth(role="MEMBER", user_id=None):
@@ -34,7 +34,7 @@ class TestListCategories:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with patch(f"{_REPO}.get_pool", return_value=mock_pool):
                 resp = await client.get(
                     "/api/v1/categories",
                     headers={"Authorization": "Bearer fake"},
@@ -59,7 +59,7 @@ class TestCreateCategory:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with patch(f"{_REPO}.get_pool", return_value=mock_pool):
                 resp = await client.post(
                     "/api/v1/categories",
                     json={"name": "Science", "description": "Science topics"},

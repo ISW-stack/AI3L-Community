@@ -3,15 +3,15 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
-from app.core.deps import require_role
-from app.core.errors import AppError, ErrorCode
-from app.core.file_validation import (
-    MAX_EDITOR_FILE_SIZE,
-    get_content_type_from_extension,
-    sanitize_pdf,
-    validate_magic_number,
+from app.core.async_storage import (
+    generate_presigned_url as async_presigned_url,
+    get_user_storage_used,
+    upload_file as async_upload_file,
 )
-from app.core.storage import generate_presigned_url, upload_file
+from app.core.config import settings
+from app.core.deps import require_role
+from app.core.file_validation import validate_editor_file
+from app.core.storage import generate_presigned_url
 from app.schemas.file import FileUploadResponse
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -26,33 +26,12 @@ async def upload_editor_file(
 ) -> FileUploadResponse:
     """Upload file for rich text editor (PNG, JPEG, PDF, DOCX). Max 20MB."""
     filename = file.filename or "unnamed"
-    expected_type = get_content_type_from_extension(filename)
-    if expected_type is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File type not allowed. Accepted: .png, .jpg, .jpeg, .pdf, .docx",
-        )
-
     data = await file.read()
-    if len(data) > MAX_EDITOR_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 20MB limit.",
-        )
-
-    if not validate_magic_number(data, expected_type):
-        raise AppError(ErrorCode.FILE_001, 400, "File content does not match its extension (invalid magic number).")
-
-    # Sanitize PDFs
-    if expected_type == "application/pdf":
-        data = sanitize_pdf(data)
+    expected_type, data = validate_editor_file(filename, data)
 
     # Storage quota check
-    from app.core.config import settings as _settings
-    from app.services.user import get_user_storage_used
-
-    used = get_user_storage_used(current_user["sub"])
-    if used + len(data) > _settings.MAX_USER_STORAGE_BYTES:
+    used = await get_user_storage_used(current_user["sub"])
+    if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Storage quota exceeded (1 GB limit).",
@@ -60,10 +39,10 @@ async def upload_editor_file(
 
     ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     key = f"editor/{current_user['sub']}/{uuid.uuid4().hex}{ext}"
-    upload_file(data, key, expected_type)
-    url = generate_presigned_url(key, expires_in=86400 * 7)
+    await async_upload_file(data, key, expected_type)
+    url = await async_presigned_url(key, expires_in=86400 * 7)
 
-    # Fire-and-forget VirusTotal check
+    # Fire-and-forget VirusTotal check (lazy import to avoid celery dependency at module load)
     try:
         from app.tasks.virustotal import check_virustotal, compute_sha256
 

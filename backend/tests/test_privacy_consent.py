@@ -7,7 +7,7 @@ import pytest
 
 
 class TestCreateConsent:
-    @patch("app.services.privacy_consent.get_pool")
+    @patch("app.repositories.privacy_repo.get_pool")
     async def test_create_consent(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.privacy_consent import create_consent
 
@@ -18,7 +18,7 @@ class TestCreateConsent:
 
 
 class TestHasConsent:
-    @patch("app.services.privacy_consent.get_pool")
+    @patch("app.repositories.privacy_repo.get_pool")
     async def test_has_consent_true(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.privacy_consent import has_consent
 
@@ -28,7 +28,7 @@ class TestHasConsent:
         result = await has_consent(str(uuid.uuid4()))
         assert result is True
 
-    @patch("app.services.privacy_consent.get_pool")
+    @patch("app.repositories.privacy_repo.get_pool")
     async def test_has_consent_false(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.privacy_consent import has_consent
 

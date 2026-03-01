@@ -7,10 +7,8 @@ from io import BytesIO
 from captcha.image import ImageCaptcha
 from loguru import logger
 
+from app.core.constants import CAPTCHA_LENGTH, CAPTCHA_TTL
 from app.core.redis import get_redis
-
-CAPTCHA_TTL = 300  # 5 minutes
-CAPTCHA_LENGTH = 4
 
 
 async def generate_captcha() -> tuple[str, str]:

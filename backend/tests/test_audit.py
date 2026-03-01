@@ -9,7 +9,7 @@ from httpx import AsyncClient
 
 
 class TestLogAction:
-    @patch("app.services.audit.get_pool")
+    @patch("app.repositories.audit_repo.get_pool")
     async def test_log_action(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.audit import log_action
 
@@ -18,7 +18,7 @@ class TestLogAction:
         await log_action(str(uuid.uuid4()), "LOGIN", ip_address="127.0.0.1")
         mock_conn.execute.assert_called_once()
 
-    @patch("app.services.audit.get_pool")
+    @patch("app.repositories.audit_repo.get_pool")
     async def test_log_action_with_target(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.audit import log_action
 
@@ -30,7 +30,7 @@ class TestLogAction:
         )
         mock_conn.execute.assert_called_once()
 
-    @patch("app.services.audit.get_pool")
+    @patch("app.repositories.audit_repo.get_pool")
     async def test_log_action_handles_db_error(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.audit import log_action
 
@@ -42,7 +42,7 @@ class TestLogAction:
 
 
 class TestListAuditLogs:
-    @patch("app.services.audit.get_pool")
+    @patch("app.repositories.audit_repo.get_pool")
     async def test_list_audit_logs(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.audit import list_audit_logs
 
@@ -79,7 +79,7 @@ class TestListAuditLogs:
         assert len(logs) == 2
         assert logs[0]["action"] == "LOGIN"
 
-    @patch("app.services.audit.get_pool")
+    @patch("app.repositories.audit_repo.get_pool")
     async def test_list_audit_logs_with_user_filter(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.audit import list_audit_logs
 
@@ -109,7 +109,7 @@ class TestAuditLogsEndpoint:
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 
-    @patch("app.services.audit.list_audit_logs", new_callable=AsyncMock, return_value=([], 0))
+    @patch("app.api.v1.endpoints.users.list_audit_logs", new_callable=AsyncMock, return_value=([], 0))
     async def test_audit_logs_endpoint_success(self, mock_list, client: AsyncClient):
         from app.core.deps import get_current_user
         from app.main import app

@@ -5,42 +5,35 @@ from collections import defaultdict
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from loguru import logger
 
-from app.core.security import decode_access_token
-from app.services.auth import validate_session
+from app.core.constants import GUEST_SESSION_TIMEOUT, WS_PING_INTERVAL, WS_PING_TIMEOUT
+from app.core.redis import get_redis
 
 router = APIRouter()
 
 # In-memory connection registry: user_id -> set of WebSocket connections
 _connections: dict[str, set[WebSocket]] = defaultdict(set)
 
-PING_INTERVAL = 30  # seconds
-PING_TIMEOUT = 90  # seconds
-GUEST_SESSION_TIMEOUT = 45 * 60  # 45 minutes in seconds
 
-
-async def _authenticate_ws(token: str) -> dict | None:
-    """Validate JWT + Redis session for WebSocket."""
-    payload = decode_access_token(token)
-    if payload is None:
+async def _authenticate_ws(ticket: str) -> dict | None:
+    """Validate a one-time WebSocket ticket from Redis."""
+    redis = get_redis()
+    key = f"ws:ticket:{ticket}"
+    data = await redis.get(key)
+    if data is None:
         return None
 
-    user_id = payload.get("sub")
-    role = payload.get("role")
-    jti = payload.get("jti")
+    # Delete immediately — one-time use
+    await redis.delete(key)
 
-    if not all([user_id, role, jti]):
+    try:
+        return json.loads(data)
+    except (json.JSONDecodeError, TypeError):
         return None
-
-    is_valid = await validate_session(user_id, role, jti)
-    if not is_valid:
-        return None
-
-    return payload
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
-    payload = await _authenticate_ws(token)
+async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)):
+    payload = await _authenticate_ws(ticket)
     if payload is None:
         await ws.close(code=4001, reason="Authentication failed")
         return
@@ -68,9 +61,9 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
         async def ping_loop():
             nonlocal last_pong
             while True:
-                await asyncio.sleep(PING_INTERVAL)
+                await asyncio.sleep(WS_PING_INTERVAL)
                 now = asyncio.get_event_loop().time()
-                if now - last_pong > PING_TIMEOUT:
+                if now - last_pong > WS_PING_TIMEOUT:
                     logger.warning("WebSocket ping timeout", extra={"user_id": user_id})
                     await ws.close(code=4002, reason="Ping timeout")
                     return
@@ -102,7 +95,29 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
 
 
 async def send_to_user(user_id: str, message: dict) -> None:
-    """Send a message to all WebSocket connections for a user."""
+    """Publish a message to a user via Redis Pub/Sub (reaches all workers)."""
+    try:
+        redis = get_redis()
+        await redis.publish(f"ws:user:{user_id}", json.dumps(message))
+    except Exception:
+        logger.warning("Failed to publish WS message via Redis", exc_info=True)
+        # Fallback: try local delivery
+        await _local_send(user_id, message)
+
+
+async def force_logout(user_id: str) -> None:
+    """Publish a force-logout command via Redis Pub/Sub."""
+    try:
+        redis = get_redis()
+        await redis.publish(f"ws:logout:{user_id}", "1")
+    except Exception:
+        logger.warning("Failed to publish force logout via Redis", exc_info=True)
+        # Fallback: local
+        await _local_force_logout(user_id)
+
+
+async def _local_send(user_id: str, message: dict) -> None:
+    """Send a message to all local WebSocket connections for a user."""
     for ws in list(_connections.get(user_id, [])):
         try:
             await ws.send_json(message)
@@ -110,8 +125,8 @@ async def send_to_user(user_id: str, message: dict) -> None:
             _connections[user_id].discard(ws)
 
 
-async def force_logout(user_id: str) -> None:
-    """Send FORCE_LOGOUT message and close all connections for a user."""
+async def _local_force_logout(user_id: str) -> None:
+    """Send FORCE_LOGOUT message and close all local connections for a user."""
     for ws in list(_connections.get(user_id, [])):
         try:
             await ws.send_json({"type": "FORCE_LOGOUT"})
@@ -119,3 +134,64 @@ async def force_logout(user_id: str) -> None:
         except Exception:
             pass
     _connections.pop(user_id, None)
+
+
+# --- Redis Pub/Sub subscriber (started in lifespan) ---
+
+_subscriber_task: asyncio.Task | None = None
+
+
+async def start_redis_subscriber() -> None:
+    """Start the Redis Pub/Sub subscriber background task."""
+    global _subscriber_task
+    _subscriber_task = asyncio.create_task(_redis_subscriber())
+
+
+async def stop_redis_subscriber() -> None:
+    """Stop the Redis Pub/Sub subscriber."""
+    global _subscriber_task
+    if _subscriber_task:
+        _subscriber_task.cancel()
+        try:
+            await _subscriber_task
+        except asyncio.CancelledError:
+            pass
+        _subscriber_task = None
+
+
+async def _redis_subscriber() -> None:
+    """Subscribe to ws:user:* and ws:logout:* channels, dispatching to local connections."""
+    try:
+        redis = get_redis()
+        pubsub = redis.pubsub()
+        await pubsub.psubscribe("ws:user:*", "ws:logout:*")
+        logger.info("Redis Pub/Sub subscriber started for WebSocket")
+
+        async for msg in pubsub.listen():
+            if msg["type"] != "pmessage":
+                continue
+
+            channel = msg["channel"]
+            if isinstance(channel, bytes):
+                channel = channel.decode()
+
+            try:
+                if channel.startswith("ws:user:"):
+                    user_id = channel[len("ws:user:"):]
+                    data = msg["data"]
+                    if isinstance(data, bytes):
+                        data = data.decode()
+                    message = json.loads(data)
+                    await _local_send(user_id, message)
+
+                elif channel.startswith("ws:logout:"):
+                    user_id = channel[len("ws:logout:"):]
+                    await _local_force_logout(user_id)
+            except Exception:
+                logger.warning("Error processing Pub/Sub message", exc_info=True)
+
+    except asyncio.CancelledError:
+        logger.info("Redis Pub/Sub subscriber stopped")
+        raise
+    except Exception:
+        logger.error("Redis Pub/Sub subscriber crashed", exc_info=True)

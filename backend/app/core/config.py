@@ -32,6 +32,15 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:15173,http://localhost:13000"
+    CORS_ALLOW_CREDENTIALS: bool = True
+
+    # Cookie settings
+    COOKIE_SECURE: bool = False  # Set True in production (requires HTTPS)
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_DOMAIN: str = ""  # Empty = browser default (current domain)
+
+    # CSRF
+    CSRF_HEADER_NAME: str = "X-CSRF-Token"
 
     # MinIO
     MINIO_ROOT_USER: str = "minioadmin"

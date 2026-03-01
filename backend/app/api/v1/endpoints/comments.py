@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.constants import RATE_LIMIT_COMMENT
 from app.core.deps import get_current_user, require_role
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
@@ -45,7 +46,7 @@ async def create_new_comment(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CommentResponse:
     # Rate limit: 30 comments/minute per user
-    if not await check_rate_limit(f"rl:comment:{current_user['sub']}", 30, 60):
+    if not await check_rate_limit(f"rl:comment:{current_user['sub']}", *RATE_LIMIT_COMMENT):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
 
     try:

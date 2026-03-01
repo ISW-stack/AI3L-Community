@@ -18,6 +18,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from loguru import logger
 
 from app.core.config import settings
+from app.core.csrf import CSRFMiddleware
 from app.core.database import close_db_pool, init_db_pool
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
@@ -79,11 +80,28 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.warning(f"Super Admin bootstrap skipped: {e}")
 
+    # Register event bus handlers
+    from app.event_handlers import register_all
+
+    register_all()
+
+    # Start WebSocket Redis Pub/Sub subscriber
+    from app.api.v1.endpoints.ws import start_redis_subscriber, stop_redis_subscriber
+
+    try:
+        await start_redis_subscriber()
+    except Exception as e:
+        logger.warning(f"WebSocket Redis subscriber start skipped: {e}")
+
     logger.info("All dependencies initialized")
     yield
 
     # Shutdown
     logger.info("Shutting down AI3L Community API")
+    try:
+        await stop_redis_subscriber()
+    except Exception:
+        pass
     await close_redis()
     await close_db_pool()
     logger.info("All dependencies closed")
@@ -105,6 +123,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
+
+# CSRF double-submit cookie middleware (after CORS so preflight is handled first)
+app.add_middleware(CSRFMiddleware, header_name=settings.CSRF_HEADER_NAME)
 
 from app.middleware.idempotency import IdempotencyMiddleware  # noqa: E402
 

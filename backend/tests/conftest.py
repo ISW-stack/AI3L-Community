@@ -6,9 +6,15 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 
+_TEST_CSRF_TOKEN = "test-csrf-token"
+
+
 @pytest.fixture
 async def client() -> AsyncClient:
-    """Create a test client without triggering lifespan (no DB/Redis needed)."""
+    """Create a test client without triggering lifespan (no DB/Redis needed).
+
+    Includes CSRF cookie + header by default so tests pass through CSRF middleware.
+    """
     from app.main import app
 
     with (
@@ -18,7 +24,12 @@ async def client() -> AsyncClient:
         patch("app.main.close_redis", new_callable=AsyncMock),
     ):
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            cookies={"csrf_token": _TEST_CSRF_TOKEN},
+            headers={"X-CSRF-Token": _TEST_CSRF_TOKEN},
+        ) as ac:
             yield ac
 
 
@@ -63,12 +74,16 @@ def mock_redis():
     redis.decr = AsyncMock(return_value=0)
     redis.expire = AsyncMock(return_value=True)
     redis.ping = AsyncMock(return_value=True)
+    redis.eval = AsyncMock(return_value=1)
 
     pipe = AsyncMock()
     pipe.incr = MagicMock(return_value=pipe)
     pipe.expire = MagicMock(return_value=pipe)
     pipe.execute = AsyncMock(return_value=[1, True])
     redis.pipeline = MagicMock(return_value=pipe)
+
+    redis.lpush = AsyncMock(return_value=1)
+    redis.ltrim = AsyncMock(return_value=True)
 
     return redis
 
@@ -86,7 +101,10 @@ def _make_auth_headers(role: str = "MEMBER", user_id: str | None = None):
 
     ttl = timedelta(hours=1)
     token, jti, _ = create_access_token(user_id, role, ttl)
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-CSRF-Token": _TEST_CSRF_TOKEN,
+    }
     return headers, user_id, jti
 
 

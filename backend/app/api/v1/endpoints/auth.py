@@ -1,16 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import secrets
 
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+
+from app.core.config import settings
+from app.core.constants import RATE_LIMIT_GUEST, RATE_LIMIT_LOGIN, RATE_LIMIT_REGISTER
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
+from app.core.event_bus import emit
 from app.core.rate_limit import check_rate_limit
+from app.core.redis import get_redis
 from app.core.security import validate_password_policy
 from app.schemas.auth import (
+    AuthResponse,
     CaptchaResponse,
     GuestLoginRequest,
     InviteCodeResponse,
     LoginRequest,
     MessageResponse,
-    TokenResponse,
+    WsTicketResponse,
 )
 from app.schemas.user import CreateAccountRequest
 from app.services.auth import (
@@ -21,11 +28,41 @@ from app.services.auth import (
     destroy_session,
     get_invite_code,
     guest_login,
+    refresh_session_ttl,
 )
 from app.services.captcha import generate_captcha, verify_captcha
+from app.services.privacy_consent import has_consent
 from app.services.user import create_user, user_exists_by_username
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _set_auth_cookies(response: Response, token: str, csrf_token: str, max_age: int) -> None:
+    """Set HttpOnly access_token cookie and readable csrf_token cookie."""
+    cookie_kwargs = {
+        "httponly": True,
+        "secure": settings.COOKIE_SECURE,
+        "samesite": settings.COOKIE_SAMESITE,
+        "max_age": max_age,
+        "path": "/",
+    }
+    if settings.COOKIE_DOMAIN:
+        cookie_kwargs["domain"] = settings.COOKIE_DOMAIN
+
+    response.set_cookie(key="access_token", value=token, **cookie_kwargs)
+
+    # CSRF token — NOT HttpOnly so JavaScript can read it
+    csrf_kwargs = {**cookie_kwargs, "httponly": False}
+    response.set_cookie(key="csrf_token", value=csrf_token, **csrf_kwargs)
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    """Clear auth cookies."""
+    kwargs = {"path": "/"}
+    if settings.COOKIE_DOMAIN:
+        kwargs["domain"] = settings.COOKIE_DOMAIN
+    response.delete_cookie(key="access_token", **kwargs)
+    response.delete_cookie(key="csrf_token", **kwargs)
 
 
 @router.get("/captcha", response_model=CaptchaResponse)
@@ -34,11 +71,11 @@ async def get_captcha() -> CaptchaResponse:
     return CaptchaResponse(captcha_id=captcha_id, image_base64=image_base64)
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, request: Request) -> TokenResponse:
+@router.post("/login", response_model=AuthResponse)
+async def login(req: LoginRequest, request: Request, response: Response) -> AuthResponse:
     # Rate limit: 10 attempts/minute per IP
     ip = request.client.host if request.client else "unknown"
-    if not await check_rate_limit(f"rl:login:{ip}", 10, 60):
+    if not await check_rate_limit(f"rl:login:{ip}", *RATE_LIMIT_LOGIN):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
 
     # Verify captcha first
@@ -60,29 +97,25 @@ async def login(req: LoginRequest, request: Request) -> TokenResponse:
     token, expires_in = await create_session(str(user["id"]), user["role"])
 
     # Check privacy consent
-    from app.services.privacy_consent import has_consent
-
     needs_consent = not await has_consent(str(user["id"]))
 
-    # Audit log (best-effort)
-    try:
-        from app.services.audit import log_action
+    # Set cookies
+    csrf_token = secrets.token_urlsafe(32)
+    _set_auth_cookies(response, token, csrf_token, expires_in)
 
-        ip = request.client.host if request.client else None
-        await log_action(str(user["id"]), "LOGIN", ip_address=ip)
-    except Exception:
-        pass
+    # Audit log (best-effort, via event bus)
+    await emit("audit.action", user_id=str(user["id"]), action="LOGIN", ip_address=ip)
 
-    return TokenResponse(
-        token=token, role=user["role"], expires_in=expires_in, requires_consent=needs_consent
+    return AuthResponse(
+        role=user["role"], expires_in=expires_in, requires_consent=needs_consent
     )
 
 
-@router.post("/guest/{invite_code}", response_model=TokenResponse)
-async def login_as_guest(invite_code: str, req: GuestLoginRequest, request: Request) -> TokenResponse:
+@router.post("/guest/{invite_code}", response_model=AuthResponse)
+async def login_as_guest(invite_code: str, req: GuestLoginRequest, request: Request, response: Response) -> AuthResponse:
     # Rate limit: 10 attempts/minute per IP
     ip = request.client.host if request.client else "unknown"
-    if not await check_rate_limit(f"rl:guest:{ip}", 10, 60):
+    if not await check_rate_limit(f"rl:guest:{ip}", *RATE_LIMIT_GUEST):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
 
     invite = await get_invite_code(invite_code)
@@ -103,35 +136,37 @@ async def login_as_guest(invite_code: str, req: GuestLoginRequest, request: Requ
         raise AppError(ErrorCode.AUTH_003, 429, "Guest capacity reached. Please try again later.")
 
     token, expires_in = result
+
+    # Set cookies
+    csrf_token = secrets.token_urlsafe(32)
+    _set_auth_cookies(response, token, csrf_token, expires_in)
+
     # Guests always see consent modal on each session
-    return TokenResponse(token=token, role="GUEST", expires_in=expires_in, requires_consent=True)
+    return AuthResponse(role="GUEST", expires_in=expires_in, requires_consent=True)
 
 
 @router.post("/logout", response_model=MessageResponse)
-async def logout(request: Request, current_user: dict = Depends(get_current_user)) -> MessageResponse:
+async def logout(request: Request, response: Response, current_user: dict = Depends(get_current_user)) -> MessageResponse:
     await destroy_session(
         user_id=current_user["sub"],
         role=current_user["role"],
         jti=current_user["jti"],
     )
 
-    # Audit log (best-effort)
-    try:
-        from app.services.audit import log_action
+    _clear_auth_cookies(response)
 
-        ip = request.client.host if request.client else None
-        await log_action(current_user["sub"], "LOGOUT", ip_address=ip)
-    except Exception:
-        pass
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="LOGOUT", ip_address=ip)
 
     return MessageResponse(message="Logged out successfully.")
 
 
-@router.post("/register", response_model=TokenResponse)
-async def register(req: CreateAccountRequest, request: Request) -> TokenResponse:
+@router.post("/register", response_model=AuthResponse)
+async def register(req: CreateAccountRequest, request: Request, response: Response) -> AuthResponse:
     # Rate limit: 5 attempts/minute per IP
     ip = request.client.host if request.client else "unknown"
-    if not await check_rate_limit(f"rl:register:{ip}", 5, 60):
+    if not await check_rate_limit(f"rl:register:{ip}", *RATE_LIMIT_REGISTER):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
 
     # Verify captcha
@@ -172,20 +207,37 @@ async def register(req: CreateAccountRequest, request: Request) -> TokenResponse
 
     token, expires_in = await create_session(str(user["id"]), user["role"])
 
+    # Set cookies
+    csrf_token = secrets.token_urlsafe(32)
+    _set_auth_cookies(response, token, csrf_token, expires_in)
+
     # New user always requires consent
-    return TokenResponse(
-        token=token, role=user["role"], expires_in=expires_in, requires_consent=True
+    return AuthResponse(
+        role=user["role"], expires_in=expires_in, requires_consent=True
     )
 
 
 @router.post("/heartbeat", response_model=MessageResponse)
 async def heartbeat(current_user: dict = Depends(get_current_user)) -> MessageResponse:
-    from app.services.auth import refresh_session_ttl
-
     refreshed = await refresh_session_ttl(current_user["sub"], current_user["role"])
     if not refreshed:
         raise AppError(ErrorCode.AUTH_001, 401, "Session not found.")
     return MessageResponse(message="Session refreshed.")
+
+
+@router.post("/ws-ticket", response_model=WsTicketResponse)
+async def get_ws_ticket(current_user: dict = Depends(get_current_user)) -> WsTicketResponse:
+    """Generate a one-time WebSocket authentication ticket (30s TTL)."""
+    ticket = secrets.token_urlsafe(32)
+    redis = get_redis()
+    # Store ticket → user payload mapping with 30s TTL
+    import json
+    await redis.set(
+        f"ws:ticket:{ticket}",
+        json.dumps({"sub": current_user["sub"], "role": current_user["role"], "jti": current_user["jti"]}),
+        ex=30,
+    )
+    return WsTicketResponse(ticket=ticket)
 
 
 @router.post("/invite-code", response_model=InviteCodeResponse)

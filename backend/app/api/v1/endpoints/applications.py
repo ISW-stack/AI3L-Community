@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.deps import get_current_user, require_role
+from app.core.event_bus import emit
 from app.schemas.application import (
     ApplicationListResponse,
     ApplicationResponse,
@@ -84,13 +85,8 @@ async def review_membership_application(
             detail="Application not found or already reviewed.",
         )
 
-    # Audit log (best-effort)
-    try:
-        from app.services.audit import log_action
-
-        ip = request.client.host if request.client else None
-        await log_action(current_user["sub"], "APPLICATION_REVIEW", target_type="application", target_id=str(app_id), ip_address=ip)
-    except Exception:
-        pass
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="APPLICATION_REVIEW", target_type="application", target_id=str(app_id), ip_address=ip)
 
     return MessageResponse(message=f"Application {req.action.lower()}.")

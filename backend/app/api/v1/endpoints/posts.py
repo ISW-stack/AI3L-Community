@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
+from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
 from app.schemas.post import (
     PostCreateRequest,
@@ -129,15 +130,10 @@ async def delete_post(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not authorized.")
 
-    # Audit log for admin delete (best-effort)
+    # Audit log for admin delete (best-effort, via event bus)
     if is_admin:
-        try:
-            from app.services.audit import log_action
-
-            ip = request.client.host if request.client else None
-            await log_action(current_user["sub"], "ADMIN_DELETE_POST", target_type="post", target_id=str(post_id), ip_address=ip)
-        except Exception:
-            pass
+        ip = request.client.host if request.client else None
+        await emit("audit.action", user_id=current_user["sub"], action="ADMIN_DELETE_POST", target_type="post", target_id=str(post_id), ip_address=ip)
 
 
 @router.get("/{post_id}/history", response_model=PostHistoryResponse)

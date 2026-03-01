@@ -20,10 +20,22 @@ class GuestLoginRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
+    """Legacy response format — kept for backward compatibility."""
     token: str
     role: str
     expires_in: int  # seconds
     requires_consent: bool = False
+
+
+class AuthResponse(BaseModel):
+    """Cookie-based auth response — token is sent via HttpOnly cookie, not in body."""
+    role: str
+    expires_in: int  # seconds
+    requires_consent: bool = False
+
+
+class WsTicketResponse(BaseModel):
+    ticket: str
 
 
 class InviteCodeResponse(BaseModel):

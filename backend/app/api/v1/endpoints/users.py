@@ -2,8 +2,15 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 
+from app.converters.user_converter import user_to_response
+from app.core.async_storage import get_user_storage_used, upload_file as async_upload_file
+from app.core.config import settings
 from app.core.deps import get_current_user, require_role
+from app.core.event_bus import emit
+from app.core.file_validation import validate_avatar
+from app.core.redis import get_redis
 from app.core.security import validate_password_policy
+from app.core.storage import generate_avatar_key
 from app.models.user import UserRole
 from app.schemas.auth import MessageResponse
 from app.schemas.user import (
@@ -15,7 +22,9 @@ from app.schemas.user import (
     UserResponse,
     UserUpdateRequest,
 )
+from app.services.audit import list_audit_logs
 from app.services.auth import destroy_session
+from app.services.privacy_consent import create_consent, create_guest_consent
 from app.services.user import (
     anonymize_user,
     ban_user,
@@ -32,33 +41,7 @@ from app.services.user import (
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-def _resolve_avatar_url(avatar_url: str | None) -> str | None:
-    """If avatar_url is a MinIO object key (no 'http'), generate a fresh presigned URL."""
-    if not avatar_url:
-        return None
-    if avatar_url.startswith("http://") or avatar_url.startswith("https://"):
-        return avatar_url
-    try:
-        from app.core.storage import generate_presigned_url
-
-        return generate_presigned_url(avatar_url, expires_in=86400 * 7)  # 7-day URL
-    except Exception:
-        return avatar_url
-
-
-def _user_to_response(user: dict) -> UserResponse:
-    return UserResponse(
-        id=str(user["id"]),
-        username=user["username"],
-        display_name=user["display_name"],
-        role=user["role"],
-        avatar_url=_resolve_avatar_url(user.get("avatar_url")),
-        orcid=user.get("orcid"),
-        affiliation=user.get("affiliation"),
-        bio=user.get("bio"),
-        is_banned=user.get("is_banned", False),
-        ban_reason=user.get("ban_reason"),
-    )
+_user_to_response = user_to_response
 
 
 @router.get("/me", response_model=UserResponse)
@@ -92,37 +75,20 @@ async def upload_avatar(
     current_user: dict = Depends(get_current_user),
 ) -> UserResponse:
     """Upload avatar image (PNG/JPEG, max 2MB)."""
-    allowed_types = {"image/png", "image/jpeg"}
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PNG and JPEG images are allowed.",
-        )
-
     data = await file.read()
-    max_size = 2 * 1024 * 1024  # 2MB
-    if len(data) > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 2MB limit.",
-        )
+    validate_avatar(file.content_type, data)
 
     # Storage quota check
-    from app.core.config import settings as _settings
-    from app.services.user import get_user_storage_used
-
-    used = get_user_storage_used(current_user["sub"])
-    if used + len(data) > _settings.MAX_USER_STORAGE_BYTES:
+    used = await get_user_storage_used(current_user["sub"])
+    if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Storage quota exceeded (1 GB limit).",
         )
 
-    from app.core.storage import generate_avatar_key, upload_file
-
     ext = ".png" if file.content_type == "image/png" else ".jpg"
     key = generate_avatar_key(current_user["sub"], ext)
-    upload_file(data, key, file.content_type)
+    await async_upload_file(data, key, file.content_type)
 
     # Store the MinIO object key (not presigned URL) — fresh URLs generated on read
     user = await update_user_profile(
@@ -165,12 +131,8 @@ async def accept_privacy_consent(
     role = current_user.get("role")
 
     if role == "GUEST":
-        from app.services.privacy_consent import create_guest_consent
-
         await create_guest_consent(user_id)
     else:
-        from app.services.privacy_consent import create_consent
-
         await create_consent(user_id, ip)
 
     return MessageResponse(message="Privacy consent recorded.")
@@ -189,14 +151,9 @@ async def delete_my_account(
 
     await destroy_session(current_user["sub"], current_user["role"], current_user["jti"])
 
-    # Audit log (best-effort)
-    try:
-        from app.services.audit import log_action
-
-        ip = request.client.host if request.client else None
-        await log_action(current_user["sub"], "ACCOUNT_DELETE", target_type="user", target_id=current_user["sub"], ip_address=ip)
-    except Exception:
-        pass
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="ACCOUNT_DELETE", target_type="user", target_id=current_user["sub"], ip_address=ip)
 
     return MessageResponse(message="Account deleted and anonymized.")
 
@@ -282,20 +239,13 @@ async def change_user_role(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
     # Revoke target user's existing sessions by deleting their Redis key
-    from app.core.redis import get_redis
-
     redis = get_redis()
     for role in [r.value for r in UserRole]:
         await redis.delete(f"session:{role}:{user_id}")
 
-    # Audit log (best-effort)
-    try:
-        from app.services.audit import log_action
-
-        ip = request.client.host if request.client else None
-        await log_action(current_user["sub"], "ROLE_CHANGE", target_type="user", target_id=str(user_id), ip_address=ip)
-    except Exception:
-        pass
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="ROLE_CHANGE", target_type="user", target_id=str(user_id), ip_address=ip)
 
     return _user_to_response(user)
 
@@ -318,14 +268,9 @@ async def ban_user_endpoint(
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    # Audit log (best-effort)
-    try:
-        from app.services.audit import log_action
-
-        ip = request.client.host if request.client else None
-        await log_action(current_user["sub"], "BAN", target_type="user", target_id=str(user_id), ip_address=ip)
-    except Exception:
-        pass
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="BAN", target_type="user", target_id=str(user_id), ip_address=ip)
 
     return MessageResponse(message="User has been banned.")
 
@@ -341,14 +286,9 @@ async def unban_user_endpoint(
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    # Audit log (best-effort)
-    try:
-        from app.services.audit import log_action
-
-        ip = request.client.host if request.client else None
-        await log_action(current_user["sub"], "UNBAN", target_type="user", target_id=str(user_id), ip_address=ip)
-    except Exception:
-        pass
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="UNBAN", target_type="user", target_id=str(user_id), ip_address=ip)
 
     return MessageResponse(message="User has been unbanned.")
 
@@ -363,7 +303,5 @@ async def get_audit_logs(
     user_id: str | None = None,
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
 ) -> dict:
-    from app.services.audit import list_audit_logs
-
     logs, total = await list_audit_logs(page=page, page_size=page_size, user_id_filter=user_id)
     return {"logs": logs, "total": total, "page": page, "page_size": page_size}

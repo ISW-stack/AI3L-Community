@@ -42,10 +42,14 @@ const auth = useAuthStore()
         <p class="text-brand-200 text-lg mb-6">AI in Language Learning and Literacy &mdash; Academic Exchange Platform</p>
         <div class="flex flex-wrap items-center justify-center gap-3">
           <router-link to="/register">
-            <BaseButton size="lg" class="bg-white text-brand-900 hover:bg-brand-50">Get Started</BaseButton>
+            <button class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-lg bg-white text-brand-900 hover:bg-brand-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              Get Started
+            </button>
           </router-link>
           <router-link to="/guest">
-            <BaseButton variant="ghost" class="text-white hover:text-brand-200">Browse as Guest</BaseButton>
+            <button class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              Browse as Guest
+            </button>
           </router-link>
         </div>
       </div>

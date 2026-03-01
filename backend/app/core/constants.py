@@ -1,0 +1,37 @@
+# Rate limits (max_count, window_seconds)
+RATE_LIMIT_LOGIN = (10, 60)
+RATE_LIMIT_REGISTER = (5, 60)
+RATE_LIMIT_GUEST = (10, 60)
+RATE_LIMIT_COMMENT = (30, 60)
+RATE_LIMIT_REPORT = (5, 60)
+
+# Entity limits
+MAX_POSTS_PER_DAY = 50
+MAX_COMMENTS_PER_POST = 200
+MAX_ACTIVE_FORMS_PER_SIG = 20
+MAX_GUESTS = 30
+MAX_KEYWORDS = 15
+
+# File sizes
+MAX_AVATAR_SIZE = 2 * 1024 * 1024          # 2 MB
+MAX_EDITOR_FILE_SIZE = 20 * 1024 * 1024    # 20 MB
+
+# Allowed types
+AVATAR_ALLOWED_TYPES = {"image/png", "image/jpeg"}
+
+# Presigned URL expiry
+PRESIGNED_URL_AVATAR_SECONDS = 86400 * 7   # 7 days
+PRESIGNED_URL_FILE_SECONDS = 3600          # 1 hour
+
+# Pagination
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+# WebSocket
+WS_PING_INTERVAL = 30
+WS_PING_TIMEOUT = 90
+GUEST_SESSION_TIMEOUT = 45 * 60           # 45 minutes
+
+# Captcha
+CAPTCHA_TTL = 300
+CAPTCHA_LENGTH = 4

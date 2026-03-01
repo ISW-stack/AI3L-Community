@@ -101,7 +101,7 @@ class TestSigUpdate:
 
         try:
             _override_auth("ADMIN")
-            with patch("app.services.sig.get_pool", return_value=mock_pool):
+            with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
                 resp = await client.put(
                     f"/api/v1/sigs/{sig_id}",
                     json={"name": "New", "description": "New desc"},
@@ -120,7 +120,7 @@ class TestSigUpdate:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.services.sig.get_pool", return_value=mock_pool):
+            with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
                 resp = await client.put(
                     f"/api/v1/sigs/{sig_id}",
                     json={"name": "Hacked"},
@@ -145,7 +145,7 @@ class TestSigDelete:
 
         try:
             _override_auth("ADMIN")
-            with patch("app.services.sig.get_pool", return_value=mock_pool):
+            with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}",
                     headers={"Authorization": "Bearer fake"},
@@ -185,7 +185,10 @@ class TestSigLeave:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.services.sig.get_pool", return_value=mock_pool):
+            with (
+                patch("app.services.sig.get_pool", return_value=mock_pool),
+                patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+            ):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}/members/me",
                     headers={"Authorization": "Bearer fake"},
@@ -213,7 +216,7 @@ class TestCategoryUpdate:
 
         try:
             _override_auth("ADMIN")
-            with patch("app.services.category.get_pool", return_value=mock_pool):
+            with patch("app.repositories.category_repo.get_pool", return_value=mock_pool):
                 resp = await client.put(
                     f"/api/v1/categories/{cat_id}",
                     json={"name": "New Name", "description": "desc"},
@@ -239,7 +242,7 @@ class TestCategoryDelete:
 
         try:
             _override_auth("ADMIN")
-            with patch("app.services.category.get_pool", return_value=mock_pool):
+            with patch("app.repositories.category_repo.get_pool", return_value=mock_pool):
                 resp = await client.delete(
                     f"/api/v1/categories/{cat_id}",
                     headers={"Authorization": "Bearer fake"},
@@ -279,7 +282,7 @@ class TestCommentEdit:
 
         try:
             _override_auth("MEMBER", user_id=user_id)
-            with patch("app.services.comment.get_pool", return_value=mock_pool):
+            with patch("app.repositories.comment_repo.get_pool", return_value=mock_pool):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",
                     json={"content": "Updated content"},
@@ -299,7 +302,7 @@ class TestCommentEdit:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.services.comment.get_pool", return_value=mock_pool):
+            with patch("app.repositories.comment_repo.get_pool", return_value=mock_pool):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",
                     json={"content": "Hacked"},
@@ -324,7 +327,7 @@ class TestNotificationDelete:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.services.notification.get_pool", return_value=mock_pool):
+            with patch("app.repositories.notification_repo.get_pool", return_value=mock_pool):
                 resp = await client.delete(
                     f"/api/v1/notifications/{notif_id}",
                     headers={"Authorization": "Bearer fake"},
@@ -352,7 +355,7 @@ class TestPasswordChange:
         try:
             payload, uid = _override_auth("MEMBER")
             with (
-                patch("app.services.user.get_pool", return_value=mock_pool),
+                patch("app.repositories.user_repo.get_pool", return_value=mock_pool),
                 patch("app.services.auth.get_redis", return_value=mock_redis),
             ):
                 resp = await client.put(
@@ -374,7 +377,7 @@ class TestPasswordChange:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.services.user.get_pool", return_value=mock_pool):
+            with patch("app.repositories.user_repo.get_pool", return_value=mock_pool):
                 resp = await client.put(
                     "/api/v1/users/me/password",
                     json={"current_password": "WrongPass1", "new_password": "NewPass1"},
@@ -465,7 +468,7 @@ class TestPostSorting:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.services.post.get_pool", return_value=mock_pool):
+            with patch("app.repositories.post_repo.get_pool", return_value=mock_pool):
                 resp = await client.get(
                     "/api/v1/posts?sort=most_comments",
                     headers={"Authorization": "Bearer fake"},

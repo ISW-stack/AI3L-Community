@@ -15,7 +15,7 @@ _UEP = "app.api.v1.endpoints.users"
 
 
 class TestCreateUser:
-    @patch("app.services.user.get_pool")
+    @patch("app.repositories.user_repo.get_pool")
     @patch("app.services.user.hash_password", return_value="hashed")
     async def test_create_user(self, mock_hash, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import create_user
@@ -30,7 +30,7 @@ class TestCreateUser:
 
 
 class TestGetUserById:
-    @patch("app.services.user.get_pool")
+    @patch("app.repositories.user_repo.get_pool")
     async def test_get_user_by_id_found(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import get_user_by_id
 
@@ -42,7 +42,7 @@ class TestGetUserById:
         assert result is not None
         assert result["id"] == user["id"]
 
-    @patch("app.services.user.get_pool")
+    @patch("app.repositories.user_repo.get_pool")
     async def test_get_user_by_id_not_found(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import get_user_by_id
 
@@ -54,7 +54,7 @@ class TestGetUserById:
 
 
 class TestUpdateUserProfile:
-    @patch("app.services.user.get_pool")
+    @patch("app.repositories.user_repo.get_pool")
     async def test_update_user_profile(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import update_user_profile
 
@@ -68,10 +68,10 @@ class TestUpdateUserProfile:
 
 
 class TestBanUser:
-    @patch("app.api.v1.endpoints.ws.force_logout", new_callable=AsyncMock)
-    @patch("app.core.redis.get_redis")
-    @patch("app.services.user.get_pool")
-    async def test_ban_user(self, mock_get_pool, mock_get_redis, mock_force_logout, mock_pool, mock_conn):
+    @patch("app.services.user.emit", new_callable=AsyncMock)
+    @patch("app.services.user.get_redis")
+    @patch("app.repositories.user_repo.get_pool")
+    async def test_ban_user(self, mock_get_pool, mock_get_redis, mock_emit, mock_pool, mock_conn):
         from app.services.user import ban_user
 
         mock_conn.execute.return_value = "UPDATE 1"
@@ -85,7 +85,7 @@ class TestBanUser:
 
 
 class TestUnbanUser:
-    @patch("app.services.user.get_pool")
+    @patch("app.repositories.user_repo.get_pool")
     async def test_unban_user(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import unban_user
 
@@ -95,7 +95,7 @@ class TestUnbanUser:
         result = await unban_user(uuid.uuid4())
         assert result is True
 
-    @patch("app.services.user.get_pool")
+    @patch("app.repositories.user_repo.get_pool")
     async def test_unban_user_not_found(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import unban_user
 
@@ -107,7 +107,7 @@ class TestUnbanUser:
 
 
 class TestAnonymizeUser:
-    @patch("app.services.user.get_pool")
+    @patch("app.repositories.user_repo.get_pool")
     async def test_anonymize_user(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import anonymize_user
 
@@ -203,7 +203,7 @@ class TestUnbanEndpoint:
 
 
 class TestConsentEndpoint:
-    @patch("app.services.privacy_consent.create_consent", new_callable=AsyncMock)
+    @patch("app.api.v1.endpoints.users.create_consent", new_callable=AsyncMock)
     async def test_consent_endpoint(self, mock_consent, client: AsyncClient):
         from app.core.deps import get_current_user
         from app.main import app

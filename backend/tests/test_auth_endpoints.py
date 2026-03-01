@@ -1,4 +1,4 @@
-"""Tests for app.api.v1.endpoints.auth — login, register, logout, guest, heartbeat."""
+"""Tests for app.api.v1.endpoints.auth — login, register, logout, guest, heartbeat, ws-ticket, CSRF."""
 
 import uuid
 from unittest.mock import AsyncMock, patch
@@ -15,7 +15,7 @@ _EP = "app.api.v1.endpoints.auth"
 
 class TestLoginEndpoint:
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
-    @patch("app.services.privacy_consent.has_consent", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_EP}.has_consent", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
     @patch(f"{_EP}.authenticate_user", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
@@ -33,8 +33,13 @@ class TestLoginEndpoint:
         })
         assert resp.status_code == 200
         data = resp.json()
-        assert data["token"] == "tok"
+        # Token is now in HttpOnly cookie, not in response body
         assert data["role"] == "MEMBER"
+        assert "token" not in data
+        # Check cookies are set
+        cookies = {c.name: c for c in resp.cookies.jar}
+        assert "access_token" in cookies
+        assert "csrf_token" in cookies
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=False)
@@ -94,9 +99,12 @@ class TestGuestLoginEndpoint:
         })
         assert resp.status_code == 200
         data = resp.json()
-        assert data["token"] == "gtok"
         assert data["role"] == "GUEST"
         assert data["requires_consent"] is True
+        # Token is now in cookie
+        assert "token" not in data
+        cookies = {c.name: c for c in resp.cookies.jar}
+        assert "access_token" in cookies
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=None)
@@ -136,8 +144,10 @@ class TestRegisterEndpoint:
         })
         assert resp.status_code == 200
         data = resp.json()
-        assert data["token"] == "tok"
         assert data["requires_consent"] is True
+        assert "token" not in data
+        cookies = {c.name: c for c in resp.cookies.jar}
+        assert "access_token" in cookies
 
     async def test_register_without_invite_code(self, client: AsyncClient):
         """POST /auth/register without invite_code → 422 validation error."""
@@ -200,7 +210,7 @@ class TestLogoutEndpoint:
 
 
 class TestHeartbeatEndpoint:
-    @patch("app.services.auth.refresh_session_ttl", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_EP}.refresh_session_ttl", new_callable=AsyncMock, return_value=True)
     async def test_heartbeat_success(self, mock_refresh, client: AsyncClient):
         from app.core.deps import get_current_user
         from app.main import app
@@ -210,6 +220,29 @@ class TestHeartbeatEndpoint:
         try:
             resp = await client.post("/api/v1/auth/heartbeat", headers={"Authorization": "Bearer fake"})
             assert resp.status_code == 200
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+
+class TestWsTicket:
+    @patch(f"{_EP}.get_redis")
+    async def test_get_ws_ticket(self, mock_get_redis, client: AsyncClient):
+        """POST /auth/ws-ticket → 200 with ticket."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_get_redis.return_value = mock_redis
+
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post("/api/v1/auth/ws-ticket", headers={"Authorization": "Bearer fake"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "ticket" in data
+            assert len(data["ticket"]) > 0
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 
@@ -259,4 +292,65 @@ class TestVerifyInviteCode:
     async def test_verify_invalid(self, mock_get, client: AsyncClient):
         """GET /auth/invite-code/{code} → 404 for invalid code."""
         resp = await client.get("/api/v1/auth/invite-code/BAD-CODE")
+        assert resp.status_code == 404
+
+
+class TestCSRFMiddleware:
+    async def test_csrf_blocks_post_without_token(self, client: AsyncClient):
+        """POST to a protected endpoint without CSRF token should be blocked."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            # Send request without CSRF header/cookie (override client defaults)
+            resp = await client.post(
+                "/api/v1/auth/heartbeat",
+                headers={"Authorization": "Bearer fake", "X-CSRF-Token": ""},
+                cookies={"csrf_token": ""},
+            )
+            assert resp.status_code == 403
+            assert "CSRF" in resp.json()["detail"]
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+    async def test_csrf_allows_with_matching_token(self, client: AsyncClient):
+        """POST with matching CSRF cookie + header should pass (default client has them)."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+
+        with patch(f"{_EP}.refresh_session_ttl", new_callable=AsyncMock, return_value=True):
+            try:
+                resp = await client.post(
+                    "/api/v1/auth/heartbeat",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+            finally:
+                app.dependency_overrides.pop(get_current_user, None)
+
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=False)
+    async def test_csrf_exempt_login(self, mock_captcha, mock_rl, client: AsyncClient):
+        """POST to login should be CSRF-exempt (works even without CSRF tokens)."""
+        # The default client has CSRF tokens, but login is exempt so even
+        # mismatched tokens shouldn't cause 403. Let's verify the endpoint works.
+        resp = await client.post("/api/v1/auth/login", json={
+            "username": "x",
+            "password": "x",
+            "captcha_id": "x",
+            "captcha_code": "x",
+        })
+        # Should be 400 (bad captcha), not 403 (CSRF)
+        assert resp.status_code == 400
+
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
+    async def test_csrf_allows_get(self, mock_get, client: AsyncClient):
+        """GET requests should not require CSRF token."""
+        resp = await client.get("/api/v1/auth/invite-code/TEST")
+        # Should be 404 (not found), not 403 (CSRF)
         assert resp.status_code == 404

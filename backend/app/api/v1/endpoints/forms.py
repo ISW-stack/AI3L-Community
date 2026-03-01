@@ -3,9 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.database import get_pool
 from app.core.deps import get_current_user, require_role
 from app.core.security import decode_access_token
+from app.repositories import sig_repo
 from app.schemas.form import (
     FormCreateRequest,
     FormListResponse,
@@ -51,14 +51,8 @@ async def _check_sig_admin(sig_id: uuid.UUID, user_id: str, role: str) -> bool:
     """Check if user is a platform admin or SIG ADMIN/SUB_ADMIN."""
     if role in ("SUPER_ADMIN", "ADMIN"):
         return True
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        member_role = await conn.fetchval(
-            "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2",
-            sig_id,
-            uuid.UUID(user_id),
-        )
-        return member_role in ("ADMIN", "SUB_ADMIN")
+    member_role = await sig_repo.get_member_role(sig_id, uuid.UUID(user_id))
+    return member_role in ("ADMIN", "SUB_ADMIN")
 
 
 @router.post(

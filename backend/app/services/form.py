@@ -4,44 +4,11 @@ from datetime import datetime, timezone
 
 from loguru import logger
 
+from app.converters.form_converter import row_to_form
+from app.core.constants import MAX_ACTIVE_FORMS_PER_SIG
 from app.core.database import get_pool
 from app.core.errors import AppError, ErrorCode
-
-_MAX_ACTIVE_FORMS_PER_SIG = 20
-
-
-def _row_to_form(row: dict, response_count: int = 0) -> dict:
-    deadline = row.get("deadline")
-    now = datetime.now(timezone.utc)
-
-    is_expired = deadline is not None and deadline < now
-    is_full = (
-        row.get("max_respondents") is not None
-        and response_count >= row["max_respondents"]
-    )
-    is_active = not is_expired and not is_full and not row.get("is_deleted", False)
-
-    return {
-        "id": str(row["id"]),
-        "sig_id": str(row["sig_id"]),
-        "title": row["title"],
-        "description": row.get("description"),
-        "banner_url": row.get("banner_url"),
-        "deadline": row["deadline"].isoformat() if row.get("deadline") else None,
-        "max_respondents": row.get("max_respondents"),
-        "questions": (
-            json.loads(row["questions"])
-            if isinstance(row["questions"], str)
-            else row["questions"]
-        ),
-        "is_schema_locked": row.get("is_schema_locked", False),
-        "response_count": response_count,
-        "is_active": is_active,
-        "created_by": str(row["created_by"]),
-        "created_by_name": row.get("creator_display_name") or "Unknown",
-        "created_at": row["created_at"].isoformat(),
-        "updated_at": row["updated_at"].isoformat(),
-    }
+from app.repositories import form_repo
 
 
 async def create_form(
@@ -54,64 +21,25 @@ async def create_form(
     max_respondents: int | None,
     questions: list[dict],
 ) -> dict:
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        # Check active forms limit
-        active_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM forms WHERE sig_id = $1 AND is_deleted = false",
-            uuid.UUID(sig_id),
+    active_count = await form_repo.count_active(uuid.UUID(sig_id))
+    if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
+        raise ValueError(
+            f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached."
         )
-        if active_count >= _MAX_ACTIVE_FORMS_PER_SIG:
-            raise ValueError(
-                f"Maximum active forms per SIG ({_MAX_ACTIVE_FORMS_PER_SIG}) reached."
-            )
 
-        form_id = uuid.uuid4()
-        row = await conn.fetchrow(
-            """
-            INSERT INTO forms (id, sig_id, created_by, title, description, banner_url,
-                               deadline, max_respondents, questions)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
-            RETURNING *
-            """,
-            form_id,
-            uuid.UUID(sig_id),
-            uuid.UUID(user_id),
-            title,
-            description,
-            banner_url,
-            deadline,
-            max_respondents,
-            json.dumps(questions),
-        )
-        creator = await conn.fetchrow(
-            "SELECT display_name FROM users WHERE id = $1", uuid.UUID(user_id)
-        )
-        result = dict(row)
-        result["creator_display_name"] = (
-            creator["display_name"] if creator else "Unknown"
-        )
-        return _row_to_form(result, 0)
+    form_id = uuid.uuid4()
+    result = await form_repo.insert(
+        form_id, uuid.UUID(sig_id), uuid.UUID(user_id),
+        title, description, banner_url, deadline, max_respondents, questions
+    )
+    return row_to_form(result, 0)
 
 
 async def get_form_by_id(form_id: uuid.UUID) -> dict | None:
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """
-            SELECT f.*, u.display_name AS creator_display_name
-            FROM forms f
-            JOIN users u ON u.id = f.created_by
-            WHERE f.id = $1 AND f.is_deleted = false
-            """,
-            form_id,
-        )
-        if not row:
-            return None
-        response_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id
-        )
-        return _row_to_form(dict(row), response_count)
+    row, response_count = await form_repo.find_by_id(form_id)
+    if not row:
+        return None
+    return row_to_form(row, response_count)
 
 
 async def update_form(
@@ -127,18 +55,13 @@ async def update_form(
 ) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
-        current = await conn.fetchrow(
-            "SELECT * FROM forms WHERE id = $1 AND is_deleted = false FOR UPDATE",
-            form_id,
-        )
+        current = await form_repo.find_for_update(form_id, conn)
         if not current:
             return None
 
-        # Permission check
         if not is_admin and str(current["created_by"]) != user_id:
             raise PermissionError("Only the form creator or admin can update this form.")
 
-        # Reject questions changes if schema is locked
         if questions is not None and current["is_schema_locked"]:
             raise ValueError(
                 "Cannot modify questions after responses have been submitted."
@@ -166,7 +89,6 @@ async def update_form(
             idx += 1
 
         if not fields:
-            # Nothing to update, return current
             creator = await conn.fetchrow(
                 "SELECT display_name FROM users WHERE id = $1",
                 current["created_by"],
@@ -175,66 +97,21 @@ async def update_form(
             result["creator_display_name"] = (
                 creator["display_name"] if creator else "Unknown"
             )
-            response_count = await conn.fetchval(
-                "SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id
-            )
-            return _row_to_form(result, response_count)
+            response_count = await form_repo.count_responses(form_id, conn)
+            return row_to_form(result, response_count)
 
-        fields.append("updated_at = NOW()")
-        values.append(form_id)
-        query = f"""
-            UPDATE forms SET {', '.join(fields)}
-            WHERE id = ${idx} AND is_deleted = false
-            RETURNING *
-        """
-        row = await conn.fetchrow(query, *values)
-        if not row:
+        update_result = await form_repo.update(form_id, fields, values, conn)
+        if update_result is None:
             return None
-
-        creator = await conn.fetchrow(
-            "SELECT display_name FROM users WHERE id = $1", row["created_by"]
-        )
-        result = dict(row)
-        result["creator_display_name"] = (
-            creator["display_name"] if creator else "Unknown"
-        )
-        response_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id
-        )
-        return _row_to_form(result, response_count)
+        row, response_count = update_result
+        return row_to_form(row, response_count)
 
 
 async def list_forms_by_sig(
     sig_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
-    pool = get_pool()
-    offset = (page - 1) * page_size
-    async with pool.acquire() as conn:
-        total = await conn.fetchval(
-            "SELECT COUNT(*) FROM forms WHERE sig_id = $1 AND is_deleted = false",
-            sig_id,
-        )
-        rows = await conn.fetch(
-            """
-            SELECT f.*, u.display_name AS creator_display_name
-            FROM forms f
-            JOIN users u ON u.id = f.created_by
-            WHERE f.sig_id = $1 AND f.is_deleted = false
-            ORDER BY f.created_at DESC
-            LIMIT $2 OFFSET $3
-            """,
-            sig_id,
-            page_size,
-            offset,
-        )
-        forms = []
-        for row in rows:
-            response_count = await conn.fetchval(
-                "SELECT COUNT(*) FROM form_responses WHERE form_id = $1",
-                row["id"],
-            )
-            forms.append(_row_to_form(dict(row), response_count))
-        return forms, total
+    results, total = await form_repo.find_by_sig(sig_id, page, page_size)
+    return [row_to_form(row, count) for row, count in results], total
 
 
 async def submit_response(
@@ -243,39 +120,24 @@ async def submit_response(
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            # 1. Check form exists, not deleted
-            form = await conn.fetchrow(
-                "SELECT * FROM forms WHERE id = $1 AND is_deleted = false FOR UPDATE",
-                form_id,
-            )
+            form = await form_repo.find_for_update(form_id, conn)
             if not form:
                 raise ValueError("Form not found.")
 
-            # 2. Check not expired
             now = datetime.now(timezone.utc)
             if form["deadline"] and form["deadline"] < now:
                 raise AppError(ErrorCode.FORM_001, 400, "This form has passed its deadline.")
 
-            # 3. Check not full
-            response_count = await conn.fetchval(
-                "SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id
-            )
+            response_count = await form_repo.count_responses(form_id, conn)
             if (
                 form["max_respondents"] is not None
                 and response_count >= form["max_respondents"]
             ):
                 raise ValueError("This form has reached its maximum number of responses.")
 
-            # 4. Check duplicate submission
-            existing = await conn.fetchval(
-                "SELECT id FROM form_responses WHERE form_id = $1 AND user_id = $2",
-                form_id,
-                uuid.UUID(user_id),
-            )
-            if existing:
+            if await form_repo.check_duplicate_response(form_id, uuid.UUID(user_id), conn):
                 raise ValueError("You have already submitted a response to this form.")
 
-            # 5. Validate answers against questions
             questions = (
                 json.loads(form["questions"])
                 if isinstance(form["questions"], str)
@@ -283,25 +145,11 @@ async def submit_response(
             )
             _validate_answers(questions, answers)
 
-            # 6. Insert response
             response_id = uuid.uuid4()
-            await conn.execute(
-                """
-                INSERT INTO form_responses (id, form_id, user_id, answers)
-                VALUES ($1, $2, $3, $4::jsonb)
-                """,
-                response_id,
-                form_id,
-                uuid.UUID(user_id),
-                json.dumps(answers),
-            )
+            await form_repo.insert_response(response_id, form_id, uuid.UUID(user_id), answers, conn)
 
-            # 7. Lock schema on first response
             if not form["is_schema_locked"]:
-                await conn.execute(
-                    "UPDATE forms SET is_schema_locked = true, updated_at = NOW() WHERE id = $1",
-                    form_id,
-                )
+                await form_repo.lock_schema(form_id, conn)
 
             logger.info(
                 "Form response submitted",
@@ -379,7 +227,6 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
                         f"File type '.{ext}' is not allowed for question '{q['label']}'."
                     )
 
-    # Check for unknown answer keys
     valid_ids = {q["id"] for q in questions}
     for key in answers:
         if key not in valid_ids:
@@ -389,20 +236,11 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
 async def soft_delete_form(
     form_id: uuid.UUID, user_id: str, is_admin: bool
 ) -> bool:
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        form = await conn.fetchrow(
-            "SELECT created_by FROM forms WHERE id = $1 AND is_deleted = false",
-            form_id,
-        )
-        if not form:
-            return False
-
-        if not is_admin and str(form["created_by"]) != user_id:
-            raise PermissionError("Only the form creator or admin can delete this form.")
-
-        await conn.execute(
-            "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",
-            form_id,
-        )
-        return True
+    # Check permission before deleting
+    row, _ = await form_repo.find_by_id(form_id)
+    if not row:
+        return False
+    if not is_admin and str(row["created_by"]) != user_id:
+        raise PermissionError("Only the form creator or admin can delete this form.")
+    deleted, _ = await form_repo.soft_delete(form_id)
+    return deleted

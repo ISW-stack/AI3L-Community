@@ -2,6 +2,8 @@
 
 from io import BytesIO
 
+from app.core.constants import AVATAR_ALLOWED_TYPES, MAX_AVATAR_SIZE, MAX_EDITOR_FILE_SIZE  # noqa: F401
+
 # Magic number signatures for allowed file types
 MAGIC_NUMBERS = {
     "image/png": [b"\x89PNG\r\n\x1a\n"],
@@ -20,7 +22,6 @@ ALLOWED_EXTENSIONS = {
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
 
-MAX_EDITOR_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 
 
 def validate_magic_number(data: bytes, expected_content_type: str) -> bool:
@@ -71,6 +72,52 @@ def sanitize_pdf(data: bytes) -> bytes:
     buf = BytesIO()
     writer.write(buf)
     return buf.getvalue()
+
+
+def validate_avatar(content_type: str, data: bytes) -> None:
+    """Validate avatar file: type and size. Raises HTTPException if invalid."""
+    from fastapi import HTTPException, status
+
+    if content_type not in AVATAR_ALLOWED_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PNG and JPEG images are allowed.",
+        )
+    if len(data) > MAX_AVATAR_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 2MB limit.",
+        )
+
+
+def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
+    """Validate + sanitize an editor upload. Returns (content_type, sanitized_data).
+
+    Raises HTTPException or AppError if invalid.
+    """
+    from fastapi import HTTPException, status
+
+    from app.core.errors import AppError, ErrorCode
+
+    expected_type = get_content_type_from_extension(filename)
+    if expected_type is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File type not allowed. Accepted: .png, .jpg, .jpeg, .pdf, .docx",
+        )
+    if len(data) > MAX_EDITOR_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 20MB limit.",
+        )
+    if not validate_magic_number(data, expected_type):
+        raise AppError(ErrorCode.FILE_001, 400, "File content does not match its extension (invalid magic number).")
+
+    # Sanitize PDFs
+    if expected_type == "application/pdf":
+        data = sanitize_pdf(data)
+
+    return expected_type, data
 
 
 def sanitize_html(html_content: str) -> str:

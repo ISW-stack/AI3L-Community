@@ -40,7 +40,7 @@ class TestListSigs:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
                 resp = await client.get(
                     "/api/v1/sigs",
                     headers={"Authorization": "Bearer fake"},
@@ -71,7 +71,7 @@ class TestCreateSig:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with patch("app.services.sig.get_pool", return_value=mock_pool):
                 resp = await client.post(
                     "/api/v1/sigs",
                     json={"name": "New SIG", "description": "Desc"},
@@ -100,7 +100,7 @@ class TestGetSig:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
                 resp = await client.get(
                     f"/api/v1/sigs/{sig_id}",
                     headers={"Authorization": "Bearer fake"},
@@ -118,7 +118,7 @@ class TestGetSig:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
                 resp = await client.get(
                     f"/api/v1/sigs/{sig_id}",
                     headers={"Authorization": "Bearer fake"},

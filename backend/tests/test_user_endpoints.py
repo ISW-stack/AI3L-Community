@@ -175,7 +175,7 @@ class TestChangeRole:
             _override_auth("SUPER_ADMIN")
             with (
                 patch(f"{_EP}.update_user_role", new_callable=AsyncMock, return_value=user),
-                patch("app.core.redis.get_redis", return_value=mock_redis),
+                patch(f"{_EP}.get_redis", return_value=mock_redis),
             ):
                 resp = await client.put(
                     f"/api/v1/users/{target_user}/role",

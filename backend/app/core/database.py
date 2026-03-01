@@ -10,11 +10,11 @@ async def init_db_pool(dsn: str) -> asyncpg.Pool:
     dsn = dsn.replace("postgresql+asyncpg://", "postgresql://")
     _pool = await asyncpg.create_pool(
         dsn=dsn,
-        min_size=5,
-        max_size=15,
-        command_timeout=30,
+        min_size=10,
+        max_size=30,
+        command_timeout=60,
     )
-    logger.info("Database connection pool initialized", extra={"min_size": 5, "max_size": 15})
+    logger.info("Database connection pool initialized", extra={"min_size": 10, "max_size": 30})
     return _pool
 
 

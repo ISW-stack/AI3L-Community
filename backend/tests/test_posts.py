@@ -37,7 +37,7 @@ def _make_post_row(user_id=None, version=1):
 class TestCreatePost:
     @patch("app.services.post._increment_daily_post_count", new_callable=AsyncMock)
     @patch("app.services.post._check_daily_post_limit", new_callable=AsyncMock, return_value=True)
-    @patch("app.services.post.get_pool")
+    @patch("app.repositories.post_repo.get_pool")
     async def test_create_post_success(self, mock_get_pool, mock_limit, mock_incr, mock_pool, mock_conn):
         from app.services.post import create_post
 
@@ -74,7 +74,7 @@ class TestUpdatePost:
 
 
 class TestDeletePost:
-    @patch("app.services.post.get_pool")
+    @patch("app.repositories.post_repo.get_pool")
     async def test_delete_post_admin(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.post import soft_delete_post
 
@@ -89,7 +89,7 @@ class TestDeletePost:
         result = await soft_delete_post(post_id, user_id, is_admin=True)
         assert result is True
 
-    @patch("app.services.post.get_pool")
+    @patch("app.repositories.post_repo.get_pool")
     async def test_delete_post_owner(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.post import soft_delete_post
 
