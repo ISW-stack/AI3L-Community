@@ -77,6 +77,7 @@ async def upload_avatar(
 ) -> UserResponse:
     """Upload avatar image (PNG/JPEG, max 2MB)."""
     data = await file.read()
+    assert file.content_type is not None
     validate_avatar(file.content_type, data)
 
     # Storage quota check

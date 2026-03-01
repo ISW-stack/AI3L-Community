@@ -92,7 +92,7 @@ async def mark_read(notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:
             notification_id,
             user_id,
         )
-        return result == "UPDATE 1"
+        return bool(result == "UPDATE 1")
 
 
 async def mark_all_read(user_id: uuid.UUID) -> int:
@@ -114,13 +114,15 @@ async def delete(notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:
             notification_id,
             user_id,
         )
-        return result == "DELETE 1"
+        return bool(result == "DELETE 1")
 
 
 async def count_unread(user_id: uuid.UUID) -> int:
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await conn.fetchval(
-            "SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false",
-            user_id,
+        return int(
+            await conn.fetchval(
+                "SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false",
+                user_id,
+            )
         )

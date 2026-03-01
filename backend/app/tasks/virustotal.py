@@ -1,8 +1,9 @@
 """Celery task: VirusTotal hash-only file check."""
 
 import hashlib
+from typing import Any
 
-import requests
+import requests  # type: ignore[import-untyped]
 from loguru import logger
 
 from app.celery_app import celery
@@ -10,7 +11,7 @@ from app.core.config import settings
 
 
 @celery.task(bind=True, max_retries=2, default_retry_delay=60)
-def check_virustotal(self, file_hash: str, storage_key: str) -> dict:
+def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
     """Query VirusTotal for a file SHA-256 hash; delete if malicious."""
     api_key = settings.VT_API_KEY
     if not api_key:

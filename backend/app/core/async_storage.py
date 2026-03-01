@@ -17,7 +17,7 @@ async def get_user_storage_used(user_id: str) -> int:
     """Return total bytes stored for a user across editor/ and avatars/ prefixes."""
     from app.core.config import settings
 
-    def _sync_get_used():
+    def _sync_get_used() -> int:
         client = get_storage()
         bucket = settings.MINIO_BUCKET_NAME
         total = 0

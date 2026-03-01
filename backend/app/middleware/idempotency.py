@@ -69,7 +69,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         # Cache successful responses
         if 200 <= response.status_code < 300:
             body = b""
-            async for chunk in response.body_iterator:
+            async for chunk in response.body_iterator:  # type: ignore[attr-defined]
                 body += chunk if isinstance(chunk, bytes) else chunk.encode()
 
             cache_data = json.dumps({"body": body.decode(), "status_code": response.status_code})

@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -42,8 +43,12 @@ async def get_current_user(
     if not all([user_id, role, jti]):
         raise AppError(ErrorCode.AUTH_001, 401, "Invalid token payload.")
 
+    assert user_id is not None
+    assert role is not None
+    assert jti is not None
+
     # Dual validation: JWT + Redis session
-    is_valid = await validate_session(user_id, role, jti)
+    is_valid = await validate_session(str(user_id), str(role), str(jti))
     if not is_valid:
         raise AppError(ErrorCode.AUTH_002, 401, "Session expired or invalidated.")
 
@@ -57,7 +62,7 @@ async def get_current_user(
     return payload
 
 
-def require_role(*allowed_roles: str):
+def require_role(*allowed_roles: str) -> Any:
     """Dependency factory: restrict endpoint to specific roles."""
 
     async def role_checker(current_user: dict = Depends(get_current_user)) -> dict:

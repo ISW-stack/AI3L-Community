@@ -26,13 +26,13 @@ async def _authenticate_ws(ticket: str) -> dict | None:
     await redis.delete(key)
 
     try:
-        return json.loads(data)
+        return dict(json.loads(data))
     except (json.JSONDecodeError, TypeError):
         return None
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)):
+async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     payload = await _authenticate_ws(ticket)
     if payload is None:
         await ws.close(code=4001, reason="Authentication failed")
@@ -52,14 +52,14 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)):
         # Schedule guest force-logout after 45 minutes
         if role == "GUEST":
 
-            async def _guest_timeout():
+            async def _guest_timeout() -> None:
                 await asyncio.sleep(GUEST_SESSION_TIMEOUT)
                 logger.info("Guest session timeout", extra={"user_id": user_id})
                 await force_logout(user_id)
 
             guest_timeout_task = asyncio.create_task(_guest_timeout())
 
-        async def ping_loop():
+        async def ping_loop() -> None:
             while True:
                 await asyncio.sleep(WS_PING_INTERVAL)
                 now = asyncio.get_event_loop().time()

@@ -24,4 +24,4 @@ async def has_consent(user_id: uuid.UUID) -> bool:
             "SELECT COUNT(*) FROM privacy_consents WHERE user_id = $1",
             user_id,
         )
-        return count > 0
+        return bool(count > 0)

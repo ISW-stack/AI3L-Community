@@ -59,7 +59,12 @@ async def get_posts_list(
     posts, total, total_pages = await list_posts(
         page=page, page_size=page_size, category_id=category_id, sort=sort
     )
-    return PostListResponse(posts=posts, total=total, current_page=page, total_pages=total_pages)
+    return PostListResponse(
+        posts=posts,  # type: ignore[arg-type]
+        total=total,
+        current_page=page,
+        total_pages=total_pages,
+    )
 
 
 @router.post("/search", response_model=PostListResponse)
@@ -78,7 +83,10 @@ async def search_posts_endpoint(
         page_size=req.page_size,
     )
     return PostListResponse(
-        posts=posts, total=total, current_page=req.page, total_pages=total_pages
+        posts=posts,  # type: ignore[arg-type]
+        total=total,
+        current_page=req.page,
+        total_pages=total_pages,
     )
 
 
@@ -158,4 +166,4 @@ async def get_post_edit_history(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
 
     history = await get_post_history(post_id)
-    return PostHistoryResponse(history=history, total=len(history))
+    return PostHistoryResponse(history=history, total=len(history))  # type: ignore[arg-type]

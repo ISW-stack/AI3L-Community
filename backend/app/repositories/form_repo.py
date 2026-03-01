@@ -1,6 +1,7 @@
 import json
 import uuid
 from datetime import datetime
+from typing import Any
 
 from app.core.database import get_pool
 
@@ -65,7 +66,7 @@ async def find_by_id(form_id: uuid.UUID) -> tuple[dict | None, int]:
         return result, response_count
 
 
-async def find_for_update(form_id: uuid.UUID, conn) -> dict | None:
+async def find_for_update(form_id: uuid.UUID, conn: Any) -> dict | None:
     row = await conn.fetchrow(
         "SELECT * FROM forms WHERE id = $1 AND is_deleted = false FOR UPDATE",
         form_id,
@@ -73,7 +74,9 @@ async def find_for_update(form_id: uuid.UUID, conn) -> dict | None:
     return dict(row) if row else None
 
 
-async def update(form_id: uuid.UUID, fields: list[str], values: list, conn) -> dict | None:
+async def update(
+    form_id: uuid.UUID, fields: list[str], values: list[Any], conn: Any
+) -> tuple[dict, int] | None:
     """Dynamic update within a connection. fields/values built by service."""
     fields.append("updated_at = NOW()")
     idx = len(values) + 1
@@ -98,9 +101,11 @@ async def update(form_id: uuid.UUID, fields: list[str], values: list, conn) -> d
 async def count_active(sig_id: uuid.UUID) -> int:
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await conn.fetchval(
-            "SELECT COUNT(*) FROM forms WHERE sig_id = $1 AND is_deleted = false",
-            sig_id,
+        return int(
+            await conn.fetchval(
+                "SELECT COUNT(*) FROM forms WHERE sig_id = $1 AND is_deleted = false",
+                sig_id,
+            )
         )
 
 
@@ -144,8 +149,8 @@ async def insert_response(
     response_id: uuid.UUID,
     form_id: uuid.UUID,
     user_id: uuid.UUID,
-    answers: dict,
-    conn,
+    answers: dict[str, Any],
+    conn: Any,
 ) -> None:
     await conn.execute(
         """
@@ -159,11 +164,13 @@ async def insert_response(
     )
 
 
-async def count_responses(form_id: uuid.UUID, conn) -> int:
-    return await conn.fetchval("SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id)
+async def count_responses(form_id: uuid.UUID, conn: Any) -> int:
+    return int(
+        await conn.fetchval("SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id)
+    )
 
 
-async def check_duplicate_response(form_id: uuid.UUID, user_id: uuid.UUID, conn) -> bool:
+async def check_duplicate_response(form_id: uuid.UUID, user_id: uuid.UUID, conn: Any) -> bool:
     existing = await conn.fetchval(
         "SELECT id FROM form_responses WHERE form_id = $1 AND user_id = $2",
         form_id,
@@ -172,7 +179,7 @@ async def check_duplicate_response(form_id: uuid.UUID, user_id: uuid.UUID, conn)
     return existing is not None
 
 
-async def lock_schema(form_id: uuid.UUID, conn) -> None:
+async def lock_schema(form_id: uuid.UUID, conn: Any) -> None:
     await conn.execute(
         "UPDATE forms SET is_schema_locked = true, updated_at = NOW() WHERE id = $1",
         form_id,

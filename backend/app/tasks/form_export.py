@@ -3,6 +3,7 @@ import csv
 import io
 import json
 import uuid
+from typing import Any
 
 from loguru import logger
 
@@ -100,6 +101,6 @@ async def _async_export(form_id: str, task_id: str) -> dict:
 
 
 @celery.task(bind=True, name="tasks.export_form_csv")
-def export_form_csv(self, form_id: str) -> dict:
+def export_form_csv(self: Any, form_id: str) -> dict:
     """Export form responses to CSV. Runs in Celery worker (sync)."""
     return asyncio.run(_async_export(form_id, self.request.id))

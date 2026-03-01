@@ -4,9 +4,11 @@ Compares the `csrf_token` cookie with the `X-CSRF-Token` header for
 state-changing requests (POST/PUT/PATCH/DELETE).
 """
 
+from typing import Any
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
@@ -21,24 +23,27 @@ _EXEMPT_PREFIXES = (
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, *, header_name: str = "X-CSRF-Token"):
+    def __init__(self, app: Any, *, header_name: str = "X-CSRF-Token") -> None:
         super().__init__(app)
         self.header_name = header_name
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: Any) -> Response:
         # Safe methods — no CSRF check needed
         if request.method in _SAFE_METHODS:
-            return await call_next(request)
+            response: Response = await call_next(request)
+            return response
 
         # WebSocket upgrade — skip (handled by ticket auth)
         if request.headers.get("upgrade", "").lower() == "websocket":
-            return await call_next(request)
+            response = await call_next(request)
+            return response
 
         # Exempt paths
         path = request.url.path
         for prefix in _EXEMPT_PREFIXES:
             if path.startswith(prefix):
-                return await call_next(request)
+                response = await call_next(request)
+                return response
 
         # Double-submit check
         cookie_token = request.cookies.get("csrf_token")
@@ -50,4 +55,5 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 content={"detail": "CSRF token missing or mismatched."},
             )
 
-        return await call_next(request)
+        response = await call_next(request)
+        return response

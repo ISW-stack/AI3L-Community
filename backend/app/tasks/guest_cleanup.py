@@ -14,13 +14,14 @@ def cleanup_stale_guests() -> dict:
 
 
 async def _cleanup() -> dict:
-    from app.core.database import get_pool, init_pool
+    from app.core.config import settings
+    from app.core.database import get_pool, init_db_pool
 
     # Ensure pool is available in worker context
     try:
         pool = get_pool()
     except RuntimeError:
-        await init_pool()
+        await init_db_pool(settings.DATABASE_URL)
         pool = get_pool()
 
     async with pool.acquire() as conn:

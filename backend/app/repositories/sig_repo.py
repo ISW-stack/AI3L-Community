@@ -1,10 +1,11 @@
 import uuid
+from typing import Any
 
 from app.core.database import get_pool
 
 
 async def insert(
-    sig_id: uuid.UUID, name: str, description: str | None, creator_id: uuid.UUID, conn
+    sig_id: uuid.UUID, name: str, description: str | None, creator_id: uuid.UUID, conn: Any
 ) -> dict:
     row = await conn.fetchrow(
         """
@@ -21,7 +22,7 @@ async def insert(
 
 
 async def add_member(
-    member_id: uuid.UUID, sig_id: uuid.UUID, user_id: uuid.UUID, role: str, conn
+    member_id: uuid.UUID, sig_id: uuid.UUID, user_id: uuid.UUID, role: str, conn: Any
 ) -> None:
     await conn.execute(
         "INSERT INTO sig_members (id, sig_id, user_id, role) VALUES ($1, $2, $3, $4)",
@@ -32,7 +33,7 @@ async def add_member(
     )
 
 
-async def find_creator_display_name(user_id: uuid.UUID, conn) -> str | None:
+async def find_creator_display_name(user_id: uuid.UUID, conn: Any) -> str | None:
     row = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
     return row["display_name"] if row else None
 
@@ -142,7 +143,7 @@ async def get_member_role(sig_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
         return row["role"] if row else None
 
 
-async def get_member_role_in_conn(sig_id: uuid.UUID, user_id: uuid.UUID, conn) -> str | None:
+async def get_member_role_in_conn(sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any) -> str | None:
     row = await conn.fetchrow(
         "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2",
         sig_id,
@@ -151,14 +152,16 @@ async def get_member_role_in_conn(sig_id: uuid.UUID, user_id: uuid.UUID, conn) -
     return row["role"] if row else None
 
 
-async def count_admins(sig_id: uuid.UUID, conn) -> int:
-    return await conn.fetchval(
-        "SELECT COUNT(*) FROM sig_members WHERE sig_id = $1 AND role = 'ADMIN'",
-        sig_id,
+async def count_admins(sig_id: uuid.UUID, conn: Any) -> int:
+    return int(
+        await conn.fetchval(
+            "SELECT COUNT(*) FROM sig_members WHERE sig_id = $1 AND role = 'ADMIN'",
+            sig_id,
+        )
     )
 
 
-async def delete_member(sig_id: uuid.UUID, user_id: uuid.UUID, conn) -> bool:
+async def delete_member(sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any) -> bool:
     result = await conn.execute(
         "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2",
         sig_id,

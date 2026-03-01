@@ -3,7 +3,9 @@ import uuid
 from app.core.database import get_pool
 
 
-async def insert(report_id: uuid.UUID, post_id: uuid.UUID, user_id: uuid.UUID, reason: str) -> dict:
+async def insert(
+    report_id: uuid.UUID, post_id: uuid.UUID, user_id: uuid.UUID, reason: str
+) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         existing = await conn.fetchval(

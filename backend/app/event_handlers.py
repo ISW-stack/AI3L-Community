@@ -1,5 +1,7 @@
 """Event handler registration — composition root for the event bus."""
 
+from typing import Any
+
 from loguru import logger
 
 from app.core.event_bus import on
@@ -29,7 +31,7 @@ async def _on_comment_created(
     commenter_name: str,
     mention_targets: list[tuple[str, str]],
     reply_target: tuple[str, str] | None,
-    **_kwargs,
+    **_kwargs: Any,
 ) -> None:
     from app.services.notification import create_notification
 
@@ -68,7 +70,7 @@ async def _on_post_deleted(
     post_owner_id: str,
     admin_user_id: str,
     post_id: str,
-    **_kwargs,
+    **_kwargs: Any,
 ) -> None:
     from app.services.notification import create_notification
 
@@ -91,7 +93,7 @@ async def _on_application_reviewed(
     applicant_uid: str,
     reviewer_uid: str,
     action: str,
-    **_kwargs,
+    **_kwargs: Any,
 ) -> None:
     from app.services.notification import create_notification
 
@@ -115,7 +117,7 @@ async def _on_application_reviewed(
         logger.warning("Failed to send application review notification", exc_info=True)
 
 
-async def _on_user_banned(user_id: str, **_kwargs) -> None:
+async def _on_user_banned(user_id: str, **_kwargs: Any) -> None:
     try:
         from app.api.v1.endpoints.ws import force_logout
 
@@ -124,7 +126,7 @@ async def _on_user_banned(user_id: str, **_kwargs) -> None:
         logger.warning("Failed to force logout banned user", exc_info=True)
 
 
-async def _on_notification_created(user_id: str, notification: dict, **_kwargs) -> None:
+async def _on_notification_created(user_id: str, notification: dict, **_kwargs: Any) -> None:
     try:
         from app.api.v1.endpoints.ws import send_to_user
 
@@ -145,7 +147,7 @@ async def _on_audit_action(
     target_type: str | None = None,
     target_id: str | None = None,
     ip_address: str | None = None,
-    **_kwargs,
+    **_kwargs: Any,
 ) -> None:
     from app.services.audit import log_action
 

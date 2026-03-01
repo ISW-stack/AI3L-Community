@@ -43,6 +43,9 @@ async def _get_optional_user(
     jti = payload.get("jti")
     if not all([user_id, role, jti]):
         return None
+    assert isinstance(user_id, str)
+    assert isinstance(role, str)
+    assert isinstance(jti, str)
     is_valid = await validate_session(user_id, role, jti)
     return payload if is_valid else None
 

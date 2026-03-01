@@ -1,7 +1,7 @@
 import asyncio
 import json
 from collections import defaultdict
-from typing import Callable
+from typing import Any, Callable
 
 from loguru import logger
 
@@ -16,7 +16,7 @@ def on(event: str, handler: Callable) -> None:
     _handlers[event].append(handler)
 
 
-async def emit(event: str, **kwargs) -> None:
+async def emit(event: str, **kwargs: Any) -> None:
     """Emit an event. Handlers are retried up to MAX_RETRIES times on failure.
 
     Final failures are persisted to Redis (best-effort) for later inspection.
@@ -66,8 +66,8 @@ async def _persist_failed_event(event: str, handler_name: str, kwargs: dict) -> 
             {"event": event, "handler": handler_name, "kwargs_keys": list(kwargs.keys())},
             default=str,
         )
-        await redis.lpush("event_bus:failed", entry)
-        await redis.ltrim("event_bus:failed", 0, 999)  # Keep last 1000
+        await redis.lpush("event_bus:failed", entry)  # type: ignore[misc]
+        await redis.ltrim("event_bus:failed", 0, 999)  # type: ignore[misc]  # Keep last 1000
         await redis.expire("event_bus:failed", 86400)  # 24h TTL
     except Exception:
         logger.debug("Failed to persist event failure to Redis", exc_info=True)

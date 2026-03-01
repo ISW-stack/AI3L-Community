@@ -1,5 +1,6 @@
 import math
 import uuid
+from typing import Any
 
 from app.core.database import get_pool
 
@@ -95,7 +96,7 @@ async def update(
         return dict(row)
 
 
-async def find_for_update(post_id: uuid.UUID, conn) -> dict | None:
+async def find_for_update(post_id: uuid.UUID, conn: Any) -> dict | None:
     """Fetch post with FOR UPDATE lock. Must be called within a transaction."""
     row = await conn.fetchrow(
         "SELECT * FROM posts WHERE id = $1 AND is_deleted = false FOR UPDATE",
@@ -110,7 +111,7 @@ async def insert_history(
     version: int,
     title: str,
     content: str,
-    conn,
+    conn: Any,
 ) -> None:
     """Insert a post history record. Must be called within a transaction."""
     await conn.execute(
@@ -127,7 +128,7 @@ async def insert_history(
 
 
 async def update_in_transaction(
-    conn,
+    conn: Any,
     post_id: uuid.UUID,
     title: str,
     content: str,
@@ -172,7 +173,7 @@ async def soft_delete(post_id: uuid.UUID, user_id: uuid.UUID | None = None) -> b
                 "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",  # noqa: E501
                 post_id,
             )
-        return result == "UPDATE 1"
+        return bool(result == "UPDATE 1")
 
 
 async def find_owner_id(post_id: uuid.UUID) -> str | None:
@@ -297,14 +298,14 @@ async def search(
         return [dict(r) for r in rows], total, total_pages
 
 
-async def increment_comment_count(post_id: uuid.UUID, conn) -> None:
+async def increment_comment_count(post_id: uuid.UUID, conn: Any) -> None:
     await conn.execute(
         "UPDATE posts SET comment_count = comment_count + 1 WHERE id = $1",
         post_id,
     )
 
 
-async def decrement_comment_count(post_id: uuid.UUID, conn) -> None:
+async def decrement_comment_count(post_id: uuid.UUID, conn: Any) -> None:
     await conn.execute(
         "UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = $1",
         post_id,

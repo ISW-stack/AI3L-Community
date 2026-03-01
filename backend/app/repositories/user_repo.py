@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from app.core.database import get_pool
 
@@ -41,7 +42,7 @@ async def insert(
         return dict(row)
 
 
-async def update_profile(user_id: uuid.UUID, **fields) -> dict | None:
+async def update_profile(user_id: uuid.UUID, **fields: Any) -> dict | None:
     """Dynamic update of user profile fields."""
     set_parts: list[str] = []
     values: list = []
@@ -70,7 +71,7 @@ async def exists_by_username(username: str) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         count = await conn.fetchval("SELECT COUNT(*) FROM users WHERE username = $1", username)
-        return count > 0
+        return bool(count > 0)
 
 
 async def update_role(user_id: uuid.UUID, new_role: str) -> dict | None:
@@ -104,7 +105,7 @@ async def anonymize(user_id: uuid.UUID, anon_name: str) -> bool:
             anon_name,
             user_id,
         )
-        return result == "UPDATE 1"
+        return bool(result == "UPDATE 1")
 
 
 async def set_ban(user_id: uuid.UUID, reason: str) -> bool:
@@ -115,7 +116,7 @@ async def set_ban(user_id: uuid.UUID, reason: str) -> bool:
             reason,
             user_id,
         )
-        return result == "UPDATE 1"
+        return bool(result == "UPDATE 1")
 
 
 async def clear_ban(user_id: uuid.UUID) -> bool:
@@ -125,7 +126,7 @@ async def clear_ban(user_id: uuid.UUID) -> bool:
             "UPDATE users SET is_banned = false, ban_reason = NULL, updated_at = NOW() WHERE id = $1 AND is_deleted = false",  # noqa: E501
             user_id,
         )
-        return result == "UPDATE 1"
+        return bool(result == "UPDATE 1")
 
 
 async def list_all(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:

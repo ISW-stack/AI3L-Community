@@ -49,4 +49,4 @@ async def verify_captcha(captcha_id: str, captcha_code: str) -> bool:
     # Delete immediately (one-time use)
     await redis.delete(key)
 
-    return stored_code.upper() == captcha_code.upper()
+    return bool(stored_code.upper() == captcha_code.upper())

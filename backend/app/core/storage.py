@@ -1,5 +1,6 @@
 import uuid
 from io import BytesIO
+from typing import Any
 
 import boto3
 from botocore.config import Config as BotoConfig
@@ -34,7 +35,7 @@ def init_storage() -> None:
         logger.info("Storage bucket created", extra={"bucket": bucket})
 
 
-def get_storage():
+def get_storage() -> Any:
     if _s3_client is None:
         raise RuntimeError("Storage client not initialized. Call init_storage() first.")
     return _s3_client
@@ -57,10 +58,12 @@ def upload_file(data: bytes, key: str, content_type: str) -> str:
 def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
     """Generate presigned download URL."""
     client = get_storage()
-    return client.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": settings.MINIO_BUCKET_NAME, "Key": key},
-        ExpiresIn=expires_in,
+    return str(
+        client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.MINIO_BUCKET_NAME, "Key": key},
+            ExpiresIn=expires_in,
+        )
     )
 
 

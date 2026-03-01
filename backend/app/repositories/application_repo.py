@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from app.core.database import get_pool
 
 
-async def insert(app_id: uuid.UUID, user_id: uuid.UUID, description: str) -> dict:
+async def insert(app_id: uuid.UUID, user_id: uuid.UUID, description: str) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         existing = await conn.fetchval(
@@ -100,4 +100,4 @@ async def find_pending_by_user(user_id: uuid.UUID) -> bool:
             "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",  # noqa: E501
             user_id,
         )
-        return count > 0
+        return bool(count > 0)

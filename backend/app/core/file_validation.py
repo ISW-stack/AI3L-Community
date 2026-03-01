@@ -129,7 +129,7 @@ def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
 
 def sanitize_html(html_content: str) -> str:
     """Sanitize HTML content using bleach. Allows safe tags for rich text."""
-    import bleach
+    import bleach  # type: ignore[import-untyped]
 
     allowed_tags = [
         "p",
@@ -170,9 +170,11 @@ def sanitize_html(html_content: str) -> str:
         "td": ["colspan", "rowspan"],
         "th": ["colspan", "rowspan"],
     }
-    return bleach.clean(
-        html_content,
-        tags=allowed_tags,
-        attributes=allowed_attrs,
-        strip=True,
+    return str(
+        bleach.clean(
+            html_content,
+            tags=allowed_tags,
+            attributes=allowed_attrs,
+            strip=True,
+        )
     )

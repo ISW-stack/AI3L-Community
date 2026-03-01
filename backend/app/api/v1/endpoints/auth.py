@@ -49,11 +49,11 @@ def _set_auth_cookies(response: Response, token: str, csrf_token: str, max_age: 
     if settings.COOKIE_DOMAIN:
         cookie_kwargs["domain"] = settings.COOKIE_DOMAIN
 
-    response.set_cookie(key="access_token", value=token, **cookie_kwargs)
+    response.set_cookie(key="access_token", value=token, **cookie_kwargs)  # type: ignore[arg-type]
 
     # CSRF token — NOT HttpOnly so JavaScript can read it
     csrf_kwargs = {**cookie_kwargs, "httponly": False}
-    response.set_cookie(key="csrf_token", value=csrf_token, **csrf_kwargs)
+    response.set_cookie(key="csrf_token", value=csrf_token, **csrf_kwargs)  # type: ignore[arg-type]
 
 
 def _clear_auth_cookies(response: Response) -> None:
@@ -61,8 +61,8 @@ def _clear_auth_cookies(response: Response) -> None:
     kwargs = {"path": "/"}
     if settings.COOKIE_DOMAIN:
         kwargs["domain"] = settings.COOKIE_DOMAIN
-    response.delete_cookie(key="access_token", **kwargs)
-    response.delete_cookie(key="csrf_token", **kwargs)
+    response.delete_cookie(key="access_token", **kwargs)  # type: ignore[arg-type]
+    response.delete_cookie(key="csrf_token", **kwargs)  # type: ignore[arg-type]
 
 
 @router.get("/captcha", response_model=CaptchaResponse)

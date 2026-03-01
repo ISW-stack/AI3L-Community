@@ -57,11 +57,11 @@ async def delete(category_id: uuid.UUID) -> bool:
                 "DELETE FROM categories WHERE id = $1",
                 category_id,
             )
-            return result == "DELETE 1"
+            return bool(result == "DELETE 1")
 
 
 async def exists_by_name(name: str) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         count = await conn.fetchval("SELECT COUNT(*) FROM categories WHERE name = $1", name)
-        return count > 0
+        return bool(count > 0)

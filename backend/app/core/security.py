@@ -14,11 +14,11 @@ pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return str(pwd_context.hash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return bool(pwd_context.verify(plain_password, hashed_password))
 
 
 def validate_password_policy(password: str) -> str | None:
@@ -70,6 +70,6 @@ def decode_access_token(token: str) -> dict | None:
     """Decode and verify JWT. Returns payload dict or None if invalid."""
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        return payload
+        return dict(payload)
     except JWTError:
         return None

@@ -1,5 +1,6 @@
 import json
 import uuid
+from typing import Any
 
 from app.core.database import get_pool
 
@@ -19,7 +20,7 @@ async def insert(
     parent_id: uuid.UUID | None,
     content: str,
     mentions: list[str] | None,
-    conn,
+    conn: Any,
 ) -> dict:
     """Insert a comment within an existing transaction/connection."""
     row = await conn.fetchrow(
@@ -41,7 +42,7 @@ async def insert(
     return dict(row)
 
 
-async def find_post_for_comment(post_id: uuid.UUID, conn) -> dict | None:
+async def find_post_for_comment(post_id: uuid.UUID, conn: Any) -> dict | None:
     """Check post exists and get comment-relevant fields."""
     row = await conn.fetchrow(
         "SELECT id, allow_comments, comment_count FROM posts WHERE id = $1 AND is_deleted = false",
@@ -50,7 +51,7 @@ async def find_post_for_comment(post_id: uuid.UUID, conn) -> dict | None:
     return dict(row) if row else None
 
 
-async def find_parent(comment_id: uuid.UUID, post_id: uuid.UUID, conn) -> dict | None:
+async def find_parent(comment_id: uuid.UUID, post_id: uuid.UUID, conn: Any) -> dict | None:
     row = await conn.fetchrow(
         "SELECT id FROM comments WHERE id = $1 AND post_id = $2 AND is_deleted = false",
         comment_id,
@@ -59,7 +60,7 @@ async def find_parent(comment_id: uuid.UUID, post_id: uuid.UUID, conn) -> dict |
     return dict(row) if row else None
 
 
-async def find_mentioned_users(usernames: list[str], conn) -> list[dict]:
+async def find_mentioned_users(usernames: list[str], conn: Any) -> list[dict]:
     rows = await conn.fetch(
         "SELECT id, username FROM users WHERE username = ANY($1) AND is_deleted = false",
         usernames,
@@ -67,7 +68,7 @@ async def find_mentioned_users(usernames: list[str], conn) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def find_parent_user_id(comment_id: uuid.UUID, conn) -> str | None:
+async def find_parent_user_id(comment_id: uuid.UUID, conn: Any) -> str | None:
     row = await conn.fetchrow(
         "SELECT user_id FROM comments WHERE id = $1",
         comment_id,
@@ -148,7 +149,7 @@ async def soft_delete(
                 "UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = $1",
                 row["post_id"],
             )
-            return row["post_id"]
+            return uuid.UUID(str(row["post_id"]))
 
 
 async def find_by_id(comment_id: uuid.UUID) -> dict | None:
