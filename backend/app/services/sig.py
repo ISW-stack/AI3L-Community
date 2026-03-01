@@ -35,7 +35,9 @@ async def get_sig_by_id(sig_id: uuid.UUID) -> dict | None:
     return row_to_sig(row, row.get("creator_display_name"))
 
 
-async def update_sig(sig_id: uuid.UUID, name: str | None = None, description: str | None = None) -> dict | None:
+async def update_sig(
+    sig_id: uuid.UUID, name: str | None = None, description: str | None = None
+) -> dict | None:
     # Need current values for merge
     current = await sig_repo.find_by_id(sig_id)
     if not current:

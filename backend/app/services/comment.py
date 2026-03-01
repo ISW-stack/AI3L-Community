@@ -45,7 +45,9 @@ async def create_comment(
             )
 
             comment_dict = row_to_comment(row)
-            commenter_name = comment_dict["author"]["display_name"] or comment_dict["author"]["username"]
+            commenter_name = (
+                comment_dict["author"]["display_name"] or comment_dict["author"]["username"]
+            )
 
             mention_targets: list[tuple[str, str]] = []
             reply_target: tuple[str, str] | None = None

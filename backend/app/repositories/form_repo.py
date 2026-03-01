@@ -35,9 +35,7 @@ async def insert(
             max_respondents,
             json.dumps(questions),
         )
-        creator = await conn.fetchrow(
-            "SELECT display_name FROM users WHERE id = $1", user_id
-        )
+        creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
         result = dict(row)
         result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
         return result
@@ -88,9 +86,7 @@ async def update(form_id: uuid.UUID, fields: list[str], values: list, conn) -> d
     row = await conn.fetchrow(query, *values)
     if not row:
         return None
-    creator = await conn.fetchrow(
-        "SELECT display_name FROM users WHERE id = $1", row["created_by"]
-    )
+    creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", row["created_by"])
     result = dict(row)
     result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
     response_count = await conn.fetchval(
@@ -164,9 +160,7 @@ async def insert_response(
 
 
 async def count_responses(form_id: uuid.UUID, conn) -> int:
-    return await conn.fetchval(
-        "SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id
-    )
+    return await conn.fetchval("SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id)
 
 
 async def check_duplicate_response(form_id: uuid.UUID, user_id: uuid.UUID, conn) -> bool:

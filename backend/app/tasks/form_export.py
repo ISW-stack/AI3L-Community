@@ -27,6 +27,7 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     # Ensure storage is available
     try:
         from app.core.storage import get_storage
+
         get_storage()
     except RuntimeError:
         init_storage()
@@ -66,11 +67,7 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     writer.writerow(["Response ID", "Username", "Display Name", "Submitted At"] + question_labels)
 
     for row in rows:
-        answers = (
-            json.loads(row["answers"])
-            if isinstance(row["answers"], str)
-            else row["answers"]
-        )
+        answers = json.loads(row["answers"]) if isinstance(row["answers"], str) else row["answers"]
         answer_values = []
         for qid in question_ids:
             val = answers.get(qid, "")

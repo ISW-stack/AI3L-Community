@@ -106,7 +106,9 @@ async def leave_sig_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not left:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not a member of this SIG.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Not a member of this SIG."
+        )
     return MessageResponse(message="Left SIG successfully.")
 
 
@@ -125,7 +127,10 @@ async def remove_sig_member(
 
     # Prevent removing self via this endpoint
     if str(user_id) == current_user["sub"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Use the leave endpoint to remove yourself.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use the leave endpoint to remove yourself.",
+        )
 
     removed = await remove_member(sig_id, str(user_id))
     if not removed:

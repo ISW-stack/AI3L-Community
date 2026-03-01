@@ -109,7 +109,9 @@ class TestAuditLogsEndpoint:
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 
-    @patch("app.api.v1.endpoints.users.list_audit_logs", new_callable=AsyncMock, return_value=([], 0))
+    @patch(
+        "app.api.v1.endpoints.users.list_audit_logs", new_callable=AsyncMock, return_value=([], 0)
+    )
     async def test_audit_logs_endpoint_success(self, mock_list, client: AsyncClient):
         from app.core.deps import get_current_user
         from app.main import app

@@ -87,6 +87,13 @@ async def review_membership_application(
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
-    await emit("audit.action", user_id=current_user["sub"], action="APPLICATION_REVIEW", target_type="application", target_id=str(app_id), ip_address=ip)
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="APPLICATION_REVIEW",
+        target_type="application",
+        target_id=str(app_id),
+        ip_address=ip,
+    )
 
     return MessageResponse(message=f"Application {req.action.lower()}.")

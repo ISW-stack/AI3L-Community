@@ -153,7 +153,14 @@ async def delete_my_account(
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
-    await emit("audit.action", user_id=current_user["sub"], action="ACCOUNT_DELETE", target_type="user", target_id=current_user["sub"], ip_address=ip)
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="ACCOUNT_DELETE",
+        target_type="user",
+        target_id=current_user["sub"],
+        ip_address=ip,
+    )
 
     return MessageResponse(message="Account deleted and anonymized.")
 
@@ -245,7 +252,14 @@ async def change_user_role(
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
-    await emit("audit.action", user_id=current_user["sub"], action="ROLE_CHANGE", target_type="user", target_id=str(user_id), ip_address=ip)
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="ROLE_CHANGE",
+        target_type="user",
+        target_id=str(user_id),
+        ip_address=ip,
+    )
 
     return _user_to_response(user)
 
@@ -270,7 +284,14 @@ async def ban_user_endpoint(
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
-    await emit("audit.action", user_id=current_user["sub"], action="BAN", target_type="user", target_id=str(user_id), ip_address=ip)
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="BAN",
+        target_type="user",
+        target_id=str(user_id),
+        ip_address=ip,
+    )
 
     return MessageResponse(message="User has been banned.")
 
@@ -288,7 +309,14 @@ async def unban_user_endpoint(
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
-    await emit("audit.action", user_id=current_user["sub"], action="UNBAN", target_type="user", target_id=str(user_id), ip_address=ip)
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="UNBAN",
+        target_type="user",
+        target_id=str(user_id),
+        ip_address=ip,
+    )
 
     return MessageResponse(message="User has been unbanned.")
 

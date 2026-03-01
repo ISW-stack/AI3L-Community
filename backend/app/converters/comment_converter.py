@@ -14,7 +14,11 @@ def row_to_comment(row: dict) -> dict:
         },
         "parent_id": str(row["parent_id"]) if row.get("parent_id") else None,
         "mentions": row.get("mentions"),
-        "reactions": json.loads(row["reactions"]) if isinstance(row.get("reactions"), str) else row.get("reactions"),
+        "reactions": (
+            json.loads(row["reactions"])
+            if isinstance(row.get("reactions"), str)
+            else row.get("reactions")
+        ),
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }

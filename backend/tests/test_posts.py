@@ -38,7 +38,9 @@ class TestCreatePost:
     @patch("app.services.post._increment_daily_post_count", new_callable=AsyncMock)
     @patch("app.services.post._check_daily_post_limit", new_callable=AsyncMock, return_value=True)
     @patch("app.repositories.post_repo.get_pool")
-    async def test_create_post_success(self, mock_get_pool, mock_limit, mock_incr, mock_pool, mock_conn):
+    async def test_create_post_success(
+        self, mock_get_pool, mock_limit, mock_incr, mock_pool, mock_conn
+    ):
         from app.services.post import create_post
 
         user_id = str(uuid.uuid4())

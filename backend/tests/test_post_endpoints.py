@@ -21,6 +21,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -158,7 +159,13 @@ class TestPostHistory:
         post = _make_post(post_id=post_id)
         now = datetime.now(timezone.utc).isoformat()
         history = [
-            {"id": str(uuid.uuid4()), "version": 1, "title": "Original", "content": "body", "edited_at": now},
+            {
+                "id": str(uuid.uuid4()),
+                "version": 1,
+                "title": "Original",
+                "content": "body",
+                "edited_at": now,
+            },
         ]
 
         try:

@@ -7,9 +7,17 @@ class TestErrorCodes:
     def test_error_codes_enum(self):
         """All 11 error codes must exist."""
         expected = [
-            "AUTH_001", "AUTH_002", "AUTH_003", "AUTH_004",
-            "SYS_403", "SYS_404", "SYS_409", "SYS_422", "SYS_429",
-            "FILE_001", "FORM_001",
+            "AUTH_001",
+            "AUTH_002",
+            "AUTH_003",
+            "AUTH_004",
+            "SYS_403",
+            "SYS_404",
+            "SYS_409",
+            "SYS_422",
+            "SYS_429",
+            "FILE_001",
+            "FORM_001",
         ]
         actual = [e.value for e in ErrorCode]
         assert sorted(actual) == sorted(expected)

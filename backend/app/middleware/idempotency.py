@@ -41,7 +41,14 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         if cached:
             data = json.loads(cached)
             if data.get("status") == "processing":
-                conflict_body = json.dumps({"detail": {"code": ErrorCode.SYS_409.value, "message": "Duplicate request is still processing."}})
+                conflict_body = json.dumps(
+                    {
+                        "detail": {
+                            "code": ErrorCode.SYS_409.value,
+                            "message": "Duplicate request is still processing.",
+                        }
+                    }
+                )
                 return Response(
                     content=conflict_body,
                     status_code=409,

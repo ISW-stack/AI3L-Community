@@ -25,6 +25,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -50,30 +51,40 @@ class TestInviteCodeConsumption:
         with (
             patch(f"{_EP}.auth.check_rate_limit", new_callable=AsyncMock, return_value=True),
             patch(f"{_EP}.auth.verify_captcha", new_callable=AsyncMock, return_value=True),
-            patch(f"{_EP}.auth.get_invite_code", new_callable=AsyncMock, side_effect=fake_get_invite),
-            patch(f"{_EP}.auth.user_exists_by_username", new_callable=AsyncMock, return_value=False),
+            patch(
+                f"{_EP}.auth.get_invite_code", new_callable=AsyncMock, side_effect=fake_get_invite
+            ),
+            patch(
+                f"{_EP}.auth.user_exists_by_username", new_callable=AsyncMock, return_value=False
+            ),
             patch(f"{_EP}.auth.create_user", new_callable=AsyncMock, return_value=user_row),
             patch(f"{_EP}.auth.consume_invite_code", new_callable=AsyncMock),
             patch(f"{_EP}.auth.create_session", new_callable=AsyncMock, return_value=("tok", 3600)),
         ):
-            resp1 = await client.post("/api/v1/auth/register", json={
-                "username": "newuser1",
-                "password": "Password1",
-                "display_name": "New User",
-                "invite_code": "INV-TEST1234",
-                "captcha_id": "cap1",
-                "captcha_code": "ABCD",
-            })
+            resp1 = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "username": "newuser1",
+                    "password": "Password1",
+                    "display_name": "New User",
+                    "invite_code": "INV-TEST1234",
+                    "captcha_id": "cap1",
+                    "captcha_code": "ABCD",
+                },
+            )
             assert resp1.status_code == 200
 
-            resp2 = await client.post("/api/v1/auth/register", json={
-                "username": "newuser2",
-                "password": "Password1",
-                "display_name": "New User 2",
-                "invite_code": "INV-TEST1234",
-                "captcha_id": "cap2",
-                "captcha_code": "ABCD",
-            })
+            resp2 = await client.post(
+                "/api/v1/auth/register",
+                json={
+                    "username": "newuser2",
+                    "password": "Password1",
+                    "display_name": "New User 2",
+                    "invite_code": "INV-TEST1234",
+                    "captcha_id": "cap2",
+                    "captcha_code": "ABCD",
+                },
+            )
             assert resp2.status_code == 400
 
 
@@ -90,9 +101,14 @@ class TestSigUpdate:
         now = datetime.now(timezone.utc)
 
         sig_row = {
-            "id": sig_id, "name": "Old", "description": "Old desc",
-            "created_by": uuid.uuid4(), "member_count": 1, "is_deleted": False,
-            "created_at": now, "updated_at": now,
+            "id": sig_id,
+            "name": "Old",
+            "description": "Old desc",
+            "created_by": uuid.uuid4(),
+            "member_count": 1,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
         }
         updated_row = {**sig_row, "name": "New", "description": "New desc"}
         creator_row = {"display_name": "Creator"}
@@ -267,15 +283,20 @@ class TestCommentEdit:
         now = datetime.now(timezone.utc)
 
         comment_row = {
-            "id": comment_id, "post_id": post_id,
-            "content": "Updated content", "user_id": uuid.UUID(user_id),
-            "parent_id": None, "mentions": None,
-            "reactions": {}, "is_deleted": False,
+            "id": comment_id,
+            "post_id": post_id,
+            "content": "Updated content",
+            "user_id": uuid.UUID(user_id),
+            "parent_id": None,
+            "mentions": None,
+            "reactions": {},
+            "is_deleted": False,
             "author_id": uuid.UUID(user_id),
             "author_username": "testuser",
             "author_display_name": "Test User",
             "author_avatar_url": None,
-            "created_at": now, "updated_at": now,
+            "created_at": now,
+            "updated_at": now,
         }
 
         mock_conn.fetchrow = AsyncMock(return_value=comment_row)
@@ -347,6 +368,7 @@ class TestPasswordChange:
     async def test_password_change_correct_old(self, client, mock_pool, mock_conn, mock_redis):
         """PUT /users/me/password → 200 with correct old password."""
         from app.core.security import hash_password
+
         pw_hash = hash_password("OldPass1")
 
         mock_conn.fetchrow = AsyncMock(return_value={"password_hash": pw_hash})
@@ -371,6 +393,7 @@ class TestPasswordChange:
     async def test_password_change_wrong_old(self, client, mock_pool, mock_conn):
         """PUT /users/me/password → 400 with wrong old password."""
         from app.core.security import hash_password
+
         pw_hash = hash_password("CorrectPass1")
 
         mock_conn.fetchrow = AsyncMock(return_value={"password_hash": pw_hash})
@@ -404,26 +427,34 @@ class TestRateLimit:
             return call_count["n"] <= max_count
 
         with (
-            patch(f"{_EP}.auth.check_rate_limit", new_callable=AsyncMock, side_effect=fake_rate_limit),
+            patch(
+                f"{_EP}.auth.check_rate_limit", new_callable=AsyncMock, side_effect=fake_rate_limit
+            ),
             patch(f"{_EP}.auth.verify_captcha", new_callable=AsyncMock, return_value=False),
         ):
             # First 10: rate limit passes, but captcha fails (400) — NOT 429
             for i in range(10):
-                resp = await client.post("/api/v1/auth/login", json={
-                    "username": "user",
-                    "password": "pass",
-                    "captcha_id": f"cap{i}",
-                    "captcha_code": "ABCD",
-                })
+                resp = await client.post(
+                    "/api/v1/auth/login",
+                    json={
+                        "username": "user",
+                        "password": "pass",
+                        "captcha_id": f"cap{i}",
+                        "captcha_code": "ABCD",
+                    },
+                )
                 assert resp.status_code != 429
 
             # 11th: rate limit blocks → 429
-            resp = await client.post("/api/v1/auth/login", json={
-                "username": "user",
-                "password": "pass",
-                "captcha_id": "cap10",
-                "captcha_code": "ABCD",
-            })
+            resp = await client.post(
+                "/api/v1/auth/login",
+                json={
+                    "username": "user",
+                    "password": "pass",
+                    "captcha_id": "cap10",
+                    "captcha_code": "ABCD",
+                },
+            )
             assert resp.status_code == 429
 
 
@@ -440,25 +471,45 @@ class TestPostSorting:
 
         post_rows = [
             {
-                "id": uuid.uuid4(), "title": "Popular Post", "content": "body",
-                "user_id": uuid.uuid4(), "category_id": None, "sig_id": None,
-                "keywords": None, "allow_comments": True, "version": 1,
-                "comment_count": 10, "is_deleted": False,
-                "created_at": now, "updated_at": now,
+                "id": uuid.uuid4(),
+                "title": "Popular Post",
+                "content": "body",
+                "user_id": uuid.uuid4(),
+                "category_id": None,
+                "sig_id": None,
+                "keywords": None,
+                "allow_comments": True,
+                "version": 1,
+                "comment_count": 10,
+                "is_deleted": False,
+                "created_at": now,
+                "updated_at": now,
                 "search_vector": None,
-                "author_id": uuid.uuid4(), "author_username": "user1",
-                "author_display_name": "User 1", "author_avatar_url": None,
+                "author_id": uuid.uuid4(),
+                "author_username": "user1",
+                "author_display_name": "User 1",
+                "author_avatar_url": None,
                 "category_name": None,
             },
             {
-                "id": uuid.uuid4(), "title": "Unpopular Post", "content": "body",
-                "user_id": uuid.uuid4(), "category_id": None, "sig_id": None,
-                "keywords": None, "allow_comments": True, "version": 1,
-                "comment_count": 0, "is_deleted": False,
-                "created_at": now, "updated_at": now,
+                "id": uuid.uuid4(),
+                "title": "Unpopular Post",
+                "content": "body",
+                "user_id": uuid.uuid4(),
+                "category_id": None,
+                "sig_id": None,
+                "keywords": None,
+                "allow_comments": True,
+                "version": 1,
+                "comment_count": 0,
+                "is_deleted": False,
+                "created_at": now,
+                "updated_at": now,
                 "search_vector": None,
-                "author_id": uuid.uuid4(), "author_username": "user2",
-                "author_display_name": "User 2", "author_avatar_url": None,
+                "author_id": uuid.uuid4(),
+                "author_username": "user2",
+                "author_display_name": "User 2",
+                "author_avatar_url": None,
                 "category_name": None,
             },
         ]

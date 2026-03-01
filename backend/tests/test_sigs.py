@@ -22,6 +22,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -31,9 +32,15 @@ class TestListSigs:
         """GET /sigs → 200."""
         now = datetime.now(timezone.utc)
         sig = {
-            "id": uuid.uuid4(), "name": "Test SIG", "description": "Desc",
-            "created_by": uuid.uuid4(), "member_count": 1, "is_deleted": False,
-            "created_at": now, "updated_at": now, "creator_display_name": "Creator",
+            "id": uuid.uuid4(),
+            "name": "Test SIG",
+            "description": "Desc",
+            "created_by": uuid.uuid4(),
+            "member_count": 1,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Creator",
         }
         mock_conn.fetchval = AsyncMock(return_value=1)
         mock_conn.fetch = AsyncMock(return_value=[sig])
@@ -60,9 +67,14 @@ class TestCreateSig:
         now = datetime.now(timezone.utc)
 
         sig_row = {
-            "id": sig_id, "name": "New SIG", "description": "Desc",
-            "created_by": uuid.uuid4(), "member_count": 1, "is_deleted": False,
-            "created_at": now, "updated_at": now,
+            "id": sig_id,
+            "name": "New SIG",
+            "description": "Desc",
+            "created_by": uuid.uuid4(),
+            "member_count": 1,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
         }
         creator_row = {"display_name": "Creator"}
 
@@ -91,9 +103,15 @@ class TestGetSig:
         now = datetime.now(timezone.utc)
 
         sig_row = {
-            "id": sig_id, "name": "Test SIG", "description": "Desc",
-            "created_by": uuid.uuid4(), "member_count": 3, "is_deleted": False,
-            "created_at": now, "updated_at": now, "creator_display_name": "Creator",
+            "id": sig_id,
+            "name": "Test SIG",
+            "description": "Desc",
+            "created_by": uuid.uuid4(),
+            "member_count": 3,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Creator",
         }
 
         mock_conn.fetchrow = AsyncMock(return_value=sig_row)
@@ -195,7 +213,9 @@ class TestListMembers:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_EP}.list_sig_members", new_callable=AsyncMock, return_value=([member], 1)):
+            with patch(
+                f"{_EP}.list_sig_members", new_callable=AsyncMock, return_value=([member], 1)
+            ):
                 resp = await client.get(
                     f"/api/v1/sigs/{sig_id}/members",
                     headers={"Authorization": "Bearer fake"},

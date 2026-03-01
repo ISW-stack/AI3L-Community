@@ -23,6 +23,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 

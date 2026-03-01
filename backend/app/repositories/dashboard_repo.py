@@ -28,10 +28,17 @@ async def count_forms() -> int:
 async def count_pending_reports() -> int:
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await conn.fetchval("SELECT COUNT(*) FROM post_reports WHERE status = 'PENDING'") or 0
+        return (
+            await conn.fetchval("SELECT COUNT(*) FROM post_reports WHERE status = 'PENDING'") or 0
+        )
 
 
 async def count_pending_applications() -> int:
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await conn.fetchval("SELECT COUNT(*) FROM membership_applications WHERE status = 'PENDING'") or 0
+        return (
+            await conn.fetchval(
+                "SELECT COUNT(*) FROM membership_applications WHERE status = 'PENDING'"
+            )
+            or 0
+        )

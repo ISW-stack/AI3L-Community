@@ -77,7 +77,9 @@ async def search_posts_endpoint(
         page=req.page,
         page_size=req.page_size,
     )
-    return PostListResponse(posts=posts, total=total, current_page=req.page, total_pages=total_pages)
+    return PostListResponse(
+        posts=posts, total=total, current_page=req.page, total_pages=total_pages
+    )
 
 
 @router.get("/{post_id}", response_model=PostResponse)
@@ -128,12 +130,21 @@ async def delete_post(
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     deleted = await soft_delete_post(post_id, current_user["sub"], is_admin=is_admin)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not authorized.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not authorized."
+        )
 
     # Audit log for admin delete (best-effort, via event bus)
     if is_admin:
         ip = request.client.host if request.client else None
-        await emit("audit.action", user_id=current_user["sub"], action="ADMIN_DELETE_POST", target_type="post", target_id=str(post_id), ip_address=ip)
+        await emit(
+            "audit.action",
+            user_id=current_user["sub"],
+            action="ADMIN_DELETE_POST",
+            target_type="post",
+            target_id=str(post_id),
+            ip_address=ip,
+        )
 
 
 @router.get("/{post_id}/history", response_model=PostHistoryResponse)

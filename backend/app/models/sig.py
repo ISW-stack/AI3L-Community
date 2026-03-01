@@ -19,9 +19,7 @@ class Sig(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     is_deleted: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=sa.text("false")
     )
-    member_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default=sa.text("0")
-    )
+    member_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("0"))
 
 
 class SigMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -37,6 +35,4 @@ class SigMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         String(20), nullable=False, server_default=sa.text("'MEMBER'")
     )
 
-    __table_args__ = (
-        sa.UniqueConstraint("sig_id", "user_id", name="uq_sig_members_sig_user"),
-    )
+    __table_args__ = (sa.UniqueConstraint("sig_id", "user_id", name="uq_sig_members_sig_user"),)

@@ -24,7 +24,5 @@ async def get_invite_codes(
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> dict:
-    codes, total = await list_invite_codes(
-        status_filter=status_filter, offset=offset, limit=limit
-    )
+    codes, total = await list_invite_codes(status_filter=status_filter, offset=offset, limit=limit)
     return {"codes": codes, "total": total}

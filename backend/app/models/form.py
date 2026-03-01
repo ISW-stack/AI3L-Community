@@ -21,9 +21,7 @@ class Form(UUIDPrimaryKeyMixin, Base):
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     banner_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    deadline: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     max_respondents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     questions: Mapped[dict] = mapped_column(JSONB, nullable=False)
     is_schema_locked: Mapped[bool] = mapped_column(

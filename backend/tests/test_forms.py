@@ -21,6 +21,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -63,7 +64,9 @@ class TestCreateForm:
                     json={
                         "title": "Test Form",
                         "description": "A test form",
-                        "questions": [{"id": "q1", "type": "text", "label": "Name", "required": True}],
+                        "questions": [
+                            {"id": "q1", "type": "text", "label": "Name", "required": True}
+                        ],
                     },
                     headers={"Authorization": "Bearer fake"},
                 )

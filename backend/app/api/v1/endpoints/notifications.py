@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.core.deps import get_current_user
 from app.schemas.auth import MessageResponse
 from app.schemas.notification import NotificationListResponse, NotificationResponse
-from app.services.notification import delete_notification, list_notifications, mark_all_as_read, mark_as_read
+from app.services.notification import (
+    delete_notification,
+    list_notifications,
+    mark_all_as_read,
+    mark_as_read,
+)
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 

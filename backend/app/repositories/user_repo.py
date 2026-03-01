@@ -56,7 +56,9 @@ async def update_profile(user_id: uuid.UUID, **fields) -> dict | None:
         return await find_by_id(user_id)
 
     values.append(user_id)
-    query = f"UPDATE users SET {', '.join(set_parts)}, updated_at = NOW() WHERE id = ${idx} RETURNING *"
+    query = (
+        f"UPDATE users SET {', '.join(set_parts)}, updated_at = NOW() WHERE id = ${idx} RETURNING *"
+    )
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -67,9 +69,7 @@ async def update_profile(user_id: uuid.UUID, **fields) -> dict | None:
 async def exists_by_username(username: str) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
-        count = await conn.fetchval(
-            "SELECT COUNT(*) FROM users WHERE username = $1", username
-        )
+        count = await conn.fetchval("SELECT COUNT(*) FROM users WHERE username = $1", username)
         return count > 0
 
 

@@ -17,7 +17,9 @@ async def log_action(
         try:
             user_uuid = uuid.UUID(user_id)
         except (ValueError, AttributeError):
-            logger.warning("Invalid user_id for audit log", extra={"user_id": user_id, "action": action})
+            logger.warning(
+                "Invalid user_id for audit log", extra={"user_id": user_id, "action": action}
+            )
             return
 
         log_id = uuid.uuid4()
@@ -38,16 +40,18 @@ async def list_audit_logs(
 
     logs = []
     for r in rows:
-        logs.append({
-            "id": str(r["id"]),
-            "user_id": str(r["user_id"]),
-            "username": r.get("username"),
-            "display_name": r.get("display_name"),
-            "action": r["action"],
-            "target_type": r["target_type"],
-            "target_id": str(r["target_id"]) if r["target_id"] else None,
-            "ip_address": r["ip_address"],
-            "created_at": r["created_at"].isoformat(),
-        })
+        logs.append(
+            {
+                "id": str(r["id"]),
+                "user_id": str(r["user_id"]),
+                "username": r.get("username"),
+                "display_name": r.get("display_name"),
+                "action": r["action"],
+                "target_type": r["target_type"],
+                "target_id": str(r["target_id"]) if r["target_id"] else None,
+                "ip_address": r["ip_address"],
+                "created_at": r["created_at"].isoformat(),
+            }
+        )
 
     return logs, total

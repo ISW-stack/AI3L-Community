@@ -29,9 +29,7 @@ class MembershipApplication(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
-    reviewed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     applicant = relationship("User", foreign_keys=[user_id], lazy="selectin")
     reviewer = relationship("User", foreign_keys=[reviewed_by], lazy="selectin")

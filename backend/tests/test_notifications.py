@@ -21,6 +21,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -51,7 +52,9 @@ class TestListNotifications:
 
         try:
             _override_auth("MEMBER", user_id=user_id)
-            with patch(f"{_EP}.list_notifications", new_callable=AsyncMock, return_value=([notif], 1, 1)):
+            with patch(
+                f"{_EP}.list_notifications", new_callable=AsyncMock, return_value=([notif], 1, 1)
+            ):
                 resp = await client.get(
                     "/api/v1/notifications",
                     headers={"Authorization": "Bearer fake"},

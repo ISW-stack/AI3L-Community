@@ -43,6 +43,4 @@ class Post(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     comments = relationship("Comment", back_populates="post", lazy="noload")
     history = relationship("PostHistory", back_populates="post", lazy="noload")
 
-    __table_args__ = (
-        sa.Index("ix_posts_search_vector", "search_vector", postgresql_using="gin"),
-    )
+    __table_args__ = (sa.Index("ix_posts_search_vector", "search_vector", postgresql_using="gin"),)

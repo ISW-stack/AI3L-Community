@@ -20,6 +20,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -33,11 +34,14 @@ def _mock_celery():
     celery_app_mod = types.ModuleType("app.celery_app")
     celery_app_mod.celery = MagicMock()
 
-    with patch.dict(sys.modules, {
-        "celery": celery_mod,
-        "celery.result": celery_result_mod,
-        "app.celery_app": celery_app_mod,
-    }):
+    with patch.dict(
+        sys.modules,
+        {
+            "celery": celery_mod,
+            "celery.result": celery_result_mod,
+            "app.celery_app": celery_app_mod,
+        },
+    ):
         yield celery_result_mod
 
 

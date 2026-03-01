@@ -5,7 +5,9 @@ from loguru import logger
 from app.core.event_bus import on
 
 
-async def _check_idempotent(user_id: str, entity_type: str | None, entity_id: str | None, action: str) -> bool:
+async def _check_idempotent(
+    user_id: str, entity_type: str | None, entity_id: str | None, action: str
+) -> bool:
     """Return True if this notification should be sent (not a duplicate).
 
     Uses Redis NX with 5-minute TTL to deduplicate.
@@ -126,10 +128,13 @@ async def _on_notification_created(user_id: str, notification: dict, **_kwargs) 
     try:
         from app.api.v1.endpoints.ws import send_to_user
 
-        await send_to_user(user_id, {
-            "type": "NEW_NOTIFICATION",
-            "notification": notification,
-        })
+        await send_to_user(
+            user_id,
+            {
+                "type": "NEW_NOTIFICATION",
+                "notification": notification,
+            },
+        )
     except Exception:
         logger.warning("Failed to push notification via WebSocket", exc_info=True)
 

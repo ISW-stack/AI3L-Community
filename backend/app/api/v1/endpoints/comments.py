@@ -14,7 +14,13 @@ from app.schemas.comment import (
     ReactionRequest,
 )
 from app.schemas.auth import MessageResponse
-from app.services.comment import add_reaction, create_comment, list_comments, soft_delete_comment, update_comment
+from app.services.comment import (
+    add_reaction,
+    create_comment,
+    list_comments,
+    soft_delete_comment,
+    update_comment,
+)
 from app.services.post import get_post_by_id
 
 router = APIRouter(prefix="/posts/{post_id}/comments", tags=["comments"])

@@ -63,13 +63,9 @@ async def _check_sig_admin(sig_id: uuid.UUID, user_id: str, role: str) -> bool:
 async def create_new_form(
     sig_id: uuid.UUID,
     req: FormCreateRequest,
-    current_user: dict = Depends(
-        require_role("SUPER_ADMIN", "ADMIN", "MEMBER")
-    ),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormResponseSchema:
-    is_sig_admin = await _check_sig_admin(
-        sig_id, current_user["sub"], current_user["role"]
-    )
+    is_sig_admin = await _check_sig_admin(sig_id, current_user["sub"], current_user["role"])
     if not is_sig_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -87,9 +83,7 @@ async def create_new_form(
             questions=[q.model_dump() for q in req.questions],
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     form["user_is_sig_admin"] = True
     return FormResponseSchema(**form)
 
@@ -102,9 +96,7 @@ async def get_sig_forms(
     current_user: dict = Depends(get_current_user),
 ) -> FormListResponse:
     forms, total = await list_forms_by_sig(sig_id, page=page, page_size=page_size)
-    is_sig_admin = await _check_sig_admin(
-        sig_id, current_user["sub"], current_user["role"]
-    )
+    is_sig_admin = await _check_sig_admin(sig_id, current_user["sub"], current_user["role"])
     for f in forms:
         f["user_is_sig_admin"] = is_sig_admin
     return FormListResponse(
@@ -120,9 +112,7 @@ async def get_form(
 ) -> FormResponseSchema:
     form = await get_form_by_id(form_id)
     if form is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Form not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
     is_sig_admin = await _check_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
@@ -134,9 +124,7 @@ async def get_form(
 async def update_existing_form(
     form_id: uuid.UUID,
     req: FormUpdateRequest,
-    current_user: dict = Depends(
-        require_role("SUPER_ADMIN", "ADMIN", "MEMBER")
-    ),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormResponseSchema:
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     try:
@@ -152,17 +140,11 @@ async def update_existing_form(
             questions=[q.model_dump() for q in req.questions] if req.questions else None,
         )
     except PermissionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if form is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Form not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
     form["user_is_sig_admin"] = True
     return FormResponseSchema(**form)
 
@@ -170,21 +152,15 @@ async def update_existing_form(
 @router.delete("/forms/{form_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_form(
     form_id: uuid.UUID,
-    current_user: dict = Depends(
-        require_role("SUPER_ADMIN", "ADMIN", "MEMBER")
-    ),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> None:
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     try:
         deleted = await soft_delete_form(form_id, current_user["sub"], is_admin)
     except PermissionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Form not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
 
 
 @router.post(
@@ -195,9 +171,7 @@ async def delete_form(
 async def submit_form_response(
     form_id: uuid.UUID,
     req: FormSubmitRequest,
-    current_user: dict = Depends(
-        require_role("SUPER_ADMIN", "ADMIN", "MEMBER")
-    ),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormSubmitResponse:
     try:
         result = await submit_response(
@@ -208,12 +182,8 @@ async def submit_form_response(
     except ValueError as e:
         detail = str(e)
         if "already submitted" in detail.lower():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail=detail
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=detail
-        )
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
     return FormSubmitResponse(**result)
 
 
@@ -223,15 +193,11 @@ async def submit_form_response(
 )
 async def export_form_csv(
     form_id: uuid.UUID,
-    current_user: dict = Depends(
-        require_role("SUPER_ADMIN", "ADMIN", "MEMBER")
-    ),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     form = await get_form_by_id(form_id)
     if form is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Form not found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
 
     is_sig_admin = await _check_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]

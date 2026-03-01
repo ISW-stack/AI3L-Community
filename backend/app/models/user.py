@@ -29,8 +29,12 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     affiliation: Mapped[str | None] = mapped_column(String(200), nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sa.text("false"))
-    is_banned: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=sa.text("false"))
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=sa.text("false")
+    )
+    is_banned: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=sa.text("false")
+    )
     ban_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships

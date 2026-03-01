@@ -20,6 +20,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -28,9 +29,11 @@ class TestListCategories:
     async def test_list_categories(self, client, mock_pool, mock_conn):
         """GET /categories → 200."""
         cat_id = uuid.uuid4()
-        mock_conn.fetch = AsyncMock(return_value=[
-            {"id": cat_id, "name": "General", "description": "General discussion"},
-        ])
+        mock_conn.fetch = AsyncMock(
+            return_value=[
+                {"id": cat_id, "name": "General", "description": "General discussion"},
+            ]
+        )
 
         try:
             _override_auth("MEMBER")
@@ -53,9 +56,13 @@ class TestCreateCategory:
         """POST /categories → 201."""
         cat_id = uuid.uuid4()
         mock_conn.fetchval = AsyncMock(return_value=0)  # category_exists = False
-        mock_conn.fetchrow = AsyncMock(return_value={
-            "id": cat_id, "name": "Science", "description": "Science topics",
-        })
+        mock_conn.fetchrow = AsyncMock(
+            return_value={
+                "id": cat_id,
+                "name": "Science",
+                "description": "Science topics",
+            }
+        )
 
         try:
             _override_auth("ADMIN")

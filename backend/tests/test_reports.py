@@ -21,6 +21,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -48,7 +49,9 @@ class TestReportPost:
         try:
             _override_auth("MEMBER")
             with (
-                patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value={"id": post_id}),
+                patch(
+                    f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value={"id": post_id}
+                ),
                 patch(f"{_EP}.create_report", new_callable=AsyncMock, return_value=report),
             ):
                 resp = await client.post(

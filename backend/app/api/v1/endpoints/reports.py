@@ -59,5 +59,7 @@ async def review_report_endpoint(
 ) -> PostReportResponse:
     report = await review_report(report_id, current_user["sub"], req.status)
     if report is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found or already reviewed.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Report not found or already reviewed."
+        )
     return PostReportResponse(**report)

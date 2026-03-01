@@ -21,9 +21,7 @@ async def list_applications(
     return await application_repo.find_many(status_filter, offset, limit)
 
 
-async def review_application(
-    app_id: uuid.UUID, reviewer_id: uuid.UUID, action: str
-) -> dict | None:
+async def review_application(app_id: uuid.UUID, reviewer_id: uuid.UUID, action: str) -> dict | None:
     result = await application_repo.update_status(app_id, reviewer_id, action)
     if result is None:
         return None

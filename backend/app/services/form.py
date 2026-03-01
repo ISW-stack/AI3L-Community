@@ -23,14 +23,19 @@ async def create_form(
 ) -> dict:
     active_count = await form_repo.count_active(uuid.UUID(sig_id))
     if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
-        raise ValueError(
-            f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached."
-        )
+        raise ValueError(f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached.")
 
     form_id = uuid.uuid4()
     result = await form_repo.insert(
-        form_id, uuid.UUID(sig_id), uuid.UUID(user_id),
-        title, description, banner_url, deadline, max_respondents, questions
+        form_id,
+        uuid.UUID(sig_id),
+        uuid.UUID(user_id),
+        title,
+        description,
+        banner_url,
+        deadline,
+        max_respondents,
+        questions,
     )
     return row_to_form(result, 0)
 
@@ -63,9 +68,7 @@ async def update_form(
             raise PermissionError("Only the form creator or admin can update this form.")
 
         if questions is not None and current["is_schema_locked"]:
-            raise ValueError(
-                "Cannot modify questions after responses have been submitted."
-            )
+            raise ValueError("Cannot modify questions after responses have been submitted.")
 
         fields = []
         values = []
@@ -94,9 +97,7 @@ async def update_form(
                 current["created_by"],
             )
             result = dict(current)
-            result["creator_display_name"] = (
-                creator["display_name"] if creator else "Unknown"
-            )
+            result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
             response_count = await form_repo.count_responses(form_id, conn)
             return row_to_form(result, response_count)
 
@@ -114,9 +115,7 @@ async def list_forms_by_sig(
     return [row_to_form(row, count) for row, count in results], total
 
 
-async def submit_response(
-    form_id: uuid.UUID, user_id: str, answers: dict
-) -> dict:
+async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -129,10 +128,7 @@ async def submit_response(
                 raise AppError(ErrorCode.FORM_001, 400, "This form has passed its deadline.")
 
             response_count = await form_repo.count_responses(form_id, conn)
-            if (
-                form["max_respondents"] is not None
-                and response_count >= form["max_respondents"]
-            ):
+            if form["max_respondents"] is not None and response_count >= form["max_respondents"]:
                 raise ValueError("This form has reached its maximum number of responses.")
 
             if await form_repo.check_duplicate_response(form_id, uuid.UUID(user_id), conn):
@@ -173,39 +169,27 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
 
         if qtype in ("text", "textarea"):
             if not isinstance(value, str):
-                raise ValueError(
-                    f"Question '{q['label']}' expects a text answer."
-                )
+                raise ValueError(f"Question '{q['label']}' expects a text answer.")
             max_len = q.get("max_length")
             if max_len and len(value) > max_len:
-                raise ValueError(
-                    f"Question '{q['label']}' exceeds maximum length of {max_len}."
-                )
+                raise ValueError(f"Question '{q['label']}' exceeds maximum length of {max_len}.")
 
         elif qtype in ("single_choice", "dropdown"):
             option_ids = {o["id"] for o in (q.get("options") or [])}
             if value not in option_ids:
-                raise ValueError(
-                    f"Invalid option for question '{q['label']}'."
-                )
+                raise ValueError(f"Invalid option for question '{q['label']}'.")
 
         elif qtype == "multiple_choice":
             option_ids = {o["id"] for o in (q.get("options") or [])}
             if not isinstance(value, list):
-                raise ValueError(
-                    f"Question '{q['label']}' expects a list of selected options."
-                )
+                raise ValueError(f"Question '{q['label']}' expects a list of selected options.")
             for v in value:
                 if v not in option_ids:
-                    raise ValueError(
-                        f"Invalid option for question '{q['label']}'."
-                    )
+                    raise ValueError(f"Invalid option for question '{q['label']}'.")
 
         elif qtype == "rating":
             if not isinstance(value, int):
-                raise ValueError(
-                    f"Question '{q['label']}' expects an integer rating."
-                )
+                raise ValueError(f"Question '{q['label']}' expects an integer rating.")
             min_val = q.get("min", 1)
             max_val = q.get("max", 5)
             if value < min_val or value > max_val:
@@ -233,9 +217,7 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
             raise ValueError(f"Unknown question id: '{key}'.")
 
 
-async def soft_delete_form(
-    form_id: uuid.UUID, user_id: str, is_admin: bool
-) -> bool:
+async def soft_delete_form(form_id: uuid.UUID, user_id: str, is_admin: bool) -> bool:
     # Check permission before deleting
     row, _ = await form_repo.find_by_id(form_id)
     if not row:

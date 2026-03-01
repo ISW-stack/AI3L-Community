@@ -3,7 +3,9 @@ import uuid
 from app.core.database import get_pool
 
 
-async def insert(sig_id: uuid.UUID, name: str, description: str | None, creator_id: uuid.UUID, conn) -> dict:
+async def insert(
+    sig_id: uuid.UUID, name: str, description: str | None, creator_id: uuid.UUID, conn
+) -> dict:
     row = await conn.fetchrow(
         """
         INSERT INTO sigs (id, name, description, created_by, member_count)
@@ -18,7 +20,9 @@ async def insert(sig_id: uuid.UUID, name: str, description: str | None, creator_
     return dict(row)
 
 
-async def add_member(member_id: uuid.UUID, sig_id: uuid.UUID, user_id: uuid.UUID, role: str, conn) -> None:
+async def add_member(
+    member_id: uuid.UUID, sig_id: uuid.UUID, user_id: uuid.UUID, role: str, conn
+) -> None:
     await conn.execute(
         "INSERT INTO sig_members (id, sig_id, user_id, role) VALUES ($1, $2, $3, $4)",
         member_id,

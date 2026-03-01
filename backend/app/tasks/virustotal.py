@@ -42,7 +42,12 @@ def check_virustotal(self, file_hash: str, storage_key: str) -> dict:
     if malicious > 0 or suspicious > 0:
         logger.warning(
             "VirusTotal flagged file as malicious",
-            extra={"hash": file_hash, "key": storage_key, "malicious": malicious, "suspicious": suspicious},
+            extra={
+                "hash": file_hash,
+                "key": storage_key,
+                "malicious": malicious,
+                "suspicious": suspicious,
+            },
         )
         # Delete the file from storage
         try:
@@ -51,7 +56,9 @@ def check_virustotal(self, file_hash: str, storage_key: str) -> dict:
             delete_file(storage_key)
             logger.info("Deleted malicious file from storage", extra={"key": storage_key})
         except Exception as e:
-            logger.error("Failed to delete malicious file", extra={"key": storage_key, "error": str(e)})
+            logger.error(
+                "Failed to delete malicious file", extra={"key": storage_key, "error": str(e)}
+            )
 
         return {"status": "malicious", "malicious": malicious, "suspicious": suspicious}
 

@@ -19,7 +19,9 @@ router = APIRouter(prefix="/files", tags=["files"])
 _SAFE_KEY_RE = re.compile(r"^[a-zA-Z0-9/_.\-]+$")
 
 
-@router.post("/upload/editor", response_model=FileUploadResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/upload/editor", response_model=FileUploadResponse, status_code=status.HTTP_201_CREATED
+)
 async def upload_editor_file(
     file: UploadFile,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
@@ -76,7 +78,9 @@ async def get_presigned_url(
         )
 
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
-    owns_file = key.startswith(f"editor/{current_user['sub']}/") or key.startswith(f"avatars/{current_user['sub']}")
+    owns_file = key.startswith(f"editor/{current_user['sub']}/") or key.startswith(
+        f"avatars/{current_user['sub']}"
+    )
     if not is_admin and not owns_file:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

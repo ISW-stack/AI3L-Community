@@ -12,7 +12,6 @@ from tests.conftest import make_user_dict
 _EP = "app.api.v1.endpoints.auth"
 
 
-
 class TestLoginEndpoint:
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.has_consent", new_callable=AsyncMock, return_value=True)
@@ -25,12 +24,15 @@ class TestLoginEndpoint:
         user = make_user_dict(username="alice", role="MEMBER")
         mock_auth.return_value = user
 
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "alice",
-            "password": "Password1",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "alice",
+                "password": "Password1",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         # Token is now in HttpOnly cookie, not in response body
@@ -44,24 +46,32 @@ class TestLoginEndpoint:
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=False)
     async def test_login_invalid_captcha(self, mock_captcha, mock_rl, client: AsyncClient):
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "alice",
-            "password": "Password1",
-            "captcha_id": "cap-1",
-            "captcha_code": "WRONG",
-        })
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "alice",
+                "password": "Password1",
+                "captcha_id": "cap-1",
+                "captcha_code": "WRONG",
+            },
+        )
         assert resp.status_code == 400
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.authenticate_user", new_callable=AsyncMock, return_value=None)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_login_wrong_credentials(self, mock_captcha, mock_auth, mock_rl, client: AsyncClient):
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "alice",
-            "password": "wrong",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+    async def test_login_wrong_credentials(
+        self, mock_captcha, mock_auth, mock_rl, client: AsyncClient
+    ):
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "alice",
+                "password": "wrong",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 401
         data = resp.json()
         assert data["detail"]["code"] == "AUTH_001"
@@ -73,12 +83,15 @@ class TestLoginEndpoint:
         user = make_user_dict(username="banned", is_banned=True, ban_reason="spam")
         mock_auth.return_value = user
 
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "banned",
-            "password": "Password1",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "banned",
+                "password": "Password1",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 403
         data = resp.json()
         assert data["detail"]["code"] == "AUTH_004"
@@ -89,14 +102,19 @@ class TestGuestLoginEndpoint:
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("gtok", 2700))
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
-    async def test_guest_login_success(self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient):
+    async def test_guest_login_success(
+        self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
+    ):
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
-        resp = await client.post("/api/v1/auth/guest/INV-123", json={
-            "display_name": "Visitor",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/guest/INV-123",
+            json={
+                "display_name": "Visitor",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["role"] == "GUEST"
@@ -110,14 +128,19 @@ class TestGuestLoginEndpoint:
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=None)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
-    async def test_guest_login_capacity_reached(self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient):
+    async def test_guest_login_capacity_reached(
+        self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
+    ):
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
-        resp = await client.post("/api/v1/auth/guest/INV-123", json={
-            "display_name": "Visitor",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/guest/INV-123",
+            json={
+                "display_name": "Visitor",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 429
         assert resp.json()["detail"]["code"] == "AUTH_003"
 
@@ -130,18 +153,31 @@ class TestRegisterEndpoint:
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=False)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_success(self, mock_captcha, mock_invite, mock_exists, mock_create, mock_session, mock_rl, mock_consume, client: AsyncClient):
+    async def test_register_success(
+        self,
+        mock_captcha,
+        mock_invite,
+        mock_exists,
+        mock_create,
+        mock_session,
+        mock_rl,
+        mock_consume,
+        client: AsyncClient,
+    ):
         mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
         mock_create.return_value = make_user_dict(username="newuser", role="MEMBER")
 
-        resp = await client.post("/api/v1/auth/register", json={
-            "username": "newuser",
-            "password": "Password1",
-            "display_name": "New User",
-            "invite_code": "VALID-CODE",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "newuser",
+                "password": "Password1",
+                "display_name": "New User",
+                "invite_code": "VALID-CODE",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["requires_consent"] is True
@@ -151,28 +187,36 @@ class TestRegisterEndpoint:
 
     async def test_register_without_invite_code(self, client: AsyncClient):
         """POST /auth/register without invite_code → 422 validation error."""
-        resp = await client.post("/api/v1/auth/register", json={
-            "username": "newuser",
-            "password": "Password1",
-            "display_name": "New User",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "newuser",
+                "password": "Password1",
+                "display_name": "New User",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 422
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_invalid_invite_code(self, mock_captcha, mock_invite, mock_rl, client: AsyncClient):
+    async def test_register_invalid_invite_code(
+        self, mock_captcha, mock_invite, mock_rl, client: AsyncClient
+    ):
         """POST /auth/register with invalid invite code → 400."""
-        resp = await client.post("/api/v1/auth/register", json={
-            "username": "newuser",
-            "password": "Password1",
-            "display_name": "New User",
-            "invite_code": "BAD-CODE",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "newuser",
+                "password": "Password1",
+                "display_name": "New User",
+                "invite_code": "BAD-CODE",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 400
         assert "invite code" in resp.json()["detail"].lower()
 
@@ -180,16 +224,21 @@ class TestRegisterEndpoint:
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_duplicate_username(self, mock_captcha, mock_exists, mock_invite, mock_rl, client: AsyncClient):
+    async def test_register_duplicate_username(
+        self, mock_captcha, mock_exists, mock_invite, mock_rl, client: AsyncClient
+    ):
         mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
-        resp = await client.post("/api/v1/auth/register", json={
-            "username": "existing",
-            "password": "Password1",
-            "display_name": "Existing",
-            "invite_code": "VALID-CODE",
-            "captcha_id": "cap-1",
-            "captcha_code": "ABCD",
-        })
+        resp = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "existing",
+                "password": "Password1",
+                "display_name": "Existing",
+                "invite_code": "VALID-CODE",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
         assert resp.status_code == 409
 
 
@@ -202,7 +251,9 @@ class TestLogoutEndpoint:
         payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
         app.dependency_overrides[get_current_user] = lambda: payload
         try:
-            resp = await client.post("/api/v1/auth/logout", headers={"Authorization": "Bearer fake"})
+            resp = await client.post(
+                "/api/v1/auth/logout", headers={"Authorization": "Bearer fake"}
+            )
             assert resp.status_code == 200
             mock_destroy.assert_called_once()
         finally:
@@ -218,7 +269,9 @@ class TestHeartbeatEndpoint:
         payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
         app.dependency_overrides[get_current_user] = lambda: payload
         try:
-            resp = await client.post("/api/v1/auth/heartbeat", headers={"Authorization": "Bearer fake"})
+            resp = await client.post(
+                "/api/v1/auth/heartbeat", headers={"Authorization": "Bearer fake"}
+            )
             assert resp.status_code == 200
         finally:
             app.dependency_overrides.pop(get_current_user, None)
@@ -238,7 +291,9 @@ class TestWsTicket:
         payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
         app.dependency_overrides[get_current_user] = lambda: payload
         try:
-            resp = await client.post("/api/v1/auth/ws-ticket", headers={"Authorization": "Bearer fake"})
+            resp = await client.post(
+                "/api/v1/auth/ws-ticket", headers={"Authorization": "Bearer fake"}
+            )
             assert resp.status_code == 200
             data = resp.json()
             assert "ticket" in data
@@ -248,7 +303,9 @@ class TestWsTicket:
 
 
 class TestGetCaptcha:
-    @patch(f"{_EP}.generate_captcha", new_callable=AsyncMock, return_value=("cap-id-1", "base64data"))
+    @patch(
+        f"{_EP}.generate_captcha", new_callable=AsyncMock, return_value=("cap-id-1", "base64data")
+    )
     async def test_get_captcha(self, mock_captcha, client: AsyncClient):
         """GET /auth/captcha → 200 with captcha_id and image."""
         resp = await client.get("/api/v1/auth/captcha")
@@ -271,7 +328,9 @@ class TestGenerateInviteCode:
         payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
         app.dependency_overrides[get_current_user] = lambda: payload
         try:
-            resp = await client.post("/api/v1/auth/invite-code", headers={"Authorization": "Bearer fake"})
+            resp = await client.post(
+                "/api/v1/auth/invite-code", headers={"Authorization": "Bearer fake"}
+            )
             assert resp.status_code == 200
             data = resp.json()
             assert data["invite_code"] == "INV-NEWCODE"
@@ -339,12 +398,15 @@ class TestCSRFMiddleware:
         """POST to login should be CSRF-exempt (works even without CSRF tokens)."""
         # The default client has CSRF tokens, but login is exempt so even
         # mismatched tokens shouldn't cause 403. Let's verify the endpoint works.
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "x",
-            "password": "x",
-            "captcha_id": "x",
-            "captcha_code": "x",
-        })
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "x",
+                "password": "x",
+                "captcha_id": "x",
+                "captcha_code": "x",
+            },
+        )
         # Should be 400 (bad captcha), not 403 (CSRF)
         assert resp.status_code == 400
 

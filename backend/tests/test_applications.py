@@ -21,6 +21,7 @@ def _override_auth(role="MEMBER", user_id=None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -81,7 +82,9 @@ class TestListApplications:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_EP}.list_applications", new_callable=AsyncMock, return_value=([app_row], 1)):
+            with patch(
+                f"{_EP}.list_applications", new_callable=AsyncMock, return_value=([app_row], 1)
+            ):
                 resp = await client.get(
                     "/api/v1/admin/applications",
                     headers={"Authorization": "Bearer fake"},

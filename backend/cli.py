@@ -3,6 +3,7 @@
 Usage:
     python backend/cli.py reset-superadmin --password <new_password>
 """
+
 import argparse
 import asyncio
 import sys

@@ -2,7 +2,11 @@
 
 from io import BytesIO
 
-from app.core.constants import AVATAR_ALLOWED_TYPES, MAX_AVATAR_SIZE, MAX_EDITOR_FILE_SIZE  # noqa: F401
+from app.core.constants import (
+    AVATAR_ALLOWED_TYPES,
+    MAX_AVATAR_SIZE,
+    MAX_EDITOR_FILE_SIZE,
+)  # noqa: F401
 
 # Magic number signatures for allowed file types
 MAGIC_NUMBERS = {
@@ -23,13 +27,12 @@ ALLOWED_EXTENSIONS = {
 }
 
 
-
 def validate_magic_number(data: bytes, expected_content_type: str) -> bool:
     """Validate file content matches expected type by checking magic bytes."""
     signatures = MAGIC_NUMBERS.get(expected_content_type)
     if signatures is None:
         return False
-    return any(data[:len(sig)] == sig for sig in signatures)
+    return any(data[: len(sig)] == sig for sig in signatures)
 
 
 def get_content_type_from_extension(filename: str) -> str | None:
@@ -111,7 +114,11 @@ def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
             detail="File size exceeds 20MB limit.",
         )
     if not validate_magic_number(data, expected_type):
-        raise AppError(ErrorCode.FILE_001, 400, "File content does not match its extension (invalid magic number).")
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            "File content does not match its extension (invalid magic number).",
+        )
 
     # Sanitize PDFs
     if expected_type == "application/pdf":
@@ -125,10 +132,37 @@ def sanitize_html(html_content: str) -> str:
     import bleach
 
     allowed_tags = [
-        "p", "br", "strong", "em", "u", "s", "h1", "h2", "h3", "h4", "h5", "h6",
-        "ul", "ol", "li", "blockquote", "pre", "code", "a", "img",
-        "table", "thead", "tbody", "tr", "th", "td",
-        "span", "div", "sub", "sup", "hr",
+        "p",
+        "br",
+        "strong",
+        "em",
+        "u",
+        "s",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "pre",
+        "code",
+        "a",
+        "img",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "span",
+        "div",
+        "sub",
+        "sup",
+        "hr",
     ]
     allowed_attrs = {
         "a": ["href", "title", "target", "rel"],

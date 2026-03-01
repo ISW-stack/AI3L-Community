@@ -8,11 +8,11 @@ class ErrorCode(str, Enum):
     AUTH_002 = "AUTH_002"  # Token in blacklist (revoked)
     AUTH_003 = "AUTH_003"  # Guest limit reached
     AUTH_004 = "AUTH_004"  # Account banned
-    SYS_403 = "SYS_403"   # Forbidden
-    SYS_404 = "SYS_404"   # Not found
-    SYS_422 = "SYS_422"   # Validation error
-    SYS_409 = "SYS_409"   # Version / idempotency conflict
-    SYS_429 = "SYS_429"   # Rate limit exceeded
+    SYS_403 = "SYS_403"  # Forbidden
+    SYS_404 = "SYS_404"  # Not found
+    SYS_422 = "SYS_422"  # Validation error
+    SYS_409 = "SYS_409"  # Version / idempotency conflict
+    SYS_429 = "SYS_429"  # Rate limit exceeded
     FILE_001 = "FILE_001"  # Invalid magic number / malware
     FORM_001 = "FORM_001"  # Form deadline passed
 

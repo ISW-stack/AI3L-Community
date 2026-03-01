@@ -106,13 +106,13 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
     # Audit log (best-effort, via event bus)
     await emit("audit.action", user_id=str(user["id"]), action="LOGIN", ip_address=ip)
 
-    return AuthResponse(
-        role=user["role"], expires_in=expires_in, requires_consent=needs_consent
-    )
+    return AuthResponse(role=user["role"], expires_in=expires_in, requires_consent=needs_consent)
 
 
 @router.post("/guest/{invite_code}", response_model=AuthResponse)
-async def login_as_guest(invite_code: str, req: GuestLoginRequest, request: Request, response: Response) -> AuthResponse:
+async def login_as_guest(
+    invite_code: str, req: GuestLoginRequest, request: Request, response: Response
+) -> AuthResponse:
     # Rate limit: 10 attempts/minute per IP
     ip = request.client.host if request.client else "unknown"
     if not await check_rate_limit(f"rl:guest:{ip}", *RATE_LIMIT_GUEST):
@@ -146,7 +146,9 @@ async def login_as_guest(invite_code: str, req: GuestLoginRequest, request: Requ
 
 
 @router.post("/logout", response_model=MessageResponse)
-async def logout(request: Request, response: Response, current_user: dict = Depends(get_current_user)) -> MessageResponse:
+async def logout(
+    request: Request, response: Response, current_user: dict = Depends(get_current_user)
+) -> MessageResponse:
     await destroy_session(
         user_id=current_user["sub"],
         role=current_user["role"],
@@ -212,9 +214,7 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
     _set_auth_cookies(response, token, csrf_token, expires_in)
 
     # New user always requires consent
-    return AuthResponse(
-        role=user["role"], expires_in=expires_in, requires_consent=True
-    )
+    return AuthResponse(role=user["role"], expires_in=expires_in, requires_consent=True)
 
 
 @router.post("/heartbeat", response_model=MessageResponse)
@@ -232,9 +232,12 @@ async def get_ws_ticket(current_user: dict = Depends(get_current_user)) -> WsTic
     redis = get_redis()
     # Store ticket → user payload mapping with 30s TTL
     import json
+
     await redis.set(
         f"ws:ticket:{ticket}",
-        json.dumps({"sub": current_user["sub"], "role": current_user["role"], "jti": current_user["jti"]}),
+        json.dumps(
+            {"sub": current_user["sub"], "role": current_user["role"], "jti": current_user["jti"]}
+        ),
         ex=30,
     )
     return WsTicketResponse(ticket=ticket)

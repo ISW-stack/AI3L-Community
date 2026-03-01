@@ -86,8 +86,12 @@ async def update_post(
 
             # Save history before update
             await post_repo.insert_history(
-                uuid.uuid4(), post_id, current["version"],
-                current["title"], current["content"], conn
+                uuid.uuid4(),
+                post_id,
+                current["version"],
+                current["title"],
+                current["content"],
+                conn,
             )
 
             new_title = title if title is not None else current["title"]
@@ -101,7 +105,9 @@ async def update_post(
             row = await post_repo.update_in_transaction(
                 conn, post_id, new_title, new_content, new_category_id, new_keywords, new_allow
             )
-            logger.info("Post updated", extra={"post_id": str(post_id), "version": expected_version + 1})
+            logger.info(
+                "Post updated", extra={"post_id": str(post_id), "version": expected_version + 1}
+            )
             return row_to_post(row)
 
 

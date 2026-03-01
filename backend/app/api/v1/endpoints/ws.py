@@ -51,6 +51,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)):
 
         # Schedule guest force-logout after 45 minutes
         if role == "GUEST":
+
             async def _guest_timeout():
                 await asyncio.sleep(GUEST_SESSION_TIMEOUT)
                 logger.info("Guest session timeout", extra={"user_id": user_id})
@@ -177,7 +178,7 @@ async def _redis_subscriber() -> None:
 
             try:
                 if channel.startswith("ws:user:"):
-                    user_id = channel[len("ws:user:"):]
+                    user_id = channel[len("ws:user:") :]
                     data = msg["data"]
                     if isinstance(data, bytes):
                         data = data.decode()
@@ -185,7 +186,7 @@ async def _redis_subscriber() -> None:
                     await _local_send(user_id, message)
 
                 elif channel.startswith("ws:logout:"):
-                    user_id = channel[len("ws:logout:"):]
+                    user_id = channel[len("ws:logout:") :]
                     await _local_force_logout(user_id)
             except Exception:
                 logger.warning("Error processing Pub/Sub message", exc_info=True)

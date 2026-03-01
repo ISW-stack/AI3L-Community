@@ -44,9 +44,13 @@ class TestMagicNumberValidation:
 class TestPresignedUrlPathTraversal:
     """GET /files/presigned/{key} must reject path traversal attempts."""
 
-    @patch("app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False})
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
     @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_reject_double_dot(self, mock_session, mock_user, client: AsyncClient, auth_headers):
+    async def test_reject_double_dot(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
         headers, user_id, _ = auth_headers("ADMIN")
         resp = await client.get(
             "/api/v1/files/presigned/..%2F..%2Fetc%2Fpasswd",
@@ -55,9 +59,13 @@ class TestPresignedUrlPathTraversal:
         assert resp.status_code == 400
         assert "invalid" in resp.json()["detail"].lower()
 
-    @patch("app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False})
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
     @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_reject_special_characters(self, mock_session, mock_user, client: AsyncClient, auth_headers):
+    async def test_reject_special_characters(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
         headers, user_id, _ = auth_headers("ADMIN")
         resp = await client.get(
             "/api/v1/files/presigned/editor/foo%00bar.png",
