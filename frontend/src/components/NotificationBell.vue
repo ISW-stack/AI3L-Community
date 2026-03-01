@@ -93,7 +93,10 @@ onUnmounted(() => {
         Loading...
       </div>
 
-      <div v-else-if="notifStore.items.length === 0" class="px-4 py-6 text-center text-sm text-muted">
+      <div
+        v-else-if="notifStore.items.length === 0"
+        class="px-4 py-6 text-center text-sm text-muted"
+      >
         No notifications yet.
       </div>
 
@@ -105,24 +108,27 @@ onUnmounted(() => {
           class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-alt border-b border-surface-alt last:border-0 transition"
           :class="{ 'bg-brand-50/50': !notif.is_read }"
         >
-          <div class="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+          <div
+            class="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+          >
             <img
               v-if="notif.trigger_user?.avatar_url"
               :src="notif.trigger_user.avatar_url"
               class="w-8 h-8 rounded-full object-cover"
               alt=""
             />
-            <Settings v-else-if="notif.action_type === 'SYSTEM'" class="w-4 h-4 text-muted" aria-hidden="true" />
+            <Settings
+              v-else-if="notif.action_type === 'SYSTEM'"
+              class="w-4 h-4 text-muted"
+              aria-hidden="true"
+            />
             <User v-else class="w-4 h-4 text-muted" aria-hidden="true" />
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm text-foreground leading-snug">{{ notif.message }}</p>
             <p class="text-xs text-muted mt-0.5">{{ relativeTime(notif.created_at) }}</p>
           </div>
-          <div
-            v-if="!notif.is_read"
-            class="shrink-0 w-2 h-2 rounded-full bg-brand-500 mt-2"
-          ></div>
+          <div v-if="!notif.is_read" class="shrink-0 w-2 h-2 rounded-full bg-brand-500 mt-2"></div>
         </button>
       </div>
 

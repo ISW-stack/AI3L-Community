@@ -14,19 +14,27 @@ const message = ref('')
 const statusFilter = ref('PENDING')
 
 const statusLabels: Record<string, string> = {
-  PENDING: 'Pending', APPROVED: 'Approved', REJECTED: 'Rejected',
+  PENDING: 'Pending',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
 }
 const statusBadge: Record<string, 'warning' | 'success' | 'danger'> = {
-  PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger',
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'danger',
 }
 
 async function fetchApplications() {
   loading.value = true
   try {
     const data = await listApplications({ status: statusFilter.value || undefined })
-    applications.value = data.applications; total.value = data.total
-  } catch { message.value = 'Failed to load applications.' }
-  finally { loading.value = false }
+    applications.value = data.applications
+    total.value = data.total
+  } catch {
+    message.value = 'Failed to load applications.'
+  } finally {
+    loading.value = false
+  }
 }
 
 async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
@@ -34,7 +42,9 @@ async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
     await reviewApplication(appId, action)
     message.value = action === 'APPROVED' ? 'Application approved.' : 'Application rejected.'
     await fetchApplications()
-  } catch (e: any) { message.value = e.response?.data?.detail || 'Operation failed.' }
+  } catch (e: any) {
+    message.value = e.response?.data?.detail || 'Operation failed.'
+  }
 }
 
 onMounted(fetchApplications)
@@ -48,9 +58,18 @@ onMounted(fetchApplications)
       <button
         v-for="s in ['PENDING', 'APPROVED', 'REJECTED']"
         :key="s"
-        @click="statusFilter = s; fetchApplications()"
+        @click="
+          () => {
+            statusFilter = s
+            fetchApplications()
+          }
+        "
         class="px-3 py-1.5 text-sm rounded-lg transition"
-        :class="statusFilter === s ? 'bg-brand-600 text-white' : 'bg-surface-alt text-muted hover:bg-gray-100'"
+        :class="
+          statusFilter === s
+            ? 'bg-brand-600 text-white'
+            : 'bg-surface-alt text-muted hover:bg-gray-100'
+        "
       >
         {{ statusLabels[s] }}
       </button>
@@ -60,7 +79,9 @@ onMounted(fetchApplications)
 
     <div class="space-y-3">
       <div v-if="loading" class="text-center text-muted py-8">Loading...</div>
-      <div v-else-if="applications.length === 0" class="text-center text-muted py-8">No applications found</div>
+      <div v-else-if="applications.length === 0" class="text-center text-muted py-8">
+        No applications found
+      </div>
 
       <BaseCard v-for="app in applications" :key="app.id" padding="lg">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
@@ -68,15 +89,21 @@ onMounted(fetchApplications)
             <div class="flex items-center gap-2 mb-1 flex-wrap">
               <span class="font-medium text-foreground">{{ app.display_name }}</span>
               <span class="text-sm text-muted">@{{ app.username }}</span>
-              <BaseBadge :variant="statusBadge[app.status] || 'neutral'">{{ statusLabels[app.status] }}</BaseBadge>
+              <BaseBadge :variant="statusBadge[app.status] || 'neutral'">{{
+                statusLabels[app.status]
+              }}</BaseBadge>
             </div>
             <p class="text-sm text-muted mb-1">{{ app.description }}</p>
             <p class="text-xs text-muted">{{ new Date(app.created_at).toLocaleString() }}</p>
           </div>
 
           <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">
-            <BaseButton size="sm" variant="success" @click="review(app.id, 'APPROVED')">Approve</BaseButton>
-            <BaseButton size="sm" variant="soft-danger" @click="review(app.id, 'REJECTED')">Reject</BaseButton>
+            <BaseButton size="sm" variant="success" @click="review(app.id, 'APPROVED')"
+              >Approve</BaseButton
+            >
+            <BaseButton size="sm" variant="soft-danger" @click="review(app.id, 'REJECTED')"
+              >Reject</BaseButton
+            >
           </div>
         </div>
       </BaseCard>

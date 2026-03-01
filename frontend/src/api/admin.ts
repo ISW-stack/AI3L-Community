@@ -1,11 +1,5 @@
 import api from '@/composables/api'
-import type {
-  DashboardStats,
-  AuditLog,
-  Application,
-  Report,
-  InviteCode,
-} from '@/types'
+import type { DashboardStats, AuditLog, Application, Report, InviteCode } from '@/types'
 
 /* ── Dashboard ─────────────────────────────────────────────── */
 

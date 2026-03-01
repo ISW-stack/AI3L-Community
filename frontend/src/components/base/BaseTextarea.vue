@@ -15,7 +15,11 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const textareaId = computed(() => props.id || (props.label ? `textarea-${props.label.toLowerCase().replace(/\s+/g, '-')}` : undefined))
+const textareaId = computed(
+  () =>
+    props.id ||
+    (props.label ? `textarea-${props.label.toLowerCase().replace(/\s+/g, '-')}` : undefined),
+)
 </script>
 
 <template>

@@ -54,7 +54,13 @@ loadCaptcha()
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <BaseInput v-model="username" label="Username" placeholder="Enter your username" required />
-        <BaseInput v-model="password" type="password" label="Password" placeholder="Enter your password" required />
+        <BaseInput
+          v-model="password"
+          type="password"
+          label="Password"
+          placeholder="Enter your password"
+          required
+        />
 
         <div>
           <label class="block text-sm font-medium text-foreground mb-1">Captcha</label>

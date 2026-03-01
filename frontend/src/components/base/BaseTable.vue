@@ -27,7 +27,9 @@ defineProps<{
             <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">Loading...</td>
           </tr>
           <tr v-else-if="!rows.length">
-            <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">{{ emptyText || 'No data' }}</td>
+            <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">
+              {{ emptyText || 'No data' }}
+            </td>
           </tr>
           <template v-else>
             <tr

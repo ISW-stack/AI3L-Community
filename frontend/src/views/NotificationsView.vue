@@ -3,7 +3,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Settings } from 'lucide-vue-next'
 import type { Notification } from '@/types'
-import { listNotifications, markRead as apiMarkRead, markAllRead as apiMarkAllRead } from '@/api/notifications'
+import {
+  listNotifications,
+  markRead as apiMarkRead,
+  markAllRead as apiMarkAllRead,
+} from '@/api/notifications'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
@@ -38,7 +42,9 @@ async function markRead(notif: Notification) {
       await apiMarkRead(notif.id)
       notif.is_read = true
       unreadCount.value = Math.max(0, unreadCount.value - 1)
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }
   navigateToEntity(notif)
 }
@@ -48,7 +54,9 @@ async function markAllRead() {
     await apiMarkAllRead()
     notifications.value.forEach((n) => (n.is_read = true))
     unreadCount.value = 0
-  } catch { /* silent */ }
+  } catch {
+    /* silent */
+  }
 }
 
 function navigateToEntity(notif: Notification) {
@@ -93,7 +101,11 @@ onMounted(fetchNotifications)
 
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
-    <EmptyState v-else-if="notifications.length === 0" message="No notifications yet." title="All Caught Up" />
+    <EmptyState
+      v-else-if="notifications.length === 0"
+      message="No notifications yet."
+      title="All Caught Up"
+    />
 
     <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
       <button
@@ -104,14 +116,20 @@ onMounted(fetchNotifications)
         :class="{ 'bg-brand-50/40': !notif.is_read }"
       >
         <!-- Avatar -->
-        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border">
+        <div
+          class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+        >
           <img
             v-if="notif.trigger_user?.avatar_url"
             :src="notif.trigger_user.avatar_url"
             class="w-10 h-10 rounded-full object-cover"
             alt=""
           />
-          <component :is="notif.action_type === 'SYSTEM' ? Settings : User" v-else class="w-5 h-5 text-muted" />
+          <component
+            :is="notif.action_type === 'SYSTEM' ? Settings : User"
+            v-else
+            class="w-5 h-5 text-muted"
+          />
         </div>
 
         <!-- Content -->

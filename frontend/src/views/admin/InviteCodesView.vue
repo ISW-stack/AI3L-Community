@@ -19,23 +19,33 @@ async function fetchCodes() {
   loading.value = true
   try {
     const data = await listInviteCodes({ status: statusFilter.value || undefined })
-    codes.value = data.codes; total.value = data.total
-  } catch { /* silent */ }
-  finally { loading.value = false }
+    codes.value = data.codes
+    total.value = data.total
+  } catch {
+    /* silent */
+  } finally {
+    loading.value = false
+  }
 }
 
 async function generateCode() {
-  generating.value = true; message.value = ''
+  generating.value = true
+  message.value = ''
   try {
     const data = await createInviteCode()
     message.value = `Generated: ${data.invite_code}`
     await fetchCodes()
-  } catch { message.value = 'Failed to generate code.' }
-  finally { generating.value = false }
+  } catch {
+    message.value = 'Failed to generate code.'
+  } finally {
+    generating.value = false
+  }
 }
 
 const statusBadge: Record<string, 'success' | 'neutral' | 'danger'> = {
-  active: 'success', consumed: 'neutral', expired: 'danger',
+  active: 'success',
+  consumed: 'neutral',
+  expired: 'danger',
 }
 
 onMounted(fetchCodes)
@@ -83,11 +93,15 @@ onMounted(fetchCodes)
           <tr v-for="code in codes" :key="code.id" class="hover:bg-surface-alt transition">
             <td class="px-4 py-3 font-mono text-xs text-foreground">{{ code.code }}</td>
             <td class="px-4 py-3">
-              <BaseBadge :variant="statusBadge[code.status] || 'neutral'">{{ code.status }}</BaseBadge>
+              <BaseBadge :variant="statusBadge[code.status] || 'neutral'">{{
+                code.status
+              }}</BaseBadge>
             </td>
             <td class="px-4 py-3 text-muted">{{ code.creator_username || '—' }}</td>
             <td class="px-4 py-3 text-muted">{{ code.consumed_by_username || '—' }}</td>
-            <td class="px-4 py-3 text-muted text-xs">{{ new Date(code.created_at).toLocaleDateString() }}</td>
+            <td class="px-4 py-3 text-muted text-xs">
+              {{ new Date(code.created_at).toLocaleDateString() }}
+            </td>
           </tr>
         </tbody>
       </table>

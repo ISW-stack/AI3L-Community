@@ -15,7 +15,11 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const inputId = computed(() => props.id || (props.label ? `input-${props.label.toLowerCase().replace(/\s+/g, '-')}` : undefined))
+const inputId = computed(
+  () =>
+    props.id ||
+    (props.label ? `input-${props.label.toLowerCase().replace(/\s+/g, '-')}` : undefined),
+)
 </script>
 
 <template>

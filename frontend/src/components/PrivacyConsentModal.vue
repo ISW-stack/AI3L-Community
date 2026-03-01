@@ -30,10 +30,12 @@ async function handleAcceptConsent() {
     aria-describedby="consent-desc"
   >
     <div class="bg-surface rounded-lg shadow-xl p-6 w-full max-w-lg">
-      <h2 id="consent-title" class="text-lg font-bold text-foreground mb-4">Privacy & Data Residency Consent</h2>
+      <h2 id="consent-title" class="text-lg font-bold text-foreground mb-4">
+        Privacy & Data Residency Consent
+      </h2>
       <p id="consent-desc" class="text-sm text-foreground/80 leading-relaxed mb-4">
-        This platform stores your data on servers located in Hong Kong. By continuing,
-        you consent to this data residency arrangement.
+        This platform stores your data on servers located in Hong Kong. By continuing, you consent
+        to this data residency arrangement.
       </p>
       <p class="text-sm text-muted mb-6">
         You must accept this agreement to continue using the platform.

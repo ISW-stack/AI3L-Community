@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = withDefaults(defineProps<{
-  variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'ghost' | 'soft-danger' | 'soft-success'
-  size?: 'sm' | 'md' | 'lg' | 'full'
-  disabled?: boolean
-  loading?: boolean
-}>(), {
-  variant: 'primary',
-  size: 'md',
-  disabled: false,
-  loading: false,
-})
+const props = withDefaults(
+  defineProps<{
+    variant?:
+      | 'primary'
+      | 'secondary'
+      | 'danger'
+      | 'success'
+      | 'ghost'
+      | 'soft-danger'
+      | 'soft-success'
+    size?: 'sm' | 'md' | 'lg' | 'full'
+    disabled?: boolean
+    loading?: boolean
+  }>(),
+  {
+    variant: 'primary',
+    size: 'md',
+    disabled: false,
+    loading: false,
+  },
+)
 
 const variantClass = computed(() => {
   const map: Record<string, string> = {
@@ -47,9 +57,19 @@ const sizeClass = computed(() => {
     ]"
     :disabled="disabled || loading"
   >
-    <svg v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <svg
+      v-if="loading"
+      class="animate-spin -ml-1 mr-2 h-4 w-4"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      <path
+        class="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
     </svg>
     <slot />
   </button>

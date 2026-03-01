@@ -54,8 +54,18 @@ loadCaptcha()
       <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
 
       <form @submit.prevent="handleGuestLogin" class="space-y-4">
-        <BaseInput v-model="inviteCode" label="Invite Code" placeholder="Enter your invite code" required />
-        <BaseInput v-model="displayName" label="Display Name" placeholder="Enter a display name" required />
+        <BaseInput
+          v-model="inviteCode"
+          label="Invite Code"
+          placeholder="Enter your invite code"
+          required
+        />
+        <BaseInput
+          v-model="displayName"
+          label="Display Name"
+          placeholder="Enter a display name"
+          required
+        />
 
         <div>
           <label class="block text-sm font-medium text-foreground mb-1">Captcha</label>
@@ -79,7 +89,13 @@ loadCaptcha()
           </div>
         </div>
 
-        <BaseButton type="submit" variant="secondary" size="full" :loading="loading" :disabled="loading">
+        <BaseButton
+          type="submit"
+          variant="secondary"
+          size="full"
+          :loading="loading"
+          :disabled="loading"
+        >
           {{ loading ? 'Entering...' : 'Enter as Guest' }}
         </BaseButton>
       </form>

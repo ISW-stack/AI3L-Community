@@ -25,10 +25,7 @@ export async function uploadAvatar(file: File) {
   return data as UserProfile
 }
 
-export async function changePassword(payload: {
-  current_password: string
-  new_password: string
-}) {
+export async function changePassword(payload: { current_password: string; new_password: string }) {
   await api.put('/users/me/password', payload)
 }
 

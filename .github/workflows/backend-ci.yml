@@ -43,10 +43,26 @@ jobs:
 
   test:
     name: Tests
+    needs: lint
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+
+    env:
+      FASTAPI_ENV: test
+      SECRET_KEY: ci-test-secret-key-at-least-32-chars
+      JWT_SECRET_KEY: ci-test-jwt-secret
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: ai3l
+      POSTGRES_PASSWORD: ci_test_password
+      POSTGRES_DB: ai3l_test
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
 
     steps:
       - uses: actions/checkout@v4
@@ -61,3 +77,27 @@ jobs:
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
+
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pip-audit
+        run: pip-audit --strict --desc

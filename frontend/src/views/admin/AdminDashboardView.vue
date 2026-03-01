@@ -12,8 +12,11 @@ async function fetchStats() {
   loading.value = true
   try {
     stats.value = await getDashboard()
-  } catch { /* silent */ }
-  finally { loading.value = false }
+  } catch {
+    /* silent */
+  } finally {
+    loading.value = false
+  }
 }
 
 const cards = [
@@ -21,8 +24,18 @@ const cards = [
   { key: 'posts', label: 'Posts', bg: 'bg-success-50', text: 'text-success-600' },
   { key: 'sigs', label: 'SIGs', bg: 'bg-info-50', text: 'text-info-600' },
   { key: 'forms', label: 'Forms', bg: 'bg-info-50', text: 'text-info-600' },
-  { key: 'pending_reports', label: 'Pending Reports', bg: 'bg-warning-50', text: 'text-warning-600' },
-  { key: 'pending_applications', label: 'Pending Applications', bg: 'bg-danger-50', text: 'text-danger-600' },
+  {
+    key: 'pending_reports',
+    label: 'Pending Reports',
+    bg: 'bg-warning-50',
+    text: 'text-warning-600',
+  },
+  {
+    key: 'pending_applications',
+    label: 'Pending Applications',
+    bg: 'bg-danger-50',
+    text: 'text-danger-600',
+  },
 ] as const
 
 onMounted(fetchStats)
@@ -37,7 +50,10 @@ onMounted(fetchStats)
     <div v-else-if="stats" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <BaseCard v-for="card in cards" :key="card.key" padding="lg">
         <p class="text-sm text-muted mb-1">{{ card.label }}</p>
-        <p class="text-3xl font-bold" :class="[card.bg, card.text, 'inline-block px-3 py-1 rounded-lg']">
+        <p
+          class="text-3xl font-bold"
+          :class="[card.bg, card.text, 'inline-block px-3 py-1 rounded-lg']"
+        >
           {{ stats[card.key] }}
         </p>
       </BaseCard>

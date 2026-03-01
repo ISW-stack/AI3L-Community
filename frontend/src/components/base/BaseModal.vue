@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed, watch, onUnmounted } from 'vue'
 
-const props = withDefaults(defineProps<{
-  modelValue: boolean
-  title?: string
-  size?: 'sm' | 'md' | 'lg' | 'xl'
-  persistent?: boolean
-}>(), {
-  size: 'md',
-  persistent: false,
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean
+    title?: string
+    size?: 'sm' | 'md' | 'lg' | 'xl'
+    persistent?: boolean
+  }>(),
+  {
+    size: 'md',
+    persistent: false,
+  },
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -35,15 +38,18 @@ function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') close()
 }
 
-watch(() => props.modelValue, (open) => {
-  if (open) {
-    document.addEventListener('keydown', onKeydown)
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.removeEventListener('keydown', onKeydown)
-    document.body.style.overflow = ''
-  }
-})
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) {
+      document.addEventListener('keydown', onKeydown)
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.removeEventListener('keydown', onKeydown)
+      document.body.style.overflow = ''
+    }
+  },
+)
 
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
@@ -64,7 +70,9 @@ onUnmounted(() => {
       >
         <div :class="['bg-surface rounded-lg shadow-xl p-6 w-full', sizeClass]">
           <div v-if="title || !persistent" class="flex items-center justify-between mb-4">
-            <h3 v-if="title" id="modal-title" class="text-lg font-semibold text-foreground">{{ title }}</h3>
+            <h3 v-if="title" id="modal-title" class="text-lg font-semibold text-foreground">
+              {{ title }}
+            </h3>
             <button
               v-if="!persistent"
               class="text-muted hover:text-foreground text-xl leading-none transition ml-auto"

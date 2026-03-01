@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = withDefaults(defineProps<{
-  hoverable?: boolean
-  padding?: 'none' | 'sm' | 'md' | 'lg'
-}>(), {
-  hoverable: false,
-  padding: 'md',
-})
+const props = withDefaults(
+  defineProps<{
+    hoverable?: boolean
+    padding?: 'none' | 'sm' | 'md' | 'lg'
+  }>(),
+  {
+    hoverable: false,
+    padding: 'md',
+  },
+)
 
 const paddingClass = computed(() => {
   const map: Record<string, string> = {

@@ -37,44 +37,73 @@ const banning = ref(false)
 
 const roles = ['MEMBER', 'ADMIN', 'SUPER_ADMIN']
 const roleLabels: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin', ADMIN: 'Admin', MEMBER: 'Member', GUEST: 'Guest',
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Admin',
+  MEMBER: 'Member',
+  GUEST: 'Guest',
 }
 const roleBadge: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'> = {
-  SUPER_ADMIN: 'danger', ADMIN: 'orange', MEMBER: 'brand', GUEST: 'neutral',
+  SUPER_ADMIN: 'danger',
+  ADMIN: 'orange',
+  MEMBER: 'brand',
+  GUEST: 'neutral',
 }
 
 async function fetchUsers() {
   loading.value = true
   try {
     const data = await listUsers({ limit: 100 })
-    users.value = data.users; total.value = data.total
-  } catch { message.value = 'Failed to load user list.' }
-  finally { loading.value = false }
+    users.value = data.users
+    total.value = data.total
+  } catch {
+    message.value = 'Failed to load user list.'
+  } finally {
+    loading.value = false
+  }
 }
 
 async function changeRole(userId: string, newRole: string) {
   try {
-    await apiChangeRole(userId, newRole); message.value = 'Role updated successfully.'; await fetchUsers()
+    await apiChangeRole(userId, newRole)
+    message.value = 'Role updated successfully.'
+    await fetchUsers()
   } catch (e: any) {
     const detail = e.response?.data?.detail
-    message.value = typeof detail === 'object' ? detail?.message : detail || 'Failed to update role.'
+    message.value =
+      typeof detail === 'object' ? detail?.message : detail || 'Failed to update role.'
   }
 }
 
 async function createAccount() {
-  creating.value = true; message.value = ''
+  creating.value = true
+  message.value = ''
   try {
-    await apiCreateAccount({ username: newUsername.value, password: newPassword.value, display_name: newDisplayName.value, role: newRole.value })
-    showCreateModal.value = false; newUsername.value = ''; newPassword.value = ''; newDisplayName.value = ''; newRole.value = 'MEMBER'
-    message.value = 'Account created successfully.'; await fetchUsers()
+    await apiCreateAccount({
+      username: newUsername.value,
+      password: newPassword.value,
+      display_name: newDisplayName.value,
+      role: newRole.value,
+    })
+    showCreateModal.value = false
+    newUsername.value = ''
+    newPassword.value = ''
+    newDisplayName.value = ''
+    newRole.value = 'MEMBER'
+    message.value = 'Account created successfully.'
+    await fetchUsers()
   } catch (e: any) {
     const detail = e.response?.data?.detail
-    message.value = typeof detail === 'object' ? detail?.message : detail || 'Failed to create account.'
-  } finally { creating.value = false }
+    message.value =
+      typeof detail === 'object' ? detail?.message : detail || 'Failed to create account.'
+  } finally {
+    creating.value = false
+  }
 }
 
 function openBanModal(user: AdminUser) {
-  banTargetUser.value = user; banReason.value = ''; showBanModal.value = true
+  banTargetUser.value = user
+  banReason.value = ''
+  showBanModal.value = true
 }
 
 async function confirmBan() {
@@ -82,16 +111,22 @@ async function confirmBan() {
   banning.value = true
   try {
     await banUser(banTargetUser.value.id, banReason.value)
-    showBanModal.value = false; message.value = `${banTargetUser.value.username} has been banned.`; await fetchUsers()
+    showBanModal.value = false
+    message.value = `${banTargetUser.value.username} has been banned.`
+    await fetchUsers()
   } catch (e: any) {
     const detail = e.response?.data?.detail
     message.value = typeof detail === 'object' ? detail?.message : detail || 'Failed to ban user.'
-  } finally { banning.value = false }
+  } finally {
+    banning.value = false
+  }
 }
 
 async function handleUnban(user: AdminUser) {
   try {
-    await apiUnbanUser(user.id); message.value = `${user.username} has been unbanned.`; await fetchUsers()
+    await apiUnbanUser(user.id)
+    message.value = `${user.username} has been unbanned.`
+    await fetchUsers()
   } catch (e: any) {
     const detail = e.response?.data?.detail
     message.value = typeof detail === 'object' ? detail?.message : detail || 'Failed to unban user.'
@@ -118,21 +153,31 @@ onMounted(fetchUsers)
             <th class="text-left px-4 py-3 font-medium text-muted">Display Name</th>
             <th class="text-left px-4 py-3 font-medium text-muted">Role</th>
             <th class="text-left px-4 py-3 font-medium text-muted">Status</th>
-            <th v-if="auth.isSuperAdmin" class="text-left px-4 py-3 font-medium text-muted">Actions</th>
+            <th v-if="auth.isSuperAdmin" class="text-left px-4 py-3 font-medium text-muted">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="loading">
             <td colspan="5" class="px-4 py-8 text-center text-muted">Loading...</td>
           </tr>
-          <tr v-for="user in users" :key="user.id" class="border-b border-border last:border-0 hover:bg-surface-alt transition">
+          <tr
+            v-for="user in users"
+            :key="user.id"
+            class="border-b border-border last:border-0 hover:bg-surface-alt transition"
+          >
             <td class="px-4 py-3 text-foreground">{{ user.username }}</td>
             <td class="px-4 py-3 text-foreground">{{ user.display_name }}</td>
             <td class="px-4 py-3">
-              <BaseBadge :variant="roleBadge[user.role] || 'neutral'">{{ roleLabels[user.role] || user.role }}</BaseBadge>
+              <BaseBadge :variant="roleBadge[user.role] || 'neutral'">{{
+                roleLabels[user.role] || user.role
+              }}</BaseBadge>
             </td>
             <td class="px-4 py-3">
-              <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''">Banned</BaseBadge>
+              <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''"
+                >Banned</BaseBadge
+              >
               <span v-else class="text-xs text-muted">Active</span>
             </td>
             <td v-if="auth.isSuperAdmin" class="px-4 py-3">
@@ -148,8 +193,16 @@ onMounted(fetchUsers)
                 <span v-else class="text-xs text-muted">Current user</span>
 
                 <template v-if="user.id !== auth.user?.id">
-                  <BaseButton v-if="!user.is_banned" size="sm" variant="soft-danger" @click="openBanModal(user)">Ban</BaseButton>
-                  <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)">Unban</BaseButton>
+                  <BaseButton
+                    v-if="!user.is_banned"
+                    size="sm"
+                    variant="soft-danger"
+                    @click="openBanModal(user)"
+                    >Ban</BaseButton
+                  >
+                  <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)"
+                    >Unban</BaseButton
+                  >
                 </template>
               </div>
             </td>
@@ -164,11 +217,25 @@ onMounted(fetchUsers)
     <BaseModal v-model="showCreateModal" title="Create Account" size="sm">
       <form @submit.prevent="createAccount" class="space-y-3">
         <BaseInput v-model="newUsername" label="Username" required placeholder="Username" />
-        <BaseInput v-model="newDisplayName" label="Display Name" required placeholder="Display Name" />
-        <BaseInput v-model="newPassword" label="Password" type="password" required placeholder="8+ chars, upper/lower/digit" />
+        <BaseInput
+          v-model="newDisplayName"
+          label="Display Name"
+          required
+          placeholder="Display Name"
+        />
+        <BaseInput
+          v-model="newPassword"
+          label="Password"
+          type="password"
+          required
+          placeholder="8+ chars, upper/lower/digit"
+        />
         <div>
           <label class="block text-sm font-medium text-foreground mb-1">Role</label>
-          <select v-model="newRole" class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <select
+            v-model="newRole"
+            class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
             <option value="MEMBER">Member</option>
             <option v-if="auth.isSuperAdmin" value="ADMIN">Admin</option>
           </select>
@@ -183,10 +250,17 @@ onMounted(fetchUsers)
     <!-- Ban user modal -->
     <BaseModal v-model="showBanModal" title="Ban User" size="sm">
       <p class="text-sm text-muted mb-4">
-        Ban <strong class="text-foreground">{{ banTargetUser?.username }}</strong>? This will immediately revoke their session.
+        Ban <strong class="text-foreground">{{ banTargetUser?.username }}</strong
+        >? This will immediately revoke their session.
       </p>
       <form @submit.prevent="confirmBan">
-        <BaseTextarea v-model="banReason" label="Reason for ban" required :rows="3" placeholder="Reason for ban" />
+        <BaseTextarea
+          v-model="banReason"
+          label="Reason for ban"
+          required
+          :rows="3"
+          placeholder="Reason for ban"
+        />
       </form>
       <template #footer>
         <BaseButton variant="secondary" @click="showBanModal = false">Cancel</BaseButton>

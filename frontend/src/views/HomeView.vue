@@ -37,17 +37,25 @@ const auth = useAuthStore()
     <!-- Unauthenticated view -->
     <div v-else>
       <!-- Hero Section -->
-      <div class="bg-gradient-to-br from-brand-900 to-brand-700 rounded-lg p-8 sm:p-12 text-white text-center mb-8">
+      <div
+        class="bg-gradient-to-br from-brand-900 to-brand-700 rounded-lg p-8 sm:p-12 text-white text-center mb-8"
+      >
         <h1 class="text-3xl sm:text-4xl font-bold mb-3">AI3L Community</h1>
-        <p class="text-brand-200 text-lg mb-6">AI in Language Learning and Literacy &mdash; Academic Exchange Platform</p>
+        <p class="text-brand-200 text-lg mb-6">
+          AI in Language Learning and Literacy &mdash; Academic Exchange Platform
+        </p>
         <div class="flex flex-wrap items-center justify-center gap-3">
           <router-link to="/register">
-            <button class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-lg bg-white text-brand-900 hover:bg-brand-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <button
+              class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-lg bg-white text-brand-900 hover:bg-brand-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
               Get Started
             </button>
           </router-link>
           <router-link to="/guest">
-            <button class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <button
+              class="inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
               Browse as Guest
             </button>
           </router-link>
@@ -58,7 +66,9 @@ const auth = useAuthStore()
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <router-link to="/login" class="block">
           <BaseCard hoverable padding="lg" class="text-center h-full">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3"
+            >
               <KeyRound class="w-6 h-6" aria-hidden="true" />
             </div>
             <h3 class="font-semibold text-foreground">Log In</h3>
@@ -68,7 +78,9 @@ const auth = useAuthStore()
 
         <router-link to="/register" class="block">
           <BaseCard hoverable padding="lg" class="text-center h-full">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3"
+            >
               <PenTool class="w-6 h-6" aria-hidden="true" />
             </div>
             <h3 class="font-semibold text-foreground">Sign Up</h3>
@@ -78,7 +90,9 @@ const auth = useAuthStore()
 
         <router-link to="/guest" class="block">
           <BaseCard hoverable padding="lg" class="text-center h-full">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3"
+            >
               <GraduationCap class="w-6 h-6" aria-hidden="true" />
             </div>
             <h3 class="font-semibold text-foreground">Guest Access</h3>

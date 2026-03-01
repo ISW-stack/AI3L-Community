@@ -37,10 +37,16 @@ const passwordChecks = computed(() => ({
 }))
 
 const passwordValid = computed(
-  () => passwordChecks.value.length && passwordChecks.value.upper && passwordChecks.value.lower && passwordChecks.value.digit,
+  () =>
+    passwordChecks.value.length &&
+    passwordChecks.value.upper &&
+    passwordChecks.value.lower &&
+    passwordChecks.value.digit,
 )
 
-const passwordsMatch = computed(() => password.value === confirmPassword.value && password.value.length > 0)
+const passwordsMatch = computed(
+  () => password.value === confirmPassword.value && password.value.length > 0,
+)
 
 async function handleRegister() {
   if (!passwordValid.value) {
@@ -55,7 +61,14 @@ async function handleRegister() {
   error.value = ''
   loading.value = true
   try {
-    await auth.register(username.value, password.value, displayName.value, inviteCode.value, captchaId.value, captchaCode.value)
+    await auth.register(
+      username.value,
+      password.value,
+      displayName.value,
+      inviteCode.value,
+      captchaId.value,
+      captchaCode.value,
+    )
     router.push('/')
   } catch (e: any) {
     error.value = e.response?.data?.detail || 'Registration failed. Please try again.'
@@ -78,21 +91,36 @@ loadCaptcha()
       <form @submit.prevent="handleRegister" class="space-y-4">
         <BaseInput v-model="username" label="Username" placeholder="3-50 characters" required />
         <BaseInput v-model="displayName" label="Display Name" required />
-        <BaseInput v-model="inviteCode" label="Invite Code" placeholder="Enter your invite code" required />
+        <BaseInput
+          v-model="inviteCode"
+          label="Invite Code"
+          placeholder="Enter your invite code"
+          required
+        />
 
         <div>
           <BaseInput v-model="password" type="password" label="Password" required />
           <ul class="mt-2 text-xs space-y-1" aria-live="polite">
-            <li :class="passwordChecks.length ? 'text-success-600' : 'text-muted'">At least 8 characters</li>
-            <li :class="passwordChecks.upper ? 'text-success-600' : 'text-muted'">Contains an uppercase letter</li>
-            <li :class="passwordChecks.lower ? 'text-success-600' : 'text-muted'">Contains a lowercase letter</li>
-            <li :class="passwordChecks.digit ? 'text-success-600' : 'text-muted'">Contains a digit</li>
+            <li :class="passwordChecks.length ? 'text-success-600' : 'text-muted'">
+              At least 8 characters
+            </li>
+            <li :class="passwordChecks.upper ? 'text-success-600' : 'text-muted'">
+              Contains an uppercase letter
+            </li>
+            <li :class="passwordChecks.lower ? 'text-success-600' : 'text-muted'">
+              Contains a lowercase letter
+            </li>
+            <li :class="passwordChecks.digit ? 'text-success-600' : 'text-muted'">
+              Contains a digit
+            </li>
           </ul>
         </div>
 
         <div>
           <BaseInput v-model="confirmPassword" type="password" label="Confirm Password" required />
-          <p v-if="confirmPassword && !passwordsMatch" class="text-danger-500 text-xs mt-1">Passwords do not match</p>
+          <p v-if="confirmPassword && !passwordsMatch" class="text-danger-500 text-xs mt-1">
+            Passwords do not match
+          </p>
         </div>
 
         <div>
@@ -117,7 +145,12 @@ loadCaptcha()
           </div>
         </div>
 
-        <BaseButton type="submit" size="full" :loading="loading" :disabled="loading || !passwordValid || !passwordsMatch">
+        <BaseButton
+          type="submit"
+          size="full"
+          :loading="loading"
+          :disabled="loading || !passwordValid || !passwordsMatch"
+        >
           {{ loading ? 'Signing up...' : 'Sign Up' }}
         </BaseButton>
       </form>

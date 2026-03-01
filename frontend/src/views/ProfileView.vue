@@ -2,7 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { updateProfile, uploadAvatar as apiUploadAvatar, changePassword as apiChangePassword } from '@/api/users'
+import {
+  updateProfile,
+  uploadAvatar as apiUploadAvatar,
+  changePassword as apiChangePassword,
+} from '@/api/users'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
@@ -108,8 +112,15 @@ async function changePassword() {
 
     <!-- Avatar -->
     <div class="flex items-center gap-4 mb-6">
-      <div class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border">
-        <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" class="w-full h-full object-cover" alt="Avatar" />
+      <div
+        class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+      >
+        <img
+          v-if="auth.user?.avatar_url"
+          :src="auth.user.avatar_url"
+          class="w-full h-full object-cover"
+          alt="Avatar"
+        />
         <span v-else class="text-2xl text-muted">{{ (auth.user?.display_name || '?')[0] }}</span>
       </div>
       <label class="text-sm text-brand-600 hover:underline cursor-pointer">
@@ -122,7 +133,11 @@ async function changePassword() {
       <form @submit.prevent="saveProfile" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-foreground mb-1">Username</label>
-          <input :value="auth.user?.username" disabled class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted" />
+          <input
+            :value="auth.user?.username"
+            disabled
+            class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
+          />
         </div>
 
         <BaseInput v-model="displayName" label="Display Name" maxlength="100" />
@@ -138,19 +153,26 @@ async function changePassword() {
     <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
       <h2 class="text-xl font-bold text-foreground mb-4">Change Password</h2>
 
-      <BaseAlert v-if="passwordMessage" :type="passwordError ? 'error' : 'success'" class="mb-4">{{ passwordMessage }}</BaseAlert>
+      <BaseAlert v-if="passwordMessage" :type="passwordError ? 'error' : 'success'" class="mb-4">{{
+        passwordMessage
+      }}</BaseAlert>
 
       <BaseCard padding="lg">
         <form @submit.prevent="changePassword" class="space-y-4">
           <BaseInput v-model="currentPassword" label="Current Password" type="password" />
           <div>
             <BaseInput v-model="newPassword" label="New Password" type="password" />
-            <p class="text-xs text-muted mt-1">At least 8 characters, with uppercase, lowercase, and a digit.</p>
+            <p class="text-xs text-muted mt-1">
+              At least 8 characters, with uppercase, lowercase, and a digit.
+            </p>
           </div>
           <BaseInput v-model="confirmPassword" label="Confirm New Password" type="password" />
 
-          <BaseButton type="submit" :loading="changingPassword"
-            :disabled="!currentPassword || !newPassword || !confirmPassword">
+          <BaseButton
+            type="submit"
+            :loading="changingPassword"
+            :disabled="!currentPassword || !newPassword || !confirmPassword"
+          >
             Change Password
           </BaseButton>
         </form>

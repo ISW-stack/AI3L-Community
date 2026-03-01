@@ -14,17 +14,34 @@ const loading = ref(false)
 const error = ref('')
 
 async function fetchLogs() {
-  loading.value = true; error.value = ''
+  loading.value = true
+  error.value = ''
   try {
     const data = await getAuditLogs({ page: page.value, page_size: pageSize })
-    logs.value = data.logs; total.value = data.total
-  } catch { error.value = 'Failed to load audit logs.' }
-  finally { loading.value = false }
+    logs.value = data.logs
+    total.value = data.total
+  } catch {
+    error.value = 'Failed to load audit logs.'
+  } finally {
+    loading.value = false
+  }
 }
 
-function prevPage() { if (page.value > 1) { page.value--; fetchLogs() } }
-function nextPage() { if (page.value * pageSize < total.value) { page.value++; fetchLogs() } }
-function formatDate(iso: string): string { return new Date(iso).toLocaleString() }
+function prevPage() {
+  if (page.value > 1) {
+    page.value--
+    fetchLogs()
+  }
+}
+function nextPage() {
+  if (page.value * pageSize < total.value) {
+    page.value++
+    fetchLogs()
+  }
+}
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString()
+}
 
 onMounted(fetchLogs)
 </script>
@@ -53,7 +70,11 @@ onMounted(fetchLogs)
           <tr v-else-if="logs.length === 0">
             <td colspan="5" class="px-4 py-8 text-center text-muted">No audit logs found.</td>
           </tr>
-          <tr v-for="log in logs" :key="log.id" class="border-b border-border last:border-0 hover:bg-surface-alt transition">
+          <tr
+            v-for="log in logs"
+            :key="log.id"
+            class="border-b border-border last:border-0 hover:bg-surface-alt transition"
+          >
             <td class="px-4 py-3 text-muted whitespace-nowrap">{{ formatDate(log.created_at) }}</td>
             <td class="px-4 py-3 text-foreground">
               <span v-if="log.display_name">{{ log.display_name }}</span>
@@ -65,7 +86,9 @@ onMounted(fetchLogs)
             <td class="px-4 py-3 text-muted">
               <template v-if="log.target_type">
                 {{ log.target_type }}
-                <span v-if="log.target_id" class="text-xs text-muted">{{ log.target_id.slice(0, 8) }}</span>
+                <span v-if="log.target_id" class="text-xs text-muted">{{
+                  log.target_id.slice(0, 8)
+                }}</span>
               </template>
               <span v-else class="text-muted">-</span>
             </td>
@@ -78,9 +101,17 @@ onMounted(fetchLogs)
     <div class="flex items-center justify-between mt-4">
       <p class="text-sm text-muted">{{ total }} logs total</p>
       <div class="flex gap-2">
-        <BaseButton size="sm" variant="secondary" @click="prevPage" :disabled="page <= 1">Previous</BaseButton>
+        <BaseButton size="sm" variant="secondary" @click="prevPage" :disabled="page <= 1"
+          >Previous</BaseButton
+        >
         <span class="px-3 py-1 text-sm text-muted">Page {{ page }}</span>
-        <BaseButton size="sm" variant="secondary" @click="nextPage" :disabled="page * pageSize >= total">Next</BaseButton>
+        <BaseButton
+          size="sm"
+          variant="secondary"
+          @click="nextPage"
+          :disabled="page * pageSize >= total"
+          >Next</BaseButton
+        >
       </div>
     </div>
   </div>

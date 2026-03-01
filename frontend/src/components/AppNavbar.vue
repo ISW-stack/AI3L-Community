@@ -49,7 +49,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <nav class="sticky top-0 z-50 backdrop-blur-md bg-surface/80 border-b border-border" aria-label="Main navigation">
+  <nav
+    class="sticky top-0 z-50 backdrop-blur-md bg-surface/80 border-b border-border"
+    aria-label="Main navigation"
+  >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-14 items-center">
         <!-- Logo -->
@@ -59,18 +62,45 @@ onUnmounted(() => {
 
         <!-- Desktop nav links -->
         <div class="hidden lg:flex lg:items-center lg:gap-4">
-          <router-link to="/forum" class="text-sm text-muted hover:text-foreground transition">Forum</router-link>
-          <router-link to="/sigs" class="text-sm text-muted hover:text-foreground transition">SIGs</router-link>
+          <router-link to="/forum" class="text-sm text-muted hover:text-foreground transition"
+            >Forum</router-link
+          >
+          <router-link to="/sigs" class="text-sm text-muted hover:text-foreground transition"
+            >SIGs</router-link
+          >
 
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
-              <router-link to="/admin" class="text-sm text-muted hover:text-foreground transition">Dashboard</router-link>
-              <router-link to="/admin/users" class="text-sm text-muted hover:text-foreground transition">Users</router-link>
-              <router-link to="/admin/applications" class="text-sm text-muted hover:text-foreground transition">Applications</router-link>
-              <router-link to="/admin/reports" class="text-sm text-muted hover:text-foreground transition">Reports</router-link>
-              <router-link to="/admin/invite-codes" class="text-sm text-muted hover:text-foreground transition">Invite Codes</router-link>
+              <router-link to="/admin" class="text-sm text-muted hover:text-foreground transition"
+                >Dashboard</router-link
+              >
+              <router-link
+                to="/admin/users"
+                class="text-sm text-muted hover:text-foreground transition"
+                >Users</router-link
+              >
+              <router-link
+                to="/admin/applications"
+                class="text-sm text-muted hover:text-foreground transition"
+                >Applications</router-link
+              >
+              <router-link
+                to="/admin/reports"
+                class="text-sm text-muted hover:text-foreground transition"
+                >Reports</router-link
+              >
+              <router-link
+                to="/admin/invite-codes"
+                class="text-sm text-muted hover:text-foreground transition"
+                >Invite Codes</router-link
+              >
             </template>
-            <router-link v-if="auth.isSuperAdmin" to="/admin/audit-logs" class="text-sm text-muted hover:text-foreground transition">Audit Logs</router-link>
+            <router-link
+              v-if="auth.isSuperAdmin"
+              to="/admin/audit-logs"
+              class="text-sm text-muted hover:text-foreground transition"
+              >Audit Logs</router-link
+            >
 
             <NotificationBell />
 
@@ -111,7 +141,9 @@ onUnmounted(() => {
           </template>
 
           <template v-else>
-            <router-link to="/login" class="text-sm text-muted hover:text-foreground transition">Log In</router-link>
+            <router-link to="/login" class="text-sm text-muted hover:text-foreground transition"
+              >Log In</router-link
+            >
             <router-link
               to="/register"
               class="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 transition"
@@ -139,7 +171,10 @@ onUnmounted(() => {
 
     <!-- Mobile menu panel -->
     <Transition name="mobile-menu">
-      <div v-if="mobileMenuOpen" class="lg:hidden border-t border-border bg-surface/95 backdrop-blur-md">
+      <div
+        v-if="mobileMenuOpen"
+        class="lg:hidden border-t border-border bg-surface/95 backdrop-blur-md"
+      >
         <div class="px-4 py-3 space-y-1">
           <router-link
             to="/forum"
@@ -158,18 +193,55 @@ onUnmounted(() => {
 
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
-              <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">Admin</div>
-              <router-link to="/admin" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Dashboard</router-link>
-              <router-link to="/admin/users" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Users</router-link>
-              <router-link to="/admin/applications" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Applications</router-link>
-              <router-link to="/admin/reports" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Reports</router-link>
-              <router-link to="/admin/invite-codes" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Invite Codes</router-link>
+              <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
+                Admin
+              </div>
+              <router-link
+                to="/admin"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+                >Dashboard</router-link
+              >
+              <router-link
+                to="/admin/users"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+                >Users</router-link
+              >
+              <router-link
+                to="/admin/applications"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+                >Applications</router-link
+              >
+              <router-link
+                to="/admin/reports"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+                >Reports</router-link
+              >
+              <router-link
+                to="/admin/invite-codes"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+                >Invite Codes</router-link
+              >
             </template>
-            <router-link v-if="auth.isSuperAdmin" to="/admin/audit-logs" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Audit Logs</router-link>
+            <router-link
+              v-if="auth.isSuperAdmin"
+              to="/admin/audit-logs"
+              class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+              @click="mobileMenuOpen = false"
+              >Audit Logs</router-link
+            >
 
-            <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">Account</div>
+            <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
+              Account
+            </div>
             <div class="flex items-center gap-2 px-3 py-2">
-              <span class="text-sm text-foreground">{{ auth.user?.display_name || auth.role }}</span>
+              <span class="text-sm text-foreground">{{
+                auth.user?.display_name || auth.role
+              }}</span>
               <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'">
                 {{ roleLabels[auth.role || ''] || auth.role }}
               </BaseBadge>
