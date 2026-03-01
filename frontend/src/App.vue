@@ -25,10 +25,14 @@ function onConsentAccepted() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-surface-alt">
     <AppNavbar />
-    <main>
-      <RouterView />
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </main>
     <ToastNotification />
     <PrivacyConsentModal

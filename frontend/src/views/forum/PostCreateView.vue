@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/composables/api'
+import type { Category } from '@/types'
+import { createPost as apiCreatePost } from '@/api/posts'
+import { listCategories } from '@/api/categories'
 import TiptapEditor from '@/components/TiptapEditor.vue'
+import BaseCard from '@/components/base/BaseCard.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
 
 const router = useRouter()
-
-interface Category {
-  id: string
-  name: string
-}
 
 const title = ref('')
 const content = ref('')
@@ -22,150 +24,84 @@ const saving = ref(false)
 const message = ref('')
 
 async function fetchCategories() {
-  try {
-    const { data } = await api.get('/categories')
-    categories.value = data.categories
-  } catch {
-    // silent
-  }
+  try { categories.value = await listCategories() } catch { /* silent */ }
 }
 
 function addKeyword() {
   const kw = keywordsInput.value.trim()
   if (kw && keywords.value.length < 15 && !keywords.value.includes(kw)) {
-    keywords.value.push(kw)
-    keywordsInput.value = ''
+    keywords.value.push(kw); keywordsInput.value = ''
   }
 }
 
-function removeKeyword(index: number) {
-  keywords.value.splice(index, 1)
-}
+function removeKeyword(index: number) { keywords.value.splice(index, 1) }
 
 async function createPost() {
-  if (!title.value.trim() || !content.value.trim()) {
-    message.value = 'Title and content are required.'
-    return
-  }
-
-  saving.value = true
-  message.value = ''
+  if (!title.value.trim() || !content.value.trim()) { message.value = 'Title and content are required.'; return }
+  saving.value = true; message.value = ''
   try {
-    const body: Record<string, unknown> = {
-      title: title.value,
-      content: content.value,
-      allow_comments: allowComments.value,
-    }
-    if (categoryId.value) body.category_id = categoryId.value
-    if (keywords.value.length) body.keywords = keywords.value
-
-    const { data } = await api.post('/posts', body)
+    const payload: any = { title: title.value, content: content.value, allow_comments: allowComments.value }
+    if (categoryId.value) payload.category_id = categoryId.value
+    if (keywords.value.length) payload.keywords = keywords.value
+    const data = await apiCreatePost(payload)
     router.push(`/forum/${data.id}`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } }
     message.value = err.response?.data?.detail || 'Failed to create post.'
-  } finally {
-    saving.value = false
-  }
+  } finally { saving.value = false }
 }
 
 onMounted(fetchCategories)
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto py-8 px-4">
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Create Post</h1>
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold text-foreground mb-6">Create Post</h1>
 
-    <div v-if="message" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
-      {{ message }}
-    </div>
+    <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>
 
     <form @submit.prevent="createPost" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-        <input
-          v-model="title"
-          type="text"
-          maxlength="300"
-          required
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          placeholder="Post title"
-        />
-      </div>
+      <BaseInput v-model="title" label="Title" placeholder="Post title" required />
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-        <select
-          v-model="categoryId"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-        >
+        <label class="block text-sm font-medium text-foreground mb-1">Category</label>
+        <select v-model="categoryId" class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground">
           <option :value="null">None</option>
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+        <label class="block text-sm font-medium text-foreground mb-1">Content</label>
         <TiptapEditor v-model="content" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Keywords ({{ keywords.length }}/15)
-        </label>
+        <label class="block text-sm font-medium text-foreground mb-1">Keywords ({{ keywords.length }}/15)</label>
         <div class="flex gap-2 mb-2 flex-wrap">
-          <span
-            v-for="(kw, i) in keywords"
-            :key="i"
-            class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full"
-          >
+          <BaseBadge v-for="(kw, i) in keywords" :key="i" class="gap-1">
             {{ kw }}
-            <button type="button" @click="removeKeyword(i)" class="text-blue-400 hover:text-blue-600">&times;</button>
-          </span>
+            <button type="button" @click="removeKeyword(i)" class="text-brand-400 hover:text-brand-600">&times;</button>
+          </BaseBadge>
         </div>
         <div class="flex gap-2">
           <input
-            v-model="keywordsInput"
-            type="text"
-            maxlength="50"
-            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            placeholder="Add a keyword and press Enter"
-            @keydown.enter.prevent="addKeyword"
+            v-model="keywordsInput" type="text" maxlength="50"
+            class="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
+            placeholder="Add a keyword and press Enter" @keydown.enter.prevent="addKeyword"
           />
-          <button
-            type="button"
-            @click="addKeyword"
-            class="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200"
-          >
-            Add
-          </button>
+          <BaseButton type="button" variant="secondary" @click="addKeyword">Add</BaseButton>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <input
-          id="allow-comments"
-          v-model="allowComments"
-          type="checkbox"
-          class="rounded border-gray-300"
-        />
-        <label for="allow-comments" class="text-sm text-gray-700">Allow comments</label>
+        <input id="allow-comments" v-model="allowComments" type="checkbox" class="rounded border-border" />
+        <label for="allow-comments" class="text-sm text-foreground">Allow comments</label>
       </div>
 
       <div class="flex gap-3 pt-2">
-        <button
-          type="submit"
-          :disabled="saving"
-          class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-        >
-          {{ saving ? 'Publishing...' : 'Publish' }}
-        </button>
-        <router-link
-          to="/forum"
-          class="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition"
-        >
-          Cancel
-        </router-link>
+        <BaseButton type="submit" size="lg" :loading="saving">Publish</BaseButton>
+        <router-link to="/forum"><BaseButton type="button" variant="secondary" size="lg">Cancel</BaseButton></router-link>
       </div>
     </form>
   </div>

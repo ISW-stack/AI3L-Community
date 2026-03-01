@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import api from '@/composables/api'
-
-interface Application {
-  id: string
-  user_id: string
-  username: string
-  display_name: string
-  description: string
-  status: string
-  reviewed_at: string | null
-  created_at: string
-}
+import type { Application } from '@/types'
+import { listApplications, reviewApplication } from '@/api/admin'
+import BaseCard from '@/components/base/BaseCard.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseAlert from '@/components/base/BaseAlert.vue'
 
 const applications = ref<Application[]>([])
 const total = ref(0)
@@ -20,42 +14,35 @@ const message = ref('')
 const statusFilter = ref('PENDING')
 
 const statusLabels: Record<string, string> = {
-  PENDING: 'Pending',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected',
+  PENDING: 'Pending', APPROVED: 'Approved', REJECTED: 'Rejected',
+}
+const statusBadge: Record<string, 'warning' | 'success' | 'danger'> = {
+  PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger',
 }
 
 async function fetchApplications() {
   loading.value = true
   try {
-    const { data } = await api.get('/admin/applications', {
-      params: { status: statusFilter.value || undefined },
-    })
-    applications.value = data.applications
-    total.value = data.total
-  } catch {
-    message.value = 'Failed to load applications.'
-  } finally {
-    loading.value = false
-  }
+    const data = await listApplications({ status: statusFilter.value || undefined })
+    applications.value = data.applications; total.value = data.total
+  } catch { message.value = 'Failed to load applications.' }
+  finally { loading.value = false }
 }
 
 async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
   try {
-    await api.put(`/admin/applications/${appId}/review`, { action })
+    await reviewApplication(appId, action)
     message.value = action === 'APPROVED' ? 'Application approved.' : 'Application rejected.'
     await fetchApplications()
-  } catch (e: any) {
-    message.value = e.response?.data?.detail || 'Operation failed.'
-  }
+  } catch (e: any) { message.value = e.response?.data?.detail || 'Operation failed.' }
 }
 
 onMounted(fetchApplications)
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto py-8 px-4">
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Membership Applications</h1>
+  <div>
+    <h1 class="text-2xl font-bold text-foreground mb-6">Membership Applications</h1>
 
     <div class="flex gap-2 mb-4">
       <button
@@ -63,61 +50,38 @@ onMounted(fetchApplications)
         :key="s"
         @click="statusFilter = s; fetchApplications()"
         class="px-3 py-1.5 text-sm rounded-lg transition"
-        :class="statusFilter === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        :class="statusFilter === s ? 'bg-brand-600 text-white' : 'bg-surface-alt text-muted hover:bg-gray-100'"
       >
         {{ statusLabels[s] }}
       </button>
     </div>
 
-    <div v-if="message" class="bg-blue-50 border border-blue-200 text-blue-700 rounded-lg p-3 mb-4 text-sm">
-      {{ message }}
-    </div>
+    <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
     <div class="space-y-3">
-      <div v-if="loading" class="text-center text-gray-400 py-8">Loading...</div>
-      <div v-else-if="applications.length === 0" class="text-center text-gray-400 py-8">No applications found</div>
+      <div v-if="loading" class="text-center text-muted py-8">Loading...</div>
+      <div v-else-if="applications.length === 0" class="text-center text-muted py-8">No applications found</div>
 
-      <div
-        v-for="app in applications"
-        :key="app.id"
-        class="bg-white rounded-xl shadow p-4 flex justify-between items-start"
-      >
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <span class="font-medium text-gray-900">{{ app.display_name }}</span>
-            <span class="text-sm text-gray-500">@{{ app.username }}</span>
-            <span
-              class="text-xs px-2 py-0.5 rounded-full"
-              :class="{
-                'bg-yellow-100 text-yellow-700': app.status === 'PENDING',
-                'bg-green-100 text-green-700': app.status === 'APPROVED',
-                'bg-red-100 text-red-700': app.status === 'REJECTED',
-              }"
-            >
-              {{ statusLabels[app.status] }}
-            </span>
+      <BaseCard v-for="app in applications" :key="app.id" padding="lg">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+          <div>
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="font-medium text-foreground">{{ app.display_name }}</span>
+              <span class="text-sm text-muted">@{{ app.username }}</span>
+              <BaseBadge :variant="statusBadge[app.status] || 'neutral'">{{ statusLabels[app.status] }}</BaseBadge>
+            </div>
+            <p class="text-sm text-muted mb-1">{{ app.description }}</p>
+            <p class="text-xs text-muted">{{ new Date(app.created_at).toLocaleString() }}</p>
           </div>
-          <p class="text-sm text-gray-600 mb-1">{{ app.description }}</p>
-          <p class="text-xs text-gray-400">{{ new Date(app.created_at).toLocaleString() }}</p>
-        </div>
 
-        <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">
-          <button
-            @click="review(app.id, 'APPROVED')"
-            class="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            Approve
-          </button>
-          <button
-            @click="review(app.id, 'REJECTED')"
-            class="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-          >
-            Reject
-          </button>
+          <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">
+            <BaseButton size="sm" variant="success" @click="review(app.id, 'APPROVED')">Approve</BaseButton>
+            <BaseButton size="sm" variant="soft-danger" @click="review(app.id, 'REJECTED')">Reject</BaseButton>
+          </div>
         </div>
-      </div>
+      </BaseCard>
     </div>
 
-    <p class="mt-4 text-sm text-gray-500">{{ total }} total</p>
+    <p class="mt-4 text-sm text-muted">{{ total }} total</p>
   </div>
 </template>

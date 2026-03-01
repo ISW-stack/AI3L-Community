@@ -12,7 +12,7 @@ defineProps<{
       <div
         v-for="i in (lines || 3)"
         :key="i"
-        class="bg-white rounded-xl shadow p-5 space-y-3"
+        class="bg-surface rounded-lg shadow p-5 space-y-3"
       >
         <div class="h-5 bg-gray-200 rounded w-3/4"></div>
         <div class="h-3 bg-gray-200 rounded w-full"></div>
@@ -31,7 +31,7 @@ defineProps<{
         :key="i"
         class="flex items-center gap-4 p-4"
       >
-        <div class="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+        <div class="w-10 h-10 bg-gray-200 rounded-full shrink-0"></div>
         <div class="flex-1 space-y-2">
           <div class="h-4 bg-gray-200 rounded w-3/4"></div>
           <div class="h-3 bg-gray-200 rounded w-1/2"></div>

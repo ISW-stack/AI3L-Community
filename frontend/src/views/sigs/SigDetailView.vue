@@ -1,69 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import api from '@/composables/api'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
-
-interface Sig {
-  id: string
-  name: string
-  description: string | null
-  created_by: string
-  creator_display_name: string | null
-  member_count: number
-  created_at: string
-}
-
-interface SigMember {
-  id: string
-  sig_id: string
-  user_id: string
-  role: string
-  display_name: string
-  username: string
-  created_at: string
-}
-
-interface PostAuthor {
-  id: string
-  username: string
-  display_name: string
-  avatar_url: string | null
-}
-
-interface Post {
-  id: string
-  title: string
-  content: string
-  author: PostAuthor
-  category_id: string | null
-  category_name: string | null
-  keywords: string[] | null
-  allow_comments: boolean
-  version: number
-  comment_count: number
-  created_at: string
-  updated_at: string
-}
-
-interface SigForm {
-  id: string
-  sig_id: string
-  title: string
-  description: string | null
-  deadline: string | null
-  max_respondents: number | null
-  response_count: number
-  is_active: boolean
-  created_by_name: string
-  created_at: string
-  user_is_sig_admin: boolean
-}
+import { useToastStore } from '@/stores/toast'
+import type { Sig, SigMember, SigForm, Post } from '@/types'
+import {
+  getSig, updateSig, deleteSig as deleteSigApi, getSigPosts, getSigMembers, getSigForms,
+  leaveSig as leaveSigApi, removeMember as removeMemberApi,
+} from '@/api/sigs'
+import BaseCard from '@/components/base/BaseCard.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseTextarea from '@/components/base/BaseTextarea.vue'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const toastStore = useToastStore()
 const sigId = computed(() => route.params.id as string)
 
 const sig = ref<Sig | null>(null)
@@ -76,16 +32,11 @@ const formsTotal = ref(0)
 const loading = ref(true)
 const activeTab = ref<'posts' | 'members' | 'forms'>('posts')
 
-// Edit state
 const editing = ref(false)
 const editName = ref('')
 const editDescription = ref('')
 const editSaving = ref(false)
-
-// Delete confirmation
 const showDeleteConfirm = ref(false)
-
-// User's SIG role
 const userSigRole = ref<string | null>(null)
 
 const isSigAdmin = computed(() => userSigRole.value === 'ADMIN' || userSigRole.value === 'SUB_ADMIN')
@@ -103,297 +54,165 @@ function canRemoveMember(m: SigMember) {
   return auth.isAdmin || isSigAdmin.value
 }
 
-async function fetchSig() {
-  loading.value = true
-  try {
-    const { data } = await api.get(`/sigs/${sigId.value}`)
-    sig.value = data
-  } catch {
-    sig.value = null
-  } finally {
-    loading.value = false
-  }
+const memberRoleBadge: Record<string, 'orange' | 'purple' | 'brand'> = {
+  ADMIN: 'orange', SUB_ADMIN: 'purple', MEMBER: 'brand',
 }
 
-async function fetchPosts() {
-  try {
-    const { data } = await api.get(`/sigs/${sigId.value}/posts`)
-    posts.value = data.posts
-    postsTotal.value = data.total
-  } catch {
-    // silent
-  }
-}
-
+async function fetchSig() { loading.value = true; try { sig.value = await getSig(sigId.value) } catch { sig.value = null } finally { loading.value = false } }
+async function fetchPosts() { try { const data = await getSigPosts(sigId.value); posts.value = data.posts; postsTotal.value = data.total } catch { /* */ } }
 async function fetchMembers() {
   try {
-    const { data } = await api.get(`/sigs/${sigId.value}/members`)
-    members.value = data.members
-    membersTotal.value = data.total
-    // Determine current user's SIG role
-    const me = members.value.find((m) => m.user_id === auth.user?.id)
-    userSigRole.value = me?.role ?? null
-  } catch {
-    // silent
-  }
+    const data = await getSigMembers(sigId.value); members.value = data.members; membersTotal.value = data.total
+    const me = members.value.find((m) => m.user_id === auth.user?.id); userSigRole.value = me?.role ?? null
+  } catch { /* */ }
 }
-
-async function fetchForms() {
-  try {
-    const { data } = await api.get(`/sigs/${sigId.value}/forms`)
-    forms.value = data.forms
-    formsTotal.value = data.total
-  } catch {
-    // silent
-  }
-}
+async function fetchForms() { try { const data = await getSigForms(sigId.value); forms.value = data.forms; formsTotal.value = data.total } catch { /* */ } }
 
 function switchTab(tab: 'posts' | 'members' | 'forms') {
   activeTab.value = tab
-  if (tab === 'posts') fetchPosts()
-  else if (tab === 'members') fetchMembers()
-  else fetchForms()
+  if (tab === 'posts') fetchPosts(); else if (tab === 'members') fetchMembers(); else fetchForms()
 }
 
-function startEdit() {
-  if (!sig.value) return
-  editName.value = sig.value.name
-  editDescription.value = sig.value.description || ''
-  editing.value = true
-}
-
-function cancelEdit() {
-  editing.value = false
-}
+function startEdit() { if (!sig.value) return; editName.value = sig.value.name; editDescription.value = sig.value.description || ''; editing.value = true }
+function cancelEdit() { editing.value = false }
 
 async function saveEdit() {
   editSaving.value = true
-  try {
-    const { data } = await api.put(`/sigs/${sigId.value}`, {
-      name: editName.value,
-      description: editDescription.value || null,
-    })
-    sig.value = data
-    editing.value = false
-  } catch (e: any) {
-    window.dispatchEvent(
-      new CustomEvent('app:toast', {
-        detail: { message: e.response?.data?.detail || 'Failed to update SIG.', type: 'error' },
-      }),
-    )
-  } finally {
-    editSaving.value = false
-  }
+  try { sig.value = await updateSig(sigId.value, { name: editName.value, description: editDescription.value || null }); editing.value = false }
+  catch (e: any) { toastStore.show(e.response?.data?.detail || 'Failed to update SIG.', 'error') }
+  finally { editSaving.value = false }
 }
 
-async function deleteSig() {
-  try {
-    await api.delete(`/sigs/${sigId.value}`)
-    router.push('/sigs')
-  } catch (e: any) {
-    window.dispatchEvent(
-      new CustomEvent('app:toast', {
-        detail: { message: e.response?.data?.detail || 'Failed to delete SIG.', type: 'error' },
-      }),
-    )
-  } finally {
-    showDeleteConfirm.value = false
-  }
+async function handleDeleteSig() {
+  try { await deleteSigApi(sigId.value); router.push('/sigs') }
+  catch (e: any) { toastStore.show(e.response?.data?.detail || 'Failed to delete SIG.', 'error') }
+  finally { showDeleteConfirm.value = false }
 }
 
-async function leaveSig() {
-  try {
-    await api.delete(`/sigs/${sigId.value}/members/me`)
-    await fetchSig()
-    await fetchMembers()
-    window.dispatchEvent(
-      new CustomEvent('app:toast', { detail: { message: 'You have left the SIG.', type: 'info' } }),
-    )
-  } catch (e: any) {
-    window.dispatchEvent(
-      new CustomEvent('app:toast', {
-        detail: { message: e.response?.data?.detail || 'Failed to leave SIG.', type: 'error' },
-      }),
-    )
-  }
+async function handleLeaveSig() {
+  try { await leaveSigApi(sigId.value); await fetchSig(); await fetchMembers(); toastStore.show('You have left the SIG.', 'info') }
+  catch (e: any) { toastStore.show(e.response?.data?.detail || 'Failed to leave SIG.', 'error') }
 }
 
-async function removeMember(userId: string) {
-  try {
-    await api.delete(`/sigs/${sigId.value}/members/${userId}`)
-    await fetchSig()
-    await fetchMembers()
-  } catch (e: any) {
-    window.dispatchEvent(
-      new CustomEvent('app:toast', {
-        detail: { message: e.response?.data?.detail || 'Failed to remove member.', type: 'error' },
-      }),
-    )
-  }
+async function handleRemoveMember(userId: string) {
+  try { await removeMemberApi(sigId.value, userId); await fetchSig(); await fetchMembers() }
+  catch (e: any) { toastStore.show(e.response?.data?.detail || 'Failed to remove member.', 'error') }
 }
 
-onMounted(() => {
-  fetchSig()
-  fetchPosts()
-  fetchMembers()
-})
+onMounted(() => { fetchSig(); fetchPosts(); fetchMembers() })
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto py-8 px-4">
+  <div>
     <div class="mb-6">
-      <router-link to="/sigs" class="text-sm text-blue-600 hover:underline">&larr; All SIGs</router-link>
+      <router-link to="/sigs" class="text-sm text-brand-600 hover:underline">&larr; All SIGs</router-link>
     </div>
 
-    <div v-if="loading" class="text-center text-gray-400 py-12">Loading...</div>
-
+    <div v-if="loading" class="text-center text-muted py-12">Loading...</div>
     <div v-else-if="!sig" class="text-center py-12">
-      <p class="text-gray-500 mb-4">SIG not found.</p>
-      <router-link to="/sigs" class="text-blue-600 hover:underline">Back to SIGs</router-link>
+      <p class="text-muted mb-4">SIG not found.</p>
+      <router-link to="/sigs" class="text-brand-600 hover:underline">Back to SIGs</router-link>
     </div>
 
     <template v-else>
-      <div class="bg-white rounded-xl shadow p-6 mb-6">
-        <!-- View mode -->
+      <BaseCard padding="lg" class="mb-6">
         <template v-if="!editing">
           <div class="flex items-start justify-between">
             <div>
-              <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ sig.name }}</h1>
-              <p v-if="sig.description" class="text-sm text-gray-600 mb-3" v-html="DOMPurify.sanitize(sig.description)"></p>
+              <h1 class="text-2xl font-bold text-foreground mb-2">{{ sig.name }}</h1>
+              <p v-if="sig.description" class="text-sm text-muted mb-3" v-html="DOMPurify.sanitize(sig.description)"></p>
             </div>
             <div class="flex gap-2 shrink-0 ml-4">
-              <button v-if="canEdit" @click="startEdit"
-                class="text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">
-                Edit
-              </button>
-              <button v-if="canLeave && userSigRole !== 'ADMIN'" @click="leaveSig"
-                class="text-sm bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-lg hover:bg-yellow-100 transition">
-                Leave SIG
-              </button>
-              <button v-if="canDelete" @click="showDeleteConfirm = true"
-                class="text-sm bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
-                Delete SIG
-              </button>
+              <BaseButton v-if="canEdit" size="sm" variant="secondary" @click="startEdit">Edit</BaseButton>
+              <BaseButton v-if="canLeave && userSigRole !== 'ADMIN'" size="sm" class="bg-warning-50 text-warning-700 hover:bg-warning-100" @click="handleLeaveSig">Leave SIG</BaseButton>
+              <BaseButton v-if="canDelete" size="sm" variant="soft-danger" @click="showDeleteConfirm = true">Delete SIG</BaseButton>
             </div>
           </div>
-          <div class="flex items-center gap-4 text-xs text-gray-400">
+          <div class="flex items-center gap-4 text-xs text-muted">
             <span>Created by {{ sig.creator_display_name || 'Unknown' }}</span>
             <span>{{ sig.member_count }} member(s)</span>
             <span>{{ new Date(sig.created_at).toLocaleDateString() }}</span>
           </div>
         </template>
 
-        <!-- Edit mode -->
         <template v-else>
           <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <input v-model="editName" type="text" maxlength="200"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea v-model="editDescription" maxlength="2000" rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"></textarea>
-            </div>
+            <BaseInput v-model="editName" label="Name" />
+            <BaseTextarea v-model="editDescription" label="Description" :rows="3" />
             <div class="flex gap-2">
-              <button @click="saveEdit" :disabled="editSaving"
-                class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
-                {{ editSaving ? 'Saving...' : 'Save' }}
-              </button>
-              <button @click="cancelEdit"
-                class="text-sm bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
-                Cancel
-              </button>
+              <BaseButton :loading="editSaving" @click="saveEdit">Save</BaseButton>
+              <BaseButton variant="secondary" @click="cancelEdit">Cancel</BaseButton>
             </div>
           </div>
         </template>
-      </div>
+      </BaseCard>
 
-      <!-- Delete confirmation modal -->
-      <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-lg p-6 max-w-sm mx-4">
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Delete SIG?</h3>
-          <p class="text-sm text-gray-600 mb-4">This will soft-delete this SIG and all its posts. This action cannot be easily undone.</p>
-          <div class="flex gap-2 justify-end">
-            <button @click="showDeleteConfirm = false"
-              class="text-sm bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
-              Cancel
-            </button>
-            <button @click="deleteSig"
-              class="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Delete confirmation -->
+      <BaseModal v-model="showDeleteConfirm" title="Delete SIG?" size="sm">
+        <p class="text-sm text-muted mb-4">This will soft-delete this SIG and all its posts. This action cannot be easily undone.</p>
+        <template #footer>
+          <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
+          <BaseButton variant="danger" @click="handleDeleteSig">Delete</BaseButton>
+        </template>
+      </BaseModal>
 
       <!-- Tabs -->
-      <div class="flex gap-1 mb-4">
-        <button @click="switchTab('posts')" class="px-4 py-2 text-sm rounded-lg transition"
-          :class="activeTab === 'posts' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
+      <div class="flex gap-1 mb-4 overflow-x-auto">
+        <button @click="switchTab('posts')" class="px-4 py-2 text-sm rounded-lg transition whitespace-nowrap"
+          :class="activeTab === 'posts' ? 'bg-brand-600 text-white' : 'bg-surface-alt text-muted hover:bg-gray-100'">
           Posts ({{ postsTotal }})
         </button>
-        <button @click="switchTab('members')" class="px-4 py-2 text-sm rounded-lg transition"
-          :class="activeTab === 'members' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
+        <button @click="switchTab('members')" class="px-4 py-2 text-sm rounded-lg transition whitespace-nowrap"
+          :class="activeTab === 'members' ? 'bg-brand-600 text-white' : 'bg-surface-alt text-muted hover:bg-gray-100'">
           Members ({{ membersTotal }})
         </button>
-        <button @click="switchTab('forms')" class="px-4 py-2 text-sm rounded-lg transition"
-          :class="activeTab === 'forms' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
+        <button @click="switchTab('forms')" class="px-4 py-2 text-sm rounded-lg transition whitespace-nowrap"
+          :class="activeTab === 'forms' ? 'bg-brand-600 text-white' : 'bg-surface-alt text-muted hover:bg-gray-100'">
           Forms ({{ formsTotal }})
         </button>
       </div>
 
       <!-- Posts tab -->
       <div v-if="activeTab === 'posts'">
-        <div v-if="posts.length === 0" class="text-center text-gray-400 py-8 text-sm">No posts in this SIG yet.</div>
+        <div v-if="posts.length === 0" class="text-center text-muted py-8 text-sm">No posts in this SIG yet.</div>
         <div v-else class="space-y-3">
-          <router-link v-for="p in posts" :key="p.id" :to="`/forum/${p.id}`"
-            class="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
-            <h3 class="font-semibold text-gray-900 mb-1">{{ p.title }}</h3>
-            <div class="flex items-center gap-3 text-xs text-gray-400">
-              <span>{{ p.author.display_name }}</span>
-              <span>{{ new Date(p.created_at).toLocaleString() }}</span>
-              <span>{{ p.comment_count }} comments</span>
-            </div>
+          <router-link v-for="p in posts" :key="p.id" :to="`/forum/${p.id}`" class="block">
+            <BaseCard hoverable>
+              <h3 class="font-semibold text-foreground mb-1">{{ p.title }}</h3>
+              <div class="flex items-center gap-3 text-xs text-muted">
+                <span>{{ p.author.display_name }}</span>
+                <span>{{ new Date(p.created_at).toLocaleString() }}</span>
+                <span>{{ p.comment_count }} comments</span>
+              </div>
+            </BaseCard>
           </router-link>
         </div>
       </div>
 
       <!-- Members tab -->
       <div v-if="activeTab === 'members'">
-        <div v-if="members.length === 0" class="text-center text-gray-400 py-8 text-sm">No members yet.</div>
-        <div v-else class="bg-white rounded-xl shadow overflow-hidden">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b">
+        <div v-if="members.length === 0" class="text-center text-muted py-8 text-sm">No members yet.</div>
+        <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+          <table class="w-full text-sm min-w-[600px]">
+            <thead class="bg-surface-alt border-b border-border">
               <tr>
-                <th class="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                <th class="text-left px-4 py-3 font-medium text-gray-600">Username</th>
-                <th class="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-                <th class="text-left px-4 py-3 font-medium text-gray-600">Joined</th>
-                <th v-if="canEdit" class="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
+                <th class="text-left px-4 py-3 font-medium text-muted">Name</th>
+                <th class="text-left px-4 py-3 font-medium text-muted">Username</th>
+                <th class="text-left px-4 py-3 font-medium text-muted">Role</th>
+                <th class="text-left px-4 py-3 font-medium text-muted">Joined</th>
+                <th v-if="canEdit" class="text-left px-4 py-3 font-medium text-muted">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="m in members" :key="m.id" class="border-b last:border-0 hover:bg-gray-50">
-                <td class="px-4 py-3 text-gray-900">{{ m.display_name }}</td>
-                <td class="px-4 py-3 text-gray-500">{{ m.username }}</td>
+              <tr v-for="m in members" :key="m.id" class="border-b border-border last:border-0 hover:bg-surface-alt transition">
+                <td class="px-4 py-3 text-foreground">{{ m.display_name }}</td>
+                <td class="px-4 py-3 text-muted">{{ m.username }}</td>
                 <td class="px-4 py-3">
-                  <span class="text-xs px-2 py-0.5 rounded-full"
-                    :class="{
-                      'bg-orange-100 text-orange-700': m.role === 'ADMIN',
-                      'bg-purple-100 text-purple-700': m.role === 'SUB_ADMIN',
-                      'bg-blue-100 text-blue-700': m.role === 'MEMBER',
-                    }">
-                    {{ m.role }}
-                  </span>
+                  <BaseBadge :variant="memberRoleBadge[m.role] || 'brand'">{{ m.role }}</BaseBadge>
                 </td>
-                <td class="px-4 py-3 text-gray-400 text-xs">{{ new Date(m.created_at).toLocaleDateString() }}</td>
+                <td class="px-4 py-3 text-muted text-xs">{{ new Date(m.created_at).toLocaleDateString() }}</td>
                 <td v-if="canEdit" class="px-4 py-3">
-                  <button v-if="canRemoveMember(m)" @click="removeMember(m.user_id)"
-                    class="text-xs text-red-600 hover:underline">
-                    Remove
-                  </button>
+                  <button v-if="canRemoveMember(m)" @click="handleRemoveMember(m.user_id)" class="text-xs text-danger-600 hover:underline">Remove</button>
                 </td>
               </tr>
             </tbody>
@@ -404,28 +223,25 @@ onMounted(() => {
       <!-- Forms tab -->
       <div v-if="activeTab === 'forms'">
         <div v-if="canCreateForm" class="mb-4">
-          <router-link :to="`/sigs/${sigId}/forms/new`"
-            class="inline-block text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-            + Create Form
+          <router-link :to="`/sigs/${sigId}/forms/new`">
+            <BaseButton>+ Create Form</BaseButton>
           </router-link>
         </div>
-        <div v-if="forms.length === 0" class="text-center text-gray-400 py-8 text-sm">No forms in this SIG yet.</div>
+        <div v-if="forms.length === 0" class="text-center text-muted py-8 text-sm">No forms in this SIG yet.</div>
         <div v-else class="grid gap-4 sm:grid-cols-2">
-          <router-link v-for="f in forms" :key="f.id" :to="`/forms/${f.id}`"
-            class="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
-            <div class="flex items-start justify-between mb-2">
-              <h3 class="font-semibold text-gray-900">{{ f.title }}</h3>
-              <span class="text-xs px-2 py-0.5 rounded-full shrink-0 ml-2"
-                :class="f.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                {{ f.is_active ? 'Active' : 'Closed' }}
-              </span>
-            </div>
-            <p v-if="f.description" class="text-xs text-gray-500 mb-2 line-clamp-2">{{ f.description }}</p>
-            <div class="flex items-center gap-3 text-xs text-gray-400">
-              <span>{{ f.response_count }} response(s)</span>
-              <span v-if="f.deadline">Deadline: {{ new Date(f.deadline).toLocaleDateString() }}</span>
-              <span>By {{ f.created_by_name }}</span>
-            </div>
+          <router-link v-for="f in forms" :key="f.id" :to="`/forms/${f.id}`" class="block">
+            <BaseCard hoverable class="h-full">
+              <div class="flex items-start justify-between mb-2">
+                <h3 class="font-semibold text-foreground">{{ f.title }}</h3>
+                <BaseBadge :variant="f.is_active ? 'success' : 'danger'" class="shrink-0 ml-2">{{ f.is_active ? 'Active' : 'Closed' }}</BaseBadge>
+              </div>
+              <p v-if="f.description" class="text-xs text-muted mb-2 line-clamp-2">{{ f.description }}</p>
+              <div class="flex items-center gap-3 text-xs text-muted">
+                <span>{{ f.response_count }} response(s)</span>
+                <span v-if="f.deadline">Deadline: {{ new Date(f.deadline).toLocaleDateString() }}</span>
+                <span>By {{ f.created_by_name }}</span>
+              </div>
+            </BaseCard>
           </router-link>
         </div>
       </div>

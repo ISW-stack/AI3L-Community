@@ -1,18 +1,25 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import router from '@/router'
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
+  return match ? decodeURIComponent(match[2]) : null
+}
 
 const api = axios.create({
   baseURL: '/api/v1',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
 
-// Request: inject Authorization header
+// Request: inject CSRF token header (read from csrf_token cookie)
 api.interceptors.request.use((config) => {
-  const auth = useAuthStore()
-  if (auth.token) {
-    config.headers.Authorization = `Bearer ${auth.token}`
+  const csrfToken = getCookie('csrf_token')
+  if (csrfToken && config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+    config.headers['X-CSRF-Token'] = csrfToken
   }
   return config
 })
@@ -31,11 +38,7 @@ api.interceptors.response.use(
     if (code === 'AUTH_004') {
       const auth = useAuthStore()
       auth.clearSession()
-      window.dispatchEvent(
-        new CustomEvent('app:toast', {
-          detail: { message: message || 'Your account has been banned.', type: 'error' },
-        }),
-      )
+      useToastStore().show(message || 'Your account has been banned.', 'error')
       router.push({ name: 'login' })
       return Promise.reject(error)
     }
@@ -50,11 +53,7 @@ api.interceptors.response.use(
 
     // AUTH_003 — guest capacity reached
     if (code === 'AUTH_003') {
-      window.dispatchEvent(
-        new CustomEvent('app:toast', {
-          detail: { message: message || 'Guest capacity reached. Please try again later.', type: 'warning' },
-        }),
-      )
+      useToastStore().show(message || 'Guest capacity reached. Please try again later.', 'warning')
       return Promise.reject(error)
     }
 
@@ -64,17 +63,13 @@ api.interceptors.response.use(
       const msg = retryAfter
         ? `Too many requests. Please retry after ${retryAfter} seconds.`
         : message || 'Too many requests. Please try again later.'
-      window.dispatchEvent(new CustomEvent('app:toast', { detail: { message: msg, type: 'warning' } }))
+      useToastStore().show(msg, 'warning')
       return Promise.reject(error)
     }
 
-    // Generic structured error — dispatch toast with message if available
+    // Generic structured error — show toast with message if available
     if (code && message) {
-      window.dispatchEvent(
-        new CustomEvent('app:toast', {
-          detail: { message, type: 'error' },
-        }),
-      )
+      useToastStore().show(message, 'error')
     }
 
     return Promise.reject(error)

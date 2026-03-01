@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import NotificationBell from '@/components/NotificationBell.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
+import { Menu, X, ChevronDown } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
-const menuOpen = ref(false)
+const mobileMenuOpen = ref(false)
+const userDropdownOpen = ref(false)
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -15,107 +18,91 @@ const roleLabels: Record<string, string> = {
   GUEST: 'Guest',
 }
 
+const roleBadgeVariant: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'> = {
+  SUPER_ADMIN: 'danger',
+  ADMIN: 'orange',
+  MEMBER: 'brand',
+  GUEST: 'neutral',
+}
+
 async function handleLogout() {
+  userDropdownOpen.value = false
+  mobileMenuOpen.value = false
   await auth.logout()
   router.push('/login')
 }
+
+function handleClickOutside(e: MouseEvent) {
+  const el = (e.target as HTMLElement).closest('.user-dropdown-wrapper')
+  if (!el) {
+    userDropdownOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>
-  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <nav class="sticky top-0 z-50 backdrop-blur-md bg-surface/80 border-b border-border" aria-label="Main navigation">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-14 items-center">
         <!-- Logo -->
-        <router-link to="/" class="flex items-center gap-2">
-          <span class="text-lg font-bold text-blue-700">AI3L Community</span>
+        <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
+          <span class="text-lg font-bold text-brand-700">AI3L Community</span>
         </router-link>
 
-        <!-- Right side -->
-        <div class="flex items-center gap-4">
-          <!-- Forum link (visible to all) -->
-          <router-link to="/forum" class="text-sm text-gray-600 hover:text-gray-900">Forum</router-link>
-          <router-link to="/sigs" class="text-sm text-gray-600 hover:text-gray-900">SIGs</router-link>
+        <!-- Desktop nav links -->
+        <div class="hidden lg:flex lg:items-center lg:gap-4">
+          <router-link to="/forum" class="text-sm text-muted hover:text-foreground transition">Forum</router-link>
+          <router-link to="/sigs" class="text-sm text-muted hover:text-foreground transition">SIGs</router-link>
 
           <template v-if="auth.isAuthenticated">
-            <!-- Admin links -->
             <template v-if="auth.isAdmin">
-              <router-link
-                to="/admin"
-                class="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Dashboard
-              </router-link>
-              <router-link
-                to="/admin/users"
-                class="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Users
-              </router-link>
-              <router-link
-                to="/admin/applications"
-                class="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Applications
-              </router-link>
-              <router-link
-                to="/admin/reports"
-                class="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Reports
-              </router-link>
-              <router-link
-                to="/admin/invite-codes"
-                class="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Invite Codes
-              </router-link>
+              <router-link to="/admin" class="text-sm text-muted hover:text-foreground transition">Dashboard</router-link>
+              <router-link to="/admin/users" class="text-sm text-muted hover:text-foreground transition">Users</router-link>
+              <router-link to="/admin/applications" class="text-sm text-muted hover:text-foreground transition">Applications</router-link>
+              <router-link to="/admin/reports" class="text-sm text-muted hover:text-foreground transition">Reports</router-link>
+              <router-link to="/admin/invite-codes" class="text-sm text-muted hover:text-foreground transition">Invite Codes</router-link>
             </template>
-            <router-link
-              v-if="auth.isSuperAdmin"
-              to="/admin/audit-logs"
-              class="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Audit Logs
-            </router-link>
+            <router-link v-if="auth.isSuperAdmin" to="/admin/audit-logs" class="text-sm text-muted hover:text-foreground transition">Audit Logs</router-link>
 
-            <!-- Notification bell -->
             <NotificationBell />
 
             <!-- User dropdown -->
-            <div class="relative">
+            <div class="relative user-dropdown-wrapper">
               <button
-                @click="menuOpen = !menuOpen"
-                class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900"
+                @click="userDropdownOpen = !userDropdownOpen"
+                class="flex items-center gap-2 text-sm text-foreground hover:text-foreground/80 transition"
+                :aria-expanded="userDropdownOpen"
               >
                 <span>{{ auth.user?.display_name || auth.role }}</span>
-                <span
-                  class="text-xs px-1.5 py-0.5 rounded-full"
-                  :class="{
-                    'bg-red-100 text-red-700': auth.isSuperAdmin,
-                    'bg-orange-100 text-orange-700': auth.role === 'ADMIN',
-                    'bg-blue-100 text-blue-700': auth.role === 'MEMBER',
-                    'bg-gray-100 text-gray-600': auth.isGuest,
-                  }"
-                >
+                <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'">
                   {{ roleLabels[auth.role || ''] || auth.role }}
-                </span>
+                </BaseBadge>
+                <ChevronDown class="w-4 h-4 text-muted" aria-hidden="true" />
               </button>
 
               <div
-                v-if="menuOpen"
-                class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1"
-                @click="menuOpen = false"
+                v-if="userDropdownOpen"
+                class="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-1"
               >
                 <router-link
                   v-if="!auth.isGuest"
                   to="/profile"
-                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                  @click="userDropdownOpen = false"
                 >
                   Profile
                 </router-link>
                 <button
                   @click="handleLogout"
-                  class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                  class="block w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-surface-alt transition"
                 >
                   Log Out
                 </button>
@@ -124,16 +111,123 @@ async function handleLogout() {
           </template>
 
           <template v-else>
-            <router-link to="/login" class="text-sm text-gray-600 hover:text-gray-900">Log In</router-link>
+            <router-link to="/login" class="text-sm text-muted hover:text-foreground transition">Log In</router-link>
             <router-link
               to="/register"
-              class="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition"
+              class="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 transition"
             >
               Sign Up
             </router-link>
           </template>
         </div>
+
+        <!-- Mobile right side: notification bell + hamburger -->
+        <div class="flex items-center gap-3 lg:hidden">
+          <NotificationBell v-if="auth.isAuthenticated" />
+          <button
+            @click="mobileMenuOpen = !mobileMenuOpen"
+            class="p-1 text-muted hover:text-foreground transition"
+            :aria-expanded="mobileMenuOpen"
+            aria-label="Toggle menu"
+          >
+            <Menu v-if="!mobileMenuOpen" class="w-6 h-6" aria-hidden="true" />
+            <X v-else class="w-6 h-6" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- Mobile menu panel -->
+    <Transition name="mobile-menu">
+      <div v-if="mobileMenuOpen" class="lg:hidden border-t border-border bg-surface/95 backdrop-blur-md">
+        <div class="px-4 py-3 space-y-1">
+          <router-link
+            to="/forum"
+            class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            Forum
+          </router-link>
+          <router-link
+            to="/sigs"
+            class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            SIGs
+          </router-link>
+
+          <template v-if="auth.isAuthenticated">
+            <template v-if="auth.isAdmin">
+              <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">Admin</div>
+              <router-link to="/admin" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Dashboard</router-link>
+              <router-link to="/admin/users" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Users</router-link>
+              <router-link to="/admin/applications" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Applications</router-link>
+              <router-link to="/admin/reports" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Reports</router-link>
+              <router-link to="/admin/invite-codes" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Invite Codes</router-link>
+            </template>
+            <router-link v-if="auth.isSuperAdmin" to="/admin/audit-logs" class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition" @click="mobileMenuOpen = false">Audit Logs</router-link>
+
+            <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">Account</div>
+            <div class="flex items-center gap-2 px-3 py-2">
+              <span class="text-sm text-foreground">{{ auth.user?.display_name || auth.role }}</span>
+              <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'">
+                {{ roleLabels[auth.role || ''] || auth.role }}
+              </BaseBadge>
+            </div>
+            <router-link
+              v-if="!auth.isGuest"
+              to="/profile"
+              class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+              @click="mobileMenuOpen = false"
+            >
+              Profile
+            </router-link>
+            <button
+              @click="handleLogout"
+              class="block w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-surface-alt rounded-lg transition"
+            >
+              Log Out
+            </button>
+          </template>
+
+          <template v-else>
+            <div class="pt-3 space-y-2">
+              <router-link
+                to="/login"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+              >
+                Log In
+              </router-link>
+              <router-link
+                to="/register"
+                class="block text-center text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition"
+                @click="mobileMenuOpen = false"
+              >
+                Sign Up
+              </router-link>
+            </div>
+          </template>
+        </div>
+      </div>
+    </Transition>
   </nav>
 </template>
+
+<style scoped>
+.mobile-menu-enter-active,
+.mobile-menu-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.mobile-menu-enter-to,
+.mobile-menu-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+</style>

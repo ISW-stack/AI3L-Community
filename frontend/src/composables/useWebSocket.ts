@@ -1,33 +1,49 @@
 import { ref, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notifications'
+import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
+import api from '@/composables/api'
 
-const MAX_BACKOFF = 30_000
-const INITIAL_BACKOFF = 1_000
+import { WS_INITIAL_BACKOFF_MS, WS_MAX_BACKOFF_MS } from '@/constants'
 
 export function useWebSocket() {
   const auth = useAuthStore()
+  const notificationStore = useNotificationStore()
+  const toastStore = useToastStore()
   const router = useRouter()
 
   let ws: WebSocket | null = null
-  let backoff = INITIAL_BACKOFF
+  let backoff = WS_INITIAL_BACKOFF_MS
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   const connected = ref(false)
 
-  function getWsUrl(): string {
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
-    return `${protocol}://${location.host}/api/v1/ws?token=${encodeURIComponent(auth.token || '')}`
+  async function getWsUrl(): Promise<string | null> {
+    try {
+      // Request a one-time ticket from the server
+      const { data } = await api.post('/auth/ws-ticket')
+      const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
+      return `${protocol}://${location.host}/api/v1/ws?ticket=${encodeURIComponent(data.ticket)}`
+    } catch {
+      return null
+    }
   }
 
-  function connect() {
-    if (!auth.isAuthenticated || !auth.token) return
+  async function connect() {
+    if (!auth.isAuthenticated) return
     cleanup()
 
-    ws = new WebSocket(getWsUrl())
+    const url = await getWsUrl()
+    if (!url) {
+      scheduleReconnect()
+      return
+    }
+
+    ws = new WebSocket(url)
 
     ws.onopen = () => {
       connected.value = true
-      backoff = INITIAL_BACKOFF
+      backoff = WS_INITIAL_BACKOFF_MS
     }
 
     ws.onmessage = (event) => {
@@ -39,17 +55,8 @@ export function useWebSocket() {
           auth.clearSession()
           router.push({ name: 'login' })
         } else if (msg.type === 'NEW_NOTIFICATION') {
-          window.dispatchEvent(
-            new CustomEvent('app:notification', { detail: msg.notification }),
-          )
-          window.dispatchEvent(
-            new CustomEvent('app:toast', {
-              detail: {
-                message: msg.notification?.message || 'New notification',
-                type: 'info',
-              },
-            }),
-          )
+          notificationStore.addFromWebSocket(msg.notification)
+          toastStore.show(msg.notification?.message || 'New notification', 'info')
         }
       } catch {
         // ignore parse errors
@@ -74,7 +81,7 @@ export function useWebSocket() {
       connect()
     }, backoff)
 
-    backoff = Math.min(backoff * 2, MAX_BACKOFF)
+    backoff = Math.min(backoff * 2, WS_MAX_BACKOFF_MS)
   }
 
   function cleanup() {
@@ -96,7 +103,7 @@ export function useWebSocket() {
     if (document.hidden) {
       cleanup()
     } else if (auth.isAuthenticated) {
-      backoff = INITIAL_BACKOFF
+      backoff = WS_INITIAL_BACKOFF_MS
       connect()
     }
   }

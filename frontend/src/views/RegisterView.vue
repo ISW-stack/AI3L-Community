@@ -2,7 +2,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import api from '@/composables/api'
+import { getCaptcha } from '@/api/auth'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseCard from '@/components/base/BaseCard.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -19,7 +23,7 @@ const error = ref('')
 const loading = ref(false)
 
 async function loadCaptcha() {
-  const { data } = await api.get('/auth/captcha')
+  const data = await getCaptcha()
   captchaId.value = data.captcha_id
   captchaImage.value = data.image_base64
   captchaCode.value = ''
@@ -65,86 +69,41 @@ loadCaptcha()
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-    <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
-      <h1 class="text-2xl font-bold text-center text-gray-900 mb-6">Create an Account</h1>
+  <div class="flex items-center justify-center min-h-[70vh]">
+    <BaseCard padding="lg" class="w-full max-w-md shadow-lg">
+      <h1 class="text-2xl font-bold text-center text-foreground mb-6">Create an Account</h1>
 
-      <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4 text-sm">
-        {{ error }}
-      </div>
+      <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
 
       <form @submit.prevent="handleRegister" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-          <input
-            v-model="username"
-            type="text"
-            required
-            minlength="3"
-            maxlength="50"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            placeholder="3-50 characters"
-          />
-        </div>
+        <BaseInput v-model="username" label="Username" placeholder="3-50 characters" required />
+        <BaseInput v-model="displayName" label="Display Name" required />
+        <BaseInput v-model="inviteCode" label="Invite Code" placeholder="Enter your invite code" required />
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-          <input
-            v-model="displayName"
-            type="text"
-            required
-            maxlength="100"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Invite Code</label>
-          <input
-            v-model="inviteCode"
-            type="text"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            placeholder="Enter your invite code"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input
-            v-model="password"
-            type="password"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-          <ul class="mt-2 text-xs space-y-1">
-            <li :class="passwordChecks.length ? 'text-green-600' : 'text-gray-400'">At least 8 characters</li>
-            <li :class="passwordChecks.upper ? 'text-green-600' : 'text-gray-400'">Contains an uppercase letter</li>
-            <li :class="passwordChecks.lower ? 'text-green-600' : 'text-gray-400'">Contains a lowercase letter</li>
-            <li :class="passwordChecks.digit ? 'text-green-600' : 'text-gray-400'">Contains a digit</li>
+          <BaseInput v-model="password" type="password" label="Password" required />
+          <ul class="mt-2 text-xs space-y-1" aria-live="polite">
+            <li :class="passwordChecks.length ? 'text-success-600' : 'text-muted'">At least 8 characters</li>
+            <li :class="passwordChecks.upper ? 'text-success-600' : 'text-muted'">Contains an uppercase letter</li>
+            <li :class="passwordChecks.lower ? 'text-success-600' : 'text-muted'">Contains a lowercase letter</li>
+            <li :class="passwordChecks.digit ? 'text-success-600' : 'text-muted'">Contains a digit</li>
           </ul>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-          <input
-            v-model="confirmPassword"
-            type="password"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-          <p v-if="confirmPassword && !passwordsMatch" class="text-red-500 text-xs mt-1">Passwords do not match</p>
+          <BaseInput v-model="confirmPassword" type="password" label="Confirm Password" required />
+          <p v-if="confirmPassword && !passwordsMatch" class="text-danger-500 text-xs mt-1">Passwords do not match</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Captcha</label>
+          <label class="block text-sm font-medium text-foreground mb-1">Captcha</label>
           <div class="flex gap-3 items-center">
             <input
               v-model="captchaCode"
               type="text"
               required
               maxlength="4"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
               placeholder="Enter captcha code"
             />
             <img
@@ -158,19 +117,15 @@ loadCaptcha()
           </div>
         </div>
 
-        <button
-          type="submit"
-          :disabled="loading || !passwordValid || !passwordsMatch"
-          class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
+        <BaseButton type="submit" size="full" :loading="loading" :disabled="loading || !passwordValid || !passwordsMatch">
           {{ loading ? 'Signing up...' : 'Sign Up' }}
-        </button>
+        </BaseButton>
       </form>
 
-      <p class="mt-6 text-center text-sm text-gray-500">
+      <p class="mt-6 text-center text-sm text-muted">
         Already have an account?
-        <router-link to="/login" class="text-blue-600 hover:underline">Log In</router-link>
+        <router-link to="/login" class="text-brand-600 hover:underline">Log In</router-link>
       </p>
-    </div>
+    </BaseCard>
   </div>
 </template>

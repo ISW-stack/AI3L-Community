@@ -1,52 +1,25 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { useToastStore } from '@/stores/toast'
 
-interface Toast {
-  id: number
-  message: string
-  type: 'info' | 'warning' | 'error' | 'success'
-}
-
-const toasts = ref<Toast[]>([])
-let nextId = 0
-
-function addToast(message: string, type: Toast['type'] = 'info') {
-  const id = nextId++
-  toasts.value.push({ id, message, type })
-  setTimeout(() => {
-    toasts.value = toasts.value.filter((t) => t.id !== id)
-  }, 5000)
-}
-
-function handleCustomEvent(e: Event) {
-  const detail = (e as CustomEvent).detail
-  addToast(detail.message, detail.type || 'info')
-}
-
-onMounted(() => {
-  window.addEventListener('app:toast', handleCustomEvent)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('app:toast', handleCustomEvent)
-})
+const toastStore = useToastStore()
 
 const typeClasses: Record<string, string> = {
-  info: 'bg-blue-50 border-blue-200 text-blue-700',
-  warning: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-  error: 'bg-red-50 border-red-200 text-red-700',
-  success: 'bg-green-50 border-green-200 text-green-700',
+  info: 'bg-info-50 border-info-100 text-info-700',
+  warning: 'bg-warning-50 border-warning-100 text-warning-700',
+  error: 'bg-danger-50 border-danger-100 text-danger-700',
+  success: 'bg-success-50 border-success-100 text-success-700',
 }
 </script>
 
 <template>
-  <div class="fixed top-4 right-4 z-[100] space-y-2">
+  <div class="fixed top-4 right-4 z-[100] space-y-2" aria-live="assertive">
     <transition-group name="toast">
       <div
-        v-for="toast in toasts"
+        v-for="toast in toastStore.toasts"
         :key="toast.id"
         class="px-4 py-3 rounded-lg border shadow-sm text-sm max-w-sm"
         :class="typeClasses[toast.type]"
+        role="alert"
       >
         {{ toast.message }}
       </div>

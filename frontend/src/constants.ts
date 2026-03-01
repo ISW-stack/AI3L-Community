@@ -1,0 +1,9 @@
+export const DEFAULT_PAGE_SIZE = 20
+export const ADMIN_PAGE_SIZE = 50
+export const NOTIFICATION_DROPDOWN_SIZE = 10
+export const TOAST_DURATION_MS = 5000
+export const HEARTBEAT_INTERVAL_MS = 30_000
+export const WS_INITIAL_BACKOFF_MS = 1_000
+export const WS_MAX_BACKOFF_MS = 30_000
+export const MAX_KEYWORDS = 15
+export const REACTIONS = ['LIKE', 'SMILE', 'CRY'] as const

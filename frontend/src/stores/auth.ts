@@ -1,22 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/composables/api'
-
-interface UserProfile {
-  id: string
-  username: string
-  display_name: string
-  role: string
-  avatar_url: string | null
-  orcid: string | null
-  affiliation: string | null
-  bio: string | null
-  is_banned?: boolean
-  ban_reason?: string | null
-}
+import { HEARTBEAT_INTERVAL_MS } from '@/constants'
+import type { UserProfile } from '@/types/user'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(localStorage.getItem('token'))
+  // Role is non-sensitive — kept in localStorage for UI state across page reloads
   const role = ref<string | null>(localStorage.getItem('role'))
   const expiresAt = ref<number>(Number(localStorage.getItem('expiresAt') || '0'))
   const user = ref<UserProfile | null>(null)
@@ -24,17 +13,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 
-  const isAuthenticated = computed(() => !!token.value && Date.now() < expiresAt.value)
+  // Token is now in HttpOnly cookie — we infer auth state from role + expiresAt
+  const isAuthenticated = computed(() => !!role.value && Date.now() < expiresAt.value)
   const isAdmin = computed(() => role.value === 'SUPER_ADMIN' || role.value === 'ADMIN')
   const isSuperAdmin = computed(() => role.value === 'SUPER_ADMIN')
   const isGuest = computed(() => role.value === 'GUEST')
 
-  function setSession(newToken: string, newRole: string, expiresIn: number) {
-    token.value = newToken
+  function setSession(newRole: string, expiresIn: number) {
     role.value = newRole
     expiresAt.value = Date.now() + expiresIn * 1000
 
-    localStorage.setItem('token', newToken)
     localStorage.setItem('role', newRole)
     localStorage.setItem('expiresAt', String(expiresAt.value))
 
@@ -42,13 +30,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearSession() {
-    token.value = null
     role.value = null
     expiresAt.value = 0
     user.value = null
     requiresConsent.value = false
 
-    localStorage.removeItem('token')
     localStorage.removeItem('role')
     localStorage.removeItem('expiresAt')
 
@@ -62,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
       captcha_id: captchaId,
       captcha_code: captchaCode,
     })
-    setSession(data.token, data.role, data.expires_in)
+    setSession(data.role, data.expires_in)
     requiresConsent.value = data.requires_consent ?? false
     await fetchProfile()
   }
@@ -73,7 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
       captcha_id: captchaId,
       captcha_code: captchaCode,
     })
-    setSession(data.token, data.role, data.expires_in)
+    setSession(data.role, data.expires_in)
     requiresConsent.value = data.requires_consent ?? false
   }
 
@@ -86,7 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
       captcha_id: captchaId,
       captcha_code: captchaCode,
     })
-    setSession(data.token, data.role, data.expires_in)
+    setSession(data.role, data.expires_in)
     requiresConsent.value = data.requires_consent ?? false
     await fetchProfile()
   }
@@ -101,7 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchProfile() {
-    if (!token.value || role.value === 'GUEST') return
+    if (!isAuthenticated.value || role.value === 'GUEST') return
     try {
       const { data } = await api.get('/users/me')
       user.value = data
@@ -122,7 +108,7 @@ export const useAuthStore = defineStore('auth', () => {
       } catch {
         // Heartbeat failed — session may be expired
       }
-    }, 30_000) // 30 seconds
+    }, HEARTBEAT_INTERVAL_MS)
   }
 
   function stopHeartbeat() {
@@ -139,7 +125,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    token,
     role,
     expiresAt,
     user,
