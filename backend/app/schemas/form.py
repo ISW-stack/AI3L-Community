@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class QuestionOption(BaseModel):
@@ -24,7 +24,7 @@ class QuestionSchema(BaseModel):
     ]
     label: str
     required: bool = True
-    placeholder: str | None = None
+    placeholder: str | None = Field(None, max_length=500)
     max_length: int | None = None
     options: list[QuestionOption] | None = None
     min: int | None = None

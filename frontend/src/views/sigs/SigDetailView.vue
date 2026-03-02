@@ -24,6 +24,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
+import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const route = useRoute()
@@ -94,8 +95,8 @@ async function fetchPosts() {
     const data = await getSigPosts(sigId.value)
     posts.value = data.posts
     postsTotal.value = data.total
-  } catch {
-    /* */
+  } catch (e) {
+    console.error(e)
   }
 }
 async function fetchMembers() {
@@ -105,8 +106,8 @@ async function fetchMembers() {
     membersTotal.value = data.total
     const me = members.value.find((m) => m.user_id === auth.user?.id)
     userSigRole.value = me?.role ?? null
-  } catch {
-    /* */
+  } catch (e) {
+    console.error(e)
   }
 }
 async function fetchForms() {
@@ -114,8 +115,8 @@ async function fetchForms() {
     const data = await getSigForms(sigId.value)
     forms.value = data.forms
     formsTotal.value = data.total
-  } catch {
-    /* */
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -355,20 +356,35 @@ onMounted(() => {
 
       <!-- Posts tab -->
       <div v-if="activeTab === 'posts'">
+        <div v-if="isMember" class="mb-4">
+          <router-link :to="`/forum/create?sig_id=${sigId}`">
+            <BaseButton>New Post</BaseButton>
+          </router-link>
+        </div>
         <div v-if="posts.length === 0" class="text-center text-muted py-8 text-sm">
           No posts in this SIG yet.
         </div>
         <div v-else class="space-y-3">
-          <router-link v-for="p in posts" :key="p.id" :to="`/forum/${p.id}`" class="block">
+          <div v-for="p in posts" :key="p.id">
             <BaseCard hoverable>
-              <h3 class="font-semibold text-foreground mb-1">{{ p.title }}</h3>
-              <div class="flex items-center gap-3 text-xs text-muted">
-                <span>{{ p.author.display_name }}</span>
-                <span>{{ new Date(p.created_at).toLocaleString() }}</span>
-                <span>{{ p.comment_count }} comments</span>
+              <div class="flex items-center gap-2 mb-2">
+                <router-link :to="`/users/${p.author.id}`">
+                  <BaseAvatar :src="p.author.avatar_url" :name="p.author.display_name" size="sm" />
+                </router-link>
+                <router-link
+                  :to="`/users/${p.author.id}`"
+                  class="text-sm font-medium text-foreground hover:text-brand-600 hover:underline"
+                >
+                  {{ p.author.display_name }}
+                </router-link>
+                <span class="text-xs text-muted">{{ new Date(p.created_at).toLocaleString() }}</span>
               </div>
+              <router-link :to="`/forum/${p.id}`" class="block">
+                <h3 class="font-semibold text-foreground mb-1 hover:text-brand-600">{{ p.title }}</h3>
+              </router-link>
+              <div class="text-xs text-muted">{{ p.comment_count }} comments</div>
             </BaseCard>
-          </router-link>
+          </div>
         </div>
       </div>
 
@@ -394,7 +410,19 @@ onMounted(() => {
                 :key="m.id"
                 class="border-b border-border last:border-0 hover:bg-surface-alt transition"
               >
-                <td class="px-4 py-3 text-foreground">{{ m.display_name }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2">
+                    <router-link :to="`/users/${m.user_id}`">
+                      <BaseAvatar :src="m.avatar_url" :name="m.display_name" size="sm" />
+                    </router-link>
+                    <router-link
+                      :to="`/users/${m.user_id}`"
+                      class="text-foreground hover:text-brand-600 hover:underline"
+                    >
+                      {{ m.display_name }}
+                    </router-link>
+                  </div>
+                </td>
                 <td class="px-4 py-3 text-muted">{{ m.username }}</td>
                 <td class="px-4 py-3">
                   <BaseBadge :variant="memberRoleBadge[m.role] || 'brand'">{{ m.role }}</BaseBadge>
@@ -435,34 +463,41 @@ onMounted(() => {
           No forms in this SIG yet.
         </div>
         <div v-else class="grid gap-4 sm:grid-cols-2">
-          <div v-for="f in forms" :key="f.id" class="relative">
-            <router-link :to="`/forms/${f.id}`" class="block">
-              <BaseCard hoverable class="h-full">
-                <div class="flex items-start justify-between mb-2">
-                  <h3 class="font-semibold text-foreground">{{ f.title }}</h3>
-                  <BaseBadge :variant="f.is_active ? 'success' : 'danger'" class="shrink-0 ml-2">{{
-                    f.is_active ? 'Active' : 'Closed'
-                  }}</BaseBadge>
-                </div>
-                <p v-if="f.description" class="text-xs text-muted mb-2 line-clamp-2">
-                  {{ f.description }}
-                </p>
-                <div class="flex items-center gap-3 text-xs text-muted">
-                  <span>{{ f.response_count }} response(s)</span>
-                  <span v-if="f.deadline"
-                    >Deadline: {{ new Date(f.deadline).toLocaleDateString() }}</span
-                  >
-                  <span>By {{ f.created_by_name }}</span>
-                </div>
-              </BaseCard>
-            </router-link>
-            <button
-              v-if="f.user_is_sig_admin"
-              @click="confirmDeleteForm(f.id)"
-              class="absolute top-3 right-3 text-xs text-danger-600 hover:underline z-10 bg-surface px-1.5 py-0.5 rounded"
-            >
-              Delete
-            </button>
+          <div v-for="f in forms" :key="f.id">
+            <BaseCard hoverable class="h-full">
+              <div class="flex items-start justify-between mb-2">
+                <router-link :to="`/forms/${f.id}`" class="font-semibold text-foreground hover:text-brand-600 hover:underline">
+                  {{ f.title }}
+                </router-link>
+                <BaseBadge :variant="f.is_active ? 'success' : 'danger'" class="shrink-0 ml-2">{{
+                  f.is_active ? 'Active' : 'Closed'
+                }}</BaseBadge>
+              </div>
+              <p v-if="f.description" class="text-xs text-muted mb-2 line-clamp-2">
+                {{ f.description }}
+              </p>
+              <div class="flex items-center gap-3 text-xs text-muted">
+                <span>{{ f.response_count }} response(s)</span>
+                <span v-if="f.deadline"
+                  >Deadline: {{ new Date(f.deadline).toLocaleDateString() }}</span
+                >
+                <span>By {{ f.created_by_name }}</span>
+              </div>
+              <div v-if="f.user_is_sig_admin" class="flex items-center gap-3 mt-3 pt-2 border-t border-border">
+                <router-link
+                  :to="`/forms/${f.id}/edit`"
+                  class="text-xs text-brand-600 hover:underline"
+                >
+                  Edit
+                </router-link>
+                <button
+                  @click="confirmDeleteForm(f.id)"
+                  class="text-xs text-danger-600 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            </BaseCard>
           </div>
         </div>
       </div>

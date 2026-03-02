@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import type { Category, Sig } from '@/types'
 import { createPost as apiCreatePost } from '@/api/posts'
 import { listCategories } from '@/api/categories'
@@ -11,12 +11,16 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 
+const route = useRoute()
 const router = useRouter()
+
+const querySigId = (route.query.sig_id as string) || null
+const fromSig = computed(() => !!querySigId)
 
 const title = ref('')
 const content = ref('')
 const categoryId = ref<string | null>(null)
-const sigId = ref<string | null>(null)
+const sigId = ref<string | null>(querySigId)
 const keywordsInput = ref('')
 const keywords = ref<string[]>([])
 const allowComments = ref(true)
@@ -94,7 +98,7 @@ onMounted(() => {
     <form @submit.prevent="createPost" class="space-y-4">
       <BaseInput v-model="title" label="Title" placeholder="Post title" required />
 
-      <div>
+      <div v-if="!fromSig">
         <label class="block text-sm font-medium text-foreground mb-1">Category</label>
         <select
           v-model="categoryId"
@@ -105,7 +109,7 @@ onMounted(() => {
         </select>
       </div>
 
-      <div v-if="mySigs.length > 0">
+      <div v-if="!fromSig && mySigs.length > 0">
         <label class="block text-sm font-medium text-foreground mb-1">SIG (optional)</label>
         <select
           v-model="sigId"
@@ -114,6 +118,10 @@ onMounted(() => {
           <option :value="null">None</option>
           <option v-for="s in mySigs" :key="s.id" :value="s.id">{{ s.name }}</option>
         </select>
+      </div>
+
+      <div v-if="fromSig" class="text-sm text-muted">
+        Posting to SIG: <span class="font-medium text-foreground">{{ mySigs.find(s => s.id === sigId)?.name || 'Loading...' }}</span>
       </div>
 
       <div>
@@ -162,7 +170,7 @@ onMounted(() => {
 
       <div class="flex gap-3 pt-2">
         <BaseButton type="submit" size="lg" :loading="saving">Publish</BaseButton>
-        <router-link to="/forum"
+        <router-link :to="fromSig ? `/sigs/${sigId}` : '/forum'"
           ><BaseButton type="button" variant="secondary" size="lg">Cancel</BaseButton></router-link
         >
       </div>

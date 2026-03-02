@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.deps import get_current_user, require_role
-from app.core.errors import AppError, ErrorCode
+from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
 from app.schemas.post import (
@@ -42,8 +42,10 @@ async def create_new_post(
             keywords=req.keywords,
             allow_comments=req.allow_comments,
         )
-    except ValueError as e:
+    except RateLimitError as e:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return PostResponse(**post)
 
@@ -53,11 +55,12 @@ async def get_posts_list(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     category_id: str | None = None,
+    author_id: str | None = None,
     sort: str = Query("newest", pattern="^(newest|oldest|most_comments)$"),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
     posts, total, total_pages = await list_posts(
-        page=page, page_size=page_size, category_id=category_id, sort=sort
+        page=page, page_size=page_size, category_id=category_id, author_id=author_id, sort=sort
     )
     return PostListResponse(
         posts=posts,  # type: ignore[arg-type]
@@ -107,6 +110,15 @@ async def update_existing_post(
     req: PostUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
+    if not any([
+        req.title,
+        req.content,
+        req.category_id is not None,
+        req.keywords is not None,
+        req.allow_comments is not None,
+    ]):
+        raise HTTPException(status_code=400, detail="At least one field must be provided.")
+
     content = sanitize_html(req.content) if req.content else None
     try:
         post = await update_post(

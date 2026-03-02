@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '@/composables/api'
+import {
+  login as apiLogin,
+  guestLogin as apiGuestLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  heartbeat as apiHeartbeat,
+} from '@/api/auth'
+import { getProfile } from '@/api/users'
 import { HEARTBEAT_INTERVAL_MS } from '@/constants'
 import type { UserProfile } from '@/types/user'
 
@@ -42,7 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(username: string, password: string, captchaId: string, captchaCode: string) {
-    const { data } = await api.post('/auth/login', {
+    const data = await apiLogin({
       username,
       password,
       captcha_id: captchaId,
@@ -59,7 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
     captchaId: string,
     captchaCode: string,
   ) {
-    const { data } = await api.post(`/auth/guest/${encodeURIComponent(inviteCode)}`, {
+    const data = await apiGuestLogin(inviteCode, {
       display_name: displayName,
       captcha_id: captchaId,
       captcha_code: captchaCode,
@@ -76,7 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
     captchaId: string,
     captchaCode: string,
   ) {
-    const { data } = await api.post('/auth/register', {
+    const data = await apiRegister({
       username,
       password,
       display_name: displayName,
@@ -91,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try {
-      await api.post('/auth/logout')
+      await apiLogout()
     } catch {
       // Ignore errors on logout
     }
@@ -101,7 +108,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchProfile() {
     if (!isAuthenticated.value || role.value === 'GUEST') return
     try {
-      const { data } = await api.get('/users/me')
+      const data = await getProfile()
       user.value = data
       // Sync role from server — handles demotion and localStorage tampering
       if (data.role && data.role !== role.value) {
@@ -121,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
         return
       }
       try {
-        await api.post('/auth/heartbeat')
+        await apiHeartbeat()
       } catch {
         // Heartbeat failed — session may be expired
       }

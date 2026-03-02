@@ -93,8 +93,8 @@ async function changePassword() {
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
-    setTimeout(() => {
-      auth.clearSession()
+    setTimeout(async () => {
+      await auth.logout()
       router.push({ name: 'login' })
     }, 1500)
   } catch (e: any) {

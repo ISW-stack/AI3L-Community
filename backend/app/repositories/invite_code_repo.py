@@ -1,3 +1,5 @@
+import uuid
+
 from app.core.database import get_pool
 
 
@@ -44,3 +46,14 @@ async def find_many(
             offset,
         )
         return [dict(r) for r in rows], total or 0
+
+
+async def delete(code_id: uuid.UUID) -> bool:
+    """Hard-delete an invite code. Returns True if a row was deleted."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM invite_codes WHERE id = $1",
+            code_id,
+        )
+        return bool(result == "DELETE 1")

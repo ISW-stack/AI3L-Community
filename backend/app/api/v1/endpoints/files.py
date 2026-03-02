@@ -2,6 +2,7 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from loguru import logger
 
 from app.core.async_storage import generate_presigned_url as async_presigned_url
 from app.core.async_storage import get_user_storage_used
@@ -53,8 +54,10 @@ async def upload_editor_file(
 
         file_hash = compute_sha256(data)
         check_virustotal.delay(file_hash, key)
+    except ImportError:
+        pass  # VirusTotal not configured
     except Exception:
-        pass  # Non-critical: don't block upload
+        logger.warning("VirusTotal scan trigger failed for key=%s", key, exc_info=True)
 
     return FileUploadResponse(
         key=key,

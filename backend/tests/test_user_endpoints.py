@@ -167,7 +167,7 @@ class TestAdminCreateAccount:
 
 class TestChangeRole:
     @pytest.mark.anyio
-    async def test_change_role(self, client, mock_redis):
+    async def test_change_role(self, client):
         """PUT /users/{id}/role → 200 for super admin."""
         target_user = uuid.uuid4()
         user = make_user_dict(user_id=str(target_user), role="ADMIN")
@@ -176,7 +176,7 @@ class TestChangeRole:
             _override_auth("SUPER_ADMIN")
             with (
                 patch(f"{_EP}.update_user_role", new_callable=AsyncMock, return_value=user),
-                patch(f"{_EP}.get_redis", return_value=mock_redis),
+                patch(f"{_EP}.revoke_user_sessions", new_callable=AsyncMock),
             ):
                 resp = await client.put(
                     f"/api/v1/users/{target_user}/role",

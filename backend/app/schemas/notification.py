@@ -22,3 +22,7 @@ class NotificationListResponse(BaseModel):
     notifications: list[NotificationResponse]
     total: int
     unread_count: int
+
+
+class BulkDeleteNotificationsRequest(BaseModel):
+    notification_ids: list[str] | None = None

@@ -135,7 +135,11 @@ class TestUpdateForm:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=form):
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=form),
+            ):
                 resp = await client.put(
                     f"/api/v1/forms/{form_id}",
                     json={"title": "Updated Title"},

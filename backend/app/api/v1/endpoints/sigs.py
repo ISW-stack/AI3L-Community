@@ -118,10 +118,11 @@ async def join_sig_endpoint(
     try:
         member = await join_sig(sig_id, current_user["sub"])
     except ValueError as e:
-        detail = str(e)
-        if "Already" in detail:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return SigMemberResponse(**member)
 
 

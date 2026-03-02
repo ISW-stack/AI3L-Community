@@ -126,6 +126,7 @@ async def update(
 
 async def soft_delete(
     comment_id: uuid.UUID,
+    post_id: uuid.UUID,
     user_id: uuid.UUID | None = None,
     is_admin: bool = False,
 ) -> uuid.UUID | None:
@@ -136,14 +137,17 @@ async def soft_delete(
             if is_admin:
                 row = await conn.fetchrow(
                     "UPDATE comments SET is_deleted = true, updated_at = NOW() "
-                    "WHERE id = $1 AND is_deleted = false RETURNING post_id",
+                    "WHERE id = $1 AND post_id = $2 AND is_deleted = false RETURNING post_id",
                     comment_id,
+                    post_id,
                 )
             else:
                 row = await conn.fetchrow(
                     "UPDATE comments SET is_deleted = true, updated_at = NOW() "
-                    "WHERE id = $1 AND user_id = $2 AND is_deleted = false RETURNING post_id",
+                    "WHERE id = $1 AND post_id = $2 AND user_id = $3 AND is_deleted = false "
+                    "RETURNING post_id",
                     comment_id,
+                    post_id,
                     user_id,
                 )
 

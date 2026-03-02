@@ -3,15 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 
 from app.converters.user_converter import user_to_public_response, user_to_response
-from app.core.async_storage import get_user_storage_used
-from app.core.async_storage import upload_file as async_upload_file
-from app.core.config import settings
 from app.core.deps import get_current_user, require_role
 from app.core.event_bus import emit
-from app.core.file_validation import validate_avatar
-from app.core.redis import get_redis
 from app.core.security import validate_password_policy
-from app.core.storage import generate_avatar_key
 from app.models.user import UserRole
 from app.schemas.auth import MessageResponse
 from app.schemas.user import (
@@ -25,7 +19,7 @@ from app.schemas.user import (
     UserUpdateRequest,
 )
 from app.services.audit import list_audit_logs
-from app.services.auth import destroy_session
+from app.services.auth import destroy_session, revoke_user_sessions
 from app.services.privacy_consent import create_consent, create_guest_consent
 from app.services.user import (
     anonymize_user,
@@ -37,6 +31,7 @@ from app.services.user import (
     unban_user,
     update_user_profile,
     update_user_role,
+    upload_user_avatar,
     user_exists_by_username,
 )
 
@@ -78,28 +73,12 @@ async def upload_avatar(
 ) -> UserResponse:
     """Upload avatar image (PNG/JPEG, max 2MB)."""
     data = await file.read()
-    assert file.content_type is not None
-    validate_avatar(file.content_type, data)
-
-    # Storage quota check
-    used = await get_user_storage_used(current_user["sub"])
-    if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Storage quota exceeded (1 GB limit).",
-        )
-
-    ext = ".png" if file.content_type == "image/png" else ".jpg"
-    key = generate_avatar_key(current_user["sub"], ext)
-    await async_upload_file(data, key, file.content_type)
-
-    # Store the MinIO object key (not presigned URL) — fresh URLs generated on read
-    user = await update_user_profile(
-        user_id=uuid.UUID(current_user["sub"]),
-        avatar_url=key,
+    user = await upload_user_avatar(
+        user_id=current_user["sub"],
+        data=data,
+        content_type=file.content_type or "",
+        filename=file.filename or "",
     )
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return _user_to_response(user)
 
 
@@ -259,10 +238,8 @@ async def change_user_role(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    # Revoke target user's existing sessions by deleting their Redis key
-    redis = get_redis()
-    for role in [r.value for r in UserRole]:
-        await redis.delete(f"session:{role}:{user_id}")
+    # Revoke target user's existing sessions
+    await revoke_user_sessions(str(user_id))
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
@@ -343,7 +320,15 @@ async def get_audit_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
     user_id: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
 ) -> dict:
-    logs, total = await list_audit_logs(page=page, page_size=page_size, user_id_filter=user_id)
+    logs, total = await list_audit_logs(
+        page=page,
+        page_size=page_size,
+        user_id_filter=user_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
     return {"logs": logs, "total": total, "page": page, "page_size": page_size}

@@ -5,7 +5,58 @@ export interface CaptchaResponse {
   image_base64: string
 }
 
+export interface AuthResponse {
+  role: string
+  expires_in: number
+  requires_consent?: boolean
+}
+
 export async function getCaptcha() {
   const { data } = await api.get('/auth/captcha')
   return data as CaptchaResponse
+}
+
+export async function login(payload: {
+  username: string
+  password: string
+  captcha_id: string
+  captcha_code: string
+}) {
+  const { data } = await api.post('/auth/login', payload)
+  return data as AuthResponse
+}
+
+export async function guestLogin(
+  inviteCode: string,
+  payload: {
+    display_name: string
+    captcha_id: string
+    captcha_code: string
+  },
+) {
+  const { data } = await api.post(
+    `/auth/guest/${encodeURIComponent(inviteCode)}`,
+    payload,
+  )
+  return data as AuthResponse
+}
+
+export async function register(payload: {
+  username: string
+  password: string
+  display_name: string
+  invite_code: string
+  captcha_id: string
+  captcha_code: string
+}) {
+  const { data } = await api.post('/auth/register', payload)
+  return data as AuthResponse
+}
+
+export async function logout() {
+  await api.post('/auth/logout')
+}
+
+export async function heartbeat() {
+  await api.post('/auth/heartbeat')
 }

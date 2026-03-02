@@ -46,17 +46,26 @@ async def find_many(
         params.append(status_filter)
         idx += 1
 
+    # Save params before extending with LIMIT/OFFSET for potential fallback count query
+    count_params = list(params)
+
     async with pool.acquire() as conn:
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM post_reports {where}",
-            *params,
-        )
         params.extend([limit, offset])
         rows = await conn.fetch(
-            f"SELECT * FROM post_reports {where} ORDER BY created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
+            f"SELECT *, COUNT(*) OVER() AS _total FROM post_reports {where} ORDER BY created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
             *params,
         )
-        return [dict(r) for r in rows], total
+        if rows:
+            total = rows[0]["_total"]
+            result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+        else:
+            # Page may be out of range — do a separate count to get real total
+            total = await conn.fetchval(
+                f"SELECT COUNT(*) FROM post_reports {where}",
+                *count_params,
+            )
+            result = []
+        return result, total
 
 
 async def update_status(

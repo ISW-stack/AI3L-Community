@@ -1,5 +1,5 @@
 import api from '@/composables/api'
-import type { UserProfile } from '@/types'
+import type { UserProfile, PublicUser } from '@/types'
 
 export async function getProfile() {
   const { data } = await api.get('/users/me')
@@ -35,4 +35,9 @@ export async function acceptConsent() {
 
 export async function deleteAccount() {
   await api.delete('/users/me')
+}
+
+export async function getPublicProfile(userId: string) {
+  const { data } = await api.get(`/users/${userId}`)
+  return data as PublicUser
 }

@@ -15,6 +15,7 @@ export interface SigMember {
   role: string
   display_name: string
   username: string
+  avatar_url: string | null
   created_at: string
 }
 
