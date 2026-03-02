@@ -51,7 +51,14 @@ async def create_post(
 
     try:
         row = await post_repo.insert(
-            post_id, uuid.UUID(user_id), title, content, cat_uuid, sig_uuid, keywords, allow_comments
+            post_id,
+            uuid.UUID(user_id),
+            title,
+            content,
+            cat_uuid,
+            sig_uuid,
+            keywords,
+            allow_comments,
         )
     except Exception:
         await _rollback_daily_post_count(user_id)
