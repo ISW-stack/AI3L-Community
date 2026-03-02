@@ -42,7 +42,7 @@ async function handleCreate() {
     <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>
 
     <form @submit.prevent="handleCreate" class="space-y-4">
-      <BaseInput v-model="name" label="Name" placeholder="SIG name" required maxlength="200" />
+      <BaseInput v-model="name" label="Name" placeholder="SIG name" required :maxlength="200" />
       <BaseTextarea
         v-model="description"
         label="Description (optional)"
