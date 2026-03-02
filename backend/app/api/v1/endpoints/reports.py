@@ -44,9 +44,7 @@ async def get_reports(
     page_size: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> PostReportListResponse:
-    reports, total = await list_reports(
-        status_filter=status_filter, page=page, page_size=page_size
-    )
+    reports, total = await list_reports(status_filter=status_filter, page=page, page_size=page_size)
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
     return PostReportListResponse(
         reports=[PostReportResponse(**r) for r in reports],

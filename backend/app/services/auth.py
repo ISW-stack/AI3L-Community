@@ -132,9 +132,7 @@ async def create_invite_code(user_id: str) -> tuple[str, datetime]:
 async def revoke_user_sessions(user_id: str) -> None:
     """Revoke all Redis sessions for a user (all roles) in one batch delete."""
     redis = get_redis()
-    session_keys = [
-        SESSION_KEY_TEMPLATE.format(role=r.value, user_id=user_id) for r in UserRole
-    ]
+    session_keys = [SESSION_KEY_TEMPLATE.format(role=r.value, user_id=user_id) for r in UserRole]
     await redis.delete(*session_keys)
     logger.info("All sessions revoked", extra={"user_id": user_id})
 

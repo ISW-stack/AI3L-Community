@@ -121,7 +121,10 @@ onMounted(() => {
       </div>
 
       <div v-if="fromSig" class="text-sm text-muted">
-        Posting to SIG: <span class="font-medium text-foreground">{{ mySigs.find(s => s.id === sigId)?.name || 'Loading...' }}</span>
+        Posting to SIG:
+        <span class="font-medium text-foreground">{{
+          mySigs.find((s) => s.id === sigId)?.name || 'Loading...'
+        }}</span>
       </div>
 
       <div>

@@ -110,13 +110,15 @@ async def update_existing_post(
     req: PostUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
-    if not any([
-        req.title,
-        req.content,
-        req.category_id is not None,
-        req.keywords is not None,
-        req.allow_comments is not None,
-    ]):
+    if not any(
+        [
+            req.title,
+            req.content,
+            req.category_id is not None,
+            req.keywords is not None,
+            req.allow_comments is not None,
+        ]
+    ):
         raise HTTPException(status_code=400, detail="At least one field must be provided.")
 
     content = sanitize_html(req.content) if req.content else None

@@ -28,7 +28,10 @@ const initial = computed(() => (props.name ? props.name.charAt(0).toUpperCase() 
 
 <template>
   <div
-    :class="[sizeClass, 'rounded-full bg-brand-100 text-brand-700 flex items-center justify-center overflow-hidden shrink-0 font-semibold']"
+    :class="[
+      sizeClass,
+      'rounded-full bg-brand-100 text-brand-700 flex items-center justify-center overflow-hidden shrink-0 font-semibold',
+    ]"
   >
     <img v-if="src" :src="src" :alt="name" class="w-full h-full object-cover" />
     <span v-else>{{ initial }}</span>

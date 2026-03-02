@@ -137,9 +137,7 @@ onMounted(() => {
       </BaseCard>
 
       <!-- Posts Feed -->
-      <h2 class="text-lg font-semibold text-foreground mb-4">
-        Posts ({{ postsTotal }})
-      </h2>
+      <h2 class="text-lg font-semibold text-foreground mb-4">Posts ({{ postsTotal }})</h2>
 
       <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
       <EmptyState

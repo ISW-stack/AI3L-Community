@@ -34,10 +34,7 @@ export async function guestLogin(
     captcha_code: string
   },
 ) {
-  const { data } = await api.post(
-    `/auth/guest/${encodeURIComponent(inviteCode)}`,
-    payload,
-  )
+  const { data } = await api.post(`/auth/guest/${encodeURIComponent(inviteCode)}`, payload)
   return data as AuthResponse
 }
 

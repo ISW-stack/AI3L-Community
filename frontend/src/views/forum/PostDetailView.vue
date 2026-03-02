@@ -492,9 +492,7 @@ onMounted(() => {
                             : 'bg-surface-alt text-muted hover:bg-gray-100'
                         "
                       >
-                        {{
-                          r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
-                        }}
+                        {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
                         {{ getReactionCount(node.root, r) || '' }}
                       </button>
                       <button
@@ -538,11 +536,7 @@ onMounted(() => {
                       >
                         Reply
                       </BaseButton>
-                      <BaseButton
-                        size="sm"
-                        variant="secondary"
-                        @click="inlineReplyTo = null"
-                      >
+                      <BaseButton size="sm" variant="secondary" @click="inlineReplyTo = null">
                         Cancel
                       </BaseButton>
                     </div>
@@ -598,9 +592,7 @@ onMounted(() => {
                     <template v-else>
                       <p
                         class="text-sm text-foreground/80 mb-2"
-                        v-html="
-                          renderMentions(DOMPurify.sanitize(reply.content), reply.mentions)
-                        "
+                        v-html="renderMentions(DOMPurify.sanitize(reply.content), reply.mentions)"
                       ></p>
                       <div class="flex items-center gap-3">
                         <button
@@ -615,11 +607,7 @@ onMounted(() => {
                           "
                         >
                           {{
-                            r === 'LIKE'
-                              ? '&#128077;'
-                              : r === 'SMILE'
-                                ? '&#128522;'
-                                : '&#128546;'
+                            r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
                           }}
                           {{ getReactionCount(reply, r) || '' }}
                         </button>
@@ -743,4 +731,3 @@ onMounted(() => {
     </BaseModal>
   </div>
 </template>
-

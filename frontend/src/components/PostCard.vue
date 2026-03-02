@@ -46,11 +46,7 @@ function stripHtml(html: string): string {
     <!-- Post Header — avatar + name link to profile -->
     <div class="flex items-center gap-3 px-4 pt-4 pb-2">
       <router-link :to="`/users/${post.author.id}`">
-        <BaseAvatar
-          :src="post.author.avatar_url"
-          :name="post.author.display_name"
-          size="sm"
-        />
+        <BaseAvatar :src="post.author.avatar_url" :name="post.author.display_name" size="sm" />
       </router-link>
       <div class="flex-1 min-w-0">
         <router-link
@@ -71,10 +67,7 @@ function stripHtml(html: string): string {
     <!-- Post Title & Content — link to post -->
     <router-link :to="`/forum/${post.id}`" class="block px-4 pb-3">
       <h2 class="text-base font-bold text-foreground mb-1">{{ post.title }}</h2>
-      <p
-        class="text-sm text-muted"
-        :class="contentClamp === 3 ? 'line-clamp-3' : 'line-clamp-6'"
-      >
+      <p class="text-sm text-muted" :class="contentClamp === 3 ? 'line-clamp-3' : 'line-clamp-6'">
         {{ stripHtml(post.content) }}
       </p>
     </router-link>

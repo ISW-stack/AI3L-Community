@@ -60,7 +60,9 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                     elapsed = time.time() - last_activity
                     remaining = GUEST_SESSION_TIMEOUT - elapsed
                     if remaining <= 0:
-                        logger.info("Guest session timeout (inactivity)", extra={"user_id": user_id})
+                        logger.info(
+                            "Guest session timeout (inactivity)", extra={"user_id": user_id}
+                        )
                         await force_logout(user_id)
                         return
                     await asyncio.sleep(min(remaining, 60))
@@ -78,7 +80,9 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                 try:
                     await ws.send_json({"type": "PING", "timestamp": now})
                 except Exception:
-                    logger.debug("WebSocket ping send failed, closing loop", extra={"user_id": user_id})
+                    logger.debug(
+                        "WebSocket ping send failed, closing loop", extra={"user_id": user_id}
+                    )
                     return
 
         ping_task = asyncio.create_task(ping_loop())
@@ -132,7 +136,10 @@ async def _local_send(user_id: str, message: dict) -> None:
         try:
             await ws.send_json(message)
         except Exception:
-            logger.debug("Failed to send WS message to user, discarding connection", extra={"user_id": user_id})
+            logger.debug(
+                "Failed to send WS message to user, discarding connection",
+                extra={"user_id": user_id},
+            )
             _connections[user_id].discard(ws)
 
 
@@ -143,7 +150,9 @@ async def _local_force_logout(user_id: str) -> None:
             await ws.send_json({"type": "FORCE_LOGOUT"})
             await ws.close(code=4003, reason="Session expired")
         except Exception:
-            logger.warning("Failed to send force logout to user", extra={"user_id": user_id}, exc_info=True)
+            logger.warning(
+                "Failed to send force logout to user", extra={"user_id": user_id}, exc_info=True
+            )
     _connections.pop(user_id, None)
 
 

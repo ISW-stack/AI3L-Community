@@ -377,10 +377,14 @@ onMounted(() => {
                 >
                   {{ p.author.display_name }}
                 </router-link>
-                <span class="text-xs text-muted">{{ new Date(p.created_at).toLocaleString() }}</span>
+                <span class="text-xs text-muted">{{
+                  new Date(p.created_at).toLocaleString()
+                }}</span>
               </div>
               <router-link :to="`/forum/${p.id}`" class="block">
-                <h3 class="font-semibold text-foreground mb-1 hover:text-brand-600">{{ p.title }}</h3>
+                <h3 class="font-semibold text-foreground mb-1 hover:text-brand-600">
+                  {{ p.title }}
+                </h3>
               </router-link>
               <div class="text-xs text-muted">{{ p.comment_count }} comments</div>
             </BaseCard>
@@ -466,7 +470,10 @@ onMounted(() => {
           <div v-for="f in forms" :key="f.id">
             <BaseCard hoverable class="h-full">
               <div class="flex items-start justify-between mb-2">
-                <router-link :to="`/forms/${f.id}`" class="font-semibold text-foreground hover:text-brand-600 hover:underline">
+                <router-link
+                  :to="`/forms/${f.id}`"
+                  class="font-semibold text-foreground hover:text-brand-600 hover:underline"
+                >
                   {{ f.title }}
                 </router-link>
                 <BaseBadge :variant="f.is_active ? 'success' : 'danger'" class="shrink-0 ml-2">{{
@@ -483,7 +490,10 @@ onMounted(() => {
                 >
                 <span>By {{ f.created_by_name }}</span>
               </div>
-              <div v-if="f.user_is_sig_admin" class="flex items-center gap-3 mt-3 pt-2 border-t border-border">
+              <div
+                v-if="f.user_is_sig_admin"
+                class="flex items-center gap-3 mt-3 pt-2 border-t border-border"
+              >
                 <router-link
                   :to="`/forms/${f.id}/edit`"
                   class="text-xs text-brand-600 hover:underline"
