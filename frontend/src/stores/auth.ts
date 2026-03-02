@@ -103,8 +103,13 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data } = await api.get('/users/me')
       user.value = data
+      // Sync role from server — handles demotion and localStorage tampering
+      if (data.role && data.role !== role.value) {
+        role.value = data.role
+        localStorage.setItem('role', data.role)
+      }
     } catch {
-      // Profile fetch failed
+      // 401/403 is already handled by the axios interceptor (clears session)
     }
   }
 
