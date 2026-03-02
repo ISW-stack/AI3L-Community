@@ -56,15 +56,23 @@ def upload_file(data: bytes, key: str, content_type: str) -> str:
 
 
 def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
-    """Generate presigned download URL."""
+    """Generate presigned download URL.
+
+    If MINIO_PUBLIC_URL is set, the internal Docker hostname in the presigned URL
+    is rewritten to the public URL so browsers can reach MinIO directly.
+    """
     client = get_storage()
-    return str(
+    url = str(
         client.generate_presigned_url(
             "get_object",
             Params={"Bucket": settings.MINIO_BUCKET_NAME, "Key": key},
             ExpiresIn=expires_in,
         )
     )
+    if settings.MINIO_PUBLIC_URL:
+        internal = f"{'https' if settings.MINIO_USE_SSL else 'http'}://{settings.MINIO_ENDPOINT}"
+        url = url.replace(internal, settings.MINIO_PUBLIC_URL.rstrip("/"), 1)
+    return url
 
 
 def delete_file(key: str) -> None:

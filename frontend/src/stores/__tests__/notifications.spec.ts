@@ -97,7 +97,7 @@ describe('useNotificationStore', () => {
       const store = useNotificationStore()
       await store.fetchUnreadCount()
 
-      expect(mockListNotifications).toHaveBeenCalledWith({ unread: true, page_size: 0 })
+      expect(mockListNotifications).toHaveBeenCalledWith({ unread: true, page_size: 1 })
       expect(store.unreadCount).toBe(5)
     })
 

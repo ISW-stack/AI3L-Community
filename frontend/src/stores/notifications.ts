@@ -14,7 +14,7 @@ export const useNotificationStore = defineStore('notifications', () => {
 
   async function fetchUnreadCount() {
     try {
-      const data = await listNotifications({ unread: true, page_size: 0 })
+      const data = await listNotifications({ unread: true, page_size: 1 })
       unreadCount.value = data.unread_count
     } catch {
       // silent

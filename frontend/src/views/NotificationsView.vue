@@ -71,7 +71,6 @@ function navigateToEntity(notif: Notification) {
   }
 }
 
-
 function goToPage(p: number) {
   page.value = p
   fetchNotifications()
