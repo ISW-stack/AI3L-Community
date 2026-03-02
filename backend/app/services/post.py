@@ -11,25 +11,26 @@ from app.core.redis import get_redis
 from app.repositories import post_repo
 
 
-async def _check_daily_post_limit(user_id: str) -> bool:
-    """Check if user has exceeded daily post limit. Returns True if within limit."""
+async def _atomic_check_and_increment_post_limit(user_id: str) -> bool:
+    """Atomically increment daily post count and check limit. Returns True if within limit."""
     redis = get_redis()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     key = f"post_limit:{user_id}:{today}"
-    count = await redis.get(key)
-    if count is not None and int(count) >= MAX_POSTS_PER_DAY:
+    count = await redis.incr(key)
+    if count == 1:
+        await redis.expire(key, 86400)
+    if count > MAX_POSTS_PER_DAY:
+        await redis.decr(key)
         return False
     return True
 
 
-async def _increment_daily_post_count(user_id: str) -> None:
+async def _rollback_daily_post_count(user_id: str) -> None:
+    """Decrement counter if post creation fails after the atomic increment."""
     redis = get_redis()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     key = f"post_limit:{user_id}:{today}"
-    pipe = redis.pipeline()
-    pipe.incr(key)
-    pipe.expire(key, 86400)
-    await pipe.execute()
+    await redis.decr(key)
 
 
 async def create_post(
@@ -41,17 +42,20 @@ async def create_post(
     keywords: list[str] | None = None,
     allow_comments: bool = True,
 ) -> dict:
-    if not await _check_daily_post_limit(user_id):
+    if not await _atomic_check_and_increment_post_limit(user_id):
         raise ValueError(f"Daily post limit ({MAX_POSTS_PER_DAY}) exceeded.")
 
     post_id = uuid.uuid4()
     cat_uuid = uuid.UUID(category_id) if category_id else None
     sig_uuid = uuid.UUID(sig_id) if sig_id else None
 
-    row = await post_repo.insert(
-        post_id, uuid.UUID(user_id), title, content, cat_uuid, sig_uuid, keywords, allow_comments
-    )
-    await _increment_daily_post_count(user_id)
+    try:
+        row = await post_repo.insert(
+            post_id, uuid.UUID(user_id), title, content, cat_uuid, sig_uuid, keywords, allow_comments
+        )
+    except Exception:
+        await _rollback_daily_post_count(user_id)
+        raise
     logger.info("Post created", extra={"post_id": str(post_id), "user_id": user_id})
 
     if sig_id:

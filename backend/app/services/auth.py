@@ -34,7 +34,7 @@ async def create_session(user_id: str, role: str) -> tuple[str, int]:
 
     redis = get_redis()
     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
-    await redis.set(session_key, token, ex=ttl_seconds)
+    await redis.set(session_key, jti, ex=ttl_seconds)
 
     logger.info("Session created", extra={"user_id": user_id, "role": role})
     return token, ttl_seconds
@@ -71,7 +71,7 @@ async def refresh_session_ttl(user_id: str, role: str) -> bool:
 
 
 async def validate_session(user_id: str, role: str, jti: str) -> bool:
-    """Validate JWT is not blacklisted AND Redis session exists."""
+    """Validate JWT is not blacklisted AND Redis session jti matches."""
     redis = get_redis()
 
     blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=jti)
@@ -79,7 +79,8 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
         return False
 
     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
-    return bool(await redis.exists(session_key))
+    stored_jti = await redis.get(session_key)
+    return stored_jti == jti
 
 
 async def guest_login(display_name: str) -> tuple[str, int] | None:
