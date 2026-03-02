@@ -8,6 +8,7 @@ mocked unit tests cannot (e.g., referencing a non-existent column).
 import os
 import uuid
 
+import asyncpg
 import pytest
 
 pytestmark = pytest.mark.skipif(
