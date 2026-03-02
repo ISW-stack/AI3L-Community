@@ -1,9 +1,12 @@
+from app.converters.user_converter import resolve_avatar_url
+
+
 def _build_author_dict(row: dict) -> dict:
     return {
         "id": str(row["author_id"]),
         "username": row["author_username"],
         "display_name": row["author_display_name"],
-        "avatar_url": row.get("author_avatar_url"),
+        "avatar_url": resolve_avatar_url(row.get("author_avatar_url")),
     }
 
 

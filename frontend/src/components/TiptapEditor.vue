@@ -27,7 +27,11 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
 const editor = useEditor({
   content: props.modelValue,
-  extensions: [StarterKit, Image, Link.configure({ openOnClick: false })],
+  extensions: [
+    StarterKit.configure({ link: false }),
+    Image,
+    Link.configure({ openOnClick: false }),
+  ],
   onUpdate({ editor: e }) {
     emit('update:modelValue', e.getHTML())
   },

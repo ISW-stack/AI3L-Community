@@ -1,5 +1,7 @@
 import json
 
+from app.converters.user_converter import resolve_avatar_url
+
 
 def row_to_comment(row: dict) -> dict:
     return {
@@ -10,7 +12,7 @@ def row_to_comment(row: dict) -> dict:
             "id": str(row["author_id"]),
             "username": row["author_username"],
             "display_name": row["author_display_name"],
-            "avatar_url": row.get("author_avatar_url"),
+            "avatar_url": resolve_avatar_url(row.get("author_avatar_url")),
         },
         "parent_id": str(row["parent_id"]) if row.get("parent_id") else None,
         "mentions": row.get("mentions"),
