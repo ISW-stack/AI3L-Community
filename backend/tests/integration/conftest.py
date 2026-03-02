@@ -72,7 +72,7 @@ async def redis_client():
 # Session-scoped: Run Alembic migrations (upgrade head)
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session", autouse=True)
-async def run_migrations(db_pool):
+async def run_migrations():
     """Run Alembic upgrade head via subprocess before all tests.
 
     Uses subprocess to avoid issues with Alembic's env.py importing app.core.config
