@@ -7,6 +7,7 @@ const props = defineProps<{
   error?: string
   disabled?: boolean
   placeholder?: string
+  maxlength?: number
   rows?: number
   id?: string
 }>()
@@ -32,6 +33,7 @@ const textareaId = computed(
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"
+      :maxlength="maxlength"
       :rows="rows || 3"
       :class="[
         'w-full px-3 py-2 border rounded-lg outline-none transition text-foreground placeholder:text-muted resize-vertical',
