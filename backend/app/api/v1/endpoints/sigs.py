@@ -108,7 +108,9 @@ async def delete_sig(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
 
 
-@router.post("/{sig_id}/members/me", response_model=SigMemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{sig_id}/members/me", response_model=SigMemberResponse, status_code=status.HTTP_201_CREATED
+)
 async def join_sig_endpoint(
     sig_id: uuid.UUID,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),

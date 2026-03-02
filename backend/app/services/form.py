@@ -124,15 +124,17 @@ async def list_form_responses(
         answers = r["answers"]
         if isinstance(answers, str):
             answers = json.loads(answers)
-        converted.append({
-            "id": str(r["id"]),
-            "form_id": str(r["form_id"]),
-            "user_id": str(r["user_id"]),
-            "display_name": r["display_name"],
-            "username": r["username"],
-            "answers": answers,
-            "created_at": r["created_at"].isoformat(),
-        })
+        converted.append(
+            {
+                "id": str(r["id"]),
+                "form_id": str(r["form_id"]),
+                "user_id": str(r["user_id"]),
+                "display_name": r["display_name"],
+                "username": r["username"],
+                "answers": answers,
+                "created_at": r["created_at"].isoformat(),
+            }
+        )
     return converted, total
 
 

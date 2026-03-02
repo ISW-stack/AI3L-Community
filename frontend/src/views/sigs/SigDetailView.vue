@@ -55,9 +55,7 @@ const isMember = computed(() => userSigRole.value !== null)
 const isSigAdmin = computed(
   () => userSigRole.value === 'ADMIN' || userSigRole.value === 'SUB_ADMIN',
 )
-const canJoin = computed(
-  () => auth.isAuthenticated && !auth.isGuest && !isMember.value,
-)
+const canJoin = computed(() => auth.isAuthenticated && !auth.isGuest && !isMember.value)
 const canEdit = computed(() => auth.isAdmin || isSigAdmin.value)
 const canDelete = computed(() => auth.isAdmin)
 const canLeave = computed(
@@ -266,11 +264,7 @@ onMounted(() => {
               ></p>
             </div>
             <div class="flex gap-2 shrink-0 ml-4">
-              <BaseButton
-                v-if="canJoin"
-                size="sm"
-                :loading="joining"
-                @click="handleJoinSig"
+              <BaseButton v-if="canJoin" size="sm" :loading="joining" @click="handleJoinSig"
                 >Join SIG</BaseButton
               >
               <BaseButton v-if="canEdit" size="sm" variant="secondary" @click="startEdit"

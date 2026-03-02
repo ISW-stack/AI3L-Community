@@ -62,7 +62,13 @@ describe('api composable', () => {
       const { default: api } = await import('../api')
 
       // Access the request interceptor — axios stores them in interceptors.request.handlers
-      const requestInterceptors = (api.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig }> }).handlers
+      const requestInterceptors = (
+        api.interceptors.request as unknown as {
+          handlers: Array<{
+            fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+          }>
+        }
+      ).handlers
       const interceptor = requestInterceptors[0].fulfilled
 
       const config = {
@@ -81,7 +87,13 @@ describe('api composable', () => {
       })
 
       const { default: api } = await import('../api')
-      const requestInterceptors = (api.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig }> }).handlers
+      const requestInterceptors = (
+        api.interceptors.request as unknown as {
+          handlers: Array<{
+            fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+          }>
+        }
+      ).handlers
       const interceptor = requestInterceptors[0].fulfilled
 
       const config = {
@@ -100,7 +112,13 @@ describe('api composable', () => {
       })
 
       const { default: api } = await import('../api')
-      const requestInterceptors = (api.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig }> }).handlers
+      const requestInterceptors = (
+        api.interceptors.request as unknown as {
+          handlers: Array<{
+            fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+          }>
+        }
+      ).handlers
       const interceptor = requestInterceptors[0].fulfilled
 
       const config = {
@@ -119,7 +137,13 @@ describe('api composable', () => {
       })
 
       const { default: api } = await import('../api')
-      const requestInterceptors = (api.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig }> }).handlers
+      const requestInterceptors = (
+        api.interceptors.request as unknown as {
+          handlers: Array<{
+            fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+          }>
+        }
+      ).handlers
       const interceptor = requestInterceptors[0].fulfilled
 
       const config = {
@@ -138,7 +162,13 @@ describe('api composable', () => {
       })
 
       const { default: api } = await import('../api')
-      const requestInterceptors = (api.interceptors.request as unknown as { handlers: Array<{ fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig }> }).handlers
+      const requestInterceptors = (
+        api.interceptors.request as unknown as {
+          handlers: Array<{
+            fulfilled: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig
+          }>
+        }
+      ).handlers
       const interceptor = requestInterceptors[0].fulfilled
 
       const config = {
@@ -154,7 +184,11 @@ describe('api composable', () => {
   describe('response interceptor — error handling', () => {
     async function getErrorInterceptor() {
       const { default: api } = await import('../api')
-      const responseInterceptors = (api.interceptors.response as unknown as { handlers: Array<{ rejected: (error: AxiosError) => Promise<never> }> }).handlers
+      const responseInterceptors = (
+        api.interceptors.response as unknown as {
+          handlers: Array<{ rejected: (error: AxiosError) => Promise<never> }>
+        }
+      ).handlers
       return responseInterceptors[0].rejected
     }
 
@@ -232,7 +266,11 @@ describe('api composable', () => {
 
     it('should show rate limit toast with retry-after on 429', async () => {
       const errorHandler = await getErrorInterceptor()
-      const error = makeAxiosError(429, { code: 'RATE_LIMIT', message: 'Too fast' }, { 'retry-after': '30' })
+      const error = makeAxiosError(
+        429,
+        { code: 'RATE_LIMIT', message: 'Too fast' },
+        { 'retry-after': '30' },
+      )
 
       await expect(errorHandler(error)).rejects.toBe(error)
 

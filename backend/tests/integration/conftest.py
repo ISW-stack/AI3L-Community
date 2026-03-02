@@ -99,9 +99,7 @@ async def run_migrations(db_pool):
         text=True,
     )
     if result.returncode != 0:
-        pytest.fail(
-            f"Alembic upgrade failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
+        pytest.fail(f"Alembic upgrade failed:\nstdout: {result.stdout}\nstderr: {result.stderr}")
 
     yield
 

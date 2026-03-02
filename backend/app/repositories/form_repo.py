@@ -166,7 +166,9 @@ async def find_responses(
             ORDER BY fr.created_at DESC
             LIMIT $2 OFFSET $3
             """,
-            form_id, page_size, offset,
+            form_id,
+            page_size,
+            offset,
         )
         return [dict(r) for r in rows], total
 

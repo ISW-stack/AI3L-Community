@@ -53,9 +53,7 @@ function trapFocus(e: KeyboardEvent) {
   }
   if (e.key !== 'Tab' || !modalRef.value) return
 
-  const focusable = Array.from(
-    modalRef.value.querySelectorAll<HTMLElement>(FOCUSABLE),
-  )
+  const focusable = Array.from(modalRef.value.querySelectorAll<HTMLElement>(FOCUSABLE))
   if (focusable.length === 0) return
 
   const first = focusable[0]
