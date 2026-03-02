@@ -114,6 +114,9 @@ async function handleFileUpload(questionId: string, event: Event) {
 }
 
 function toggleMultipleChoice(questionId: string, optionId: string) {
+  if (!Array.isArray(answers.value[questionId])) {
+    answers.value[questionId] = []
+  }
   const arr = answers.value[questionId] as string[]
   const idx = arr.indexOf(optionId)
   if (idx === -1) arr.push(optionId)
