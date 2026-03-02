@@ -16,33 +16,30 @@ down_revision: Union[str, None] = "g7h8i9j0k1l2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# CREATE INDEX CONCURRENTLY must run outside a transaction block.
-transaction = False
-
 
 def upgrade() -> None:
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_posts_category_created
+        CREATE INDEX IF NOT EXISTS idx_posts_category_created
             ON posts (category_id, created_at DESC) WHERE NOT is_deleted
         """)
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_posts_sig_created
+        CREATE INDEX IF NOT EXISTS idx_posts_sig_created
             ON posts (sig_id, created_at DESC) WHERE NOT is_deleted
         """)
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_comments_post_created
+        CREATE INDEX IF NOT EXISTS idx_comments_post_created
             ON comments (post_id, created_at) WHERE NOT is_deleted
         """)
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_created
+        CREATE INDEX IF NOT EXISTS idx_notifications_user_created
             ON notifications (user_id, created_at DESC)
         """)
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_logs_user_created
+        CREATE INDEX IF NOT EXISTS idx_audit_logs_user_created
             ON audit_logs (user_id, created_at DESC)
         """)
     op.execute("""
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sig_members_sig_user
+        CREATE INDEX IF NOT EXISTS idx_sig_members_sig_user
             ON sig_members (sig_id, user_id)
         """)
 
