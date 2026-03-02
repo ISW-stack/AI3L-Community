@@ -122,7 +122,11 @@ onMounted(fetchCodes)
                   class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition"
                   :aria-label="`Copy invite code ${code.code}`"
                 >
-                  <Check v-if="copiedId === code.id" class="w-3.5 h-3.5 text-success-600" aria-hidden="true" />
+                  <Check
+                    v-if="copiedId === code.id"
+                    class="w-3.5 h-3.5 text-success-600"
+                    aria-hidden="true"
+                  />
                   <Copy v-else class="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>

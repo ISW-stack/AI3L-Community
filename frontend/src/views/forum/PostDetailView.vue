@@ -412,10 +412,16 @@ onMounted(() => {
                   class="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
                 ></textarea>
                 <div class="flex gap-2">
-                  <BaseButton size="sm" :loading="editCommentSaving" @click="saveEditComment(comment.id)">
+                  <BaseButton
+                    size="sm"
+                    :loading="editCommentSaving"
+                    @click="saveEditComment(comment.id)"
+                  >
                     Save
                   </BaseButton>
-                  <BaseButton size="sm" variant="secondary" @click="cancelEditComment">Cancel</BaseButton>
+                  <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
+                    >Cancel</BaseButton
+                  >
                 </div>
               </template>
               <template v-else>
@@ -531,7 +537,9 @@ onMounted(() => {
         Are you sure you want to delete this comment? This action cannot be undone.
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false">Cancel</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false"
+          >Cancel</BaseButton
+        >
         <BaseButton variant="danger" @click="deleteCommentHandler">Delete</BaseButton>
       </template>
     </BaseModal>

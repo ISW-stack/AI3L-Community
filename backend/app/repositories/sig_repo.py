@@ -226,9 +226,7 @@ async def update_member_role(sig_id: uuid.UUID, user_id: uuid.UUID, role: str) -
             return dict(row) if row else None
 
 
-async def join_member(
-    sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any
-) -> dict | None:
+async def join_member(sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any) -> dict | None:
     """Insert a new MEMBER row. Returns the member row with user info, or None if SIG not found."""
     sig = await conn.fetchrow(
         "SELECT id FROM sigs WHERE id = $1 AND is_deleted = false",
@@ -240,7 +238,9 @@ async def join_member(
     member_id = uuid.uuid4()
     await conn.execute(
         "INSERT INTO sig_members (id, sig_id, user_id, role) VALUES ($1, $2, $3, 'MEMBER')",
-        member_id, sig_id, user_id,
+        member_id,
+        sig_id,
+        user_id,
     )
     await conn.execute(
         "UPDATE sigs SET member_count = member_count + 1 WHERE id = $1",

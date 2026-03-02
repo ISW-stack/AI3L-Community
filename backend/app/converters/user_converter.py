@@ -25,7 +25,11 @@ def user_to_public_response(user: dict) -> PublicUserResponse:
         bio=user.get("bio"),
         affiliation=user.get("affiliation"),
         orcid=user.get("orcid"),
-        created_at=user["created_at"].isoformat() if hasattr(user["created_at"], "isoformat") else user["created_at"],
+        created_at=(
+            user["created_at"].isoformat()
+            if hasattr(user["created_at"], "isoformat")
+            else user["created_at"]
+        ),
     )
 
 

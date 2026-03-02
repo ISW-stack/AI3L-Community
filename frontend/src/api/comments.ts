@@ -6,10 +6,7 @@ export interface CommentsListResponse {
   total: number
 }
 
-export async function listComments(
-  postId: string,
-  params?: { page?: number; page_size?: number },
-) {
+export async function listComments(postId: string, params?: { page?: number; page_size?: number }) {
   const { data } = await api.get(`/posts/${postId}/comments`, { params })
   return data as CommentsListResponse
 }

@@ -62,16 +62,22 @@ onUnmounted(() => {
 
         <!-- Desktop nav links -->
         <div class="hidden lg:flex lg:items-center lg:gap-4">
-          <router-link to="/forum" class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+          <router-link
+            to="/forum"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >Forum</router-link
           >
-          <router-link to="/sigs" class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+          <router-link
+            to="/sigs"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >SIGs</router-link
           >
 
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
-              <router-link to="/admin" class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+              <router-link
+                to="/admin"
+                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
                 >Dashboard</router-link
               >
               <router-link

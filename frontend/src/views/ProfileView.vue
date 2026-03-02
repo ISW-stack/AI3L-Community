@@ -205,8 +205,8 @@ async function handleDeleteAccount() {
       <h2 class="text-xl font-bold text-danger-600 mb-4">Danger Zone</h2>
       <BaseCard padding="lg">
         <p class="text-sm text-muted mb-4">
-          Permanently delete your account and anonymize all personal data.
-          This action cannot be undone.
+          Permanently delete your account and anonymize all personal data. This action cannot be
+          undone.
         </p>
         <BaseButton variant="danger" @click="showDeleteConfirm = true">
           Delete My Account
@@ -217,14 +217,10 @@ async function handleDeleteAccount() {
     <!-- Delete Account Confirmation Modal -->
     <BaseModal v-model="showDeleteConfirm" title="Delete Account?" size="sm">
       <p class="text-sm text-muted mb-4">
-        This will permanently anonymize your profile, remove all personal information,
-        and log you out. Your posts will remain but be attributed to a deleted user.
+        This will permanently anonymize your profile, remove all personal information, and log you
+        out. Your posts will remain but be attributed to a deleted user.
       </p>
-      <BaseInput
-        v-model="deleteConfirmText"
-        label="Type DELETE to confirm"
-        placeholder="DELETE"
-      />
+      <BaseInput v-model="deleteConfirmText" label="Type DELETE to confirm" placeholder="DELETE" />
       <template #footer>
         <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
         <BaseButton
@@ -232,7 +228,8 @@ async function handleDeleteAccount() {
           :disabled="deleteConfirmText !== 'DELETE'"
           :loading="deletingAccount"
           @click="handleDeleteAccount"
-        >Delete Account</BaseButton>
+          >Delete Account</BaseButton
+        >
       </template>
     </BaseModal>
   </div>
