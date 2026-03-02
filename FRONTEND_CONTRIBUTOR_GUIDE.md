@@ -19,9 +19,8 @@ sections:
 3. **Known Bugs** -- Confirmed defects that need to be corrected.
 4. **UI/UX Improvements** -- Refinements to existing user interface behavior
    and accessibility.
-5. **Planned Backend Work** -- Backend tasks that are planned or in progress.
-   Frontend contributors should be aware of these as they may affect or
-   unblock frontend work.
+
+For backend tasks, see `BACKEND_CONTRIBUTOR_GUIDE.md`.
 
 Each item includes a difficulty rating and a step-by-step implementation plan.
 
@@ -757,82 +756,17 @@ mode toggle.
 
 ---
 
-## Section 5: Planned Backend Work
+## Backend Dependencies
 
-These are backend tasks that are planned or in progress. Frontend
-contributors should be aware of them as some will unblock or affect
-frontend work. Items marked with **(blocks frontend)** must be completed
-before the corresponding frontend task can begin.
+Some frontend tasks above are blocked by backend work that has not been
+completed yet. See `BACKEND_CONTRIBUTOR_GUIDE.md` for the full list of
+backend tasks. The key blockers are:
 
----
-
-### 5.1 VirusTotal Integration Completion **(blocks 1.6)**
-
-Store scan results in a database table, expose a
-`GET /files/{key}/scan-status` endpoint, and block presigned URL generation
-for files flagged as malicious.
-
-### 5.2 Bulk Operations Endpoints **(blocks 2.6)**
-
-Create `DELETE /api/v1/posts/bulk` and `PUT /api/v1/users/bulk-role`
-endpoints for admin batch processing.
-
-### 5.3 Reports Endpoint Pagination **(blocks 2.7)**
-
-Add `page` and `page_size` query parameters to `GET /api/v1/reports`.
-
-### 5.4 Cross-Platform Celery Task Compatibility
-
-The `form_export.py` Celery task uses `asyncio.run()` inside a sync worker,
-which may fail on Windows or with nested event loops. Will be refactored to
-use a proper async/sync bridge that works on all platforms.
-
-### 5.5 Rate Limits via Environment Variables
-
-All rate limit constants (`RATE_LIMIT_COMMENT`, `RATE_LIMIT_CAPTCHA`,
-`RATE_LIMIT_FILE_UPLOAD`, `RATE_LIMIT_FORM_SUBMIT`, etc.) will be moved
-from hardcoded values in `constants.py` to environment variables with
-fallback defaults. This allows different limits per deployment environment.
-
-### 5.6 Event Bus Retry Mechanism
-
-Failed events currently persist in Redis but are never retried. A bounded
-retry mechanism will be added (e.g., max 3 retries with exponential
-backoff), with failed events logged and eventually discarded to prevent
-unbounded resource usage.
-
-### 5.7 Data Integrity Improvements
-
-- SIG deletion will cascade to associated forms and posts (soft-delete or
-  nullify `sig_id`).
-- Category deletion will nullify `category_id` on associated posts.
-- SIG leave will validate at least one non-deleted admin remains.
-
-### 5.8 Schema Validation Hardening
-
-- Add `max_length` constraints to `placeholder`, `bio`, `affiliation`,
-  `orcid` fields in Pydantic schemas.
-- Add per-item length validation to post `keywords` array.
-- Fix `notification page_size` to require `ge=1` instead of `ge=0`.
-
-### 5.9 Error Handling Fixes
-
-- Fix `create_post()` ValueError being mapped to HTTP 429 (should be 400).
-- Replace generic `except Exception` catches in `sigs.py` join and
-  `files.py` VirusTotal with specific exception types.
-- Replace `assert file.content_type` in avatar upload with proper
-  validation.
-
-### 5.10 Audit Log Date Filtering
-
-Add `date_from` and `date_to` optional parameters to the audit log listing
-endpoint so admins can query logs for specific time periods.
-
-### 5.11 WebSocket Resilience
-
-- Reset guest WebSocket timeout on activity (currently absolute 45 min).
-- Add error recovery with exponential backoff reconnection to the Redis
-  Pub/Sub subscriber.
+| Frontend task | Blocked by (backend) |
+|---------------|---------------------|
+| 1.6 VirusTotal File Safety Indicator | Backend 4.1 — VirusTotal integration completion |
+| 2.6 Admin Bulk Operations UI | Backend 4.2 — Bulk operation endpoints |
+| 2.7 Admin Reports Pagination | Backend 4.3 — Reports endpoint pagination |
 
 ---
 
