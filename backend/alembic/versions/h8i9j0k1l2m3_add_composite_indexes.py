@@ -16,6 +16,9 @@ down_revision: Union[str, None] = "g7h8i9j0k1l2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+# CREATE INDEX CONCURRENTLY must run outside a transaction block.
+transaction = False
+
 
 def upgrade() -> None:
     op.execute("""
