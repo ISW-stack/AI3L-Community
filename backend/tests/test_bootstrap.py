@@ -6,10 +6,7 @@ Covers:
   - Sync path: user already exists but find_by_username returns None → no update
 """
 
-import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import AsyncMock, patch
 
 from tests.conftest import make_user_dict
 
