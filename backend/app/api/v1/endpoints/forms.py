@@ -9,7 +9,6 @@ from app.repositories import sig_repo
 from app.schemas.form import (
     FormCreateRequest,
     FormListResponse,
-    FormResponseItem,
     FormResponseListResponse,
     FormResponseSchema,
     FormSubmitRequest,
