@@ -42,8 +42,8 @@ This document covers the backend application architecture, development workflow,
 | Queue broker and cache | Redis (aioredis) |
 | Object storage | boto3 (MinIO / S3) |
 | Password hashing | argon2-cffi via passlib |
-| Token signing | python-jose (JWT) |
-| HTML sanitization | bleach |
+| Token signing | PyJWT |
+| HTML sanitization | nh3 |
 | PDF sanitization | pypdf |
 | CAPTCHA generation | captcha + Pillow |
 | Structured logging | Loguru |
@@ -153,7 +153,8 @@ backend/
 │   ├── test_errors.py
 │   ├── test_phase9.py
 │   ├── test_privacy_consent.py
-│   └── test_users.py
+│   ├── test_users.py
+│   └── integration/             Integration tests (require INTEGRATION_TEST=1 + Docker)
 ├── Dockerfile
 ├── alembic.ini
 ├── pyproject.toml
@@ -461,7 +462,7 @@ Tests mock all external dependencies (database and Redis) using `unittest.mock.A
 
 - No running PostgreSQL, Redis, or MinIO is required.
 - Tests run fast and deterministically.
-- Database query logic is tested in integration tests (not yet implemented).
+- Integration tests for database query logic live in `tests/integration/`. They require the `INTEGRATION_TEST=1` environment variable and a running PostgreSQL and Redis instance (use `docker-compose.test.yml`).
 
 `mock_conn.fetchrow` returns `None` by default. Override it in individual tests:
 
