@@ -9,6 +9,7 @@ from app.repositories import sig_repo
 from app.schemas.form import (
     FormCreateRequest,
     FormListResponse,
+    FormResponseItem,
     FormResponseListResponse,
     FormResponseSchema,
     FormSubmitRequest,
@@ -165,7 +166,9 @@ async def get_form_responses(
         )
 
     responses, total = await list_form_responses(form_id, page=page, page_size=page_size)
-    return FormResponseListResponse(responses=responses, total=total)
+    return FormResponseListResponse(
+        responses=[FormResponseItem(**r) for r in responses], total=total
+    )
 
 
 @router.post(
