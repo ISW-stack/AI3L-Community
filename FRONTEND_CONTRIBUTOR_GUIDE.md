@@ -756,6 +756,86 @@ mode toggle.
 
 ---
 
+### 2.8 Platform Contributors Page
+
+**Difficulty: Beginner**
+
+**Affected files:** `src/views/AboutView.vue` (new file), `src/router/index.ts`
+(add one route), `src/components/AppNavbar.vue` (add one link)
+
+**Background:**
+There is currently no page that acknowledges the people who designed and
+built the AI3L Community platform. A contributors page gives the team
+recognition and helps new community members understand who to contact for
+questions about specific areas of the codebase.
+
+**Implementation Plan:**
+
+1. Create `src/views/AboutView.vue`. The page should contain:
+   - A heading ("Platform Contributors") and a short one-paragraph
+     description of the project.
+   - A contributor list rendered from a local static array defined directly
+     in the component. No API call is needed.
+
+2. Define the contributor array in the `<script setup>` block:
+   ```typescript
+   interface Contributor {
+     name: string
+     role: string
+     github?: string
+   }
+
+   const contributors: Contributor[] = [
+     { name: 'Alice Chen', role: 'Project Lead & Backend', github: 'alicecodes' },
+     { name: 'Bob Kim',   role: 'Frontend & Design',      github: 'bobkim' },
+     // Add more contributors here
+   ]
+   ```
+
+3. In the template, render the list as a responsive grid of cards. Each
+   card displays the contributor's name, role, and — if present — a GitHub
+   link:
+   ```html
+   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+     <div
+       v-for="c in contributors"
+       :key="c.name"
+       class="rounded-xl border border-border bg-surface p-5 shadow-sm"
+     >
+       <p class="text-lg font-semibold text-foreground">{{ c.name }}</p>
+       <p class="text-sm text-muted mt-1">{{ c.role }}</p>
+       <a
+         v-if="c.github"
+         :href="`https://github.com/${c.github}`"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="text-sm text-brand-600 hover:underline mt-2 inline-block"
+       >
+         @{{ c.github }}
+       </a>
+     </div>
+   </div>
+   ```
+
+4. In `src/router/index.ts`, add the route (no auth guard required — this
+   page is publicly visible):
+   ```typescript
+   {
+     path: '/about',
+     component: () => import('../views/AboutView.vue'),
+   }
+   ```
+
+5. In `src/components/AppNavbar.vue`, add an "About" link in the main
+   navigation bar pointing to `/about`. The link should be visible to all
+   users, including guests.
+
+6. Use only CSS variable–based Tailwind classes (`bg-surface`,
+   `text-foreground`, `border-border`, etc.) so the page responds correctly
+   to the dark mode toggle.
+
+---
+
 ## Backend Dependencies
 
 Some frontend tasks above are blocked by backend work that has not been
