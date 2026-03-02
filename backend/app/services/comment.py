@@ -101,12 +101,14 @@ async def list_comments(
 
 async def soft_delete_comment(
     comment_id: uuid.UUID,
+    post_id: uuid.UUID,
     user_id: str,
     is_admin: bool = False,
 ) -> bool:
     """Soft-delete a comment and decrement the post's comment_count."""
     result = await comment_repo.soft_delete(
         comment_id,
+        post_id=post_id,
         user_id=uuid.UUID(user_id) if not is_admin else None,
         is_admin=is_admin,
     )

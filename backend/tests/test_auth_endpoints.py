@@ -148,10 +148,9 @@ class TestGuestLoginEndpoint:
 
 
 class TestRegisterEndpoint:
-    @patch(f"{_EP}.consume_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
-    @patch(f"{_EP}.create_user", new_callable=AsyncMock)
+    @patch(f"{_EP}.register_new_user", new_callable=AsyncMock)
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=False)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
@@ -160,14 +159,13 @@ class TestRegisterEndpoint:
         mock_captcha,
         mock_invite,
         mock_exists,
-        mock_create,
+        mock_register,
         mock_session,
         mock_rl,
-        mock_consume,
         client: AsyncClient,
     ):
         mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
-        mock_create.return_value = make_user_dict(username="newuser", role="MEMBER")
+        mock_register.return_value = make_user_dict(username="newuser", role="MEMBER")
 
         resp = await client.post(
             "/api/v1/auth/register",
@@ -280,15 +278,11 @@ class TestHeartbeatEndpoint:
 
 
 class TestWsTicket:
-    @patch(f"{_EP}.get_redis")
-    async def test_get_ws_ticket(self, mock_get_redis, client: AsyncClient):
+    @patch(f"{_EP}.create_ws_ticket", new_callable=AsyncMock, return_value="test-ticket-abc")
+    async def test_get_ws_ticket(self, mock_create_ticket, client: AsyncClient):
         """POST /auth/ws-ticket → 200 with ticket."""
         from app.core.deps import get_current_user
         from app.main import app
-
-        mock_redis = AsyncMock()
-        mock_redis.set = AsyncMock(return_value=True)
-        mock_get_redis.return_value = mock_redis
 
         payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
         app.dependency_overrides[get_current_user] = lambda: payload
@@ -299,7 +293,7 @@ class TestWsTicket:
             assert resp.status_code == 200
             data = resp.json()
             assert "ticket" in data
-            assert len(data["ticket"]) > 0
+            assert data["ticket"] == "test-ticket-abc"
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 

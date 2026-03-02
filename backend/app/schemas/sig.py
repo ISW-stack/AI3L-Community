@@ -33,6 +33,7 @@ class SigMemberResponse(BaseModel):
     role: str
     display_name: str
     username: str
+    avatar_url: str | None = None
     created_at: str
 
 

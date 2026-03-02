@@ -25,7 +25,7 @@ def _clear_overrides():
     app.dependency_overrides.clear()
 
 
-def _make_form(sig_id=None, creator_id=None):
+def _make_form(sig_id=None, creator_id=None, allow_non_members=False):
     now = datetime.now(timezone.utc).isoformat()
     return {
         "id": str(uuid.uuid4()),
@@ -37,6 +37,7 @@ def _make_form(sig_id=None, creator_id=None):
         "max_respondents": None,
         "questions": [{"id": "q1", "type": "text", "label": "Name", "required": True}],
         "is_schema_locked": False,
+        "allow_non_members": allow_non_members,
         "response_count": 0,
         "is_active": True,
         "created_by": creator_id or str(uuid.uuid4()),
@@ -135,7 +136,11 @@ class TestUpdateForm:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=form):
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=form),
+            ):
                 resp = await client.put(
                     f"/api/v1/forms/{form_id}",
                     json={"title": "Updated Title"},
@@ -217,5 +222,54 @@ class TestExportForm:
                 )
                 assert resp.status_code == 202
                 assert resp.json()["task_id"] == "celery-task-123"
+        finally:
+            _clear_overrides()
+
+
+class TestSubmitFormMembership:
+    @pytest.mark.anyio
+    async def test_submit_non_member_denied(self, client):
+        """POST /forms/{form_id}/submit → 403 when non-member."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError("Only SIG members can submit this form."),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "John Doe"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "SIG members" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_submit_non_member_allowed(self, client):
+        """POST /forms/{form_id}/submit → 201 when allow_non_members is True."""
+        form_id = uuid.uuid4()
+        result = {"id": str(uuid.uuid4()), "message": "Response submitted successfully."}
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.submit_response", new_callable=AsyncMock, return_value=result),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "John Doe"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 201
+                assert "submitted" in resp.json()["message"].lower()
         finally:
             _clear_overrides()

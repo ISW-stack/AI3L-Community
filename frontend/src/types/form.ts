@@ -28,6 +28,7 @@ export interface FormData {
   max_respondents: number | null
   questions: Question[]
   is_schema_locked: boolean
+  allow_non_members: boolean
   response_count: number
   is_active: boolean
   created_by: string

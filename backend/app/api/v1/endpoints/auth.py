@@ -8,7 +8,6 @@ from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
 from app.core.rate_limit import check_rate_limit
-from app.core.redis import get_redis
 from app.core.security import validate_password_policy
 from app.schemas.auth import (
     AuthResponse,
@@ -22,17 +21,18 @@ from app.schemas.auth import (
 from app.schemas.user import CreateAccountRequest
 from app.services.auth import (
     authenticate_user,
-    consume_invite_code,
     create_invite_code,
     create_session,
+    create_ws_ticket,
     destroy_session,
     get_invite_code,
     guest_login,
     refresh_session_ttl,
+    register_new_user,
 )
 from app.services.captcha import generate_captcha, verify_captcha
 from app.services.privacy_consent import has_consent
-from app.services.user import create_user, user_exists_by_username
+from app.services.user import user_exists_by_username
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -203,14 +203,13 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
             detail="Username already exists.",
         )
 
-    user = await create_user(
+    # Create user and consume invite code in a single transaction
+    user = await register_new_user(
         username=req.username,
         password=req.password,
         display_name=req.display_name,
+        invite_code=req.invite_code,
     )
-
-    # Mark invite code as consumed
-    await consume_invite_code(req.invite_code, str(user["id"]))
 
     token, expires_in = await create_session(str(user["id"]), user["role"])
 
@@ -233,18 +232,7 @@ async def heartbeat(current_user: dict = Depends(get_current_user)) -> MessageRe
 @router.post("/ws-ticket", response_model=WsTicketResponse)
 async def get_ws_ticket(current_user: dict = Depends(get_current_user)) -> WsTicketResponse:
     """Generate a one-time WebSocket authentication ticket (30s TTL)."""
-    ticket = secrets.token_urlsafe(32)
-    redis = get_redis()
-    # Store ticket → user payload mapping with 30s TTL
-    import json
-
-    await redis.set(
-        f"ws:ticket:{ticket}",
-        json.dumps(
-            {"sub": current_user["sub"], "role": current_user["role"], "jti": current_user["jti"]}
-        ),
-        ex=30,
-    )
+    ticket = await create_ws_ticket(current_user)
     return WsTicketResponse(ticket=ticket)
 
 

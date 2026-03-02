@@ -10,6 +10,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
+const adminDropdownOpen = ref(false)
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -33,9 +34,12 @@ async function handleLogout() {
 }
 
 function handleClickOutside(e: MouseEvent) {
-  const el = (e.target as HTMLElement).closest('.user-dropdown-wrapper')
-  if (!el) {
+  const target = e.target as HTMLElement
+  if (!target.closest('.user-dropdown-wrapper')) {
     userDropdownOpen.value = false
+  }
+  if (!target.closest('.admin-dropdown-wrapper')) {
+    adminDropdownOpen.value = false
   }
 }
 
@@ -74,39 +78,72 @@ onUnmounted(() => {
           >
 
           <template v-if="auth.isAuthenticated">
-            <template v-if="auth.isAdmin">
-              <router-link
-                to="/admin"
-                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-                >Dashboard</router-link
+            <!-- Admin dropdown -->
+            <div v-if="auth.isAdmin" class="relative admin-dropdown-wrapper">
+              <button
+                @click="adminDropdownOpen = !adminDropdownOpen"
+                class="flex items-center gap-1 text-sm text-muted hover:text-foreground transition"
+                :aria-expanded="adminDropdownOpen"
               >
-              <router-link
-                to="/admin/users"
-                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-                >Users</router-link
-              >
-              <router-link
-                to="/admin/applications"
-                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-                >Applications</router-link
-              >
-              <router-link
-                to="/admin/reports"
-                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-                >Reports</router-link
-              >
-              <router-link
-                to="/admin/invite-codes"
-                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-                >Invite Codes</router-link
-              >
-            </template>
-            <router-link
-              v-if="auth.isSuperAdmin"
-              to="/admin/audit-logs"
-              class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-              >Audit Logs</router-link
-            >
+                Admin
+                <ChevronDown
+                  class="w-4 h-4 transition-transform"
+                  :class="{ 'rotate-180': adminDropdownOpen }"
+                  aria-hidden="true"
+                />
+              </button>
+
+              <Transition name="dropdown">
+                <div
+                  v-if="adminDropdownOpen"
+                  class="absolute left-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-1"
+                >
+                  <router-link
+                    to="/admin"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="adminDropdownOpen = false"
+                  >
+                    Dashboard
+                  </router-link>
+                  <router-link
+                    to="/admin/users"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="adminDropdownOpen = false"
+                  >
+                    Users
+                  </router-link>
+                  <router-link
+                    to="/admin/applications"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="adminDropdownOpen = false"
+                  >
+                    Applications
+                  </router-link>
+                  <router-link
+                    to="/admin/reports"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="adminDropdownOpen = false"
+                  >
+                    Reports
+                  </router-link>
+                  <router-link
+                    to="/admin/invite-codes"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="adminDropdownOpen = false"
+                  >
+                    Invite Codes
+                  </router-link>
+                  <router-link
+                    v-if="auth.isSuperAdmin"
+                    to="/admin/audit-logs"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition border-t border-border"
+                    @click="adminDropdownOpen = false"
+                  >
+                    Audit Logs
+                  </router-link>
+                </div>
+              </Transition>
+            </div>
 
             <NotificationBell />
 
@@ -320,5 +357,16 @@ onUnmounted(() => {
 .mobile-menu-leave-from {
   opacity: 1;
   max-height: 500px;
+}
+
+/* Dropdown animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.15s ease;
+}
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

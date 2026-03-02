@@ -81,7 +81,7 @@ export async function createSig(payload: { name: string; description: string | n
 
 export async function listMySigs() {
   const { data } = await api.get('/sigs/my')
-  return data as Sig[]
+  return (data as { sigs: Sig[] }).sigs
 }
 
 export async function joinSig(sigId: string) {

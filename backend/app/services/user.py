@@ -1,10 +1,15 @@
 import uuid
 
+from fastapi import HTTPException, status
 from loguru import logger
 
+from app.core.async_storage import get_user_storage_used
+from app.core.async_storage import upload_file as async_upload_file
+from app.core.config import settings
 from app.core.event_bus import emit
-from app.core.redis import get_redis
+from app.core.file_validation import validate_avatar
 from app.core.security import hash_password, validate_password_policy, verify_password
+from app.core.storage import generate_avatar_key
 from app.models.user import UserRole
 from app.repositories import user_repo
 
@@ -51,6 +56,44 @@ async def update_user_profile(
     )
 
 
+async def upload_user_avatar(
+    user_id: str,
+    data: bytes,
+    content_type: str,
+    filename: str,
+) -> dict:
+    """Validate, upload, and persist a user avatar.
+
+    Performs quota check, file validation, storage upload, and DB update.
+    Returns the updated user dict.
+    Raises HTTPException on validation/quota failure.
+    """
+    if not content_type:
+        raise HTTPException(status_code=400, detail="File content type is required.")
+    validate_avatar(content_type, data)
+
+    # Storage quota check
+    used = await get_user_storage_used(user_id)
+    if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Storage quota exceeded (1 GB limit).",
+        )
+
+    ext = ".png" if content_type == "image/png" else ".jpg"
+    key = generate_avatar_key(user_id, ext)
+    await async_upload_file(data, key, content_type)
+
+    # Store the MinIO object key (not presigned URL) — fresh URLs generated on read
+    user = await update_user_profile(
+        user_id=uuid.UUID(user_id),
+        avatar_url=key,
+    )
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return user
+
+
 async def user_exists_by_username(username: str) -> bool:
     return await user_repo.exists_by_username(username)
 
@@ -77,10 +120,10 @@ async def ban_user(user_id: uuid.UUID, reason: str) -> bool:
     if not banned:
         return False
 
-    # Revoke all Redis sessions for this user (batch delete in one round-trip)
-    redis = get_redis()
-    session_keys = [f"session:{r.value}:{user_id}" for r in UserRole]
-    await redis.delete(*session_keys)
+    # Revoke all Redis sessions (lazy import to avoid circular dependency)
+    from app.services.auth import revoke_user_sessions
+
+    await revoke_user_sessions(str(user_id))
 
     # Force logout via WebSocket (best-effort, through event bus)
     await emit("user.banned", user_id=str(user_id))

@@ -6,6 +6,7 @@ from loguru import logger
 from app.converters.post_converter import row_to_history, row_to_post
 from app.core.constants import MAX_POSTS_PER_DAY
 from app.core.database import get_pool
+from app.core.errors import RateLimitError
 from app.core.event_bus import emit
 from app.core.redis import get_redis
 from app.repositories import post_repo
@@ -43,7 +44,7 @@ async def create_post(
     allow_comments: bool = True,
 ) -> dict:
     if not await _atomic_check_and_increment_post_limit(user_id):
-        raise ValueError(f"Daily post limit ({MAX_POSTS_PER_DAY}) exceeded.")
+        raise RateLimitError(f"Daily post limit ({MAX_POSTS_PER_DAY}) exceeded.")
 
     post_id = uuid.uuid4()
     cat_uuid = uuid.UUID(category_id) if category_id else None
@@ -165,12 +166,16 @@ async def list_posts(
     page_size: int = 20,
     category_id: str | None = None,
     sig_id: str | None = None,
+    author_id: str | None = None,
     sort: str = "newest",
 ) -> tuple[list[dict], int, int]:
     """Returns (posts, total, total_pages)."""
     cat_uuid = uuid.UUID(category_id) if category_id else None
     sig_uuid = uuid.UUID(sig_id) if sig_id else None
-    rows, total, total_pages = await post_repo.find_many(page, page_size, cat_uuid, sig_uuid, sort)
+    author_uuid = uuid.UUID(author_id) if author_id else None
+    rows, total, total_pages = await post_repo.find_many(
+        page, page_size, cat_uuid, sig_uuid, author_uuid, sort
+    )
     return [row_to_post(r) for r in rows], total, total_pages
 
 

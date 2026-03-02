@@ -96,7 +96,7 @@ async def delete_comment(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
-    deleted = await soft_delete_comment(comment_id, current_user["sub"], is_admin)
+    deleted = await soft_delete_comment(comment_id, post_id, current_user["sub"], is_admin)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")
     return MessageResponse(message="Comment deleted.")

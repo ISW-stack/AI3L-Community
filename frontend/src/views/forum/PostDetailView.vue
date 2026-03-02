@@ -13,7 +13,7 @@ import {
 } from '@/api/comments'
 import { createReport } from '@/api/reports'
 import DOMPurify from 'dompurify'
-import { renderMentions } from '@/utils/html'
+import { renderMentions, extractSigUrls, extractFormUrls } from '@/utils/html'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -22,7 +22,10 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
+import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import SigShareCard from '@/components/SigShareCard.vue'
+import FormShareCard from '@/components/FormShareCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,13 +48,82 @@ const editSaving = ref(false)
 const editMessage = ref('')
 
 const newComment = ref('')
-const replyTo = ref<Comment | null>(null)
 const commentSaving = ref(false)
 const commentMessage = ref('')
+
+const inlineReplyTo = ref<string | null>(null)
+const inlineReplyContent = ref('')
+
+interface CommentNode {
+  root: Comment
+  replies: Comment[]
+}
+
+const commentTree = computed<CommentNode[]>(() => {
+  const roots: Comment[] = []
+  const replyMap: Record<string, Comment[]> = {}
+  for (const c of comments.value) {
+    if (!c.parent_id) {
+      roots.push(c)
+    } else {
+      if (!replyMap[c.parent_id]) replyMap[c.parent_id] = []
+      replyMap[c.parent_id].push(c)
+    }
+  }
+  return roots.map((root) => ({
+    root,
+    replies: replyMap[root.id] || [],
+  }))
+})
 
 const postId = computed(() => route.params.id as string)
 const isAuthor = computed(() => post.value && auth.user && post.value.author.id === auth.user.id)
 const canModify = computed(() => isAuthor.value || auth.isAdmin)
+
+interface ContentSegment {
+  type: 'html' | 'sig-card' | 'form-card'
+  content: string
+}
+
+const contentSegments = computed<ContentSegment[]>(() => {
+  if (!post.value) return []
+  const sanitized = DOMPurify.sanitize(post.value.content)
+  const sigUrls = extractSigUrls(sanitized)
+  const formUrls = extractFormUrls(sanitized)
+
+  if (sigUrls.length === 0 && formUrls.length === 0) {
+    return [{ type: 'html', content: sanitized }]
+  }
+
+  // Build a list of all URL matches with their positions
+  const markers: { index: number; length: number; type: 'sig-card' | 'form-card'; id: string }[] =
+    []
+  for (const s of sigUrls) {
+    const idx = sanitized.indexOf(s.fullMatch)
+    if (idx !== -1)
+      markers.push({ index: idx, length: s.fullMatch.length, type: 'sig-card', id: s.id })
+  }
+  for (const f of formUrls) {
+    const idx = sanitized.indexOf(f.fullMatch)
+    if (idx !== -1)
+      markers.push({ index: idx, length: f.fullMatch.length, type: 'form-card', id: f.id })
+  }
+  markers.sort((a, b) => a.index - b.index)
+
+  const segments: ContentSegment[] = []
+  let cursor = 0
+  for (const m of markers) {
+    if (m.index > cursor) {
+      segments.push({ type: 'html', content: sanitized.slice(cursor, m.index) })
+    }
+    segments.push({ type: m.type, content: m.id })
+    cursor = m.index + m.length
+  }
+  if (cursor < sanitized.length) {
+    segments.push({ type: 'html', content: sanitized.slice(cursor) })
+  }
+  return segments
+})
 
 async function fetchPost() {
   loading.value = true
@@ -73,8 +145,8 @@ async function fetchComments() {
     comments.value = data.comments
     commentsTotal.value = data.total
     commentTotalPages.value = Math.max(1, Math.ceil(data.total / commentPageSize))
-  } catch {
-    /* silent */
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -87,8 +159,8 @@ async function fetchHistory() {
   try {
     history.value = await getPostHistory(postId.value)
     showHistory.value = true
-  } catch {
-    /* silent */
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -127,8 +199,8 @@ async function deletePostHandler() {
   try {
     await apiDeletePost(postId.value)
     router.push('/forum')
-  } catch {
-    /* error */
+  } catch (e) {
+    console.error(e)
   } finally {
     showDeletePostConfirm.value = false
   }
@@ -139,16 +211,34 @@ async function submitComment() {
   commentSaving.value = true
   commentMessage.value = ''
   try {
-    const payload: { content: string; parent_id?: string } = { content: newComment.value }
-    if (replyTo.value) payload.parent_id = replyTo.value.id
-    await createComment(postId.value, payload)
+    await createComment(postId.value, { content: newComment.value })
     newComment.value = ''
-    replyTo.value = null
     await fetchComments()
     if (post.value) post.value.comment_count++
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } }
     commentMessage.value = err.response?.data?.detail || 'Failed to post comment.'
+  } finally {
+    commentSaving.value = false
+  }
+}
+
+async function submitInlineReply() {
+  if (!inlineReplyTo.value || !inlineReplyContent.value.trim()) return
+  commentSaving.value = true
+  commentMessage.value = ''
+  try {
+    await createComment(postId.value, {
+      content: inlineReplyContent.value,
+      parent_id: inlineReplyTo.value,
+    })
+    inlineReplyTo.value = null
+    inlineReplyContent.value = ''
+    await fetchComments()
+    if (post.value) post.value.comment_count++
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    commentMessage.value = err.response?.data?.detail || 'Failed to post reply.'
   } finally {
     commentSaving.value = false
   }
@@ -165,8 +255,8 @@ async function deleteCommentHandler() {
     await apiDeleteComment(postId.value, deleteTargetCommentId.value)
     await fetchComments()
     if (post.value && post.value.comment_count > 0) post.value.comment_count--
-  } catch {
-    /* silent */
+  } catch (e) {
+    console.error(e)
   } finally {
     showDeleteCommentConfirm.value = false
     deleteTargetCommentId.value = null
@@ -210,8 +300,8 @@ async function toggleReactionHandler(commentId: string, reaction: string) {
   try {
     await apiToggleReaction(postId.value, commentId, reaction)
     await fetchComments()
-  } catch {
-    /* silent */
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -258,6 +348,11 @@ async function saveEditComment(commentId: string) {
   }
 }
 
+function handleReply(commentId: string) {
+  inlineReplyTo.value = inlineReplyTo.value === commentId ? null : commentId
+  inlineReplyContent.value = ''
+}
+
 onMounted(() => {
   fetchPost()
   fetchComments()
@@ -295,11 +390,24 @@ onMounted(() => {
         </div>
 
         <BaseCard padding="lg" class="mb-6">
-          <div class="flex justify-between items-start mb-4">
-            <div>
-              <h1 class="text-2xl font-bold text-foreground mb-2">{{ post.title }}</h1>
+          <!-- Post Header with Avatar -->
+          <div class="flex items-start gap-3 mb-4">
+            <router-link :to="`/users/${post.author.id}`">
+              <BaseAvatar
+                :src="post.author.avatar_url"
+                :name="post.author.display_name"
+                size="md"
+              />
+            </router-link>
+            <div class="flex-1 min-w-0">
+              <h1 class="text-2xl font-bold text-foreground mb-1">{{ post.title }}</h1>
               <div class="flex items-center gap-3 text-sm text-muted flex-wrap">
-                <span>{{ post.author.display_name }}</span>
+                <router-link
+                  :to="`/users/${post.author.id}`"
+                  class="font-medium hover:text-brand-600 hover:underline"
+                >
+                  {{ post.author.display_name }}
+                </router-link>
                 <span>{{ new Date(post.created_at).toLocaleString() }}</span>
                 <BaseBadge v-if="post.category_name">{{ post.category_name }}</BaseBadge>
                 <span v-if="post.version > 1" class="text-xs text-muted">v{{ post.version }}</span>
@@ -330,17 +438,31 @@ onMounted(() => {
             </div>
           </div>
 
-          <div
-            class="prose prose-sm max-w-none text-foreground/80 mb-4"
-            v-html="DOMPurify.sanitize(post.content)"
-          ></div>
+          <div class="prose prose-sm max-w-none text-foreground/80 mb-4">
+            <template v-for="(seg, i) in contentSegments" :key="i">
+              <div v-if="seg.type === 'html'" v-html="seg.content"></div>
+              <SigShareCard
+                v-else-if="seg.type === 'sig-card'"
+                :sig-id="seg.content"
+                class="my-3 not-prose"
+              />
+              <FormShareCard
+                v-else-if="seg.type === 'form-card'"
+                :form-id="seg.content"
+                class="my-3 not-prose"
+              />
+            </template>
+          </div>
 
           <div v-if="post.keywords?.length" class="flex gap-1 flex-wrap mb-3">
             <BaseBadge v-for="kw in post.keywords" :key="kw" variant="neutral">{{ kw }}</BaseBadge>
           </div>
 
+          <!-- Action Bar -->
           <div class="flex items-center justify-between border-t border-border pt-3">
-            <span class="text-xs text-muted">{{ post.comment_count }} comments</span>
+            <span class="text-sm text-muted">
+              {{ post.comment_count }} comment{{ post.comment_count !== 1 ? 's' : '' }}
+            </span>
             <button
               v-if="post.version > 1"
               @click="fetchHistory"
@@ -355,16 +477,233 @@ onMounted(() => {
         <BaseCard padding="lg">
           <h3 class="text-lg font-semibold text-foreground mb-4">Comments ({{ commentsTotal }})</h3>
 
-          <div v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest" class="mb-6">
-            <div
-              v-if="replyTo"
-              class="bg-surface-alt rounded-lg p-2 mb-2 flex justify-between items-center"
-            >
-              <span class="text-xs text-muted">Replying to {{ replyTo.author.display_name }}</span>
-              <button @click="replyTo = null" class="text-xs text-muted hover:text-foreground">
-                &times;
-              </button>
+          <div v-if="!post.allow_comments" class="text-sm text-muted mb-4">
+            Comments are disabled for this post.
+          </div>
+
+          <!-- Threaded comments -->
+          <div class="space-y-4">
+            <div v-if="commentTree.length === 0" class="text-sm text-muted text-center py-4">
+              No comments yet.
             </div>
+            <div
+              v-for="node in commentTree"
+              :key="node.root.id"
+              class="border-b border-border last:border-0 pb-4 last:pb-0"
+            >
+              <!-- Root comment -->
+              <div class="flex items-start gap-2 mb-1">
+                <router-link :to="`/users/${node.root.author.id}`">
+                  <BaseAvatar
+                    :src="node.root.author.avatar_url"
+                    :name="node.root.author.display_name"
+                    size="sm"
+                  />
+                </router-link>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <router-link
+                      :to="`/users/${node.root.author.id}`"
+                      class="text-sm font-medium text-foreground hover:text-brand-600 hover:underline"
+                    >
+                      {{ node.root.author.display_name }}
+                    </router-link>
+                    <span class="text-xs text-muted">{{
+                      new Date(node.root.created_at).toLocaleString()
+                    }}</span>
+                  </div>
+                  <template v-if="editingComment === node.root.id">
+                    <textarea
+                      v-model="editCommentContent"
+                      rows="3"
+                      class="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                    ></textarea>
+                    <div class="flex gap-2">
+                      <BaseButton
+                        size="sm"
+                        :loading="editCommentSaving"
+                        @click="saveEditComment(node.root.id)"
+                      >
+                        Save
+                      </BaseButton>
+                      <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
+                        >Cancel</BaseButton
+                      >
+                    </div>
+                  </template>
+                  <template v-else>
+                    <p
+                      class="text-sm text-foreground/80 mb-2"
+                      v-html="
+                        renderMentions(DOMPurify.sanitize(node.root.content), node.root.mentions)
+                      "
+                    ></p>
+                    <div class="flex items-center gap-3">
+                      <button
+                        v-for="r in ['LIKE', 'SMILE', 'CRY']"
+                        :key="r"
+                        @click="toggleReactionHandler(node.root.id, r)"
+                        class="text-xs px-2 py-0.5 rounded-full transition"
+                        :class="
+                          hasReacted(node.root, r)
+                            ? 'bg-brand-100 text-brand-700'
+                            : 'bg-surface-alt text-muted hover:bg-gray-100'
+                        "
+                      >
+                        {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
+                        {{ getReactionCount(node.root, r) || '' }}
+                      </button>
+                      <button
+                        v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest"
+                        @click="handleReply(node.root.id)"
+                        class="text-xs text-muted hover:text-brand-600"
+                      >
+                        Reply
+                      </button>
+                      <button
+                        v-if="canEditComment(node.root)"
+                        @click="startEditComment(node.root)"
+                        class="text-xs text-muted hover:text-brand-600"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        v-if="canDeleteComment(node.root)"
+                        @click="confirmDeleteComment(node.root.id)"
+                        class="text-xs text-danger-500 hover:text-danger-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </template>
+
+                  <!-- Inline reply input -->
+                  <div v-if="inlineReplyTo === node.root.id" class="mt-2">
+                    <textarea
+                      v-model="inlineReplyContent"
+                      rows="2"
+                      placeholder="Write a reply..."
+                      class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
+                    ></textarea>
+                    <div class="flex gap-2">
+                      <BaseButton
+                        size="sm"
+                        :loading="commentSaving"
+                        :disabled="!inlineReplyContent.trim()"
+                        @click="submitInlineReply"
+                      >
+                        Reply
+                      </BaseButton>
+                      <BaseButton size="sm" variant="secondary" @click="inlineReplyTo = null">
+                        Cancel
+                      </BaseButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reply comments -->
+              <div
+                v-for="reply in node.replies"
+                :key="reply.id"
+                class="pl-8 border-l-2 border-brand-100 mt-3"
+              >
+                <div class="flex items-start gap-2 mb-1">
+                  <router-link :to="`/users/${reply.author.id}`">
+                    <BaseAvatar
+                      :src="reply.author.avatar_url"
+                      :name="reply.author.display_name"
+                      size="sm"
+                    />
+                  </router-link>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <router-link
+                        :to="`/users/${reply.author.id}`"
+                        class="text-sm font-medium text-foreground hover:text-brand-600 hover:underline"
+                      >
+                        {{ reply.author.display_name }}
+                      </router-link>
+                      <span class="text-xs text-muted">{{
+                        new Date(reply.created_at).toLocaleString()
+                      }}</span>
+                    </div>
+                    <template v-if="editingComment === reply.id">
+                      <textarea
+                        v-model="editCommentContent"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                      ></textarea>
+                      <div class="flex gap-2">
+                        <BaseButton
+                          size="sm"
+                          :loading="editCommentSaving"
+                          @click="saveEditComment(reply.id)"
+                        >
+                          Save
+                        </BaseButton>
+                        <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
+                          >Cancel</BaseButton
+                        >
+                      </div>
+                    </template>
+                    <template v-else>
+                      <p
+                        class="text-sm text-foreground/80 mb-2"
+                        v-html="renderMentions(DOMPurify.sanitize(reply.content), reply.mentions)"
+                      ></p>
+                      <div class="flex items-center gap-3">
+                        <button
+                          v-for="r in ['LIKE', 'SMILE', 'CRY']"
+                          :key="r"
+                          @click="toggleReactionHandler(reply.id, r)"
+                          class="text-xs px-2 py-0.5 rounded-full transition"
+                          :class="
+                            hasReacted(reply, r)
+                              ? 'bg-brand-100 text-brand-700'
+                              : 'bg-surface-alt text-muted hover:bg-gray-100'
+                          "
+                        >
+                          {{
+                            r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
+                          }}
+                          {{ getReactionCount(reply, r) || '' }}
+                        </button>
+                        <button
+                          v-if="canEditComment(reply)"
+                          @click="startEditComment(reply)"
+                          class="text-xs text-muted hover:text-brand-600"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          v-if="canDeleteComment(reply)"
+                          @click="confirmDeleteComment(reply.id)"
+                          class="text-xs text-danger-500 hover:text-danger-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <BasePagination
+            v-if="commentTotalPages > 1"
+            :current-page="commentPage"
+            :total-pages="commentTotalPages"
+            @update:current-page="goToCommentPage"
+            class="mt-4"
+          />
+
+          <!-- Always-visible comment input -->
+          <div
+            v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest"
+            class="mt-6 border-t border-border pt-4"
+          >
             <BaseAlert v-if="commentMessage" type="error" class="mb-2">{{
               commentMessage
             }}</BaseAlert>
@@ -382,101 +721,6 @@ onMounted(() => {
               >Post Comment</BaseButton
             >
           </div>
-
-          <div v-else-if="!post.allow_comments" class="text-sm text-muted mb-4">
-            Comments are disabled for this post.
-          </div>
-
-          <div class="space-y-4">
-            <div v-if="comments.length === 0" class="text-sm text-muted text-center py-4">
-              No comments yet.
-            </div>
-            <div
-              v-for="comment in comments"
-              :key="comment.id"
-              class="border-b border-border last:border-0 pb-4 last:pb-0"
-              :class="{ 'pl-8 border-l-2 border-brand-100': comment.parent_id }"
-            >
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-sm font-medium text-foreground">{{
-                  comment.author.display_name
-                }}</span>
-                <span class="text-xs text-muted">{{
-                  new Date(comment.created_at).toLocaleString()
-                }}</span>
-              </div>
-              <template v-if="editingComment === comment.id">
-                <textarea
-                  v-model="editCommentContent"
-                  rows="3"
-                  class="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                ></textarea>
-                <div class="flex gap-2">
-                  <BaseButton
-                    size="sm"
-                    :loading="editCommentSaving"
-                    @click="saveEditComment(comment.id)"
-                  >
-                    Save
-                  </BaseButton>
-                  <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
-                    >Cancel</BaseButton
-                  >
-                </div>
-              </template>
-              <template v-else>
-                <p
-                  class="text-sm text-foreground/80 mb-2"
-                  v-html="renderMentions(DOMPurify.sanitize(comment.content), comment.mentions)"
-                ></p>
-                <div class="flex items-center gap-3">
-                  <button
-                    v-for="r in ['LIKE', 'SMILE', 'CRY']"
-                    :key="r"
-                    @click="toggleReactionHandler(comment.id, r)"
-                    class="text-xs px-2 py-0.5 rounded-full transition"
-                    :class="
-                      hasReacted(comment, r)
-                        ? 'bg-brand-100 text-brand-700'
-                        : 'bg-surface-alt text-muted hover:bg-gray-100'
-                    "
-                  >
-                    {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
-                    {{ getReactionCount(comment, r) || '' }}
-                  </button>
-                  <button
-                    v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest"
-                    @click="replyTo = comment"
-                    class="text-xs text-muted hover:text-brand-600"
-                  >
-                    Reply
-                  </button>
-                  <button
-                    v-if="canEditComment(comment)"
-                    @click="startEditComment(comment)"
-                    class="text-xs text-muted hover:text-brand-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    v-if="canDeleteComment(comment)"
-                    @click="confirmDeleteComment(comment.id)"
-                    class="text-xs text-danger-500 hover:text-danger-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <BasePagination
-            v-if="commentTotalPages > 1"
-            :current-page="commentPage"
-            :total-pages="commentTotalPages"
-            @update:current-page="goToCommentPage"
-            class="mt-4"
-          />
         </BaseCard>
       </div>
     </template>

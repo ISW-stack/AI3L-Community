@@ -153,9 +153,17 @@ async def get_member_role_in_conn(sig_id: uuid.UUID, user_id: uuid.UUID, conn: A
 
 
 async def count_admins(sig_id: uuid.UUID, conn: Any) -> int:
-    """Count admins with FOR UPDATE lock to serialize concurrent leave/demote operations."""
+    """Count admins with FOR UPDATE lock to serialize concurrent leave/demote operations.
+
+    Excludes soft-deleted users so that deactivated accounts are not counted as active admins.
+    """
     rows = await conn.fetch(
-        "SELECT id FROM sig_members WHERE sig_id = $1 AND role = 'ADMIN' FOR UPDATE",
+        """
+        SELECT sm.id FROM sig_members sm
+        JOIN users u ON sm.user_id = u.id
+        WHERE sm.sig_id = $1 AND sm.role = 'ADMIN' AND u.is_deleted = false
+        FOR UPDATE
+        """,
         sig_id,
     )
     return len(rows)
@@ -296,7 +304,7 @@ async def find_members(
         )
         rows = await conn.fetch(
             """
-            SELECT sm.*, u.display_name, u.username
+            SELECT sm.*, u.display_name, u.username, u.avatar_url
             FROM sig_members sm
             JOIN users u ON sm.user_id = u.id
             WHERE sm.sig_id = $1

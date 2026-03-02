@@ -41,9 +41,14 @@ class ConflictError(AppError):
         super().__init__(ErrorCode.SYS_409, 409, detail)
 
 
-class RateLimitError(AppError):
+class RateLimitError(ValueError):
+    """Domain-level rate limit error (not an HTTP exception).
+
+    Raised by service layer; endpoints should catch and map to 429.
+    """
+
     def __init__(self, detail: str = "Too many requests. Try again later."):
-        super().__init__(ErrorCode.SYS_429, 429, detail)
+        super().__init__(detail)
 
 
 class ValidationError(AppError):

@@ -1,9 +1,18 @@
+import os
+
+
+def _rate_limit(env_key: str, default_max: int, default_window: int) -> tuple[int, int]:
+    max_val = int(os.getenv(f"RATE_LIMIT_{env_key}_MAX", str(default_max)))
+    window = int(os.getenv(f"RATE_LIMIT_{env_key}_WINDOW", str(default_window)))
+    return (max_val, window)
+
+
 # Rate limits (max_count, window_seconds)
-RATE_LIMIT_LOGIN = (10, 60)
-RATE_LIMIT_REGISTER = (5, 60)
-RATE_LIMIT_GUEST = (10, 60)
-RATE_LIMIT_COMMENT = (30, 60)
-RATE_LIMIT_REPORT = (5, 60)
+RATE_LIMIT_LOGIN = _rate_limit("LOGIN", 10, 60)
+RATE_LIMIT_REGISTER = _rate_limit("REGISTER", 5, 60)
+RATE_LIMIT_GUEST = _rate_limit("GUEST", 10, 60)
+RATE_LIMIT_COMMENT = _rate_limit("COMMENT", 30, 60)
+RATE_LIMIT_REPORT = _rate_limit("REPORT", 5, 60)
 
 # Entity limits
 MAX_POSTS_PER_DAY = 50
@@ -37,6 +46,6 @@ CAPTCHA_TTL = 300
 CAPTCHA_LENGTH = 4
 
 # Additional rate limits
-RATE_LIMIT_CAPTCHA = (20, 60)
-RATE_LIMIT_FILE_UPLOAD = (10, 60)
-RATE_LIMIT_FORM_SUBMIT = (5, 60)
+RATE_LIMIT_CAPTCHA = _rate_limit("CAPTCHA", 20, 60)
+RATE_LIMIT_FILE_UPLOAD = _rate_limit("FILE_UPLOAD", 10, 60)
+RATE_LIMIT_FORM_SUBMIT = _rate_limit("FORM_SUBMIT", 5, 60)

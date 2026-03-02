@@ -24,7 +24,7 @@ class QuestionSchema(BaseModel):
     ]
     label: str
     required: bool = True
-    placeholder: str | None = None
+    placeholder: str | None = Field(None, max_length=500)
     max_length: int | None = None
     options: list[QuestionOption] | None = None
     min: int | None = None
@@ -41,6 +41,7 @@ class FormCreateRequest(BaseModel):
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)
     questions: list[QuestionSchema] = Field(..., min_length=1)
+    allow_non_members: bool = False
 
 
 class FormUpdateRequest(BaseModel):
@@ -50,6 +51,7 @@ class FormUpdateRequest(BaseModel):
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)
     questions: list[QuestionSchema] | None = None
+    allow_non_members: bool | None = None
 
 
 class FormResponseSchema(BaseModel):
@@ -62,6 +64,7 @@ class FormResponseSchema(BaseModel):
     max_respondents: int | None = None
     questions: list[dict[str, Any]]
     is_schema_locked: bool
+    allow_non_members: bool = False
     response_count: int
     is_active: bool
     created_by: str

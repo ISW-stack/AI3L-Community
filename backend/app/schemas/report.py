@@ -19,6 +19,8 @@ class PostReportResponse(BaseModel):
 class PostReportListResponse(BaseModel):
     reports: list[PostReportResponse]
     total: int
+    current_page: int
+    total_pages: int
 
 
 class PostReportReviewRequest(BaseModel):
