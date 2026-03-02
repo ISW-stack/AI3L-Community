@@ -1,3 +1,16 @@
+# Stage 0: Dev server (used by docker-compose.override.yml for local development)
+FROM node:20-alpine AS dev
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Source code is bind-mounted at runtime (./frontend:/app)
+# node_modules is kept via anonymous volume to avoid being overwritten by the bind mount
+EXPOSE 3210
+CMD ["npm", "run", "dev"]
+
 # Stage 1: Build
 FROM node:20-alpine AS build
 

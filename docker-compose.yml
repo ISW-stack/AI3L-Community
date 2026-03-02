@@ -29,6 +29,18 @@ services:
     networks:
       - ai3l-network
 
+  migrate:
+    build: ./backend
+    command: ["alembic", "upgrade", "head"]
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - ai3l-network
+
   fastapi:
     build: ./backend
     restart: unless-stopped
@@ -37,8 +49,8 @@ services:
     env_file:
       - .env
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       minio:
@@ -129,9 +141,9 @@ services:
     env_file:
       - .env
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
     deploy:
       resources:
@@ -154,9 +166,9 @@ services:
     env_file:
       - .env
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
     deploy:
       resources:
