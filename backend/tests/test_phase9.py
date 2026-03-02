@@ -57,8 +57,7 @@ class TestInviteCodeConsumption:
             patch(
                 f"{_EP}.auth.user_exists_by_username", new_callable=AsyncMock, return_value=False
             ),
-            patch(f"{_EP}.auth.create_user", new_callable=AsyncMock, return_value=user_row),
-            patch(f"{_EP}.auth.consume_invite_code", new_callable=AsyncMock),
+            patch(f"{_EP}.auth.register_new_user", new_callable=AsyncMock, return_value=user_row),
             patch(f"{_EP}.auth.create_session", new_callable=AsyncMock, return_value=("tok", 3600)),
         ):
             resp1 = await client.post(

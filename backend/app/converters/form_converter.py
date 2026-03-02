@@ -22,6 +22,7 @@ def row_to_form(row: dict, response_count: int = 0) -> dict:
             json.loads(row["questions"]) if isinstance(row["questions"], str) else row["questions"]
         ),
         "is_schema_locked": row.get("is_schema_locked", False),
+        "allow_non_members": row.get("allow_non_members", False),
         "response_count": response_count,
         "is_active": is_active,
         "created_by": str(row["created_by"]),

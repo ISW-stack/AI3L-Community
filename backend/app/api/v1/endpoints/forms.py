@@ -63,6 +63,7 @@ async def create_new_form(
             deadline=req.deadline,
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions],
+            allow_non_members=req.allow_non_members,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -108,7 +109,21 @@ async def update_existing_form(
     req: FormUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormResponseSchema:
-    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    # Fetch form to validate SIG ownership
+    existing_form = await get_form_by_id(form_id)
+    if existing_form is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+
+    is_sig_admin = await _check_sig_admin(
+        uuid.UUID(existing_form["sig_id"]), current_user["sub"], current_user["role"]
+    )
+    if not is_sig_admin and existing_form["created_by"] != current_user["sub"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only SIG admins or the form creator can update this form.",
+        )
+
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN") or is_sig_admin
     try:
         form = await update_form(
             form_id=form_id,
@@ -120,6 +135,7 @@ async def update_existing_form(
             deadline=req.deadline,
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions] if req.questions else None,
+            allow_non_members=req.allow_non_members,
         )
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
@@ -190,6 +206,8 @@ async def submit_form_response(
             user_id=current_user["sub"],
             answers=req.answers,
         )
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
         detail = str(e)
         if "already submitted" in detail.lower():

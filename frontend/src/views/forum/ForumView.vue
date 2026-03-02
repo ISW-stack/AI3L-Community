@@ -7,9 +7,9 @@ import { listPosts, searchPosts } from '@/api/posts'
 import { listCategories } from '@/api/categories'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
-import BaseBadge from '@/components/base/BaseBadge.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
 const route = useRoute()
@@ -35,8 +35,8 @@ const isSearching = ref(false)
 async function fetchCategories() {
   try {
     categories.value = await listCategories()
-  } catch {
-    /* silent */
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -66,8 +66,8 @@ async function fetchPosts() {
     total.value = data.total
     totalPages.value = data.total_pages
     isSearching.value = false
-  } catch {
-    /* error */
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
@@ -96,8 +96,8 @@ async function doSearch() {
     posts.value = data.posts
     total.value = data.total
     totalPages.value = data.total_pages
-  } catch {
-    /* error */
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
@@ -123,12 +123,6 @@ function goToPage(page: number) {
   }
 }
 
-function stripHtml(html: string): string {
-  const div = document.createElement('div')
-  div.innerHTML = html
-  return div.textContent || ''
-}
-
 watch(categoryFilter, () => {
   currentPage.value = 1
   if (!isSearching.value) fetchPosts()
@@ -148,7 +142,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
+  <div class="max-w-2xl mx-auto">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">Forum</h1>
       <router-link v-if="auth.isAuthenticated && !auth.isGuest" to="/forum/create">
@@ -215,28 +209,11 @@ onMounted(() => {
       action-to="/forum/create"
     />
 
-    <div class="space-y-3">
-      <router-link v-for="post in posts" :key="post.id" :to="`/forum/${post.id}`" class="block">
-        <BaseCard hoverable>
-          <div class="flex justify-between items-start mb-2">
-            <h2 class="text-lg font-semibold text-foreground">{{ post.title }}</h2>
-            <BaseBadge v-if="post.category_name" class="shrink-0 ml-3">{{
-              post.category_name
-            }}</BaseBadge>
-          </div>
-          <p class="text-sm text-muted mb-3 line-clamp-2">{{ stripHtml(post.content) }}</p>
-          <div class="flex items-center justify-between text-xs text-muted">
-            <div class="flex items-center gap-3">
-              <span>{{ post.author.display_name }}</span>
-              <span>{{ new Date(post.created_at).toLocaleDateString() }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <span v-if="post.keywords?.length">{{ post.keywords.slice(0, 3).join(', ') }}</span>
-              <span>{{ post.comment_count }} comments</span>
-            </div>
-          </div>
-        </BaseCard>
-      </router-link>
+    <!-- FB-style Feed -->
+    <div class="space-y-4">
+      <div v-for="post in posts" :key="post.id">
+        <PostCard :post="post" />
+      </div>
     </div>
 
     <div class="mt-6">

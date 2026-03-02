@@ -11,6 +11,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,6 +37,7 @@ const canExport = computed(() => {
   if (!form.value) return false
   return auth.isAdmin || form.value.user_is_sig_admin
 })
+const formShareUrl = computed(() => `${window.location.origin}/forms/${formId.value}`)
 
 async function fetchForm() {
   loading.value = true
@@ -219,6 +221,7 @@ onUnmounted(() => {
           <span v-if="form.max_respondents">Max: {{ form.max_respondents }}</span>
         </div>
         <div v-if="auth.isAuthenticated" class="flex items-center gap-2 mt-4">
+          <CopyShareLinkButton :url="formShareUrl" />
           <router-link
             v-if="canEdit"
             :to="`/forms/${form.id}/edit`"

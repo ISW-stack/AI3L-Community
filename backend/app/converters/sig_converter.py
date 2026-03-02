@@ -18,5 +18,6 @@ def row_to_member(row: dict) -> dict:
         "role": row["role"],
         "display_name": row["display_name"],
         "username": row["username"],
+        "avatar_url": row.get("avatar_url"),
         "created_at": row["created_at"].isoformat(),
     }

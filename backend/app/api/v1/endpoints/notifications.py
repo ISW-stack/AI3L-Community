@@ -1,10 +1,15 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.core.deps import get_current_user
+from app.repositories import notification_repo
 from app.schemas.auth import MessageResponse
-from app.schemas.notification import NotificationListResponse, NotificationResponse
+from app.schemas.notification import (
+    BulkDeleteNotificationsRequest,
+    NotificationListResponse,
+    NotificationResponse,
+)
 from app.services.notification import (
     delete_notification,
     list_notifications,
@@ -19,7 +24,7 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 async def get_notifications(
     unread: bool = Query(False),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=0, le=100),
+    page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> NotificationListResponse:
     notifications, total, unread_count = await list_notifications(
@@ -47,6 +52,18 @@ async def read_notification(
             detail="Notification not found or already read.",
         )
     return MessageResponse(message="Notification marked as read.")
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def bulk_delete_notifications(
+    req: BulkDeleteNotificationsRequest | None = None,
+    current_user: dict = Depends(get_current_user),
+) -> Response:
+    ids = None
+    if req and req.notification_ids:
+        ids = [uuid.UUID(nid) for nid in req.notification_ids]
+    await notification_repo.bulk_delete(uuid.UUID(current_user["sub"]), ids)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete("/{notification_id}", response_model=MessageResponse)

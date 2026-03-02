@@ -68,19 +68,17 @@ class TestUpdateUserProfile:
 
 class TestBanUser:
     @patch("app.services.user.emit", new_callable=AsyncMock)
-    @patch("app.services.user.get_redis")
+    @patch("app.services.auth.revoke_user_sessions", new_callable=AsyncMock)
     @patch("app.repositories.user_repo.get_pool")
-    async def test_ban_user(self, mock_get_pool, mock_get_redis, mock_emit, mock_pool, mock_conn):
+    async def test_ban_user(self, mock_get_pool, mock_revoke, mock_emit, mock_pool, mock_conn):
         from app.services.user import ban_user
 
         mock_conn.execute.return_value = "UPDATE 1"
         mock_get_pool.return_value = mock_pool
 
-        redis = AsyncMock()
-        mock_get_redis.return_value = redis
-
         result = await ban_user(uuid.uuid4(), "spam")
         assert result is True
+        mock_revoke.assert_called_once()
 
 
 class TestUnbanUser:

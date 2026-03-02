@@ -5,6 +5,7 @@ export async function listPosts(params: {
   page?: number
   page_size?: number
   category_id?: string
+  author_id?: string
   sort?: string
 }) {
   const { data } = await api.get('/posts', { params })

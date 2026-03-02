@@ -169,6 +169,7 @@ async def find_many(
     page_size: int = 20,
     category_id: uuid.UUID | None = None,
     sig_id: uuid.UUID | None = None,
+    author_id: uuid.UUID | None = None,
     sort: str = "newest",
 ) -> tuple[list[dict], int, int]:
     pool = get_pool()
@@ -189,9 +190,17 @@ async def find_many(
         params.append(sig_id)
         idx += 1
 
+    if author_id:
+        where += f" AND p.user_id = ${idx}"
+        params.append(author_id)
+        idx += 1
+
     _select_count = _POST_SELECT.replace(
         "FROM posts p", ", COUNT(*) OVER() AS _total\n    FROM posts p", 1
     )
+
+    # Save params before extending with LIMIT/OFFSET for potential fallback count query
+    count_params = list(params)
 
     async with pool.acquire() as conn:
         params.extend([page_size, offset])
@@ -203,7 +212,11 @@ async def find_many(
             total = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
-            total = 0
+            # Page may be out of range — do a separate count to get real total
+            total = await conn.fetchval(
+                f"SELECT COUNT(*) FROM posts p {where}",
+                *count_params,
+            )
             result = []
         total_pages = max(1, math.ceil(total / page_size))
         return result, total, total_pages
@@ -260,6 +273,9 @@ async def search(
         "FROM posts p", ", COUNT(*) OVER() AS _total\n    FROM posts p", 1
     )
 
+    # Save params before extending with LIMIT/OFFSET for potential fallback count query
+    count_params = list(params)
+
     async with pool.acquire() as conn:
         params.extend([page_size, offset])
         rows = await conn.fetch(
@@ -270,7 +286,11 @@ async def search(
             total = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
-            total = 0
+            # Page may be out of range — do a separate count to get real total
+            total = await conn.fetchval(
+                f"SELECT COUNT(*) FROM posts p {where}",
+                *count_params,
+            )
             result = []
         total_pages = max(1, math.ceil(total / page_size))
         return result, total, total_pages

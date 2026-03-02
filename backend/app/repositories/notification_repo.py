@@ -66,6 +66,9 @@ async def find_many(
             )
             return [], row["total"], row["unread_count"]
 
+        # Save params before extending with LIMIT/OFFSET for potential fallback count query
+        count_params = list(params)
+
         params.extend([page_size, offset])
         rows = await conn.fetch(
             f"""
@@ -86,7 +89,11 @@ async def find_many(
             total = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
-            total = 0
+            # Page may be out of range — do a separate count to get real total
+            total = await conn.fetchval(
+                f"SELECT COUNT(*) FROM notifications n {where}",
+                *count_params,
+            )
             result = []
 
         # Get unread count in same connection
@@ -128,6 +135,25 @@ async def delete(notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:
             user_id,
         )
         return bool(result == "DELETE 1")
+
+
+async def bulk_delete(user_id: uuid.UUID, notification_ids: list[uuid.UUID] | None = None) -> int:
+    """Delete specific notifications or all notifications for a user.
+    Returns the number of deleted rows."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        if notification_ids:
+            result = await conn.execute(
+                "DELETE FROM notifications WHERE user_id = $1 AND id = ANY($2::uuid[])",
+                user_id,
+                notification_ids,
+            )
+        else:
+            result = await conn.execute(
+                "DELETE FROM notifications WHERE user_id = $1",
+                user_id,
+            )
+        return int(result.split(" ")[1]) if result else 0
 
 
 async def count_unread(user_id: uuid.UUID) -> int:

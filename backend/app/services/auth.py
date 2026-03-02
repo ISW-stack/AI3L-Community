@@ -1,3 +1,5 @@
+import json
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -6,6 +8,7 @@ from loguru import logger
 from app.core.constants import MAX_GUESTS
 from app.core.redis import get_redis
 from app.core.security import ROLE_TTL_MAP, create_access_token, verify_password
+from app.models.user import UserRole
 from app.repositories import auth_repo
 from app.services.user import get_user_by_username
 
@@ -124,3 +127,75 @@ async def create_invite_code(user_id: str) -> tuple[str, datetime]:
     await auth_repo.insert_invite_code(uuid.uuid4(), code, uuid.UUID(user_id), expires_at)
     logger.info("Invite code created", extra={"user_id": user_id, "code": code})
     return code, expires_at
+
+
+async def revoke_user_sessions(user_id: str) -> None:
+    """Revoke all Redis sessions for a user (all roles) in one batch delete."""
+    redis = get_redis()
+    session_keys = [SESSION_KEY_TEMPLATE.format(role=r.value, user_id=user_id) for r in UserRole]
+    await redis.delete(*session_keys)
+    logger.info("All sessions revoked", extra={"user_id": user_id})
+
+
+async def create_ws_ticket(user_payload: dict) -> str:
+    """Generate a one-time WebSocket authentication ticket (30s TTL).
+
+    Returns the ticket string.
+    """
+    ticket = secrets.token_urlsafe(32)
+    redis = get_redis()
+    await redis.set(
+        f"ws:ticket:{ticket}",
+        json.dumps(
+            {
+                "sub": user_payload["sub"],
+                "role": user_payload["role"],
+                "jti": user_payload["jti"],
+            }
+        ),
+        ex=30,
+    )
+    return ticket
+
+
+async def register_new_user(
+    username: str,
+    password: str,
+    display_name: str,
+    invite_code: str,
+) -> dict:
+    """Create user and consume invite code in a single DB transaction.
+
+    Returns the created user dict.
+    """
+    from app.core.database import get_pool
+    from app.core.security import hash_password
+
+    user_id = uuid.uuid4()
+    pw_hash = hash_password(password)
+    if not display_name:
+        display_name = username
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                """
+                INSERT INTO users (id, username, password_hash, role, display_name)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+                """,
+                user_id,
+                username,
+                pw_hash,
+                UserRole.MEMBER.value,
+                display_name,
+            )
+            await conn.execute(
+                "UPDATE invite_codes SET consumed_at = NOW(), consumed_by = $1 WHERE code = $2",
+                user_id,
+                invite_code,
+            )
+    user = dict(row)
+    logger.info("User registered", extra={"user_id": str(user_id), "invite_code": invite_code})
+    return user

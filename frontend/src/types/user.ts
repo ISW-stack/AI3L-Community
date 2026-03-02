@@ -18,3 +18,15 @@ export interface UserProfile {
   ban_reason: string | null
   created_at: string
 }
+
+export interface PublicUser {
+  id: string
+  username: string
+  display_name: string
+  role: string
+  avatar_url: string | null
+  bio: string | null
+  affiliation: string | null
+  orcid: string | null
+  created_at: string
+}

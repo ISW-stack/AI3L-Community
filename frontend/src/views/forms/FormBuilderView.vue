@@ -34,6 +34,7 @@ const deadline = ref('')
 const maxRespondents = ref<number | null>(null)
 const questions = ref<Question[]>([])
 const isSchemaLocked = ref(false)
+const allowNonMembers = ref(false)
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
@@ -99,6 +100,7 @@ async function fetchForm() {
     deadline.value = data.deadline ? data.deadline.slice(0, 16) : ''
     maxRespondents.value = data.max_respondents
     isSchemaLocked.value = data.is_schema_locked
+    allowNonMembers.value = data.allow_non_members ?? false
     questions.value = data.questions.map((q: any) => ({
       id: q.id,
       type: q.type,
@@ -174,6 +176,7 @@ async function saveForm() {
       banner_url: bannerUrl.value.trim() || null,
       deadline: deadline.value ? new Date(deadline.value).toISOString() : null,
       max_respondents: maxRespondents.value || null,
+      allow_non_members: allowNonMembers.value,
     }
     if (isEdit.value) {
       if (!isSchemaLocked.value) payload.questions = questions.value.map(serializeQuestion)
@@ -256,6 +259,13 @@ onMounted(() => {
             />
           </div>
         </div>
+        <label class="flex items-center gap-2 text-sm text-foreground mt-4">
+          <input type="checkbox" v-model="allowNonMembers" class="rounded" />
+          Allow non-SIG members to submit this form
+        </label>
+        <p class="text-xs text-muted mt-1">
+          When enabled, any authenticated user can fill out this form.
+        </p>
       </BaseCard>
 
       <div class="mb-6">

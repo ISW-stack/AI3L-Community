@@ -40,14 +40,17 @@ async def report_post(
 @router.get("/admin/reports", response_model=PostReportListResponse)
 async def get_reports(
     status_filter: str | None = None,
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> PostReportListResponse:
-    reports, total = await list_reports(status_filter=status_filter, offset=offset, limit=limit)
+    reports, total = await list_reports(status_filter=status_filter, page=page, page_size=page_size)
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 1
     return PostReportListResponse(
         reports=[PostReportResponse(**r) for r in reports],
         total=total,
+        current_page=page,
+        total_pages=total_pages,
     )
 
 

@@ -31,18 +31,32 @@ async def find_many(
     page: int = 1,
     page_size: int = 50,
     user_id_filter: uuid.UUID | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> tuple[list[dict], int]:
     pool = get_pool()
     offset = (page - 1) * page_size
 
-    where = ""
+    conditions: list[str] = []
     params: list = []
     idx = 1
 
     if user_id_filter:
-        where = f"WHERE al.user_id = ${idx}"
+        conditions.append(f"al.user_id = ${idx}")
         params.append(user_id_filter)
         idx += 1
+
+    if date_from:
+        conditions.append(f"al.created_at >= ${idx}::timestamptz")
+        params.append(date_from)
+        idx += 1
+
+    if date_to:
+        conditions.append(f"al.created_at <= ${idx}::timestamptz")
+        params.append(date_to)
+        idx += 1
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
     async with pool.acquire() as conn:
         total = await conn.fetchval(

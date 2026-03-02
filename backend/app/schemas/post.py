@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PostCreateRequest(BaseModel):
@@ -9,6 +9,15 @@ class PostCreateRequest(BaseModel):
     keywords: list[str] | None = Field(None, max_length=15)
     allow_comments: bool = True
 
+    @field_validator("keywords")
+    @classmethod
+    def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
+        if v:
+            for kw in v:
+                if len(kw) > 100:
+                    raise ValueError("Each keyword must be 100 characters or fewer.")
+        return v
+
 
 class PostUpdateRequest(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
@@ -17,6 +26,15 @@ class PostUpdateRequest(BaseModel):
     keywords: list[str] | None = Field(None, max_length=15)
     allow_comments: bool | None = None
     version: int = Field(..., description="Current version for optimistic locking")
+
+    @field_validator("keywords")
+    @classmethod
+    def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
+        if v:
+            for kw in v:
+                if len(kw) > 100:
+                    raise ValueError("Each keyword must be 100 characters or fewer.")
+        return v
 
 
 class PostAuthorResponse(BaseModel):

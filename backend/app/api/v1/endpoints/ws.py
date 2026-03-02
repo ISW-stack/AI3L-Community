@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from collections import defaultdict
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
@@ -46,16 +47,24 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     logger.info("WebSocket connected", extra={"user_id": user_id, "role": role})
 
     guest_timeout_task = None
+    last_activity = time.time()
     try:
         last_pong = asyncio.get_event_loop().time()
 
-        # Schedule guest force-logout after 45 minutes
+        # Guest inactivity timeout — resets on each received message/pong
         if role == "GUEST":
 
             async def _guest_timeout() -> None:
-                await asyncio.sleep(GUEST_SESSION_TIMEOUT)
-                logger.info("Guest session timeout", extra={"user_id": user_id})
-                await force_logout(user_id)
+                while True:
+                    elapsed = time.time() - last_activity
+                    remaining = GUEST_SESSION_TIMEOUT - elapsed
+                    if remaining <= 0:
+                        logger.info(
+                            "Guest session timeout (inactivity)", extra={"user_id": user_id}
+                        )
+                        await force_logout(user_id)
+                        return
+                    await asyncio.sleep(min(remaining, 60))
 
             guest_timeout_task = asyncio.create_task(_guest_timeout())
 
@@ -70,6 +79,9 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                 try:
                     await ws.send_json({"type": "PING", "timestamp": now})
                 except Exception:
+                    logger.debug(
+                        "WebSocket ping send failed, closing loop", extra={"user_id": user_id}
+                    )
                     return
 
         ping_task = asyncio.create_task(ping_loop())
@@ -77,6 +89,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
         while True:
             data = await ws.receive_text()
             msg = json.loads(data)
+            last_activity = time.time()
 
             if msg.get("type") == "PONG":
                 last_pong = asyncio.get_event_loop().time()
@@ -122,6 +135,10 @@ async def _local_send(user_id: str, message: dict) -> None:
         try:
             await ws.send_json(message)
         except Exception:
+            logger.debug(
+                "Failed to send WS message to user, discarding connection",
+                extra={"user_id": user_id},
+            )
             _connections[user_id].discard(ws)
 
 
@@ -132,7 +149,9 @@ async def _local_force_logout(user_id: str) -> None:
             await ws.send_json({"type": "FORCE_LOGOUT"})
             await ws.close(code=4003, reason="Session expired")
         except Exception:
-            pass
+            logger.warning(
+                "Failed to send force logout to user", extra={"user_id": user_id}, exc_info=True
+            )
     _connections.pop(user_id, None)
 
 

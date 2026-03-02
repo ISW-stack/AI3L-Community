@@ -33,10 +33,14 @@ async def list_audit_logs(
     page: int = 1,
     page_size: int = 50,
     user_id_filter: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> tuple[list[dict], int]:
-    """Return paginated audit logs. Optionally filter by user_id."""
+    """Return paginated audit logs. Optionally filter by user_id and date range."""
     filter_uuid = uuid.UUID(user_id_filter) if user_id_filter else None
-    rows, total = await audit_repo.find_many(page, page_size, filter_uuid)
+    rows, total = await audit_repo.find_many(
+        page, page_size, filter_uuid, date_from=date_from, date_to=date_to
+    )
 
     logs = []
     for r in rows:

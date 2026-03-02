@@ -6,18 +6,18 @@
   /* Typography — Inter Variable only */
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
-  /* Brand Primary — Oxford Blue scale */
-  --color-brand-50: #e6eef8;
-  --color-brand-100: #b3cce8;
-  --color-brand-200: #80a9d8;
-  --color-brand-300: #4d87c8;
-  --color-brand-400: #2670b8;
-  --color-brand-500: #0059a8;
-  --color-brand-600: #004a8c;
-  --color-brand-700: #003b70;
-  --color-brand-800: #002c54;
-  --color-brand-900: #002147;
-  --color-brand-950: #001528;
+  /* Brand Primary — Bright Blue scale */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
 
   /* Semantic — Success */
   --color-success-50: #ecfdf5;
@@ -53,40 +53,6 @@
   --color-border: #e5e7eb;
   --color-muted: #6b7280;
   --color-foreground: #111827;
-}
-
-/* Dark mode overrides */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Surface & Neutral */
-    --color-surface: #1a1a2e;
-    --color-surface-alt: #16213e;
-    --color-border: #334155;
-    --color-muted: #94a3b8;
-    --color-foreground: #f1f5f9;
-
-    /* Brand adjustments for dark backgrounds */
-    --color-brand-50: #0a1628;
-    --color-brand-100: #0d2240;
-    --color-brand-600: #3b82f6;
-    --color-brand-700: #60a5fa;
-
-    /* Semantic — Success */
-    --color-success-50: #1a2e1f;
-    --color-success-100: #1f3d24;
-
-    /* Semantic — Warning */
-    --color-warning-50: #2e2a1a;
-    --color-warning-100: #3d3520;
-
-    /* Semantic — Danger */
-    --color-danger-50: #2d1f1f;
-    --color-danger-100: #3d2020;
-
-    /* Semantic — Info */
-    --color-info-50: #1a2240;
-    --color-info-100: #1f2d50;
-  }
 }
 
 /* Page transition */

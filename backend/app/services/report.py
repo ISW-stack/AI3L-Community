@@ -17,10 +17,11 @@ async def create_report(post_id: uuid.UUID, user_id: str, reason: str) -> dict:
 
 async def list_reports(
     status_filter: str | None = None,
-    offset: int = 0,
-    limit: int = 50,
+    page: int = 1,
+    page_size: int = 50,
 ) -> tuple[list[dict], int]:
-    rows, total = await report_repo.find_many(status_filter, offset, limit)
+    offset = (page - 1) * page_size
+    rows, total = await report_repo.find_many(status_filter, offset, page_size)
     return [row_to_report(r) for r in rows], total
 
 

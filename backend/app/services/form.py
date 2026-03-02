@@ -20,6 +20,7 @@ async def create_form(
     deadline: datetime | None,
     max_respondents: int | None,
     questions: list[dict],
+    allow_non_members: bool = False,
 ) -> dict:
     active_count = await form_repo.count_active(uuid.UUID(sig_id))
     if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
@@ -36,6 +37,7 @@ async def create_form(
         deadline,
         max_respondents,
         questions,
+        allow_non_members,
     )
     return row_to_form(result, 0)
 
@@ -57,6 +59,7 @@ async def update_form(
     deadline: datetime | None = None,
     max_respondents: int | None = None,
     questions: list[dict] | None = None,
+    allow_non_members: bool | None = None,
 ) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -80,6 +83,7 @@ async def update_form(
             ("banner_url", banner_url),
             ("deadline", deadline),
             ("max_respondents", max_respondents),
+            ("allow_non_members", allow_non_members),
         ]:
             if value is not None:
                 fields.append(f"{field_name} = ${idx}")
@@ -145,6 +149,15 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             form = await form_repo.find_for_update(form_id, conn)
             if not form:
                 raise ValueError("Form not found.")
+
+            if not form.get("allow_non_members", False):
+                from app.repositories import sig_repo
+
+                role = await sig_repo.get_member_role_in_conn(
+                    form["sig_id"], uuid.UUID(user_id), conn
+                )
+                if role is None:
+                    raise PermissionError("Only SIG members can submit this form.")
 
             now = datetime.now(timezone.utc)
             if form["deadline"] and form["deadline"] < now:

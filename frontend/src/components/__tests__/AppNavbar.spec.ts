@@ -149,6 +149,12 @@ describe('AppNavbar', () => {
       auth.setSession('ADMIN', 3600)
       await nextTick()
 
+      // Admin links are inside a dropdown — click the "Admin" button to open it
+      const adminBtn = wrapper.find('.admin-dropdown-wrapper button')
+      expect(adminBtn.exists()).toBe(true)
+      await adminBtn.trigger('click')
+      await nextTick()
+
       expect(wrapper.text()).toContain('Dashboard')
       expect(wrapper.text()).toContain('Users')
       expect(wrapper.text()).toContain('Applications')
@@ -180,6 +186,12 @@ describe('AppNavbar', () => {
     it('should show admin links including Audit Logs', async () => {
       const { wrapper, auth } = mountNavbar()
       auth.setSession('SUPER_ADMIN', 3600)
+      await nextTick()
+
+      // Admin links are inside a dropdown — click the "Admin" button to open it
+      const adminBtn = wrapper.find('.admin-dropdown-wrapper button')
+      expect(adminBtn.exists()).toBe(true)
+      await adminBtn.trigger('click')
       await nextTick()
 
       expect(wrapper.text()).toContain('Dashboard')
