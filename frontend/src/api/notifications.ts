@@ -23,10 +23,3 @@ export async function markRead(notificationId: string) {
 export async function markAllRead() {
   await api.put('/notifications/read-all')
 }
-
-export async function getUnreadCount() {
-  const { data } = await api.get('/notifications', {
-    params: { unread: true, page_size: 0 },
-  })
-  return data.unread_count as number
-}

@@ -8,6 +8,7 @@ const props = defineProps<{
   error?: string
   disabled?: boolean
   placeholder?: string
+  maxlength?: number
   id?: string
 }>()
 
@@ -33,6 +34,7 @@ const inputId = computed(
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"
+      :maxlength="maxlength"
       :class="[
         'w-full px-3 py-2 border rounded-lg outline-none transition text-foreground placeholder:text-muted',
         error
