@@ -70,13 +70,19 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
 
-        # Cache successful responses
-        if 200 <= response.status_code < 300:
+        # Cache successful JSON responses only (binary/streaming responses are skipped)
+        content_type = response.headers.get("content-type", "")
+        if 200 <= response.status_code < 300 and "application/json" in content_type:
             body = b""
             async for chunk in response.body_iterator:  # type: ignore[attr-defined]
                 body += chunk if isinstance(chunk, bytes) else chunk.encode()
 
-            cache_data = json.dumps({"body": body.decode(), "status_code": response.status_code})
+            cache_data = json.dumps(
+                {
+                    "body": body.decode("utf-8", errors="replace"),
+                    "status_code": response.status_code,
+                }
+            )
             await redis.set(redis_key, cache_data, ex=IDEMPOTENCY_TTL)
 
             return Response(
