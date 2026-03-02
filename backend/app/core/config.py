@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: str = "minio:9000"
     MINIO_BUCKET_NAME: str = "ai3l-uploads"
     MINIO_USE_SSL: bool = False
+    MINIO_PUBLIC_URL: str = (
+        ""  # Browser-accessible URL for presigned URLs (e.g. http://localhost:19000 in dev)
+    )
 
     # Celery
     CELERY_BROKER_URL: str = "redis://:changeme_redis@redis:6379/1"

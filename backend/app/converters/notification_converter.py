@@ -1,3 +1,6 @@
+from app.converters.user_converter import resolve_avatar_url
+
+
 def row_to_notification(row: dict) -> dict:
     result: dict = {
         "id": str(row["id"]),
@@ -12,7 +15,7 @@ def row_to_notification(row: dict) -> dict:
         result["trigger_user"] = {
             "id": str(row["trigger_user_id"]),
             "display_name": row["trigger_display_name"],
-            "avatar_url": row.get("trigger_avatar_url"),
+            "avatar_url": resolve_avatar_url(row.get("trigger_avatar_url")),
         }
     else:
         result["trigger_user"] = None
