@@ -55,7 +55,6 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
         if role == "GUEST":
 
             async def _guest_timeout() -> None:
-                nonlocal last_activity
                 while True:
                     elapsed = time.time() - last_activity
                     remaining = GUEST_SESSION_TIMEOUT - elapsed
