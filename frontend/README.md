@@ -160,18 +160,27 @@ npm install
 
 ### Start development server
 
-The Vite dev server runs on port 15173. It proxies all `/api` requests to `http://localhost:18000` (the Docker FastAPI service). Start the backend services before running the dev server.
+The recommended workflow runs everything — including the Vite dev server — inside Docker via `docker-compose.override.yml`. A single command from the repository root starts all services:
 
 ```bash
-# From the repository root — start backend services
-docker compose up -d
-
-# In a separate terminal — start the frontend dev server
-cd frontend
-npm run dev
+# From the repository root
+docker compose up --build   # first time (builds images)
+docker compose up           # subsequent runs
 ```
 
-The application is then accessible at http://localhost:15173.
+The Vite dev server runs on internal port 3210 and is exposed through Nginx at **http://localhost:3000**. Edits to `frontend/src/` trigger Hot Module Replacement (HMR) instantly — no rebuild needed. All `/api` requests are proxied to FastAPI.
+
+To run the frontend dev server outside Docker (e.g. for a faster iteration cycle on host):
+
+```bash
+# Start infrastructure services first
+docker compose up -d postgres redis minio fastapi
+
+# Then in a separate terminal
+cd frontend
+npm install
+npm run dev   # accessible at http://localhost:15173
+```
 
 ---
 
@@ -179,7 +188,7 @@ The application is then accessible at http://localhost:15173.
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Start Vite development server with HMR on port 15173 |
+| `npm run dev` | Start Vite development server with HMR on port 15173 (host-only; normally handled by Docker) |
 | `npm run build` | Type-check and produce a production build in `dist/` |
 | `npm run preview` | Serve the `dist/` build locally |
 | `npm run test:unit` | Run Vitest unit tests |

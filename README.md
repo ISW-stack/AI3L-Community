@@ -216,29 +216,26 @@ docker compose down -v
 
 ## Local Development
 
-For active development, run the frontend Vite dev server separately from the Docker backend services. This gives you hot module replacement on the frontend while the backend services run in Docker.
+`docker-compose.override.yml` is automatically loaded alongside `docker-compose.yml` and configures all services for local development — including a Vite dev server with Hot Module Replacement (HMR). A single command starts everything:
 
-### Start backend services
-
-```bash
-docker compose up -d
-```
-
-This starts FastAPI (port 18000), PostgreSQL (port 15432), Redis (port 16379), and MinIO (ports 19000/19001) via the `docker-compose.override.yml` configuration, which also mounts the backend source directory for live code reloading.
-
-### Start the frontend dev server
+### Start all services
 
 ```bash
-cd frontend
-npm install
-npm run dev
+docker compose up --build   # first time (builds images)
+docker compose up           # subsequent runs
 ```
 
-The Vite dev server runs on port 15173 and proxies all `/api` requests to FastAPI at `http://localhost:18000`.
+This starts:
+- **Nginx** (port 3000) — reverse-proxies the browser to the Vite dev server and FastAPI
+- **Vite dev server** (internal port 3210) — serves the frontend with HMR; edits to `frontend/src/` appear in the browser instantly without a rebuild
+- **FastAPI** (port 18000 direct) — hot-reloads backend code via `--reload`
+- **PostgreSQL** (port 15432), **Redis** (port 16379), **MinIO** (ports 19000/19001)
+- **Celery** + **Celery Beat** — background task workers
+- **migrate** — runs `alembic upgrade head` automatically before FastAPI starts
 
-| Service | Local URL |
+| Service | URL |
 |---|---|
-| Frontend (Vite) | http://localhost:15173 |
+| Frontend (via Nginx) | http://localhost:3000 |
 | FastAPI (direct) | http://localhost:18000 |
 | FastAPI Swagger UI | http://localhost:18000/api/docs |
 | MinIO console | http://localhost:19001 |
@@ -689,7 +686,7 @@ npx vue-tsc --noEmit
 
 ## Database Migrations
 
-Migrations are managed with Alembic and run automatically on FastAPI startup via `alembic upgrade head`.
+Migrations are managed with Alembic. The `migrate` service in `docker-compose.yml` runs `alembic upgrade head` automatically every time you bring up the stack with `docker compose up`, before FastAPI starts. No manual migration step is needed.
 
 ### Creating a new migration
 
@@ -721,13 +718,26 @@ docker compose exec fastapi alembic current
 | `e5f6a7b8c9d0` | Notifications |
 | `6b1be57feb6e` | Membership applications, privacy consents |
 | `f6a7b8c9d0e1` | Audit logs, user ban fields |
+| `g7h8i9j0k1l2` | Invite code consumption tracking (consumed_by, consumed_at) |
 | `h8i9j0k1l2m3` | Composite indexes for query performance |
+| `i9j0k1l2m3n4` | Remove unused sub_admin_ids column from categories |
 
 ---
 
 ## Scripts
 
 All scripts are in `scripts/`. Make them executable with `chmod +x scripts/*.sh`.
+
+### `build-frontend.sh`
+
+Builds the frontend for production and copies the output to `nginx/html/`. Use this to update the static files served by nginx in production without a full Docker rebuild.
+
+```bash
+./scripts/build-frontend.sh            # build and copy
+./scripts/build-frontend.sh --restart  # build, copy, and restart the nginx container
+```
+
+> In local development you do not need this script — the Vite dev server (started by `docker compose up`) handles HMR automatically.
 
 ### `backup-db.sh`
 
