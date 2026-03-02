@@ -12,14 +12,22 @@ export default defineConfig({
     },
   },
   server: {
-    port: 15173,
+    // DEV_PORT / DEV_HOST are set by docker-compose.override.yml when running in Docker.
+    // Fall back to local defaults so `npm run dev` on the host still works unchanged.
+    port: parseInt(process.env.DEV_PORT ?? '15173'),
+    host: process.env.DEV_HOST ?? 'localhost',
+    // When nginx proxies the browser to Vite, HMR WebSocket must connect back to
+    // nginx's port (3000) rather than Vite's internal port (5173).
+    hmr: process.env.HMR_CLIENT_PORT
+      ? { clientPort: parseInt(process.env.HMR_CLIENT_PORT) }
+      : undefined,
     proxy: {
       '/api': {
-        target: 'http://localhost:18000',
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:18000',
         changeOrigin: true,
       },
       '/api/v1/ws': {
-        target: 'ws://localhost:18000',
+        target: process.env.WS_PROXY_TARGET ?? 'ws://localhost:18000',
         ws: true,
       },
     },

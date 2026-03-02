@@ -10,6 +10,36 @@ services:
       - ./backend:/app
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
+  # Vite dev server with Hot Module Replacement (HMR).
+  # Changes to frontend/src/** are reflected in the browser instantly — no rebuild needed.
+  frontend:
+    build:
+      context: ./frontend
+      target: dev          # uses the 'dev' stage in frontend/Dockerfile
+    volumes:
+      - ./frontend:/app    # bind-mount source so edits are visible immediately
+      - /app/node_modules  # anonymous volume keeps container's node_modules intact
+    environment:
+      DEV_PORT: "3210"
+      DEV_HOST: "0.0.0.0"
+      # Tell the Vite HMR client to connect back on nginx's public port (3000),
+      # not Vite's internal port (3210).
+      HMR_CLIENT_PORT: "3000"
+    expose:
+      - "3210"
+    networks:
+      - ai3l-network
+
+  nginx:
+    # Mount conf.d.dev/ at the same container path as conf.d/ from docker-compose.yml.
+    # Docker applies bind mounts sequentially; this later mount shadows the base one,
+    # so nginx only sees conf.d.dev/default.conf (which proxies / → Vite dev server).
+    volumes:
+      - ./nginx/conf.d.dev:/etc/nginx/conf.d:ro
+    depends_on:
+      frontend:
+        condition: service_started
+
   postgres:
     ports:
       - "15432:5432"
