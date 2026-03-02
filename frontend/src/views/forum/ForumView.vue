@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { Post, Category } from '@/types'
 import { listPosts, searchPosts } from '@/api/posts'
@@ -11,21 +12,24 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
+const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 const posts = ref<Post[]>([])
 const categories = ref<Category[]>([])
 const total = ref(0)
-const currentPage = ref(1)
+const currentPage = ref(parseInt(route.query.page as string) || 1)
 const totalPages = ref(1)
 const pageSize = 20
 const loading = ref(false)
-const categoryFilter = ref<string | null>(null)
+const categoryFilter = ref<string | null>((route.query.category as string) || null)
 
-const searchKeyword = ref('')
-const searchDateFrom = ref('')
-const searchDateTo = ref('')
-const searchLogic = ref('AND')
+const searchKeyword = ref((route.query.q as string) || '')
+const searchDateFrom = ref((route.query.from as string) || '')
+const searchDateTo = ref((route.query.to as string) || '')
+const searchLogic = ref((route.query.logic as string) || 'AND')
+const sortBy = ref((route.query.sort as string) || 'newest')
 const isSearching = ref(false)
 
 async function fetchCategories() {
@@ -36,12 +40,25 @@ async function fetchCategories() {
   }
 }
 
+function syncQueryParams() {
+  const query: Record<string, string> = {}
+  if (currentPage.value > 1) query.page = String(currentPage.value)
+  if (categoryFilter.value) query.category = categoryFilter.value
+  if (searchKeyword.value) query.q = searchKeyword.value
+  if (searchDateFrom.value) query.from = searchDateFrom.value
+  if (searchDateTo.value) query.to = searchDateTo.value
+  if (searchLogic.value !== 'AND') query.logic = searchLogic.value
+  if (sortBy.value !== 'newest') query.sort = sortBy.value
+  router.replace({ query })
+}
+
 async function fetchPosts() {
   loading.value = true
   try {
-    const params: { page?: number; page_size?: number; category_id?: string } = {
+    const params: { page?: number; page_size?: number; category_id?: string; sort?: string } = {
       page: currentPage.value,
       page_size: pageSize,
+      sort: sortBy.value,
     }
     if (categoryFilter.value) params.category_id = categoryFilter.value
     const data = await listPosts(params)
@@ -54,6 +71,7 @@ async function fetchPosts() {
   } finally {
     loading.value = false
   }
+  syncQueryParams()
 }
 
 async function doSearch() {
@@ -83,6 +101,7 @@ async function doSearch() {
   } finally {
     loading.value = false
   }
+  syncQueryParams()
 }
 
 function clearSearch() {
@@ -91,12 +110,17 @@ function clearSearch() {
   searchDateTo.value = ''
   categoryFilter.value = null
   currentPage.value = 1
+  sortBy.value = 'newest'
   fetchPosts()
 }
 
 function goToPage(page: number) {
   currentPage.value = page
-  isSearching.value ? doSearch() : fetchPosts()
+  if (isSearching.value) {
+    doSearch()
+  } else {
+    fetchPosts()
+  }
 }
 
 function stripHtml(html: string): string {
@@ -109,9 +133,17 @@ watch(categoryFilter, () => {
   currentPage.value = 1
   if (!isSearching.value) fetchPosts()
 })
+watch(sortBy, () => {
+  currentPage.value = 1
+  if (!isSearching.value) fetchPosts()
+})
 onMounted(() => {
   fetchCategories()
-  fetchPosts()
+  if (searchKeyword.value || searchDateFrom.value || searchDateTo.value) {
+    doSearch()
+  } else {
+    fetchPosts()
+  }
 })
 </script>
 
@@ -147,6 +179,14 @@ onMounted(() => {
         >
           <option value="AND">AND</option>
           <option value="OR">OR</option>
+        </select>
+        <select
+          v-model="sortBy"
+          class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+        >
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="most_comments">Most Comments</option>
         </select>
       </div>
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">

@@ -6,6 +6,8 @@ from app.core.deps import get_current_user, require_role
 from app.schemas.auth import MessageResponse
 from app.schemas.post import PostListResponse, PostResponse
 from app.schemas.sig import (
+    MySigListResponse,
+    MySigResponse,
     SigCreateRequest,
     SigListResponse,
     SigMemberListResponse,
@@ -20,7 +22,9 @@ from app.services.sig import (
     create_sig,
     get_member_role,
     get_sig_by_id,
+    join_sig,
     leave_sig,
+    list_my_sigs,
     list_sig_members,
     list_sigs,
     remove_member,
@@ -54,6 +58,14 @@ async def create_new_sig(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     return SigResponse(**sig)
+
+
+@router.get("/my", response_model=MySigListResponse)
+async def get_my_sigs(
+    current_user: dict = Depends(get_current_user),
+) -> MySigListResponse:
+    sigs = await list_my_sigs(current_user["sub"])
+    return MySigListResponse(sigs=[MySigResponse(**s) for s in sigs])
 
 
 @router.get("/{sig_id}", response_model=SigResponse)
@@ -94,6 +106,21 @@ async def delete_sig(
     deleted = await soft_delete_sig(sig_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
+
+
+@router.post("/{sig_id}/members/me", response_model=SigMemberResponse, status_code=status.HTTP_201_CREATED)
+async def join_sig_endpoint(
+    sig_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> SigMemberResponse:
+    try:
+        member = await join_sig(sig_id, current_user["sub"])
+    except ValueError as e:
+        detail = str(e)
+        if "Already" in detail:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+    return SigMemberResponse(**member)
 
 
 @router.delete("/{sig_id}/members/me", response_model=MessageResponse)

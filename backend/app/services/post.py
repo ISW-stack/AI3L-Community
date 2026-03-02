@@ -53,6 +53,16 @@ async def create_post(
     )
     await _increment_daily_post_count(user_id)
     logger.info("Post created", extra={"post_id": str(post_id), "user_id": user_id})
+
+    if sig_id:
+        await emit(
+            "post.created_in_sig",
+            sig_id=sig_id,
+            post_id=str(post_id),
+            author_id=user_id,
+            post_title=title,
+        )
+
     return row_to_post(row)
 
 

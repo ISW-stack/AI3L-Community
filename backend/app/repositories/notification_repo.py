@@ -47,11 +47,6 @@ async def find_many(
     """Returns (rows, total, unread_count)."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        unread_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false",
-            user_id,
-        )
-
         where = "WHERE n.user_id = $1"
         params: list = [user_id]
         idx = 2
@@ -59,20 +54,25 @@ async def find_many(
         if unread_only:
             where += " AND n.is_read = false"
 
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM notifications n {where}",
-            *params,
-        )
-
         if page_size == 0:
-            return [], total, unread_count
+            row = await conn.fetchrow(
+                f"""
+                SELECT COUNT(*) AS total,
+                       COUNT(*) FILTER (WHERE NOT n.is_read) AS unread_count
+                FROM notifications n
+                {where}
+                """,
+                *params,
+            )
+            return [], row["total"], row["unread_count"]
 
         params.extend([page_size, offset])
         rows = await conn.fetch(
             f"""
             SELECT n.*,
                    u.display_name AS trigger_display_name,
-                   u.avatar_url AS trigger_avatar_url
+                   u.avatar_url AS trigger_avatar_url,
+                   COUNT(*) OVER() AS _total
             FROM notifications n
             LEFT JOIN users u ON n.trigger_user_id = u.id
             {where}
@@ -81,7 +81,20 @@ async def find_many(
             """,
             *params,
         )
-        return [dict(r) for r in rows], total, unread_count
+
+        if rows:
+            total = rows[0]["_total"]
+            result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+        else:
+            total = 0
+            result = []
+
+        # Get unread count in same connection
+        unread_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false",
+            user_id,
+        )
+        return result, total, unread_count
 
 
 async def mark_read(notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:

@@ -115,6 +115,27 @@ async def list_forms_by_sig(
     return [row_to_form(row, count) for row, count in results], total
 
 
+async def list_form_responses(
+    form_id: uuid.UUID, page: int = 1, page_size: int = 20
+) -> tuple[list[dict], int]:
+    results, total = await form_repo.find_responses(form_id, page, page_size)
+    converted = []
+    for r in results:
+        answers = r["answers"]
+        if isinstance(answers, str):
+            answers = json.loads(answers)
+        converted.append({
+            "id": str(r["id"]),
+            "form_id": str(r["form_id"]),
+            "user_id": str(r["user_id"]),
+            "display_name": r["display_name"],
+            "username": r["username"],
+            "answers": answers,
+            "created_at": r["created_at"].isoformat(),
+        })
+    return converted, total
+
+
 async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:

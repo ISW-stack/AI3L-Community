@@ -9,7 +9,7 @@ from app.core.storage import upload_file as _sync_upload
 
 
 async def upload_file(data: bytes, key: str, content_type: str) -> str:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_upload, data, key, content_type)
 
 
@@ -28,15 +28,15 @@ async def get_user_storage_used(user_id: str) -> int:
                     total += obj["Size"]
         return total
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_get_used)
 
 
 async def generate_presigned_url(key: str, expires_in: int) -> str:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_presigned, key, expires_in)
 
 
 async def delete_file(key: str) -> None:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_delete, key)

@@ -62,43 +62,43 @@ onUnmounted(() => {
 
         <!-- Desktop nav links -->
         <div class="hidden lg:flex lg:items-center lg:gap-4">
-          <router-link to="/forum" class="text-sm text-muted hover:text-foreground transition"
+          <router-link to="/forum" class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >Forum</router-link
           >
-          <router-link to="/sigs" class="text-sm text-muted hover:text-foreground transition"
+          <router-link to="/sigs" class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >SIGs</router-link
           >
 
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
-              <router-link to="/admin" class="text-sm text-muted hover:text-foreground transition"
+              <router-link to="/admin" class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
                 >Dashboard</router-link
               >
               <router-link
                 to="/admin/users"
-                class="text-sm text-muted hover:text-foreground transition"
+                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
                 >Users</router-link
               >
               <router-link
                 to="/admin/applications"
-                class="text-sm text-muted hover:text-foreground transition"
+                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
                 >Applications</router-link
               >
               <router-link
                 to="/admin/reports"
-                class="text-sm text-muted hover:text-foreground transition"
+                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
                 >Reports</router-link
               >
               <router-link
                 to="/admin/invite-codes"
-                class="text-sm text-muted hover:text-foreground transition"
+                class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
                 >Invite Codes</router-link
               >
             </template>
             <router-link
               v-if="auth.isSuperAdmin"
               to="/admin/audit-logs"
-              class="text-sm text-muted hover:text-foreground transition"
+              class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
               >Audit Logs</router-link
             >
 
@@ -178,14 +178,14 @@ onUnmounted(() => {
         <div class="px-4 py-3 space-y-1">
           <router-link
             to="/forum"
-            class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
             Forum
           </router-link>
           <router-link
             to="/sigs"
-            class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
             SIGs
@@ -198,31 +198,31 @@ onUnmounted(() => {
               </div>
               <router-link
                 to="/admin"
-                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
                 >Dashboard</router-link
               >
               <router-link
                 to="/admin/users"
-                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
                 >Users</router-link
               >
               <router-link
                 to="/admin/applications"
-                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
                 >Applications</router-link
               >
               <router-link
                 to="/admin/reports"
-                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
                 >Reports</router-link
               >
               <router-link
                 to="/admin/invite-codes"
-                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
                 >Invite Codes</router-link
               >
@@ -230,7 +230,7 @@ onUnmounted(() => {
             <router-link
               v-if="auth.isSuperAdmin"
               to="/admin/audit-logs"
-              class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+              class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
               @click="mobileMenuOpen = false"
               >Audit Logs</router-link
             >
@@ -287,6 +287,19 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* Desktop active link */
+.nav-link-desktop.router-link-active {
+  color: var(--color-brand-600);
+  font-weight: 600;
+}
+
+/* Mobile active link */
+.nav-link-mobile.router-link-active {
+  background-color: var(--color-brand-50);
+  color: var(--color-brand-700);
+  font-weight: 500;
+}
+
 .mobile-menu-enter-active,
 .mobile-menu-leave-active {
   transition: all 0.2s ease;

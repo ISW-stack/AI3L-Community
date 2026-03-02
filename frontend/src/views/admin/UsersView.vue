@@ -15,6 +15,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const auth = useAuthStore()
 
@@ -22,6 +24,9 @@ const users = ref<AdminUser[]>([])
 const total = ref(0)
 const loading = ref(false)
 const message = ref('')
+const page = ref(1)
+const pageSize = 20
+const totalPages = ref(1)
 
 const showCreateModal = ref(false)
 const newUsername = ref('')
@@ -52,14 +57,20 @@ const roleBadge: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'> = {
 async function fetchUsers() {
   loading.value = true
   try {
-    const data = await listUsers({ limit: 100 })
+    const data = await listUsers({ page: page.value, page_size: pageSize })
     users.value = data.users
     total.value = data.total
+    totalPages.value = Math.max(1, Math.ceil(data.total / pageSize))
   } catch {
     message.value = 'Failed to load user list.'
   } finally {
     loading.value = false
   }
+}
+
+function goToPage(p: number) {
+  page.value = p
+  fetchUsers()
 }
 
 async function changeRole(userId: string, newRole: string) {
@@ -145,7 +156,9 @@ onMounted(fetchUsers)
 
     <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
-    <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+    <SkeletonLoader v-if="loading" :lines="5" variant="list" />
+
+    <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
       <table class="w-full text-sm min-w-[700px]">
         <thead class="bg-surface-alt border-b border-border">
           <tr>
@@ -159,9 +172,6 @@ onMounted(fetchUsers)
           </tr>
         </thead>
         <tbody>
-          <tr v-if="loading">
-            <td colspan="5" class="px-4 py-8 text-center text-muted">Loading...</td>
-          </tr>
           <tr
             v-for="user in users"
             :key="user.id"
@@ -211,7 +221,15 @@ onMounted(fetchUsers)
       </table>
     </div>
 
-    <p class="mt-4 text-sm text-muted">{{ total }} users total</p>
+    <div class="mt-4 flex items-center justify-between">
+      <p class="text-sm text-muted">{{ total }} users total</p>
+      <BasePagination
+        v-if="totalPages > 1"
+        :current-page="page"
+        :total-pages="totalPages"
+        @update:current-page="goToPage"
+      />
+    </div>
 
     <!-- Create account modal -->
     <BaseModal v-model="showCreateModal" title="Create Account" size="sm">

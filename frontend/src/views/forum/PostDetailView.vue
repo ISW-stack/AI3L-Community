@@ -8,10 +8,12 @@ import {
   listComments,
   createComment,
   deleteComment as apiDeleteComment,
+  updateComment as apiUpdateComment,
   toggleReaction as apiToggleReaction,
 } from '@/api/comments'
 import { createReport } from '@/api/reports'
 import DOMPurify from 'dompurify'
+import { renderMentions } from '@/utils/html'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -19,6 +21,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +31,9 @@ const auth = useAuthStore()
 const post = ref<Post | null>(null)
 const comments = ref<Comment[]>([])
 const commentsTotal = ref(0)
+const commentPage = ref(1)
+const commentPageSize = 20
+const commentTotalPages = ref(1)
 const history = ref<HistoryItem[]>([])
 const loading = ref(true)
 const showHistory = ref(false)
@@ -59,12 +66,21 @@ async function fetchPost() {
 
 async function fetchComments() {
   try {
-    const data = await listComments(postId.value)
+    const data = await listComments(postId.value, {
+      page: commentPage.value,
+      page_size: commentPageSize,
+    })
     comments.value = data.comments
     commentsTotal.value = data.total
+    commentTotalPages.value = Math.max(1, Math.ceil(data.total / commentPageSize))
   } catch {
     /* silent */
   }
+}
+
+function goToCommentPage(p: number) {
+  commentPage.value = p
+  fetchComments()
 }
 
 async function fetchHistory() {
@@ -103,13 +119,18 @@ async function saveEdit() {
   }
 }
 
+const showDeletePostConfirm = ref(false)
+const showDeleteCommentConfirm = ref(false)
+const deleteTargetCommentId = ref<string | null>(null)
+
 async function deletePostHandler() {
-  if (!confirm('Are you sure you want to delete this post?')) return
   try {
     await apiDeletePost(postId.value)
     router.push('/forum')
   } catch {
     /* error */
+  } finally {
+    showDeletePostConfirm.value = false
   }
 }
 
@@ -133,14 +154,22 @@ async function submitComment() {
   }
 }
 
-async function deleteCommentHandler(commentId: string) {
-  if (!confirm('Are you sure you want to delete this comment?')) return
+function confirmDeleteComment(commentId: string) {
+  deleteTargetCommentId.value = commentId
+  showDeleteCommentConfirm.value = true
+}
+
+async function deleteCommentHandler() {
+  if (!deleteTargetCommentId.value) return
   try {
-    await apiDeleteComment(postId.value, commentId)
+    await apiDeleteComment(postId.value, deleteTargetCommentId.value)
     await fetchComments()
     if (post.value && post.value.comment_count > 0) post.value.comment_count--
   } catch {
     /* silent */
+  } finally {
+    showDeleteCommentConfirm.value = false
+    deleteTargetCommentId.value = null
   }
 }
 
@@ -194,6 +223,41 @@ function hasReacted(comment: Comment, reaction: string): boolean {
   return comment.reactions?.[reaction]?.includes(auth.user.id) || false
 }
 
+// Comment editing
+const editingComment = ref<string | null>(null)
+const editCommentContent = ref('')
+const editCommentSaving = ref(false)
+
+function canEditComment(comment: Comment): boolean {
+  return !!(auth.user && comment.author.id === auth.user.id)
+}
+
+function startEditComment(comment: Comment) {
+  editingComment.value = comment.id
+  editCommentContent.value = comment.content
+}
+
+function cancelEditComment() {
+  editingComment.value = null
+  editCommentContent.value = ''
+}
+
+async function saveEditComment(commentId: string) {
+  if (!editCommentContent.value.trim()) return
+  editCommentSaving.value = true
+  try {
+    await apiUpdateComment(postId.value, commentId, { content: editCommentContent.value })
+    editingComment.value = null
+    editCommentContent.value = ''
+    await fetchComments()
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    commentMessage.value = err.response?.data?.detail || 'Failed to update comment.'
+  } finally {
+    editCommentSaving.value = false
+  }
+}
+
 onMounted(() => {
   fetchPost()
   fetchComments()
@@ -202,7 +266,7 @@ onMounted(() => {
 
 <template>
   <div class="max-w-4xl mx-auto">
-    <div v-if="loading" class="text-center text-muted py-12">Loading...</div>
+    <SkeletonLoader v-if="loading" :lines="1" variant="card" />
 
     <div v-else-if="!post" class="text-center py-12">
       <p class="text-muted mb-4">Post not found.</p>
@@ -251,7 +315,7 @@ onMounted(() => {
               </button>
               <button
                 v-if="canModify"
-                @click="deletePostHandler"
+                @click="showDeletePostConfirm = true"
                 class="text-sm text-danger-600 hover:underline"
               >
                 Delete
@@ -341,42 +405,72 @@ onMounted(() => {
                   new Date(comment.created_at).toLocaleString()
                 }}</span>
               </div>
-              <p
-                class="text-sm text-foreground/80 mb-2"
-                v-html="DOMPurify.sanitize(comment.content)"
-              ></p>
-              <div class="flex items-center gap-3">
-                <button
-                  v-for="r in ['LIKE', 'SMILE', 'CRY']"
-                  :key="r"
-                  @click="toggleReactionHandler(comment.id, r)"
-                  class="text-xs px-2 py-0.5 rounded-full transition"
-                  :class="
-                    hasReacted(comment, r)
-                      ? 'bg-brand-100 text-brand-700'
-                      : 'bg-surface-alt text-muted hover:bg-gray-100'
-                  "
-                >
-                  {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
-                  {{ getReactionCount(comment, r) || '' }}
-                </button>
-                <button
-                  v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest"
-                  @click="replyTo = comment"
-                  class="text-xs text-muted hover:text-brand-600"
-                >
-                  Reply
-                </button>
-                <button
-                  v-if="canDeleteComment(comment)"
-                  @click="deleteCommentHandler(comment.id)"
-                  class="text-xs text-danger-500 hover:text-danger-600"
-                >
-                  Delete
-                </button>
-              </div>
+              <template v-if="editingComment === comment.id">
+                <textarea
+                  v-model="editCommentContent"
+                  rows="3"
+                  class="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                ></textarea>
+                <div class="flex gap-2">
+                  <BaseButton size="sm" :loading="editCommentSaving" @click="saveEditComment(comment.id)">
+                    Save
+                  </BaseButton>
+                  <BaseButton size="sm" variant="secondary" @click="cancelEditComment">Cancel</BaseButton>
+                </div>
+              </template>
+              <template v-else>
+                <p
+                  class="text-sm text-foreground/80 mb-2"
+                  v-html="renderMentions(DOMPurify.sanitize(comment.content), comment.mentions)"
+                ></p>
+                <div class="flex items-center gap-3">
+                  <button
+                    v-for="r in ['LIKE', 'SMILE', 'CRY']"
+                    :key="r"
+                    @click="toggleReactionHandler(comment.id, r)"
+                    class="text-xs px-2 py-0.5 rounded-full transition"
+                    :class="
+                      hasReacted(comment, r)
+                        ? 'bg-brand-100 text-brand-700'
+                        : 'bg-surface-alt text-muted hover:bg-gray-100'
+                    "
+                  >
+                    {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
+                    {{ getReactionCount(comment, r) || '' }}
+                  </button>
+                  <button
+                    v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest"
+                    @click="replyTo = comment"
+                    class="text-xs text-muted hover:text-brand-600"
+                  >
+                    Reply
+                  </button>
+                  <button
+                    v-if="canEditComment(comment)"
+                    @click="startEditComment(comment)"
+                    class="text-xs text-muted hover:text-brand-600"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    v-if="canDeleteComment(comment)"
+                    @click="confirmDeleteComment(comment.id)"
+                    class="text-xs text-danger-500 hover:text-danger-600"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </template>
             </div>
           </div>
+
+          <BasePagination
+            v-if="commentTotalPages > 1"
+            :current-page="commentPage"
+            :total-pages="commentTotalPages"
+            @update:current-page="goToCommentPage"
+            class="mt-4"
+          />
         </BaseCard>
       </div>
     </template>
@@ -417,6 +511,28 @@ onMounted(() => {
           @click="submitReport"
           >Submit Report</BaseButton
         >
+      </template>
+    </BaseModal>
+
+    <!-- Delete Post Confirmation -->
+    <BaseModal v-model="showDeletePostConfirm" title="Delete Post?" size="sm">
+      <p class="text-sm text-muted">
+        Are you sure you want to delete this post? This action cannot be undone.
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showDeletePostConfirm = false">Cancel</BaseButton>
+        <BaseButton variant="danger" @click="deletePostHandler">Delete</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Delete Comment Confirmation -->
+    <BaseModal v-model="showDeleteCommentConfirm" title="Delete Comment?" size="sm">
+      <p class="text-sm text-muted">
+        Are you sure you want to delete this comment? This action cannot be undone.
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false">Cancel</BaseButton>
+        <BaseButton variant="danger" @click="deleteCommentHandler">Delete</BaseButton>
       </template>
     </BaseModal>
   </div>

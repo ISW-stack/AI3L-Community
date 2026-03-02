@@ -87,6 +87,35 @@ async def leave_sig(sig_id: uuid.UUID, user_id: str) -> bool:
             return deleted
 
 
+async def join_sig(sig_id: uuid.UUID, user_id: str) -> dict:
+    """User self-enrolls as MEMBER in a SIG."""
+    pool = get_pool()
+    user_uuid = uuid.UUID(user_id)
+
+    # Check not already a member
+    existing_role = await sig_repo.get_member_role(sig_id, user_uuid)
+    if existing_role:
+        raise ValueError("Already a member of this SIG.")
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await sig_repo.join_member(sig_id, user_uuid, conn)
+            if row is None:
+                raise ValueError("SIG not found.")
+            logger.info("User joined SIG", extra={"sig_id": str(sig_id), "user_id": user_id})
+            return row_to_member(row)
+
+
+async def list_my_sigs(user_id: str) -> list[dict]:
+    rows = await sig_repo.find_by_user(uuid.UUID(user_id))
+    result = []
+    for r in rows:
+        sig = row_to_sig(r, r.get("creator_display_name"))
+        sig["my_role"] = r["my_role"]
+        result.append(sig)
+    return result
+
+
 async def get_member_role(sig_id: uuid.UUID, user_id: str) -> str | None:
     """Check if user is a member of the SIG and return their role."""
     return await sig_repo.get_member_role(sig_id, uuid.UUID(user_id))

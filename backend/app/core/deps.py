@@ -43,9 +43,8 @@ async def get_current_user(
     if not all([user_id, role, jti]):
         raise AppError(ErrorCode.AUTH_001, 401, "Invalid token payload.")
 
-    assert user_id is not None
-    assert role is not None
-    assert jti is not None
+    if not isinstance(user_id, str) or not isinstance(role, str) or not isinstance(jti, str):
+        raise AppError(ErrorCode.AUTH_001, 401, "Invalid token payload.")
 
     # Dual validation: JWT + Redis session
     is_valid = await validate_session(str(user_id), str(role), str(jti))

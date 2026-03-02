@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 
-from app.converters.user_converter import user_to_response
+from app.converters.user_converter import user_to_public_response, user_to_response
 from app.core.async_storage import get_user_storage_used
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
@@ -18,6 +18,7 @@ from app.schemas.user import (
     AdminCreateAccountRequest,
     BanRequest,
     ChangePasswordRequest,
+    PublicUserResponse,
     RoleUpdateRequest,
     UserListResponse,
     UserResponse,
@@ -165,6 +166,17 @@ async def delete_my_account(
     )
 
     return MessageResponse(message="Account deleted and anonymized.")
+
+
+@router.get("/{user_id}", response_model=PublicUserResponse)
+async def get_public_profile(
+    user_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+) -> PublicUserResponse:
+    user = await get_user_by_id(user_id)
+    if user is None or user.get("is_deleted", False):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return user_to_public_response(user)
 
 
 # --- Admin endpoints ---

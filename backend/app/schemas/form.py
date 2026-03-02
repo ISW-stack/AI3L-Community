@@ -76,6 +76,21 @@ class FormListResponse(BaseModel):
     total: int
 
 
+class FormResponseItem(BaseModel):
+    id: str
+    form_id: str
+    user_id: str
+    display_name: str
+    username: str
+    answers: dict[str, Any]
+    created_at: str
+
+
+class FormResponseListResponse(BaseModel):
+    responses: list[FormResponseItem]
+    total: int
+
+
 class FormSubmitRequest(BaseModel):
     answers: dict[str, Any]
 

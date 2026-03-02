@@ -9,6 +9,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const QUESTION_TYPES = [
   { value: 'text', label: 'Short Text' },
@@ -209,7 +210,7 @@ onMounted(() => {
       {{ isEdit ? 'Edit Form' : 'Create Form' }}
     </h1>
 
-    <div v-if="loading" class="text-center text-muted py-12">Loading...</div>
+    <SkeletonLoader v-if="loading" :lines="3" variant="card" />
 
     <template v-else>
       <BaseAlert v-if="message" type="success" class="mb-4">{{ message }}</BaseAlert>

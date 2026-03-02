@@ -14,6 +14,18 @@ class UserResponse(BaseModel):
     ban_reason: str | None = None
 
 
+class PublicUserResponse(BaseModel):
+    id: str
+    username: str
+    display_name: str
+    role: str
+    avatar_url: str | None = None
+    bio: str | None = None
+    affiliation: str | None = None
+    orcid: str | None = None
+    created_at: str
+
+
 class UserUpdateRequest(BaseModel):
     display_name: str | None = Field(None, max_length=100)
     bio: str | None = Field(None, max_length=500)

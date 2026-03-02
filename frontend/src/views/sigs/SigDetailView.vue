@@ -14,13 +14,17 @@ import {
   getSigForms,
   leaveSig as leaveSigApi,
   removeMember as removeMemberApi,
+  assignSubAdmin as assignSubAdminApi,
+  joinSig as joinSigApi,
 } from '@/api/sigs'
+import { deleteForm as deleteFormApi } from '@/api/forms'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,8 +49,14 @@ const editSaving = ref(false)
 const showDeleteConfirm = ref(false)
 const userSigRole = ref<string | null>(null)
 
+const joining = ref(false)
+
+const isMember = computed(() => userSigRole.value !== null)
 const isSigAdmin = computed(
   () => userSigRole.value === 'ADMIN' || userSigRole.value === 'SUB_ADMIN',
+)
+const canJoin = computed(
+  () => auth.isAuthenticated && !auth.isGuest && !isMember.value,
 )
 const canEdit = computed(() => auth.isAdmin || isSigAdmin.value)
 const canDelete = computed(() => auth.isAdmin)
@@ -165,6 +175,20 @@ async function handleLeaveSig() {
   }
 }
 
+async function handleJoinSig() {
+  joining.value = true
+  try {
+    await joinSigApi(sigId.value)
+    await fetchSig()
+    await fetchMembers()
+    toastStore.show('You have joined the SIG.', 'success')
+  } catch (e: any) {
+    toastStore.show(e.response?.data?.detail || 'Failed to join SIG.', 'error')
+  } finally {
+    joining.value = false
+  }
+}
+
 async function handleRemoveMember(userId: string) {
   try {
     await removeMemberApi(sigId.value, userId)
@@ -172,6 +196,39 @@ async function handleRemoveMember(userId: string) {
     await fetchMembers()
   } catch (e: any) {
     toastStore.show(e.response?.data?.detail || 'Failed to remove member.', 'error')
+  }
+}
+
+async function handleAssignSubAdmin(userId: string) {
+  try {
+    await assignSubAdminApi(sigId.value, userId)
+    await fetchMembers()
+    toastStore.show('Member promoted to Sub-Admin.', 'success')
+  } catch (e: any) {
+    toastStore.show(e.response?.data?.detail || 'Failed to assign Sub-Admin.', 'error')
+  }
+}
+
+// Form deletion
+const showFormDeleteConfirm = ref(false)
+const formToDelete = ref<string | null>(null)
+
+function confirmDeleteForm(formId: string) {
+  formToDelete.value = formId
+  showFormDeleteConfirm.value = true
+}
+
+async function handleDeleteForm() {
+  if (!formToDelete.value) return
+  try {
+    await deleteFormApi(formToDelete.value)
+    await fetchForms()
+    toastStore.show('Form deleted.', 'success')
+  } catch (e: any) {
+    toastStore.show(e.response?.data?.detail || 'Failed to delete form.', 'error')
+  } finally {
+    showFormDeleteConfirm.value = false
+    formToDelete.value = null
   }
 }
 
@@ -190,7 +247,7 @@ onMounted(() => {
       >
     </div>
 
-    <div v-if="loading" class="text-center text-muted py-12">Loading...</div>
+    <SkeletonLoader v-if="loading" :lines="1" variant="card" />
     <div v-else-if="!sig" class="text-center py-12">
       <p class="text-muted mb-4">SIG not found.</p>
       <router-link to="/sigs" class="text-brand-600 hover:underline">Back to SIGs</router-link>
@@ -209,6 +266,13 @@ onMounted(() => {
               ></p>
             </div>
             <div class="flex gap-2 shrink-0 ml-4">
+              <BaseButton
+                v-if="canJoin"
+                size="sm"
+                :loading="joining"
+                @click="handleJoinSig"
+                >Join SIG</BaseButton
+              >
               <BaseButton v-if="canEdit" size="sm" variant="secondary" @click="startEdit"
                 >Edit</BaseButton
               >
@@ -346,6 +410,13 @@ onMounted(() => {
                 </td>
                 <td v-if="canEdit" class="px-4 py-3">
                   <button
+                    v-if="auth.isAdmin && m.role === 'MEMBER'"
+                    @click="handleAssignSubAdmin(m.user_id)"
+                    class="text-xs text-brand-600 hover:underline mr-2"
+                  >
+                    Promote
+                  </button>
+                  <button
                     v-if="canRemoveMember(m)"
                     @click="handleRemoveMember(m.user_id)"
                     class="text-xs text-danger-600 hover:underline"
@@ -370,28 +441,48 @@ onMounted(() => {
           No forms in this SIG yet.
         </div>
         <div v-else class="grid gap-4 sm:grid-cols-2">
-          <router-link v-for="f in forms" :key="f.id" :to="`/forms/${f.id}`" class="block">
-            <BaseCard hoverable class="h-full">
-              <div class="flex items-start justify-between mb-2">
-                <h3 class="font-semibold text-foreground">{{ f.title }}</h3>
-                <BaseBadge :variant="f.is_active ? 'success' : 'danger'" class="shrink-0 ml-2">{{
-                  f.is_active ? 'Active' : 'Closed'
-                }}</BaseBadge>
-              </div>
-              <p v-if="f.description" class="text-xs text-muted mb-2 line-clamp-2">
-                {{ f.description }}
-              </p>
-              <div class="flex items-center gap-3 text-xs text-muted">
-                <span>{{ f.response_count }} response(s)</span>
-                <span v-if="f.deadline"
-                  >Deadline: {{ new Date(f.deadline).toLocaleDateString() }}</span
-                >
-                <span>By {{ f.created_by_name }}</span>
-              </div>
-            </BaseCard>
-          </router-link>
+          <div v-for="f in forms" :key="f.id" class="relative">
+            <router-link :to="`/forms/${f.id}`" class="block">
+              <BaseCard hoverable class="h-full">
+                <div class="flex items-start justify-between mb-2">
+                  <h3 class="font-semibold text-foreground">{{ f.title }}</h3>
+                  <BaseBadge :variant="f.is_active ? 'success' : 'danger'" class="shrink-0 ml-2">{{
+                    f.is_active ? 'Active' : 'Closed'
+                  }}</BaseBadge>
+                </div>
+                <p v-if="f.description" class="text-xs text-muted mb-2 line-clamp-2">
+                  {{ f.description }}
+                </p>
+                <div class="flex items-center gap-3 text-xs text-muted">
+                  <span>{{ f.response_count }} response(s)</span>
+                  <span v-if="f.deadline"
+                    >Deadline: {{ new Date(f.deadline).toLocaleDateString() }}</span
+                  >
+                  <span>By {{ f.created_by_name }}</span>
+                </div>
+              </BaseCard>
+            </router-link>
+            <button
+              v-if="f.user_is_sig_admin"
+              @click="confirmDeleteForm(f.id)"
+              class="absolute top-3 right-3 text-xs text-danger-600 hover:underline z-10 bg-surface px-1.5 py-0.5 rounded"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
+
+      <!-- Form Delete Confirmation Modal -->
+      <BaseModal v-model="showFormDeleteConfirm" title="Delete Form?" size="sm">
+        <p class="text-sm text-muted mb-4">
+          Are you sure you want to delete this form? This action cannot be undone.
+        </p>
+        <template #footer>
+          <BaseButton variant="secondary" @click="showFormDeleteConfirm = false">Cancel</BaseButton>
+          <BaseButton variant="danger" @click="handleDeleteForm">Delete</BaseButton>
+        </template>
+      </BaseModal>
     </template>
   </div>
 </template>

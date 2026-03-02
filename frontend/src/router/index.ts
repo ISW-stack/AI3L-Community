@@ -88,6 +88,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/sigs/create',
+      name: 'sig-create',
+      component: () => import('@/views/sigs/SigCreateView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/sigs/:id',
       name: 'sig-detail',
       component: () => import('@/views/sigs/SigDetailView.vue'),

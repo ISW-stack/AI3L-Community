@@ -1,0 +1,239 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import AppNavbar from '../AppNavbar.vue'
+import { useAuthStore } from '@/stores/auth'
+
+// Mock composables/api to prevent actual axios initialization
+vi.mock('@/composables/api', () => ({
+  default: {
+    post: vi.fn(),
+    get: vi.fn(),
+  },
+}))
+
+vi.mock('@/constants', () => ({
+  HEARTBEAT_INTERVAL_MS: 30000,
+}))
+
+// Minimal router for testing
+function createTestRouter() {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: { template: '<div />' } },
+      { path: '/login', name: 'login', component: { template: '<div />' } },
+      { path: '/register', name: 'register', component: { template: '<div />' } },
+      { path: '/forum', component: { template: '<div />' } },
+      { path: '/sigs', component: { template: '<div />' } },
+      { path: '/admin', component: { template: '<div />' } },
+      { path: '/admin/users', component: { template: '<div />' } },
+      { path: '/admin/applications', component: { template: '<div />' } },
+      { path: '/admin/reports', component: { template: '<div />' } },
+      { path: '/admin/invite-codes', component: { template: '<div />' } },
+      { path: '/admin/audit-logs', component: { template: '<div />' } },
+      { path: '/profile', component: { template: '<div />' } },
+    ],
+  })
+}
+
+function mountNavbar() {
+  const router = createTestRouter()
+  const pinia = createPinia()
+  setActivePinia(pinia)
+
+  const wrapper = mount(AppNavbar, {
+    global: {
+      plugins: [pinia, router],
+      stubs: {
+        NotificationBell: true,
+        BaseBadge: { template: '<span class="badge-stub"><slot /></span>' },
+        // Stub lucide icons
+        Menu: { template: '<span class="icon-menu" />' },
+        X: { template: '<span class="icon-x" />' },
+        ChevronDown: { template: '<span class="icon-chevron" />' },
+      },
+    },
+  })
+
+  return { wrapper, auth: useAuthStore() }
+}
+
+describe('AppNavbar', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  // ---------- Unauthenticated state ----------
+
+  describe('when not authenticated', () => {
+    it('should show Log In and Sign Up links', () => {
+      const { wrapper } = mountNavbar()
+
+      expect(wrapper.text()).toContain('Log In')
+      expect(wrapper.text()).toContain('Sign Up')
+    })
+
+    it('should show Forum and SIGs links', () => {
+      const { wrapper } = mountNavbar()
+
+      expect(wrapper.text()).toContain('Forum')
+      expect(wrapper.text()).toContain('SIGs')
+    })
+
+    it('should not show admin links', () => {
+      const { wrapper } = mountNavbar()
+
+      expect(wrapper.text()).not.toContain('Dashboard')
+      expect(wrapper.text()).not.toContain('Audit Logs')
+    })
+
+    it('should not show Log Out button', () => {
+      const { wrapper } = mountNavbar()
+
+      expect(wrapper.text()).not.toContain('Log Out')
+    })
+  })
+
+  // ---------- Authenticated MEMBER ----------
+
+  describe('when authenticated as MEMBER', () => {
+    it('should show Forum and SIGs links', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).toContain('Forum')
+      expect(wrapper.text()).toContain('SIGs')
+    })
+
+    it('should not show Log In / Sign Up links', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).not.toContain('Log In')
+      expect(wrapper.text()).not.toContain('Sign Up')
+    })
+
+    it('should not show admin links', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).not.toContain('Dashboard')
+      expect(wrapper.text()).not.toContain('Audit Logs')
+    })
+
+    it('should show the user dropdown with role displayed', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      // The dropdown button shows the role as the display or badge text
+      expect(wrapper.text()).toContain('Member')
+    })
+  })
+
+  // ---------- Authenticated ADMIN ----------
+
+  describe('when authenticated as ADMIN', () => {
+    it('should show admin links (Dashboard, Users, Applications, Reports, Invite Codes)', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('ADMIN', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).toContain('Dashboard')
+      expect(wrapper.text()).toContain('Users')
+      expect(wrapper.text()).toContain('Applications')
+      expect(wrapper.text()).toContain('Reports')
+      expect(wrapper.text()).toContain('Invite Codes')
+    })
+
+    it('should NOT show Audit Logs (only SUPER_ADMIN)', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('ADMIN', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).not.toContain('Audit Logs')
+    })
+
+    it('should not show Log In / Sign Up', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('ADMIN', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).not.toContain('Log In')
+      expect(wrapper.text()).not.toContain('Sign Up')
+    })
+  })
+
+  // ---------- Authenticated SUPER_ADMIN ----------
+
+  describe('when authenticated as SUPER_ADMIN', () => {
+    it('should show admin links including Audit Logs', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('SUPER_ADMIN', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).toContain('Dashboard')
+      expect(wrapper.text()).toContain('Users')
+      expect(wrapper.text()).toContain('Applications')
+      expect(wrapper.text()).toContain('Reports')
+      expect(wrapper.text()).toContain('Invite Codes')
+      expect(wrapper.text()).toContain('Audit Logs')
+    })
+  })
+
+  // ---------- GUEST role ----------
+
+  describe('when authenticated as GUEST', () => {
+    it('should not show Profile link in dropdown', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('GUEST', 3600)
+      await nextTick()
+
+      // Profile link should not appear for guests (desktop or mobile)
+      const html = wrapper.html()
+      // Look for hrefs to /profile — there should be none for GUEST
+      expect(html).not.toContain('href="/profile"')
+    })
+
+    it('should show Log Out button when mobile menu is opened', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('GUEST', 3600)
+      await nextTick()
+
+      // Open the mobile menu to reveal the Log Out button
+      const hamburgerButton = wrapper.find('button[aria-label="Toggle menu"]')
+      await hamburgerButton.trigger('click')
+      await nextTick()
+
+      expect(wrapper.text()).toContain('Log Out')
+    })
+
+    it('should not show admin links', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('GUEST', 3600)
+      await nextTick()
+
+      expect(wrapper.text()).not.toContain('Dashboard')
+      expect(wrapper.text()).not.toContain('Audit Logs')
+    })
+  })
+
+  // ---------- AI3L Community brand ----------
+
+  describe('branding', () => {
+    it('should display AI3L Community text', () => {
+      const { wrapper } = mountNavbar()
+      expect(wrapper.text()).toContain('AI3L Community')
+    })
+  })
+})

@@ -70,6 +70,21 @@ export async function removeMember(sigId: string, userId: string) {
 }
 
 export async function assignSubAdmin(sigId: string, userId: string) {
-  const { data } = await api.put(`/sigs/${sigId}/members/${userId}/role`, { role: 'SUB_ADMIN' })
-  return data
+  const { data } = await api.post(`/sigs/${sigId}/sub-admin`, { user_id: userId })
+  return data as SigMember
+}
+
+export async function createSig(payload: { name: string; description: string | null }) {
+  const { data } = await api.post('/sigs', payload)
+  return data as Sig
+}
+
+export async function listMySigs() {
+  const { data } = await api.get('/sigs/my')
+  return data as Sig[]
+}
+
+export async function joinSig(sigId: string) {
+  const { data } = await api.post(`/sigs/${sigId}/members/me`)
+  return data as SigMember
 }

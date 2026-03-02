@@ -60,7 +60,12 @@ async function markAllRead() {
 }
 
 function navigateToEntity(notif: Notification) {
-  if (notif.entity_type === 'post' && notif.entity_id) {
+  if (!notif.entity_id) return
+  if (notif.entity_type === 'post') {
+    router.push(`/forum/${notif.entity_id}`)
+  } else if (notif.entity_type === 'comment') {
+    // For comment notifications, entity_id is typically the post_id
+    // Navigate to the post so the user can see the comment in context
     router.push(`/forum/${notif.entity_id}`)
   }
 }

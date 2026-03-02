@@ -33,7 +33,8 @@ async function handleGuestLogin() {
     await auth.guestLogin(inviteCode.value, displayName.value, captchaId.value, captchaCode.value)
     router.push('/')
   } catch (e: any) {
-    error.value = e.response?.data?.detail || 'Guest login failed. Please try again.'
+    const detail = e.response?.data?.detail
+    error.value = typeof detail === 'object' && detail?.message ? detail.message : detail || 'Guest login failed. Please try again.'
     await loadCaptcha()
   } finally {
     loading.value = false

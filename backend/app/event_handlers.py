@@ -1,5 +1,6 @@
 """Event handler registration — composition root for the event bus."""
 
+import uuid
 from typing import Any
 
 from loguru import logger
@@ -141,6 +142,42 @@ async def _on_notification_created(user_id: str, notification: dict, **_kwargs: 
         logger.warning("Failed to push notification via WebSocket", exc_info=True)
 
 
+async def _on_post_created_in_sig(
+    sig_id: str,
+    post_id: str,
+    author_id: str,
+    post_title: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify all SIG members (except the author) about a new post."""
+    from app.repositories import sig_repo
+    from app.services.notification import create_notification
+    from app.services.user import get_user_by_id
+
+    author = await get_user_by_id(uuid.UUID(author_id))
+    author_name = author["display_name"] if author else "Someone"
+
+    # Fetch all SIG members
+    members, _ = await sig_repo.find_members(uuid.UUID(sig_id), offset=0, limit=9999)
+    for m in members:
+        target_uid = str(m["user_id"])
+        if target_uid == author_id:
+            continue
+        if not await _check_idempotent(target_uid, "post", post_id, "SIG_NEW_POST"):
+            continue
+        try:
+            await create_notification(
+                user_id=target_uid,
+                trigger_user_id=author_id,
+                action_type="SIG_NEW_POST",
+                entity_type="post",
+                entity_id=post_id,
+                message=f'{author_name} posted "{post_title[:50]}" in your SIG',
+            )
+        except Exception:
+            logger.warning("Failed to send SIG new post notification", exc_info=True)
+
+
 async def _on_audit_action(
     user_id: str,
     action: str,
@@ -161,4 +198,5 @@ def register_all() -> None:
     on("application.reviewed", _on_application_reviewed)
     on("user.banned", _on_user_banned)
     on("notification.created", _on_notification_created)
+    on("post.created_in_sig", _on_post_created_in_sig)
     on("audit.action", _on_audit_action)

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import type { Report } from '@/types'
 import { listReports, reviewReport as apiReviewReport } from '@/api/admin'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const reports = ref<Report[]>([])
 const total = ref(0)
@@ -59,7 +60,7 @@ onMounted(fetchReports)
       </select>
     </div>
 
-    <div v-if="loading" class="text-center text-muted py-8">Loading...</div>
+    <SkeletonLoader v-if="loading" :lines="4" variant="list" />
 
     <div v-else-if="reports.length === 0" class="text-center text-muted py-8">
       No reports found.

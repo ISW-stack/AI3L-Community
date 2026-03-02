@@ -10,6 +10,7 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -188,7 +189,7 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <div v-if="loading" class="text-center text-muted py-12">Loading...</div>
+    <SkeletonLoader v-if="loading" :lines="2" variant="card" />
     <div v-else-if="!form" class="text-center py-12">
       <p class="text-muted mb-4">Form not found.</p>
     </div>

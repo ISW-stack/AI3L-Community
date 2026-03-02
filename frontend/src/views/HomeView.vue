@@ -1,11 +1,40 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notifications'
+import { listPosts } from '@/api/posts'
+import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import { KeyRound, PenTool, GraduationCap } from 'lucide-vue-next'
 
 const auth = useAuthStore()
+const notifStore = useNotificationStore()
+
+const recentPosts = ref<Post[]>([])
+const loadingPosts = ref(false)
+
+async function fetchRecentPosts() {
+  if (!auth.isAuthenticated) return
+  loadingPosts.value = true
+  try {
+    const data = await listPosts({ page: 1, page_size: 5, sort: 'newest' })
+    recentPosts.value = data.posts
+  } catch {
+    /* silent */
+  } finally {
+    loadingPosts.value = false
+  }
+}
+
+onMounted(() => {
+  if (auth.isAuthenticated) {
+    fetchRecentPosts()
+    notifStore.fetchUnreadCount()
+  }
+})
 </script>
 
 <template>
@@ -32,6 +61,42 @@ const auth = useAuthStore()
         <router-link to="/register" class="font-medium underline">Sign up</router-link>
         for full access.
       </BaseAlert>
+
+      <!-- Unread notifications summary -->
+      <BaseCard v-if="notifStore.unreadCount > 0" padding="md" class="border-l-4 border-brand-500">
+        <div class="flex items-center justify-between">
+          <p class="text-sm text-foreground">
+            You have <strong>{{ notifStore.unreadCount }}</strong> unread notification(s).
+          </p>
+          <router-link to="/notifications">
+            <BaseButton size="sm" variant="ghost">View</BaseButton>
+          </router-link>
+        </div>
+      </BaseCard>
+
+      <!-- Recent posts -->
+      <BaseCard padding="lg">
+        <h3 class="text-lg font-semibold text-foreground mb-3">Recent Posts</h3>
+        <SkeletonLoader v-if="loadingPosts" :lines="3" variant="list" />
+        <div v-else-if="recentPosts.length === 0" class="text-sm text-muted">
+          No posts yet. Be the first to start a discussion!
+        </div>
+        <div v-else class="divide-y divide-border">
+          <router-link
+            v-for="p in recentPosts"
+            :key="p.id"
+            :to="`/forum/${p.id}`"
+            class="block py-3 hover:bg-surface-alt -mx-4 px-4 rounded transition"
+          >
+            <p class="text-sm font-medium text-foreground">{{ p.title }}</p>
+            <div class="flex items-center gap-3 text-xs text-muted mt-1">
+              <span>{{ p.author.display_name }}</span>
+              <span>{{ new Date(p.created_at).toLocaleDateString() }}</span>
+              <span>{{ p.comment_count }} comments</span>
+            </div>
+          </router-link>
+        </div>
+      </BaseCard>
     </div>
 
     <!-- Unauthenticated view -->

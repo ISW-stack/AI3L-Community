@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { acceptConsent as apiAcceptConsent } from '@/api/users'
+import { useAuthStore } from '@/stores/auth'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const emit = defineEmits<{ accepted: [] }>()
+const router = useRouter()
+const auth = useAuthStore()
 const submitting = ref(false)
 const error = ref('')
 
@@ -18,6 +22,11 @@ async function handleAcceptConsent() {
   } finally {
     submitting.value = false
   }
+}
+
+async function handleLogout() {
+  await auth.logout()
+  router.push('/login')
 }
 </script>
 
@@ -44,6 +53,14 @@ async function handleAcceptConsent() {
       <BaseButton size="full" :loading="submitting" @click="handleAcceptConsent">
         I Agree
       </BaseButton>
+      <div class="text-center mt-3">
+        <button
+          @click="handleLogout"
+          class="text-sm text-muted hover:text-foreground underline transition"
+        >
+          I do not agree &mdash; Log out
+        </button>
+      </div>
     </div>
   </div>
 </template>

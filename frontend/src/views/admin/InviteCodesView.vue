@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { Copy, Check } from 'lucide-vue-next'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import type { InviteCode } from '@/types'
 import { listInviteCodes, createInviteCode } from '@/api/admin'
+import { useToastStore } from '@/stores/toast'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 
+const toastStore = useToastStore()
 const codes = ref<InviteCode[]>([])
 const total = ref(0)
 const loading = ref(false)
 const statusFilter = ref<string | null>(null)
 const generating = ref(false)
 const message = ref('')
+const copiedId = ref<string | null>(null)
 
 async function fetchCodes() {
   loading.value = true
@@ -33,12 +37,30 @@ async function generateCode() {
   message.value = ''
   try {
     const data = await createInviteCode()
-    message.value = `Generated: ${data.invite_code}`
+    try {
+      await navigator.clipboard.writeText(data.invite_code)
+      toastStore.show(`Code generated and copied: ${data.invite_code}`, 'success')
+    } catch {
+      message.value = `Generated: ${data.invite_code}`
+    }
     await fetchCodes()
   } catch {
-    message.value = 'Failed to generate code.'
+    toastStore.show('Failed to generate code.', 'error')
   } finally {
     generating.value = false
+  }
+}
+
+async function copyCode(code: string, codeId: string) {
+  try {
+    await navigator.clipboard.writeText(code)
+    copiedId.value = codeId
+    toastStore.show('Code copied to clipboard.', 'success')
+    setTimeout(() => {
+      if (copiedId.value === codeId) copiedId.value = null
+    }, 2000)
+  } catch {
+    toastStore.show('Failed to copy code.', 'error')
   }
 }
 
@@ -87,11 +109,24 @@ onMounted(fetchCodes)
             <th class="px-4 py-3 font-medium text-muted">Created By</th>
             <th class="px-4 py-3 font-medium text-muted">Used By</th>
             <th class="px-4 py-3 font-medium text-muted">Created</th>
+            <th class="px-4 py-3 font-medium text-muted">Expires</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
           <tr v-for="code in codes" :key="code.id" class="hover:bg-surface-alt transition">
-            <td class="px-4 py-3 font-mono text-xs text-foreground">{{ code.code }}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                <code class="font-mono text-xs text-foreground">{{ code.code }}</code>
+                <button
+                  @click="copyCode(code.code, code.id)"
+                  class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition"
+                  :aria-label="`Copy invite code ${code.code}`"
+                >
+                  <Check v-if="copiedId === code.id" class="w-3.5 h-3.5 text-success-600" aria-hidden="true" />
+                  <Copy v-else class="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            </td>
             <td class="px-4 py-3">
               <BaseBadge :variant="statusBadge[code.status] || 'neutral'">{{
                 code.status
@@ -101,6 +136,9 @@ onMounted(fetchCodes)
             <td class="px-4 py-3 text-muted">{{ code.consumed_by_username || '—' }}</td>
             <td class="px-4 py-3 text-muted text-xs">
               {{ new Date(code.created_at).toLocaleDateString() }}
+            </td>
+            <td class="px-4 py-3 text-muted text-xs">
+              {{ code.expires_at ? new Date(code.expires_at).toLocaleDateString() : '—' }}
             </td>
           </tr>
         </tbody>

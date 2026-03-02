@@ -28,9 +28,13 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         # Namespace key by user (from JWT sub) to prevent cross-user collisions
         user_id = "anonymous"
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
+        # Try HttpOnly cookie first (primary auth), then Bearer header (fallback)
+        token = request.cookies.get("access_token")
+        if not token:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if token:
             user_id = hashlib.sha256(token.encode()).hexdigest()[:16]
 
         redis_key = f"idempotency:{user_id}:{idem_key}"

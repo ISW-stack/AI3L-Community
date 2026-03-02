@@ -35,7 +35,8 @@ async function handleLogin() {
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
   } catch (e: any) {
-    error.value = e.response?.data?.detail || 'Login failed. Please try again.'
+    const detail = e.response?.data?.detail
+    error.value = typeof detail === 'object' && detail?.message ? detail.message : detail || 'Login failed. Please try again.'
     await loadCaptcha()
   } finally {
     loading.value = false

@@ -7,6 +7,8 @@ export interface Post {
   author: Author
   category_id: string | null
   category_name: string | null
+  sig_id: string | null
+  sig_name: string | null
   keywords: string[] | null
   allow_comments: boolean
   version: number

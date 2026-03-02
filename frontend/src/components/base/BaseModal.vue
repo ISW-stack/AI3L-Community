@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, onUnmounted } from 'vue'
+import { computed, watch, onUnmounted, ref, nextTick } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -34,25 +34,69 @@ function close() {
   }
 }
 
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') close()
+const modalRef = ref<HTMLElement | null>(null)
+let previouslyFocused: HTMLElement | null = null
+
+const FOCUSABLE = [
+  'a[href]',
+  'button:not([disabled])',
+  'textarea:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ')
+
+function trapFocus(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    close()
+    return
+  }
+  if (e.key !== 'Tab' || !modalRef.value) return
+
+  const focusable = Array.from(
+    modalRef.value.querySelectorAll<HTMLElement>(FOCUSABLE),
+  )
+  if (focusable.length === 0) return
+
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    }
+  } else {
+    if (document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
 }
 
 watch(
   () => props.modelValue,
-  (open) => {
+  async (open) => {
     if (open) {
-      document.addEventListener('keydown', onKeydown)
+      previouslyFocused = document.activeElement as HTMLElement
+      document.addEventListener('keydown', trapFocus)
       document.body.style.overflow = 'hidden'
+      await nextTick()
+      if (modalRef.value) {
+        const first = modalRef.value.querySelector<HTMLElement>(FOCUSABLE)
+        ;(first ?? modalRef.value).focus()
+      }
     } else {
-      document.removeEventListener('keydown', onKeydown)
+      document.removeEventListener('keydown', trapFocus)
       document.body.style.overflow = ''
+      previouslyFocused?.focus()
+      previouslyFocused = null
     }
   },
 )
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', onKeydown)
+  document.removeEventListener('keydown', trapFocus)
   document.body.style.overflow = ''
 })
 </script>
@@ -68,7 +112,11 @@ onUnmounted(() => {
         :aria-labelledby="title ? 'modal-title' : undefined"
         @click.self="close"
       >
-        <div :class="['bg-surface rounded-lg shadow-xl p-6 w-full', sizeClass]">
+        <div
+          ref="modalRef"
+          :class="['bg-surface rounded-lg shadow-xl p-6 w-full', sizeClass]"
+          tabindex="-1"
+        >
           <div v-if="title || !persistent" class="flex items-center justify-between mb-4">
             <h3 v-if="title" id="modal-title" class="text-lg font-semibold text-foreground">
               {{ title }}

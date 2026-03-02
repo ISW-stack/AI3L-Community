@@ -6,12 +6,14 @@ import {
   updateProfile,
   uploadAvatar as apiUploadAvatar,
   changePassword as apiChangePassword,
+  deleteAccount as apiDeleteAccount,
 } from '@/api/users'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -102,6 +104,25 @@ async function changePassword() {
     changingPassword.value = false
   }
 }
+
+const showDeleteConfirm = ref(false)
+const deleteConfirmText = ref('')
+const deletingAccount = ref(false)
+
+async function handleDeleteAccount() {
+  deletingAccount.value = true
+  try {
+    await apiDeleteAccount()
+    auth.clearSession()
+    router.push({ name: 'login' })
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    message.value = err.response?.data?.detail || 'Failed to delete account.'
+  } finally {
+    deletingAccount.value = false
+    showDeleteConfirm.value = false
+  }
+}
 </script>
 
 <template>
@@ -178,5 +199,41 @@ async function changePassword() {
         </form>
       </BaseCard>
     </div>
+
+    <!-- Danger Zone -->
+    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
+      <h2 class="text-xl font-bold text-danger-600 mb-4">Danger Zone</h2>
+      <BaseCard padding="lg">
+        <p class="text-sm text-muted mb-4">
+          Permanently delete your account and anonymize all personal data.
+          This action cannot be undone.
+        </p>
+        <BaseButton variant="danger" @click="showDeleteConfirm = true">
+          Delete My Account
+        </BaseButton>
+      </BaseCard>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <BaseModal v-model="showDeleteConfirm" title="Delete Account?" size="sm">
+      <p class="text-sm text-muted mb-4">
+        This will permanently anonymize your profile, remove all personal information,
+        and log you out. Your posts will remain but be attributed to a deleted user.
+      </p>
+      <BaseInput
+        v-model="deleteConfirmText"
+        label="Type DELETE to confirm"
+        placeholder="DELETE"
+      />
+      <template #footer>
+        <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
+        <BaseButton
+          variant="danger"
+          :disabled="deleteConfirmText !== 'DELETE'"
+          :loading="deletingAccount"
+          @click="handleDeleteAccount"
+        >Delete Account</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>

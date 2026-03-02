@@ -17,11 +17,18 @@ const typeClasses: Record<string, string> = {
       <div
         v-for="toast in toastStore.toasts"
         :key="toast.id"
-        class="px-4 py-3 rounded-lg border shadow-sm text-sm max-w-sm"
+        class="flex items-start gap-2 px-4 py-3 rounded-lg border shadow-sm text-sm max-w-sm"
         :class="typeClasses[toast.type]"
         role="alert"
       >
-        {{ toast.message }}
+        <span class="flex-1">{{ toast.message }}</span>
+        <button
+          @click="toastStore.dismiss(toast.id)"
+          class="shrink-0 opacity-60 hover:opacity-100 transition text-current leading-none text-lg"
+          aria-label="Dismiss notification"
+        >
+          &times;
+        </button>
       </div>
     </transition-group>
   </div>

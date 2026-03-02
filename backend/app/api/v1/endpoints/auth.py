@@ -66,7 +66,12 @@ def _clear_auth_cookies(response: Response) -> None:
 
 
 @router.get("/captcha", response_model=CaptchaResponse)
-async def get_captcha() -> CaptchaResponse:
+async def get_captcha(request: Request) -> CaptchaResponse:
+    from app.core.constants import RATE_LIMIT_CAPTCHA
+
+    ip = request.client.host if request.client else "unknown"
+    if not await check_rate_limit(f"rl:captcha:{ip}", *RATE_LIMIT_CAPTCHA):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     captcha_id, image_base64 = await generate_captcha()
     return CaptchaResponse(captcha_id=captcha_id, image_base64=image_base64)
 

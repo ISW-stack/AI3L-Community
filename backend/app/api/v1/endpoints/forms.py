@@ -1,23 +1,25 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.core.constants import RATE_LIMIT_FORM_SUBMIT
 from app.core.deps import get_current_user, require_role
-from app.core.security import decode_access_token
+from app.core.rate_limit import check_rate_limit
 from app.repositories import sig_repo
 from app.schemas.form import (
     FormCreateRequest,
     FormListResponse,
+    FormResponseItem,
+    FormResponseListResponse,
     FormResponseSchema,
     FormSubmitRequest,
     FormSubmitResponse,
     FormUpdateRequest,
 )
-from app.services.auth import validate_session
 from app.services.form import (
     create_form,
     get_form_by_id,
+    list_form_responses,
     list_forms_by_sig,
     soft_delete_form,
     submit_response,
@@ -25,29 +27,6 @@ from app.services.form import (
 )
 
 router = APIRouter(tags=["forms"])
-
-_optional_bearer = HTTPBearer(auto_error=False)
-
-
-async def _get_optional_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_optional_bearer),
-) -> dict | None:
-    """Return JWT payload if valid token present, else None."""
-    if credentials is None:
-        return None
-    payload = decode_access_token(credentials.credentials)
-    if payload is None:
-        return None
-    user_id = payload.get("sub")
-    role = payload.get("role")
-    jti = payload.get("jti")
-    if not all([user_id, role, jti]):
-        return None
-    assert isinstance(user_id, str)
-    assert isinstance(role, str)
-    assert isinstance(jti, str)
-    is_valid = await validate_session(user_id, role, jti)
-    return payload if is_valid else None
 
 
 async def _check_sig_admin(sig_id: uuid.UUID, user_id: str, role: str) -> bool:
@@ -166,6 +145,30 @@ async def delete_form(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
 
 
+@router.get("/forms/{form_id}/responses", response_model=FormResponseListResponse)
+async def get_form_responses(
+    form_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> FormResponseListResponse:
+    form = await get_form_by_id(form_id)
+    if form is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+
+    is_sig_admin = await _check_sig_admin(
+        uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+    )
+    if not is_sig_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only SIG admins can view form responses.",
+        )
+
+    responses, total = await list_form_responses(form_id, page=page, page_size=page_size)
+    return FormResponseListResponse(responses=responses, total=total)
+
+
 @router.post(
     "/forms/{form_id}/submit",
     response_model=FormSubmitResponse,
@@ -176,6 +179,9 @@ async def submit_form_response(
     req: FormSubmitRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormSubmitResponse:
+    user_id = current_user["sub"]
+    if not await check_rate_limit(f"rl:form_submit:{user_id}", *RATE_LIMIT_FORM_SUBMIT):
+        raise HTTPException(status_code=429, detail="Too many submissions. Try again later.")
     try:
         result = await submit_response(
             form_id=form_id,

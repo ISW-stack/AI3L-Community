@@ -81,19 +81,24 @@ async def find_many(
     offset: int = 0,
     limit: int = 50,
 ) -> tuple[list[dict], int]:
+    _select_count = _COMMENT_SELECT.replace(
+        "FROM comments cm", ", COUNT(*) OVER() AS _total\n    FROM comments cm", 1
+    )
     pool = get_pool()
     async with pool.acquire() as conn:
-        total = await conn.fetchval(
-            "SELECT COUNT(*) FROM comments WHERE post_id = $1 AND is_deleted = false",
-            post_id,
-        )
         rows = await conn.fetch(
-            f"{_COMMENT_SELECT} WHERE cm.post_id = $1 AND cm.is_deleted = false ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",  # noqa: E501
+            f"{_select_count} WHERE cm.post_id = $1 AND cm.is_deleted = false ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",  # noqa: E501
             post_id,
             limit,
             offset,
         )
-        return [dict(r) for r in rows], total
+        if rows:
+            total = rows[0]["_total"]
+            result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+        else:
+            total = 0
+            result = []
+        return result, total
 
 
 async def update(

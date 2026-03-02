@@ -174,7 +174,10 @@ class TestSubmitForm:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_EP}.submit_response", new_callable=AsyncMock, return_value=result):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.submit_response", new_callable=AsyncMock, return_value=result),
+            ):
                 resp = await client.post(
                     f"/api/v1/forms/{form_id}/submit",
                     json={"answers": {"q1": "John Doe"}},

@@ -3,7 +3,9 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
+import { uploadEditorFile } from '@/api/files'
+import { useToastStore } from '@/stores/toast'
 import {
   Bold,
   Italic,
@@ -43,6 +45,10 @@ watch(
   },
 )
 
+const toastStore = useToastStore()
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
+
 function setLink() {
   const url = prompt('Enter URL')
   if (!url || !editor.value) return
@@ -50,14 +56,37 @@ function setLink() {
 }
 
 function addImage() {
-  const url = prompt('Enter image URL')
-  if (!url || !editor.value) return
-  editor.value.chain().focus().setImage({ src: url }).run()
+  fileInputRef.value?.click()
+}
+
+async function handleImageUpload(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file || !editor.value) return
+
+  uploading.value = true
+  try {
+    const data = await uploadEditorFile(file)
+    editor.value.chain().focus().setImage({ src: data.url }).run()
+  } catch {
+    toastStore.show('Failed to upload image.', 'error')
+  } finally {
+    uploading.value = false
+    if (fileInputRef.value) fileInputRef.value.value = ''
+  }
 }
 </script>
 
 <template>
   <div class="border border-border rounded-lg overflow-hidden">
+    <!-- Hidden file input for image upload -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept="image/png,image/jpeg,image/gif,image/webp"
+      class="hidden"
+      @change="handleImageUpload"
+    />
+
     <!-- Toolbar -->
     <div v-if="editor" class="flex flex-wrap gap-1 p-2 border-b border-border bg-surface-alt">
       <button
@@ -163,6 +192,8 @@ function addImage() {
         type="button"
         @click="addImage"
         class="p-1.5 rounded hover:bg-gray-200 transition"
+        :class="{ 'opacity-50 cursor-wait': uploading }"
+        :disabled="uploading"
         aria-label="Insert image"
       >
         <ImagePlus class="w-4 h-4" aria-hidden="true" />

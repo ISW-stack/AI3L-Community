@@ -71,7 +71,8 @@ async function handleRegister() {
     )
     router.push('/')
   } catch (e: any) {
-    error.value = e.response?.data?.detail || 'Registration failed. Please try again.'
+    const detail = e.response?.data?.detail
+    error.value = typeof detail === 'object' && detail?.message ? detail.message : detail || 'Registration failed. Please try again.'
     await loadCaptcha()
   } finally {
     loading.value = false

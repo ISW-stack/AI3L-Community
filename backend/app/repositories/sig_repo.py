@@ -226,6 +226,56 @@ async def update_member_role(sig_id: uuid.UUID, user_id: uuid.UUID, role: str) -
             return dict(row) if row else None
 
 
+async def join_member(
+    sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any
+) -> dict | None:
+    """Insert a new MEMBER row. Returns the member row with user info, or None if SIG not found."""
+    sig = await conn.fetchrow(
+        "SELECT id FROM sigs WHERE id = $1 AND is_deleted = false",
+        sig_id,
+    )
+    if not sig:
+        return None
+
+    member_id = uuid.uuid4()
+    await conn.execute(
+        "INSERT INTO sig_members (id, sig_id, user_id, role) VALUES ($1, $2, $3, 'MEMBER')",
+        member_id, sig_id, user_id,
+    )
+    await conn.execute(
+        "UPDATE sigs SET member_count = member_count + 1 WHERE id = $1",
+        sig_id,
+    )
+    row = await conn.fetchrow(
+        """
+        SELECT sm.*, u.display_name, u.username
+        FROM sig_members sm
+        JOIN users u ON sm.user_id = u.id
+        WHERE sm.id = $1
+        """,
+        member_id,
+    )
+    return dict(row) if row else None
+
+
+async def find_by_user(user_id: uuid.UUID) -> list[dict]:
+    """Return all SIGs that a user is a member of."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT s.*, u.display_name AS creator_display_name, sm.role AS my_role
+            FROM sig_members sm
+            JOIN sigs s ON sm.sig_id = s.id
+            LEFT JOIN users u ON s.created_by = u.id
+            WHERE sm.user_id = $1 AND s.is_deleted = false
+            ORDER BY sm.created_at DESC
+            """,
+            user_id,
+        )
+        return [dict(r) for r in rows]
+
+
 async def find_members(
     sig_id: uuid.UUID,
     offset: int = 0,

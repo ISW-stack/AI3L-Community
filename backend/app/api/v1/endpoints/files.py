@@ -1,15 +1,16 @@
 import re
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 
 from app.core.async_storage import generate_presigned_url as async_presigned_url
 from app.core.async_storage import get_user_storage_used
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
+from app.core.constants import RATE_LIMIT_FILE_UPLOAD
 from app.core.deps import require_role
 from app.core.file_validation import validate_editor_file
-from app.core.storage import generate_presigned_url
+from app.core.rate_limit import check_rate_limit
 from app.schemas.file import FileUploadResponse
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -22,9 +23,13 @@ _SAFE_KEY_RE = re.compile(r"^[a-zA-Z0-9/_.\-]+$")
 )
 async def upload_editor_file(
     file: UploadFile,
+    request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FileUploadResponse:
     """Upload file for rich text editor (PNG, JPEG, PDF, DOCX). Max 20MB."""
+    user_id = current_user["sub"]
+    if not await check_rate_limit(f"rl:upload:{user_id}", *RATE_LIMIT_FILE_UPLOAD):
+        raise HTTPException(status_code=429, detail="Too many uploads. Try again later.")
     filename = file.filename or "unnamed"
     data = await file.read()
     expected_type, data = validate_editor_file(filename, data)
@@ -84,5 +89,5 @@ async def get_presigned_url(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this file.",
         )
-    url = generate_presigned_url(key, expires_in=3600)
+    url = await async_presigned_url(key, expires_in=3600)
     return {"url": url, "key": key}

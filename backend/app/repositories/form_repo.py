@@ -145,6 +145,32 @@ async def find_by_sig(
         return results, total
 
 
+async def find_responses(
+    form_id: uuid.UUID, page: int = 1, page_size: int = 20
+) -> tuple[list[dict], int]:
+    """Returns (list of response dicts with user info, total count)."""
+    pool = get_pool()
+    offset = (page - 1) * page_size
+    async with pool.acquire() as conn:
+        total = await conn.fetchval(
+            "SELECT COUNT(*) FROM form_responses WHERE form_id = $1",
+            form_id,
+        )
+        rows = await conn.fetch(
+            """
+            SELECT fr.id, fr.form_id, fr.user_id, fr.answers, fr.created_at,
+                   u.display_name, u.username
+            FROM form_responses fr
+            JOIN users u ON fr.user_id = u.id
+            WHERE fr.form_id = $1
+            ORDER BY fr.created_at DESC
+            LIMIT $2 OFFSET $3
+            """,
+            form_id, page_size, offset,
+        )
+        return [dict(r) for r in rows], total
+
+
 async def insert_response(
     response_id: uuid.UUID,
     form_id: uuid.UUID,

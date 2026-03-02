@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import type { Category } from '@/types'
+import type { Category, Sig } from '@/types'
 import { createPost as apiCreatePost } from '@/api/posts'
 import { listCategories } from '@/api/categories'
+import { listMySigs } from '@/api/sigs'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -15,16 +16,26 @@ const router = useRouter()
 const title = ref('')
 const content = ref('')
 const categoryId = ref<string | null>(null)
+const sigId = ref<string | null>(null)
 const keywordsInput = ref('')
 const keywords = ref<string[]>([])
 const allowComments = ref(true)
 const categories = ref<Category[]>([])
+const mySigs = ref<Sig[]>([])
 const saving = ref(false)
 const message = ref('')
 
 async function fetchCategories() {
   try {
     categories.value = await listCategories()
+  } catch {
+    /* silent */
+  }
+}
+
+async function fetchMySigs() {
+  try {
+    mySigs.value = await listMySigs()
   } catch {
     /* silent */
   }
@@ -56,6 +67,7 @@ async function createPost() {
       allow_comments: allowComments.value,
     }
     if (categoryId.value) payload.category_id = categoryId.value
+    if (sigId.value) payload.sig_id = sigId.value
     if (keywords.value.length) payload.keywords = keywords.value
     const data = await apiCreatePost(payload)
     router.push(`/forum/${data.id}`)
@@ -67,7 +79,10 @@ async function createPost() {
   }
 }
 
-onMounted(fetchCategories)
+onMounted(() => {
+  fetchCategories()
+  fetchMySigs()
+})
 </script>
 
 <template>
@@ -87,6 +102,17 @@ onMounted(fetchCategories)
         >
           <option :value="null">None</option>
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+        </select>
+      </div>
+
+      <div v-if="mySigs.length > 0">
+        <label class="block text-sm font-medium text-foreground mb-1">SIG (optional)</label>
+        <select
+          v-model="sigId"
+          class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
+        >
+          <option :value="null">None</option>
+          <option v-for="s in mySigs" :key="s.id" :value="s.id">{{ s.name }}</option>
         </select>
       </div>
 

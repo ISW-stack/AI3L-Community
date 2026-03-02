@@ -6,6 +6,7 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const applications = ref<Application[]>([])
 const total = ref(0)
@@ -78,7 +79,7 @@ onMounted(fetchApplications)
     <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
     <div class="space-y-3">
-      <div v-if="loading" class="text-center text-muted py-8">Loading...</div>
+      <SkeletonLoader v-if="loading" :lines="3" variant="card" />
       <div v-else-if="applications.length === 0" class="text-center text-muted py-8">
         No applications found
       </div>

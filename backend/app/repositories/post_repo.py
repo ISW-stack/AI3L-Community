@@ -64,38 +64,6 @@ async def find_by_id(post_id: uuid.UUID) -> dict | None:
         return dict(row) if row else None
 
 
-async def update(
-    post_id: uuid.UUID,
-    title: str,
-    content: str,
-    category_id: uuid.UUID | None,
-    keywords: list[str] | None,
-    allow_comments: bool,
-) -> dict:
-    """Update post and return with JOINed data. Must be called within a transaction."""
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            f"""
-            WITH updated AS (
-                UPDATE posts SET
-                    title = $1, content = $2, category_id = $3, keywords = $4,
-                    allow_comments = $5, version = version + 1, updated_at = NOW()
-                WHERE id = $6
-                RETURNING *
-            )
-            {_POST_SELECT.replace("FROM posts p", "FROM updated p")}
-            """,
-            title,
-            content,
-            category_id,
-            keywords,
-            allow_comments,
-            post_id,
-        )
-        return dict(row)
-
-
 async def find_for_update(post_id: uuid.UUID, conn: Any) -> dict | None:
     """Fetch post with FOR UPDATE lock. Must be called within a transaction."""
     row = await conn.fetchrow(
@@ -221,19 +189,24 @@ async def find_many(
         params.append(sig_id)
         idx += 1
 
-    async with pool.acquire() as conn:
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM posts p {where}",
-            *params,
-        )
-        total_pages = max(1, math.ceil(total / page_size))
+    _select_count = _POST_SELECT.replace(
+        "FROM posts p", ", COUNT(*) OVER() AS _total\n    FROM posts p", 1
+    )
 
+    async with pool.acquire() as conn:
         params.extend([page_size, offset])
         rows = await conn.fetch(
-            f"{_POST_SELECT} {where} ORDER BY {order_by} LIMIT ${idx} OFFSET ${idx + 1}",
+            f"{_select_count} {where} ORDER BY {order_by} LIMIT ${idx} OFFSET ${idx + 1}",
             *params,
         )
-        return [dict(r) for r in rows], total, total_pages
+        if rows:
+            total = rows[0]["_total"]
+            result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+        else:
+            total = 0
+            result = []
+        total_pages = max(1, math.ceil(total / page_size))
+        return result, total, total_pages
 
 
 async def search(
@@ -283,19 +256,24 @@ async def search(
 
     where = "WHERE " + " AND ".join(conditions)
 
-    async with pool.acquire() as conn:
-        total = await conn.fetchval(
-            f"SELECT COUNT(*) FROM posts p {where}",
-            *params,
-        )
-        total_pages = max(1, math.ceil(total / page_size))
+    _select_count = _POST_SELECT.replace(
+        "FROM posts p", ", COUNT(*) OVER() AS _total\n    FROM posts p", 1
+    )
 
+    async with pool.acquire() as conn:
         params.extend([page_size, offset])
         rows = await conn.fetch(
-            f"{_POST_SELECT} {where} ORDER BY p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",
+            f"{_select_count} {where} ORDER BY p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",
             *params,
         )
-        return [dict(r) for r in rows], total, total_pages
+        if rows:
+            total = rows[0]["_total"]
+            result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+        else:
+            total = 0
+            result = []
+        total_pages = max(1, math.ceil(total / page_size))
+        return result, total, total_pages
 
 
 async def increment_comment_count(post_id: uuid.UUID, conn: Any) -> None:

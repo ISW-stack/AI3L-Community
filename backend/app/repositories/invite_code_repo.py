@@ -29,12 +29,12 @@ async def find_many(
 
         rows = await conn.fetch(
             f"""
-            SELECT ic.id, ic.code, ic.creator_id, ic.consumed_by, ic.consumed_at,
+            SELECT ic.id, ic.code, ic.created_by, ic.consumed_by, ic.consumed_at,
                    ic.expires_at, ic.created_at,
                    u.username AS creator_username,
                    cu.username AS consumed_by_username
             FROM invite_codes ic
-            LEFT JOIN users u ON u.id = ic.creator_id
+            LEFT JOIN users u ON u.id = ic.created_by
             LEFT JOIN users cu ON cu.id = ic.consumed_by
             {base_where}
             ORDER BY ic.created_at DESC

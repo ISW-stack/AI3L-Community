@@ -305,10 +305,11 @@ class TestWsTicket:
 
 
 class TestGetCaptcha:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(
         f"{_EP}.generate_captcha", new_callable=AsyncMock, return_value=("cap-id-1", "base64data")
     )
-    async def test_get_captcha(self, mock_captcha, client: AsyncClient):
+    async def test_get_captcha(self, mock_captcha, mock_rl, client: AsyncClient):
         """GET /auth/captcha → 200 with captcha_id and image."""
         resp = await client.get("/api/v1/auth/captcha")
         assert resp.status_code == 200

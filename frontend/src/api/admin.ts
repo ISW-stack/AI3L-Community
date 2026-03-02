@@ -24,7 +24,7 @@ export interface UsersListResponse {
   total: number
 }
 
-export async function listUsers(params?: { limit?: number }) {
+export async function listUsers(params?: { limit?: number; page?: number; page_size?: number }) {
   const { data } = await api.get('/users', { params })
   return data as UsersListResponse
 }

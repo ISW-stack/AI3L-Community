@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@plugin "@tailwindcss/typography";
+
 @theme {
   /* Typography — Inter Variable only */
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
@@ -51,6 +53,40 @@
   --color-border: #e5e7eb;
   --color-muted: #6b7280;
   --color-foreground: #111827;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Surface & Neutral */
+    --color-surface: #1a1a2e;
+    --color-surface-alt: #16213e;
+    --color-border: #334155;
+    --color-muted: #94a3b8;
+    --color-foreground: #f1f5f9;
+
+    /* Brand adjustments for dark backgrounds */
+    --color-brand-50: #0a1628;
+    --color-brand-100: #0d2240;
+    --color-brand-600: #3b82f6;
+    --color-brand-700: #60a5fa;
+
+    /* Semantic — Success */
+    --color-success-50: #1a2e1f;
+    --color-success-100: #1f3d24;
+
+    /* Semantic — Warning */
+    --color-warning-50: #2e2a1a;
+    --color-warning-100: #3d3520;
+
+    /* Semantic — Danger */
+    --color-danger-50: #2d1f1f;
+    --color-danger-100: #3d2020;
+
+    /* Semantic — Info */
+    --color-info-50: #1a2240;
+    --color-info-100: #1f2d50;
+  }
 }
 
 /* Page transition */

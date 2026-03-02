@@ -77,10 +77,10 @@ async def ban_user(user_id: uuid.UUID, reason: str) -> bool:
     if not banned:
         return False
 
-    # Revoke all Redis sessions for this user
+    # Revoke all Redis sessions for this user (batch delete in one round-trip)
     redis = get_redis()
-    for role in [r.value for r in UserRole]:
-        await redis.delete(f"session:{role}:{user_id}")
+    session_keys = [f"session:{r.value}:{user_id}" for r in UserRole]
+    await redis.delete(*session_keys)
 
     # Force logout via WebSocket (best-effort, through event bus)
     await emit("user.banned", user_id=str(user_id))

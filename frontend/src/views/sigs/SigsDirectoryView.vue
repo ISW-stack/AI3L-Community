@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { listSigs } from '@/api/sigs'
 import type { Sig } from '@/types'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+
+const auth = useAuthStore()
 
 const sigs = ref<Sig[]>([])
 const total = ref(0)
@@ -28,7 +32,12 @@ onMounted(fetchSigs)
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-foreground mb-6">Special Interest Groups</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-foreground">Special Interest Groups</h1>
+      <router-link v-if="auth.isAdmin" to="/sigs/create">
+        <BaseButton>Create SIG</BaseButton>
+      </router-link>
+    </div>
 
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
     <EmptyState

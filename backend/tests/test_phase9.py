@@ -490,6 +490,7 @@ class TestPostSorting:
                 "author_display_name": "User 1",
                 "author_avatar_url": None,
                 "category_name": None,
+                "_total": 2,
             },
             {
                 "id": uuid.uuid4(),
@@ -511,10 +512,10 @@ class TestPostSorting:
                 "author_display_name": "User 2",
                 "author_avatar_url": None,
                 "category_name": None,
+                "_total": 2,
             },
         ]
 
-        mock_conn.fetchval = AsyncMock(return_value=2)
         mock_conn.fetch = AsyncMock(return_value=post_rows)
 
         try:

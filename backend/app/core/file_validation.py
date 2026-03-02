@@ -78,8 +78,10 @@ def sanitize_pdf(data: bytes) -> bytes:
 
 
 def validate_avatar(content_type: str, data: bytes) -> None:
-    """Validate avatar file: type and size. Raises HTTPException if invalid."""
+    """Validate avatar file: type, size, and magic bytes. Raises HTTPException if invalid."""
     from fastapi import HTTPException, status
+
+    from app.core.errors import AppError, ErrorCode
 
     if content_type not in AVATAR_ALLOWED_TYPES:
         raise HTTPException(
@@ -90,6 +92,12 @@ def validate_avatar(content_type: str, data: bytes) -> None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File size exceeds 2MB limit.",
+        )
+    if not validate_magic_number(data, content_type):
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            "File content does not match its declared type (invalid magic number).",
         )
 
 
@@ -128,10 +136,10 @@ def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
 
 
 def sanitize_html(html_content: str) -> str:
-    """Sanitize HTML content using bleach. Allows safe tags for rich text."""
-    import bleach  # type: ignore[import-untyped]
+    """Sanitize HTML content using nh3. Allows safe tags for rich text."""
+    import nh3
 
-    allowed_tags = [
+    allowed_tags = {
         "p",
         "br",
         "strong",
@@ -163,18 +171,15 @@ def sanitize_html(html_content: str) -> str:
         "sub",
         "sup",
         "hr",
-    ]
-    allowed_attrs = {
-        "a": ["href", "title", "target", "rel"],
-        "img": ["src", "alt", "width", "height"],
-        "td": ["colspan", "rowspan"],
-        "th": ["colspan", "rowspan"],
     }
-    return str(
-        bleach.clean(
-            html_content,
-            tags=allowed_tags,
-            attributes=allowed_attrs,
-            strip=True,
-        )
+    allowed_attrs = {
+        "a": {"href", "title", "target"},
+        "img": {"src", "alt", "width", "height"},
+        "td": {"colspan", "rowspan"},
+        "th": {"colspan", "rowspan"},
+    }
+    return nh3.clean(
+        html_content,
+        tags=allowed_tags,
+        attributes=allowed_attrs,
     )

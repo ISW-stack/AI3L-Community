@@ -41,5 +41,20 @@ class SigMemberListResponse(BaseModel):
     total: int
 
 
+class MySigResponse(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+    created_by: str
+    creator_display_name: str | None = None
+    member_count: int
+    created_at: str
+    my_role: str
+
+
+class MySigListResponse(BaseModel):
+    sigs: list[MySigResponse]
+
+
 class SubAdminAssignRequest(BaseModel):
     user_id: str
