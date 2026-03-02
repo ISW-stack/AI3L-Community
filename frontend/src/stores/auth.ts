@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
   const requiresConsent = ref<boolean>(false)
 
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  let heartbeatFailures = 0
+  const MAX_HEARTBEAT_FAILURES = 3
 
   // Token is now in HttpOnly cookie — we infer auth state from role + expiresAt
   const isAuthenticated = computed(() => !!role.value && Date.now() < expiresAt.value)
@@ -122,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function startHeartbeat() {
     stopHeartbeat()
+    heartbeatFailures = 0
     heartbeatTimer = setInterval(async () => {
       if (!isAuthenticated.value) {
         clearSession()
@@ -129,8 +132,14 @@ export const useAuthStore = defineStore('auth', () => {
       }
       try {
         await apiHeartbeat()
+        heartbeatFailures = 0
       } catch {
-        // Heartbeat failed — session may be expired
+        // 401/AUTH errors already handled by axios interceptor (clears session).
+        // For network errors and 5xx, clear session after consecutive failures.
+        heartbeatFailures++
+        if (heartbeatFailures >= MAX_HEARTBEAT_FAILURES) {
+          clearSession()
+        }
       }
     }, HEARTBEAT_INTERVAL_MS)
   }

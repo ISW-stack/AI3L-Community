@@ -8,7 +8,7 @@ from app.core.async_storage import generate_presigned_url as async_presigned_url
 from app.core.async_storage import get_user_storage_used
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
-from app.core.constants import RATE_LIMIT_FILE_UPLOAD
+from app.core.constants import MAX_EDITOR_FILE_SIZE, RATE_LIMIT_FILE_UPLOAD
 from app.core.deps import require_role
 from app.core.file_validation import validate_editor_file
 from app.core.rate_limit import check_rate_limit
@@ -32,7 +32,12 @@ async def upload_editor_file(
     if not await check_rate_limit(f"rl:upload:{user_id}", *RATE_LIMIT_FILE_UPLOAD):
         raise HTTPException(status_code=429, detail="Too many uploads. Try again later.")
     filename = file.filename or "unnamed"
-    data = await file.read()
+    data = await file.read(MAX_EDITOR_FILE_SIZE + 1)
+    if len(data) > MAX_EDITOR_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 20MB limit.",
+        )
     expected_type, data = validate_editor_file(filename, data)
 
     # Storage quota check
