@@ -161,10 +161,15 @@ async function handleDeleteAccount() {
           />
         </div>
 
-        <BaseInput v-model="displayName" label="Display Name" maxlength="100" />
-        <BaseTextarea v-model="bio" label="Bio" :rows="3" maxlength="500" />
-        <BaseInput v-model="affiliation" label="Affiliation" maxlength="200" />
-        <BaseInput v-model="orcid" label="ORCID" maxlength="50" placeholder="0000-0000-0000-0000" />
+        <BaseInput v-model="displayName" label="Display Name" :maxlength="100" />
+        <BaseTextarea v-model="bio" label="Bio" :rows="3" :maxlength="500" />
+        <BaseInput v-model="affiliation" label="Affiliation" :maxlength="200" />
+        <BaseInput
+          v-model="orcid"
+          label="ORCID"
+          :maxlength="50"
+          placeholder="0000-0000-0000-0000"
+        />
 
         <BaseButton type="submit" :loading="saving">Save</BaseButton>
       </form>
