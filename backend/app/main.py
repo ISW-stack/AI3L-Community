@@ -27,23 +27,29 @@ from app.core.storage import init_storage
 
 
 async def bootstrap_super_admin() -> None:
-    """Create initial Super Admin from .env if it doesn't exist yet."""
+    """Create or sync Super Admin credentials from .env."""
+    from app.core.security import hash_password
+    from app.repositories import user_repo
     from app.services.user import create_user, user_exists_by_username
 
     username = settings.SUPER_ADMIN_USERNAME
     password = settings.SUPER_ADMIN_PASSWORD
 
-    if await user_exists_by_username(username):
-        logger.info("Super Admin already exists, skipping bootstrap")
-        return
-
-    await create_user(
-        username=username,
-        password=password,
-        role="SUPER_ADMIN",
-        display_name="Super Admin",
-    )
-    logger.info("Super Admin bootstrapped from .env", extra={"username": username})
+    if not await user_exists_by_username(username):
+        await create_user(
+            username=username,
+            password=password,
+            role="SUPER_ADMIN",
+            display_name="Super Admin",
+        )
+        logger.info("Super Admin bootstrapped from .env", extra={"username": username})
+    else:
+        # Sync password so .env credentials are always authoritative
+        user = await user_repo.find_by_username(username)
+        if user:
+            new_hash = hash_password(password)
+            await user_repo.update_password_hash(user["id"], new_hash)
+            logger.info("Super Admin password synced from .env", extra={"username": username})
 
 
 @asynccontextmanager
