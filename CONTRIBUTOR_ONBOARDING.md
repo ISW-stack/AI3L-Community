@@ -801,6 +801,34 @@ npm run lint                  # ESLint check
 npm run build                 # verify TypeScript types compile cleanly
 ```
 
+### Q: How do I make sure my contributions appear on my GitHub profile?
+
+GitHub's contribution graph counts commits that are present in the repository's default branch (`main`) or in any branch that has been merged into it.
+
+**Step 1 — Verify your email matches GitHub**
+
+Your Git identity email must match an email address associated with your GitHub account:
+
+```bash
+git config --global user.email "your@email.com"
+```
+
+Check your GitHub verified emails at **Settings → Emails**.
+
+**Step 2 — Request a merge commit when your PR is accepted**
+
+When the project lead merges your PR into `backend` or `frontend`, the merge strategy determines how your commits are recorded:
+
+| Merge strategy | What happens | Contributions counted |
+|---|---|---|
+| **Merge commit** (recommended) | All your commits are preserved as-is in the integration branch | Each commit counts individually |
+| Squash and merge | All your commits are collapsed into one new commit | One contribution counted regardless of how many commits you made |
+| Rebase and merge | Your commits are replayed with new SHAs but original authorship is kept | Each commit counts individually |
+
+To maximize your contribution count, ask the reviewer to use **"Create a merge commit"** when merging your PR on GitHub.
+
+Once the integration branch (`backend` or `frontend`) is eventually merged into `main` by the project lead, all your commits flow into `main` and appear in your GitHub contribution graph.
+
 ---
 
 ## Quick Reference Card

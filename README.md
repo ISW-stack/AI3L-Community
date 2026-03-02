@@ -903,3 +903,12 @@ All of the following status checks must pass before a PR can be merged:
 - `Lint, Test & Build` (frontend)
 
 Direct pushes to `main` are blocked.
+
+### GitHub Contribution Graph
+
+To ensure your commits appear in your GitHub contribution graph:
+
+1. Confirm your `git config user.email` matches a verified email on your GitHub account.
+2. When your PR is merged, ask the reviewer to use **"Create a merge commit"** rather than squash. Merge commits preserve each of your individual commits in the integration branch; squash merge collapses them all into a single commit.
+
+Once the integration branch is merged into `main`, all your commits appear in the contribution history.
