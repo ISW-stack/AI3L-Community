@@ -132,13 +132,9 @@ async def assign_sub_admin(sig_id: uuid.UUID, user_id: str) -> dict:
             if current_role == "ADMIN":
                 admin_count = await sig_repo.count_admins(sig_id, conn)
                 if admin_count <= 1:
-                    raise ValueError(
-                        "Cannot demote: this user is the last admin of the SIG."
-                    )
+                    raise ValueError("Cannot demote: this user is the last admin of the SIG.")
 
-            row = await sig_repo.update_member_role_in_conn(
-                sig_id, user_uuid, "SUB_ADMIN", conn
-            )
+            row = await sig_repo.update_member_role_in_conn(sig_id, user_uuid, "SUB_ADMIN", conn)
             if row is None:
                 raise ValueError("SIG not found.")
 
