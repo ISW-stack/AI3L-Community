@@ -90,11 +90,24 @@ class TestValidateSession:
         from app.services.auth import validate_session
 
         redis = AsyncMock()
-        redis.exists = AsyncMock(side_effect=[0, 1])  # blacklist miss, session exists
+        redis.exists = AsyncMock(return_value=0)  # blacklist miss
+        redis.get = AsyncMock(return_value="jti-abc")  # stored jti matches
         mock_get_redis.return_value = redis
 
         result = await validate_session("user-id-1", "MEMBER", "jti-abc")
         assert result is True
+
+    @patch("app.services.auth.get_redis")
+    async def test_validate_session_jti_mismatch(self, mock_get_redis):
+        from app.services.auth import validate_session
+
+        redis = AsyncMock()
+        redis.exists = AsyncMock(return_value=0)  # blacklist miss
+        redis.get = AsyncMock(return_value="jti-other")  # stored jti doesn't match
+        mock_get_redis.return_value = redis
+
+        result = await validate_session("user-id-1", "MEMBER", "jti-abc")
+        assert result is False
 
     @patch("app.services.auth.get_redis")
     async def test_validate_session_blacklisted(self, mock_get_redis):

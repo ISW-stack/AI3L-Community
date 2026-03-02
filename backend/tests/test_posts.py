@@ -35,11 +35,14 @@ def _make_post_row(user_id=None, version=1):
 
 
 class TestCreatePost:
-    @patch("app.services.post._increment_daily_post_count", new_callable=AsyncMock)
-    @patch("app.services.post._check_daily_post_limit", new_callable=AsyncMock, return_value=True)
+    @patch(
+        "app.services.post._atomic_check_and_increment_post_limit",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
     @patch("app.repositories.post_repo.get_pool")
     async def test_create_post_success(
-        self, mock_get_pool, mock_limit, mock_incr, mock_pool, mock_conn
+        self, mock_get_pool, mock_atomic_limit, mock_pool, mock_conn
     ):
         from app.services.post import create_post
 
@@ -49,10 +52,14 @@ class TestCreatePost:
 
         result = await create_post(user_id, "Title", "Content")
         assert result["title"] == "Test Post"
-        mock_incr.assert_called_once()
+        mock_atomic_limit.assert_called_once()
 
-    @patch("app.services.post._check_daily_post_limit", new_callable=AsyncMock, return_value=False)
-    async def test_create_post_rate_limited(self, mock_limit):
+    @patch(
+        "app.services.post._atomic_check_and_increment_post_limit",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    async def test_create_post_rate_limited(self, mock_atomic_limit):
         from app.services.post import create_post
 
         with pytest.raises(ValueError, match="Daily post limit"):

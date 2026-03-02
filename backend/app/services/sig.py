@@ -122,9 +122,26 @@ async def get_member_role(sig_id: uuid.UUID, user_id: str) -> str | None:
 
 
 async def assign_sub_admin(sig_id: uuid.UUID, user_id: str) -> dict:
-    row = await sig_repo.update_member_role(sig_id, uuid.UUID(user_id), "SUB_ADMIN")
-    if row is None:
-        raise ValueError("SIG not found.")
+    pool = get_pool()
+    user_uuid = uuid.UUID(user_id)
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Check if target user is currently an ADMIN — prevent orphaning SIG
+            current_role = await sig_repo.get_member_role_in_conn(sig_id, user_uuid, conn)
+            if current_role == "ADMIN":
+                admin_count = await sig_repo.count_admins(sig_id, conn)
+                if admin_count <= 1:
+                    raise ValueError(
+                        "Cannot demote: this user is the last admin of the SIG."
+                    )
+
+            row = await sig_repo.update_member_role_in_conn(
+                sig_id, user_uuid, "SUB_ADMIN", conn
+            )
+            if row is None:
+                raise ValueError("SIG not found.")
+
     logger.info("Sub-admin assigned", extra={"sig_id": str(sig_id), "user_id": user_id})
     return row_to_member(row)
 

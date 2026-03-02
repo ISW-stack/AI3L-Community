@@ -171,8 +171,15 @@ async def remove_sig_member(
 async def assign_sig_sub_admin(
     sig_id: uuid.UUID,
     req: SubAdminAssignRequest,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigMemberResponse:
+    # Allow global admins OR the SIG's own ADMIN
+    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    if not is_global_admin:
+        sig_role = await get_member_role(sig_id, current_user["sub"])
+        if sig_role != "ADMIN":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+
     try:
         member = await assign_sub_admin(sig_id, req.user_id)
     except ValueError as e:
