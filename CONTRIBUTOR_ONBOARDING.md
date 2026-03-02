@@ -1,6 +1,6 @@
 # AI3L Community — Contributor Onboarding Guide
 
-> **Last Updated:** 2026-03-02
+> **Last Updated:** 2026-03-02 (branch workflow: PRs now target `backend` / `frontend`, not `main`)
 > **Audience:** All new contributors
 > **Language:** English throughout
 
@@ -542,43 +542,80 @@ combined commit message. Save and close that too, and the rebase is done.
 
 ## 7. Standard Collaboration Workflow (Feature Branch)
 
+### Branch structure
+
+This repository uses **three permanent branches**:
+
 ```
-main ──────────────────────────────────────► (stable, never push directly)
-        │
-        └─ feature/your-task ─► open Pull Request ─► merged into main
+main ──────────────────────────────────────► production-ready, merged by project lead only
+  ▲                                ▲
+  │                                │
+backend ──────────────────────────► all backend (FastAPI, DB, tests) changes
+  ▲
+  └─ feature/your-backend-task
+
+frontend ─────────────────────────► all frontend (Vue, TypeScript, styles) changes
+  ▲
+  └─ feature/your-frontend-task
 ```
+
+| Branch | Purpose | Who merges into it |
+|--------|---------|-------------------|
+| `main` | Stable, production-ready code | Project lead only |
+| `backend` | Integration branch for all backend work | Project lead after review |
+| `frontend` | Integration branch for all frontend work | Project lead after review |
+
+**You never push directly to `main`, `backend`, or `frontend`.** You always
+create a short-lived feature branch and open a Pull Request targeting the
+correct integration branch (`backend` or `frontend`).
 
 ### What is a Pull Request?
 
-A **Pull Request (PR)** is a proposal on GitHub to merge your branch into
-`main`. It gives the team a chance to review your changes, leave comments,
-and ask for adjustments before the code becomes part of the main codebase.
+A **Pull Request (PR)** is a proposal on GitHub to merge your branch into the
+integration branch. It gives the team a chance to review your changes, leave
+comments, and ask for adjustments before the code is accepted.
 
 You do not merge your own code — a reviewer approves it, then merges it.
 
 ### Full workflow step by step
 
+**Step 1: Identify which integration branch your work belongs to**
+
+| You are changing… | Target branch |
+|-------------------|---------------|
+| `backend/` directory (Python, tests, migrations) | `backend` |
+| `frontend/` directory (Vue, TypeScript, styles) | `frontend` |
+| Both at the same time | Open **two separate PRs** — one for each |
+
+**Step 2: Sync your starting point from the correct integration branch**
+
 ```bash
-# 1. Make sure your local main is up to date
-git checkout main
-git pull origin main
-
-# 2. Create a new feature branch
+# For backend work
+git checkout backend
+git pull origin backend
 git checkout -b feature/describe-your-task
-# Examples: feature/add-comment-edit, fix/avatar-upload-error
 
-# 3. Write code and tests
-#    ... edit files ...
+# For frontend work
+git checkout frontend
+git pull origin frontend
+git checkout -b feature/describe-your-task
+```
 
-# 4. Run tests before committing
-cd backend && pytest tests/ -v
-cd frontend && npx vitest run
+**Step 3: Write code and tests**
 
-# 5. Stage and commit
+```bash
+# ... edit files ...
+
+# Run tests before committing
+cd backend && pytest tests/ -v          # backend
+cd frontend && npx vitest run           # frontend
+```
+
+**Step 4: Stage, commit, and push**
+
+```bash
 git add <relevant files>
 git commit -m "feat: add comment edit functionality"
-
-# 6. Push to remote
 git push -u origin feature/describe-your-task
 ```
 
@@ -604,24 +641,38 @@ On the PR creation page:
 
 | Field | What to set |
 |-------|-------------|
-| **Base** | `main` (this is where your code will be merged into) |
+| **Base** | `backend` or `frontend` — **not `main`** |
 | **Compare** | `feature/describe-your-task` (your branch) |
 | **Title** | Short summary of what you did (e.g., `feat: add comment edit`) |
 | **Description** | Explain *what* you changed and *why*; mention any related issue numbers |
 
+> **Common mistake:** double-check the **Base** field before submitting.
+> GitHub sometimes defaults to `main`. Change it to `backend` or `frontend`
+> as appropriate.
+
 Click **"Create pull request"** when ready.
 
 ```bash
-# 7. Address review feedback — just push new commits to the same branch;
-#    the PR updates automatically
+# Address review feedback — just push new commits to the same branch;
+# the PR updates automatically
 git add <changed files>
 git commit -m "fix: address review feedback on comment edit"
 git push
 
-# 8. After the PR is merged, clean up locally
-git checkout main
-git pull origin main
+# After the PR is merged, clean up locally
+git checkout backend      # or frontend
+git pull origin backend   # sync the integration branch
 git branch -d feature/describe-your-task
+```
+
+### Keeping your feature branch up to date
+
+If the integration branch receives new commits while you are working, rebase
+your branch on top of it to avoid conflicts at merge time:
+
+```bash
+git fetch origin
+git rebase origin/backend     # or origin/frontend
 ```
 
 ### Branch naming rules
@@ -670,10 +721,10 @@ git commit -m "test: add integration test for SIG join endpoint"
 
 ### Q: `git push` fails with "rejected... non-fast-forward"
 
-The remote has commits you don't have locally. Rebase first:
+The integration branch has commits you don't have locally. Rebase first:
 
 ```bash
-git pull --rebase origin main
+git pull --rebase origin backend    # or origin/frontend
 # resolve any conflicts, then
 git push
 ```
@@ -704,13 +755,13 @@ git show <commit-hash>
 git show 1515190
 ```
 
-### Q: My branch has diverged a lot from main and rebase has many conflicts
+### Q: My branch has diverged a lot from the integration branch and rebase has many conflicts
 
 Work through them one commit at a time. Do not try to resolve everything at
 once:
 
 ```bash
-git rebase origin/main
+git rebase origin/backend     # or origin/frontend
 # Resolve the conflict shown in the file, then:
 git add <resolved-file>
 git rebase --continue
@@ -761,25 +812,37 @@ git config --global user.email "your@email.com"
 git config --global core.editor "code --wait"
 git config --global credential.helper store
 
-# === Start of day ===
-git checkout main && git pull origin main
-git checkout feature/your-task
+# === Start a new task (backend example) ===
+git checkout backend && git pull origin backend
+git checkout -b feature/your-task
+
+# === Start a new task (frontend example) ===
+git checkout frontend && git pull origin frontend
+git checkout -b feature/your-task
 
 # === While working ===
-git status                         # check current state
-git diff                           # see unstaged changes
-git add <file>                     # stage a specific file
-git commit -m "type: description"  # commit
+git status                           # check current state
+git diff                             # see unstaged changes
+git add <file>                       # stage a specific file
+git commit -m "type: description"    # commit
 
 # === Before pushing ===
 git fetch origin
-git rebase origin/main             # make sure you're on top of latest main
+git rebase origin/backend            # stay on top of integration branch
 git push
 
+# === Open a PR on GitHub ===
+# Base: backend  (or frontend) — never main
+# Compare: feature/your-task
+
+# === After PR is merged, clean up ===
+git checkout backend && git pull origin backend
+git branch -d feature/your-task
+
 # === Inspection ===
-git log --oneline -10              # last 10 commits
-git show <hash>                    # what a commit changed
-git diff origin/main               # difference from main
+git log --oneline -10                # last 10 commits
+git show <hash>                      # what a commit changed
+git diff origin/backend              # difference from integration branch
 ```
 
 ---
