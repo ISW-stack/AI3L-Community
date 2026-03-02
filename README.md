@@ -299,9 +299,10 @@ Copy `.env.example` to `.env` and set all values. All `changeme_*` defaults must
 |---|---|---|
 | `MINIO_ROOT_USER` | `minioadmin` | Admin username |
 | `MINIO_ROOT_PASSWORD` | — | Admin password |
-| `MINIO_ENDPOINT` | `minio:9000` | Internal endpoint |
+| `MINIO_ENDPOINT` | `minio:9000` | Internal endpoint (Docker service name) |
 | `MINIO_BUCKET_NAME` | `ai3l-uploads` | Upload bucket name |
 | `MINIO_USE_SSL` | `false` | Enable TLS for MinIO connection |
+| `MINIO_PUBLIC_URL` | — | Browser-accessible base URL for presigned URLs (e.g. `http://localhost:19000` in dev, `https://your-domain.com` in production). Required when MinIO is behind a reverse proxy or accessed under a different hostname than `MINIO_ENDPOINT`. |
 
 ### Celery
 
@@ -518,6 +519,8 @@ Post creation is limited to 50 posts per user per day, tracked with a Redis coun
 ## File Storage
 
 Files are stored in MinIO (S3-compatible API). Objects are never publicly accessible. All reads go through presigned URLs generated at request time with a 7-day TTL.
+
+When MinIO is accessed through a different hostname from the browser (e.g. behind Nginx or in local Docker development), set `MINIO_PUBLIC_URL` to the browser-accessible base URL. The server rewrites the internal `MINIO_ENDPOINT` hostname in every generated presigned URL so that browsers can fetch files directly.
 
 ### Upload Validation
 
