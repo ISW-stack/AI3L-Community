@@ -12,14 +12,18 @@ from starlette.responses import JSONResponse, Response
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
-# Paths exempt from CSRF check (authentication endpoints where the user
-# doesn't yet have a CSRF token, and captcha).
-_EXEMPT_PREFIXES = (
-    "/api/v1/auth/login",
-    "/api/v1/auth/register",
-    "/api/v1/auth/guest/",
-    "/api/v1/auth/captcha",
+# Exact paths exempt from CSRF check (authentication endpoints where the
+# user doesn't yet have a CSRF token).
+_EXEMPT_EXACT = frozenset(
+    {
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/captcha",
+    }
 )
+
+# Prefix-based exemptions (only for routes with dynamic path segments).
+_EXEMPT_PREFIXES = ("/api/v1/auth/guest/",)
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
@@ -38,8 +42,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             return response
 
-        # Exempt paths
+        # Exempt paths (exact match first, then prefix match for dynamic routes)
         path = request.url.path
+        if path in _EXEMPT_EXACT:
+            response = await call_next(request)
+            return response
         for prefix in _EXEMPT_PREFIXES:
             if path.startswith(prefix):
                 response = await call_next(request)

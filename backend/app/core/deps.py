@@ -51,10 +51,12 @@ async def get_current_user(
     if not is_valid:
         raise AppError(ErrorCode.AUTH_002, 401, "Session expired or invalidated.")
 
-    # Check if user is banned (skip for guests — they have no DB record)
+    # Check user still exists and is not banned/deleted (skip guests — no DB record)
     if role != "GUEST":
         user = await get_user_by_id(uuid.UUID(user_id))
-        if user and user.get("is_banned"):
+        if not user or user.get("is_deleted"):
+            raise AppError(ErrorCode.AUTH_001, 401, "Account no longer exists.")
+        if user.get("is_banned"):
             reason = user.get("ban_reason") or "No reason provided"
             raise AppError(ErrorCode.AUTH_004, 403, f"Account is banned: {reason}")
 

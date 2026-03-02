@@ -13,7 +13,7 @@ import {
 } from '@/api/comments'
 import { createReport } from '@/api/reports'
 import DOMPurify from 'dompurify'
-import { renderMentions, extractSigUrls, extractFormUrls } from '@/utils/html'
+import { renderMentions } from '@/utils/html'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -85,42 +85,56 @@ interface ContentSegment {
   content: string
 }
 
+const UUID_RE = /\/(sigs|forms)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
+
 const contentSegments = computed<ContentSegment[]>(() => {
   if (!post.value) return []
   const sanitized = DOMPurify.sanitize(post.value.content)
-  const sigUrls = extractSigUrls(sanitized)
-  const formUrls = extractFormUrls(sanitized)
 
-  if (sigUrls.length === 0 && formUrls.length === 0) {
+  // Parse sanitized HTML as DOM to safely identify <a> tags that link to SIG/form pages.
+  // This avoids the previous indexOf + slice approach which could cut inside HTML attributes.
+  const doc = new DOMParser().parseFromString(`<div>${sanitized}</div>`, 'text/html')
+  const wrapper = doc.body.firstElementChild!
+
+  let markerIndex = 0
+  const cardMap = new Map<string, { type: 'sig-card' | 'form-card'; id: string }>()
+
+  wrapper.querySelectorAll('a[href]').forEach((a) => {
+    const href = a.getAttribute('href') || ''
+    let path = href
+    try {
+      path = new URL(href, 'http://x').pathname
+    } catch {
+      /* href is already a relative path */
+    }
+    // Skip form edit/export sub-routes
+    if (/\/(edit|export)$/.test(path)) return
+    const m = UUID_RE.exec(path)
+    if (!m) return
+
+    const marker = `\x00CARD${markerIndex}\x00`
+    const entityType = m[1].toLowerCase() === 'sigs' ? 'sig-card' : 'form-card'
+    cardMap.set(marker, { type: entityType as 'sig-card' | 'form-card', id: m[2].toLowerCase() })
+    a.replaceWith(doc.createTextNode(marker))
+    markerIndex++
+  })
+
+  if (cardMap.size === 0) {
     return [{ type: 'html', content: sanitized }]
   }
 
-  // Build a list of all URL matches with their positions
-  const markers: { index: number; length: number; type: 'sig-card' | 'form-card'; id: string }[] =
-    []
-  for (const s of sigUrls) {
-    const idx = sanitized.indexOf(s.fullMatch)
-    if (idx !== -1)
-      markers.push({ index: idx, length: s.fullMatch.length, type: 'sig-card', id: s.id })
-  }
-  for (const f of formUrls) {
-    const idx = sanitized.indexOf(f.fullMatch)
-    if (idx !== -1)
-      markers.push({ index: idx, length: f.fullMatch.length, type: 'form-card', id: f.id })
-  }
-  markers.sort((a, b) => a.index - b.index)
-
+  // Serialize back to HTML and split on the placeholder markers
+  const html = wrapper.innerHTML
+  const parts = html.split(/(\x00CARD\d+\x00)/)
   const segments: ContentSegment[] = []
-  let cursor = 0
-  for (const m of markers) {
-    if (m.index > cursor) {
-      segments.push({ type: 'html', content: sanitized.slice(cursor, m.index) })
+  for (const part of parts) {
+    if (!part) continue
+    const card = cardMap.get(part)
+    if (card) {
+      segments.push({ type: card.type, content: card.id })
+    } else {
+      segments.push({ type: 'html', content: part })
     }
-    segments.push({ type: m.type, content: m.id })
-    cursor = m.index + m.length
-  }
-  if (cursor < sanitized.length) {
-    segments.push({ type: 'html', content: sanitized.slice(cursor) })
   }
   return segments
 })

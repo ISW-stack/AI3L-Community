@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 
 from app.converters.user_converter import user_to_public_response, user_to_response
+from app.core.constants import MAX_AVATAR_SIZE
 from app.core.deps import get_current_user, require_role
 from app.core.event_bus import emit
 from app.core.security import validate_password_policy
@@ -19,7 +20,7 @@ from app.schemas.user import (
     UserUpdateRequest,
 )
 from app.services.audit import list_audit_logs
-from app.services.auth import destroy_session, revoke_user_sessions
+from app.services.auth import revoke_user_sessions
 from app.services.privacy_consent import create_consent, create_guest_consent
 from app.services.user import (
     anonymize_user,
@@ -72,7 +73,12 @@ async def upload_avatar(
     current_user: dict = Depends(get_current_user),
 ) -> UserResponse:
     """Upload avatar image (PNG/JPEG, max 2MB)."""
-    data = await file.read()
+    data = await file.read(MAX_AVATAR_SIZE + 1)
+    if len(data) > MAX_AVATAR_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds 2MB limit.",
+        )
     user = await upload_user_avatar(
         user_id=current_user["sub"],
         data=data,
@@ -97,8 +103,8 @@ async def change_my_password(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    # Destroy current session so user must re-login
-    await destroy_session(current_user["sub"], current_user["role"], current_user["jti"])
+    # Revoke ALL sessions (all devices) so user must re-login everywhere
+    await revoke_user_sessions(current_user["sub"])
     return MessageResponse(message="Password changed successfully. Please log in again.")
 
 
@@ -131,7 +137,8 @@ async def delete_my_account(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    await destroy_session(current_user["sub"], current_user["role"], current_user["jti"])
+    # Revoke ALL sessions (all devices), not just the current one
+    await revoke_user_sessions(current_user["sub"])
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
