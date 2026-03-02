@@ -1,6 +1,6 @@
 # AI3L Community Frontend -- Contributor Task Guide
 
-> **Last Updated:** 2026-03-01
+> **Last Updated:** 2026-03-02
 > **Applies to:** Frontend codebase (`frontend/src/`)
 > **Audience:** Collaborators who are new to the project or learning Vue/TypeScript
 
@@ -9,7 +9,7 @@
 ## Introduction
 
 This document catalogues the current state of the AI3L Community frontend
-and provides actionable tasks for contributors. It is organized into four
+and provides actionable tasks for contributors. It is organized into five
 sections:
 
 1. **Required Features** -- Functionality specified in the system design or
@@ -18,8 +18,10 @@ sections:
    specification but would benefit users.
 3. **Known Bugs** -- Confirmed defects that need to be corrected.
 4. **UI/UX Improvements** -- Refinements to existing user interface behavior
-   and accessibility. Some items overlap with Section 2; where this occurs it
-   is noted inline.
+   and accessibility.
+5. **Planned Backend Work** -- Backend tasks that are planned or in progress.
+   Frontend contributors should be aware of these as they may affect or
+   unblock frontend work.
 
 Each item includes a difficulty rating and a step-by-step implementation plan.
 
@@ -131,11 +133,11 @@ directly in the database, which is error-prone.
      api.post('/categories', { name, description })
 
    export const updateCategory = (
-     id: number,
+     id: string,
      payload: { name?: string; description?: string }
    ) => api.put(`/categories/${id}`, payload)
 
-   export const deleteCategory = (id: number) =>
+   export const deleteCategory = (id: string) =>
      api.delete(`/categories/${id}`)
    ```
 
@@ -145,7 +147,7 @@ directly in the database, which is error-prone.
    - Have a "Create Category" `BaseButton` that opens a `BaseModal`
      containing two `BaseInput` fields (Name and Description).
    - Each table row has an "Edit" button (opens the same modal pre-filled)
-     and a "Delete" button (shows a confirmation modal; see Section 4.1).
+     and a "Delete" button (shows a confirmation modal).
 
 3. In `src/router/index.ts`, add the route inside the admin routes block:
    ```typescript
@@ -161,122 +163,7 @@ directly in the database, which is error-prone.
 
 ---
 
-### 1.3 SIG Creation UI
-
-**Difficulty: Intermediate**
-
-**Affected files:**
-- `src/api/sigs.ts` (add one function)
-- `src/views/SigsDirectoryView.vue` (add button and modal)
-
-**Background:**
-The frontend lets users browse SIGs and SIG admins edit their own SIG, but
-there is no way to create a new SIG. The `sigs.ts` API module has no
-`createSig()` function and there is no route for it. SIG creation should
-be restricted to platform admins.
-
-**Pre-check:** Before starting, verify with the backend developer that
-`POST /api/v1/sigs` is implemented and what payload it expects (likely
-`{ name: string, description: string }`).
-
-**Implementation Plan:**
-
-1. In `src/api/sigs.ts`, import the `Sig` type from `../types` and add:
-   ```typescript
-   export const createSig = (payload: { name: string; description: string }) =>
-     api.post<Sig>('/sigs', payload)
-   ```
-
-2. In `src/views/SigsDirectoryView.vue`, add a "Create SIG" `BaseButton`
-   at the top of the page. Wrap it in a `v-if="auth.isAdmin"` condition so
-   only admins see it.
-
-3. Add a `BaseModal` with two `BaseInput` fields (SIG name and description)
-   and a "Create" submit button.
-
-4. In the submit handler:
-   ```typescript
-   const handleCreate = async () => {
-     try {
-       await createSig({ name: sigName.value, description: sigDescription.value })
-       toast.show('SIG created successfully.', 'success')
-       showModal.value = false
-       await fetchSigs() // refresh the list
-     } catch (err) {
-       toast.show('Failed to create SIG.', 'error')
-     }
-   }
-   ```
-
----
-
-### 1.4 TipTap Editor: Direct Image File Upload
-
-**Difficulty: Intermediate**
-
-**Affected files:**
-- `src/components/TiptapEditor.vue`
-
-**Background:**
-The system specification (Section 12.2) states that `TiptapEditor` should
-support "image upload" in its toolbar. The backend endpoint
-`POST /api/v1/files/upload/editor` already exists, and the `uploadEditorFile()`
-and `getPresignedUrl()` functions are in `src/api/files.ts`. However, the
-current implementation inserts images by asking the user to type a URL
-using the browser's `prompt()` dialog. This bypasses the file storage
-system and is a poor user experience.
-
-**Implementation Plan:**
-
-1. In `TiptapEditor.vue`, add a hidden file input element after the
-   closing `</nav>` tag of the toolbar:
-   ```html
-   <input
-     ref="imageFileInput"
-     type="file"
-     accept="image/png,image/jpeg,image/gif,image/webp"
-     class="hidden"
-     @change="handleImageUpload"
-   />
-   ```
-
-2. Add a template ref and an `isUploadingImage` loading state:
-   ```typescript
-   const imageFileInput = ref<HTMLInputElement | null>(null)
-   const isUploadingImage = ref(false)
-   ```
-
-3. Change the existing image toolbar button click handler from calling
-   `prompt()` to triggering the file input:
-   ```typescript
-   const openImagePicker = () => imageFileInput.value?.click()
-   ```
-
-4. Add the `handleImageUpload` function:
-   ```typescript
-   const handleImageUpload = async (event: Event) => {
-     const file = (event.target as HTMLInputElement).files?.[0]
-     if (!file) return
-     isUploadingImage.value = true
-     try {
-       const { key } = await uploadEditorFile(file)
-       const { url } = await getPresignedUrl(key)
-       editor.value?.chain().focus().setImage({ src: url }).run()
-     } catch {
-       // show toast error
-     } finally {
-       isUploadingImage.value = false
-       if (imageFileInput.value) imageFileInput.value.value = ''
-     }
-   }
-   ```
-
-5. Disable the image toolbar button and show a spinner while
-   `isUploadingImage` is true.
-
----
-
-### 1.5 TipTap Editor: Table Support
+### 1.3 TipTap Editor: Table Support
 
 **Difficulty: Intermediate**
 
@@ -326,119 +213,128 @@ provides official packages for this.
 
 ---
 
-### 1.6 Comment Edit UI
+### 1.4 Form Response Viewing UI
 
-**Difficulty: Beginner**
+**Difficulty: Intermediate**
 
 **Affected files:**
-- `src/views/PostDetailView.vue`
+- `src/api/forms.ts` (add one function)
+- `src/views/sigs/SigDetailView.vue` (add response viewer)
 
 **Background:**
-The backend supports comment editing via
-`PUT /api/v1/posts/{post_id}/comments/{comment_id}`, and `updateComment()`
-is already in `src/api/comments.ts`. However, `PostDetailView.vue` provides
-no "Edit" button for comments. Users can delete their comments but not
-correct them.
+The backend exposes `GET /api/v1/forms/{form_id}/responses` (added in
+Phase 13), which returns paginated form submissions. SIG admins need to see
+who submitted responses and what they answered. Currently there is no
+frontend function calling this endpoint, so admins cannot view form
+responses at all.
 
 **Implementation Plan:**
 
-1. At the top of `<script setup>` in `PostDetailView.vue`, add two reactive
-   variables:
+1. Open `src/api/forms.ts`. Add:
    ```typescript
-   const editingCommentId = ref<string | null>(null)
-   const editContent = ref('')
+   export const listFormResponses = (
+     formId: string,
+     page = 1,
+     pageSize = 20
+   ) =>
+     api.get(`/forms/${formId}/responses`, {
+       params: { page, page_size: pageSize },
+     })
    ```
 
-2. In the comment template, add an "Edit" button next to the existing
-   "Delete" button. Show it only for the comment's author:
-   ```html
-   <BaseButton
-     v-if="auth.user?.id === comment.author.id"
-     variant="ghost"
-     size="sm"
-     @click="startEdit(comment)"
-   >
-     Edit
-   </BaseButton>
-   ```
+2. In `SigDetailView.vue`, add a "View Responses" button next to each form
+   in the SIG forms section. Show it only when `userIsSigAdmin` is true.
 
-3. Add the `startEdit` function:
-   ```typescript
-   const startEdit = (comment: Comment) => {
-     editingCommentId.value = comment.id
-     editContent.value = comment.content
-   }
-   ```
+3. When clicked, open a `BaseModal` (size `xl`) that:
+   - Fetches responses via `listFormResponses(formId)`.
+   - Displays results in a `BaseTable` with columns: Respondent, Submitted
+     At, and a summary of their answers.
+   - Includes `BasePagination` at the bottom.
 
-4. In the comment template, replace the rendered HTML with a textarea
-   and Save/Cancel buttons when the comment is being edited:
-   ```html
-   <template v-if="editingCommentId === comment.id">
-     <BaseTextarea v-model="editContent" :rows="3" />
-     <BaseButton size="sm" @click="saveEdit(comment)">Save</BaseButton>
-     <BaseButton size="sm" variant="ghost" @click="editingCommentId = null">Cancel</BaseButton>
-   </template>
-   <div v-else v-html="sanitize(comment.content)" />
-   ```
-
-5. Add the `saveEdit` function:
-   ```typescript
-   const saveEdit = async (comment: Comment) => {
-     try {
-       const updated = await updateComment(postId, comment.id, { content: editContent.value })
-       // Replace the comment in the local array
-       const index = comments.value.findIndex(c => c.id === comment.id)
-       if (index !== -1) comments.value[index] = updated.data
-       editingCommentId.value = null
-     } catch {
-       toast.show('Failed to save edit.', 'error')
-     }
-   }
-   ```
+4. Optionally add a "Download CSV" button that calls
+   `POST /forms/{form_id}/export` (the backend Celery export task).
 
 ---
 
-### 1.7 Account Deletion (GDPR Right to Erasure)
+### 1.5 Notification Deletion
 
 **Difficulty: Beginner**
 
 **Affected files:**
-- `src/views/ProfileView.vue`
+- `src/api/notifications.ts` (add one function)
+- `src/views/NotificationsView.vue` (add delete button)
 
 **Background:**
-The system specification (Section 1) explicitly requires GDPR compliance,
-including the right to erasure. The backend supports account anonymization
-via `DELETE /api/v1/users/me`, and `deleteAccount()` is in `src/api/users.ts`.
-`ProfileView.vue` has no UI for this. Guest users should not see this option
-(they do not have persistent accounts).
+The backend exposes `DELETE /api/v1/notifications/{notification_id}`, but
+the frontend has no API function for it. Users can mark notifications as
+read but cannot delete them. Over time, the notification list grows
+unbounded.
 
 **Implementation Plan:**
 
-1. At the bottom of the profile form in `ProfileView.vue`, add a "Danger
-   Zone" section with a red left border or red border around it to visually
-   signal that this is a destructive area.
-
-2. Add a `BaseButton` with `variant="danger"` labelled "Delete My Account".
-   Wrap it in `v-if="!auth.isGuest"`.
-
-3. When clicked, open a `BaseModal` that:
-   - Explains the action is permanent and results in anonymization.
-   - Contains a `BaseInput` where the user must type their username to
-     confirm (use `v-model` and validate that it matches `auth.user?.username`
-     before enabling the confirm button).
-
-4. On confirmation:
+1. Open `src/api/notifications.ts`. Add:
    ```typescript
-   const handleDeleteAccount = async () => {
+   export const deleteNotification = (notificationId: string) =>
+     api.delete(`/notifications/${notificationId}`)
+   ```
+
+2. In `NotificationsView.vue`, add a delete button (use `TrashIcon` from
+   `lucide-vue-next`) on each notification row.
+
+3. Wire the click handler:
+   ```typescript
+   const handleDelete = async (id: string) => {
      try {
-       await deleteAccount()
-       auth.clearSession()
-       router.push('/login')
+       await deleteNotification(id)
+       notifications.value = notifications.value.filter(n => n.id !== id)
      } catch {
-       toast.show('Failed to delete account. Please try again.', 'error')
+       toast.show('Failed to delete notification.', 'error')
      }
    }
    ```
+
+4. The delete button should stop event propagation so it does not trigger
+   the row's click-to-navigate behavior.
+
+---
+
+### 1.6 VirusTotal File Safety Indicator
+
+**Difficulty: Advanced**
+
+**Affected files:**
+- `src/views/forum/PostDetailView.vue` (show indicator on embedded images)
+- `src/components/TiptapEditor.vue` (show upload scan status)
+
+**Background:**
+The backend has a VirusTotal integration (`app/tasks/virustotal.py`) that
+scans uploaded files asynchronously. However, scan results are currently
+fire-and-forget -- they are not stored in the database and there is no way
+for the frontend to query whether a file is safe or still being scanned.
+
+> **Note:** This task requires backend changes first. The backend must:
+> (1) store scan results in a `file_scans` database table, (2) expose a
+> `GET /files/{key}/scan-status` endpoint, (3) block presigned URL
+> generation for files flagged as malicious. Once the backend is ready,
+> the frontend work can begin.
+
+**Implementation Plan (frontend portion):**
+
+1. Add an API function in `src/api/files.ts`:
+   ```typescript
+   export const getFileScanStatus = (fileKey: string) =>
+     api.get<{ status: 'pending' | 'clean' | 'malicious' }>(`/files/${fileKey}/scan-status`)
+   ```
+
+2. In `TiptapEditor.vue`, after a successful upload, show a small badge or
+   icon next to the inserted image indicating scan status (spinner for
+   pending, green check for clean, red warning for malicious).
+
+3. In `PostDetailView.vue`, for each image in the rendered content, query
+   the scan status and overlay an indicator if malicious.
+
+4. Consider polling the scan status every 5 seconds until it resolves
+   (pending -> clean/malicious), then stop.
 
 ---
 
@@ -449,34 +345,11 @@ the product. They are ordered roughly by impact.
 
 ---
 
-### 2.1 Comment Pagination
-
-**Difficulty: Intermediate**
-
-**Affected files:** `src/views/PostDetailView.vue`
-
-The backend supports `offset`/`limit` parameters on comment listing (max 200
-comments per post). `PostDetailView.vue` currently loads all comments in one
-request. For high-traffic posts, this can slow page loads significantly.
-
-**Implementation Plan:**
-1. Add `commentPage` reactive state (starts at 1) and a `COMMENTS_PAGE_SIZE`
-   constant (e.g., 20).
-2. Modify `fetchComments()` to send:
-   `?offset=${(commentPage.value - 1) * COMMENTS_PAGE_SIZE}&limit=${COMMENTS_PAGE_SIZE}`
-3. Store the total comment count from the response to calculate total pages.
-4. Add a `BasePagination` component below the comments section.
-5. When `commentPage` changes (watch it), re-fetch comments.
-6. Note: if comments are threaded (parent/child), paginate only top-level
-   comments and load replies on demand or load them with the parent.
-
----
-
-### 2.2 Post Draft Auto-Save
+### 2.1 Post Draft Auto-Save
 
 **Difficulty: Advanced**
 
-**Affected files:** `src/views/PostCreateView.vue`
+**Affected files:** `src/views/forum/PostCreateView.vue`
 
 When writing a long post, users risk losing their content if the browser
 crashes or they accidentally navigate away.
@@ -495,11 +368,11 @@ crashes or they accidentally navigate away.
 
 ---
 
-### 2.3 Form Preview Mode
+### 2.2 Form Preview Mode
 
 **Difficulty: Intermediate**
 
-**Affected files:** `src/views/FormBuilderView.vue`
+**Affected files:** `src/views/forms/FormBuilderView.vue`
 
 Form builders have no way to preview what respondents will see before
 publishing.
@@ -516,7 +389,7 @@ publishing.
 
 ---
 
-### 2.4 SIG Search and Filter
+### 2.3 SIG Search and Filter
 
 **Difficulty: Beginner**
 
@@ -543,7 +416,7 @@ As the number of SIGs grows, this list becomes hard to navigate.
 
 ---
 
-### 2.5 Password Visibility Toggle
+### 2.4 Password Visibility Toggle
 
 **Difficulty: Beginner**
 
@@ -567,42 +440,7 @@ standard UX pattern that reduces login errors.
 
 ---
 
-### 2.6 Frontend Unit Tests
-
-**Difficulty: Advanced**
-
-**Affected files:** new files under `src/` following `*.test.ts` naming convention
-
-Vitest is configured but no test files exist. The CI/CD pipeline (spec
-Section 16.1) expects frontend unit tests to run on every push. Without
-tests, regressions are hard to detect.
-
-**Implementation Plan:**
-1. Start with the Pinia stores (`auth.ts`, `notifications.ts`, `toast.ts`)
-   as they have well-defined inputs and outputs and do not depend on the DOM.
-2. Test utility functions: `utils/datetime.ts` and `utils/html.ts`.
-3. Use `@vue/test-utils` to mount and test individual components.
-4. Example test for the toast store:
-   ```typescript
-   import { setActivePinia, createPinia } from 'pinia'
-   import { useToastStore } from '../stores/toast'
-
-   describe('Toast Store', () => {
-     beforeEach(() => setActivePinia(createPinia()))
-
-     it('adds a toast and auto-dismisses', async () => {
-       const store = useToastStore()
-       store.show('Hello', 'info')
-       expect(store.toasts).toHaveLength(1)
-     })
-   })
-   ```
-5. Focus on critical paths first: authentication flow, form validation
-   logic, and store state transitions.
-
----
-
-### 2.7 Invite Code Generation for Members
+### 2.5 Invite Code Generation for Members
 
 **Difficulty: Beginner**
 
@@ -620,6 +458,58 @@ codes. Currently the only invite code UI is in the Admin panel.
 4. Display the returned code in a read-only `BaseInput` with a "Copy to
    Clipboard" button that calls `navigator.clipboard.writeText(code)`.
 5. Show a success toast when the code is generated.
+
+---
+
+### 2.6 Admin Bulk Operations UI
+
+**Difficulty: Advanced**
+
+**Affected files:**
+- `src/api/posts.ts` (add bulk delete function)
+- `src/api/users.ts` (add bulk role change function)
+- `src/views/admin/UsersView.vue` (add multi-select + bulk actions)
+- `src/views/forum/ForumView.vue` (add admin multi-select + bulk delete)
+
+**Background:**
+Admins managing a growing platform need to handle policy-violating posts
+and role changes efficiently. Currently every action must be done one at a
+time, which is impractical at scale.
+
+> **Note:** This task requires backend endpoints to be created first:
+> `DELETE /posts/bulk` and `PUT /users/bulk-role`.
+
+**Implementation Plan:**
+
+1. In `UsersView.vue`, add a checkbox column to the user table. Track
+   selected user IDs in a `Set<string>`.
+2. When one or more users are selected, show a floating action bar with:
+   - A role dropdown (MEMBER, ADMIN) and a "Change Role" button.
+   - The action calls `bulkChangeRole(userIds, newRole)`.
+3. In `ForumView.vue`, add a similar checkbox pattern for admin users.
+   Show a "Delete Selected" button when posts are selected.
+4. Both actions should show a confirmation modal before executing.
+
+---
+
+### 2.7 Admin Reports Pagination
+
+**Difficulty: Beginner**
+
+**Affected files:** `src/views/admin/ReportsView.vue`
+
+**Background:**
+The reports admin view currently loads all reports without pagination. As
+the platform grows, this will cause performance issues and potentially
+incomplete data if the backend adds a default limit.
+
+**Implementation Plan:**
+1. Add `currentPage` reactive state (starts at 1) and use a page size
+   constant (e.g., 20).
+2. Pass `page` and `page_size` parameters to the reports API call.
+3. Store the total count from the response.
+4. Add a `BasePagination` component below the reports table.
+5. When `currentPage` changes, re-fetch reports.
 
 ---
 
@@ -658,8 +548,8 @@ The prop is silently ignored.
 **Problem:**
 A `relativeTime()` function is defined in `src/utils/datetime.ts` but is
 not used anywhere. Instead, `NotificationsView.vue` contains a local copy of
-the same logic. If the time formatting logic needs to change, both copies
-must be updated separately, which is error-prone.
+the same logic (lines 73-84). If the time formatting logic needs to change,
+both copies must be updated separately, which is error-prone.
 
 **Fix:**
 1. Open `src/views/NotificationsView.vue`.
@@ -675,38 +565,35 @@ must be updated separately, which is error-prone.
 ### 3.3 Forum Post Preview Uses Inconsistent HTML Handling
 
 **Difficulty: Beginner**
-**Files:** `src/views/ForumView.vue`
+**Files:** `src/views/forum/ForumView.vue`
 
 **Problem:**
 `PostDetailView.vue` uses DOMPurify to sanitize HTML before rendering post
 content, which is the correct approach. However, `ForumView.vue` generates
-the post preview text using a different method (likely a simple DOM element
-or regex-based strip) that does not go through DOMPurify. This is
-inconsistent and could expose raw HTML tags or unsafe content in the
-listing view.
+the post preview text using `stripHtml()` (line 126), which creates a
+temporary DOM element and reads `textContent`. While this strips tags, it
+does not use DOMPurify and is inconsistent with the rest of the app.
 
 **Fix:**
-1. Open `src/views/ForumView.vue`. Find where post content is processed
-   for the preview (look for a computed property or inline expression that
-   shortens or strips the content).
+1. Open `src/views/ForumView.vue`. Find `stripHtml()` (line 126).
 2. Import DOMPurify at the top of the script block:
    ```typescript
    import DOMPurify from 'dompurify'
    ```
-3. Replace the existing stripping logic with:
+3. Replace the existing function with:
    ```typescript
-   const preview = DOMPurify.sanitize(post.content, { ALLOWED_TAGS: [] })
-     .slice(0, 200)
+   const stripHtml = (html: string): string =>
+     DOMPurify.sanitize(html, { ALLOWED_TAGS: [] }).slice(0, 200)
    ```
-   This strips all HTML tags (leaving plain text) and then trims to a
-   preview length.
+   This strips all HTML tags (leaving plain text) via the sanitizer and
+   then trims to a preview length.
 
 ---
 
 ### 3.4 Post Edit: Version Conflict Error (SYS_409) Not Explained to the User
 
 **Difficulty: Intermediate**
-**Files:** `src/views/PostDetailView.vue`
+**Files:** `src/views/forum/PostDetailView.vue`
 
 **Problem:**
 The backend uses optimistic locking on post edits. If two users edit the
@@ -739,7 +626,7 @@ do next.
 ### 3.5 FormBuilder: Rating Question Allows Invalid Min/Max Values
 
 **Difficulty: Beginner**
-**Files:** `src/views/FormBuilderView.vue`
+**Files:** `src/views/forms/FormBuilderView.vue`
 
 **Problem:**
 When building a Rating question, the builder shows numeric inputs for Min
@@ -766,79 +653,34 @@ cause backend errors.
 ### 3.6 Forum Search: Pagination State Not Reset on Mode Change
 
 **Difficulty: Beginner**
-**Files:** `src/views/ForumView.vue`
+**Files:** `src/views/forum/ForumView.vue`
 
 **Problem:**
 If the user is browsing page 3 of posts and then submits a search, the
-search results are requested but the `currentPage` variable may not be
-reset to 1. Depending on the implementation, the user can end up viewing
-page 3 of search results (which may be empty) or page 3 of the browse
-results after clearing the search.
+`doSearch()` function (line 77) does not reset `currentPage` to 1. The
+search results are requested with the current page number, which may return
+an empty page. Note: `clearSearch()` (line 112) correctly resets the page,
+and the `watch` handlers for `categoryFilter` and `sortBy` also reset it,
+but `doSearch()` does not.
 
 **Fix:**
-1. Find the `submitSearch()` handler (or wherever the search query is
-   applied) in `ForumView.vue`.
-2. At the top of that function, reset the page:
+1. Open `ForumView.vue`.
+2. At the top of the `doSearch()` function (line 77), add:
    ```typescript
    currentPage.value = 1
    ```
-3. Similarly, find where the search is cleared (e.g., a "Clear" or "Reset"
-   button) and reset the page there as well.
-4. Test by navigating to page 2+, submitting a search, and verifying that
+3. Test by navigating to page 2+, submitting a search, and verifying that
    results start from page 1.
 
 ---
 
 ## Section 4: UI/UX Improvements
 
-These are refinements to existing behavior. Items marked
-**[See also Sec. 2]** have a related entry in Section 2 where additional
-context is provided.
+These are refinements to existing behavior.
 
 ---
 
-### 4.1 Replace Browser confirm() Dialogs with Styled Confirmation Modals
-
-**Difficulty: Beginner**
-**Files:** `src/views/PostDetailView.vue`, `src/views/admin/CategoriesView.vue`
-
-**Problem:**
-Destructive actions (deleting a post, deleting a comment) use the browser's
-native `confirm()` dialog. This dialog is styled by the operating system,
-cannot match the application's design, and is considered a poor UX pattern.
-
-**Implementation Plan:**
-1. Create a reusable composable `src/composables/useConfirm.ts`:
-   ```typescript
-   import { ref } from 'vue'
-
-   const isOpen = ref(false)
-   const resolveRef = ref<((value: boolean) => void) | null>(null)
-
-   export function useConfirm() {
-     const confirm = (): Promise<boolean> =>
-       new Promise(resolve => {
-         isOpen.value = true
-         resolveRef.value = resolve
-       })
-
-     const accept = () => { resolveRef.value?.(true); isOpen.value = false }
-     const cancel = () => { resolveRef.value?.(false); isOpen.value = false }
-
-     return { isOpen, confirm, accept, cancel }
-   }
-   ```
-2. Add a `ConfirmModal.vue` component (or extend `BaseModal`) that uses
-   this composable to show a "Are you sure?" dialog with Cancel and Confirm
-   buttons.
-3. Replace all `if (confirm('...'))` calls in views with:
-   ```typescript
-   if (await confirm()) { /* proceed */ }
-   ```
-
----
-
-### 4.2 Keyboard Navigation for Dropdown Menus
+### 4.1 Keyboard Navigation for Dropdown Menus
 
 **Difficulty: Intermediate**
 **Files:** `src/components/AppNavbar.vue`, `src/components/NotificationBell.vue`
@@ -862,69 +704,10 @@ keyboard. This is a barrier for users who navigate without a mouse.
 
 ---
 
-### 4.3 Focus Management in Modal Dialogs
-
-**Difficulty: Intermediate**
-**Files:** `src/components/base/BaseModal.vue`
-
-**Problem:**
-When a modal opens, the browser does not automatically move focus inside it.
-When the modal closes, focus is not returned to the element that opened it.
-This makes modals difficult to use with keyboard navigation and breaks screen
-reader workflows.
-
-**Implementation Plan:**
-1. In `BaseModal.vue`, add a template ref on the modal container:
-   ```html
-   <div ref="modalContainer" tabindex="-1" ...>
-   ```
-2. In `onMounted` or in a `watch` on the `modelValue`/`open` prop, save
-   the currently focused element and focus the modal container:
-   ```typescript
-   const previousFocus = ref<HTMLElement | null>(null)
-   watch(isOpen, (open) => {
-     if (open) {
-       previousFocus.value = document.activeElement as HTMLElement
-       nextTick(() => modalContainer.value?.focus())
-     } else {
-       previousFocus.value?.focus()
-     }
-   })
-   ```
-3. Implement a focus trap: listen for `Tab` keydown inside the modal.
-   Collect all focusable elements (`a, button, input, textarea, select`)
-   inside the modal. When the last element is focused and `Tab` is pressed,
-   wrap back to the first. When the first element is focused and
-   `Shift+Tab` is pressed, wrap to the last.
-
----
-
-### 4.4 TipTap Image URL Insertion: Replace prompt() with a Modal Dialog
+### 4.2 Forum Search: Date Range Validation
 
 **Difficulty: Beginner**
-**Files:** `src/components/TiptapEditor.vue`
-
-**Note:** If Section 1.4 (direct file upload) is implemented, this item
-becomes less critical. However, URL-based insertion may still be useful as
-a fallback for external images.
-
-**Problem:**
-The current image insertion path uses `window.prompt()` to ask for a URL.
-This is jarring and cannot be styled.
-
-**Implementation Plan:**
-1. Replace the `prompt()` call with a `BaseModal` that contains one
-   `BaseInput` for the image URL and two buttons: "Cancel" and "Insert".
-2. Add `showImageUrlModal` and `imageUrl` reactive variables.
-3. On "Insert", validate that `imageUrl` starts with `http://` or
-   `https://` before calling the TipTap image command.
-
----
-
-### 4.5 Forum Search: Date Range Validation
-
-**Difficulty: Beginner**
-**Files:** `src/views/ForumView.vue`
+**Files:** `src/views/forum/ForumView.vue`
 
 **Problem:**
 The forum search form has "Date From" and "Date To" fields. There is no
@@ -935,7 +718,7 @@ would produce zero results and confuse users.
 1. Add a computed property or a watcher:
    ```typescript
    const dateRangeError = computed(() =>
-     dateFrom.value && dateTo.value && dateFrom.value > dateTo.value
+     searchDateFrom.value && searchDateTo.value && searchDateFrom.value > searchDateTo.value
        ? '"Date From" must be before "Date To".'
        : ''
    )
@@ -946,74 +729,110 @@ would produce zero results and confuse users.
 
 ---
 
-### 4.6 Toast Notifications: Allow Manual Dismissal
+### 4.3 Dark Mode: Hardcoded Colors in Some Views
 
 **Difficulty: Beginner**
-**Files:** `src/components/ToastNotification.vue`
+**Files:** `src/views/HomeView.vue`, `src/views/forms/FormBuilderView.vue`,
+and others
 
 **Problem:**
-Toast notifications auto-dismiss after 5 seconds but cannot be closed
-manually. Users who have read the notification must wait for the timer.
+Phase 13 added CSS custom properties (`--color-foreground`,
+`--color-surface`, etc.) and a `dark` class on `<html>` for dark mode
+support. However, several views still use hardcoded Tailwind color classes
+(e.g., `bg-gradient-to-br from-brand-900 to-brand-700` in HomeView,
+hardcoded gray borders in FormBuilderView) that do not respond to the dark
+mode toggle.
 
-**Implementation Plan:**
-1. Open `src/components/ToastNotification.vue`.
-2. In the template for each toast item, add a close button (use
-   `XIcon` from `lucide-vue-next`).
-3. Wire its click handler to call:
-   ```typescript
-   toastStore.dismiss(toast.id)
-   ```
-   The `dismiss` action already exists in the toast store.
+**Fix:**
+1. Search the codebase for hardcoded color classes: `text-gray-`,
+   `bg-gray-`, `border-gray-`, `bg-white`, `text-black`, etc.
+2. Replace them with the CSS variable equivalents:
+   - `text-gray-900` -> `text-foreground`
+   - `bg-white` -> `bg-surface`
+   - `border-gray-200` -> `border-border`
+   - `text-gray-500` -> `text-muted`
+3. For gradient backgrounds, use CSS variables inside a custom class or
+   switch to a surface-based card design.
+4. Test by toggling dark mode and verifying all views look correct.
 
 ---
 
-### 4.7 Improve Error Messages on Form Submission
+## Section 5: Planned Backend Work
 
-**Difficulty: Beginner**
-**Files:** `src/views/LoginView.vue`, `src/views/RegisterView.vue`, and other
-form views
-
-**Problem:**
-Most form error handlers display a generic string such as "Registration
-failed". The backend returns structured error responses with specific
-`message` fields (see Section 17 of the system specification). Displaying
-these messages directly would help users understand what went wrong.
-
-**Implementation Plan:**
-1. The API interceptor in `composables/api.ts` already parses backend error
-   responses and re-throws them. The thrown error's `message` property
-   contains the backend's human-readable description.
-2. In each form's catch block, extract and display this message:
-   ```typescript
-   } catch (err: unknown) {
-     const message = (err as Error).message || 'An unexpected error occurred.'
-     errorMessage.value = message
-   }
-   ```
-3. Apply this to login, registration, guest login, profile update, and
-   password change forms.
+These are backend tasks that are planned or in progress. Frontend
+contributors should be aware of them as some will unblock or affect
+frontend work. Items marked with **(blocks frontend)** must be completed
+before the corresponding frontend task can begin.
 
 ---
 
-### 4.8 Admin Users Table: Pagination
+### 5.1 VirusTotal Integration Completion **(blocks 1.6)**
 
-**Difficulty: Beginner**
-**Files:** `src/views/admin/UsersView.vue`
+Store scan results in a database table, expose a
+`GET /files/{key}/scan-status` endpoint, and block presigned URL generation
+for files flagged as malicious.
 
-**Problem:**
-`UsersView.vue` fetches users with a hardcoded `limit: 100`. This is both
-a performance concern and a functional limit: it will silently omit users
-beyond the first 100 as the platform grows.
+### 5.2 Bulk Operations Endpoints **(blocks 2.6)**
 
-**Implementation Plan:**
-1. Define a `ADMIN_PAGE_SIZE` constant (it already exists in
-   `src/constants.ts` as `50`).
-2. Add a `currentPage` reactive variable (starts at 1).
-3. Modify the `listUsers()` call to use:
-   `{ offset: (currentPage.value - 1) * ADMIN_PAGE_SIZE, limit: ADMIN_PAGE_SIZE }`
-4. Store the total user count from the API response.
-5. Add a `BasePagination` component below the table.
-6. Remove the hardcoded `limit: 100`.
+Create `DELETE /api/v1/posts/bulk` and `PUT /api/v1/users/bulk-role`
+endpoints for admin batch processing.
+
+### 5.3 Reports Endpoint Pagination **(blocks 2.7)**
+
+Add `page` and `page_size` query parameters to `GET /api/v1/reports`.
+
+### 5.4 Cross-Platform Celery Task Compatibility
+
+The `form_export.py` Celery task uses `asyncio.run()` inside a sync worker,
+which may fail on Windows or with nested event loops. Will be refactored to
+use a proper async/sync bridge that works on all platforms.
+
+### 5.5 Rate Limits via Environment Variables
+
+All rate limit constants (`RATE_LIMIT_COMMENT`, `RATE_LIMIT_CAPTCHA`,
+`RATE_LIMIT_FILE_UPLOAD`, `RATE_LIMIT_FORM_SUBMIT`, etc.) will be moved
+from hardcoded values in `constants.py` to environment variables with
+fallback defaults. This allows different limits per deployment environment.
+
+### 5.6 Event Bus Retry Mechanism
+
+Failed events currently persist in Redis but are never retried. A bounded
+retry mechanism will be added (e.g., max 3 retries with exponential
+backoff), with failed events logged and eventually discarded to prevent
+unbounded resource usage.
+
+### 5.7 Data Integrity Improvements
+
+- SIG deletion will cascade to associated forms and posts (soft-delete or
+  nullify `sig_id`).
+- Category deletion will nullify `category_id` on associated posts.
+- SIG leave will validate at least one non-deleted admin remains.
+
+### 5.8 Schema Validation Hardening
+
+- Add `max_length` constraints to `placeholder`, `bio`, `affiliation`,
+  `orcid` fields in Pydantic schemas.
+- Add per-item length validation to post `keywords` array.
+- Fix `notification page_size` to require `ge=1` instead of `ge=0`.
+
+### 5.9 Error Handling Fixes
+
+- Fix `create_post()` ValueError being mapped to HTTP 429 (should be 400).
+- Replace generic `except Exception` catches in `sigs.py` join and
+  `files.py` VirusTotal with specific exception types.
+- Replace `assert file.content_type` in avatar upload with proper
+  validation.
+
+### 5.10 Audit Log Date Filtering
+
+Add `date_from` and `date_to` optional parameters to the audit log listing
+endpoint so admins can query logs for specific time periods.
+
+### 5.11 WebSocket Resilience
+
+- Reset guest WebSocket timeout on activity (currently absolute 45 min).
+- Add error recovery with exponential backoff reconnection to the Redis
+  Pub/Sub subscriber.
 
 ---
 
@@ -1023,14 +842,18 @@ beyond the first 100 as the platform grows.
 
 ```
 frontend/src/
--- api/         HTTP request functions (one file per domain area)
--- components/  Reusable Vue components; base/ is the design system
--- composables/ Vue composables (api.ts, useWebSocket.ts)
--- router/      Route definitions and navigation guards (index.ts)
--- stores/      Pinia global state (auth.ts, notifications.ts, toast.ts)
--- types/       TypeScript interfaces for all data models
--- utils/       Utility functions (datetime, html)
--- views/       One file per page/route
+├── api/           HTTP request functions (one file per domain area)
+├── components/    Reusable Vue components; base/ is the design system
+│   └── __tests__/ Component unit tests (Vitest + @vue/test-utils)
+├── composables/   Vue composables (api.ts, useWebSocket.ts)
+│   └── __tests__/ Composable unit tests
+├── router/        Route definitions and navigation guards (index.ts)
+├── stores/        Pinia global state (auth.ts, notifications.ts, toast.ts)
+│   └── __tests__/ Store unit tests
+├── types/         TypeScript interfaces for all data models
+├── utils/         Utility functions (datetime, html including renderMentions)
+└── views/         One file per page/route
+    └── sigs/      Includes SigCreateView.vue (added Phase 13)
 ```
 
 ### Design System Rules
@@ -1046,6 +869,19 @@ HTML elements:
 | `<select>` | `<BaseSelect>` |
 | `<dialog>` / custom overlay | `<BaseModal>` |
 | `<table>` | `<BaseTable>` |
+
+### Running Tests
+
+```bash
+# Frontend unit tests (105 tests across 6 files)
+cd frontend && npx vitest run
+
+# TypeScript type checking
+cd frontend && npx tsc --noEmit
+
+# Lint
+cd frontend && npm run lint
+```
 
 ### Recommended Order for First-Time Contributors
 
@@ -1096,4 +932,16 @@ auth.isAdmin        // boolean (true for ADMIN and SUPER_ADMIN)
 auth.isSuperAdmin   // boolean
 auth.isGuest        // boolean
 auth.user           // UserProfile object or null
+```
+
+**Using confirmation modals (not browser confirm()):**
+```typescript
+// Phase 13 replaced all confirm() calls with BaseModal dialogs.
+// Always use BaseModal for destructive action confirmations.
+const showDeleteConfirm = ref(false)
+
+const handleDelete = async () => {
+  showDeleteConfirm.value = false
+  // ... perform delete
+}
 ```
