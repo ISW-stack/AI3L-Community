@@ -75,6 +75,7 @@ async function fetchPosts() {
 }
 
 async function doSearch() {
+  currentPage.value = 1
   if (
     !searchKeyword.value &&
     !categoryFilter.value &&

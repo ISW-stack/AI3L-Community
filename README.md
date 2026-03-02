@@ -419,6 +419,8 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 | GET | `/notifications` | Required | Paginated notification feed |
 | PUT | `/notifications/{notif_id}/read` | Required | Mark one notification as read |
 | PUT | `/notifications/read-all` | Required | Mark all notifications as read |
+| DELETE | `/notifications/{notif_id}` | Required | Delete a single notification |
+| DELETE | `/notifications` | Required | Bulk delete notifications (body: optional list of IDs; omit to delete all) |
 
 ### Files
 
@@ -721,6 +723,7 @@ docker compose exec fastapi alembic current
 | `g7h8i9j0k1l2` | Invite code consumption tracking (consumed_by, consumed_at) |
 | `h8i9j0k1l2m3` | Composite indexes for query performance |
 | `i9j0k1l2m3n4` | Remove unused sub_admin_ids column from categories |
+| `j0k1l2m3n4o5` | Add allow_non_members flag to forms |
 
 ---
 

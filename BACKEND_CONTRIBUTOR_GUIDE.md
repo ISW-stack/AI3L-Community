@@ -51,72 +51,7 @@ backend/app/
 
 ---
 
-### 1.1 Avatar Upload Uses `assert` for Content-Type Check
-
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/users.py:81`
-
-**Problem:**
-`assert file.content_type is not None` is used to validate the uploaded
-file. In production, Python can be run with `-O` which disables all
-`assert` statements, silently skipping this check.
-
-**Fix:**
-```python
-# Replace:
-assert file.content_type is not None
-
-# With:
-if not file.content_type:
-    raise HTTPException(status_code=400, detail="File content type is required.")
-```
-
----
-
-### 1.2 Generic Exception Catch in SIG Join
-
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/sigs.py:51-60`
-
-**Problem:**
-The `join_sig()` endpoint catches `except Exception as e:` and maps all
-errors to HTTP 409 CONFLICT. Database errors, permission errors, and
-validation errors all return the same status code, making debugging
-difficult.
-
-**Fix:**
-```python
-# Replace the generic catch with specific exceptions:
-except ValueError as e:
-    raise HTTPException(status_code=400, detail=str(e))
-except PermissionError as e:
-    raise HTTPException(status_code=403, detail=str(e))
-except Exception as e:
-    raise HTTPException(status_code=409, detail=str(e))
-```
-
----
-
-### 1.3 `create_post()` ValueError Mapped to HTTP 429
-
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/posts.py:35-48`
-
-**Problem:**
-When `create_post()` raises a `ValueError` (e.g., invalid category_id),
-the endpoint maps it to HTTP 429 (rate limit). The daily post limit check
-also raises `ValueError`, so both are conflated. Clients receive a
-misleading "rate limited" response for validation errors.
-
-**Fix:**
-Distinguish rate limit errors from validation errors. Options:
-1. Have the rate limit check raise a dedicated `RateLimitError` instead of
-   `ValueError`, and catch them separately.
-2. Or check the error message content to map appropriately.
-
----
-
-### 1.4 VirusTotal Check Silently Swallows All Errors
+### 1.1 VirusTotal Check Silently Swallows All Errors
 
 **Difficulty: Beginner**
 **File:** `app/api/v1/endpoints/files.py:51-57`
@@ -137,7 +72,7 @@ except Exception:
 
 ---
 
-### 1.5 WebSocket Send Failures Silently Ignored
+### 1.2 WebSocket Send Failures Silently Ignored
 
 **Difficulty: Beginner**
 **File:** `app/api/v1/endpoints/ws.py:135, 158`
@@ -149,20 +84,6 @@ the client never receives the message and the server has no log entry.
 **Fix:**
 Add `logger.debug(...)` or `logger.warning(...)` inside the except blocks
 so failures are at least visible in logs.
-
----
-
-### 1.6 Notification `page_size` Allows Zero
-
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/notifications.py:22`
-
-**Problem:**
-`page_size: int = Query(20, ge=0)` allows `page_size=0`, which returns an
-empty list instead of an error. This is confusing for API consumers.
-
-**Fix:**
-Change `ge=0` to `ge=1`.
 
 ---
 
@@ -432,27 +353,7 @@ AND created_at <= $Y::timestamptz  -- if date_to provided
 
 ---
 
-### 4.5 Notification Bulk Delete
-
-**Difficulty: Beginner**
-**Files:** `app/api/v1/endpoints/notifications.py`,
-`app/repositories/notification_repo.py`
-
-**Problem:**
-Users must delete notifications one at a time. A "clear all" or "delete
-selected" action requires N sequential API calls.
-
-**Fix:**
-Add `DELETE /api/v1/notifications` endpoint that accepts an optional
-`notification_ids: list[uuid.UUID]` body. If empty, delete all for the
-current user. Use:
-```sql
-DELETE FROM notifications WHERE user_id = $1 AND id = ANY($2)
-```
-
----
-
-### 4.6 Invite Code Revocation
+### 4.5 Invite Code Revocation
 
 **Difficulty: Beginner**
 **Files:** `app/api/v1/endpoints/invite_codes.py`,
@@ -468,7 +369,7 @@ only). Soft-delete or hard-delete the code from the database.
 
 ---
 
-### 4.7 Single Category Endpoint
+### 4.6 Single Category Endpoint
 
 **Difficulty: Beginner**
 **Files:** `app/api/v1/endpoints/categories.py`,

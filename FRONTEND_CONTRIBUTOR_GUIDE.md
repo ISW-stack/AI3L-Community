@@ -260,14 +260,15 @@ responses at all.
 **Difficulty: Beginner**
 
 **Affected files:**
-- `src/api/notifications.ts` (add one function)
-- `src/views/NotificationsView.vue` (add delete button)
+- `src/api/notifications.ts` (add two functions)
+- `src/views/NotificationsView.vue` (add delete button and clear-all button)
 
 **Background:**
-The backend exposes `DELETE /api/v1/notifications/{notification_id}`, but
-the frontend has no API function for it. Users can mark notifications as
-read but cannot delete them. Over time, the notification list grows
-unbounded.
+The backend exposes both `DELETE /api/v1/notifications/{notification_id}`
+(single delete) and `DELETE /api/v1/notifications` with an optional body of
+`notification_ids` (bulk delete / clear all). The frontend has no API
+functions for either. Users can mark notifications as read but cannot delete
+them. Over time the notification list grows unbounded.
 
 **Implementation Plan:**
 
@@ -275,6 +276,9 @@ unbounded.
    ```typescript
    export const deleteNotification = (notificationId: string) =>
      api.delete(`/notifications/${notificationId}`)
+
+   export const bulkDeleteNotifications = (notificationIds?: string[]) =>
+     api.delete('/notifications', { data: notificationIds ? { notification_ids: notificationIds } : undefined })
    ```
 
 2. In `NotificationsView.vue`, add a delete button (use `TrashIcon` from
@@ -292,7 +296,10 @@ unbounded.
    }
    ```
 
-4. The delete button should stop event propagation so it does not trigger
+4. Optionally, add a "Clear All" button that calls `bulkDeleteNotifications()`
+   with no arguments and then empties `notifications.value`.
+
+5. The delete button should stop event propagation so it does not trigger
    the row's click-to-navigate behavior.
 
 ---
@@ -518,78 +525,7 @@ These are confirmed defects in the current code that must be fixed.
 
 ---
 
-### 3.1 BaseInput and BaseTextarea: maxlength Prop Not Applied
-
-**Difficulty: Beginner**
-**Files:** `src/components/base/BaseInput.vue`, `src/components/base/BaseTextarea.vue`
-
-**Problem:**
-Both components define a `maxlength` prop, but the prop is not bound to the
-actual `<input>` or `<textarea>` HTML element. This means that even when a
-parent passes `:maxlength="100"`, the user can type unlimited characters.
-The prop is silently ignored.
-
-**Fix:**
-1. Open `src/components/base/BaseInput.vue`.
-2. Find the `<input>` element and add `:maxlength="maxlength"` to its
-   attribute list.
-3. Repeat for the `<textarea>` in `src/components/base/BaseTextarea.vue`.
-4. To verify: add `:maxlength="5"` to any `BaseInput` in the app and
-   confirm you cannot type more than 5 characters.
-
----
-
-### 3.2 relativeTime() Utility Function Is Duplicated
-
-**Difficulty: Beginner**
-**Files:** `src/utils/datetime.ts`, `src/views/NotificationsView.vue`
-
-**Problem:**
-A `relativeTime()` function is defined in `src/utils/datetime.ts` but is
-not used anywhere. Instead, `NotificationsView.vue` contains a local copy of
-the same logic (lines 73-84). If the time formatting logic needs to change,
-both copies must be updated separately, which is error-prone.
-
-**Fix:**
-1. Open `src/views/NotificationsView.vue`.
-2. Remove the locally defined `relativeTime` function from the `<script setup>` block.
-3. Add the following import at the top of the script block:
-   ```typescript
-   import { relativeTime } from '../utils/datetime'
-   ```
-4. Verify that notification timestamps still display correctly in the browser.
-
----
-
-### 3.3 Forum Post Preview Uses Inconsistent HTML Handling
-
-**Difficulty: Beginner**
-**Files:** `src/views/forum/ForumView.vue`
-
-**Problem:**
-`PostDetailView.vue` uses DOMPurify to sanitize HTML before rendering post
-content, which is the correct approach. However, `ForumView.vue` generates
-the post preview text using `stripHtml()` (line 126), which creates a
-temporary DOM element and reads `textContent`. While this strips tags, it
-does not use DOMPurify and is inconsistent with the rest of the app.
-
-**Fix:**
-1. Open `src/views/ForumView.vue`. Find `stripHtml()` (line 126).
-2. Import DOMPurify at the top of the script block:
-   ```typescript
-   import DOMPurify from 'dompurify'
-   ```
-3. Replace the existing function with:
-   ```typescript
-   const stripHtml = (html: string): string =>
-     DOMPurify.sanitize(html, { ALLOWED_TAGS: [] }).slice(0, 200)
-   ```
-   This strips all HTML tags (leaving plain text) via the sanitizer and
-   then trims to a preview length.
-
----
-
-### 3.4 Post Edit: Version Conflict Error (SYS_409) Not Explained to the User
+### 3.1 Post Edit: Version Conflict Error (SYS_409) Not Explained to the User
 
 **Difficulty: Intermediate**
 **Files:** `src/views/forum/PostDetailView.vue`
@@ -622,7 +558,7 @@ do next.
 
 ---
 
-### 3.5 FormBuilder: Rating Question Allows Invalid Min/Max Values
+### 3.2 FormBuilder: Rating Question Allows Invalid Min/Max Values
 
 **Difficulty: Beginner**
 **Files:** `src/views/forms/FormBuilderView.vue`
@@ -646,30 +582,6 @@ cause backend errors.
 3. Display `ratingError` as an inline error message below the inputs.
 4. Prevent form submission if any question has a rating error (add a check
    in the existing `validateForm()` or `serializeForm()` function).
-
----
-
-### 3.6 Forum Search: Pagination State Not Reset on Mode Change
-
-**Difficulty: Beginner**
-**Files:** `src/views/forum/ForumView.vue`
-
-**Problem:**
-If the user is browsing page 3 of posts and then submits a search, the
-`doSearch()` function (line 77) does not reset `currentPage` to 1. The
-search results are requested with the current page number, which may return
-an empty page. Note: `clearSearch()` (line 112) correctly resets the page,
-and the `watch` handlers for `categoryFilter` and `sortBy` also reset it,
-but `doSearch()` does not.
-
-**Fix:**
-1. Open `ForumView.vue`.
-2. At the top of the `doSearch()` function (line 77), add:
-   ```typescript
-   currentPage.value = 1
-   ```
-3. Test by navigating to page 2+, submitting a search, and verifying that
-   results start from page 1.
 
 ---
 

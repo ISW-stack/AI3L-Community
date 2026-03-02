@@ -8,6 +8,7 @@ import {
   markRead as apiMarkRead,
   markAllRead as apiMarkAllRead,
 } from '@/api/notifications'
+import { relativeTime } from '@/utils/datetime'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
@@ -70,18 +71,6 @@ function navigateToEntity(notif: Notification) {
   }
 }
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return 'just now'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days}d ago`
-  return new Date(iso).toLocaleDateString()
-}
 
 function goToPage(p: number) {
   page.value = p
