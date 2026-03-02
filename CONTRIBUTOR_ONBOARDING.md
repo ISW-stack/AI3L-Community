@@ -294,28 +294,26 @@ ALLOWED_ORIGINS=http://localhost:3000
 ## 5. Start the Development Environment (Docker)
 
 This project uses Docker Compose to start all services together
-(PostgreSQL, Redis, MinIO, FastAPI, Celery, Nginx).
+(PostgreSQL, Redis, MinIO, FastAPI, Celery, Nginx, and the Vite dev server).
 
 ```bash
 # Run this from the AI3L-Community/ root
-docker compose up --build
+docker compose up --build   # first time (builds images)
+docker compose up           # subsequent runs
 ```
+
+`docker-compose.override.yml` is loaded automatically and adds the Vite dev server with Hot Module Replacement (HMR). Edits to `frontend/src/` appear in the browser instantly — no rebuild required. Database migrations run automatically via the `migrate` service before FastAPI starts.
 
 Once all services are healthy:
 
 | Service | URL |
 |---------|-----|
-| Frontend (Nginx) | http://localhost:3000 |
+| Frontend (via Nginx + Vite HMR) | http://localhost:3000 |
 | Backend API | http://localhost:3000/api/v1 |
-| MinIO Console | http://localhost:9001 |
-
-### Run the DB migration (first time only)
-
-In a second terminal, while Docker is running:
-
-```bash
-docker compose exec fastapi alembic upgrade head
-```
+| FastAPI direct | http://localhost:18000 |
+| MinIO Console | http://localhost:19001 |
+| PostgreSQL | localhost:15432 |
+| Redis | localhost:16379 |
 
 ### Stop services
 
@@ -339,7 +337,7 @@ uvicorn app.main:app --reload
 ```bash
 cd frontend
 npm install
-npm run dev                 # dev server at http://localhost:5173
+npm run dev                 # dev server at http://localhost:15173
 ```
 
 ---

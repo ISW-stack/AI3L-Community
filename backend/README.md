@@ -515,10 +515,11 @@ isort .
 
 ```bash
 # From the repository root
-docker compose up -d
+docker compose up --build   # first time (builds images)
+docker compose up           # subsequent runs
 ```
 
-The `docker-compose.override.yml` mounts the `backend/` directory into the container and starts Uvicorn with `--reload`, so code changes take effect immediately without rebuilding the image.
+The `docker-compose.override.yml` mounts the `backend/` directory into the container and starts Uvicorn with `--reload`, so code changes take effect immediately without rebuilding the image. The `migrate` service runs `alembic upgrade head` automatically before FastAPI starts — no manual migration step is needed.
 
 ### Option 2: Local Python environment
 
