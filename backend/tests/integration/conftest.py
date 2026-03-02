@@ -40,9 +40,10 @@ _SQLALCHEMY_URL = TEST_DB_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 
 # ---------------------------------------------------------------------------
-# Session-scoped: asyncpg pool
+# Function-scoped: asyncpg pool
+# Each test gets its own pool so all async operations share one event loop.
 # ---------------------------------------------------------------------------
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def db_pool():
     """Create a real asyncpg pool for the test database."""
     if os.getenv("RUN_INTEGRATION_TESTS") != "1":
@@ -54,9 +55,9 @@ async def db_pool():
 
 
 # ---------------------------------------------------------------------------
-# Session-scoped: Redis client
+# Function-scoped: Redis client
 # ---------------------------------------------------------------------------
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def redis_client():
     """Create a real Redis client for testing."""
     if os.getenv("RUN_INTEGRATION_TESTS") != "1":
