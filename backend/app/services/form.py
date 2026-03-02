@@ -157,9 +157,7 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
                     form["sig_id"], uuid.UUID(user_id), conn
                 )
                 if role is None:
-                    raise PermissionError(
-                        "Only SIG members can submit this form."
-                    )
+                    raise PermissionError("Only SIG members can submit this form.")
 
             now = datetime.now(timezone.utc)
             if form["deadline"] and form["deadline"] < now:

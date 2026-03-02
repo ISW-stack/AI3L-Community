@@ -100,11 +100,13 @@ const contentSegments = computed<ContentSegment[]>(() => {
     []
   for (const s of sigUrls) {
     const idx = sanitized.indexOf(s.fullMatch)
-    if (idx !== -1) markers.push({ index: idx, length: s.fullMatch.length, type: 'sig-card', id: s.id })
+    if (idx !== -1)
+      markers.push({ index: idx, length: s.fullMatch.length, type: 'sig-card', id: s.id })
   }
   for (const f of formUrls) {
     const idx = sanitized.indexOf(f.fullMatch)
-    if (idx !== -1) markers.push({ index: idx, length: f.fullMatch.length, type: 'form-card', id: f.id })
+    if (idx !== -1)
+      markers.push({ index: idx, length: f.fullMatch.length, type: 'form-card', id: f.id })
   }
   markers.sort((a, b) => a.index - b.index)
 
@@ -439,8 +441,16 @@ onMounted(() => {
           <div class="prose prose-sm max-w-none text-foreground/80 mb-4">
             <template v-for="(seg, i) in contentSegments" :key="i">
               <div v-if="seg.type === 'html'" v-html="seg.content"></div>
-              <SigShareCard v-else-if="seg.type === 'sig-card'" :sig-id="seg.content" class="my-3 not-prose" />
-              <FormShareCard v-else-if="seg.type === 'form-card'" :form-id="seg.content" class="my-3 not-prose" />
+              <SigShareCard
+                v-else-if="seg.type === 'sig-card'"
+                :sig-id="seg.content"
+                class="my-3 not-prose"
+              />
+              <FormShareCard
+                v-else-if="seg.type === 'form-card'"
+                :form-id="seg.content"
+                class="my-3 not-prose"
+              />
             </template>
           </div>
 
