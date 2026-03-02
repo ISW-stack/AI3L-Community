@@ -15,6 +15,7 @@ export async function createForm(
     deadline: string | null
     max_respondents: number | null
     questions: unknown[]
+    allow_non_members?: boolean
   },
 ) {
   const { data } = await api.post(`/sigs/${sigId}/forms`, payload)
@@ -30,6 +31,7 @@ export async function updateForm(
     deadline?: string | null
     max_respondents?: number | null
     questions?: unknown[]
+    allow_non_members?: boolean
   },
 ) {
   const { data } = await api.put(`/forms/${formId}`, payload)

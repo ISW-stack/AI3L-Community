@@ -63,6 +63,7 @@ async def create_new_form(
             deadline=req.deadline,
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions],
+            allow_non_members=req.allow_non_members,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -134,6 +135,7 @@ async def update_existing_form(
             deadline=req.deadline,
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions] if req.questions else None,
+            allow_non_members=req.allow_non_members,
         )
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
@@ -204,6 +206,8 @@ async def submit_form_response(
             user_id=current_user["sub"],
             answers=req.answers,
         )
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
         detail = str(e)
         if "already submitted" in detail.lower():

@@ -16,14 +16,15 @@ async def insert(
     deadline: datetime | None,
     max_respondents: int | None,
     questions: list[dict],
+    allow_non_members: bool = False,
 ) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
             INSERT INTO forms (id, sig_id, created_by, title, description, banner_url,
-                               deadline, max_respondents, questions)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+                               deadline, max_respondents, questions, allow_non_members)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
             RETURNING *
             """,
             form_id,
@@ -35,6 +36,7 @@ async def insert(
             deadline,
             max_respondents,
             json.dumps(questions),
+            allow_non_members,
         )
         creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
         result = dict(row)

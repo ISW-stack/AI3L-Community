@@ -27,6 +27,7 @@ export interface SigForm {
   deadline: string | null
   max_respondents: number | null
   response_count: number
+  allow_non_members: boolean
   is_active: boolean
   created_by_name: string
   created_at: string

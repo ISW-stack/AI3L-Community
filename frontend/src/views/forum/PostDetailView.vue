@@ -13,7 +13,7 @@ import {
 } from '@/api/comments'
 import { createReport } from '@/api/reports'
 import DOMPurify from 'dompurify'
-import { renderMentions } from '@/utils/html'
+import { renderMentions, extractSigUrls, extractFormUrls } from '@/utils/html'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -24,6 +24,8 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import SigShareCard from '@/components/SigShareCard.vue'
+import FormShareCard from '@/components/FormShareCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -77,6 +79,49 @@ const commentTree = computed<CommentNode[]>(() => {
 const postId = computed(() => route.params.id as string)
 const isAuthor = computed(() => post.value && auth.user && post.value.author.id === auth.user.id)
 const canModify = computed(() => isAuthor.value || auth.isAdmin)
+
+interface ContentSegment {
+  type: 'html' | 'sig-card' | 'form-card'
+  content: string
+}
+
+const contentSegments = computed<ContentSegment[]>(() => {
+  if (!post.value) return []
+  const sanitized = DOMPurify.sanitize(post.value.content)
+  const sigUrls = extractSigUrls(sanitized)
+  const formUrls = extractFormUrls(sanitized)
+
+  if (sigUrls.length === 0 && formUrls.length === 0) {
+    return [{ type: 'html', content: sanitized }]
+  }
+
+  // Build a list of all URL matches with their positions
+  const markers: { index: number; length: number; type: 'sig-card' | 'form-card'; id: string }[] =
+    []
+  for (const s of sigUrls) {
+    const idx = sanitized.indexOf(s.fullMatch)
+    if (idx !== -1) markers.push({ index: idx, length: s.fullMatch.length, type: 'sig-card', id: s.id })
+  }
+  for (const f of formUrls) {
+    const idx = sanitized.indexOf(f.fullMatch)
+    if (idx !== -1) markers.push({ index: idx, length: f.fullMatch.length, type: 'form-card', id: f.id })
+  }
+  markers.sort((a, b) => a.index - b.index)
+
+  const segments: ContentSegment[] = []
+  let cursor = 0
+  for (const m of markers) {
+    if (m.index > cursor) {
+      segments.push({ type: 'html', content: sanitized.slice(cursor, m.index) })
+    }
+    segments.push({ type: m.type, content: m.id })
+    cursor = m.index + m.length
+  }
+  if (cursor < sanitized.length) {
+    segments.push({ type: 'html', content: sanitized.slice(cursor) })
+  }
+  return segments
+})
 
 async function fetchPost() {
   loading.value = true
@@ -391,10 +436,13 @@ onMounted(() => {
             </div>
           </div>
 
-          <div
-            class="prose prose-sm max-w-none text-foreground/80 mb-4"
-            v-html="DOMPurify.sanitize(post.content)"
-          ></div>
+          <div class="prose prose-sm max-w-none text-foreground/80 mb-4">
+            <template v-for="(seg, i) in contentSegments" :key="i">
+              <div v-if="seg.type === 'html'" v-html="seg.content"></div>
+              <SigShareCard v-else-if="seg.type === 'sig-card'" :sig-id="seg.content" class="my-3 not-prose" />
+              <FormShareCard v-else-if="seg.type === 'form-card'" :form-id="seg.content" class="my-3 not-prose" />
+            </template>
+          </div>
 
           <div v-if="post.keywords?.length" class="flex gap-1 flex-wrap mb-3">
             <BaseBadge v-for="kw in post.keywords" :key="kw" variant="neutral">{{ kw }}</BaseBadge>

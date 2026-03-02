@@ -26,6 +26,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,6 +52,8 @@ const showDeleteConfirm = ref(false)
 const userSigRole = ref<string | null>(null)
 
 const joining = ref(false)
+
+const sigShareUrl = computed(() => `${window.location.origin}/sigs/${sigId.value}`)
 
 const isMember = computed(() => userSigRole.value !== null)
 const isSigAdmin = computed(
@@ -265,6 +268,7 @@ onMounted(() => {
               ></p>
             </div>
             <div class="flex gap-2 shrink-0 ml-4">
+              <CopyShareLinkButton :url="sigShareUrl" />
               <BaseButton v-if="canJoin" size="sm" :loading="joining" @click="handleJoinSig"
                 >Join SIG</BaseButton
               >
