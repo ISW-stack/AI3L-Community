@@ -128,7 +128,8 @@ frontend/src/
     │   └── PostCreateView.vue
     ├── sigs/
     │   ├── SigsDirectoryView.vue
-    │   └── SigDetailView.vue
+    │   ├── SigDetailView.vue
+    │   └── SigCreateView.vue
     ├── forms/
     │   ├── FormView.vue
     │   └── FormBuilderView.vue
@@ -479,11 +480,12 @@ Manages authentication state for the current session.
 | State | Type | Description |
 |---|---|---|
 | `user` | `User \| null` | Current user profile |
-| `token` | `string \| null` | JWT access token |
-| `isAuthenticated` | `boolean` | Derived: token exists |
+| `isAuthenticated` | `boolean` | Derived: user is non-null |
 | `isGuest` | `boolean` | Derived: user role is GUEST |
 | `isAdmin` | `boolean` | Derived: role is ADMIN or SUPER_ADMIN |
 | `isSuperAdmin` | `boolean` | Derived: role is SUPER_ADMIN |
+
+The JWT itself is stored in an HttpOnly cookie set by the server and is not accessible from JavaScript. The store does not hold a token string.
 
 Key actions: `login`, `logout`, `clearSession`, `fetchCurrentUser`.
 
@@ -511,9 +513,9 @@ All API calls are in `src/api/`. Each file exports typed async functions that wr
 
 `src/api/index.ts` exports the configured Axios instance with:
 - `baseURL: '/api/v1'`
-- Request interceptor: attaches the JWT from the auth store as `Authorization: Bearer <token>`
-- Request interceptor: attaches the CSRF token from the `csrf_token` cookie as `X-CSRF-Token`
-- Response interceptor: redirects to `/login` on 401 responses (expired session)
+- `withCredentials: true` — the browser automatically sends the HttpOnly `access_token` cookie on all same-origin requests
+- Request interceptor: reads the readable `csrf_token` cookie and attaches its value as the `X-CSRF-Token` header on all mutating requests
+- Response interceptor: redirects to `/login` on 401 responses (expired or invalid session)
 
 Example API module pattern:
 
@@ -576,6 +578,7 @@ Add new types to the appropriate file (`user.ts`, `post.ts`, etc.) or create a n
 | `PostCreateView` | `/forum/create` | Yes (Member+) | Create a new post |
 | `SigsDirectoryView` | `/sigs` | Yes | List of all SIGs |
 | `SigDetailView` | `/sigs/:id` | Yes | SIG with posts, members, and forms tabs |
+| `SigCreateView` | `/sigs/create` | Yes (Member+) | Create a new SIG |
 | `FormView` | `/forms/:formId` | Yes | View and submit a form |
 | `FormBuilderView` | `/sigs/:sigId/forms/new` | Yes (SIG Admin) | Create a form |
 | `FormBuilderView` | `/forms/:formId/edit` | Yes (SIG Admin) | Edit a form |
@@ -596,7 +599,7 @@ The `useWebSocket` composable in `src/composables/useWebSocket.ts` is initialize
 
 ### Connection lifecycle
 
-1. On `App.vue` mount, if the user is authenticated, `useWebSocket` connects to `/api/v1/ws?token=<jwt>`.
+1. On `App.vue` mount, if the user is authenticated, `useWebSocket` calls `POST /api/v1/auth/ws-ticket` to obtain a one-time ticket, then connects to `/api/v1/ws?ticket=<ticket>`. The ticket is valid for 30 seconds and is consumed on first use.
 2. The composable sets up a 30-second PING interval.
 3. On receiving a `NOTIFICATION` message, the notification count in `useNotificationsStore` is incremented and the bell icon updates.
 4. On receiving a `FORCE_LOGOUT` message (e.g., account banned), the auth store is cleared and the user is redirected to `/login`.

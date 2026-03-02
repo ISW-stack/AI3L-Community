@@ -42,9 +42,9 @@ A full-stack community platform built for academic groups and special interest g
 | Validation | Pydantic v2 |
 | Task queue | Celery + Redis |
 | Password hashing | Argon2 (via passlib) |
-| Token signing | python-jose (JWT) |
+| Token signing | PyJWT |
 | Object storage | boto3 (S3-compatible, MinIO) |
-| HTML sanitization | bleach |
+| HTML sanitization | nh3 |
 | PDF handling | pypdf |
 | CAPTCHA | captcha + Pillow |
 | Structured logging | Loguru |
@@ -348,6 +348,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 | POST | `/auth/heartbeat` | Required | Extend session TTL |
 | POST | `/auth/invite-code` | Member+ | Generate an invite code |
 | GET | `/auth/invite-code/{code}` | None | Verify invite code validity |
+| POST | `/auth/ws-ticket` | Required | Issue a one-time WebSocket authentication ticket (30-second TTL) |
 
 ### Users
 
@@ -448,7 +449,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 |---|---|---|---|
 | GET | `/health` | None | PostgreSQL and Redis connectivity check |
 | GET | `/tasks/{task_id}` | Required | Celery task status and result |
-| WS | `/ws?token={jwt}` | Required | Real-time notification stream |
+| WS | `/ws?ticket={ticket}` | Required | Real-time notification stream (ticket obtained from `/auth/ws-ticket`) |
 
 ---
 
@@ -467,8 +468,8 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 
 1. Client calls `GET /auth/captcha` to receive a base64-encoded CAPTCHA image and a session ID.
 2. Client submits credentials and CAPTCHA answer to `POST /auth/login`.
-3. Server validates the CAPTCHA, authenticates the user, creates a JWT, and stores the token's `jti` (JWT ID) in Redis.
-4. Client includes the JWT in the `Authorization: Bearer <token>` header on all subsequent requests.
+3. Server validates the CAPTCHA, authenticates the user, creates a JWT, stores the token's `jti` (JWT ID) in Redis, and responds by setting two cookies: an HttpOnly `access_token` cookie containing the JWT, and a readable `csrf_token` cookie.
+4. The browser automatically sends the `access_token` cookie on all subsequent same-origin requests. The `Authorization: Bearer <token>` header is supported as a fallback for non-browser API clients.
 5. Server validates every request against both the JWT signature and the existence of the `jti` in Redis (dual validation). A valid signature alone is not sufficient.
 6. Client calls `POST /auth/heartbeat` every 30 seconds to extend the Redis session TTL.
 7. On logout, the `jti` is added to a Redis blacklist and removed from the active session store.
@@ -533,11 +534,17 @@ Editor uploads are stored at `editor/{user_id}/{uuid}.{ext}`. Avatar uploads are
 
 ### WebSocket Endpoint
 
+WebSocket connections use ticket-based authentication to avoid exposing the session cookie over the WebSocket upgrade request.
+
+1. The client calls `POST /api/v1/auth/ws-ticket` while authenticated (cookie is sent automatically).
+2. The server generates a one-time ticket, stores it in Redis with a 30-second TTL, and returns it.
+3. The client connects using the ticket:
+
 ```
-ws://host/api/v1/ws?token=<jwt>
+ws://host/api/v1/ws?ticket=<one-time-ticket>
 ```
 
-The server validates the JWT and Redis session on connection. Unauthenticated or expired connections are rejected immediately.
+The server validates the ticket on connection and immediately deletes it from Redis. Expired or already-used tickets are rejected. Unauthenticated connections are closed immediately.
 
 ### Heartbeat Protocol
 
@@ -842,7 +849,7 @@ Add to crontab on the host machine:
 
 **Rate limiting**: Nginx enforces IP-level request rate limits on all API endpoints, with a stricter limit on write operations. Redis counters enforce per-user daily post quotas.
 
-**XSS prevention**: User-generated HTML is sanitized with DOMPurify on the frontend before rendering, and with bleach on the backend before storage.
+**XSS prevention**: User-generated HTML is sanitized with DOMPurify on the frontend before rendering, and with nh3 on the backend before storage.
 
 **Audit trail**: Authentication events, admin decisions, content moderation actions, and role changes are recorded in `audit_logs` with the actor's user ID, IP address, and target entity.
 
