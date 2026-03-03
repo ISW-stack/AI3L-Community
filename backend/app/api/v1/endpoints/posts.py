@@ -2,11 +2,11 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
+from app.core.database import get_pool
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
-from app.core.database import get_pool
 from app.repositories import post_repo
 from app.schemas.post import (
     BulkDeletePostsRequest,

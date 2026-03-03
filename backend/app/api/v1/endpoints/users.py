@@ -4,13 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFil
 
 from app.converters.user_converter import user_to_public_response, user_to_response
 from app.core.constants import MAX_AVATAR_SIZE
+from app.core.database import get_pool
 from app.core.deps import get_current_user, require_role
 from app.core.event_bus import emit
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
-from app.schemas.auth import MessageResponse
-from app.core.database import get_pool
 from app.repositories import user_repo
+from app.schemas.auth import MessageResponse
 from app.schemas.user import (
     AdminCreateAccountRequest,
     BanRequest,
