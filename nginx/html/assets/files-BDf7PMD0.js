@@ -1,0 +1,1 @@
+import{X as o}from"./index-CNKeiEiz.js";async function n(a){const{data:t}=await o.get(`/tasks/${a}/status`);return t}async function r(a){const t=new FormData;t.append("file",a);const{data:s}=await o.post("/files/upload/editor",t,{headers:{"Content-Type":"multipart/form-data"}});return s}export{n as g,r as u};

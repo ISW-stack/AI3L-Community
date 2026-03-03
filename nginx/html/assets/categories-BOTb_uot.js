@@ -1,0 +1,1 @@
+import{X as a}from"./index-CNKeiEiz.js";async function r(){const{data:t}=await a.get("/categories");return t.categories}async function c(t){const{data:e}=await a.post("/categories",t);return e}async function n(t,e){const{data:o}=await a.put(`/categories/${t}`,e);return o}async function i(t){await a.delete(`/categories/${t}`)}export{c,i as d,r as l,n as u};
