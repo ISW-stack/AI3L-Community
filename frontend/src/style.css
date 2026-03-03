@@ -55,31 +55,6 @@
   --color-foreground: #111827;
 }
 
-/* Dark mode overrides */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-surface: #1f2937;
-    --color-surface-alt: #111827;
-    --color-border: #374151;
-    --color-muted: #9ca3af;
-    --color-foreground: #f9fafb;
-
-    --color-brand-50: #172554;
-    --color-brand-100: #1e3a8a;
-
-    --color-success-50: #064e3b;
-    --color-success-100: #065f46;
-
-    --color-warning-50: #78350f;
-    --color-warning-100: #92400e;
-
-    --color-danger-50: #7f1d1d;
-    --color-danger-100: #991b1b;
-
-    --color-info-50: #172554;
-    --color-info-100: #1e3a8a;
-  }
-}
 
 /* TipTap table styles */
 .tiptap table {
