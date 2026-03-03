@@ -48,15 +48,13 @@ def upgrade() -> None:
     )
 
     # Backfill last_comment_at from existing comments
-    op.execute(
-        """
+    op.execute("""
         UPDATE posts SET last_comment_at = (
             SELECT MAX(c.created_at)
             FROM comments c
             WHERE c.post_id = posts.id AND c.is_deleted = false
         )
-        """
-    )
+        """)
 
     # Partial index for pinned posts
     op.create_index(
