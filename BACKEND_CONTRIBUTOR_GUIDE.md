@@ -1,6 +1,6 @@
 # AI3L Community Backend -- Contributor Task Guide
 
-> **Last Updated:** 2026-03-02
+> **Last Updated:** 2026-03-03
 > **Applies to:** Backend codebase (`backend/`)
 > **Audience:** Collaborators working on the FastAPI backend
 > **See also:** `FRONTEND_CONTRIBUTOR_GUIDE.md` for frontend tasks
@@ -47,28 +47,48 @@ backend/app/
 
 ---
 
+## Progress Summary
+
+| # | Task | Status |
+|---|------|--------|
+| 1.1 | VirusTotal silent error logging | ✅ Done |
+| 1.2 | WebSocket send failure logging | ⬜ Pending |
+| 2.1 | Schema field length constraints | ✅ Done |
+| 2.2 | Post update empty payload check | ⬜ Pending |
+| 2.3 | Comment delete cross-validate post_id | ✅ Done |
+| 2.4 | Form update SIG ownership check | ⬜ Pending |
+| 3.1 | SIG deletion cascade to forms/posts | ✅ Done |
+| 3.2 | Category deletion cascade to posts | ⬜ Pending |
+| 3.3 | SIG leave excludes deleted admins | ✅ Done |
+| 3.4 | Form response race condition | ⬜ Pending |
+| 4.1 | VirusTotal integration (DB + endpoint) | ⬜ Pending |
+| 4.2 | Bulk operations endpoints | ✅ Done |
+| 4.3 | Reports endpoint pagination | ✅ Done |
+| 4.4 | Audit log date range filtering | ⬜ Pending |
+| 4.5 | Invite code revocation | ✅ Done |
+| 4.6 | Single category GET endpoint | ⬜ Pending |
+| 5.1 | Celery cross-platform async | ✅ Done |
+| 5.2 | Rate limits via environment variables | ⬜ Pending |
+| 5.3 | Event bus periodic retry (Celery Beat) | ⬜ Pending |
+| 5.4 | WebSocket guest timeout on activity | ✅ Done |
+| 5.5 | WebSocket Redis Pub/Sub reconnection | ✅ Done |
+| 6.1 | Invite code race condition (atomic UPDATE) | ✅ Done |
+| 6.2 | Editor image expiration (proxy endpoint) | ✅ Done |
+| 6.3 | Storage quota TOCTOU bypass (Redis lock) | ✅ Done |
+
+---
+
 ## Section 1: Bug Fixes & Error Handling
 
 ---
 
-### 1.1 VirusTotal Check Silently Swallows All Errors
+### 1.1 VirusTotal Check Silently Swallows All Errors — ✅ DONE
 
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/files.py:51-57`
+**File:** `app/api/v1/endpoints/files.py`
 
-**Problem:**
-The VirusTotal scan trigger is wrapped in `except Exception: pass`, which
-silently swallows import errors, network errors, and storage errors. If
-the scan infrastructure is broken, no one will know.
-
-**Fix:**
-```python
-# Replace bare except with logging:
-except ImportError:
-    pass  # VirusTotal not configured — acceptable
-except Exception:
-    logger.warning("VirusTotal scan trigger failed for key=%s", key, exc_info=True)
-```
+Fixed. The VirusTotal scan trigger now distinguishes between `ImportError`
+(VirusTotal not configured — silenced) and all other exceptions (logged at
+`WARNING` level with full traceback via `exc_info=True`).
 
 ---
 
@@ -91,46 +111,21 @@ so failures are at least visible in logs.
 
 ---
 
-### 2.1 Schema Fields Missing Length Constraints
+### 2.1 Schema Fields Missing Length Constraints — ✅ DONE
 
-**Difficulty: Beginner**
 **Files:** `app/schemas/form.py`, `app/schemas/user.py`, `app/schemas/post.py`
 
-**Problem:**
-Several Pydantic schema fields accept arbitrarily long strings:
-- `form.py`: `placeholder` field has no `max_length`.
-- `user.py`: `bio`, `affiliation`, `orcid` fields have no `max_length`.
-- `post.py`: `keywords` array limits count (`max_length=15`) but not
-  individual keyword length — a client could send 15 x 10,000-char strings.
-
-**Fix:**
-Add `max_length` constraints:
-```python
-# form.py
-placeholder: str | None = Field(None, max_length=500)
-
-# user.py
-bio: str | None = Field(None, max_length=1000)
-affiliation: str | None = Field(None, max_length=500)
-orcid: str | None = Field(None, max_length=50)
-
-# post.py — add a validator:
-@field_validator("keywords")
-@classmethod
-def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
-    if v:
-        for kw in v:
-            if len(kw) > 100:
-                raise ValueError("Each keyword must be 100 characters or fewer.")
-    return v
-```
+Fixed. All major fields now have `max_length` constraints:
+- `form.py`: `placeholder` max_length=500
+- `user.py`: `bio` max_length=500, `affiliation` max_length=200, `orcid` max_length=50
+- `post.py`: keywords validated with `@field_validator`, each capped at 100 chars
 
 ---
 
 ### 2.2 Post Update Accepts Empty Payload
 
 **Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/posts.py:104-129`
+**File:** `app/api/v1/endpoints/posts.py`
 
 **Problem:**
 The post update endpoint does not validate that at least one field is
@@ -147,29 +142,19 @@ if not any([req.title, req.content, req.category_id, req.keywords is not None]):
 
 ---
 
-### 2.3 Comment Delete Does Not Cross-Validate `post_id`
+### 2.3 Comment Delete Does Not Cross-Validate `post_id` — ✅ DONE
 
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/comments.py:92-102`
+**File:** `app/repositories/comment_repo.py`
 
-**Problem:**
-The delete comment endpoint accepts `post_id` and `comment_id` as path
-parameters, but does not verify that the comment belongs to the specified
-post. The soft-delete in the repo layer only checks `comment_id` and
-`user_id`. If the wrong `post_id` is passed, the comment is still deleted
-and the wrong post's `comment_count` is decremented.
-
-**Fix:**
-Before calling `soft_delete()`, fetch the comment and verify
-`comment.post_id == post_id`. Or modify the repo query to include
-`AND post_id = $X`.
+Fixed. The soft-delete SQL includes `AND post_id = $2`, ensuring a comment
+can only be deleted when the correct `post_id` is provided.
 
 ---
 
 ### 2.4 Form Update Does Not Validate SIG Ownership
 
 **Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/forms.py:105-131`
+**File:** `app/api/v1/endpoints/forms.py`
 
 **Problem:**
 The update form endpoint checks if the user is an admin but does not
@@ -187,22 +172,14 @@ admin role against the form's actual `sig_id`).
 
 ---
 
-### 3.1 SIG Deletion Does Not Cascade to Forms and Posts
+### 3.1 SIG Deletion Does Not Cascade to Forms and Posts — ✅ DONE
 
-**Difficulty: Intermediate**
-**Files:** `app/services/sig.py`, `app/repositories/sig_repo.py`,
-`app/repositories/form_repo.py`, `app/repositories/post_repo.py`
+**Files:** `app/repositories/sig_repo.py`
 
-**Problem:**
-When a SIG is soft-deleted, its associated forms and posts are orphaned.
-Forms remain accessible if someone knows the form_id. Posts still appear
-in feeds with a stale `sig_id`.
-
-**Fix:**
-In `sig_repo.soft_delete()`, within the same transaction:
-1. Soft-delete all forms where `sig_id = $1`.
-2. Set `sig_id = NULL` on all posts where `sig_id = $1`.
-3. Then soft-delete the SIG itself.
+Fixed. `sig_repo.soft_delete()` runs three statements in a single
+transaction: soft-delete all forms where `sig_id = $1`, set
+`is_deleted = true` on all posts where `sig_id = $1`, then soft-delete
+the SIG itself.
 
 ---
 
@@ -224,31 +201,20 @@ DELETE FROM categories WHERE id = $1;
 
 ---
 
-### 3.3 SIG Leave Allows Orphaning When Last Admin Is Deleted User
+### 3.3 SIG Leave Allows Orphaning When Last Admin Is Deleted User — ✅ DONE
 
-**Difficulty: Intermediate**
-**File:** `app/services/sig.py`
+**File:** `app/repositories/sig_repo.py`
 
-**Problem:**
-`leave_sig()` checks `admin_count` to prevent the last admin from leaving.
-However, if some admins are deleted (soft-deleted) users, `admin_count`
-may overcount. A non-deleted admin could leave, thinking another admin
-exists, but that admin is actually a deleted account.
-
-**Fix:**
-Change the admin count query to exclude deleted users:
-```sql
-SELECT COUNT(*) FROM sig_members
-WHERE sig_id = $1 AND role IN ('ADMIN', 'SUB_ADMIN')
-  AND user_id IN (SELECT id FROM users WHERE is_deleted = false)
-```
+Fixed. The admin count query joins to `users` and filters
+`u.is_deleted = false`, so soft-deleted accounts are not counted as
+active admins.
 
 ---
 
 ### 3.4 Form Response Race Condition
 
 **Difficulty: Intermediate**
-**File:** `app/services/form.py:155-156`
+**File:** `app/services/form.py`
 
 **Problem:**
 When submitting a form response, the service checks if the form exists
@@ -275,7 +241,7 @@ new `app/repositories/file_scan_repo.py`, `app/api/v1/endpoints/files.py`
 **Background:**
 The VirusTotal scan task exists but results are fire-and-forget. Scan
 results are not stored, and malicious files can still be downloaded via
-presigned URLs.
+the proxy endpoint.
 
 **Implementation Plan:**
 1. Create a `file_scans` table (columns: `id`, `file_key`, `status`
@@ -285,52 +251,32 @@ presigned URLs.
    `update_status()`.
 4. Modify `virustotal.py` to update the scan record when results arrive.
 5. Add `GET /files/{key}/scan-status` endpoint.
-6. Modify `generate_presigned_url()` to reject keys flagged as malicious.
+6. Modify `serve_file()` in `files.py` to return 451 for malicious files.
 
 > **Frontend dependency:** This unblocks frontend task 1.6 (VirusTotal
 > File Safety Indicator) in `FRONTEND_CONTRIBUTOR_GUIDE.md`.
 
 ---
 
-### 4.2 Bulk Operations Endpoints
+### 4.2 Bulk Operations Endpoints — ✅ DONE
 
-**Difficulty: Intermediate**
-**Files:** `app/api/v1/endpoints/posts.py`, `app/api/v1/endpoints/users.py`,
-`app/schemas/post.py`, `app/schemas/user.py`
+**Files:** `app/api/v1/endpoints/posts.py`, `app/api/v1/endpoints/users.py`
 
-**Implementation Plan:**
-1. Add `BulkDeletePostsRequest` schema with `post_ids: list[uuid.UUID]`
-   (max 50 items).
-2. Add `DELETE /api/v1/posts/bulk` endpoint (SUPER_ADMIN/ADMIN only).
-   Calls `post_repo.soft_delete()` in a loop within a single transaction.
-3. Add `BulkRoleChangeRequest` schema with `user_ids: list[uuid.UUID]`
-   and `role: str`.
-4. Add `PUT /api/v1/users/bulk-role` endpoint (SUPER_ADMIN only).
-   Validate role enum, then update in a single transaction.
-5. Add audit log entries for each bulk action.
+Done. The following endpoints are implemented:
+- `DELETE /api/v1/posts/bulk` — soft-deletes up to 50 posts (ADMIN+)
+- `PUT /api/v1/users/bulk-role` — changes role for up to 50 users (SUPER_ADMIN)
 
-> **Frontend dependency:** This unblocks frontend task 2.6 (Admin Bulk
-> Operations UI) in `FRONTEND_CONTRIBUTOR_GUIDE.md`.
+Both run in a single transaction and write audit log entries.
 
 ---
 
-### 4.3 Reports Endpoint Pagination
+### 4.3 Reports Endpoint Pagination — ✅ DONE
 
-**Difficulty: Beginner**
-**Files:** `app/api/v1/endpoints/reports.py`, `app/services/report.py`,
-`app/repositories/report_repo.py`
+**Files:** `app/api/v1/endpoints/reports.py`, `app/repositories/report_repo.py`
 
-**Problem:**
-`GET /api/v1/reports` returns all reports without pagination. This will
-cause performance issues as the platform grows.
-
-**Fix:**
-Add `page: int = Query(1, ge=1)` and `page_size: int = Query(20, ge=1, le=100)`
-parameters. Use `LIMIT/OFFSET` in the repo query and return total count
-using `COUNT(*) OVER()`.
-
-> **Frontend dependency:** This unblocks frontend task 2.7 (Admin Reports
-> Pagination) in `FRONTEND_CONTRIBUTOR_GUIDE.md`.
+Done. `GET /api/v1/reports` accepts `page` and `page_size` query
+parameters and returns `total`, `total_pages`, and `reports` in the
+response body.
 
 ---
 
@@ -353,23 +299,16 @@ AND created_at <= $Y::timestamptz  -- if date_to provided
 
 ---
 
-### 4.5 Invite Code Revocation
+### 4.5 Invite Code Revocation — ✅ DONE
 
-**Difficulty: Beginner**
-**Files:** `app/api/v1/endpoints/invite_codes.py`,
-`app/repositories/invite_code_repo.py`
+**File:** `app/api/v1/endpoints/admin.py`
 
-**Problem:**
-Admins cannot revoke a specific invite code. If a code is being abused,
-the only option is to delete all codes or wait for it to expire.
-
-**Fix:**
-Add `DELETE /api/v1/invite-codes/{code_id}` endpoint (SUPER_ADMIN/ADMIN
-only). Soft-delete or hard-delete the code from the database.
+Done. `DELETE /api/v1/admin/invite-codes/{code_id}` lets SUPER_ADMIN or
+ADMIN hard-delete a specific invite code.
 
 ---
 
-### 4.6 Single Category Endpoint
+### 4.6 Single Category GET Endpoint
 
 **Difficulty: Beginner**
 **Files:** `app/api/v1/endpoints/categories.py`,
@@ -383,7 +322,7 @@ a single category.
 **Fix:**
 Add a simple endpoint:
 ```python
-@router.get("/categories/{category_id}", response_model=CategoryResponse)
+@router.get("/{category_id}", response_model=CategoryResponse)
 async def get_category(category_id: uuid.UUID):
     category = await category_repo.find_by_id(category_id)
     if not category:
@@ -397,29 +336,12 @@ async def get_category(category_id: uuid.UUID):
 
 ---
 
-### 5.1 Cross-Platform Celery Task Compatibility
+### 5.1 Cross-Platform Celery Task Compatibility — ✅ DONE
 
-**Difficulty: Intermediate**
 **File:** `app/tasks/form_export.py`
 
-**Problem:**
-`form_export.py` uses `asyncio.run()` inside a Celery sync worker. This
-can fail on Windows (default `ProactorEventLoop` may conflict) or when a
-loop is already running (nested event loop error).
-
-**Fix:**
-Use `asgiref.sync.async_to_sync` or a dedicated helper that creates a
-new event loop in a thread:
-```python
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-
-def run_async(coro):
-    """Run an async coroutine from a sync Celery task, cross-platform."""
-    with ThreadPoolExecutor(1) as pool:
-        return pool.submit(asyncio.run, coro).result()
-```
-Apply this pattern to all Celery tasks that call async code.
+Fixed. Async coroutines are run inside a `ThreadPoolExecutor` with a
+dedicated `asyncio.run()` call, which is safe on all platforms.
 
 ---
 
@@ -453,132 +375,92 @@ Document the available environment variables in `.env.example`.
 
 ---
 
-### 5.3 Event Bus Bounded Retry Mechanism
+### 5.3 Event Bus Periodic Retry (Celery Beat)
 
 **Difficulty: Intermediate**
-**Files:** `app/core/event_bus.py`
+**Files:** `app/core/event_bus.py`, `app/celery_app.py`
 
-**Problem:**
-Failed events are persisted to Redis but never retried. They accumulate
-indefinitely, wasting Redis memory. There is no mechanism to recover from
-transient failures (e.g., temporary database unavailability).
+**Background:**
+Failed events are persisted to a Redis list with `retry_count`. However,
+there is no background task to retry them. They accumulate indefinitely.
 
 **Fix:**
-1. Add a `retry_count` field to the persisted event payload.
-2. Create a periodic Celery Beat task (e.g., every 5 minutes) that:
-   - Reads failed events from the Redis list.
-   - Re-dispatches events where `retry_count < MAX_RETRIES` (e.g., 3).
-   - Increments `retry_count` on each attempt.
-   - Uses exponential backoff: delay = `2^retry_count` seconds.
-   - Events exceeding `MAX_RETRIES` are logged at ERROR level and removed
-     from the queue.
-3. Add a Redis key TTL (e.g., 24 hours) as a safety net so old events
-   are automatically cleaned up even if the retry task is not running.
+Create a periodic Celery Beat task (e.g., every 5 minutes) that:
+1. Reads failed events from the Redis list.
+2. Re-dispatches events where `retry_count < MAX_RETRIES` (e.g., 3).
+3. Increments `retry_count` on each attempt.
+4. Logs at ERROR and removes events that have exceeded `MAX_RETRIES`.
+5. Apply a Redis key TTL (24h) as a safety net.
 
 ---
 
-### 5.4 WebSocket Guest Timeout Reset on Activity
+### 5.4 WebSocket Guest Timeout Reset on Activity — ✅ DONE
 
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/ws.py:50-60`
+**File:** `app/api/v1/endpoints/ws.py`
 
-**Problem:**
-Guest WebSocket connections have an absolute 45-minute timeout. Active
-guests (sending messages, clicking) are forcibly disconnected after 45
-minutes regardless of activity.
-
-**Fix:**
-Track `last_activity` timestamp. On each received message or PONG, update
-`last_activity`. Change the timeout check from:
-```python
-if time.time() - connect_time > GUEST_TIMEOUT:
-```
-to:
-```python
-if time.time() - last_activity > GUEST_TIMEOUT:
-```
+Fixed. `last_activity` is updated on each received message. The 45-minute
+timeout now measures inactivity rather than total connection time.
 
 ---
 
-### 5.5 WebSocket Redis Pub/Sub Error Recovery
+### 5.5 WebSocket Redis Pub/Sub Error Recovery — ✅ DONE
 
-**Difficulty: Intermediate**
-**File:** `app/api/v1/endpoints/ws.py:162-198`
+**File:** `app/api/v1/endpoints/ws.py`
 
-**Problem:**
-The Redis Pub/Sub subscriber has no error recovery. If the Redis connection
-drops or the subscriber coroutine crashes, WebSocket broadcasts stop
-silently. No reconnection is attempted.
-
-**Fix:**
-Wrap the subscriber loop in a retry wrapper:
-```python
-async def _subscribe_with_retry():
-    while True:
-        try:
-            await _subscribe_to_redis()
-        except Exception:
-            logger.error("Redis Pub/Sub subscriber crashed, reconnecting in 5s", exc_info=True)
-            await asyncio.sleep(5)
-```
-Use exponential backoff (5s, 10s, 20s, capped at 60s) for reconnection
-attempts. Reset the backoff on successful reconnection.
+Fixed. The Redis Pub/Sub subscriber runs inside a reconnection wrapper
+that catches crashes, logs the error, and retries after an increasing
+delay (up to 60 seconds).
 
 ---
 
-### 5.6 Data Integrity: SIG Deletion Cascade
+## Section 6: Concurrency & Architecture Fixes (Completed 2026-03-03)
 
-**Difficulty: Intermediate**
-**Files:** `app/repositories/sig_repo.py`, `app/repositories/form_repo.py`,
-`app/repositories/post_repo.py`
-
-**Problem:**
-When a SIG is soft-deleted:
-- Forms belonging to the SIG remain active and accessible.
-- Posts with `sig_id` pointing to the deleted SIG show stale references.
-
-**Fix:**
-In `sig_repo.soft_delete()`, within a single transaction:
-```sql
--- 1. Soft-delete all forms in the SIG
-UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE sig_id = $1 AND is_deleted = false;
-
--- 2. Nullify sig_id on all posts
-UPDATE posts SET sig_id = NULL, updated_at = NOW() WHERE sig_id = $1;
-
--- 3. Soft-delete the SIG
-UPDATE sigs SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false;
-```
+These were identified by systemic analysis and have all been fixed.
 
 ---
 
-### 5.7 Data Integrity: Category Deletion Cascade
+### 6.1 Invite Code Race Condition — ✅ DONE
 
-**Difficulty: Beginner**
-**File:** `app/repositories/category_repo.py`
+**File:** `app/services/auth.py`
 
-**Fix:**
-Before deleting a category, nullify references:
-```sql
-UPDATE posts SET category_id = NULL WHERE category_id = $1;
-DELETE FROM categories WHERE id = $1;
-```
+**Problem:** The `UPDATE invite_codes` in `register_new_user()` did not
+include `AND consumed_at IS NULL`. Two concurrent registration requests
+using the same code could both succeed.
+
+**Fix:** Added `AND consumed_at IS NULL` to the UPDATE statement and
+checks `result == "UPDATE 1"`. If the UPDATE affects 0 rows (code already
+consumed), the transaction is rolled back and a `ValueError` is raised,
+which the endpoint maps to HTTP 400.
 
 ---
 
-### 5.8 Data Integrity: SIG Leave Admin Validation
+### 6.2 Editor Images Expire After 7 Days — ✅ DONE
 
-**Difficulty: Beginner**
-**File:** `app/services/sig.py`
+**Files:** `app/api/v1/endpoints/files.py`, `app/core/storage.py`,
+`app/core/async_storage.py`
 
-**Fix:**
-Change the admin count query to exclude soft-deleted users:
-```sql
-SELECT COUNT(*) FROM sig_members sm
-JOIN users u ON sm.user_id = u.id
-WHERE sm.sig_id = $1 AND sm.role IN ('ADMIN', 'SUB_ADMIN')
-  AND u.is_deleted = false
-```
+**Problem:** Editor-uploaded images were stored as 7-day presigned URLs
+embedded directly in post HTML. After expiry, images permanently broke
+for all readers.
+
+**Fix:** Added `GET /api/v1/files/content/{key:path}` proxy endpoint that
+streams file content from MinIO. Editor-uploaded files are now accessible
+to any authenticated user. The upload response now returns the stable
+proxy URL (`/api/v1/files/content/{key}`) instead of a presigned URL.
+
+---
+
+### 6.3 Storage Quota TOCTOU Bypass — ✅ DONE
+
+**Files:** `app/api/v1/endpoints/files.py`, `app/services/user.py`
+
+**Problem:** Concurrent upload requests all passed the quota check before
+any upload completed, allowing users to burst past the 1 GB limit.
+
+**Fix:** A per-user Redis lock (`upload_lock:{user_id}`, 120s TTL, NX
+semantics) wraps the quota check + upload block in both the editor upload
+endpoint and the avatar upload service. Concurrent uploads from the same
+user receive HTTP 429.
 
 ---
 
@@ -587,7 +469,7 @@ WHERE sm.sig_id = $1 AND sm.role IN ('ADMIN', 'SUB_ADMIN')
 ### Running Tests
 
 ```bash
-# Unit tests (146 tests)
+# Unit tests (149 tests)
 cd backend && python -m pytest tests/ -v
 
 # Integration tests (requires Docker — PostgreSQL + Redis)
@@ -623,7 +505,8 @@ Rate-limited endpoints require `check_rate_limit` to be mocked as well.
 | Setting | Location | Current value |
 |---|---|---|
 | DB pool | `app/core/database.py` | min=10, max=30, timeout=60s |
-| Rate limits | `app/core/constants.py` | Various (moving to env vars) |
+| Rate limits | `app/core/constants.py` | Hardcoded (pending 5.2) |
 | CSRF | `app/core/csrf.py` | Double-submit cookie pattern |
 | Auth | `app/core/deps.py` | HttpOnly cookie + Bearer fallback |
-| Event bus | `app/core/event_bus.py` | In-process async, MAX_RETRIES=2 |
+| Event bus | `app/core/event_bus.py` | In-process async, MAX_RETRIES=2, Redis persistence |
+| Upload lock | Redis | `upload_lock:{user_id}`, 120s TTL, NX |

@@ -1,6 +1,6 @@
 # AI3L Community Frontend -- Contributor Task Guide
 
-> **Last Updated:** 2026-03-02
+> **Last Updated:** 2026-03-03
 > **Applies to:** Frontend codebase (`frontend/src/`)
 > **Audience:** Collaborators who are new to the project or learning Vue/TypeScript
 
@@ -32,14 +32,30 @@ Each item includes a difficulty rating and a step-by-step implementation plan.
 | **Intermediate** | 3-6 files, requires understanding state management or API calls |
 | **Advanced** | Architectural decisions, multiple subsystems, or complex logic |
 
-### How to Read This Document
+---
 
-Every item follows this structure:
+## Progress Summary
 
-- **Difficulty** rating
-- **Affected files** -- which files to open first
-- **Problem/Background** -- why this matters
-- **Implementation Plan** -- numbered steps you can follow directly
+| # | Task | Status |
+|---|------|--------|
+| 1.1 | Guest membership application form | ✅ Done |
+| 1.2 | Admin category management UI | ✅ Done |
+| 1.3 | TipTap editor table support | ✅ Done |
+| 1.4 | Form response viewing UI | ✅ Done |
+| 1.5 | Notification deletion | ✅ Done |
+| 1.6 | VirusTotal file safety indicator | 🔴 Blocked (backend 4.1) |
+| 2.1 | Post draft auto-save | ✅ Done |
+| 2.2 | Form preview mode | ⬜ Pending |
+| 2.3 | SIG search and filter | ⬜ Pending |
+| 2.4 | Password visibility toggle | ⬜ Pending |
+| 2.5 | Invite code generation for members | ⬜ Pending |
+| 2.6 | Admin bulk operations UI | ✅ Done |
+| 2.7 | Admin reports pagination | ✅ Done |
+| 2.8 | Platform contributors page | ⬜ Pending |
+| 3.1 | Post edit SYS_409 version conflict message | ✅ Done |
+| 3.2 | FormBuilder rating min/max validation | ⬜ Pending |
+| 4.1 | Keyboard navigation for dropdowns | ⬜ Pending |
+| 4.2 | Forum search date range validation | ⬜ Pending |
 
 ---
 
@@ -50,257 +66,53 @@ corresponding backend API endpoint, but no frontend implementation exists.
 
 ---
 
-### 1.1 Guest Membership Application Form
+### 1.1 Guest Membership Application Form — ✅ DONE
 
-**Difficulty: Intermediate**
+**Files:** `src/api/users.ts`, `src/views/HomeView.vue`
 
-**Affected files:**
-- `src/api/users.ts` (add one function)
-- `src/views/HomeView.vue` (add UI for guests)
-
-**Background:**
-The backend exposes `POST /api/v1/users/apply-member`, which lets a guest
-user submit a membership application with a written description. The
-`ApplicationsView` admin page already handles reviewing these applications.
-However, guests currently have no way to initiate an application from the
-frontend. This breaks the core onboarding flow for new users.
-
-**Implementation Plan:**
-
-1. Open `src/api/users.ts`. Add a new exported function at the bottom:
-   ```typescript
-   export const applyForMembership = (description: string) =>
-     api.post('/users/apply-member', { description })
-   ```
-
-2. Open `src/views/HomeView.vue`. Locate the block that renders when
-   `auth.isGuest` is true. Add a new card or section below the existing
-   guest warning message.
-
-3. Inside this new section, add:
-   - A short explanation ("Apply for a full membership to access all
-     features.")
-   - A `BaseTextarea` for the applicant to write their motivation (at least
-     50 characters is a reasonable minimum to enforce client-side).
-   - A `BaseButton` labelled "Submit Application".
-
-4. Implement the submit handler:
-   ```typescript
-   const submitApplication = async () => {
-     if (description.value.trim().length < 50) {
-       // show inline error
-       return
-     }
-     try {
-       await applyForMembership(description.value)
-       toast.show('Your application has been submitted.', 'success')
-       hasApplied.value = true
-     } catch (err) {
-       toast.show('Failed to submit application. You may have already applied.', 'error')
-     }
-   }
-   ```
-
-5. When `hasApplied` is true, hide the form and show a confirmation message
-   so the user cannot submit twice.
+Done. `applyForMembership()` is implemented in `users.ts` and wired up
+in `HomeView.vue`. Guests see a textarea form with a submit button. After
+submission, the form is hidden and a confirmation message is shown.
 
 ---
 
-### 1.2 Admin Category Management UI
+### 1.2 Admin Category Management UI — ✅ DONE
 
-**Difficulty: Intermediate**
+**Files:** `src/views/admin/CategoriesView.vue`, `src/api/categories.ts`,
+`src/router/index.ts`, `src/components/AppNavbar.vue`
 
-**Affected files:**
-- `src/api/categories.ts` (add three functions)
-- `src/views/admin/CategoriesView.vue` (new file)
-- `src/router/index.ts` (add one route)
-- `src/components/AppNavbar.vue` (add one link)
-
-**Background:**
-The backend provides full CRUD for forum categories:
-`POST /categories`, `PUT /categories/{id}`, `DELETE /categories/{id}`.
-The `GET /categories` endpoint is already used in the forum to populate the
-category filter. However, admins have no way to create, rename, or delete
-categories from the frontend. This means category management must be done
-directly in the database, which is error-prone.
-
-**Implementation Plan:**
-
-1. Open `src/api/categories.ts`. Add three new functions:
-   ```typescript
-   export const createCategory = (name: string, description: string) =>
-     api.post('/categories', { name, description })
-
-   export const updateCategory = (
-     id: string,
-     payload: { name?: string; description?: string }
-   ) => api.put(`/categories/${id}`, payload)
-
-   export const deleteCategory = (id: string) =>
-     api.delete(`/categories/${id}`)
-   ```
-
-2. Create `src/views/admin/CategoriesView.vue`. This page should:
-   - On mount, call the existing `listCategories()` function and display
-     results in a `BaseTable` (columns: Name, Description, Actions).
-   - Have a "Create Category" `BaseButton` that opens a `BaseModal`
-     containing two `BaseInput` fields (Name and Description).
-   - Each table row has an "Edit" button (opens the same modal pre-filled)
-     and a "Delete" button (shows a confirmation modal).
-
-3. In `src/router/index.ts`, add the route inside the admin routes block:
-   ```typescript
-   {
-     path: '/admin/categories',
-     component: () => import('../views/admin/CategoriesView.vue'),
-     meta: { requiresAdmin: true }
-   }
-   ```
-
-4. In `src/components/AppNavbar.vue`, add "Categories" to the admin
-   dropdown link list, pointing to `/admin/categories`.
+Done. Admins can create, rename, and delete forum categories from
+`/admin/categories`. The navbar includes a "Categories" link in the admin
+dropdown.
 
 ---
 
-### 1.3 TipTap Editor: Table Support
+### 1.3 TipTap Editor: Table Support — ✅ DONE
 
-**Difficulty: Intermediate**
+**Files:** `src/components/TiptapEditor.vue`, `package.json`
 
-**Affected files:**
-- `package.json`
-- `src/components/TiptapEditor.vue`
-
-**Background:**
-The system specification (Section 12.2) lists "table" as a required TipTap
-toolbar feature. The current implementation has no table support. TipTap
-provides official packages for this.
-
-**Implementation Plan:**
-
-1. Install the required packages (run from the `frontend/` directory):
-   ```bash
-   npm install @tiptap/extension-table @tiptap/extension-table-row \
-               @tiptap/extension-table-header @tiptap/extension-table-cell
-   ```
-
-2. In `TiptapEditor.vue`, add imports at the top of the `<script setup>` block:
-   ```typescript
-   import Table from '@tiptap/extension-table'
-   import TableRow from '@tiptap/extension-table-row'
-   import TableHeader from '@tiptap/extension-table-header'
-   import TableCell from '@tiptap/extension-table-cell'
-   ```
-
-3. Register the extensions inside the `useEditor({ extensions: [...] })`
-   call:
-   ```typescript
-   Table.configure({ resizable: true }),
-   TableRow,
-   TableHeader,
-   TableCell,
-   ```
-
-4. Add a "Table" button to the toolbar. On click, run:
-   ```typescript
-   editor.value?.chain().focus()
-     .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-     .run()
-   ```
-
-5. Optionally add secondary buttons (Add Row, Add Column, Delete Table)
-   that appear only when `editor.value?.isActive('table')` is true.
+Done. All four TipTap table extensions (`Table`, `TableRow`, `TableHeader`,
+`TableCell`) are installed and registered. A toolbar button inserts a 3×3
+table with a header row.
 
 ---
 
-### 1.4 Form Response Viewing UI
+### 1.4 Form Response Viewing UI — ✅ DONE
 
-**Difficulty: Intermediate**
+**Files:** `src/api/forms.ts`, `src/views/sigs/SigDetailView.vue`
 
-**Affected files:**
-- `src/api/forms.ts` (add one function)
-- `src/views/sigs/SigDetailView.vue` (add response viewer)
-
-**Background:**
-The backend exposes `GET /api/v1/forms/{form_id}/responses` (added in
-Phase 13), which returns paginated form submissions. SIG admins need to see
-who submitted responses and what they answered. Currently there is no
-frontend function calling this endpoint, so admins cannot view form
-responses at all.
-
-**Implementation Plan:**
-
-1. Open `src/api/forms.ts`. Add:
-   ```typescript
-   export const listFormResponses = (
-     formId: string,
-     page = 1,
-     pageSize = 20
-   ) =>
-     api.get(`/forms/${formId}/responses`, {
-       params: { page, page_size: pageSize },
-     })
-   ```
-
-2. In `SigDetailView.vue`, add a "View Responses" button next to each form
-   in the SIG forms section. Show it only when `userIsSigAdmin` is true.
-
-3. When clicked, open a `BaseModal` (size `xl`) that:
-   - Fetches responses via `listFormResponses(formId)`.
-   - Displays results in a `BaseTable` with columns: Respondent, Submitted
-     At, and a summary of their answers.
-   - Includes `BasePagination` at the bottom.
-
-4. Optionally add a "Download CSV" button that calls
-   `POST /forms/{form_id}/export` (the backend Celery export task).
+Done. SIG admins can open a modal to view paginated form responses. A
+"Download CSV" button triggers the backend Celery export task.
 
 ---
 
-### 1.5 Notification Deletion
+### 1.5 Notification Deletion — ✅ DONE
 
-**Difficulty: Beginner**
+**Files:** `src/api/notifications.ts`, `src/views/NotificationsView.vue`
 
-**Affected files:**
-- `src/api/notifications.ts` (add two functions)
-- `src/views/NotificationsView.vue` (add delete button and clear-all button)
-
-**Background:**
-The backend exposes both `DELETE /api/v1/notifications/{notification_id}`
-(single delete) and `DELETE /api/v1/notifications` with an optional body of
-`notification_ids` (bulk delete / clear all). The frontend has no API
-functions for either. Users can mark notifications as read but cannot delete
-them. Over time the notification list grows unbounded.
-
-**Implementation Plan:**
-
-1. Open `src/api/notifications.ts`. Add:
-   ```typescript
-   export const deleteNotification = (notificationId: string) =>
-     api.delete(`/notifications/${notificationId}`)
-
-   export const bulkDeleteNotifications = (notificationIds?: string[]) =>
-     api.delete('/notifications', { data: notificationIds ? { notification_ids: notificationIds } : undefined })
-   ```
-
-2. In `NotificationsView.vue`, add a delete button (use `TrashIcon` from
-   `lucide-vue-next`) on each notification row.
-
-3. Wire the click handler:
-   ```typescript
-   const handleDelete = async (id: string) => {
-     try {
-       await deleteNotification(id)
-       notifications.value = notifications.value.filter(n => n.id !== id)
-     } catch {
-       toast.show('Failed to delete notification.', 'error')
-     }
-   }
-   ```
-
-4. Optionally, add a "Clear All" button that calls `bulkDeleteNotifications()`
-   with no arguments and then empties `notifications.value`.
-
-5. The delete button should stop event propagation so it does not trigger
-   the row's click-to-navigate behavior.
+Done. `deleteNotification()` and `bulkDeleteNotifications()` are
+implemented. A trash icon on each notification row deletes it. A
+"Clear All" button removes all notifications at once.
 
 ---
 
@@ -312,19 +124,10 @@ them. Over time the notification list grows unbounded.
 - `src/views/forum/PostDetailView.vue` (show indicator on embedded images)
 - `src/components/TiptapEditor.vue` (show upload scan status)
 
-**Background:**
-The backend has a VirusTotal integration (`app/tasks/virustotal.py`) that
-scans uploaded files asynchronously. However, scan results are currently
-fire-and-forget -- they are not stored in the database and there is no way
-for the frontend to query whether a file is safe or still being scanned.
+**Status:** 🔴 Blocked — waiting for backend task 4.1 (VirusTotal database
+integration and `GET /files/{key}/scan-status` endpoint).
 
-> **Note:** This task requires backend changes first. The backend must:
-> (1) store scan results in a `file_scans` database table, (2) expose a
-> `GET /files/{key}/scan-status` endpoint, (3) block presigned URL
-> generation for files flagged as malicious. Once the backend is ready,
-> the frontend work can begin.
-
-**Implementation Plan (frontend portion):**
+**Implementation Plan (frontend portion — implement after backend is ready):**
 
 1. Add an API function in `src/api/files.ts`:
    ```typescript
@@ -339,8 +142,7 @@ for the frontend to query whether a file is safe or still being scanned.
 3. In `PostDetailView.vue`, for each image in the rendered content, query
    the scan status and overlay an indicator if malicious.
 
-4. Consider polling the scan status every 5 seconds until it resolves
-   (pending -> clean/malicious), then stop.
+4. Poll the scan status every 5 seconds until it resolves, then stop.
 
 ---
 
@@ -351,26 +153,14 @@ the product. They are ordered roughly by impact.
 
 ---
 
-### 2.1 Post Draft Auto-Save
+### 2.1 Post Draft Auto-Save — ✅ DONE
 
-**Difficulty: Advanced**
+**File:** `src/views/forum/PostCreateView.vue`
 
-**Affected files:** `src/views/forum/PostCreateView.vue`
-
-When writing a long post, users risk losing their content if the browser
-crashes or they accidentally navigate away.
-
-**Implementation Plan:**
-1. In `PostCreateView.vue`, use `localStorage` to save the draft. Choose a
-   key such as `draft:new-post`.
-2. Set up a `watch` on the title, content, category, and keywords. On any
-   change (debounced by 2 seconds), save the current form state to
-   `localStorage` as a JSON string.
-3. On component mount, check if a saved draft exists. If so, prompt the
-   user with a modal: "You have an unsaved draft. Restore it?"
-4. On successful post submission, delete the draft key from `localStorage`.
-5. Add an `onBeforeRouteLeave` guard that warns the user if they try to
-   navigate away with unsaved, non-empty content.
+Done. Drafts are saved to `localStorage` with a 2-second debounce. On
+mount, the user is prompted to restore any unsaved draft. The draft is
+cleared on successful submission or when the user explicitly discards it.
+An `onBeforeRouteLeave` guard warns when navigating away with unsaved content.
 
 ---
 
@@ -399,7 +189,7 @@ publishing.
 
 **Difficulty: Beginner**
 
-**Affected files:** `src/views/SigsDirectoryView.vue`
+**Affected files:** `src/views/sigs/SigsDirectoryView.vue`
 
 `SigsDirectoryView.vue` shows all SIGs in a grid with no search capability.
 As the number of SIGs grows, this list becomes hard to navigate.
@@ -456,7 +246,7 @@ The specification states that Members (not just Admins) can generate invite
 codes. Currently the only invite code UI is in the Admin panel.
 
 **Implementation Plan:**
-1. Add a "Invite Codes" section to `ProfileView.vue`, visible to all
+1. Add an "Invite Codes" section to `ProfileView.vue`, visible to all
    non-guest authenticated users (`v-if="!auth.isGuest"`).
 2. Add a "Generate Invite Code" `BaseButton`.
 3. On click, call `createInviteCode()` from `src/api/admin.ts`. This
@@ -467,94 +257,81 @@ codes. Currently the only invite code UI is in the Admin panel.
 
 ---
 
-### 2.6 Admin Bulk Operations UI
+### 2.6 Admin Bulk Operations UI — ✅ DONE
 
-**Difficulty: Advanced**
+**Files:** `src/views/admin/UsersView.vue`, `src/views/forum/ForumView.vue`,
+`src/api/posts.ts`, `src/api/users.ts`
 
-**Affected files:**
-- `src/api/posts.ts` (add bulk delete function)
-- `src/api/users.ts` (add bulk role change function)
-- `src/views/admin/UsersView.vue` (add multi-select + bulk actions)
-- `src/views/forum/ForumView.vue` (add admin multi-select + bulk delete)
-
-**Background:**
-Admins managing a growing platform need to handle policy-violating posts
-and role changes efficiently. Currently every action must be done one at a
-time, which is impractical at scale.
-
-> **Note:** This task requires backend endpoints to be created first:
-> `DELETE /posts/bulk` and `PUT /users/bulk-role`.
-
-**Implementation Plan:**
-
-1. In `UsersView.vue`, add a checkbox column to the user table. Track
-   selected user IDs in a `Set<string>`.
-2. When one or more users are selected, show a floating action bar with:
-   - A role dropdown (MEMBER, ADMIN) and a "Change Role" button.
-   - The action calls `bulkChangeRole(userIds, newRole)`.
-3. In `ForumView.vue`, add a similar checkbox pattern for admin users.
-   Show a "Delete Selected" button when posts are selected.
-4. Both actions should show a confirmation modal before executing.
+Done. Admins can select multiple users (with checkbox column) and apply
+a bulk role change. Admins can also select multiple forum posts and bulk-
+delete them. Both actions include a confirmation modal before executing.
 
 ---
 
-### 2.7 Admin Reports Pagination
+### 2.7 Admin Reports Pagination — ✅ DONE
+
+**File:** `src/views/admin/ReportsView.vue`
+
+Done. The reports view uses `currentPage` state, passes `page` and
+`page_size` to the API, and displays a `BasePagination` component. Total
+report count is shown at the bottom.
+
+---
+
+### 2.8 Platform Contributors Page
 
 **Difficulty: Beginner**
 
-**Affected files:** `src/views/admin/ReportsView.vue`
+**Affected files:** `src/views/AboutView.vue` (new file), `src/router/index.ts`
+(add one route), `src/components/AppNavbar.vue` (add one link)
 
 **Background:**
-The reports admin view currently loads all reports without pagination. As
-the platform grows, this will cause performance issues and potentially
-incomplete data if the backend adds a default limit.
+There is currently no page that acknowledges the people who designed and
+built the AI3L Community platform.
 
 **Implementation Plan:**
-1. Add `currentPage` reactive state (starts at 1) and use a page size
-   constant (e.g., 20).
-2. Pass `page` and `page_size` parameters to the reports API call.
-3. Store the total count from the response.
-4. Add a `BasePagination` component below the reports table.
-5. When `currentPage` changes, re-fetch reports.
+
+1. Create `src/views/AboutView.vue`. The page should contain:
+   - A heading ("Platform Contributors") and a short paragraph about the project.
+   - A contributor list rendered from a local static array.
+
+2. Define the contributor array in the `<script setup>` block:
+   ```typescript
+   interface Contributor {
+     name: string
+     role: string
+     github?: string
+   }
+   const contributors: Contributor[] = [
+     { name: 'Alice Chen', role: 'Project Lead & Backend', github: 'alicecodes' },
+     // Add more contributors here
+   ]
+   ```
+
+3. In the template, render a responsive grid of cards using CSS variable
+   classes (`bg-surface`, `text-foreground`, `border-border`).
+
+4. In `src/router/index.ts`, add:
+   ```typescript
+   { path: '/about', component: () => import('../views/AboutView.vue') }
+   ```
+
+5. In `src/components/AppNavbar.vue`, add an "About" link visible to all
+   users (including guests).
 
 ---
 
 ## Section 3: Known Bugs
 
-These are confirmed defects in the current code that must be fixed.
-
 ---
 
-### 3.1 Post Edit: Version Conflict Error (SYS_409) Not Explained to the User
+### 3.1 Post Edit: Version Conflict Error (SYS_409) — ✅ DONE
 
-**Difficulty: Intermediate**
-**Files:** `src/views/forum/PostDetailView.vue`
+**File:** `src/views/forum/PostDetailView.vue`
 
-**Problem:**
-The backend uses optimistic locking on post edits. If two users edit the
-same post at the same time, the second save will be rejected with error code
-`SYS_409`. The frontend currently catches this as a generic error and shows
-no specific guidance. The user does not know why the save failed or what to
-do next.
-
-**Fix:**
-1. In `PostDetailView.vue`'s save handler, check if the error response
-   contains the error code `SYS_409`:
-   ```typescript
-   } catch (err: unknown) {
-     const apiError = err as { response?: { data?: { detail?: { code?: string } } } }
-     if (apiError.response?.data?.detail?.code === 'SYS_409') {
-       toast.show(
-         'Someone else edited this post while you were writing. Please reload to see the latest version.',
-         'warning'
-       )
-     } else {
-       toast.show('Failed to save post.', 'error')
-     }
-   }
-   ```
-2. Optionally, add a "Reload Post" button that fetches the latest version
-   of the post from the API and updates the editor content.
+Fixed. The save handler checks for `SYS_409` in the error response and
+shows a specific toast: "This post was edited by someone else. Please
+reload to see the latest version." A reload option is also available.
 
 ---
 
@@ -580,14 +357,11 @@ cause backend errors.
    )
    ```
 3. Display `ratingError` as an inline error message below the inputs.
-4. Prevent form submission if any question has a rating error (add a check
-   in the existing `validateForm()` or `serializeForm()` function).
+4. Prevent form submission if any question has a rating error.
 
 ---
 
 ## Section 4: UI/UX Improvements
-
-These are refinements to existing behavior.
 
 ---
 
@@ -605,8 +379,7 @@ keyboard. This is a barrier for users who navigate without a mouse.
 2. When `ArrowDown` is pressed and the dropdown is closed, open it and
    focus the first menu item.
 3. When the dropdown is open:
-   - `ArrowDown`: move focus to the next menu item (use `querySelectorAll`
-     to find focusable items and track an index).
+   - `ArrowDown`: move focus to the next menu item.
    - `ArrowUp`: move focus to the previous item.
    - `Enter`/`Space`: activate the focused item.
    - `Escape`: close the dropdown and return focus to the trigger button.
@@ -640,125 +413,14 @@ would produce zero results and confuse users.
 
 ---
 
-### 4.3 Dark Mode: Hardcoded Colors in Some Views
-
-**Difficulty: Beginner**
-**Files:** `src/views/HomeView.vue`, `src/views/forms/FormBuilderView.vue`,
-and others
-
-**Problem:**
-Phase 13 added CSS custom properties (`--color-foreground`,
-`--color-surface`, etc.) and a `dark` class on `<html>` for dark mode
-support. However, several views still use hardcoded Tailwind color classes
-(e.g., `bg-gradient-to-br from-brand-900 to-brand-700` in HomeView,
-hardcoded gray borders in FormBuilderView) that do not respond to the dark
-mode toggle.
-
-**Fix:**
-1. Search the codebase for hardcoded color classes: `text-gray-`,
-   `bg-gray-`, `border-gray-`, `bg-white`, `text-black`, etc.
-2. Replace them with the CSS variable equivalents:
-   - `text-gray-900` -> `text-foreground`
-   - `bg-white` -> `bg-surface`
-   - `border-gray-200` -> `border-border`
-   - `text-gray-500` -> `text-muted`
-3. For gradient backgrounds, use CSS variables inside a custom class or
-   switch to a surface-based card design.
-4. Test by toggling dark mode and verifying all views look correct.
-
----
-
-### 2.8 Platform Contributors Page
-
-**Difficulty: Beginner**
-
-**Affected files:** `src/views/AboutView.vue` (new file), `src/router/index.ts`
-(add one route), `src/components/AppNavbar.vue` (add one link)
-
-**Background:**
-There is currently no page that acknowledges the people who designed and
-built the AI3L Community platform. A contributors page gives the team
-recognition and helps new community members understand who to contact for
-questions about specific areas of the codebase.
-
-**Implementation Plan:**
-
-1. Create `src/views/AboutView.vue`. The page should contain:
-   - A heading ("Platform Contributors") and a short one-paragraph
-     description of the project.
-   - A contributor list rendered from a local static array defined directly
-     in the component. No API call is needed.
-
-2. Define the contributor array in the `<script setup>` block:
-   ```typescript
-   interface Contributor {
-     name: string
-     role: string
-     github?: string
-   }
-
-   const contributors: Contributor[] = [
-     { name: 'Alice Chen', role: 'Project Lead & Backend', github: 'alicecodes' },
-     { name: 'Bob Kim',   role: 'Frontend & Design',      github: 'bobkim' },
-     // Add more contributors here
-   ]
-   ```
-
-3. In the template, render the list as a responsive grid of cards. Each
-   card displays the contributor's name, role, and — if present — a GitHub
-   link:
-   ```html
-   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-     <div
-       v-for="c in contributors"
-       :key="c.name"
-       class="rounded-xl border border-border bg-surface p-5 shadow-sm"
-     >
-       <p class="text-lg font-semibold text-foreground">{{ c.name }}</p>
-       <p class="text-sm text-muted mt-1">{{ c.role }}</p>
-       <a
-         v-if="c.github"
-         :href="`https://github.com/${c.github}`"
-         target="_blank"
-         rel="noopener noreferrer"
-         class="text-sm text-brand-600 hover:underline mt-2 inline-block"
-       >
-         @{{ c.github }}
-       </a>
-     </div>
-   </div>
-   ```
-
-4. In `src/router/index.ts`, add the route (no auth guard required — this
-   page is publicly visible):
-   ```typescript
-   {
-     path: '/about',
-     component: () => import('../views/AboutView.vue'),
-   }
-   ```
-
-5. In `src/components/AppNavbar.vue`, add an "About" link in the main
-   navigation bar pointing to `/about`. The link should be visible to all
-   users, including guests.
-
-6. Use only CSS variable–based Tailwind classes (`bg-surface`,
-   `text-foreground`, `border-border`, etc.) so the page responds correctly
-   to the dark mode toggle.
-
----
-
 ## Backend Dependencies
 
 Some frontend tasks above are blocked by backend work that has not been
-completed yet. See `BACKEND_CONTRIBUTOR_GUIDE.md` for the full list of
-backend tasks. The key blockers are:
+completed yet. See `BACKEND_CONTRIBUTOR_GUIDE.md` for the full list.
 
 | Frontend task | Blocked by (backend) |
 |---------------|---------------------|
-| 1.6 VirusTotal File Safety Indicator | Backend 4.1 — VirusTotal integration completion |
-| 2.6 Admin Bulk Operations UI | Backend 4.2 — Bulk operation endpoints |
-| 2.7 Admin Reports Pagination | Backend 4.3 — Reports endpoint pagination |
+| 1.6 VirusTotal File Safety Indicator | Backend 4.1 — VirusTotal database integration |
 
 ---
 
@@ -779,7 +441,10 @@ frontend/src/
 ├── types/         TypeScript interfaces for all data models
 ├── utils/         Utility functions (datetime, html including renderMentions)
 └── views/         One file per page/route
-    └── sigs/      Includes SigCreateView.vue (added Phase 13)
+    ├── admin/     Admin-only views (Categories, Users, Reports, etc.)
+    ├── forms/     FormBuilderView, FormView
+    ├── forum/     ForumView, PostDetailView, PostCreateView
+    └── sigs/      SigDetailView, SigCreateView, SigsDirectoryView
 ```
 
 ### Design System Rules
@@ -796,6 +461,10 @@ HTML elements:
 | `<dialog>` / custom overlay | `<BaseModal>` |
 | `<table>` | `<BaseTable>` |
 
+Use only CSS variable–based Tailwind classes (`bg-surface`, `text-foreground`,
+`border-border`, `text-muted`) instead of hardcoded gray/white classes.
+The site uses a fixed light theme (dark mode is not active).
+
 ### Running Tests
 
 ```bash
@@ -803,10 +472,10 @@ HTML elements:
 cd frontend && npx vitest run
 
 # TypeScript type checking
-cd frontend && npx tsc --noEmit
+cd frontend && npx vue-tsc --noEmit
 
-# Lint
-cd frontend && npm run lint
+# Prettier check
+cd frontend && npx prettier --check src/
 ```
 
 ### Recommended Order for First-Time Contributors
@@ -818,23 +487,22 @@ cd frontend && npm run lint
    before writing any code.
 4. Check your changes work for different user roles (Guest, Member, Admin,
    Super Admin) by logging in with each role type.
-5. Run the linter before submitting: `npm run lint` inside `frontend/`.
+5. Run `npx prettier --write src/` and `npx vue-tsc --noEmit` before
+   submitting.
 
 ### Common Patterns
 
 **Calling the API and handling errors:**
 ```typescript
 const isLoading = ref(false)
-const error = ref('')
 
 const fetchData = async () => {
   isLoading.value = true
-  error.value = ''
   try {
     const res = await someApiFunction()
     data.value = res.data
-  } catch (err: unknown) {
-    error.value = (err as Error).message || 'Failed to load data.'
+  } catch {
+    toast.show('Failed to load data.', 'error')
   } finally {
     isLoading.value = false
   }
@@ -862,7 +530,6 @@ auth.user           // UserProfile object or null
 
 **Using confirmation modals (not browser confirm()):**
 ```typescript
-// Phase 13 replaced all confirm() calls with BaseModal dialogs.
 // Always use BaseModal for destructive action confirmations.
 const showDeleteConfirm = ref(false)
 
