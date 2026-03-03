@@ -65,6 +65,16 @@ function clearDraft() {
   localStorage.removeItem(DRAFT_KEY)
 }
 
+function discardDraft() {
+  clearDraft()
+  title.value = ''
+  content.value = ''
+  keywords.value = []
+  categoryId.value = null
+  allowComments.value = true
+  draftRestored.value = false
+}
+
 let draftTimer: ReturnType<typeof setTimeout> | null = null
 function debouncedSaveDraft() {
   if (draftTimer) clearTimeout(draftTimer)
@@ -145,20 +155,7 @@ onUnmounted(() => {
 
     <BaseAlert v-if="draftRestored" type="info" class="mb-4">
       Draft restored from your previous session.
-      <button
-        @click="
-          clearDraft()
-          title = ''
-          content = ''
-          keywords = []
-          categoryId = null
-          allowComments = true
-          draftRestored = false
-        "
-        class="ml-2 underline text-brand-600"
-      >
-        Discard draft
-      </button>
+      <button @click="discardDraft" class="ml-2 underline text-brand-600">Discard draft</button>
     </BaseAlert>
 
     <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>

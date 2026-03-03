@@ -47,6 +47,11 @@ const statusBadge: Record<string, 'warning' | 'success' | 'neutral'> = {
   DISMISSED: 'neutral',
 }
 
+function handleStatusChange() {
+  currentPage.value = 1
+  fetchReports()
+}
+
 onMounted(fetchReports)
 </script>
 
@@ -59,10 +64,7 @@ onMounted(fetchReports)
       <label class="text-sm text-muted">Filter by status:</label>
       <select
         v-model="statusFilter"
-        @change="
-          currentPage = 1
-          fetchReports()
-        "
+        @change="handleStatusChange"
         class="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option value="">All</option>

@@ -79,6 +79,12 @@ function addOption(question: Question) {
 function removeOption(question: Question, optIndex: number) {
   question.options?.splice(optIndex, 1)
 }
+function updateAllowedTypes(question: Question, event: Event) {
+  question.allowed_types = (event.target as HTMLInputElement).value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
 
 async function uploadBanner(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
@@ -427,12 +433,7 @@ onMounted(() => {
                 <label class="text-xs text-muted">Allowed types:</label>
                 <input
                   :value="(q.allowed_types ?? []).join(', ')"
-                  @input="
-                    q.allowed_types = ($event.target as HTMLInputElement).value
-                      .split(',')
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  "
+                  @input="updateAllowedTypes(q, $event)"
                   :disabled="isSchemaLocked"
                   type="text"
                   placeholder="pdf, docx, png"

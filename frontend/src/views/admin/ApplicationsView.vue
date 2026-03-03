@@ -48,6 +48,11 @@ async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
   }
 }
 
+function setStatusFilter(s: string) {
+  statusFilter.value = s
+  fetchApplications()
+}
+
 onMounted(fetchApplications)
 </script>
 
@@ -59,12 +64,7 @@ onMounted(fetchApplications)
       <button
         v-for="s in ['PENDING', 'APPROVED', 'REJECTED']"
         :key="s"
-        @click="
-          () => {
-            statusFilter = s
-            fetchApplications()
-          }
-        "
+        @click="setStatusFilter(s)"
         class="px-3 py-1.5 text-sm rounded-lg transition"
         :class="
           statusFilter === s
