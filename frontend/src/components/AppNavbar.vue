@@ -43,6 +43,30 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
+function handleDropdownKeydown(e: KeyboardEvent, wrapperClass: string) {
+  const wrapper = (e.currentTarget as HTMLElement).closest(`.${wrapperClass}`)
+  if (!wrapper) return
+
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    if (wrapperClass === 'admin-dropdown-wrapper') adminDropdownOpen.value = false
+    else userDropdownOpen.value = false
+    ;(wrapper.querySelector('button') as HTMLElement)?.focus()
+    return
+  }
+
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    const items = Array.from(wrapper.querySelectorAll<HTMLElement>('a, button'))
+    const current = document.activeElement as HTMLElement
+    const idx = items.indexOf(current)
+    const next = e.key === 'ArrowDown'
+      ? items[(idx + 1) % items.length]
+      : items[(idx - 1 + items.length) % items.length]
+    next?.focus()
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
@@ -79,7 +103,11 @@ onUnmounted(() => {
 
           <template v-if="auth.isAuthenticated">
             <!-- Admin dropdown -->
-            <div v-if="auth.isAdmin" class="relative admin-dropdown-wrapper">
+            <div
+              v-if="auth.isAdmin"
+              class="relative admin-dropdown-wrapper"
+              @keydown="handleDropdownKeydown($event, 'admin-dropdown-wrapper')"
+            >
               <button
                 @click="adminDropdownOpen = !adminDropdownOpen"
                 class="flex items-center gap-1 text-sm text-muted hover:text-foreground transition"
@@ -127,6 +155,13 @@ onUnmounted(() => {
                     Reports
                   </router-link>
                   <router-link
+                    to="/admin/categories"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="adminDropdownOpen = false"
+                  >
+                    Categories
+                  </router-link>
+                  <router-link
                     to="/admin/invite-codes"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
@@ -148,7 +183,10 @@ onUnmounted(() => {
             <NotificationBell />
 
             <!-- User dropdown -->
-            <div class="relative user-dropdown-wrapper">
+            <div
+              class="relative user-dropdown-wrapper"
+              @keydown="handleDropdownKeydown($event, 'user-dropdown-wrapper')"
+            >
               <button
                 @click="userDropdownOpen = !userDropdownOpen"
                 class="flex items-center gap-2 text-sm text-foreground hover:text-foreground/80 transition"
@@ -262,6 +300,12 @@ onUnmounted(() => {
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
                 >Reports</router-link
+              >
+              <router-link
+                to="/admin/categories"
+                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+                >Categories</router-link
               >
               <router-link
                 to="/admin/invite-codes"

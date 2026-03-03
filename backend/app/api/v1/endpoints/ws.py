@@ -163,7 +163,7 @@ _subscriber_task: asyncio.Task | None = None
 async def start_redis_subscriber() -> None:
     """Start the Redis Pub/Sub subscriber background task."""
     global _subscriber_task
-    _subscriber_task = asyncio.create_task(_redis_subscriber())
+    _subscriber_task = asyncio.create_task(_subscribe_with_retry())
 
 
 async def stop_redis_subscriber() -> None:
@@ -176,6 +176,26 @@ async def stop_redis_subscriber() -> None:
         except asyncio.CancelledError:
             pass
         _subscriber_task = None
+
+
+async def _subscribe_with_retry() -> None:
+    """Wrap Redis Pub/Sub subscriber with automatic reconnection."""
+    backoff = 5
+    max_backoff = 60
+    while True:
+        try:
+            await _redis_subscriber()
+            backoff = 5
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.error(
+                "Redis Pub/Sub subscriber crashed, reconnecting in %ds",
+                backoff,
+                exc_info=True,
+            )
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, max_backoff)
 
 
 async def _redis_subscriber() -> None:
@@ -214,3 +234,4 @@ async def _redis_subscriber() -> None:
         raise
     except Exception:
         logger.error("Redis Pub/Sub subscriber crashed", exc_info=True)
+        raise

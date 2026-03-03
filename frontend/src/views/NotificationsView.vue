@@ -1,19 +1,26 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Settings } from 'lucide-vue-next'
+import { User, Settings, Trash2 } from 'lucide-vue-next'
 import type { Notification } from '@/types'
 import {
   listNotifications,
   markRead as apiMarkRead,
   markAllRead as apiMarkAllRead,
+  deleteNotification,
+  bulkDeleteNotifications,
 } from '@/api/notifications'
 import { relativeTime } from '@/utils/datetime'
+import { useToastStore } from '@/stores/toast'
+import { useNotificationStore } from '@/stores/notifications'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 const router = useRouter()
+const toast = useToastStore()
+const notificationStore = useNotificationStore()
 const notifications = ref<Notification[]>([])
 const total = ref(0)
 const unreadCount = ref(0)
@@ -71,6 +78,27 @@ function navigateToEntity(notif: Notification) {
   }
 }
 
+async function handleDeleteNotification(id: string) {
+  try {
+    await deleteNotification(id)
+    notifications.value = notifications.value.filter(n => n.id !== id)
+    notificationStore.fetchUnreadCount()
+  } catch {
+    toast.show('Failed to delete notification.', 'error')
+  }
+}
+
+async function handleClearAll() {
+  try {
+    await bulkDeleteNotifications()
+    notifications.value = []
+    notificationStore.fetchUnreadCount()
+    toast.show('All notifications cleared.', 'success')
+  } catch {
+    toast.show('Failed to clear notifications.', 'error')
+  }
+}
+
 function goToPage(p: number) {
   page.value = p
   fetchNotifications()
@@ -83,13 +111,23 @@ onMounted(fetchNotifications)
   <div class="max-w-3xl mx-auto">
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-foreground">Notifications</h1>
-      <button
-        v-if="unreadCount > 0"
-        @click="markAllRead"
-        class="text-sm text-brand-600 hover:text-brand-800 hover:underline"
-      >
-        Mark all as read ({{ unreadCount }})
-      </button>
+      <div class="flex items-center gap-3">
+        <button
+          v-if="unreadCount > 0"
+          @click="markAllRead"
+          class="text-sm text-brand-600 hover:text-brand-800 hover:underline"
+        >
+          Mark all as read ({{ unreadCount }})
+        </button>
+        <BaseButton
+          v-if="notifications.length > 0"
+          variant="soft-danger"
+          size="sm"
+          @click="handleClearAll"
+        >
+          Clear All
+        </BaseButton>
+      </div>
     </div>
 
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
@@ -136,6 +174,15 @@ onMounted(fetchNotifications)
           v-if="!notif.is_read"
           class="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-600 mt-2"
         ></div>
+
+        <!-- Delete button -->
+        <button
+          @click.stop="handleDeleteNotification(notif.id)"
+          class="flex-shrink-0 p-1 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
+          title="Delete notification"
+        >
+          <Trash2 :size="16" />
+        </button>
       </button>
     </div>
 

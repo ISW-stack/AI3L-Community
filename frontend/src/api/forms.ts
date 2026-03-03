@@ -50,3 +50,10 @@ export async function exportForm(formId: string) {
   const { data } = await api.post(`/forms/${formId}/export`)
   return data as { task_id: string }
 }
+
+export async function listFormResponses(formId: string, page = 1, pageSize = 20) {
+  const { data } = await api.get(`/forms/${formId}/responses`, {
+    params: { page, page_size: pageSize },
+  })
+  return data as { responses: any[]; total: number }
+}

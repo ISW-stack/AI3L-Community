@@ -19,6 +19,11 @@ celery.conf.update(
     worker_prefetch_multiplier=1,
 )
 
-celery.conf.beat_schedule = {}
+celery.conf.beat_schedule = {
+    "retry-failed-events": {
+        "task": "retry_failed_events",
+        "schedule": 300.0,
+    },
+}
 
 celery.autodiscover_tasks(["app.tasks"])

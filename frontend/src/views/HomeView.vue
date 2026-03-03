@@ -2,19 +2,43 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notifications'
+import { useToastStore } from '@/stores/toast'
 import { listPosts } from '@/api/posts'
+import { applyForMembership } from '@/api/users'
 import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import { KeyRound, PenTool, GraduationCap } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const notifStore = useNotificationStore()
+const toast = useToastStore()
 
 const recentPosts = ref<Post[]>([])
 const loadingPosts = ref(false)
+
+// Guest membership application
+const applicationDesc = ref('')
+const applyLoading = ref(false)
+const applicationSent = ref(false)
+
+async function submitApplication() {
+  if (!applicationDesc.value.trim()) return
+  applyLoading.value = true
+  try {
+    await applyForMembership(applicationDesc.value.trim())
+    applicationSent.value = true
+    toast.show('Application submitted successfully!', 'success')
+  } catch (err: any) {
+    const msg = err?.response?.data?.detail || 'Failed to submit application.'
+    toast.show(msg, 'error')
+  } finally {
+    applyLoading.value = false
+  }
+}
 
 async function fetchRecentPosts() {
   if (!auth.isAuthenticated) return
@@ -61,6 +85,32 @@ onMounted(() => {
         <router-link to="/register" class="font-medium underline">Sign up</router-link>
         for full access.
       </BaseAlert>
+
+      <!-- Guest membership application -->
+      <BaseCard v-if="auth.isGuest" padding="lg">
+        <h3 class="text-lg font-semibold text-foreground mb-2">Apply for Membership</h3>
+        <div v-if="applicationSent" class="text-sm text-success-600">
+          Your application has been submitted. An admin will review it shortly.
+        </div>
+        <div v-else>
+          <p class="text-sm text-muted mb-3">
+            Tell us a bit about yourself and why you'd like to join the community.
+          </p>
+          <BaseTextarea
+            v-model="applicationDesc"
+            placeholder="Describe your background and research interests..."
+            :rows="3"
+            class="mb-3"
+          />
+          <BaseButton
+            :disabled="!applicationDesc.trim() || applyLoading"
+            :loading="applyLoading"
+            @click="submitApplication"
+          >
+            Submit Application
+          </BaseButton>
+        </div>
+      </BaseCard>
 
       <!-- Unread notifications summary -->
       <BaseCard v-if="notifStore.unreadCount > 0" padding="md" class="border-l-4 border-brand-500">

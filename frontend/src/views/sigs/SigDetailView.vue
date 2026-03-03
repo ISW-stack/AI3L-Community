@@ -17,7 +17,7 @@ import {
   assignSubAdmin as assignSubAdminApi,
   joinSig as joinSigApi,
 } from '@/api/sigs'
-import { deleteForm as deleteFormApi } from '@/api/forms'
+import { deleteForm as deleteFormApi, listFormResponses } from '@/api/forms'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -25,6 +25,7 @@ import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 
@@ -231,6 +232,33 @@ async function handleDeleteForm() {
   } finally {
     showFormDeleteConfirm.value = false
     formToDelete.value = null
+  }
+}
+
+// Form response viewing
+const showResponsesModal = ref(false)
+const responsesFormId = ref('')
+const responsesFormTitle = ref('')
+const responses = ref<any[]>([])
+const responsesPage = ref(1)
+const responsesTotalPages = ref(1)
+const responsesLoading = ref(false)
+
+async function fetchResponses(formId: string, title: string, page = 1) {
+  responsesFormId.value = formId
+  responsesFormTitle.value = title
+  responsesPage.value = page
+  responsesLoading.value = true
+  showResponsesModal.value = true
+  try {
+    const data = await listFormResponses(formId, page)
+    responses.value = data.responses || []
+    const total = data.total || 0
+    responsesTotalPages.value = Math.ceil(total / 20) || 1
+  } catch {
+    toastStore.show('Failed to load responses.', 'error')
+  } finally {
+    responsesLoading.value = false
   }
 }
 
@@ -505,6 +533,12 @@ onMounted(() => {
                   Edit
                 </router-link>
                 <button
+                  @click="fetchResponses(f.id, f.title)"
+                  class="text-xs text-brand-600 hover:underline"
+                >
+                  View Responses
+                </button>
+                <button
                   @click="confirmDeleteForm(f.id)"
                   class="text-xs text-danger-600 hover:underline"
                 >
@@ -525,6 +559,44 @@ onMounted(() => {
           <BaseButton variant="secondary" @click="showFormDeleteConfirm = false">Cancel</BaseButton>
           <BaseButton variant="danger" @click="handleDeleteForm">Delete</BaseButton>
         </template>
+      </BaseModal>
+
+      <!-- Form Responses Modal -->
+      <BaseModal v-model="showResponsesModal" :title="`Responses: ${responsesFormTitle}`" size="xl">
+        <div v-if="responsesLoading" class="py-8 text-center text-muted">
+          Loading...
+        </div>
+        <div v-else-if="responses.length === 0" class="py-8 text-center text-muted">
+          No responses yet.
+        </div>
+        <div v-else>
+          <div
+            v-for="resp in responses"
+            :key="resp.id"
+            class="border-b border-border py-4 last:border-0"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-medium text-foreground">{{ resp.display_name }}</span>
+              <span class="text-sm text-muted">{{ new Date(resp.created_at).toLocaleString() }}</span>
+            </div>
+            <div class="space-y-1">
+              <div v-for="(value, key) in resp.answers" :key="key" class="text-sm">
+                <span class="text-muted">{{ key }}:</span>
+                <span class="text-foreground ml-1">
+                  {{ Array.isArray(value) ? value.join(', ') : typeof value === 'object' ? JSON.stringify(value) : value }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <BasePagination
+            v-if="responsesTotalPages > 1"
+            :current-page="responsesPage"
+            :total-pages="responsesTotalPages"
+            class="mt-4"
+            @update:current-page="(p: number) => fetchResponses(responsesFormId, responsesFormTitle, p)"
+          />
+        </div>
       </BaseModal>
     </template>
   </div>

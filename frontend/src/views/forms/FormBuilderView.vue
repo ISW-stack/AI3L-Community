@@ -9,6 +9,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const QUESTION_TYPES = [
@@ -39,6 +40,7 @@ const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
 const error = ref('')
+const showPreview = ref(false)
 
 function createQuestion(): Question {
   return {
@@ -453,11 +455,106 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="flex justify-end">
+      <div class="flex justify-end gap-3">
+        <BaseButton variant="secondary" size="lg" @click="showPreview = true">Preview</BaseButton>
         <BaseButton size="lg" :loading="saving" @click="saveForm">{{
           isEdit ? 'Update Form' : 'Create Form'
         }}</BaseButton>
       </div>
     </template>
+
+    <!-- Preview modal -->
+    <BaseModal v-model="showPreview" :title="title || 'Untitled Form'" size="xl">
+      <div class="space-y-4">
+        <div v-if="bannerUrl" class="rounded-lg overflow-hidden">
+          <img :src="bannerUrl" alt="Banner" class="w-full h-32 object-cover" />
+        </div>
+        <p v-if="description" class="text-sm text-muted">{{ description }}</p>
+
+        <div
+          v-for="(q, i) in questions"
+          :key="q.id"
+          class="bg-surface-alt rounded-lg p-4 border border-border"
+        >
+          <p class="text-sm font-medium text-foreground mb-2">
+            {{ i + 1 }}. {{ q.label || 'Untitled question' }}
+            <span v-if="q.required" class="text-danger-500">*</span>
+          </p>
+
+          <!-- Text -->
+          <input
+            v-if="q.type === 'text'"
+            type="text"
+            disabled
+            :placeholder="q.placeholder || 'Short text answer'"
+            class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
+          />
+
+          <!-- Textarea -->
+          <textarea
+            v-else-if="q.type === 'textarea'"
+            disabled
+            :placeholder="q.placeholder || 'Long text answer'"
+            :rows="3"
+            class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
+          />
+
+          <!-- Single choice -->
+          <div v-else-if="q.type === 'single_choice'" class="space-y-2">
+            <label
+              v-for="opt in q.options"
+              :key="opt.id"
+              class="flex items-center gap-2 text-sm text-foreground"
+            >
+              <input type="radio" disabled class="text-brand-600" />
+              {{ opt.label || 'Option' }}
+            </label>
+          </div>
+
+          <!-- Multiple choice -->
+          <div v-else-if="q.type === 'multiple_choice'" class="space-y-2">
+            <label
+              v-for="opt in q.options"
+              :key="opt.id"
+              class="flex items-center gap-2 text-sm text-foreground"
+            >
+              <input type="checkbox" disabled class="rounded" />
+              {{ opt.label || 'Option' }}
+            </label>
+          </div>
+
+          <!-- Dropdown -->
+          <select
+            v-else-if="q.type === 'dropdown'"
+            disabled
+            class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
+          >
+            <option value="">Select...</option>
+            <option v-for="opt in q.options" :key="opt.id">{{ opt.label }}</option>
+          </select>
+
+          <!-- Rating -->
+          <div v-else-if="q.type === 'rating'" class="flex gap-2">
+            <button
+              v-for="n in ((q.max ?? 5) - (q.min ?? 1) + 1)"
+              :key="n"
+              disabled
+              class="w-8 h-8 rounded bg-surface border border-border text-sm text-muted"
+            >
+              {{ (q.min ?? 1) + n - 1 }}
+            </button>
+          </div>
+
+          <!-- File upload -->
+          <div v-else-if="q.type === 'file_upload'" class="text-sm text-muted opacity-60">
+            <input type="file" disabled />
+          </div>
+        </div>
+
+        <div v-if="questions.length === 0" class="text-sm text-muted text-center py-4">
+          No questions added yet.
+        </div>
+      </div>
+    </BaseModal>
   </div>
 </template>

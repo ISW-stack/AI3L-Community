@@ -107,3 +107,4 @@ class TaskStatusResponse(BaseModel):
     task_id: str
     status: str
     download_url: str | None = None
+    result: dict | None = None

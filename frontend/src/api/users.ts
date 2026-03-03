@@ -41,3 +41,8 @@ export async function getPublicProfile(userId: string) {
   const { data } = await api.get(`/users/${userId}`)
   return data as PublicUser
 }
+
+export async function applyForMembership(description: string) {
+  const { data } = await api.post('/users/apply-member', { description })
+  return data as { message: string }
+}

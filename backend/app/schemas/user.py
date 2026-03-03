@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 
@@ -64,6 +66,11 @@ class BanRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8)
+
+
+class BulkRoleChangeRequest(BaseModel):
+    user_ids: list[uuid.UUID] = Field(..., min_length=1, max_length=50)
+    role: str = Field(..., pattern="^(MEMBER|ADMIN)$")
 
 
 class UserListResponse(BaseModel):

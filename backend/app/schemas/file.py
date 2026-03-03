@@ -7,3 +7,4 @@ class FileUploadResponse(BaseModel):
     filename: str
     content_type: str
     size: int
+    scan_task_id: str | None = None

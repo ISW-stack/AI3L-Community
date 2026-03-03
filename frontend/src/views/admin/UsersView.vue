@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import type { AdminUser } from '@/api/admin'
 import {
   listUsers,
@@ -9,6 +10,7 @@ import {
   banUser,
   unbanUser as apiUnbanUser,
 } from '@/api/admin'
+import api from '@/composables/api'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
@@ -19,6 +21,7 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const users = ref<AdminUser[]>([])
 const total = ref(0)
@@ -27,6 +30,48 @@ const message = ref('')
 const page = ref(1)
 const pageSize = 20
 const totalPages = ref(1)
+
+// Bulk selection
+const selectedIds = ref<Set<string>>(new Set())
+const bulkRole = ref('MEMBER')
+const bulkLoading = ref(false)
+
+const allSelected = computed({
+  get: () => users.value.length > 0 && users.value.every((u) => selectedIds.value.has(u.id)),
+  set: (v: boolean) => {
+    if (v) {
+      users.value.forEach((u) => {
+        if (u.id !== auth.user?.id) selectedIds.value.add(u.id)
+      })
+    } else {
+      selectedIds.value.clear()
+    }
+  },
+})
+
+function toggleSelect(userId: string) {
+  if (selectedIds.value.has(userId)) selectedIds.value.delete(userId)
+  else selectedIds.value.add(userId)
+}
+
+async function applyBulkRole() {
+  if (selectedIds.value.size === 0) return
+  bulkLoading.value = true
+  try {
+    await api.put('/users/bulk-role', {
+      user_ids: Array.from(selectedIds.value),
+      role: bulkRole.value,
+    })
+    toast.show(`Role updated for ${selectedIds.value.size} user(s).`, 'success')
+    selectedIds.value.clear()
+    await fetchUsers()
+  } catch (e: any) {
+    const detail = e.response?.data?.detail
+    toast.show(typeof detail === 'object' ? detail?.message : detail || 'Bulk role update failed.', 'error')
+  } finally {
+    bulkLoading.value = false
+  }
+}
 
 const showCreateModal = ref(false)
 const newUsername = ref('')
@@ -156,12 +201,38 @@ onMounted(fetchUsers)
 
     <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
+    <!-- Bulk action bar -->
+    <div
+      v-if="auth.isSuperAdmin && selectedIds.size > 0"
+      class="mb-4 flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-3"
+    >
+      <span class="text-sm text-foreground font-medium">{{ selectedIds.size }} selected</span>
+      <select
+        v-model="bulkRole"
+        class="text-sm border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
+      >
+        <option v-for="r in roles" :key="r" :value="r">{{ roleLabels[r] }}</option>
+      </select>
+      <BaseButton size="sm" :loading="bulkLoading" @click="applyBulkRole">Apply Role</BaseButton>
+      <button class="text-sm text-muted hover:text-foreground" @click="selectedIds.clear()">
+        Clear
+      </button>
+    </div>
+
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
     <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
       <table class="w-full text-sm min-w-[700px]">
         <thead class="bg-surface-alt border-b border-border">
           <tr>
+            <th v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                @change="allSelected = ($event.target as HTMLInputElement).checked"
+                class="rounded"
+              />
+            </th>
             <th class="text-left px-4 py-3 font-medium text-muted">Username</th>
             <th class="text-left px-4 py-3 font-medium text-muted">Display Name</th>
             <th class="text-left px-4 py-3 font-medium text-muted">Role</th>
@@ -177,6 +248,15 @@ onMounted(fetchUsers)
             :key="user.id"
             class="border-b border-border last:border-0 hover:bg-surface-alt transition"
           >
+            <td v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
+              <input
+                v-if="user.id !== auth.user?.id"
+                type="checkbox"
+                :checked="selectedIds.has(user.id)"
+                @change="toggleSelect(user.id)"
+                class="rounded"
+              />
+            </td>
             <td class="px-4 py-3 text-foreground">{{ user.username }}</td>
             <td class="px-4 py-3 text-foreground">{{ user.display_name }}</td>
             <td class="px-4 py-3">

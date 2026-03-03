@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Category, Sig } from '@/types'
 import { createPost as apiCreatePost } from '@/api/posts'
@@ -28,6 +28,50 @@ const categories = ref<Category[]>([])
 const mySigs = ref<Sig[]>([])
 const saving = ref(false)
 const message = ref('')
+const draftRestored = ref(false)
+
+const DRAFT_KEY = 'ai3l_post_draft'
+
+function saveDraft() {
+  const draft = {
+    title: title.value,
+    content: content.value,
+    categoryId: categoryId.value,
+    keywords: keywords.value,
+    allowComments: allowComments.value,
+  }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+}
+
+function loadDraft() {
+  const raw = localStorage.getItem(DRAFT_KEY)
+  if (!raw) return
+  try {
+    const draft = JSON.parse(raw)
+    if (draft.title || draft.content) {
+      title.value = draft.title || ''
+      content.value = draft.content || ''
+      categoryId.value = draft.categoryId ?? null
+      keywords.value = draft.keywords || []
+      allowComments.value = draft.allowComments ?? true
+      draftRestored.value = true
+    }
+  } catch {
+    localStorage.removeItem(DRAFT_KEY)
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY)
+}
+
+let draftTimer: ReturnType<typeof setTimeout> | null = null
+function debouncedSaveDraft() {
+  if (draftTimer) clearTimeout(draftTimer)
+  draftTimer = setTimeout(saveDraft, 1000)
+}
+
+watch([title, content, categoryId, keywords, allowComments], debouncedSaveDraft, { deep: true })
 
 async function fetchCategories() {
   try {
@@ -74,6 +118,7 @@ async function createPost() {
     if (sigId.value) payload.sig_id = sigId.value
     if (keywords.value.length) payload.keywords = keywords.value
     const data = await apiCreatePost(payload)
+    clearDraft()
     router.push(`/forum/${data.id}`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } }
@@ -84,14 +129,29 @@ async function createPost() {
 }
 
 onMounted(() => {
+  loadDraft()
   fetchCategories()
   fetchMySigs()
+})
+
+onUnmounted(() => {
+  if (draftTimer) clearTimeout(draftTimer)
 })
 </script>
 
 <template>
   <div class="max-w-3xl mx-auto">
     <h1 class="text-2xl font-bold text-foreground mb-6">Create Post</h1>
+
+    <BaseAlert v-if="draftRestored" type="info" class="mb-4">
+      Draft restored from your previous session.
+      <button
+        @click="clearDraft(); title = ''; content = ''; keywords = []; categoryId = null; allowComments = true; draftRestored = false"
+        class="ml-2 underline text-brand-600"
+      >
+        Discard draft
+      </button>
+    </BaseAlert>
 
     <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>
 

@@ -32,6 +32,7 @@ function createTestRouter() {
       { path: '/admin/users', component: { template: '<div />' } },
       { path: '/admin/applications', component: { template: '<div />' } },
       { path: '/admin/reports', component: { template: '<div />' } },
+      { path: '/admin/categories', component: { template: '<div />' } },
       { path: '/admin/invite-codes', component: { template: '<div />' } },
       { path: '/admin/audit-logs', component: { template: '<div />' } },
       { path: '/profile', component: { template: '<div />' } },
