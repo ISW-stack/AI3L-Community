@@ -57,7 +57,9 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
     try:
         _run_async(_insert_pending(storage_key))
     except Exception:
-        logger.warning("Failed to insert pending scan record for key=%s", storage_key, exc_info=True)
+        logger.warning(
+            "Failed to insert pending scan record for key=%s", storage_key, exc_info=True
+        )
 
     api_key = settings.VT_API_KEY
     if not api_key:
