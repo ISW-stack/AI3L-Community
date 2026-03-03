@@ -59,7 +59,10 @@ onMounted(fetchReports)
       <label class="text-sm text-muted">Filter by status:</label>
       <select
         v-model="statusFilter"
-        @change="currentPage = 1; fetchReports()"
+        @change="
+          currentPage = 1
+          fetchReports()
+        "
         class="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option value="">All</option>
@@ -135,7 +138,12 @@ onMounted(fetchReports)
       v-if="totalPages > 1"
       :current-page="currentPage"
       :total-pages="totalPages"
-      @update:current-page="(p: number) => { currentPage = p; fetchReports() }"
+      @update:current-page="
+        (p: number) => {
+          currentPage = p
+          fetchReports()
+        }
+      "
       class="mt-4"
     />
 

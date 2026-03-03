@@ -146,7 +146,15 @@ onUnmounted(() => {
     <BaseAlert v-if="draftRestored" type="info" class="mb-4">
       Draft restored from your previous session.
       <button
-        @click="clearDraft(); title = ''; content = ''; keywords = []; categoryId = null; allowComments = true; draftRestored = false"
+        @click="
+          clearDraft()
+          title = ''
+          content = ''
+          keywords = []
+          categoryId = null
+          allowComments = true
+          draftRestored = false
+        "
         class="ml-2 underline text-brand-600"
       >
         Discard draft

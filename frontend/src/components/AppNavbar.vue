@@ -60,9 +60,10 @@ function handleDropdownKeydown(e: KeyboardEvent, wrapperClass: string) {
     const items = Array.from(wrapper.querySelectorAll<HTMLElement>('a, button'))
     const current = document.activeElement as HTMLElement
     const idx = items.indexOf(current)
-    const next = e.key === 'ArrowDown'
-      ? items[(idx + 1) % items.length]
-      : items[(idx - 1 + items.length) % items.length]
+    const next =
+      e.key === 'ArrowDown'
+        ? items[(idx + 1) % items.length]
+        : items[(idx - 1 + items.length) % items.length]
     next?.focus()
   }
 }

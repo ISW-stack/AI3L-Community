@@ -87,7 +87,11 @@ export interface ReportsResponse {
   total_pages?: number
 }
 
-export async function listReports(params?: { status_filter?: string; page?: number; page_size?: number }) {
+export async function listReports(params?: {
+  status_filter?: string
+  page?: number
+  page_size?: number
+}) {
   const { data } = await api.get('/admin/reports', { params })
   return data as ReportsResponse
 }

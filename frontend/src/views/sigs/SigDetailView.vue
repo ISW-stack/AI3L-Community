@@ -563,9 +563,7 @@ onMounted(() => {
 
       <!-- Form Responses Modal -->
       <BaseModal v-model="showResponsesModal" :title="`Responses: ${responsesFormTitle}`" size="xl">
-        <div v-if="responsesLoading" class="py-8 text-center text-muted">
-          Loading...
-        </div>
+        <div v-if="responsesLoading" class="py-8 text-center text-muted">Loading...</div>
         <div v-else-if="responses.length === 0" class="py-8 text-center text-muted">
           No responses yet.
         </div>
@@ -577,13 +575,21 @@ onMounted(() => {
           >
             <div class="flex items-center justify-between mb-2">
               <span class="font-medium text-foreground">{{ resp.display_name }}</span>
-              <span class="text-sm text-muted">{{ new Date(resp.created_at).toLocaleString() }}</span>
+              <span class="text-sm text-muted">{{
+                new Date(resp.created_at).toLocaleString()
+              }}</span>
             </div>
             <div class="space-y-1">
               <div v-for="(value, key) in resp.answers" :key="key" class="text-sm">
                 <span class="text-muted">{{ key }}:</span>
                 <span class="text-foreground ml-1">
-                  {{ Array.isArray(value) ? value.join(', ') : typeof value === 'object' ? JSON.stringify(value) : value }}
+                  {{
+                    Array.isArray(value)
+                      ? value.join(', ')
+                      : typeof value === 'object'
+                        ? JSON.stringify(value)
+                        : value
+                  }}
                 </span>
               </div>
             </div>
@@ -594,7 +600,9 @@ onMounted(() => {
             :current-page="responsesPage"
             :total-pages="responsesTotalPages"
             class="mt-4"
-            @update:current-page="(p: number) => fetchResponses(responsesFormId, responsesFormTitle, p)"
+            @update:current-page="
+              (p: number) => fetchResponses(responsesFormId, responsesFormTitle, p)
+            "
           />
         </div>
       </BaseModal>

@@ -67,7 +67,10 @@ async function applyBulkRole() {
     await fetchUsers()
   } catch (e: any) {
     const detail = e.response?.data?.detail
-    toast.show(typeof detail === 'object' ? detail?.message : detail || 'Bulk role update failed.', 'error')
+    toast.show(
+      typeof detail === 'object' ? detail?.message : detail || 'Bulk role update failed.',
+      'error',
+    )
   } finally {
     bulkLoading.value = false
   }

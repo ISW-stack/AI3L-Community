@@ -536,7 +536,7 @@ onMounted(() => {
           <!-- Rating -->
           <div v-else-if="q.type === 'rating'" class="flex gap-2">
             <button
-              v-for="n in ((q.max ?? 5) - (q.min ?? 1) + 1)"
+              v-for="n in (q.max ?? 5) - (q.min ?? 1) + 1"
               :key="n"
               disabled
               class="w-8 h-8 rounded bg-surface border border-border text-sm text-muted"

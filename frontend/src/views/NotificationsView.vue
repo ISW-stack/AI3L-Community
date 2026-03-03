@@ -81,7 +81,7 @@ function navigateToEntity(notif: Notification) {
 async function handleDeleteNotification(id: string) {
   try {
     await deleteNotification(id)
-    notifications.value = notifications.value.filter(n => n.id !== id)
+    notifications.value = notifications.value.filter((n) => n.id !== id)
     notificationStore.fetchUnreadCount()
   } catch {
     toast.show('Failed to delete notification.', 'error')

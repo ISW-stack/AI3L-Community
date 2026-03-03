@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { Category } from '@/types'
-import {
-  listCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} from '@/api/categories'
+import { listCategories, createCategory, updateCategory, deleteCategory } from '@/api/categories'
 import { useToastStore } from '@/stores/toast'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -30,7 +25,9 @@ const saving = ref(false)
 const confirmDelete = ref<Category | null>(null)
 const showDeleteModal = computed({
   get: () => !!confirmDelete.value,
-  set: (v: boolean) => { if (!v) confirmDelete.value = null },
+  set: (v: boolean) => {
+    if (!v) confirmDelete.value = null
+  },
 })
 
 async function fetchCategories() {
@@ -152,9 +149,15 @@ onMounted(fetchCategories)
     <BaseModal v-model="showModal" :title="editing ? 'Edit Category' : 'New Category'">
       <form @submit.prevent="handleSave" class="space-y-4">
         <BaseInput v-model="formName" label="Name" placeholder="Category name" required />
-        <BaseInput v-model="formDescription" label="Description" placeholder="Optional description" />
+        <BaseInput
+          v-model="formDescription"
+          label="Description"
+          placeholder="Optional description"
+        />
         <div class="flex justify-end gap-2">
-          <BaseButton variant="secondary" @click="showModal = false" type="button">Cancel</BaseButton>
+          <BaseButton variant="secondary" @click="showModal = false" type="button"
+            >Cancel</BaseButton
+          >
           <BaseButton :disabled="!formName.trim() || saving" :loading="saving" type="submit">
             {{ editing ? 'Save' : 'Create' }}
           </BaseButton>
@@ -165,8 +168,8 @@ onMounted(fetchCategories)
     <!-- Delete confirm modal -->
     <BaseModal v-model="showDeleteModal" title="Delete Category">
       <p class="text-sm text-foreground mb-4">
-        Are you sure you want to delete <strong>{{ confirmDelete?.name }}</strong>? Posts using this
-        category will become uncategorized.
+        Are you sure you want to delete <strong>{{ confirmDelete?.name }}</strong
+        >? Posts using this category will become uncategorized.
       </p>
       <div class="flex justify-end gap-2">
         <BaseButton variant="secondary" @click="showDeleteModal = false">Cancel</BaseButton>
