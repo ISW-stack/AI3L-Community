@@ -61,7 +61,7 @@ backend/app/
 | 3.2 | Category deletion cascade to posts | ⬜ Pending |
 | 3.3 | SIG leave excludes deleted admins | ✅ Done |
 | 3.4 | Form response race condition | ⬜ Pending |
-| 4.1 | VirusTotal integration (DB + endpoint) | ⬜ Pending |
+| 4.1 | VirusTotal integration (DB + endpoint) | ✅ Done |
 | 4.2 | Bulk operations endpoints | ✅ Done |
 | 4.3 | Reports endpoint pagination | ✅ Done |
 | 4.4 | Audit log date range filtering | ⬜ Pending |
@@ -232,29 +232,23 @@ re-check `is_deleted` and respondent count after acquiring the lock.
 
 ---
 
-### 4.1 VirusTotal Integration Completion
+### 4.1 VirusTotal Integration Completion — ✅ DONE
 
-**Difficulty: Advanced**
-**Files:** `app/tasks/virustotal.py`, new `app/models/file_scan.py`,
-new `app/repositories/file_scan_repo.py`, `app/api/v1/endpoints/files.py`
+**Files:** `app/tasks/virustotal.py`, `app/repositories/file_scan_repo.py`,
+`app/api/v1/endpoints/files.py`,
+`alembic/versions/k1l2m3n4o5p6_add_file_scans_table.py`
 
-**Background:**
-The VirusTotal scan task exists but results are fire-and-forget. Scan
-results are not stored, and malicious files can still be downloaded via
-the proxy endpoint.
+Done. Full DB-backed VirusTotal scan flow is implemented:
+- `file_scans` table with `status` enum (pending/clean/malicious),
+  `file_key`, `scan_id`, `created_at`, `updated_at`.
+- `file_scan_repo.py` with `insert()`, `find_by_key()`, `update_status()`.
+- `virustotal.py` task now persists scan results to the DB.
+- `GET /files/scan-status/{key}` endpoint returns current scan status.
+- `serve_file()` in `files.py` returns HTTP 451 for malicious files.
 
-**Implementation Plan:**
-1. Create a `file_scans` table (columns: `id`, `file_key`, `status`
-   enum pending/clean/malicious, `scan_id`, `created_at`, `updated_at`).
-2. Create the Alembic migration.
-3. Create `file_scan_repo.py` with `insert()`, `find_by_key()`,
-   `update_status()`.
-4. Modify `virustotal.py` to update the scan record when results arrive.
-5. Add `GET /files/{key}/scan-status` endpoint.
-6. Modify `serve_file()` in `files.py` to return 451 for malicious files.
-
-> **Frontend dependency:** This unblocks frontend task 1.6 (VirusTotal
-> File Safety Indicator) in `FRONTEND_CONTRIBUTOR_GUIDE.md`.
+> **Frontend:** Task 1.6 (VirusTotal File Safety Indicator) is fully
+> implemented in both TiptapEditor (upload-time polling) and
+> PostDetailView (read-time overlay for malicious files).
 
 ---
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { Post, HistoryItem, Comment } from '@/types'
@@ -12,6 +12,7 @@ import {
   toggleReaction as apiToggleReaction,
 } from '@/api/comments'
 import { createReport } from '@/api/reports'
+import { getFileScanStatus } from '@/api/files'
 import DOMPurify from 'dompurify'
 import { renderMentions } from '@/utils/html'
 import TiptapEditor from '@/components/TiptapEditor.vue'
@@ -376,9 +377,85 @@ function handleReply(commentId: string) {
   inlineReplyContent.value = ''
 }
 
+// VirusTotal scan status for images in post content
+const FILE_CONTENT_RE = /\/api\/v1\/files\/content\/(.+)/
+const imageScanStatuses = ref<Record<string, 'pending' | 'clean' | 'malicious' | 'unknown'>>({})
+const postContentRef = ref<HTMLElement | null>(null)
+let scanPollTimers: ReturnType<typeof setTimeout>[] = []
+
+function extractFileKeys(): string[] {
+  if (!postContentRef.value) return []
+  const imgs = postContentRef.value.querySelectorAll('img[src]')
+  const keys: string[] = []
+  imgs.forEach((img) => {
+    const src = img.getAttribute('src') || ''
+    const m = FILE_CONTENT_RE.exec(src)
+    if (m) keys.push(m[1])
+  })
+  return [...new Set(keys)]
+}
+
+async function pollImageScanStatus(fileKey: string) {
+  try {
+    const data = await getFileScanStatus(fileKey)
+    imageScanStatuses.value[fileKey] = data.status
+    if (data.status === 'pending') {
+      const timer = setTimeout(() => pollImageScanStatus(fileKey), 5000)
+      scanPollTimers.push(timer)
+    }
+  } catch {
+    // Endpoint not available or file not scanned — ignore
+  }
+}
+
+async function scanPostImages() {
+  await nextTick()
+  const keys = extractFileKeys()
+  for (const key of keys) {
+    pollImageScanStatus(key)
+  }
+}
+
+function applyMaliciousOverlays() {
+  if (!postContentRef.value) return
+  const imgs = postContentRef.value.querySelectorAll('img[src]')
+  imgs.forEach((img) => {
+    const src = img.getAttribute('src') || ''
+    const m = FILE_CONTENT_RE.exec(src)
+    if (!m) return
+    const status = imageScanStatuses.value[m[1]]
+    const wrapper = img.parentElement
+    if (!wrapper) return
+
+    // Remove any existing overlay
+    const existing = wrapper.querySelector('.vt-scan-overlay')
+    if (existing) existing.remove()
+
+    if (status === 'malicious') {
+      // Ensure wrapper is positioned for overlay
+      if (getComputedStyle(wrapper).position === 'static') {
+        ;(wrapper as HTMLElement).style.position = 'relative'
+      }
+      const overlay = document.createElement('div')
+      overlay.className = 'vt-scan-overlay'
+      overlay.style.cssText =
+        'position:absolute;top:4px;left:4px;background:rgba(220,38,38,0.85);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;pointer-events:none;z-index:10;'
+      overlay.textContent = 'Flagged as malicious'
+      wrapper.appendChild(overlay)
+    }
+  })
+}
+
+watch(imageScanStatuses, () => applyMaliciousOverlays(), { deep: true })
+
 onMounted(() => {
-  fetchPost()
+  fetchPost().then(() => scanPostImages())
   fetchComments()
+})
+
+onUnmounted(() => {
+  scanPollTimers.forEach(clearTimeout)
+  scanPollTimers = []
 })
 </script>
 
@@ -461,7 +538,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="prose prose-sm max-w-none text-foreground/80 mb-4">
+          <div ref="postContentRef" class="prose prose-sm max-w-none text-foreground/80 mb-4">
             <template v-for="(seg, i) in contentSegments" :key="i">
               <div v-if="seg.type === 'html'" v-html="seg.content"></div>
               <SigShareCard

@@ -43,19 +43,19 @@ Each item includes a difficulty rating and a step-by-step implementation plan.
 | 1.3 | TipTap editor table support | ✅ Done |
 | 1.4 | Form response viewing UI | ✅ Done |
 | 1.5 | Notification deletion | ✅ Done |
-| 1.6 | VirusTotal file safety indicator | 🔴 Blocked (backend 4.1) |
+| 1.6 | VirusTotal file safety indicator | ✅ Done |
 | 2.1 | Post draft auto-save | ✅ Done |
 | 2.2 | Form preview mode | ⬜ Pending |
-| 2.3 | SIG search and filter | ⬜ Pending |
-| 2.4 | Password visibility toggle | ⬜ Pending |
-| 2.5 | Invite code generation for members | ⬜ Pending |
+| 2.3 | SIG search and filter | ✅ Done |
+| 2.4 | Password visibility toggle | ✅ Done |
+| 2.5 | Invite code generation for members | ✅ Done |
 | 2.6 | Admin bulk operations UI | ✅ Done |
 | 2.7 | Admin reports pagination | ✅ Done |
 | 2.8 | Platform contributors page | ⬜ Pending |
 | 3.1 | Post edit SYS_409 version conflict message | ✅ Done |
-| 3.2 | FormBuilder rating min/max validation | ⬜ Pending |
+| 3.2 | FormBuilder rating min/max validation | ✅ Done |
 | 4.1 | Keyboard navigation for dropdowns | ⬜ Pending |
-| 4.2 | Forum search date range validation | ⬜ Pending |
+| 4.2 | Forum search date range validation | ✅ Done |
 
 ---
 
@@ -116,33 +116,18 @@ implemented. A trash icon on each notification row deletes it. A
 
 ---
 
-### 1.6 VirusTotal File Safety Indicator
+### 1.6 VirusTotal File Safety Indicator — ✅ DONE
 
-**Difficulty: Advanced**
+**Files:** `src/api/files.ts`, `src/components/TiptapEditor.vue`,
+`src/views/forum/PostDetailView.vue`
 
-**Affected files:**
-- `src/views/forum/PostDetailView.vue` (show indicator on embedded images)
-- `src/components/TiptapEditor.vue` (show upload scan status)
-
-**Status:** 🔴 Blocked — waiting for backend task 4.1 (VirusTotal database
-integration and `GET /files/{key}/scan-status` endpoint).
-
-**Implementation Plan (frontend portion — implement after backend is ready):**
-
-1. Add an API function in `src/api/files.ts`:
-   ```typescript
-   export const getFileScanStatus = (fileKey: string) =>
-     api.get<{ status: 'pending' | 'clean' | 'malicious' }>(`/files/${fileKey}/scan-status`)
-   ```
-
-2. In `TiptapEditor.vue`, after a successful upload, show a small badge or
-   icon next to the inserted image indicating scan status (spinner for
-   pending, green check for clean, red warning for malicious).
-
-3. In `PostDetailView.vue`, for each image in the rendered content, query
-   the scan status and overlay an indicator if malicious.
-
-4. Poll the scan status every 5 seconds until it resolves, then stop.
+Done. Two layers of scan-status feedback are implemented:
+- **TiptapEditor:** After upload, polls `getFileScanStatus()` every 5s
+  and shows a banner (spinner → green check → red warning).
+- **PostDetailView:** On mount, extracts file keys from all
+  `/api/v1/files/content/` images in the rendered post, polls each for
+  scan status, and overlays a red "Flagged as malicious" badge on any
+  image flagged by VirusTotal.
 
 ---
 
@@ -185,75 +170,33 @@ publishing.
 
 ---
 
-### 2.3 SIG Search and Filter
+### 2.3 SIG Search and Filter — ✅ DONE
 
-**Difficulty: Beginner**
+**File:** `src/views/sigs/SigsDirectoryView.vue`
 
-**Affected files:** `src/views/sigs/SigsDirectoryView.vue`
-
-`SigsDirectoryView.vue` shows all SIGs in a grid with no search capability.
-As the number of SIGs grows, this list becomes hard to navigate.
-
-**Implementation Plan:**
-1. Add a `BaseInput` with placeholder "Search SIGs..." at the top of the
-   page.
-2. Bind its value to a `searchQuery` reactive variable.
-3. Add a computed property that filters the SIG list:
-   ```typescript
-   const filteredSigs = computed(() =>
-     sigs.value.filter(sig =>
-       sig.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-       sig.description.toLowerCase().includes(searchQuery.value.toLowerCase())
-     )
-   )
-   ```
-4. Replace `sigs.value` with `filteredSigs` in the template `v-for`.
-5. No backend changes are needed; this is entirely client-side filtering.
+Done. A `BaseInput` at the top of the page filters SIGs client-side by
+name and description in real time.
 
 ---
 
-### 2.4 Password Visibility Toggle
+### 2.4 Password Visibility Toggle — ✅ DONE
 
-**Difficulty: Beginner**
+**Files:** `src/views/LoginView.vue`, `src/views/RegisterView.vue`,
+`src/views/ProfileView.vue`
 
-**Affected files:** `src/views/LoginView.vue`, `src/views/RegisterView.vue`
-
-Password fields have no option to reveal the entered text, which is a
-standard UX pattern that reduces login errors.
-
-**Implementation Plan:**
-1. For each password field, import `EyeIcon` and `EyeOffIcon` from
-   `lucide-vue-next`.
-2. Add a `showPassword` boolean `ref` for each field.
-3. Change each `<input type="password">` to use a dynamic type binding:
-   ```html
-   :type="showPassword ? 'text' : 'password'"
-   ```
-4. Add a button inside the input wrapper that toggles `showPassword`. Use
-   the eye icons to indicate the current state.
-5. Apply this pattern to all password fields: current password, new
-   password, and confirm password.
+Done. All password fields now have a toggle button using `EyeIcon` /
+`EyeOffIcon` from `lucide-vue-next`, covering login, registration, and
+profile password-change fields.
 
 ---
 
-### 2.5 Invite Code Generation for Members
+### 2.5 Invite Code Generation for Members — ✅ DONE
 
-**Difficulty: Beginner**
+**File:** `src/views/ProfileView.vue`
 
-**Affected files:** `src/views/ProfileView.vue`
-
-The specification states that Members (not just Admins) can generate invite
-codes. Currently the only invite code UI is in the Admin panel.
-
-**Implementation Plan:**
-1. Add an "Invite Codes" section to `ProfileView.vue`, visible to all
-   non-guest authenticated users (`v-if="!auth.isGuest"`).
-2. Add a "Generate Invite Code" `BaseButton`.
-3. On click, call `createInviteCode()` from `src/api/admin.ts`. This
-   function already exists.
-4. Display the returned code in a read-only `BaseInput` with a "Copy to
-   Clipboard" button that calls `navigator.clipboard.writeText(code)`.
-5. Show a success toast when the code is generated.
+Done. An "Invite Codes" section is visible to all non-guest users in their
+profile. A "Generate Invite Code" button calls `createInviteCode()` and
+displays the result in a read-only field with a "Copy to Clipboard" button.
 
 ---
 
@@ -335,29 +278,12 @@ reload to see the latest version." A reload option is also available.
 
 ---
 
-### 3.2 FormBuilder: Rating Question Allows Invalid Min/Max Values
+### 3.2 FormBuilder: Rating Question Allows Invalid Min/Max Values — ✅ DONE
 
-**Difficulty: Beginner**
-**Files:** `src/views/forms/FormBuilderView.vue`
+**File:** `src/views/forms/FormBuilderView.vue`
 
-**Problem:**
-When building a Rating question, the builder shows numeric inputs for Min
-and Max. There is no validation preventing `min >= max` (e.g., min=5, max=1).
-This creates a logically broken question that could confuse respondents or
-cause backend errors.
-
-**Fix:**
-1. Find the rating question edit section in `FormBuilderView.vue`.
-2. After either the min or max input changes, add a check:
-   ```typescript
-   const ratingError = computed(() =>
-     question.min >= question.max
-       ? 'Minimum must be less than maximum.'
-       : ''
-   )
-   ```
-3. Display `ratingError` as an inline error message below the inputs.
-4. Prevent form submission if any question has a rating error.
+Fixed. An inline error message is shown when `min >= max`, and form
+submission is blocked until the values are corrected.
 
 ---
 
@@ -388,39 +314,19 @@ keyboard. This is a barrier for users who navigate without a mouse.
 
 ---
 
-### 4.2 Forum Search: Date Range Validation
+### 4.2 Forum Search: Date Range Validation — ✅ DONE
 
-**Difficulty: Beginner**
-**Files:** `src/views/forum/ForumView.vue`
+**File:** `src/views/forum/ForumView.vue`
 
-**Problem:**
-The forum search form has "Date From" and "Date To" fields. There is no
-validation preventing "Date From" from being later than "Date To", which
-would produce zero results and confuse users.
-
-**Implementation Plan:**
-1. Add a computed property or a watcher:
-   ```typescript
-   const dateRangeError = computed(() =>
-     searchDateFrom.value && searchDateTo.value && searchDateFrom.value > searchDateTo.value
-       ? '"Date From" must be before "Date To".'
-       : ''
-   )
-   ```
-2. Display `dateRangeError` as an inline error message below the date
-   fields.
-3. Disable the search button when `dateRangeError` is non-empty.
+Fixed. An inline error message is shown when "Date From" is later than
+"Date To", and the search button is disabled until the range is valid.
 
 ---
 
 ## Backend Dependencies
 
-Some frontend tasks above are blocked by backend work that has not been
-completed yet. See `BACKEND_CONTRIBUTOR_GUIDE.md` for the full list.
-
-| Frontend task | Blocked by (backend) |
-|---------------|---------------------|
-| 1.6 VirusTotal File Safety Indicator | Backend 4.1 — VirusTotal database integration |
+All previous backend blockers have been resolved. No frontend tasks are
+currently blocked by backend work.
 
 ---
 
