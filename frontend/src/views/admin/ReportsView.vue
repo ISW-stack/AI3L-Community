@@ -3,19 +3,28 @@ import { ref, onMounted } from 'vue'
 import type { Report } from '@/types'
 import { listReports, reviewReport as apiReviewReport } from '@/api/admin'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const reports = ref<Report[]>([])
 const total = ref(0)
 const statusFilter = ref<string>('')
 const loading = ref(false)
+const currentPage = ref(1)
+const totalPages = ref(1)
+const pageSize = 20
 
 async function fetchReports() {
   loading.value = true
   try {
-    const data = await listReports({ status_filter: statusFilter.value || undefined })
+    const data = await listReports({
+      status_filter: statusFilter.value || undefined,
+      page: currentPage.value,
+      page_size: pageSize,
+    })
     reports.value = data.reports
     total.value = data.total
+    totalPages.value = data.total_pages || Math.max(1, Math.ceil(data.total / pageSize))
   } catch {
     /* silent */
   } finally {
@@ -38,6 +47,11 @@ const statusBadge: Record<string, 'warning' | 'success' | 'neutral'> = {
   DISMISSED: 'neutral',
 }
 
+function handleStatusChange() {
+  currentPage.value = 1
+  fetchReports()
+}
+
 onMounted(fetchReports)
 </script>
 
@@ -50,7 +64,7 @@ onMounted(fetchReports)
       <label class="text-sm text-muted">Filter by status:</label>
       <select
         v-model="statusFilter"
-        @change="fetchReports"
+        @change="handleStatusChange"
         class="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option value="">All</option>
@@ -121,6 +135,19 @@ onMounted(fetchReports)
         </tbody>
       </table>
     </div>
+
+    <BasePagination
+      v-if="totalPages > 1"
+      :current-page="currentPage"
+      :total-pages="totalPages"
+      @update:current-page="
+        (p: number) => {
+          currentPage = p
+          fetchReports()
+        }
+      "
+      class="mt-4"
+    />
 
     <p class="mt-3 text-xs text-muted">{{ total }} report(s) total</p>
   </div>

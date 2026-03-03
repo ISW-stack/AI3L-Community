@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -77,6 +79,10 @@ class PostHistoryItem(BaseModel):
 class PostHistoryResponse(BaseModel):
     history: list[PostHistoryItem]
     total: int
+
+
+class BulkDeletePostsRequest(BaseModel):
+    post_ids: list[uuid.UUID] = Field(..., min_length=1, max_length=50)
 
 
 class PostSearchRequest(BaseModel):

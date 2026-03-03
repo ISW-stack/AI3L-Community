@@ -53,17 +53,24 @@ async def emit(event: str, **kwargs: Any) -> None:
                     "max_retries": MAX_RETRIES,
                 },
             )
-            await _persist_failed_event(event, handler_name, kwargs)
+            await _persist_failed_event(event, handler_name, kwargs, retry_count=0)
 
 
-async def _persist_failed_event(event: str, handler_name: str, kwargs: dict) -> None:
-    """Best-effort persistence of failed events to Redis for later inspection."""
+async def _persist_failed_event(
+    event: str, handler_name: str, kwargs: dict, *, retry_count: int = 0
+) -> None:
+    """Best-effort persistence of failed events to Redis for later retry."""
     try:
         from app.core.redis import get_redis
 
         redis = get_redis()
         entry = json.dumps(
-            {"event": event, "handler": handler_name, "kwargs_keys": list(kwargs.keys())},
+            {
+                "event": event,
+                "handler": handler_name,
+                "kwargs": {k: v for k, v in kwargs.items()},
+                "retry_count": retry_count,
+            },
             default=str,
         )
         await redis.lpush("event_bus:failed", entry)  # type: ignore[misc]

@@ -3,6 +3,7 @@ import csv
 import io
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from loguru import logger
@@ -100,7 +101,14 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     return {"download_url": download_url}
 
 
+def _run_async(coro: Any) -> dict:
+    """Run an async coroutine from sync Celery task, cross-platform safe."""
+    with ThreadPoolExecutor(1) as pool:
+        result: dict = pool.submit(asyncio.run, coro).result()
+        return result
+
+
 @celery.task(bind=True, name="tasks.export_form_csv")
 def export_form_csv(self: Any, form_id: str) -> dict:
     """Export form responses to CSV. Runs in Celery worker (sync)."""
-    return asyncio.run(_async_export(form_id, self.request.id))
+    return _run_async(_async_export(form_id, self.request.id))

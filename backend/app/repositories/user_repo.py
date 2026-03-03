@@ -159,3 +159,13 @@ async def find_password_hash(user_id: uuid.UUID) -> str | None:
             user_id,
         )
         return row["password_hash"] if row else None
+
+
+async def bulk_update_role(user_ids: list[uuid.UUID], role: str, conn: Any) -> int:
+    """Update role for multiple users. Returns count updated."""
+    result = await conn.execute(
+        "UPDATE users SET role = $1, updated_at = NOW() WHERE id = ANY($2::uuid[]) AND is_deleted = false",  # noqa: E501
+        role,
+        user_ids,
+    )
+    return int(result.split()[-1])

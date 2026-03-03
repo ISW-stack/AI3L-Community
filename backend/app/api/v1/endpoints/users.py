@@ -4,14 +4,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFil
 
 from app.converters.user_converter import user_to_public_response, user_to_response
 from app.core.constants import MAX_AVATAR_SIZE
+from app.core.database import get_pool
 from app.core.deps import get_current_user, require_role
 from app.core.event_bus import emit
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
+from app.repositories import user_repo
 from app.schemas.auth import MessageResponse
 from app.schemas.user import (
     AdminCreateAccountRequest,
     BanRequest,
+    BulkRoleChangeRequest,
     ChangePasswordRequest,
     PublicUserResponse,
     RoleUpdateRequest,
@@ -339,3 +342,23 @@ async def get_audit_logs(
         date_to=date_to,
     )
     return {"logs": logs, "total": total, "page": page, "page_size": page_size}
+
+
+@router.put("/bulk-role", status_code=status.HTTP_200_OK)
+async def bulk_change_role(
+    req: BulkRoleChangeRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> dict:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            count = await user_repo.bulk_update_role(req.user_ids, req.role, conn)
+    from app.services.audit import log_action
+
+    await log_action(
+        user_id=current_user["sub"],
+        action="BULK_ROLE_CHANGE",
+        target_type="user",
+        target_id=f"role={req.role},count={count}",
+    )
+    return {"updated_count": count}

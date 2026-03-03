@@ -54,11 +54,13 @@ async def upload_editor_file(
     url = await async_presigned_url(key, expires_in=86400 * 7)
 
     # Fire-and-forget VirusTotal check (lazy import to avoid celery dependency at module load)
+    scan_task_id = None
     try:
         from app.tasks.virustotal import check_virustotal, compute_sha256
 
         file_hash = compute_sha256(data)
-        check_virustotal.delay(file_hash, key)
+        result = check_virustotal.delay(file_hash, key)
+        scan_task_id = result.id
     except ImportError:
         pass  # VirusTotal not configured
     except Exception:
@@ -70,6 +72,7 @@ async def upload_editor_file(
         filename=filename,
         content_type=expected_type,
         size=len(data),
+        scan_task_id=scan_task_id,
     )
 
 

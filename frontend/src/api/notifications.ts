@@ -23,3 +23,11 @@ export async function markRead(notificationId: string) {
 export async function markAllRead() {
   await api.put('/notifications/read-all')
 }
+
+export const deleteNotification = (notificationId: string) =>
+  api.delete(`/notifications/${notificationId}`)
+
+export const bulkDeleteNotifications = (notificationIds?: string[]) =>
+  api.delete('/notifications', {
+    data: notificationIds ? { notification_ids: notificationIds } : undefined,
+  })

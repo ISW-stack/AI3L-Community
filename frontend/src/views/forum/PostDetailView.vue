@@ -197,9 +197,18 @@ async function saveEdit() {
       version: post.value.version,
     })
     editing.value = false
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    editMessage.value = err.response?.data?.detail || 'Failed to save changes.'
+  } catch (err: unknown) {
+    const apiError = err as {
+      response?: { status?: number; data?: { detail?: string | { code?: string } } }
+    }
+    const detail = apiError.response?.data?.detail
+    const code = typeof detail === 'object' ? detail?.code : undefined
+    if (code === 'SYS_409' || apiError.response?.status === 409) {
+      editMessage.value =
+        'This post was edited by someone else. Please reload to see the latest version.'
+    } else {
+      editMessage.value = typeof detail === 'string' ? detail : 'Failed to save changes.'
+    }
   } finally {
     editSaving.value = false
   }

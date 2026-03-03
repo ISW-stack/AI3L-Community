@@ -3,8 +3,12 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
-import { ref, watch } from 'vue'
-import { uploadEditorFile } from '@/api/files'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { ref, watch, onUnmounted } from 'vue'
+import { uploadEditorFile, getTaskStatus } from '@/api/files'
 import { useToastStore } from '@/stores/toast'
 import {
   Bold,
@@ -20,6 +24,7 @@ import {
   ImagePlus,
   Undo2,
   Redo2,
+  Table as TableIcon,
 } from 'lucide-vue-next'
 
 const props = defineProps<{ modelValue: string }>()
@@ -31,6 +36,10 @@ const editor = useEditor({
     StarterKit.configure({ link: false }),
     Image,
     Link.configure({ openOnClick: false }),
+    Table.configure({ resizable: true }),
+    TableRow,
+    TableCell,
+    TableHeader,
   ],
   onUpdate({ editor: e }) {
     emit('update:modelValue', e.getHTML())
@@ -52,11 +61,45 @@ watch(
 const toastStore = useToastStore()
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
+const scanStatus = ref<'idle' | 'scanning' | 'clean' | 'malicious'>('idle')
+let scanPollTimer: ReturnType<typeof setTimeout> | null = null
+
+async function pollScanStatus(taskId: string) {
+  try {
+    const data = await getTaskStatus(taskId)
+    if (data.status === 'SUCCESS' && data.result) {
+      if (data.result.status === 'malicious') {
+        scanStatus.value = 'malicious'
+        toastStore.show('Uploaded file was flagged as potentially malicious and removed.', 'error')
+      } else {
+        scanStatus.value = 'clean'
+      }
+      return
+    }
+    if (data.status === 'FAILURE') {
+      scanStatus.value = 'idle'
+      return
+    }
+    // Still pending — poll again
+    scanPollTimer = setTimeout(() => pollScanStatus(taskId), 5000)
+  } catch {
+    scanStatus.value = 'idle'
+  }
+}
+
+onUnmounted(() => {
+  if (scanPollTimer) clearTimeout(scanPollTimer)
+})
 
 function setLink() {
   const url = prompt('Enter URL')
   if (!url || !editor.value) return
   editor.value.chain().focus().setLink({ href: url }).run()
+}
+
+function insertTable() {
+  if (!editor.value) return
+  editor.value.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 }
 
 function addImage() {
@@ -71,6 +114,10 @@ async function handleImageUpload(event: Event) {
   try {
     const data = await uploadEditorFile(file)
     editor.value.chain().focus().setImage({ src: data.url }).run()
+    if (data.scan_task_id) {
+      scanStatus.value = 'scanning'
+      pollScanStatus(data.scan_task_id)
+    }
   } catch {
     toastStore.show('Failed to upload image.', 'error')
   } finally {
@@ -202,6 +249,14 @@ async function handleImageUpload(event: Event) {
       >
         <ImagePlus class="w-4 h-4" aria-hidden="true" />
       </button>
+      <button
+        type="button"
+        @click="insertTable"
+        class="p-1.5 rounded hover:bg-gray-200 transition"
+        aria-label="Insert table"
+      >
+        <TableIcon class="w-4 h-4" aria-hidden="true" />
+      </button>
 
       <span class="w-px bg-border mx-1"></span>
 
@@ -223,6 +278,21 @@ async function handleImageUpload(event: Event) {
       >
         <Redo2 class="w-4 h-4" aria-hidden="true" />
       </button>
+    </div>
+
+    <!-- Scan status indicator -->
+    <div
+      v-if="scanStatus !== 'idle'"
+      class="px-3 py-1.5 text-xs border-b border-border"
+      :class="{
+        'bg-warning-50 text-warning-700': scanStatus === 'scanning',
+        'bg-success-50 text-success-700': scanStatus === 'clean',
+        'bg-danger-50 text-danger-700': scanStatus === 'malicious',
+      }"
+    >
+      <span v-if="scanStatus === 'scanning'">Scanning uploaded file...</span>
+      <span v-else-if="scanStatus === 'clean'">File scan complete — no threats detected.</span>
+      <span v-else-if="scanStatus === 'malicious'">File flagged as malicious and removed.</span>
     </div>
 
     <!-- Editor content -->

@@ -308,3 +308,12 @@ async def decrement_comment_count(post_id: uuid.UUID, conn: Any) -> None:
         "UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = $1",
         post_id,
     )
+
+
+async def bulk_soft_delete(post_ids: list[uuid.UUID], conn: Any) -> int:
+    """Soft-delete multiple posts. Returns count of deleted."""
+    result = await conn.execute(
+        "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE id = ANY($1::uuid[]) AND is_deleted = false",  # noqa: E501
+        post_ids,
+    )
+    return int(result.split()[-1])
