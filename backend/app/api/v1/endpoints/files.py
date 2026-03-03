@@ -1,9 +1,12 @@
 import re
 import uuid
 
+from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from fastapi.responses import Response
 from loguru import logger
 
+from app.core.async_storage import download_file as async_download_file
 from app.core.async_storage import generate_presigned_url as async_presigned_url
 from app.core.async_storage import get_user_storage_used
 from app.core.async_storage import upload_file as async_upload_file
@@ -12,6 +15,7 @@ from app.core.constants import MAX_EDITOR_FILE_SIZE, RATE_LIMIT_FILE_UPLOAD
 from app.core.deps import require_role
 from app.core.file_validation import validate_editor_file
 from app.core.rate_limit import check_rate_limit
+from app.core.redis import get_redis
 from app.schemas.file import FileUploadResponse
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -40,18 +44,33 @@ async def upload_editor_file(
         )
     expected_type, data = validate_editor_file(filename, data)
 
-    # Storage quota check
-    used = await get_user_storage_used(current_user["sub"])
-    if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
+    # Acquire per-user upload lock to prevent concurrent quota bypass
+    redis = get_redis()
+    lock_key = f"upload_lock:{user_id}"
+    acquired = await redis.set(lock_key, "1", nx=True, ex=120)
+    if not acquired:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Storage quota exceeded (1 GB limit).",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Another upload is in progress. Please wait.",
         )
 
-    ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    key = f"editor/{current_user['sub']}/{uuid.uuid4().hex}{ext}"
-    await async_upload_file(data, key, expected_type)
-    url = await async_presigned_url(key, expires_in=86400 * 7)
+    try:
+        # Storage quota check (safe under lock)
+        used = await get_user_storage_used(current_user["sub"])
+        if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Storage quota exceeded (1 GB limit).",
+            )
+
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        key = f"editor/{current_user['sub']}/{uuid.uuid4().hex}{ext}"
+        await async_upload_file(data, key, expected_type)
+    finally:
+        await redis.delete(lock_key)
+
+    # Return stable proxy URL instead of expiring presigned URL
+    url = f"/api/v1/files/content/{key}"
 
     # Fire-and-forget VirusTotal check (lazy import to avoid celery dependency at module load)
     scan_task_id = None
@@ -76,6 +95,48 @@ async def upload_editor_file(
     )
 
 
+@router.get("/content/{key:path}")
+async def serve_file(
+    key: str,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> Response:
+    """Serve file content from storage via proxy.
+
+    Editor files (editor/*) are accessible to any authenticated user.
+    Other files require ownership or admin role.
+    """
+    if ".." in key or not _SAFE_KEY_RE.match(key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file key.",
+        )
+
+    is_editor_file = key.startswith("editor/")
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+
+    # Editor files are readable by any authenticated member (they're embedded in public posts)
+    if not is_editor_file and not is_admin:
+        owns_file = key.startswith(f"avatars/{current_user['sub']}")
+        if not owns_file:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to access this file.",
+            )
+
+    try:
+        data, content_type = await async_download_file(key)
+    except ClientError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+        },
+    )
+
+
 @router.get("/presigned/{key:path}")
 async def get_presigned_url(
     key: str,
@@ -83,7 +144,8 @@ async def get_presigned_url(
 ) -> dict:
     """Get a presigned download URL for a stored file.
 
-    Admins can access any file. Members can only access their own uploads.
+    Admins can access any file. Editor files are accessible to any member.
+    Other files require ownership.
     """
     if ".." in key or not _SAFE_KEY_RE.match(key):
         raise HTTPException(
@@ -92,10 +154,12 @@ async def get_presigned_url(
         )
 
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    is_editor_file = key.startswith("editor/")
     owns_file = key.startswith(f"editor/{current_user['sub']}/") or key.startswith(
         f"avatars/{current_user['sub']}"
     )
-    if not is_admin and not owns_file:
+    # Editor files are readable by any authenticated member
+    if not is_admin and not is_editor_file and not owns_file:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this file.",

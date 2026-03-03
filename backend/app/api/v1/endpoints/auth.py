@@ -204,12 +204,18 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
         )
 
     # Create user and consume invite code in a single transaction
-    user = await register_new_user(
-        username=req.username,
-        password=req.password,
-        display_name=req.display_name,
-        invite_code=req.invite_code,
-    )
+    try:
+        user = await register_new_user(
+            username=req.username,
+            password=req.password,
+            display_name=req.display_name,
+            invite_code=req.invite_code,
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired invite code.",
+        )
 
     token, expires_in = await create_session(str(user["id"]), user["role"])
 

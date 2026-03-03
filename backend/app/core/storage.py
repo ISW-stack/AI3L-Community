@@ -75,6 +75,15 @@ def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
     return url
 
 
+def download_file(key: str) -> tuple[bytes, str]:
+    """Download file from MinIO. Returns (data, content_type)."""
+    client = get_storage()
+    resp = client.get_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
+    data = resp["Body"].read()
+    content_type = resp.get("ContentType", "application/octet-stream")
+    return data, content_type
+
+
 def delete_file(key: str) -> None:
     """Delete file from MinIO."""
     client = get_storage()

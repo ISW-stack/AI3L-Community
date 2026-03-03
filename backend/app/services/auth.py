@@ -191,11 +191,14 @@ async def register_new_user(
                 UserRole.MEMBER.value,
                 display_name,
             )
-            await conn.execute(
-                "UPDATE invite_codes SET consumed_at = NOW(), consumed_by = $1 WHERE code = $2",
+            result = await conn.execute(
+                "UPDATE invite_codes SET consumed_at = NOW(), consumed_by = $1 "
+                "WHERE code = $2 AND consumed_at IS NULL",
                 user_id,
                 invite_code,
             )
+            if result != "UPDATE 1":
+                raise ValueError("Invite code already consumed.")
     user = dict(row)
     logger.info("User registered", extra={"user_id": str(user_id), "invite_code": invite_code})
     return user

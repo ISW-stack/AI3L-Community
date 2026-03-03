@@ -8,6 +8,7 @@ from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.event_bus import emit
 from app.core.file_validation import validate_avatar
+from app.core.redis import get_redis
 from app.core.security import hash_password, validate_password_policy, verify_password
 from app.core.storage import generate_avatar_key
 from app.models.user import UserRole
@@ -72,17 +73,30 @@ async def upload_user_avatar(
         raise HTTPException(status_code=400, detail="File content type is required.")
     validate_avatar(content_type, data)
 
-    # Storage quota check
-    used = await get_user_storage_used(user_id)
-    if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
+    # Acquire per-user upload lock to prevent concurrent quota bypass
+    redis = get_redis()
+    lock_key = f"upload_lock:{user_id}"
+    acquired = await redis.set(lock_key, "1", nx=True, ex=120)
+    if not acquired:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Storage quota exceeded (1 GB limit).",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Another upload is in progress. Please wait.",
         )
 
-    ext = ".png" if content_type == "image/png" else ".jpg"
-    key = generate_avatar_key(user_id, ext)
-    await async_upload_file(data, key, content_type)
+    try:
+        # Storage quota check (safe under lock)
+        used = await get_user_storage_used(user_id)
+        if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Storage quota exceeded (1 GB limit).",
+            )
+
+        ext = ".png" if content_type == "image/png" else ".jpg"
+        key = generate_avatar_key(user_id, ext)
+        await async_upload_file(data, key, content_type)
+    finally:
+        await redis.delete(lock_key)
 
     # Store the MinIO object key (not presigned URL) — fresh URLs generated on read
     user = await update_user_profile(
