@@ -1,6 +1,8 @@
 """Celery task: VirusTotal hash-only file check."""
 
+import asyncio
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import requests  # type: ignore[import-untyped]
@@ -8,14 +10,63 @@ from loguru import logger
 
 from app.celery_app import celery
 from app.core.config import settings
+from app.core.database import get_pool, init_db_pool
+
+
+def _run_async(coro: Any) -> Any:
+    """Run an async coroutine from sync Celery task, cross-platform safe."""
+    with ThreadPoolExecutor(1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
+async def _ensure_pool() -> None:
+    """Ensure DB pool is available (worker may not have it)."""
+    try:
+        get_pool()
+    except RuntimeError:
+        await init_db_pool(settings.DATABASE_URL)
+
+
+async def _insert_pending(storage_key: str) -> None:
+    """Insert a pending scan record."""
+    await _ensure_pool()
+    from app.repositories import file_scan_repo
+
+    await file_scan_repo.insert(storage_key)
+
+
+async def _update_scan(
+    storage_key: str,
+    status: str,
+    scan_id: str | None = None,
+    positives: int | None = None,
+    total: int | None = None,
+) -> None:
+    """Update scan record with results."""
+    await _ensure_pool()
+    from app.repositories import file_scan_repo
+
+    await file_scan_repo.update_status(storage_key, status, scan_id, positives, total)
 
 
 @celery.task(bind=True, max_retries=2, default_retry_delay=60)
 def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
     """Query VirusTotal for a file SHA-256 hash; delete if malicious."""
+
+    # Insert pending scan record
+    try:
+        _run_async(_insert_pending(storage_key))
+    except Exception:
+        logger.warning("Failed to insert pending scan record for key=%s", storage_key, exc_info=True)
+
     api_key = settings.VT_API_KEY
     if not api_key:
         logger.debug("VT_API_KEY not set, skipping VirusTotal check")
+        # Fail-open: mark as clean when no API key
+        try:
+            _run_async(_update_scan(storage_key, "clean"))
+        except Exception:
+            logger.warning("Failed to update scan record to clean", exc_info=True)
         return {"status": "skipped", "reason": "no_api_key"}
 
     url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
@@ -29,18 +80,31 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
 
     if resp.status_code == 404:
         logger.info("File hash not found in VirusTotal", extra={"hash": file_hash})
+        # Not found in VT database — treat as clean (fail-open)
+        try:
+            _run_async(_update_scan(storage_key, "clean"))
+        except Exception:
+            logger.warning("Failed to update scan record to clean", exc_info=True)
         return {"status": "not_found"}
 
     if resp.status_code != 200:
         logger.warning("VirusTotal unexpected status", extra={"status": resp.status_code})
+        # Unexpected response — fail-open
+        try:
+            _run_async(_update_scan(storage_key, "clean"))
+        except Exception:
+            logger.warning("Failed to update scan record to clean", exc_info=True)
         return {"status": "error", "code": resp.status_code}
 
     data = resp.json()
     stats = data.get("data", {}).get("attributes", {}).get("last_analysis_stats", {})
     malicious = stats.get("malicious", 0)
     suspicious = stats.get("suspicious", 0)
+    total_engines = sum(stats.values()) if stats else 0
+    positives_count = malicious + suspicious
+    scan_id = data.get("data", {}).get("id")
 
-    if malicious > 0 or suspicious > 0:
+    if positives_count > 0:
         logger.warning(
             "VirusTotal flagged file as malicious",
             extra={
@@ -50,6 +114,15 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
                 "suspicious": suspicious,
             },
         )
+
+        # Update record to malicious
+        try:
+            _run_async(
+                _update_scan(storage_key, "malicious", scan_id, positives_count, total_engines)
+            )
+        except Exception:
+            logger.warning("Failed to update scan record to malicious", exc_info=True)
+
         # Delete the file from storage
         try:
             from app.core.storage import delete_file
@@ -62,6 +135,12 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
             )
 
         return {"status": "malicious", "malicious": malicious, "suspicious": suspicious}
+
+    # File is clean
+    try:
+        _run_async(_update_scan(storage_key, "clean", scan_id, 0, total_engines))
+    except Exception:
+        logger.warning("Failed to update scan record to clean", exc_info=True)
 
     logger.info("VirusTotal check passed", extra={"hash": file_hash})
     return {"status": "clean"}

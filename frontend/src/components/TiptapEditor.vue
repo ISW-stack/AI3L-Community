@@ -8,7 +8,7 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { ref, watch, onUnmounted } from 'vue'
-import { uploadEditorFile, getTaskStatus } from '@/api/files'
+import { uploadEditorFile, getFileScanStatus } from '@/api/files'
 import { useToastStore } from '@/stores/toast'
 import {
   Bold,
@@ -25,6 +25,9 @@ import {
   Undo2,
   Redo2,
   Table as TableIcon,
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
 } from 'lucide-vue-next'
 
 const props = defineProps<{ modelValue: string }>()
@@ -61,34 +64,51 @@ watch(
 const toastStore = useToastStore()
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
-const scanStatus = ref<'idle' | 'scanning' | 'clean' | 'malicious'>('idle')
+const scanStatus = ref<'pending' | 'clean' | 'malicious' | 'unknown' | null>(null)
+const scanKey = ref('')
 let scanPollTimer: ReturnType<typeof setTimeout> | null = null
+let scanDismissTimer: ReturnType<typeof setTimeout> | null = null
 
-async function pollScanStatus(taskId: string) {
+function clearScanTimers() {
+  if (scanPollTimer) {
+    clearTimeout(scanPollTimer)
+    scanPollTimer = null
+  }
+  if (scanDismissTimer) {
+    clearTimeout(scanDismissTimer)
+    scanDismissTimer = null
+  }
+}
+
+async function pollScanStatus() {
+  if (!scanKey.value) return
   try {
-    const data = await getTaskStatus(taskId)
-    if (data.status === 'SUCCESS' && data.result) {
-      if (data.result.status === 'malicious') {
-        scanStatus.value = 'malicious'
-        toastStore.show('Uploaded file was flagged as potentially malicious and removed.', 'error')
-      } else {
-        scanStatus.value = 'clean'
-      }
+    const data = await getFileScanStatus(scanKey.value)
+    scanStatus.value = data.status
+
+    if (data.status === 'pending') {
+      // Still scanning — poll again in 5 seconds
+      scanPollTimer = setTimeout(pollScanStatus, 5000)
       return
     }
-    if (data.status === 'FAILURE') {
-      scanStatus.value = 'idle'
-      return
+
+    // Terminal state reached — stop polling
+    if (data.status === 'malicious') {
+      toastStore.show('Uploaded file was flagged as potentially malicious.', 'error')
+    } else if (data.status === 'clean') {
+      // Auto-dismiss clean status after 10 seconds
+      scanDismissTimer = setTimeout(() => {
+        if (scanStatus.value === 'clean') scanStatus.value = null
+      }, 10000)
     }
-    // Still pending — poll again
-    scanPollTimer = setTimeout(() => pollScanStatus(taskId), 5000)
+    // 'unknown' stays visible until next upload
   } catch {
-    scanStatus.value = 'idle'
+    scanStatus.value = null
   }
 }
 
 onUnmounted(() => {
-  if (scanPollTimer) clearTimeout(scanPollTimer)
+  clearScanTimers()
 })
 
 function setLink() {
@@ -114,9 +134,11 @@ async function handleImageUpload(event: Event) {
   try {
     const data = await uploadEditorFile(file)
     editor.value.chain().focus().setImage({ src: data.url }).run()
-    if (data.scan_task_id) {
-      scanStatus.value = 'scanning'
-      pollScanStatus(data.scan_task_id)
+    if (data.scan_task_id && data.key) {
+      clearScanTimers()
+      scanKey.value = data.key
+      scanStatus.value = 'pending'
+      scanPollTimer = setTimeout(pollScanStatus, 5000)
     }
   } catch {
     toastStore.show('Failed to upload image.', 'error')
@@ -282,17 +304,26 @@ async function handleImageUpload(event: Event) {
 
     <!-- Scan status indicator -->
     <div
-      v-if="scanStatus !== 'idle'"
-      class="px-3 py-1.5 text-xs border-b border-border"
+      v-if="scanStatus"
+      class="flex items-center gap-1.5 px-3 py-1.5 text-xs border-b border-border"
       :class="{
-        'bg-warning-50 text-warning-700': scanStatus === 'scanning',
+        'bg-warning-50 text-warning-700': scanStatus === 'pending',
         'bg-success-50 text-success-700': scanStatus === 'clean',
         'bg-danger-50 text-danger-700': scanStatus === 'malicious',
+        'bg-gray-50 text-muted': scanStatus === 'unknown',
       }"
     >
-      <span v-if="scanStatus === 'scanning'">Scanning uploaded file...</span>
-      <span v-else-if="scanStatus === 'clean'">File scan complete — no threats detected.</span>
-      <span v-else-if="scanStatus === 'malicious'">File flagged as malicious and removed.</span>
+      <Loader2
+        v-if="scanStatus === 'pending'"
+        class="w-3.5 h-3.5 animate-spin"
+        aria-hidden="true"
+      />
+      <ShieldCheck v-else-if="scanStatus === 'clean'" class="w-3.5 h-3.5" aria-hidden="true" />
+      <ShieldAlert v-else-if="scanStatus === 'malicious'" class="w-3.5 h-3.5" aria-hidden="true" />
+      <span v-if="scanStatus === 'pending'">Scanning...</span>
+      <span v-else-if="scanStatus === 'clean'">Clean</span>
+      <span v-else-if="scanStatus === 'malicious'">Flagged as malicious</span>
+      <span v-else-if="scanStatus === 'unknown'">Scan inconclusive</span>
     </div>
 
     <!-- Editor content -->

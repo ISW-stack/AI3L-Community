@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getCaptcha } from '@/api/auth'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
@@ -21,6 +22,8 @@ const captchaCode = ref('')
 const captchaImage = ref('')
 const error = ref('')
 const loading = ref(false)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 async function loadCaptcha() {
   const data = await getCaptcha()
@@ -103,7 +106,22 @@ loadCaptcha()
         />
 
         <div>
-          <BaseInput v-model="password" type="password" label="Password" required />
+          <div class="relative">
+            <BaseInput
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              label="Password"
+              required
+            />
+            <button
+              type="button"
+              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+              @click="showPassword = !showPassword"
+              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            >
+              <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
+            </button>
+          </div>
           <ul class="mt-2 text-xs space-y-1" aria-live="polite">
             <li :class="passwordChecks.length ? 'text-success-600' : 'text-muted'">
               At least 8 characters
@@ -121,7 +139,22 @@ loadCaptcha()
         </div>
 
         <div>
-          <BaseInput v-model="confirmPassword" type="password" label="Confirm Password" required />
+          <div class="relative">
+            <BaseInput
+              v-model="confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              label="Confirm Password"
+              required
+            />
+            <button
+              type="button"
+              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+              @click="showConfirmPassword = !showConfirmPassword"
+              :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+            >
+              <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
+            </button>
+          </div>
           <p v-if="confirmPassword && !passwordsMatch" class="text-danger-500 text-xs mt-1">
             Passwords do not match
           </p>

@@ -16,6 +16,7 @@ from app.core.deps import require_role
 from app.core.file_validation import validate_editor_file
 from app.core.rate_limit import check_rate_limit
 from app.core.redis import get_redis
+from app.repositories import file_scan_repo
 from app.schemas.file import FileUploadResponse
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -72,6 +73,12 @@ async def upload_editor_file(
     # Return stable proxy URL instead of expiring presigned URL
     url = f"/api/v1/files/content/{key}"
 
+    # Insert pending scan record
+    try:
+        await file_scan_repo.insert(key)
+    except Exception:
+        logger.warning("Failed to insert pending scan record for key=%s", key, exc_info=True)
+
     # Fire-and-forget VirusTotal check (lazy import to avoid celery dependency at module load)
     scan_task_id = None
     try:
@@ -123,6 +130,19 @@ async def serve_file(
                 detail="You do not have permission to access this file.",
             )
 
+    # Block files flagged as malicious by VirusTotal
+    try:
+        scan = await file_scan_repo.find_by_key(key)
+        if scan and scan["status"] == "malicious":
+            raise HTTPException(
+                status_code=451,
+                detail="This file has been flagged as potentially malicious.",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("Failed to check scan status for key=%s", key, exc_info=True)
+
     try:
         data, content_type = await async_download_file(key)
     except ClientError:
@@ -135,6 +155,29 @@ async def serve_file(
             "Cache-Control": "public, max-age=31536000, immutable",
         },
     )
+
+
+@router.get("/scan-status/{key:path}")
+async def get_scan_status(
+    key: str,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> dict:
+    """Get VirusTotal scan status for a file."""
+    if ".." in key or not _SAFE_KEY_RE.match(key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file key.",
+        )
+
+    scan = await file_scan_repo.find_by_key(key)
+    if not scan:
+        return {"status": "unknown", "positives": None, "total": None}
+
+    return {
+        "status": scan["status"],
+        "positives": scan.get("positives"),
+        "total": scan.get("total"),
+    }
 
 
 @router.get("/presigned/{key:path}")

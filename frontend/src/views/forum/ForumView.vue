@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { Post, Category } from '@/types'
@@ -31,6 +31,10 @@ const searchDateTo = ref((route.query.to as string) || '')
 const searchLogic = ref((route.query.logic as string) || 'AND')
 const sortBy = ref((route.query.sort as string) || 'newest')
 const isSearching = ref(false)
+
+const dateRangeInvalid = computed(
+  () => !!searchDateFrom.value && !!searchDateTo.value && searchDateFrom.value > searchDateTo.value,
+)
 
 async function fetchCategories() {
   try {
@@ -196,9 +200,12 @@ onMounted(() => {
           type="date"
           class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
         />
-        <BaseButton @click="doSearch">Search</BaseButton>
+        <BaseButton :disabled="dateRangeInvalid" @click="doSearch">Search</BaseButton>
         <BaseButton v-if="isSearching" variant="secondary" @click="clearSearch">Clear</BaseButton>
       </div>
+      <p v-if="dateRangeInvalid" class="text-sm text-danger-600 mt-1">
+        Start date must be before end date.
+      </p>
     </BaseCard>
 
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />

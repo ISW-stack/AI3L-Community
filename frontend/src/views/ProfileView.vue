@@ -2,12 +2,15 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import {
   updateProfile,
   uploadAvatar as apiUploadAvatar,
   changePassword as apiChangePassword,
   deleteAccount as apiDeleteAccount,
 } from '@/api/users'
+import { createInviteCode } from '@/api/admin'
+import { Eye, EyeOff, Copy, Check } from 'lucide-vue-next'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
@@ -31,6 +34,46 @@ const confirmPassword = ref('')
 const changingPassword = ref(false)
 const passwordMessage = ref('')
 const passwordError = ref(false)
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const toast = useToastStore()
+const generatedCode = ref('')
+const generatingCode = ref(false)
+const codeCopied = ref(false)
+
+async function generateInviteCode() {
+  generatingCode.value = true
+  try {
+    const data = await createInviteCode()
+    generatedCode.value = data.invite_code
+    toast.show('Invite code generated successfully.', 'success')
+  } catch (e: any) {
+    const detail = e.response?.data?.detail
+    toast.show(
+      typeof detail === 'object' && detail?.message
+        ? detail.message
+        : detail || 'Failed to generate invite code.',
+      'error',
+    )
+  } finally {
+    generatingCode.value = false
+  }
+}
+
+async function copyInviteCode() {
+  try {
+    await navigator.clipboard.writeText(generatedCode.value)
+    codeCopied.value = true
+    toast.show('Invite code copied to clipboard.', 'success')
+    setTimeout(() => {
+      codeCopied.value = false
+    }, 2000)
+  } catch {
+    toast.show('Failed to copy invite code.', 'error')
+  }
+}
 
 onMounted(() => {
   if (auth.user) {
@@ -185,14 +228,56 @@ async function handleDeleteAccount() {
 
       <BaseCard padding="lg">
         <form @submit.prevent="changePassword" class="space-y-4">
-          <BaseInput v-model="currentPassword" label="Current Password" type="password" />
+          <div class="relative">
+            <BaseInput
+              v-model="currentPassword"
+              label="Current Password"
+              :type="showCurrentPassword ? 'text' : 'password'"
+            />
+            <button
+              type="button"
+              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+              @click="showCurrentPassword = !showCurrentPassword"
+              :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
+            >
+              <component :is="showCurrentPassword ? EyeOff : Eye" class="w-4 h-4" />
+            </button>
+          </div>
           <div>
-            <BaseInput v-model="newPassword" label="New Password" type="password" />
+            <div class="relative">
+              <BaseInput
+                v-model="newPassword"
+                label="New Password"
+                :type="showNewPassword ? 'text' : 'password'"
+              />
+              <button
+                type="button"
+                class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+                @click="showNewPassword = !showNewPassword"
+                :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+              >
+                <component :is="showNewPassword ? EyeOff : Eye" class="w-4 h-4" />
+              </button>
+            </div>
             <p class="text-xs text-muted mt-1">
               At least 8 characters, with uppercase, lowercase, and a digit.
             </p>
           </div>
-          <BaseInput v-model="confirmPassword" label="Confirm New Password" type="password" />
+          <div class="relative">
+            <BaseInput
+              v-model="confirmPassword"
+              label="Confirm New Password"
+              :type="showConfirmPassword ? 'text' : 'password'"
+            />
+            <button
+              type="button"
+              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+              @click="showConfirmPassword = !showConfirmPassword"
+              :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+            >
+              <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
+            </button>
+          </div>
 
           <BaseButton
             type="submit"
@@ -202,6 +287,28 @@ async function handleDeleteAccount() {
             Change Password
           </BaseButton>
         </form>
+      </BaseCard>
+    </div>
+
+    <!-- Invite Codes -->
+    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
+      <h2 class="text-xl font-bold text-foreground mb-4">Invite Codes</h2>
+      <BaseCard padding="lg">
+        <p class="text-sm text-muted mb-4">
+          Generate an invite code to share with others so they can create an account.
+        </p>
+        <div class="flex flex-col gap-3">
+          <BaseButton :loading="generatingCode" @click="generateInviteCode">
+            Generate Invite Code
+          </BaseButton>
+          <div v-if="generatedCode" class="flex items-center gap-2">
+            <BaseInput :model-value="generatedCode" disabled class="flex-1" />
+            <BaseButton variant="secondary" size="sm" @click="copyInviteCode">
+              <component :is="codeCopied ? Check : Copy" class="w-4 h-4 mr-1" />
+              {{ codeCopied ? 'Copied!' : 'Copy' }}
+            </BaseButton>
+          </div>
+        </div>
       </BaseCard>
     </div>
 

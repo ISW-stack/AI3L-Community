@@ -26,6 +26,17 @@ export async function uploadEditorFile(file: File) {
   return data as UploadResponse
 }
 
+export interface FileScanStatus {
+  status: 'pending' | 'clean' | 'malicious' | 'unknown'
+  positives: number | null
+  total: number | null
+}
+
+export async function getFileScanStatus(fileKey: string) {
+  const { data } = await api.get<FileScanStatus>(`/files/scan-status/${fileKey}`)
+  return data
+}
+
 export async function getPresignedUrl(key: string) {
   const { data } = await api.get('/files/presigned-url', { params: { key } })
   return data as { url: string }

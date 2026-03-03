@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getCaptcha } from '@/api/auth'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
@@ -19,6 +20,7 @@ const captchaCode = ref('')
 const captchaImage = ref('')
 const error = ref('')
 const loading = ref(false)
+const showPassword = ref(false)
 
 async function loadCaptcha() {
   const data = await getCaptcha()
@@ -58,13 +60,23 @@ loadCaptcha()
 
       <form @submit.prevent="handleLogin" class="space-y-4">
         <BaseInput v-model="username" label="Username" placeholder="Enter your username" required />
-        <BaseInput
-          v-model="password"
-          type="password"
-          label="Password"
-          placeholder="Enter your password"
-          required
-        />
+        <div class="relative">
+          <BaseInput
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'"
+            label="Password"
+            placeholder="Enter your password"
+            required
+          />
+          <button
+            type="button"
+            class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+            @click="showPassword = !showPassword"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+          >
+            <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
+          </button>
+        </div>
 
         <div>
           <label class="block text-sm font-medium text-foreground mb-1">Captcha</label>

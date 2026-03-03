@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { listSigs } from '@/api/sigs'
 import type { Sig } from '@/types'
@@ -7,12 +7,24 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 
 const auth = useAuthStore()
 
 const sigs = ref<Sig[]>([])
 const total = ref(0)
 const loading = ref(false)
+const searchQuery = ref('')
+
+const filteredSigs = computed(() => {
+  const q = searchQuery.value.toLowerCase().trim()
+  if (!q) return sigs.value
+  return sigs.value.filter(
+    (sig) =>
+      sig.name.toLowerCase().includes(q) ||
+      (sig.description && sig.description.toLowerCase().includes(q)),
+  )
+})
 
 async function fetchSigs() {
   loading.value = true
@@ -39,15 +51,19 @@ onMounted(fetchSigs)
       </router-link>
     </div>
 
+    <div class="mb-4">
+      <BaseInput v-model="searchQuery" placeholder="Search SIGs..." />
+    </div>
+
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
     <EmptyState
-      v-else-if="sigs.length === 0"
+      v-else-if="filteredSigs.length === 0"
       message="No SIGs have been created yet."
       title="No SIGs"
     />
 
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <router-link v-for="sig in sigs" :key="sig.id" :to="`/sigs/${sig.id}`" class="block">
+      <router-link v-for="sig in filteredSigs" :key="sig.id" :to="`/sigs/${sig.id}`" class="block">
         <BaseCard hoverable class="h-full">
           <h2 class="text-lg font-semibold text-foreground mb-1">{{ sig.name }}</h2>
           <p v-if="sig.description" class="text-sm text-muted mb-3 line-clamp-2">

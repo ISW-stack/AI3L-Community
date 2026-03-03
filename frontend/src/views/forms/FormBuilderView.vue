@@ -42,6 +42,10 @@ const message = ref('')
 const error = ref('')
 const showPreview = ref(false)
 
+const hasInvalidRating = computed(() =>
+  questions.value.some((q) => q.type === 'rating' && (q.min ?? 1) >= (q.max ?? 5)),
+)
+
 function createQuestion(): Question {
   return {
     id: crypto.randomUUID(),
@@ -173,6 +177,10 @@ async function saveForm() {
       (q.options?.length ?? 0) < 2
     ) {
       error.value = `Question "${q.label}" needs at least 2 options.`
+      return
+    }
+    if (q.type === 'rating' && (q.min ?? 1) >= (q.max ?? 5)) {
+      error.value = `Question "${q.label}": Minimum must be less than maximum.`
       return
     }
   }
@@ -407,25 +415,30 @@ onMounted(() => {
               </button>
             </div>
 
-            <div v-if="q.type === 'rating'" class="flex items-center gap-4">
-              <div class="flex items-center gap-2">
-                <label class="text-xs text-muted">Min:</label
-                ><input
-                  v-model.number="q.min"
-                  :disabled="isSchemaLocked"
-                  type="number"
-                  class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
-                />
+            <div v-if="q.type === 'rating'">
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-muted">Min:</label
+                  ><input
+                    v-model.number="q.min"
+                    :disabled="isSchemaLocked"
+                    type="number"
+                    class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-muted">Max:</label
+                  ><input
+                    v-model.number="q.max"
+                    :disabled="isSchemaLocked"
+                    type="number"
+                    class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
+                  />
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                <label class="text-xs text-muted">Max:</label
-                ><input
-                  v-model.number="q.max"
-                  :disabled="isSchemaLocked"
-                  type="number"
-                  class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
-                />
-              </div>
+              <p v-if="(q.min ?? 1) >= (q.max ?? 5)" class="text-sm text-danger-600 mt-1">
+                Minimum must be less than maximum.
+              </p>
             </div>
 
             <div v-if="q.type === 'file_upload'" class="space-y-2">
@@ -458,7 +471,7 @@ onMounted(() => {
 
       <div class="flex justify-end gap-3">
         <BaseButton variant="secondary" size="lg" @click="showPreview = true">Preview</BaseButton>
-        <BaseButton size="lg" :loading="saving" @click="saveForm">{{
+        <BaseButton size="lg" :loading="saving" :disabled="hasInvalidRating" @click="saveForm">{{
           isEdit ? 'Update Form' : 'Create Form'
         }}</BaseButton>
       </div>
