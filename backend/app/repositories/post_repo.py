@@ -279,7 +279,7 @@ async def search(
     async with pool.acquire() as conn:
         params.extend([page_size, offset])
         rows = await conn.fetch(
-            f"{_select_count} {where} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",
+            f"{_select_count} {where} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
             *params,
         )
         if rows:
