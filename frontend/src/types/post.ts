@@ -13,6 +13,9 @@ export interface Post {
   allow_comments: boolean
   version: number
   comment_count: number
+  is_pinned: boolean
+  view_count: number
+  last_comment_at: string | null
   created_at: string
   updated_at: string
 }

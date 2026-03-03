@@ -66,3 +66,13 @@ export async function getPostHistory(postId: string) {
   const { data } = await api.get(`/posts/${postId}/history`)
   return data.history as HistoryItem[]
 }
+
+export async function getTrendingPosts() {
+  const { data } = await api.get('/posts/trending')
+  return data as Post[]
+}
+
+export async function togglePinPost(postId: string, isPinned: boolean) {
+  const { data } = await api.patch(`/posts/${postId}/pin`, { is_pinned: isPinned })
+  return data as { is_pinned: boolean }
+}

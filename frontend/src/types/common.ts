@@ -7,6 +7,7 @@ export interface Category {
   id: string
   name: string
   description: string | null
+  post_count: number
 }
 
 export interface DashboardStats {

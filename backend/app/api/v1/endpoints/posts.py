@@ -10,6 +10,7 @@ from app.core.file_validation import sanitize_html
 from app.repositories import post_repo
 from app.schemas.post import (
     BulkDeletePostsRequest,
+    PinPostRequest,
     PostCreateRequest,
     PostHistoryResponse,
     PostListResponse,
@@ -21,7 +22,9 @@ from app.services.post import (
     create_post,
     get_post_by_id,
     get_post_history,
+    get_trending_posts,
     list_posts,
+    pin_post,
     search_posts,
     soft_delete_post,
     update_post,
@@ -96,12 +99,20 @@ async def search_posts_endpoint(
     )
 
 
+@router.get("/trending", response_model=list[PostResponse])
+async def get_trending(
+    current_user: dict = Depends(get_current_user),
+) -> list[PostResponse]:
+    posts = await get_trending_posts(limit=5, days=7)
+    return [PostResponse(**p) for p in posts]  # type: ignore[arg-type]
+
+
 @router.get("/{post_id}", response_model=PostResponse)
 async def get_post(
     post_id: uuid.UUID,
     current_user: dict = Depends(get_current_user),
 ) -> PostResponse:
-    post = await get_post_by_id(post_id)
+    post = await get_post_by_id(post_id, increment_view=True)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
     return PostResponse(**post)
@@ -170,6 +181,18 @@ async def delete_post(
             target_id=str(post_id),
             ip_address=ip,
         )
+
+
+@router.patch("/{post_id}/pin", response_model=dict)
+async def toggle_pin(
+    post_id: uuid.UUID,
+    req: PinPostRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> dict:
+    updated = await pin_post(post_id, req.is_pinned)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+    return {"is_pinned": req.is_pinned}
 
 
 @router.get("/{post_id}/history", response_model=PostHistoryResponse)

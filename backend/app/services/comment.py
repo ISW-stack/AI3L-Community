@@ -40,7 +40,7 @@ async def create_comment(
             )
 
             await conn.execute(
-                "UPDATE posts SET comment_count = comment_count + 1 WHERE id = $1",
+                "UPDATE posts SET comment_count = comment_count + 1, last_comment_at = NOW() WHERE id = $1",  # noqa: E501
                 post_id,
             )
 

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 
-def _make_post_row(user_id=None, version=1):
+def _make_post_row(user_id=None, version=1, is_pinned=False, view_count=0):
     """Helper to create a mock post row dict with joined author/category fields."""
     uid = uuid.uuid4() if user_id is None else uuid.UUID(user_id)
     now = datetime.now(timezone.utc)
@@ -22,6 +22,9 @@ def _make_post_row(user_id=None, version=1):
         "allow_comments": True,
         "version": version,
         "comment_count": 0,
+        "is_pinned": is_pinned,
+        "view_count": view_count,
+        "last_comment_at": None,
         "is_deleted": False,
         "created_at": now,
         "updated_at": now,
@@ -109,3 +112,56 @@ class TestDeletePost:
 
         result = await soft_delete_post(post_id, user_id, is_admin=False)
         assert result is True
+
+
+class TestPinPost:
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_pin_post_success(self, mock_get_pool, mock_pool, mock_conn):
+        from app.services.post import pin_post
+
+        post_id = uuid.uuid4()
+        mock_conn.execute.return_value = "UPDATE 1"
+        mock_get_pool.return_value = mock_pool
+
+        result = await pin_post(post_id, True)
+        assert result is True
+
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_pin_post_not_found(self, mock_get_pool, mock_pool, mock_conn):
+        from app.services.post import pin_post
+
+        post_id = uuid.uuid4()
+        mock_conn.execute.return_value = "UPDATE 0"
+        mock_get_pool.return_value = mock_pool
+
+        result = await pin_post(post_id, True)
+        assert result is False
+
+
+class TestTrendingPosts:
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_get_trending(self, mock_get_pool, mock_pool, mock_conn):
+        from app.services.post import get_trending_posts
+
+        mock_conn.fetch.return_value = [_make_post_row(), _make_post_row()]
+        mock_get_pool.return_value = mock_pool
+
+        result = await get_trending_posts(limit=5, days=7)
+        assert len(result) == 2
+        assert result[0]["title"] == "Test Post"
+
+
+class TestGetPostWithView:
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_get_post_increments_view(self, mock_get_pool, mock_pool, mock_conn):
+        from app.services.post import get_post_by_id
+
+        post_id = uuid.uuid4()
+        mock_conn.fetchrow.return_value = _make_post_row()
+        mock_get_pool.return_value = mock_pool
+
+        result = await get_post_by_id(post_id, increment_view=True)
+        assert result is not None
+        assert result["title"] == "Test Post"
+        # increment_view_count should have been called (via execute on pool)
+        assert mock_conn.execute.call_count >= 1

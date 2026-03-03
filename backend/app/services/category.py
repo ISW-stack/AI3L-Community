@@ -13,7 +13,7 @@ async def create_category(name: str, description: str | None = None) -> dict:
 
 
 async def list_categories() -> list[dict]:
-    return await category_repo.find_all()
+    return await category_repo.find_all_with_post_counts()
 
 
 async def get_category_by_id(category_id: uuid.UUID) -> dict | None:

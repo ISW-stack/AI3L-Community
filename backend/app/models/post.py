@@ -1,7 +1,8 @@
+import datetime
 import uuid
 
 import sqlalchemy as sa
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,6 +31,13 @@ class Post(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("1"))
     comment_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("0"))
+    is_pinned: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=sa.text("false")
+    )
+    view_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("0"))
+    last_comment_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     is_deleted: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=sa.text("false")
     )

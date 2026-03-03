@@ -11,6 +11,7 @@ def _build_author_dict(row: dict) -> dict:
 
 
 def row_to_post(row: dict) -> dict:
+    last_comment_at = row.get("last_comment_at")
     return {
         "id": str(row["id"]),
         "title": row["title"],
@@ -22,6 +23,9 @@ def row_to_post(row: dict) -> dict:
         "allow_comments": row["allow_comments"],
         "version": row["version"],
         "comment_count": row["comment_count"],
+        "is_pinned": row.get("is_pinned", False),
+        "view_count": row.get("view_count", 0),
+        "last_comment_at": last_comment_at.isoformat() if last_comment_at else None,
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }

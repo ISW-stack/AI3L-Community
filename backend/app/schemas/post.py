@@ -57,6 +57,9 @@ class PostResponse(BaseModel):
     allow_comments: bool = True
     version: int
     comment_count: int
+    is_pinned: bool = False
+    view_count: int = 0
+    last_comment_at: str | None = None
     created_at: str
     updated_at: str
 
@@ -94,3 +97,7 @@ class PostSearchRequest(BaseModel):
     logic: str = Field(default="AND", pattern="^(AND|OR)$")
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
+
+
+class PinPostRequest(BaseModel):
+    is_pinned: bool

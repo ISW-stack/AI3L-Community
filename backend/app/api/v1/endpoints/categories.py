@@ -30,6 +30,7 @@ async def get_categories(
             id=str(c["id"]),
             name=c["name"],
             description=c.get("description"),
+            post_count=c.get("post_count", 0),
         )
         for c in categories
     ]

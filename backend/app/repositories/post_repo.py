@@ -15,9 +15,9 @@ _POST_SELECT = """
 """
 
 _SORT_MAP = {
-    "newest": "p.created_at DESC",
-    "oldest": "p.created_at ASC",
-    "most_comments": "p.comment_count DESC, p.created_at DESC",
+    "newest": "p.is_pinned DESC, p.created_at DESC",
+    "oldest": "p.is_pinned DESC, p.created_at ASC",
+    "most_comments": "p.is_pinned DESC, p.comment_count DESC, p.created_at DESC",
 }
 
 
@@ -279,7 +279,7 @@ async def search(
     async with pool.acquire() as conn:
         params.extend([page_size, offset])
         rows = await conn.fetch(
-            f"{_select_count} {where} ORDER BY p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",
+            f"{_select_count} {where} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",
             *params,
         )
         if rows:
@@ -317,3 +317,48 @@ async def bulk_soft_delete(post_ids: list[uuid.UUID], conn: Any) -> int:
         post_ids,
     )
     return int(result.split()[-1])
+
+
+async def update_pin_status(post_id: uuid.UUID, is_pinned: bool) -> bool:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE posts SET is_pinned = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false",  # noqa: E501
+            is_pinned,
+            post_id,
+        )
+        return bool(result == "UPDATE 1")
+
+
+async def increment_view_count(post_id: uuid.UUID) -> None:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE posts SET view_count = view_count + 1 WHERE id = $1",
+            post_id,
+        )
+
+
+async def update_last_comment_at(post_id: uuid.UUID, conn: Any) -> None:
+    """Update last_comment_at to NOW(). Must be called within a transaction."""
+    await conn.execute(
+        "UPDATE posts SET last_comment_at = NOW() WHERE id = $1",
+        post_id,
+    )
+
+
+async def find_trending(limit: int = 5, days: int = 7) -> list[dict]:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""
+            {_POST_SELECT}
+            WHERE p.is_deleted = false
+              AND p.created_at >= NOW() - make_interval(days => $1)
+            ORDER BY p.comment_count DESC, p.created_at DESC
+            LIMIT $2
+            """,
+            days,
+            limit,
+        )
+        return [dict(r) for r in rows]

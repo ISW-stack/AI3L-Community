@@ -78,9 +78,13 @@ async def create_post(
     return row_to_post(row)
 
 
-async def get_post_by_id(post_id: uuid.UUID) -> dict | None:
+async def get_post_by_id(post_id: uuid.UUID, increment_view: bool = False) -> dict | None:
     row = await post_repo.find_by_id(post_id)
-    return row_to_post(row) if row else None
+    if not row:
+        return None
+    if increment_view:
+        await post_repo.increment_view_count(post_id)
+    return row_to_post(row)
 
 
 async def update_post(
@@ -195,3 +199,12 @@ async def search_posts(
         keyword, cat_uuid, keywords_filter, date_from, date_to, logic, page, page_size
     )
     return [row_to_post(r) for r in rows], total, total_pages
+
+
+async def pin_post(post_id: uuid.UUID, is_pinned: bool) -> bool:
+    return await post_repo.update_pin_status(post_id, is_pinned)
+
+
+async def get_trending_posts(limit: int = 5, days: int = 7) -> list[dict]:
+    rows = await post_repo.find_trending(limit, days)
+    return [row_to_post(r) for r in rows]

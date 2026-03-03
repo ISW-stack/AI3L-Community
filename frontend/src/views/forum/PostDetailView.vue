@@ -3,7 +3,13 @@ import { ref, onMounted, computed, nextTick, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { Post, HistoryItem, Comment } from '@/types'
-import { getPost, updatePost, deletePost as apiDeletePost, getPostHistory } from '@/api/posts'
+import {
+  getPost,
+  updatePost,
+  deletePost as apiDeletePost,
+  getPostHistory,
+  togglePinPost,
+} from '@/api/posts'
 import {
   listComments,
   createComment,
@@ -320,6 +326,35 @@ const canReport = computed(() => {
   return post.value.author.id !== auth.user.id
 })
 
+const pinSaving = ref(false)
+
+async function handleTogglePin() {
+  if (!post.value) return
+  pinSaving.value = true
+  try {
+    const result = await togglePinPost(post.value.id, !post.value.is_pinned)
+    post.value.is_pinned = result.is_pinned
+  } catch (e) {
+    console.error(e)
+  } finally {
+    pinSaving.value = false
+  }
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const now = Date.now()
+  const diff = now - new Date(dateStr).getTime()
+  const seconds = Math.floor(diff / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return new Date(dateStr).toLocaleDateString()
+}
+
 async function toggleReactionHandler(commentId: string, reaction: string) {
   try {
     await apiToggleReaction(postId.value, commentId, reaction)
@@ -510,28 +545,56 @@ onUnmounted(() => {
                 </router-link>
                 <span>{{ new Date(post.created_at).toLocaleString() }}</span>
                 <BaseBadge v-if="post.category_name">{{ post.category_name }}</BaseBadge>
+                <span
+                  v-if="post.is_pinned"
+                  class="inline-flex items-center gap-1 text-xs font-medium text-amber-600"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 17v5" />
+                    <path
+                      d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"
+                    />
+                  </svg>
+                  Pinned
+                </span>
                 <span v-if="post.version > 1" class="text-xs text-muted">v{{ post.version }}</span>
               </div>
             </div>
             <div class="flex gap-2 shrink-0">
               <button
+                v-if="auth.isAdmin"
+                :disabled="pinSaving"
+                class="text-sm text-amber-600 hover:underline disabled:opacity-50"
+                @click="handleTogglePin"
+              >
+                {{ post.is_pinned ? 'Unpin' : 'Pin' }}
+              </button>
+              <button
                 v-if="canModify"
-                @click="startEdit"
                 class="text-sm text-brand-600 hover:underline"
+                @click="startEdit"
               >
                 Edit
               </button>
               <button
                 v-if="canModify"
-                @click="showDeletePostConfirm = true"
                 class="text-sm text-danger-600 hover:underline"
+                @click="showDeletePostConfirm = true"
               >
                 Delete
               </button>
               <button
                 v-if="canReport"
-                @click="showReportModal = true"
                 class="text-sm text-orange-600 hover:underline"
+                @click="showReportModal = true"
               >
                 Report
               </button>
@@ -560,13 +623,35 @@ onUnmounted(() => {
 
           <!-- Action Bar -->
           <div class="flex items-center justify-between border-t border-border pt-3">
-            <span class="text-sm text-muted">
-              {{ post.comment_count }} comment{{ post.comment_count !== 1 ? 's' : '' }}
-            </span>
+            <div class="flex items-center gap-4">
+              <span class="text-sm text-muted">
+                {{ post.comment_count }} comment{{ post.comment_count !== 1 ? 's' : '' }}
+              </span>
+              <span class="text-sm text-muted flex items-center gap-1">
+                <svg
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+                  />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {{ post.view_count }} views
+              </span>
+              <span v-if="post.last_comment_at" class="text-xs text-muted">
+                Last reply {{ formatRelativeTime(post.last_comment_at) }}
+              </span>
+            </div>
             <button
               v-if="post.version > 1"
-              @click="fetchHistory"
               class="text-xs text-brand-600 hover:underline"
+              @click="fetchHistory"
             >
               View edit history
             </button>

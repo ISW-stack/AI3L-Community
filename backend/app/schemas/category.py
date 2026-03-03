@@ -5,6 +5,7 @@ class CategoryResponse(BaseModel):
     id: str
     name: str
     description: str | None = None
+    post_count: int = 0
 
 
 class CategoryCreateRequest(BaseModel):
