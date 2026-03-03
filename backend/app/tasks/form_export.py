@@ -101,10 +101,11 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     return {"download_url": download_url}
 
 
-def _run_async(coro):
+def _run_async(coro: Any) -> dict:
     """Run an async coroutine from sync Celery task, cross-platform safe."""
     with ThreadPoolExecutor(1) as pool:
-        return pool.submit(asyncio.run, coro).result()
+        result: dict = pool.submit(asyncio.run, coro).result()
+        return result
 
 
 @celery.task(bind=True, name="tasks.export_form_csv")

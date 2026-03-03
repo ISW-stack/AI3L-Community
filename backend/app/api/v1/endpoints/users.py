@@ -348,7 +348,7 @@ async def get_audit_logs(
 async def bulk_change_role(
     req: BulkRoleChangeRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
-):
+) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():

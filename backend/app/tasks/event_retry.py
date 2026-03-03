@@ -7,19 +7,19 @@ MAX_EVENT_RETRIES = 3
 
 
 @shared_task(name="retry_failed_events")
-def retry_failed_events():
+def retry_failed_events() -> None:
     """Periodic task: retry failed events from Redis with bounded retries."""
     import asyncio
     from concurrent.futures import ThreadPoolExecutor
 
-    def _run():
-        return asyncio.run(_async_retry())
+    def _run() -> None:
+        asyncio.run(_async_retry())
 
     with ThreadPoolExecutor(1) as pool:
         pool.submit(_run).result()
 
 
-async def _async_retry():
+async def _async_retry() -> None:
     from app.core.event_bus import _handlers
     from app.core.redis import get_redis
 
@@ -29,7 +29,7 @@ async def _async_retry():
         logger.warning("Redis not available for event retry")
         return
 
-    raw_events = await redis.lrange("event_bus:failed", 0, -1)
+    raw_events: list = await redis.lrange("event_bus:failed", 0, -1)  # type: ignore[misc]
     if not raw_events:
         return
 

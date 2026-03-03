@@ -190,7 +190,7 @@ async def get_post_edit_history(
 async def bulk_delete_posts(
     req: BulkDeletePostsRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
-):
+) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
