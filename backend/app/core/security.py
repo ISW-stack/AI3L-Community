@@ -37,10 +37,10 @@ def validate_password_policy(password: str) -> str | None:
 # --- JWT ---
 
 ROLE_TTL_MAP: dict[str, timedelta] = {
-    "GUEST": timedelta(minutes=45),
-    "MEMBER": timedelta(hours=3),
-    "ADMIN": timedelta(hours=5),
-    "SUPER_ADMIN": timedelta(hours=8),
+    "GUEST": timedelta(minutes=settings.JWT_GUEST_EXPIRE_MINUTES),
+    "MEMBER": timedelta(minutes=settings.JWT_MEMBER_EXPIRE_MINUTES),
+    "ADMIN": timedelta(minutes=settings.JWT_ADMIN_EXPIRE_MINUTES),
+    "SUPER_ADMIN": timedelta(minutes=settings.JWT_SUPER_ADMIN_EXPIRE_MINUTES),
 }
 
 

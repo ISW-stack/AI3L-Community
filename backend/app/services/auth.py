@@ -14,7 +14,6 @@ from app.services.user import get_user_by_username
 
 SESSION_KEY_TEMPLATE = "session:{role}:{user_id}"
 BLACKLIST_KEY_TEMPLATE = "jwt:blacklist:{jti}"
-GUEST_ONLINE_KEY = "online_count:guest"
 
 
 async def authenticate_user(username: str, password: str) -> dict | None:
@@ -53,9 +52,6 @@ async def destroy_session(user_id: str, role: str, jti: str) -> None:
     blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=jti)
     await redis.set(blacklist_key, "1", ex=28800)  # 8 hours max
 
-    if role == "GUEST":
-        await redis.decr(GUEST_ONLINE_KEY)
-
     logger.info("Session destroyed", extra={"user_id": user_id})
 
 
@@ -86,25 +82,27 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
     return bool(stored_jti == jti)
 
 
+async def _count_active_guests() -> int:
+    """Count active guest sessions by scanning Redis keys."""
+    redis = get_redis()
+    count = 0
+    async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
+        count += 1
+    return count
+
+
 async def guest_login(display_name: str) -> tuple[str, int] | None:
     """Create guest session. Returns (token, expires_in) or None if limit reached."""
-    redis = get_redis()
-
-    count = await redis.incr(GUEST_ONLINE_KEY)
-    if count > MAX_GUESTS:
-        await redis.decr(GUEST_ONLINE_KEY)
+    count = await _count_active_guests()
+    if count >= MAX_GUESTS:
         return None
 
     guest_id = str(uuid.uuid4())
-    try:
-        token, ttl_seconds = await create_session(guest_id, "GUEST")
-    except Exception:
-        await redis.decr(GUEST_ONLINE_KEY)
-        raise
+    token, ttl_seconds = await create_session(guest_id, "GUEST")
 
     logger.info(
         "Guest login",
-        extra={"guest_id": guest_id, "display_name": display_name, "online_guests": count},
+        extra={"guest_id": guest_id, "display_name": display_name, "online_guests": count + 1},
     )
     return token, ttl_seconds
 

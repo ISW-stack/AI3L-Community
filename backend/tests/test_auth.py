@@ -74,14 +74,15 @@ class TestDestroySession:
         redis.set.assert_called_once()  # blacklist
 
     @patch("app.services.auth.get_redis")
-    async def test_destroy_session_guest_decrements_counter(self, mock_get_redis):
+    async def test_destroy_session_guest_no_counter(self, mock_get_redis):
         from app.services.auth import destroy_session
 
         redis = AsyncMock()
         mock_get_redis.return_value = redis
 
         await destroy_session("guest-id", "GUEST", "jti-abc")
-        redis.decr.assert_called_once()
+        redis.delete.assert_called_once()
+        redis.decr.assert_not_called()
 
 
 class TestValidateSession:
@@ -127,8 +128,12 @@ class TestGuestLogin:
     async def test_guest_login_success(self, mock_get_redis, mock_create_session):
         from app.services.auth import guest_login
 
+        async def _few_guests(*args, **kwargs):
+            for key in [f"session:GUEST:{i}" for i in range(5)]:
+                yield key
+
         redis = AsyncMock()
-        redis.incr = AsyncMock(return_value=5)  # < 30
+        redis.scan_iter = _few_guests
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("token-guest", 2700)
 
@@ -142,10 +147,13 @@ class TestGuestLogin:
     async def test_guest_login_limit_reached(self, mock_get_redis):
         from app.services.auth import guest_login
 
+        async def _full_guests(*args, **kwargs):
+            for key in [f"session:GUEST:{i}" for i in range(30)]:
+                yield key
+
         redis = AsyncMock()
-        redis.incr = AsyncMock(return_value=31)  # > MAX_GUESTS
+        redis.scan_iter = _full_guests
         mock_get_redis.return_value = redis
 
         result = await guest_login("Guest User")
         assert result is None
-        redis.decr.assert_called_once()

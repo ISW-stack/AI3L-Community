@@ -27,8 +27,10 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET_KEY: str = "changeme_jwt_secret_key"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    JWT_GUEST_EXPIRE_MINUTES: int = 45
+    JWT_MEMBER_EXPIRE_MINUTES: int = 180
+    JWT_ADMIN_EXPIRE_MINUTES: int = 300
+    JWT_SUPER_ADMIN_EXPIRE_MINUTES: int = 480
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:15173,http://localhost:13000"
