@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import PostCard from '../PostCard.vue'
-import type { Post } from '@/types'
+import type { Post } from '../../types'
 
 vi.mock('@/components/base/BaseCard.vue', () => ({
   default: { template: '<div><slot /></div>' },
