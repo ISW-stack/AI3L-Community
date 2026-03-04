@@ -45,7 +45,12 @@ describe('auth API', () => {
 
   describe('login', () => {
     it('calls POST /auth/login with full credentials payload', async () => {
-      const payload = { username: 'alice', password: 'Pass1!', captcha_id: 'c1', captcha_code: 'ABC' }
+      const payload = {
+        username: 'alice',
+        password: 'Pass1!',
+        captcha_id: 'c1',
+        captcha_code: 'ABC',
+      }
       const mockData = { role: 'MEMBER', expires_in: 3600 }
       mockPost.mockResolvedValue({ data: mockData })
 
