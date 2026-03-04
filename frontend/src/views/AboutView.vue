@@ -6,12 +6,8 @@ interface Contributor {
 }
 
 const contributors: Contributor[] = [
-  { name: 'Alice Chen', role: 'Project Lead & Backend', github: 'alicecodes' },
-  { name: 'Bob Johnson', role: 'Frontend Lead', github: 'bobjohnson' },
-  { name: 'Carol Smith', role: 'Database & DevOps', github: 'carolsmith' },
-  { name: 'David Lee', role: 'UI/UX Designer', github: 'davidlee' },
-  { name: 'Emma Wilson', role: 'QA & Testing', github: 'emmawilson' },
-  { name: 'Frank Brown', role: 'Documentation', github: 'frankbrown' },
+  { name: 'Isaries', role: 'Project Lead & Full-Stack Developer', github: 'Isaries' },
+  { name: 'SW9526', role: 'Frontend Contributor', github: 'SW9526' },
 ]
 
 function getGitHubUrl(username: string): string {
