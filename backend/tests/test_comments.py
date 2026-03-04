@@ -52,7 +52,6 @@ class TestCommentNotificationUsesPostId:
     @pytest.mark.anyio
     async def test_mention_notification_uses_post_id(self):
         """Mention targets should contain post_id, not comment_id."""
-        from unittest.mock import MagicMock
 
         post_id = uuid.uuid4()
         comment_id = uuid.uuid4()
@@ -129,7 +128,6 @@ class TestCommentNotificationUsesPostId:
     @pytest.mark.anyio
     async def test_reply_notification_uses_post_id(self):
         """Reply target should contain post_id, not comment_id."""
-        from unittest.mock import MagicMock
 
         post_id = uuid.uuid4()
         comment_id = uuid.uuid4()
