@@ -36,6 +36,7 @@ function createTestRouter() {
       { path: '/admin/invite-codes', component: { template: '<div />' } },
       { path: '/admin/audit-logs', component: { template: '<div />' } },
       { path: '/profile', component: { template: '<div />' } },
+      { path: '/about', component: { template: '<div />' } },
     ],
   })
 }
@@ -81,11 +82,12 @@ describe('AppNavbar', () => {
       expect(wrapper.text()).toContain('Sign Up')
     })
 
-    it('should show Forum and SIGs links', () => {
+    it('should show Forum, SIGs and About links', () => {
       const { wrapper } = mountNavbar()
 
       expect(wrapper.text()).toContain('Forum')
       expect(wrapper.text()).toContain('SIGs')
+      expect(wrapper.text()).toContain('About')
     })
 
     it('should not show admin links', () => {
