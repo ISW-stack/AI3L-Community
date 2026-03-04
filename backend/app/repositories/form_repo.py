@@ -81,9 +81,16 @@ async def update(
 ) -> tuple[dict, int] | None:
     """Dynamic update within a connection. fields/values built by service."""
     _ALLOWED_FORM_FIELDS = {
-        "title", "description", "banner_url", "deadline",
-        "max_respondents", "questions", "allow_non_members",
-        "status", "is_deleted", "updated_at",
+        "title",
+        "description",
+        "banner_url",
+        "deadline",
+        "max_respondents",
+        "questions",
+        "allow_non_members",
+        "status",
+        "is_deleted",
+        "updated_at",
     }
     for f in fields:
         col_name = f.split("=")[0].strip().split()[0]
