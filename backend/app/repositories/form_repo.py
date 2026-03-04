@@ -80,6 +80,15 @@ async def update(
     form_id: uuid.UUID, fields: list[str], values: list[Any], conn: Any
 ) -> tuple[dict, int] | None:
     """Dynamic update within a connection. fields/values built by service."""
+    _ALLOWED_FORM_FIELDS = {
+        "title", "description", "banner_url", "deadline",
+        "max_respondents", "questions", "allow_non_members",
+        "status", "is_deleted", "updated_at",
+    }
+    for f in fields:
+        col_name = f.split("=")[0].strip().split()[0]
+        if col_name not in _ALLOWED_FORM_FIELDS:
+            raise ValueError(f"Disallowed field in form update: {col_name}")
     fields.append("updated_at = NOW()")
     idx = len(values) + 1
     values.append(form_id)
@@ -93,6 +102,8 @@ async def update(
         return None
     creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", row["created_by"])
     result = dict(row)
+    if isinstance(result.get("questions"), str):
+        result["questions"] = json.loads(result["questions"])
     result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
     response_count = await conn.fetchval(
         "SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id
@@ -172,7 +183,13 @@ async def find_responses(
             page_size,
             offset,
         )
-        return [dict(r) for r in rows], total
+        results = []
+        for r in rows:
+            d = dict(r)
+            if isinstance(d.get("answers"), str):
+                d["answers"] = json.loads(d["answers"])
+            results.append(d)
+        return results, total
 
 
 async def insert_response(

@@ -47,6 +47,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     logger.info("WebSocket connected", extra={"user_id": user_id, "role": role})
 
     guest_timeout_task = None
+    ping_task = None
     last_activity = time.time()
     try:
         last_pong = asyncio.get_event_loop().time()
@@ -55,6 +56,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
         if role == "GUEST":
 
             async def _guest_timeout() -> None:
+                nonlocal last_activity
                 while True:
                     elapsed = time.time() - last_activity
                     remaining = GUEST_SESSION_TIMEOUT - elapsed
@@ -69,6 +71,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
             guest_timeout_task = asyncio.create_task(_guest_timeout())
 
         async def ping_loop() -> None:
+            nonlocal last_pong
             while True:
                 await asyncio.sleep(WS_PING_INTERVAL)
                 now = asyncio.get_event_loop().time()
@@ -99,7 +102,8 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     except Exception as e:
         logger.error("WebSocket error", extra={"user_id": user_id, "error": str(e)})
     finally:
-        ping_task.cancel()
+        if ping_task:
+            ping_task.cancel()
         if guest_timeout_task:
             guest_timeout_task.cancel()
         _connections[user_id].discard(ws)

@@ -1,3 +1,6 @@
+from app.converters.user_converter import resolve_avatar_url
+
+
 def row_to_sig(row: dict, creator_display_name: str | None = None) -> dict:
     return {
         "id": str(row["id"]),
@@ -18,6 +21,6 @@ def row_to_member(row: dict) -> dict:
         "role": row["role"],
         "display_name": row["display_name"],
         "username": row["username"],
-        "avatar_url": row.get("avatar_url"),
+        "avatar_url": resolve_avatar_url(row.get("avatar_url")),
         "created_at": row["created_at"].isoformat(),
     }

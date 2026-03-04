@@ -44,10 +44,13 @@ async def insert(
 
 async def update_profile(user_id: uuid.UUID, **fields: Any) -> dict | None:
     """Dynamic update of user profile fields."""
+    _ALLOWED_FIELDS = {"display_name", "bio", "affiliation", "orcid", "avatar_url"}
     set_parts: list[str] = []
     values: list = []
     idx = 1
     for field_name, value in fields.items():
+        if field_name not in _ALLOWED_FIELDS:
+            continue
         if value is not None:
             set_parts.append(f"{field_name} = ${idx}")
             values.append(value)

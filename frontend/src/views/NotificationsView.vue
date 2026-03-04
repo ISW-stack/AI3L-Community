@@ -29,6 +29,7 @@ const pageSize = 20
 const loading = ref(false)
 const totalPages = ref(1)
 const filter = ref<'all' | 'unread'>('all')
+let fetchId = 0
 
 const filteredNotifications = computed(() => {
   if (filter.value === 'unread') return notifications.value.filter((n) => !n.is_read)
@@ -40,9 +41,11 @@ function changeFilter(f: 'all' | 'unread') {
 }
 
 async function fetchNotifications() {
+  const localFetchId = ++fetchId
   loading.value = true
   try {
     const data = await listNotifications({ page: page.value, page_size: pageSize })
+    if (localFetchId !== fetchId) return
     notifications.value = data.notifications
     total.value = data.total
     unreadCount.value = data.unread_count
@@ -50,7 +53,9 @@ async function fetchNotifications() {
   } catch {
     // silent
   } finally {
-    loading.value = false
+    if (localFetchId === fetchId) {
+      loading.value = false
+    }
   }
 }
 

@@ -31,7 +31,7 @@ async function markRead(notif: Notification) {
 
 function navigateToEntity(notif: Notification) {
   if (notif.entity_type === 'comment' && notif.entity_id) {
-    router.push('/notifications')
+    router.push(`/forum/${notif.entity_id}`)
   } else if (notif.entity_type === 'post' && notif.entity_id) {
     router.push(`/forum/${notif.entity_id}`)
   } else {
@@ -82,7 +82,7 @@ onUnmounted(() => {
         <span class="text-sm font-semibold text-foreground">Notifications</span>
         <button
           v-if="notifStore.unreadCount > 0"
-          @click="notifStore.markAllRead"
+          @click="notifStore.markAllRead()"
           class="text-xs text-brand-600 hover:text-brand-700 transition"
         >
           Mark all as read

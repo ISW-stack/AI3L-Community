@@ -56,7 +56,7 @@ class TestTaskStatus:
         _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
 
         try:
-            _override_auth("MEMBER")
+            _override_auth("ADMIN")
             resp = await client.get(
                 "/api/v1/tasks/task-123/status",
                 headers={"Authorization": "Bearer fake"},
@@ -78,7 +78,7 @@ class TestTaskStatus:
         _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
 
         try:
-            _override_auth("MEMBER")
+            _override_auth("ADMIN")
             resp = await client.get(
                 "/api/v1/tasks/task-456/status",
                 headers={"Authorization": "Bearer fake"},
@@ -87,5 +87,24 @@ class TestTaskStatus:
             data = resp.json()
             assert data["status"] == "SUCCESS"
             assert data["download_url"] == "https://example.com/file.csv"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_task_status_forbidden_for_member(self, client, _mock_celery):
+        """GET /tasks/{id}/status -> 403 for non-admin users."""
+        mock_result = MagicMock()
+        mock_result.state = "PENDING"
+        mock_result.result = None
+
+        _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
+
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/tasks/task-789/status",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
         finally:
             _clear_overrides()

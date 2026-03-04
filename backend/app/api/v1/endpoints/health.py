@@ -24,9 +24,11 @@ async def health_check() -> HealthResponse:
         dependencies.append(
             DependencyStatus(name="postgresql", status="healthy", latency_ms=round(latency, 2))
         )
-    except Exception as e:
+    except Exception:
         overall_healthy = False
-        dependencies.append(DependencyStatus(name="postgresql", status="unhealthy", error=str(e)))
+        dependencies.append(
+            DependencyStatus(name="postgresql", status="unhealthy", error="connection failed")
+        )
 
     # Check Redis
     try:
@@ -37,9 +39,11 @@ async def health_check() -> HealthResponse:
         dependencies.append(
             DependencyStatus(name="redis", status="healthy", latency_ms=round(latency, 2))
         )
-    except Exception as e:
+    except Exception:
         overall_healthy = False
-        dependencies.append(DependencyStatus(name="redis", status="unhealthy", error=str(e)))
+        dependencies.append(
+            DependencyStatus(name="redis", status="unhealthy", error="connection failed")
+        )
 
     return HealthResponse(
         status="healthy" if overall_healthy else "unhealthy",

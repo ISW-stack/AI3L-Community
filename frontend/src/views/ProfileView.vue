@@ -145,6 +145,7 @@ async function saveProfile() {
 async function uploadAvatar(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  message.value = ''
   try {
     const data = await apiUploadAvatar(file)
     auth.user = data
