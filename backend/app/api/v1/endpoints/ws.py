@@ -56,7 +56,6 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
         if role == "GUEST":
 
             async def _guest_timeout() -> None:
-                nonlocal last_activity
                 while True:
                     elapsed = time.time() - last_activity
                     remaining = GUEST_SESSION_TIMEOUT - elapsed
@@ -71,7 +70,6 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
             guest_timeout_task = asyncio.create_task(_guest_timeout())
 
         async def ping_loop() -> None:
-            nonlocal last_pong
             while True:
                 await asyncio.sleep(WS_PING_INTERVAL)
                 now = asyncio.get_event_loop().time()
