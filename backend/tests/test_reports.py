@@ -108,3 +108,103 @@ class TestReviewReport:
                 assert resp.json()["status"] == "RESOLVED"
         finally:
             _clear_overrides()
+
+
+class TestReportPostNotFound:
+    @pytest.mark.anyio
+    async def test_report_post_not_found(self, client):
+        """POST /posts/{id}/report → 404 when post does not exist."""
+        post_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=None),
+                patch(f"{_EP}.create_report", new_callable=AsyncMock),
+            ):
+                resp = await client.post(
+                    f"/api/v1/posts/{post_id}/report",
+                    json={"reason": "Spam content"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestReportPostDuplicate:
+    @pytest.mark.anyio
+    async def test_report_post_duplicate(self, client):
+        """POST /posts/{id}/report → 409 when ValueError raised (duplicate report)."""
+        post_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(
+                    f"{_EP}.get_post_by_id",
+                    new_callable=AsyncMock,
+                    return_value={"id": post_id},
+                ),
+                patch(
+                    f"{_EP}.create_report",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Already reported."),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/posts/{post_id}/report",
+                    json={"reason": "Spam content"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                assert "already reported" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestReviewReportNotFound:
+    @pytest.mark.anyio
+    async def test_review_report_not_found(self, client):
+        """PUT /admin/reports/{id}/review → 404 when report does not exist."""
+        report_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.review_report", new_callable=AsyncMock, return_value=None):
+                resp = await client.put(
+                    f"/api/v1/admin/reports/{report_id}/review",
+                    json={"status": "RESOLVED"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestListReportsFiltered:
+    @pytest.mark.anyio
+    async def test_list_reports_with_status_filter(self, client):
+        """GET /admin/reports with status filter → 200 returns filtered reports."""
+        report = _make_report()
+        report["status"] = "PENDING"
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.list_reports",
+                new_callable=AsyncMock,
+                return_value=([report], 1),
+            ):
+                resp = await client.get(
+                    "/api/v1/admin/reports?status_filter=PENDING",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["total"] == 1
+                assert data["reports"][0]["status"] == "PENDING"
+        finally:
+            _clear_overrides()

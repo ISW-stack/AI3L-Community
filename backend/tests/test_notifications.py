@@ -101,3 +101,102 @@ class TestMarkAllRead:
                 assert "5" in resp.json()["message"]
         finally:
             _clear_overrides()
+
+
+class TestMarkReadNotFound:
+    @pytest.mark.anyio
+    async def test_mark_read_not_found(self, client):
+        """PUT /notifications/{id}/read → 404 when notification not found."""
+        notif_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.mark_as_read", new_callable=AsyncMock, return_value=False):
+                resp = await client.put(
+                    f"/api/v1/notifications/{notif_id}/read",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestDeleteNotification:
+    @pytest.mark.anyio
+    async def test_delete_notification_success(self, client):
+        """DELETE /notifications/{id} → 200 when notification exists."""
+        notif_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.delete_notification", new_callable=AsyncMock, return_value=True):
+                resp = await client.delete(
+                    f"/api/v1/notifications/{notif_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["message"] == "Notification deleted."
+        finally:
+            _clear_overrides()
+
+
+class TestDeleteNotificationNotFound:
+    @pytest.mark.anyio
+    async def test_delete_notification_not_found(self, client):
+        """DELETE /notifications/{id} → 404 when notification does not exist."""
+        notif_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.delete_notification", new_callable=AsyncMock, return_value=False):
+                resp = await client.delete(
+                    f"/api/v1/notifications/{notif_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestBulkDeleteNotifications:
+    @pytest.mark.anyio
+    async def test_bulk_delete_all_notifications(self, client):
+        """DELETE /notifications → 204 deletes all notifications for user."""
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                "app.repositories.notification_repo.bulk_delete",
+                new_callable=AsyncMock,
+                return_value=5,
+            ):
+                resp = await client.delete(
+                    "/api/v1/notifications",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 204
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_bulk_delete_with_specific_ids(self, client):
+        """DELETE /notifications with body {notification_ids: [...]} → 204."""
+        notif_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                "app.repositories.notification_repo.bulk_delete",
+                new_callable=AsyncMock,
+                return_value=2,
+            ):
+                resp = await client.request(
+                    "DELETE",
+                    "/api/v1/notifications",
+                    json={"notification_ids": notif_ids},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 204
+        finally:
+            _clear_overrides()
