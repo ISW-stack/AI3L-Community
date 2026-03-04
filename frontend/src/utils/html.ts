@@ -47,6 +47,16 @@ export function extractFormUrls(html: string): { fullMatch: string; id: string }
   return results
 }
 
+export function extractMentions(text: string): string[] {
+  const seen = new Set<string>()
+  const pattern = /@([\w-]+)/g
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(text)) !== null) {
+    seen.add(match[1])
+  }
+  return Array.from(seen)
+}
+
 export function renderMentions(html: string, mentions: string[] | null): string {
   if (!mentions || mentions.length === 0) return html
   let result = html

@@ -13,6 +13,7 @@ from app.services.category import (
     category_exists,
     create_category,
     delete_category,
+    get_category_by_id,
     list_categories,
     update_category,
 )
@@ -35,6 +36,22 @@ async def get_categories(
         for c in categories
     ]
     return CategoryListResponse(categories=items, total=len(items))
+
+
+@router.get("/{category_id}", response_model=CategoryResponse)
+async def get_category(
+    category_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+) -> CategoryResponse:
+    cat = await get_category_by_id(category_id)
+    if cat is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
+    return CategoryResponse(
+        id=str(cat["id"]),
+        name=cat["name"],
+        description=cat.get("description"),
+        post_count=cat.get("post_count", 0),
+    )
 
 
 @router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)

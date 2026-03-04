@@ -42,7 +42,7 @@ async def find_many(
     idx = 1
 
     if status_filter:
-        where = f"WHERE status = ${idx}"
+        where = f"WHERE pr.status = ${idx}"
         params.append(status_filter)
         idx += 1
 
@@ -52,7 +52,7 @@ async def find_many(
     async with pool.acquire() as conn:
         params.extend([limit, offset])
         rows = await conn.fetch(
-            f"SELECT *, COUNT(*) OVER() AS _total FROM post_reports {where} ORDER BY created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
+            f"SELECT pr.*, p.title AS post_title, COUNT(*) OVER() AS _total FROM post_reports pr LEFT JOIN posts p ON pr.post_id = p.id {where} ORDER BY pr.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
             *params,
         )
         if rows:
@@ -61,7 +61,7 @@ async def find_many(
         else:
             # Page may be out of range — do a separate count to get real total
             total = await conn.fetchval(
-                f"SELECT COUNT(*) FROM post_reports {where}",
+                f"SELECT COUNT(*) FROM post_reports pr {where}",
                 *count_params,
             )
             result = []

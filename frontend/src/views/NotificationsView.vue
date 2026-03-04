@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Settings, Trash2 } from 'lucide-vue-next'
 import type { Notification } from '@/types'
@@ -28,6 +28,16 @@ const page = ref(1)
 const pageSize = 20
 const loading = ref(false)
 const totalPages = ref(1)
+const filter = ref<'all' | 'unread'>('all')
+
+const filteredNotifications = computed(() => {
+  if (filter.value === 'unread') return notifications.value.filter((n) => !n.is_read)
+  return notifications.value
+})
+
+function changeFilter(f: 'all' | 'unread') {
+  filter.value = f
+}
 
 async function fetchNotifications() {
   loading.value = true
@@ -130,17 +140,48 @@ onMounted(fetchNotifications)
       </div>
     </div>
 
+    <!-- Filter Tabs -->
+    <div class="flex gap-1 mb-4 border-b border-border">
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition"
+        :class="
+          filter === 'all'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-muted hover:text-foreground'
+        "
+        @click="changeFilter('all')"
+      >
+        All
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition"
+        :class="
+          filter === 'unread'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-muted hover:text-foreground'
+        "
+        @click="changeFilter('unread')"
+      >
+        Unread
+        <span
+          v-if="unreadCount > 0"
+          class="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5"
+          >{{ unreadCount }}</span
+        >
+      </button>
+    </div>
+
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
     <EmptyState
-      v-else-if="notifications.length === 0"
+      v-else-if="filteredNotifications.length === 0"
       message="No notifications yet."
       title="All Caught Up"
     />
 
     <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
       <button
-        v-for="notif in notifications"
+        v-for="notif in filteredNotifications"
         :key="notif.id"
         @click="markRead(notif)"
         class="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-surface-alt transition"

@@ -22,6 +22,10 @@ const error = ref('')
 const loading = ref(false)
 const showPassword = ref(false)
 
+function togglePassword() {
+  showPassword.value = !showPassword.value
+}
+
 async function loadCaptcha() {
   const data = await getCaptcha()
   captchaId.value = data.captcha_id
@@ -52,69 +56,92 @@ loadCaptcha()
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-[70vh]">
-    <BaseCard padding="lg" class="w-full max-w-md shadow-lg">
-      <h1 class="text-2xl font-bold text-center text-foreground mb-6">Log In to AI3L Community</h1>
-
-      <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
-
-      <form @submit.prevent="handleLogin" class="space-y-4">
-        <BaseInput v-model="username" label="Username" placeholder="Enter your username" required />
-        <div class="relative">
-          <BaseInput
-            v-model="password"
-            :type="showPassword ? 'text' : 'password'"
-            label="Password"
-            placeholder="Enter your password"
-            required
-          />
-          <button
-            type="button"
-            class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-            @click="showPassword = !showPassword"
-            :aria-label="showPassword ? 'Hide password' : 'Show password'"
-          >
-            <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
-          </button>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-1">Captcha</label>
-          <div class="flex gap-3 items-center">
-            <input
-              v-model="captchaCode"
-              type="text"
-              required
-              maxlength="4"
-              class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
-              placeholder="Enter captcha code"
-            />
-            <img
-              v-if="captchaImage"
-              :src="captchaImage"
-              alt="captcha"
-              class="h-10 rounded cursor-pointer"
-              @click="loadCaptcha"
-              title="Click to refresh captcha"
-            />
-          </div>
-        </div>
-
-        <BaseButton type="submit" size="full" :loading="loading" :disabled="loading">
-          {{ loading ? 'Logging in...' : 'Log In' }}
-        </BaseButton>
-      </form>
-
-      <div class="mt-6 text-center text-sm text-muted space-y-2">
-        <p>
-          Don't have an account?
-          <router-link to="/register" class="text-brand-600 hover:underline">Sign Up</router-link>
-        </p>
-        <p>
-          Or browse as a
-          <router-link to="/guest" class="text-brand-600 hover:underline">Guest</router-link>
+  <div class="flex min-h-[70vh]">
+    <!-- Left branding panel (desktop only) -->
+    <div
+      class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-900 to-brand-700 rounded-l-lg items-center justify-center p-12"
+    >
+      <div class="text-center text-white">
+        <h2 class="text-3xl font-bold mb-3">AI3L Community</h2>
+        <p class="text-brand-200 text-lg">AI in Language Learning and Literacy</p>
+        <p class="text-brand-300 mt-4 text-sm max-w-sm">
+          Connect with researchers and educators advancing the future of AI-powered language
+          learning.
         </p>
       </div>
-    </BaseCard>
+    </div>
+    <!-- Right form panel -->
+    <div class="flex-1 flex items-center justify-center p-4">
+      <BaseCard padding="lg" class="w-full max-w-md shadow-lg">
+        <h1 class="text-2xl font-bold text-center text-foreground mb-6">
+          Log In to AI3L Community
+        </h1>
+
+        <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
+
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <BaseInput
+            v-model="username"
+            label="Username"
+            placeholder="Enter your username"
+            required
+          />
+          <div class="relative">
+            <BaseInput
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              label="Password"
+              placeholder="Enter your password"
+              required
+            />
+            <button
+              type="button"
+              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+              @click="togglePassword"
+              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            >
+              <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
+            </button>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-1">Captcha</label>
+            <div class="flex gap-3 items-center">
+              <input
+                v-model="captchaCode"
+                type="text"
+                required
+                maxlength="4"
+                class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
+                placeholder="Enter captcha code"
+              />
+              <img
+                v-if="captchaImage"
+                :src="captchaImage"
+                alt="captcha"
+                class="h-10 rounded cursor-pointer"
+                @click="loadCaptcha"
+                title="Click to refresh captcha"
+              />
+            </div>
+          </div>
+
+          <BaseButton type="submit" size="full" :loading="loading" :disabled="loading">
+            {{ loading ? 'Logging in...' : 'Log In' }}
+          </BaseButton>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-muted space-y-2">
+          <p>
+            Don't have an account?
+            <router-link to="/register" class="text-brand-600 hover:underline">Sign Up</router-link>
+          </p>
+          <p>
+            Or browse as a
+            <router-link to="/guest" class="text-brand-600 hover:underline">Guest</router-link>
+          </p>
+        </div>
+      </BaseCard>
+    </div>
   </div>
 </template>

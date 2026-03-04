@@ -23,6 +23,11 @@ vi.mock('@/components/base/BaseAvatar.vue', () => ({
   },
 }))
 
+vi.mock('lucide-vue-next', () => ({
+  Pin: { name: 'Pin', template: '<svg data-testid="pin-icon" />' },
+  Eye: { name: 'Eye', template: '<svg data-testid="eye-icon" />' },
+}))
+
 function createTestRouter() {
   return createRouter({
     history: createMemoryHistory(),
@@ -115,6 +120,12 @@ describe('PostCard', () => {
     it('does not show "Pinned" text when is_pinned is false', () => {
       const wrapper = mountCard(makePost({ is_pinned: false }))
       expect(wrapper.text()).not.toContain('Pinned')
+    })
+
+    it('renders Pin icon when post is pinned', () => {
+      const wrapper = mountCard(makePost({ is_pinned: true }))
+      const pinIcon = wrapper.find('[data-testid="pin-icon"]')
+      expect(pinIcon.exists()).toBe(true)
     })
   })
 

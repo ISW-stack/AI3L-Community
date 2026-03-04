@@ -7,6 +7,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const applications = ref<Application[]>([])
 const total = ref(0)
@@ -53,6 +54,14 @@ function setStatusFilter(s: string) {
   fetchApplications()
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 onMounted(fetchApplications)
 </script>
 
@@ -69,7 +78,7 @@ onMounted(fetchApplications)
         :class="
           statusFilter === s
             ? 'bg-brand-600 text-white'
-            : 'bg-surface-alt text-muted hover:bg-gray-100'
+            : 'bg-surface-alt text-muted hover:text-foreground'
         "
       >
         {{ statusLabels[s] }}
@@ -80,9 +89,11 @@ onMounted(fetchApplications)
 
     <div class="space-y-3">
       <SkeletonLoader v-if="loading" :lines="3" variant="card" />
-      <div v-else-if="applications.length === 0" class="text-center text-muted py-8">
-        No applications found
-      </div>
+      <EmptyState
+        v-else-if="applications.length === 0"
+        title="No Applications"
+        message="No applications found."
+      />
 
       <BaseCard v-for="app in applications" :key="app.id" padding="lg">
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
@@ -95,7 +106,7 @@ onMounted(fetchApplications)
               }}</BaseBadge>
             </div>
             <p class="text-sm text-muted mb-1">{{ app.description }}</p>
-            <p class="text-xs text-muted">{{ new Date(app.created_at).toLocaleString() }}</p>
+            <p class="text-xs text-muted">{{ formatDate(app.created_at) }}</p>
           </div>
 
           <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">

@@ -16,6 +16,7 @@ export async function createComment(
   payload: {
     content: string
     parent_id?: string
+    mentions?: string[]
   },
 ) {
   const { data } = await api.post(`/posts/${postId}/comments`, payload)

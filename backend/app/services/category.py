@@ -17,7 +17,7 @@ async def list_categories() -> list[dict]:
 
 
 async def get_category_by_id(category_id: uuid.UUID) -> dict | None:
-    return await category_repo.find_by_id(category_id)
+    return await category_repo.find_by_id_with_post_count(category_id)
 
 
 async def update_category(

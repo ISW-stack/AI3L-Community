@@ -67,6 +67,23 @@ async def exists_by_name(name: str) -> bool:
         return bool(count > 0)
 
 
+async def find_by_id_with_post_count(category_id: uuid.UUID) -> dict | None:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT c.*,
+                   COUNT(p.id) FILTER (WHERE p.is_deleted = false) AS post_count
+            FROM categories c
+            LEFT JOIN posts p ON p.category_id = c.id
+            WHERE c.id = $1
+            GROUP BY c.id
+            """,
+            category_id,
+        )
+        return dict(row) if row else None
+
+
 async def find_all_with_post_counts() -> list[dict]:
     pool = get_pool()
     async with pool.acquire() as conn:
