@@ -54,8 +54,8 @@ function getGitHubUrl(username: string): string {
     <div class="mt-16 pt-8 border-t border-border">
       <h2 class="text-2xl font-semibold text-foreground mb-4">About this Project</h2>
       <p class="text-muted mb-4">
-        AI3L Community is built on modern technologies including Vue 3, FastAPI, and PostgreSQL.
-        We are committed to maintaining high code quality, security, and accessibility standards.
+        AI3L Community is built on modern technologies including Vue 3, FastAPI, and PostgreSQL. We
+        are committed to maintaining high code quality, security, and accessibility standards.
       </p>
       <p class="text-muted">
         If you're interested in contributing to this project, please refer to our contributor
