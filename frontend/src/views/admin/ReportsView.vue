@@ -3,7 +3,9 @@ import { ref, onMounted } from 'vue'
 import type { Report } from '@/types'
 import { listReports, reviewReport as apiReviewReport } from '@/api/admin'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const reports = ref<Report[]>([])
@@ -52,6 +54,11 @@ function handleStatusChange() {
   fetchReports()
 }
 
+function handlePageChange(p: number) {
+  currentPage.value = p
+  fetchReports()
+}
+
 onMounted(fetchReports)
 </script>
 
@@ -64,8 +71,8 @@ onMounted(fetchReports)
       <label class="text-sm text-muted">Filter by status:</label>
       <select
         v-model="statusFilter"
-        @change="handleStatusChange"
         class="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        @change="handleStatusChange"
       >
         <option value="">All</option>
         <option value="PENDING">Pending</option>
@@ -76,9 +83,7 @@ onMounted(fetchReports)
 
     <SkeletonLoader v-if="loading" :lines="4" variant="list" />
 
-    <div v-else-if="reports.length === 0" class="text-center text-muted py-8">
-      No reports found.
-    </div>
+    <EmptyState v-else-if="reports.length === 0" message="No reports found." />
 
     <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
       <table class="w-full text-sm min-w-[700px]">
@@ -97,12 +102,12 @@ onMounted(fetchReports)
             :key="report.id"
             class="border-b border-border last:border-0 hover:bg-surface-alt transition"
           >
-            <td class="px-4 py-3">
+            <td class="px-4 py-3 max-w-xs truncate">
               <router-link
                 :to="`/forum/${report.post_id}`"
-                class="text-brand-600 hover:underline text-xs"
+                class="text-brand-600 hover:underline text-sm"
               >
-                {{ report.post_id.slice(0, 8) }}...
+                {{ report.post_title || report.post_id.slice(0, 8) + '...' }}
               </router-link>
             </td>
             <td class="px-4 py-3 max-w-xs truncate text-foreground">{{ report.reason }}</td>
@@ -116,18 +121,15 @@ onMounted(fetchReports)
             </td>
             <td class="px-4 py-3">
               <div v-if="report.status === 'PENDING'" class="flex gap-2">
-                <button
-                  @click="reviewReport(report.id, 'RESOLVED')"
-                  class="text-xs text-success-600 hover:underline"
+                <BaseButton size="sm" variant="success" @click="reviewReport(report.id, 'RESOLVED')"
+                  >Resolve</BaseButton
                 >
-                  Resolve
-                </button>
-                <button
+                <BaseButton
+                  size="sm"
+                  variant="secondary"
                   @click="reviewReport(report.id, 'DISMISSED')"
-                  class="text-xs text-muted hover:underline"
+                  >Dismiss</BaseButton
                 >
-                  Dismiss
-                </button>
               </div>
               <span v-else class="text-xs text-muted">Reviewed</span>
             </td>
@@ -140,13 +142,8 @@ onMounted(fetchReports)
       v-if="totalPages > 1"
       :current-page="currentPage"
       :total-pages="totalPages"
-      @update:current-page="
-        (p: number) => {
-          currentPage = p
-          fetchReports()
-        }
-      "
       class="mt-4"
+      @update:current-page="handlePageChange"
     />
 
     <p class="mt-3 text-xs text-muted">{{ total }} report(s) total</p>

@@ -70,6 +70,14 @@ const statusBadge: Record<string, 'success' | 'neutral' | 'danger'> = {
   expired: 'danger',
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 onMounted(fetchCodes)
 </script>
 
@@ -100,53 +108,58 @@ onMounted(fetchCodes)
 
     <EmptyState v-else-if="codes.length === 0" message="No invite codes found." title="No Codes" />
 
-    <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
-      <table class="w-full text-sm min-w-[650px]">
-        <thead class="bg-surface-alt text-left border-b border-border">
-          <tr>
-            <th class="px-4 py-3 font-medium text-muted">Code</th>
-            <th class="px-4 py-3 font-medium text-muted">Status</th>
-            <th class="px-4 py-3 font-medium text-muted">Created By</th>
-            <th class="px-4 py-3 font-medium text-muted">Used By</th>
-            <th class="px-4 py-3 font-medium text-muted">Created</th>
-            <th class="px-4 py-3 font-medium text-muted">Expires</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border">
-          <tr v-for="code in codes" :key="code.id" class="hover:bg-surface-alt transition">
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-2">
-                <code class="font-mono text-xs text-foreground">{{ code.code }}</code>
-                <button
-                  @click="copyCode(code.code, code.id)"
-                  class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition"
-                  :aria-label="`Copy invite code ${code.code}`"
-                >
-                  <Check
-                    v-if="copiedId === code.id"
-                    class="w-3.5 h-3.5 text-success-600"
-                    aria-hidden="true"
-                  />
-                  <Copy v-else class="w-3.5 h-3.5" aria-hidden="true" />
-                </button>
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <BaseBadge :variant="statusBadge[code.status] || 'neutral'">{{
-                code.status
-              }}</BaseBadge>
-            </td>
-            <td class="px-4 py-3 text-muted">{{ code.creator_username || '—' }}</td>
-            <td class="px-4 py-3 text-muted">{{ code.consumed_by_username || '—' }}</td>
-            <td class="px-4 py-3 text-muted text-xs">
-              {{ new Date(code.created_at).toLocaleDateString() }}
-            </td>
-            <td class="px-4 py-3 text-muted text-xs">
-              {{ code.expires_at ? new Date(code.expires_at).toLocaleDateString() : '—' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else class="relative">
+      <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+        <table class="w-full text-sm min-w-[650px]">
+          <thead class="bg-surface-alt text-left border-b border-border">
+            <tr>
+              <th class="px-4 py-3 font-medium text-muted">Code</th>
+              <th class="px-4 py-3 font-medium text-muted">Status</th>
+              <th class="px-4 py-3 font-medium text-muted">Created By</th>
+              <th class="px-4 py-3 font-medium text-muted">Used By</th>
+              <th class="px-4 py-3 font-medium text-muted">Created</th>
+              <th class="px-4 py-3 font-medium text-muted">Expires</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <tr v-for="code in codes" :key="code.id" class="hover:bg-surface-alt transition">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <code class="font-mono text-xs text-foreground">{{ code.code }}</code>
+                  <button
+                    @click="copyCode(code.code, code.id)"
+                    class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition"
+                    :aria-label="`Copy invite code ${code.code}`"
+                  >
+                    <Check
+                      v-if="copiedId === code.id"
+                      class="w-3.5 h-3.5 text-success-600"
+                      aria-hidden="true"
+                    />
+                    <Copy v-else class="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <BaseBadge :variant="statusBadge[code.status] || 'neutral'">{{
+                  code.status
+                }}</BaseBadge>
+              </td>
+              <td class="px-4 py-3 text-muted">{{ code.creator_username || '—' }}</td>
+              <td class="px-4 py-3 text-muted">{{ code.consumed_by_username || '—' }}</td>
+              <td class="px-4 py-3 text-muted text-xs">
+                {{ formatDate(code.created_at) }}
+              </td>
+              <td class="px-4 py-3 text-muted text-xs">
+                {{ code.expires_at ? formatDate(code.expires_at) : '—' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div
+        class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none lg:hidden"
+      ></div>
     </div>
 
     <p class="mt-4 text-xs text-muted">{{ total }} code(s) total</p>

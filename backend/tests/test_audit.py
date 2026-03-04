@@ -128,3 +128,46 @@ class TestAuditLogsEndpoint:
             assert "total" in data
         finally:
             app.dependency_overrides.pop(get_current_user, None)
+
+    @patch(
+        "app.api.v1.endpoints.users.list_audit_logs", new_callable=AsyncMock, return_value=([], 0)
+    )
+    async def test_audit_logs_endpoint_with_filters(self, mock_list, client: AsyncClient):
+        """GET /users/admin/audit-logs with date and user_id filters → passes params."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        user_filter = str(uuid.uuid4())
+        payload = {"sub": str(uuid.uuid4()), "role": "SUPER_ADMIN", "jti": "jti-2"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.get(
+                f"/api/v1/users/admin/audit-logs?user_id={user_filter}"
+                "&date_from=2025-01-01&date_to=2025-12-31&page=2&page_size=25",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 200
+            mock_list.assert_called_once_with(
+                page=2,
+                page_size=25,
+                user_id_filter=user_filter,
+                date_from="2025-01-01",
+                date_to="2025-12-31",
+            )
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+    @patch("app.repositories.audit_repo.get_pool")
+    async def test_list_audit_logs_with_date_filter(self, mock_get_pool, mock_pool, mock_conn):
+        """list_audit_logs passes date_from/date_to to repo."""
+        from app.services.audit import list_audit_logs
+
+        mock_conn.fetchval.return_value = 0
+        mock_conn.fetch.return_value = []
+        mock_get_pool.return_value = mock_pool
+
+        logs, total = await list_audit_logs(
+            page=1, page_size=50, date_from="2025-01-01", date_to="2025-12-31"
+        )
+        assert total == 0
+        assert logs == []

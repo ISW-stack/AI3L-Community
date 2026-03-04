@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import NotificationBell from '@/components/NotificationBell.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
-import { Menu, X, ChevronDown } from 'lucide-vue-next'
+import { Menu, X, ChevronDown, GraduationCap } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -83,10 +83,11 @@ onUnmounted(() => {
     aria-label="Main navigation"
   >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-14 items-center">
+      <div class="flex justify-between h-16 items-center">
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
-          <span class="text-lg font-bold text-brand-700">AI3L Community</span>
+          <GraduationCap class="w-6 h-6 text-brand-600" aria-hidden="true" />
+          <span class="text-lg font-bold text-brand-700">AI3L</span>
         </router-link>
 
         <!-- Desktop nav links -->

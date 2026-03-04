@@ -29,8 +29,8 @@ router = APIRouter(prefix="/posts/{post_id}/comments", tags=["comments"])
 @router.get("", response_model=CommentListResponse)
 async def get_comments(
     post_id: uuid.UUID,
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     current_user: dict = Depends(get_current_user),
 ) -> CommentListResponse:
     # Verify post exists
@@ -38,7 +38,7 @@ async def get_comments(
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
 
-    comments, total = await list_comments(post_id, offset=offset, limit=limit)
+    comments, total = await list_comments(post_id, page=page, page_size=page_size)
     return CommentListResponse(
         comments=[CommentResponse(**c) for c in comments],
         total=total,

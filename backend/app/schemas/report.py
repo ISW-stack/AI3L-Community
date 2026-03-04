@@ -14,6 +14,7 @@ class PostReportResponse(BaseModel):
     reviewed_by: str | None = None
     reviewed_at: str | None = None
     created_at: str
+    post_title: str | None = None
 
 
 class PostReportListResponse(BaseModel):

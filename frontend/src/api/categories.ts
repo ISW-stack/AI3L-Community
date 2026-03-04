@@ -11,6 +11,11 @@ export async function listCategories() {
   return data.categories as Category[]
 }
 
+export async function getCategory(categoryId: string) {
+  const { data } = await api.get(`/categories/${categoryId}`)
+  return data as Category
+}
+
 export async function createCategory(payload: { name: string; description?: string }) {
   const { data } = await api.post('/categories', payload)
   return data as Category

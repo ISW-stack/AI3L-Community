@@ -24,7 +24,7 @@ export interface UsersListResponse {
   total: number
 }
 
-export async function listUsers(params?: { limit?: number; page?: number; page_size?: number }) {
+export async function listUsers(params?: { page?: number; page_size?: number; search?: string }) {
   const { data } = await api.get('/users', { params })
   return data as UsersListResponse
 }
@@ -58,7 +58,13 @@ export interface AuditLogsResponse {
   total: number
 }
 
-export async function getAuditLogs(params: { page?: number; page_size?: number }) {
+export async function getAuditLogs(params: {
+  page?: number
+  page_size?: number
+  user_id?: string
+  date_from?: string
+  date_to?: string
+}) {
   const { data } = await api.get('/users/admin/audit-logs', { params })
   return data as AuditLogsResponse
 }

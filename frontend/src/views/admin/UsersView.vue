@@ -19,6 +19,7 @@ import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -30,6 +31,8 @@ const message = ref('')
 const page = ref(1)
 const pageSize = 20
 const totalPages = ref(1)
+const searchQuery = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 // Bulk selection
 const selectedIds = ref<Set<string>>(new Set())
@@ -102,10 +105,23 @@ const roleBadge: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'> = {
   GUEST: 'neutral',
 }
 
+function onSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    fetchUsers()
+  }, 300)
+}
+
 async function fetchUsers() {
   loading.value = true
   try {
-    const data = await listUsers({ page: page.value, page_size: pageSize })
+    const params: { page: number; page_size: number; search?: string } = {
+      page: page.value,
+      page_size: pageSize,
+    }
+    if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
+    const data = await listUsers(params)
     users.value = data.users
     total.value = data.total
     totalPages.value = Math.max(1, Math.ceil(data.total / pageSize))
@@ -202,6 +218,17 @@ onMounted(fetchUsers)
       <BaseButton @click="showCreateModal = true">Create Account</BaseButton>
     </div>
 
+    <!-- Search bar -->
+    <div class="mb-4">
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Search by username or display name..."
+        class="w-full sm:w-80 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
+        @input="onSearchInput"
+      />
+    </div>
+
     <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
     <!-- Bulk action bar -->
@@ -224,84 +251,95 @@ onMounted(fetchUsers)
 
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
-    <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
-      <table class="w-full text-sm min-w-[700px]">
-        <thead class="bg-surface-alt border-b border-border">
-          <tr>
-            <th v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
-              <input
-                type="checkbox"
-                :checked="allSelected"
-                @change="allSelected = ($event.target as HTMLInputElement).checked"
-                class="rounded"
-              />
-            </th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Username</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Display Name</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Role</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Status</th>
-            <th v-if="auth.isSuperAdmin" class="text-left px-4 py-3 font-medium text-muted">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="user in users"
-            :key="user.id"
-            class="border-b border-border last:border-0 hover:bg-surface-alt transition"
-          >
-            <td v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
-              <input
-                v-if="user.id !== auth.user?.id"
-                type="checkbox"
-                :checked="selectedIds.has(user.id)"
-                @change="toggleSelect(user.id)"
-                class="rounded"
-              />
-            </td>
-            <td class="px-4 py-3 text-foreground">{{ user.username }}</td>
-            <td class="px-4 py-3 text-foreground">{{ user.display_name }}</td>
-            <td class="px-4 py-3">
-              <BaseBadge :variant="roleBadge[user.role] || 'neutral'">{{
-                roleLabels[user.role] || user.role
-              }}</BaseBadge>
-            </td>
-            <td class="px-4 py-3">
-              <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''"
-                >Banned</BaseBadge
-              >
-              <span v-else class="text-xs text-muted">Active</span>
-            </td>
-            <td v-if="auth.isSuperAdmin" class="px-4 py-3">
-              <div class="flex items-center gap-2">
-                <select
-                  v-if="user.id !== auth.user?.id"
-                  :value="user.role"
-                  @change="changeRole(user.id, ($event.target as HTMLSelectElement).value)"
-                  class="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                >
-                  <option v-for="r in roles" :key="r" :value="r">{{ roleLabels[r] }}</option>
-                </select>
-                <span v-else class="text-xs text-muted">Current user</span>
+    <EmptyState
+      v-else-if="users.length === 0"
+      title="No Users"
+      message="No users found matching your search."
+    />
 
-                <template v-if="user.id !== auth.user?.id">
-                  <BaseButton
-                    v-if="!user.is_banned"
-                    size="sm"
-                    variant="soft-danger"
-                    @click="openBanModal(user)"
-                    >Ban</BaseButton
+    <div v-else class="relative">
+      <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+        <table class="w-full text-sm min-w-[700px]">
+          <thead class="bg-surface-alt border-b border-border">
+            <tr>
+              <th v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
+                <input
+                  type="checkbox"
+                  :checked="allSelected"
+                  @change="allSelected = ($event.target as HTMLInputElement).checked"
+                  class="rounded"
+                />
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">Username</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">Display Name</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">Role</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">Status</th>
+              <th v-if="auth.isSuperAdmin" class="text-left px-4 py-3 font-medium text-muted">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="user in users"
+              :key="user.id"
+              class="border-b border-border last:border-0 hover:bg-surface-alt transition"
+            >
+              <td v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
+                <input
+                  v-if="user.id !== auth.user?.id"
+                  type="checkbox"
+                  :checked="selectedIds.has(user.id)"
+                  @change="toggleSelect(user.id)"
+                  class="rounded"
+                />
+              </td>
+              <td class="px-4 py-3 text-foreground">{{ user.username }}</td>
+              <td class="px-4 py-3 text-foreground">{{ user.display_name }}</td>
+              <td class="px-4 py-3">
+                <BaseBadge :variant="roleBadge[user.role] || 'neutral'">{{
+                  roleLabels[user.role] || user.role
+                }}</BaseBadge>
+              </td>
+              <td class="px-4 py-3">
+                <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''"
+                  >Banned</BaseBadge
+                >
+                <span v-else class="text-xs text-muted">Active</span>
+              </td>
+              <td v-if="auth.isSuperAdmin" class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <select
+                    v-if="user.id !== auth.user?.id"
+                    :value="user.role"
+                    @change="changeRole(user.id, ($event.target as HTMLSelectElement).value)"
+                    class="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
-                  <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)"
-                    >Unban</BaseButton
-                  >
-                </template>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                    <option v-for="r in roles" :key="r" :value="r">{{ roleLabels[r] }}</option>
+                  </select>
+                  <span v-else class="text-xs text-muted">Current user</span>
+
+                  <template v-if="user.id !== auth.user?.id">
+                    <BaseButton
+                      v-if="!user.is_banned"
+                      size="sm"
+                      variant="soft-danger"
+                      @click="openBanModal(user)"
+                      >Ban</BaseButton
+                    >
+                    <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)"
+                      >Unban</BaseButton
+                    >
+                  </template>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div
+        class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none lg:hidden"
+      ></div>
     </div>
 
     <div class="mt-4 flex items-center justify-between">

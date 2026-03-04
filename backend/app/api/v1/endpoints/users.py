@@ -176,11 +176,12 @@ async def get_public_profile(
     response_model=UserListResponse,
 )
 async def get_all_users(
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    search: str | None = Query(None),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> UserListResponse:
-    users, total = await list_users(offset=offset, limit=limit)
+    users, total = await list_users(page=page, page_size=page_size, search=search)
     return UserListResponse(users=[_user_to_response(u) for u in users], total=total)
 
 

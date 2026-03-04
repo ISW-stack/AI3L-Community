@@ -184,6 +184,46 @@ class TestReviewReportNotFound:
             _clear_overrides()
 
 
+class TestListReportsWithPostTitle:
+    @pytest.mark.anyio
+    async def test_list_reports_includes_post_title(self, client):
+        """GET /admin/reports → 200 includes post_title field from joined posts table."""
+        report = _make_report()
+        report["post_title"] = "My Test Post"
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.list_reports", new_callable=AsyncMock, return_value=([report], 1)):
+                resp = await client.get(
+                    "/api/v1/admin/reports",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["reports"][0]["post_title"] == "My Test Post"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_reports_post_title_null_when_post_deleted(self, client):
+        """GET /admin/reports → 200 with post_title=null when post was deleted."""
+        report = _make_report()
+        report["post_title"] = None
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.list_reports", new_callable=AsyncMock, return_value=([report], 1)):
+                resp = await client.get(
+                    "/api/v1/admin/reports",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["reports"][0]["post_title"] is None
+        finally:
+            _clear_overrides()
+
+
 class TestListReportsFiltered:
     @pytest.mark.anyio
     async def test_list_reports_with_status_filter(self, client):

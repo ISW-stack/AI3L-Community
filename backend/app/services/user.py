@@ -173,5 +173,9 @@ async def change_password(user_id: uuid.UUID, old_password: str, new_password: s
     return True
 
 
-async def list_users(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:
-    return await user_repo.list_all(offset, limit)
+async def list_users(
+    page: int = 1,
+    page_size: int = 50,
+    search: str | None = None,
+) -> tuple[list[dict], int]:
+    return await user_repo.list_all(page=page, page_size=page_size, search=search)

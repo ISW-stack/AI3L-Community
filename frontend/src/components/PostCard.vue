@@ -3,6 +3,7 @@ import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
+import { Pin, Eye } from 'lucide-vue-next'
 
 const props = withDefaults(
   defineProps<{
@@ -60,20 +61,7 @@ function stripHtml(html: string): string {
             v-if="post.is_pinned"
             class="inline-flex items-center gap-1 text-xs font-medium text-amber-600"
           >
-            <svg
-              class="w-3 h-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M12 17v5" />
-              <path
-                d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"
-              />
-            </svg>
+            <Pin class="w-3 h-3" />
             Pinned
           </span>
         </div>
@@ -89,7 +77,10 @@ function stripHtml(html: string): string {
     <!-- Post Title & Content — link to post -->
     <router-link :to="`/forum/${post.id}`" class="block px-4 pb-3">
       <h2 class="text-base font-bold text-foreground mb-1">{{ post.title }}</h2>
-      <p class="text-sm text-muted" :class="contentClamp === 3 ? 'line-clamp-3' : 'line-clamp-6'">
+      <p
+        class="text-sm text-muted content-preview"
+        :class="contentClamp === 3 ? 'line-clamp-3' : 'line-clamp-6'"
+      >
         {{ stripHtml(post.content) }}
       </p>
     </router-link>
@@ -107,20 +98,7 @@ function stripHtml(html: string): string {
         {{ post.comment_count }} comment{{ post.comment_count !== 1 ? 's' : '' }}
       </span>
       <span class="text-sm text-muted flex items-center gap-1">
-        <svg
-          class="w-3.5 h-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path
-            d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
-          />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
+        <Eye class="w-3.5 h-3.5" />
         {{ post.view_count }}
       </span>
       <span v-if="post.last_comment_at" class="text-xs text-muted ml-auto">
@@ -129,3 +107,19 @@ function stripHtml(html: string): string {
     </div>
   </BaseCard>
 </template>
+
+<style scoped>
+.content-preview {
+  position: relative;
+  overflow: hidden;
+}
+.content-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2rem;
+  background: linear-gradient(transparent, var(--color-surface));
+}
+</style>

@@ -79,6 +79,54 @@ class TestListCategories:
             _clear_overrides()
 
 
+class TestGetCategory:
+    @pytest.mark.anyio
+    async def test_get_category_success(self, client):
+        """GET /categories/{id} → 200 with category and post_count."""
+        cat_id = uuid.uuid4()
+        cat = _make_category(cat_id=cat_id, name="Science")
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.get_category_by_id",
+                new_callable=AsyncMock,
+                return_value=cat,
+            ):
+                resp = await client.get(
+                    f"/api/v1/categories/{cat_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["name"] == "Science"
+                assert data["id"] == str(cat_id)
+                assert "post_count" in data
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_get_category_not_found(self, client):
+        """GET /categories/{id} → 404 when category does not exist."""
+        cat_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.get_category_by_id",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                resp = await client.get(
+                    f"/api/v1/categories/{cat_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
 class TestCreateCategory:
     @pytest.mark.anyio
     async def test_create_category(self, client, mock_pool, mock_conn):

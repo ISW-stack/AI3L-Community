@@ -196,7 +196,7 @@ onMounted(() => {
           :class="
             !categoryFilter
               ? 'bg-brand-600 text-white'
-              : 'bg-surface-alt text-muted hover:bg-gray-100'
+              : 'bg-surface-alt text-muted hover:bg-surface-alt'
           "
           @click="selectCategory(null)"
         >
@@ -209,7 +209,7 @@ onMounted(() => {
           :class="
             categoryFilter === cat.id
               ? 'bg-brand-600 text-white'
-              : 'bg-surface-alt text-muted hover:bg-gray-100'
+              : 'bg-surface-alt text-muted hover:bg-surface-alt'
           "
           @click="selectCategory(cat.id)"
         >
@@ -284,7 +284,7 @@ onMounted(() => {
             :class="
               sortBy === 'newest'
                 ? 'bg-brand-600 text-white border-brand-600'
-                : 'bg-white text-foreground border-border hover:bg-gray-50'
+                : 'bg-surface text-foreground border-border hover:bg-surface-alt'
             "
             @click="selectSort('newest')"
           >
@@ -295,7 +295,7 @@ onMounted(() => {
             :class="
               sortBy === 'oldest'
                 ? 'bg-brand-600 text-white border-brand-600'
-                : 'bg-white text-foreground border-border hover:bg-gray-50'
+                : 'bg-surface text-foreground border-border hover:bg-surface-alt'
             "
             @click="selectSort('oldest')"
           >
@@ -306,7 +306,7 @@ onMounted(() => {
             :class="
               sortBy === 'most_comments'
                 ? 'bg-brand-600 text-white border-brand-600'
-                : 'bg-white text-foreground border-border hover:bg-gray-50'
+                : 'bg-surface text-foreground border-border hover:bg-surface-alt'
             "
             @click="selectSort('most_comments')"
           >
@@ -345,6 +345,15 @@ onMounted(() => {
 
       <!-- Right Sidebar (desktop only) -->
       <aside class="hidden lg:block w-[280px] shrink-0 space-y-6">
+        <!-- About -->
+        <BaseCard>
+          <h3 class="text-sm font-semibold text-foreground mb-2">About</h3>
+          <p class="text-sm text-muted">
+            A community for researchers and educators exploring AI in Language Learning and
+            Literacy.
+          </p>
+        </BaseCard>
+
         <!-- Categories -->
         <BaseCard>
           <h3 class="text-sm font-semibold text-foreground mb-3">Categories</h3>
@@ -355,7 +364,7 @@ onMounted(() => {
                 :class="
                   !categoryFilter
                     ? 'bg-brand-50 text-brand-700 font-medium'
-                    : 'text-foreground hover:bg-gray-50'
+                    : 'text-foreground hover:bg-surface-alt'
                 "
                 @click="selectCategory(null)"
               >
@@ -368,7 +377,7 @@ onMounted(() => {
                 :class="
                   categoryFilter === cat.id
                     ? 'bg-brand-50 text-brand-700 font-medium'
-                    : 'text-foreground hover:bg-gray-50'
+                    : 'text-foreground hover:bg-surface-alt'
                 "
                 @click="selectCategory(cat.id)"
               >
@@ -386,7 +395,7 @@ onMounted(() => {
             <li v-for="tp in trendingPosts" :key="tp.id">
               <router-link
                 :to="`/forum/${tp.id}`"
-                class="block hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition"
+                class="block hover:bg-surface-alt rounded-lg px-2 py-1.5 -mx-2 transition"
               >
                 <p class="text-sm text-foreground font-medium line-clamp-2">{{ tp.title }}</p>
                 <div class="flex items-center gap-3 mt-1 text-xs text-muted">

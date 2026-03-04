@@ -17,9 +17,12 @@ import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+
+const activeTab = ref<'general' | 'security' | 'danger'>('general')
 
 const displayName = ref('')
 const bio = ref('')
@@ -42,6 +45,42 @@ const toast = useToastStore()
 const generatedCode = ref('')
 const generatingCode = ref(false)
 const codeCopied = ref(false)
+
+function roleBadgeVariant(
+  role: string | null | undefined,
+): 'brand' | 'success' | 'warning' | 'purple' | 'neutral' {
+  switch (role) {
+    case 'SUPER_ADMIN':
+      return 'purple'
+    case 'ADMIN':
+      return 'warning'
+    case 'MEMBER':
+      return 'brand'
+    case 'GUEST':
+      return 'neutral'
+    default:
+      return 'neutral'
+  }
+}
+
+function roleBadgeLabel(role: string | null | undefined): string {
+  switch (role) {
+    case 'SUPER_ADMIN':
+      return 'Super Admin'
+    case 'ADMIN':
+      return 'Admin'
+    case 'MEMBER':
+      return 'Member'
+    case 'GUEST':
+      return 'Guest'
+    default:
+      return role || 'Unknown'
+  }
+}
+
+function switchTab(tab: 'general' | 'security' | 'danger') {
+  activeTab.value = tab
+}
 
 async function generateInviteCode() {
   generatingCode.value = true
@@ -152,6 +191,14 @@ const showDeleteConfirm = ref(false)
 const deleteConfirmText = ref('')
 const deletingAccount = ref(false)
 
+function openDeleteConfirm() {
+  showDeleteConfirm.value = true
+}
+
+function closeDeleteConfirm() {
+  showDeleteConfirm.value = false
+}
+
 async function handleDeleteAccount() {
   deletingAccount.value = true
   try {
@@ -166,6 +213,18 @@ async function handleDeleteAccount() {
     showDeleteConfirm.value = false
   }
 }
+
+function toggleCurrentPassword() {
+  showCurrentPassword.value = !showCurrentPassword.value
+}
+
+function toggleNewPassword() {
+  showNewPassword.value = !showNewPassword.value
+}
+
+function toggleConfirmPassword() {
+  showConfirmPassword.value = !showConfirmPassword.value
+}
 </script>
 
 <template>
@@ -174,59 +233,116 @@ async function handleDeleteAccount() {
 
     <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
-    <!-- Avatar -->
-    <div class="flex items-center gap-4 mb-6">
-      <div
-        class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+    <!-- Tab Navigation -->
+    <div class="flex gap-1 mb-6 border-b border-border">
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition"
+        :class="
+          activeTab === 'general'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-muted hover:text-foreground'
+        "
+        @click="switchTab('general')"
       >
-        <img
-          v-if="auth.user?.avatar_url"
-          :src="auth.user.avatar_url"
-          class="w-full h-full object-cover"
-          alt="Avatar"
-        />
-        <span v-else class="text-2xl text-muted">{{ (auth.user?.display_name || '?')[0] }}</span>
-      </div>
-      <label class="text-sm text-brand-600 hover:underline cursor-pointer">
-        Change Avatar
-        <input type="file" accept="image/png,image/jpeg" class="hidden" @change="uploadAvatar" />
-      </label>
+        General
+      </button>
+      <button
+        v-if="!auth.isGuest"
+        class="px-4 py-2 text-sm font-medium border-b-2 transition"
+        :class="
+          activeTab === 'security'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-muted hover:text-foreground'
+        "
+        @click="switchTab('security')"
+      >
+        Security
+      </button>
+      <button
+        v-if="!auth.isGuest"
+        class="px-4 py-2 text-sm font-medium border-b-2 transition"
+        :class="
+          activeTab === 'danger'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-muted hover:text-foreground'
+        "
+        @click="switchTab('danger')"
+      >
+        Danger Zone
+      </button>
     </div>
 
-    <BaseCard padding="lg" class="mb-8">
-      <form @submit.prevent="saveProfile" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-1">Username</label>
-          <input
-            :value="auth.user?.username"
-            disabled
-            class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
+    <!-- General Tab -->
+    <div v-if="activeTab === 'general'">
+      <!-- Avatar -->
+      <div class="flex items-center gap-4 mb-6">
+        <div
+          class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+        >
+          <img
+            v-if="auth.user?.avatar_url"
+            :src="auth.user.avatar_url"
+            class="w-full h-full object-cover"
+            alt="Avatar"
           />
+          <span v-else class="text-2xl text-muted">{{ (auth.user?.display_name || '?')[0] }}</span>
         </div>
+        <label class="text-sm text-brand-600 hover:underline cursor-pointer">
+          Change Avatar
+          <input type="file" accept="image/png,image/jpeg" class="hidden" @change="uploadAvatar" />
+        </label>
+      </div>
 
-        <BaseInput v-model="displayName" label="Display Name" :maxlength="100" />
-        <BaseTextarea v-model="bio" label="Bio" :rows="3" :maxlength="500" />
-        <BaseInput v-model="affiliation" label="Affiliation" :maxlength="200" />
-        <BaseInput
-          v-model="orcid"
-          label="ORCID"
-          :maxlength="50"
-          placeholder="0000-0000-0000-0000"
-        />
+      <!-- Member Info -->
+      <BaseCard padding="lg" class="mb-6">
+        <h2 class="text-sm font-medium text-muted mb-3">Member Info</h2>
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-foreground font-medium">{{
+            auth.user?.username || '---'
+          }}</span>
+          <BaseBadge :variant="roleBadgeVariant(auth.role)">{{
+            roleBadgeLabel(auth.role)
+          }}</BaseBadge>
+        </div>
+      </BaseCard>
 
-        <BaseButton type="submit" :loading="saving">Save</BaseButton>
-      </form>
-    </BaseCard>
+      <!-- Profile Form -->
+      <BaseCard padding="lg" class="mb-8">
+        <form @submit.prevent="saveProfile" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-1">Username</label>
+            <input
+              :value="auth.user?.username"
+              disabled
+              class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
+            />
+          </div>
 
-    <!-- Change Password -->
-    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
+          <BaseInput v-model="displayName" label="Display Name" :maxlength="100" />
+          <BaseTextarea v-model="bio" label="Bio" :rows="3" :maxlength="500" />
+          <BaseInput v-model="affiliation" label="Affiliation" :maxlength="200" />
+          <BaseInput
+            v-model="orcid"
+            label="ORCID"
+            :maxlength="50"
+            placeholder="0000-0000-0000-0000"
+          />
+
+          <BaseButton type="submit" :loading="saving">Save</BaseButton>
+        </form>
+      </BaseCard>
+    </div>
+
+    <!-- Security Tab -->
+    <div v-if="activeTab === 'security' && !auth.isGuest">
+      <!-- Change Password -->
       <h2 class="text-xl font-bold text-foreground mb-4">Change Password</h2>
 
       <BaseAlert v-if="passwordMessage" :type="passwordError ? 'error' : 'success'" class="mb-4">{{
         passwordMessage
       }}</BaseAlert>
 
-      <BaseCard padding="lg">
+      <BaseCard padding="lg" class="mb-8">
         <form @submit.prevent="changePassword" class="space-y-4">
           <div class="relative">
             <BaseInput
@@ -237,7 +353,7 @@ async function handleDeleteAccount() {
             <button
               type="button"
               class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-              @click="showCurrentPassword = !showCurrentPassword"
+              @click="toggleCurrentPassword"
               :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
             >
               <component :is="showCurrentPassword ? EyeOff : Eye" class="w-4 h-4" />
@@ -253,7 +369,7 @@ async function handleDeleteAccount() {
               <button
                 type="button"
                 class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-                @click="showNewPassword = !showNewPassword"
+                @click="toggleNewPassword"
                 :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
               >
                 <component :is="showNewPassword ? EyeOff : Eye" class="w-4 h-4" />
@@ -272,7 +388,7 @@ async function handleDeleteAccount() {
             <button
               type="button"
               class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-              @click="showConfirmPassword = !showConfirmPassword"
+              @click="toggleConfirmPassword"
               :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
             >
               <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
@@ -288,10 +404,8 @@ async function handleDeleteAccount() {
           </BaseButton>
         </form>
       </BaseCard>
-    </div>
 
-    <!-- Invite Codes -->
-    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
+      <!-- Invite Codes -->
       <h2 class="text-xl font-bold text-foreground mb-4">Invite Codes</h2>
       <BaseCard padding="lg">
         <p class="text-sm text-muted mb-4">
@@ -312,17 +426,19 @@ async function handleDeleteAccount() {
       </BaseCard>
     </div>
 
-    <!-- Danger Zone -->
-    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
+    <!-- Danger Zone Tab -->
+    <div v-if="activeTab === 'danger' && !auth.isGuest">
+      <BaseAlert type="warning" class="mb-4"
+        >Actions in this section are irreversible. Please proceed with caution.</BaseAlert
+      >
+
       <h2 class="text-xl font-bold text-danger-600 mb-4">Danger Zone</h2>
       <BaseCard padding="lg">
         <p class="text-sm text-muted mb-4">
           Permanently delete your account and anonymize all personal data. This action cannot be
           undone.
         </p>
-        <BaseButton variant="danger" @click="showDeleteConfirm = true">
-          Delete My Account
-        </BaseButton>
+        <BaseButton variant="danger" @click="openDeleteConfirm"> Delete My Account </BaseButton>
       </BaseCard>
     </div>
 
@@ -334,7 +450,7 @@ async function handleDeleteAccount() {
       </p>
       <BaseInput v-model="deleteConfirmText" label="Type DELETE to confirm" placeholder="DELETE" />
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
+        <BaseButton variant="secondary" @click="closeDeleteConfirm">Cancel</BaseButton>
         <BaseButton
           variant="danger"
           :disabled="deleteConfirmText !== 'DELETE'"

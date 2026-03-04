@@ -129,15 +129,37 @@ async def clear_ban(user_id: uuid.UUID) -> bool:
         return bool(result == "UPDATE 1")
 
 
-async def list_all(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:
+async def list_all(
+    page: int = 1,
+    page_size: int = 50,
+    search: str | None = None,
+) -> tuple[list[dict], int]:
     pool = get_pool()
+    offset = (page - 1) * page_size
     async with pool.acquire() as conn:
-        total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE is_deleted = false")
-        rows = await conn.fetch(
-            "SELECT * FROM users WHERE is_deleted = false ORDER BY created_at DESC OFFSET $1 LIMIT $2",  # noqa: E501
-            offset,
-            limit,
-        )
+        if search:
+            pattern = f"%{search}%"
+            total = await conn.fetchval(
+                "SELECT COUNT(*) FROM users WHERE is_deleted = false"
+                " AND (username ILIKE $1 OR display_name ILIKE $1)",
+                pattern,
+            )
+            rows = await conn.fetch(
+                "SELECT * FROM users WHERE is_deleted = false"
+                " AND (username ILIKE $1 OR display_name ILIKE $1)"
+                " ORDER BY created_at DESC OFFSET $2 LIMIT $3",
+                pattern,
+                offset,
+                page_size,
+            )
+        else:
+            total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE is_deleted = false")
+            rows = await conn.fetch(
+                "SELECT * FROM users WHERE is_deleted = false"
+                " ORDER BY created_at DESC OFFSET $1 LIMIT $2",
+                offset,
+                page_size,
+            )
         return [dict(r) for r in rows], total
 
 

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AdminLayout from '@/components/AdminLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -64,34 +65,47 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/admin/users',
-      name: 'admin-users',
-      component: () => import('@/views/admin/UsersView.vue'),
+      path: '/admin',
+      component: AdminLayout,
       meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/applications',
-      name: 'admin-applications',
-      component: () => import('@/views/admin/ApplicationsView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/reports',
-      name: 'admin-reports',
-      component: () => import('@/views/admin/ReportsView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/categories',
-      name: 'admin-categories',
-      component: () => import('@/views/admin/CategoriesView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/audit-logs',
-      name: 'admin-audit-logs',
-      component: () => import('@/views/admin/AuditLogsView.vue'),
-      meta: { requiresAuth: true, requiresSuperAdmin: true },
+      children: [
+        {
+          path: '',
+          name: 'admin-dashboard',
+          component: () => import('@/views/admin/AdminDashboardView.vue'),
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/UsersView.vue'),
+        },
+        {
+          path: 'applications',
+          name: 'admin-applications',
+          component: () => import('@/views/admin/ApplicationsView.vue'),
+        },
+        {
+          path: 'reports',
+          name: 'admin-reports',
+          component: () => import('@/views/admin/ReportsView.vue'),
+        },
+        {
+          path: 'categories',
+          name: 'admin-categories',
+          component: () => import('@/views/admin/CategoriesView.vue'),
+        },
+        {
+          path: 'invite-codes',
+          name: 'admin-invite-codes',
+          component: () => import('@/views/admin/InviteCodesView.vue'),
+        },
+        {
+          path: 'audit-logs',
+          name: 'admin-audit-logs',
+          component: () => import('@/views/admin/AuditLogsView.vue'),
+          meta: { requiresSuperAdmin: true },
+        },
+      ],
     },
     {
       path: '/sigs',
@@ -128,18 +142,6 @@ const router = createRouter({
       name: 'form-edit',
       component: () => import('@/views/forms/FormBuilderView.vue'),
       meta: { requiresAuth: true },
-    },
-    {
-      path: '/admin',
-      name: 'admin-dashboard',
-      component: () => import('@/views/admin/AdminDashboardView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/invite-codes',
-      name: 'admin-invite-codes',
-      component: () => import('@/views/admin/InviteCodesView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/:pathMatch(.*)*',

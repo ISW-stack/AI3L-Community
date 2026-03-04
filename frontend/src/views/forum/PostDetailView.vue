@@ -20,7 +20,7 @@ import {
 import { createReport } from '@/api/reports'
 import { getFileScanStatus } from '@/api/files'
 import DOMPurify from 'dompurify'
-import { renderMentions } from '@/utils/html'
+import { renderMentions, extractMentions } from '@/utils/html'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -241,7 +241,11 @@ async function submitComment() {
   commentSaving.value = true
   commentMessage.value = ''
   try {
-    await createComment(postId.value, { content: newComment.value })
+    const mentions = extractMentions(newComment.value)
+    await createComment(postId.value, {
+      content: newComment.value,
+      ...(mentions.length > 0 && { mentions }),
+    })
     newComment.value = ''
     await fetchComments()
     if (post.value) post.value.comment_count++
@@ -258,9 +262,11 @@ async function submitInlineReply() {
   commentSaving.value = true
   commentMessage.value = ''
   try {
+    const mentions = extractMentions(inlineReplyContent.value)
     await createComment(postId.value, {
       content: inlineReplyContent.value,
       parent_id: inlineReplyTo.value,
+      ...(mentions.length > 0 && { mentions }),
     })
     inlineReplyTo.value = null
     inlineReplyContent.value = ''

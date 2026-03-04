@@ -40,6 +40,7 @@ export interface Report {
   reviewed_by: string | null
   reviewed_at: string | null
   created_at: string
+  post_title: string | null
 }
 
 export interface Application {
