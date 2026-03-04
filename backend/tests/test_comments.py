@@ -163,9 +163,7 @@ class TestCommentNotificationUsesPostId:
 
         # find_parent_user_id
         parent_user_row = AsyncMock()
-        parent_user_row.fetchrow = AsyncMock(
-            return_value={"user_id": uuid.UUID(parent_user_id)}
-        )
+        parent_user_row.fetchrow = AsyncMock(return_value={"user_id": uuid.UUID(parent_user_id)})
 
         tx = AsyncMock()
         tx.__aenter__ = AsyncMock(return_value=tx)

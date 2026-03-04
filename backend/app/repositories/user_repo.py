@@ -153,9 +153,7 @@ async def list_all(
                 page_size,
             )
         else:
-            total = await conn.fetchval(
-                "SELECT COUNT(*) FROM users WHERE is_deleted = false"
-            )
+            total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE is_deleted = false")
             rows = await conn.fetch(
                 "SELECT * FROM users WHERE is_deleted = false"
                 " ORDER BY created_at DESC OFFSET $1 LIMIT $2",
