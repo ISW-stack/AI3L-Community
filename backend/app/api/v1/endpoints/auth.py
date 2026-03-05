@@ -279,7 +279,7 @@ async def generate_invite_code(
     if active_count >= MAX_ACTIVE_INVITE_CODES_PER_USER:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Maximum active invite codes reached. Wait for existing codes to expire or be consumed.",
+            detail="Maximum active invite codes reached. Wait for existing codes to expire or be consumed.",  # noqa: E501
         )
 
     code, expires_at = await create_invite_code(current_user["sub"])

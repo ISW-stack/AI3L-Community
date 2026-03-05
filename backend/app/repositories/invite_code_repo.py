@@ -53,7 +53,7 @@ async def count_active_by_user(user_id: str) -> int:
     async with pool.acquire() as conn:
         return (
             await conn.fetchval(
-                "SELECT COUNT(*) FROM invite_codes WHERE created_by = $1 AND consumed_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())",
+                "SELECT COUNT(*) FROM invite_codes WHERE created_by = $1 AND consumed_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())",  # noqa: E501
                 uuid.UUID(user_id),
             )
             or 0
@@ -65,7 +65,7 @@ async def revoke(code_id: uuid.UUID) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
-            "UPDATE invite_codes SET expires_at = NOW() WHERE id = $1 AND consumed_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())",
+            "UPDATE invite_codes SET expires_at = NOW() WHERE id = $1 AND consumed_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())",  # noqa: E501
             code_id,
         )
         return bool(result == "UPDATE 1")
