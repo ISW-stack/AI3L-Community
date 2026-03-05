@@ -106,6 +106,12 @@ const router = createRouter({
           component: () => import('@/views/admin/InviteCodesView.vue'),
         },
         {
+          path: 'contributors',
+          name: 'admin-contributors',
+          component: () => import('@/views/admin/ContributorsView.vue'),
+          meta: { requiresSuperAdmin: true },
+        },
+        {
           path: 'audit-logs',
           name: 'admin-audit-logs',
           component: () => import('@/views/admin/AuditLogsView.vue'),

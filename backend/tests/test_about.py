@@ -1,11 +1,36 @@
-"""Tests for about endpoints — contributors list and avatar proxy."""
+"""Tests for about endpoints — contributors list, avatar proxy, and admin CRUD."""
 
 import uuid
-from unittest.mock import MagicMock, patch
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 _EP = "app.api.v1.endpoints.about"
+_SVC = "app.services.contributor"
+
+_FAKE_ID = uuid.uuid4()
+_FAKE_ID2 = uuid.uuid4()
+
+_FAKE_CONTRIBUTOR = {
+    "id": _FAKE_ID,
+    "github_username": "Isaries",
+    "display_name": "Isaries",
+    "role": "Project Lead & Full-Stack Developer",
+    "display_order": 0,
+    "created_at": datetime.now(timezone.utc),
+    "updated_at": datetime.now(timezone.utc),
+}
+
+_FAKE_CONTRIBUTOR2 = {
+    "id": _FAKE_ID2,
+    "github_username": "SW9526",
+    "display_name": "SW9526",
+    "role": "Frontend Contributor",
+    "display_order": 1,
+    "created_at": datetime.now(timezone.utc),
+    "updated_at": datetime.now(timezone.utc),
+}
 
 
 def _override_auth(role="MEMBER", user_id=None):
@@ -30,18 +55,22 @@ class TestListContributors:
         """GET /about/contributors by MEMBER → 200 with contributor list."""
         try:
             _override_auth("MEMBER")
-            resp = await client.get(
-                "/api/v1/about/contributors",
-                headers={"Authorization": "Bearer fake"},
-            )
+            with patch(
+                f"{_SVC}.list_contributors",
+                new_callable=AsyncMock,
+                return_value=[_FAKE_CONTRIBUTOR, _FAKE_CONTRIBUTOR2],
+            ):
+                resp = await client.get(
+                    "/api/v1/about/contributors",
+                    headers={"Authorization": "Bearer fake"},
+                )
             assert resp.status_code == 200
             data = resp.json()
             assert "contributors" in data
-            assert len(data["contributors"]) >= 1
-            # Should have avatar_url but NO github username
+            assert len(data["contributors"]) == 2
             for c in data["contributors"]:
                 assert "avatar_url" in c
-                assert "github" not in c
+                assert "github_username" not in c
         finally:
             _clear_overrides()
 
@@ -68,10 +97,9 @@ class TestListContributors:
 class TestContributorAvatar:
     @pytest.mark.anyio
     async def test_avatar_valid_id(self, client):
-        """GET /about/contributors/0/avatar by MEMBER → 200 with image content."""
+        """GET /about/contributors/{id}/avatar by MEMBER → 200 with image content."""
         from app.api.v1.endpoints import about as about_module
 
-        # Clear avatar cache to ensure httpx is called
         about_module._avatar_cache.clear()
 
         try:
@@ -81,9 +109,16 @@ class TestContributorAvatar:
             mock_response.content = b"\x89PNG\r\n\x1a\n"
             mock_response.headers = {"content-type": "image/png"}
 
-            with patch(f"{_EP}._requests.get", return_value=mock_response):
+            with (
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
+                patch(f"{_EP}._requests.get", return_value=mock_response),
+            ):
                 resp = await client.get(
-                    "/api/v1/about/contributors/0/avatar",
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
@@ -94,24 +129,286 @@ class TestContributorAvatar:
 
     @pytest.mark.anyio
     async def test_avatar_invalid_id(self, client):
-        """GET /about/contributors/999/avatar → 404."""
+        """GET /about/contributors/{bad-uuid}/avatar → 404."""
         try:
             _override_auth("MEMBER")
-            resp = await client.get(
-                "/api/v1/about/contributors/999/avatar",
-                headers={"Authorization": "Bearer fake"},
-            )
+            with patch(
+                f"{_SVC}.get_contributor",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{uuid.uuid4()}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
             assert resp.status_code == 404
         finally:
             _clear_overrides()
 
     @pytest.mark.anyio
     async def test_avatar_guest_forbidden(self, client):
-        """GET /about/contributors/0/avatar by GUEST → 403."""
+        """GET /about/contributors/{id}/avatar by GUEST → 403."""
         try:
             _override_auth("GUEST")
             resp = await client.get(
-                "/api/v1/about/contributors/0/avatar",
+                f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestAdminListContributors:
+    @pytest.mark.anyio
+    async def test_admin_list_superadmin(self, client):
+        """GET /about/admin/contributors by SUPER_ADMIN → 200 with github_username."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(
+                f"{_SVC}.list_contributors",
+                new_callable=AsyncMock,
+                return_value=[_FAKE_CONTRIBUTOR],
+            ):
+                resp = await client.get(
+                    "/api/v1/about/admin/contributors",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert len(data["contributors"]) == 1
+            assert data["contributors"][0]["github_username"] == "Isaries"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_admin_list_member_forbidden(self, client):
+        """GET /about/admin/contributors by MEMBER → 403."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/about/admin/contributors",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_admin_list_admin_forbidden(self, client):
+        """GET /about/admin/contributors by ADMIN → 403."""
+        try:
+            _override_auth("ADMIN")
+            resp = await client.get(
+                "/api/v1/about/admin/contributors",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestAdminCreateContributor:
+    @pytest.mark.anyio
+    async def test_create_success(self, client):
+        """POST /about/admin/contributors → 201."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            new_row = {
+                **_FAKE_CONTRIBUTOR,
+                "github_username": "newuser",
+                "display_name": "New User",
+            }
+            with (
+                patch(
+                    f"{_SVC}.github_username_exists",
+                    new_callable=AsyncMock,
+                    return_value=False,
+                ),
+                patch(
+                    f"{_SVC}.create_contributor",
+                    new_callable=AsyncMock,
+                    return_value=new_row,
+                ),
+            ):
+                resp = await client.post(
+                    "/api/v1/about/admin/contributors",
+                    json={
+                        "github_username": "newuser",
+                        "display_name": "New User",
+                        "role": "Contributor",
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 201
+            assert resp.json()["github_username"] == "newuser"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_create_duplicate(self, client):
+        """POST /about/admin/contributors with duplicate github → 409."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(
+                f"{_SVC}.github_username_exists",
+                new_callable=AsyncMock,
+                return_value=True,
+            ):
+                resp = await client.post(
+                    "/api/v1/about/admin/contributors",
+                    json={
+                        "github_username": "Isaries",
+                        "display_name": "Dup",
+                        "role": "Contributor",
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 409
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_create_member_forbidden(self, client):
+        """POST /about/admin/contributors by MEMBER → 403."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.post(
+                "/api/v1/about/admin/contributors",
+                json={
+                    "github_username": "x",
+                    "display_name": "X",
+                    "role": "Y",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestAdminUpdateContributor:
+    @pytest.mark.anyio
+    async def test_update_success(self, client):
+        """PUT /about/admin/contributors/{id} → 200."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            updated = {**_FAKE_CONTRIBUTOR, "display_name": "Updated"}
+            with (
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
+                patch(
+                    f"{_SVC}.update_contributor",
+                    new_callable=AsyncMock,
+                    return_value=updated,
+                ),
+            ):
+                resp = await client.put(
+                    f"/api/v1/about/admin/contributors/{_FAKE_ID}",
+                    json={"display_name": "Updated"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            assert resp.json()["display_name"] == "Updated"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_update_not_found(self, client):
+        """PUT /about/admin/contributors/{bad-id} → 404."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(
+                f"{_SVC}.update_contributor",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                resp = await client.put(
+                    f"/api/v1/about/admin/contributors/{uuid.uuid4()}",
+                    json={"display_name": "X"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 404
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_update_duplicate_github(self, client):
+        """PUT with duplicate github_username → 409."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
+                patch(
+                    f"{_SVC}.github_username_exists",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+            ):
+                resp = await client.put(
+                    f"/api/v1/about/admin/contributors/{_FAKE_ID}",
+                    json={"github_username": "SW9526"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 409
+        finally:
+            _clear_overrides()
+
+
+class TestAdminDeleteContributor:
+    @pytest.mark.anyio
+    async def test_delete_success(self, client):
+        """DELETE /about/admin/contributors/{id} → 204."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(
+                f"{_SVC}.delete_contributor",
+                new_callable=AsyncMock,
+                return_value=True,
+            ):
+                resp = await client.request(
+                    "DELETE",
+                    f"/api/v1/about/admin/contributors/{_FAKE_ID}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 204
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_not_found(self, client):
+        """DELETE /about/admin/contributors/{bad-id} → 404."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(
+                f"{_SVC}.delete_contributor",
+                new_callable=AsyncMock,
+                return_value=False,
+            ):
+                resp = await client.request(
+                    "DELETE",
+                    f"/api/v1/about/admin/contributors/{uuid.uuid4()}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 404
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_member_forbidden(self, client):
+        """DELETE /about/admin/contributors/{id} by MEMBER → 403."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.request(
+                "DELETE",
+                f"/api/v1/about/admin/contributors/{_FAKE_ID}",
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 403

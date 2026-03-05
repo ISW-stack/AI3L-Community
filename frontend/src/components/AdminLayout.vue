@@ -9,6 +9,7 @@ import {
   FolderOpen,
   KeyRound,
   Shield,
+  Users2,
   Menu,
   X,
 } from 'lucide-vue-next'
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
   { label: 'Reports', to: '/admin/reports', icon: Flag },
   { label: 'Categories', to: '/admin/categories', icon: FolderOpen },
   { label: 'Invite Codes', to: '/admin/invite-codes', icon: KeyRound },
+  { label: 'Contributors', to: '/admin/contributors', icon: Users2, superAdminOnly: true },
   { label: 'Audit Logs', to: '/admin/audit-logs', icon: Shield, superAdminOnly: true },
 ]
 
