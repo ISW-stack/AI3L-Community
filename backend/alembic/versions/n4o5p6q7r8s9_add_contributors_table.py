@@ -5,8 +5,6 @@ Revises: m3n4o5p6q7r8
 Create Date: 2026-03-05
 """
 
-import uuid
-
 import sqlalchemy as sa
 
 from alembic import op
@@ -39,14 +37,22 @@ def upgrade() -> None:
         ),
     )
 
-    # Seed initial contributors
+    # Seed initial contributors (hardcoded UUIDs for deterministic migration)
     op.execute(
-        f"""
-        INSERT INTO contributors (id, github_username, display_name, role, display_order)
-        VALUES
-            ('{uuid.uuid4()}', 'Isaries', 'Isaries', 'Project Lead & Full-Stack Developer', 0),
-            ('{uuid.uuid4()}', 'SW9526', 'SW9526', 'Frontend Contributor', 1)
-        """
+        sa.text(
+            "INSERT INTO contributors"
+            " (id, github_username, display_name, role, display_order)"
+            " VALUES ('a1b2c3d4-e5f6-7890-abcd-ef1234567890',"
+            " 'Isaries', 'Isaries', 'Project Lead & Full-Stack Developer', 0)"
+        )
+    )
+    op.execute(
+        sa.text(
+            "INSERT INTO contributors"
+            " (id, github_username, display_name, role, display_order)"
+            " VALUES ('b2c3d4e5-f6a7-8901-bcde-f12345678901',"
+            " 'SW9526', 'SW9526', 'Frontend Contributor', 1)"
+        )
     )
 
 
