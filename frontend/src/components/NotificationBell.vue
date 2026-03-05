@@ -46,6 +46,59 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
+function handleDropdownKeydown(e: KeyboardEvent) {
+  const wrapper = (e.target as HTMLElement).closest('.notification-bell-wrapper')
+  if (!wrapper) return
+
+  if (e.key === 'ArrowDown' && !dropdownOpen.value) {
+    e.preventDefault()
+    toggleDropdown()
+    // Small delay to ensure the dropdown is rendered and focusable
+    setTimeout(() => {
+      const items = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
+      items[0]?.focus()
+    }, 10)
+    return
+  }
+
+  if (!dropdownOpen.value) return
+
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    closeDropdown()
+    ;(wrapper.querySelector('button[aria-label="Notifications"]') as HTMLElement)?.focus()
+    return
+  }
+
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    const items = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
+    const current = document.activeElement as HTMLElement
+    const idx = items.indexOf(current)
+
+    if (idx === -1) {
+      if (e.key === 'ArrowDown') items[0]?.focus()
+      else items[items.length - 1]?.focus()
+    } else {
+      const next =
+        e.key === 'ArrowDown'
+          ? items[(idx + 1) % items.length]
+          : items[(idx - 1 + items.length) % items.length]
+      next?.focus()
+    }
+    return
+  }
+
+  // Handle Space key for activation (standard for buttons, but needed for <a> tags)
+  if (e.key === ' ' || e.key === 'Spacebar') {
+    const current = document.activeElement as HTMLElement
+    if (current && (current.tagName === 'A' || current.tagName === 'BUTTON')) {
+      e.preventDefault()
+      current.click()
+    }
+  }
+}
+
 onMounted(() => {
   notifStore.fetchUnreadCount()
   document.addEventListener('click', handleClickOutside)
@@ -60,6 +113,7 @@ onUnmounted(() => {
   <div class="relative notification-bell-wrapper">
     <button
       @click="toggleDropdown"
+      @keydown="handleDropdownKeydown"
       class="relative p-1 text-muted hover:text-foreground focus:outline-none transition"
       aria-label="Notifications"
       :aria-expanded="dropdownOpen"
@@ -84,6 +138,7 @@ onUnmounted(() => {
           v-if="notifStore.unreadCount > 0"
           @click="notifStore.markAllRead()"
           class="text-xs text-brand-600 hover:text-brand-700 transition"
+          tabindex="-1"
         >
           Mark all as read
         </button>
@@ -107,6 +162,8 @@ onUnmounted(() => {
           @click="markRead(notif)"
           class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-alt border-b border-surface-alt last:border-0 transition"
           :class="{ 'bg-brand-50/50': !notif.is_read }"
+          tabindex="-1"
+          @keydown="handleDropdownKeydown"
         >
           <div
             class="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
@@ -137,6 +194,8 @@ onUnmounted(() => {
           to="/notifications"
           @click="closeDropdown"
           class="block text-center text-sm text-brand-600 hover:text-brand-700 py-2 transition"
+          tabindex="-1"
+          @keydown="handleDropdownKeydown"
         >
           View All
         </router-link>

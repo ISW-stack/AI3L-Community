@@ -44,8 +44,29 @@ function handleClickOutside(e: MouseEvent) {
 }
 
 function handleDropdownKeydown(e: KeyboardEvent, wrapperClass: string) {
-  const wrapper = (e.currentTarget as HTMLElement).closest(`.${wrapperClass}`)
+  const wrapper =
+    (e.target as HTMLElement).closest(`.${wrapperClass}`) ||
+    (e.currentTarget as HTMLElement).closest(`.${wrapperClass}`)
   if (!wrapper) return
+
+  const isMenuOpen =
+    wrapperClass === 'admin-dropdown-wrapper' ? adminDropdownOpen.value : userDropdownOpen.value
+
+  // If closed and user presses ArrowDown, open it
+  if (!isMenuOpen && e.key === 'ArrowDown') {
+    e.preventDefault()
+    if (wrapperClass === 'admin-dropdown-wrapper') adminDropdownOpen.value = true
+    else userDropdownOpen.value = true
+
+    // Small delay to ensure the dropdown is rendered and focusable
+    setTimeout(() => {
+      const menuItems = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
+      menuItems[0]?.focus()
+    }, 10)
+    return
+  }
+
+  if (!isMenuOpen) return
 
   if (e.key === 'Escape') {
     e.preventDefault()
@@ -57,14 +78,31 @@ function handleDropdownKeydown(e: KeyboardEvent, wrapperClass: string) {
 
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault()
-    const items = Array.from(wrapper.querySelectorAll<HTMLElement>('a, button'))
+    const items = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
     const current = document.activeElement as HTMLElement
     const idx = items.indexOf(current)
-    const next =
-      e.key === 'ArrowDown'
-        ? items[(idx + 1) % items.length]
-        : items[(idx - 1 + items.length) % items.length]
-    next?.focus()
+
+    if (idx === -1) {
+      // If focus is not on an item (e.g. on trigger), focus first or last
+      if (e.key === 'ArrowDown') items[0]?.focus()
+      else items[items.length - 1]?.focus()
+    } else {
+      const next =
+        e.key === 'ArrowDown'
+          ? items[(idx + 1) % items.length]
+          : items[(idx - 1 + items.length) % items.length]
+      next?.focus()
+    }
+    return
+  }
+
+  // Handle Space key for activation (standard for buttons, but needed for <a> tags)
+  if (e.key === ' ' || e.key === 'Spacebar') {
+    const current = document.activeElement as HTMLElement
+    if (current && (current.tagName === 'A' || current.tagName === 'BUTTON')) {
+      e.preventDefault()
+      current.click()
+    }
   }
 }
 
@@ -137,6 +175,7 @@ onUnmounted(() => {
                     to="/admin"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Dashboard
                   </router-link>
@@ -144,6 +183,7 @@ onUnmounted(() => {
                     to="/admin/users"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Users
                   </router-link>
@@ -151,6 +191,7 @@ onUnmounted(() => {
                     to="/admin/applications"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Applications
                   </router-link>
@@ -158,6 +199,7 @@ onUnmounted(() => {
                     to="/admin/reports"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Reports
                   </router-link>
@@ -165,6 +207,7 @@ onUnmounted(() => {
                     to="/admin/categories"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Categories
                   </router-link>
@@ -172,6 +215,7 @@ onUnmounted(() => {
                     to="/admin/invite-codes"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Invite Codes
                   </router-link>
@@ -180,6 +224,7 @@ onUnmounted(() => {
                     to="/admin/audit-logs"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition border-t border-border"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Audit Logs
                   </router-link>
@@ -215,12 +260,14 @@ onUnmounted(() => {
                   to="/profile"
                   class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                   @click="userDropdownOpen = false"
+                  tabindex="-1"
                 >
                   Profile
                 </router-link>
                 <button
                   @click="handleLogout"
                   class="block w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-surface-alt transition"
+                  tabindex="-1"
                 >
                   Log Out
                 </button>
