@@ -47,7 +47,6 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
