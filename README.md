@@ -45,7 +45,7 @@ A full-stack community platform built for academic groups and special interest g
 | Token signing | PyJWT |
 | Object storage | boto3 (S3-compatible, MinIO) |
 | HTML sanitization | nh3 |
-| PDF handling | pypdf |
+| PDF handling | pikepdf (C++ qpdf engine) |
 | CAPTCHA | captcha + Pillow |
 | Structured logging | Loguru |
 | Error tracking | Sentry SDK |
@@ -439,8 +439,9 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 | PUT | `/admin/reports/{report_id}/review` | Admin | Resolve or dismiss report |
 | GET | `/admin/applications` | Admin | Membership applications |
 | PUT | `/admin/applications/{app_id}/review` | Admin | Approve or reject application |
-| GET | `/admin/invite-codes` | Admin | List invite codes |
-| POST | `/admin/invite-codes` | Admin | Generate invite code |
+| GET | `/admin/invite-codes` | Admin | List invite codes with status filter |
+| PATCH | `/admin/invite-codes/{id}/revoke` | Admin | Soft-revoke an active invite code |
+| DELETE | `/admin/invite-codes/{id}` | Admin | Hard-delete an invite code |
 | GET | `/admin/audit-logs` | Super Admin | Paginated audit log |
 
 ### System
@@ -485,7 +486,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 
 ### Guest Sessions
 
-Guest accounts are created via `POST /auth/guest/{invite_code}`. The platform enforces a concurrent guest capacity limit (default: 30 simultaneous guests). Guests may apply for full membership through `POST /users/apply-member`.
+Guest accounts are created via `POST /auth/guest/{invite_code}`. The platform enforces a concurrent guest capacity limit (default: 30 simultaneous guests) and a per-IP limit (default: 3 simultaneous guest sessions per IP per hour). Guests may apply for full membership through `POST /users/apply-member`.
 
 ### Password Policy
 
@@ -512,7 +513,21 @@ GET and HEAD requests bypass the write zone. Both zones allow short bursts with 
 
 ### Application Layer
 
-Post creation is limited to 50 posts per user per day, tracked with a Redis counter. The endpoint returns error code `SYS_429` when the limit is reached.
+Redis-backed rate limits are applied per endpoint. Key limits:
+
+| Endpoint | Limit | Key |
+|---|---|---|
+| `POST /auth/login` | 10 / min | per IP |
+| `POST /auth/register` | 5 / min | per IP |
+| `POST /auth/guest/{code}` | 10 / min | per IP |
+| `POST /auth/invite-code` | 5 / hour | per user |
+| `GET /auth/invite-code/{code}` | 30 / min | per IP |
+| `POST /files/upload/editor` | 10 / min | per user |
+| `POST /forms/{id}/submit` | 5 / min | per user |
+| `GET /notifications` | 60 / min | per user |
+| `DELETE /notifications` | 30 / min | per user |
+
+Post creation is additionally limited to 50 posts per user per day. The endpoint returns error code `SYS_429` when this limit is reached.
 
 ---
 
@@ -613,11 +628,13 @@ Admins can ban users with a required reason. Banning terminates all active sessi
 
 ### Invite Codes
 
-Admins and Super Admins generate single-use invite codes via `POST /admin/invite-codes`. Each code can be used once for either guest access (`POST /auth/guest/{code}`) or new member registration.
+Members, Admins, and Super Admins can generate single-use invite codes via `POST /auth/invite-code`. Each code expires after 7 days and can be used once: for guest access (`POST /auth/guest/{code}`) or new member registration (`POST /auth/register`). Members are limited to 5 active codes at a time.
+
+Admins can list codes at `GET /admin/invite-codes`, soft-revoke an active code at `PATCH /admin/invite-codes/{id}/revoke` (sets expiry to now, preserving the audit record), or hard-delete at `DELETE /admin/invite-codes/{id}`. Both revoke and delete are written to the audit log.
 
 ### Audit Log
 
-Every sensitive action (authentication events, admin decisions, bans, role changes) is written to the `audit_logs` table with the actor's user ID, IP address, timestamp, and target entity. Accessible only to Super Admins at `GET /admin/audit-logs`.
+Every sensitive action is written to the `audit_logs` table with the actor's user ID, IP address, timestamp, and target entity. Accessible only to Super Admins at `GET /admin/audit-logs`. Audited events include: `LOGIN`, `LOGOUT`, `PASSWORD_CHANGE`, `ACCOUNT_DELETE`, `ROLE_CHANGE`, `BAN`, `UNBAN`, `INVITE_CODE_REVOKE`, `INVITE_CODE_DELETE`.
 
 ---
 
@@ -861,9 +878,9 @@ Add to crontab on the host machine:
 
 **CSRF protection**: A CSRF token is issued as a cookie on authentication and must be present in the `X-CSRF-Token` header on all state-mutating requests.
 
-**File upload security**: Magic number validation rejects files whose content does not match their declared MIME type. PDF files are sanitized before storage using pypdf.
+**File upload security**: Magic number validation rejects files whose content does not match their declared MIME type. PDF files are sanitized before storage using pikepdf (backed by the C++ qpdf engine), which strips embedded JavaScript, auto-actions, and macros.
 
-**Rate limiting**: Nginx enforces IP-level request rate limits on all API endpoints, with a stricter limit on write operations. Redis counters enforce per-user daily post quotas.
+**Rate limiting**: Nginx enforces IP-level request rate limits on all API endpoints, with a stricter limit on write operations. Application-level Redis counters enforce granular per-endpoint limits on authentication, invite code generation, file uploads, form submissions, and notifications. WebSocket connections are limited to 60 messages per minute per connection, with a 64 KB message size cap.
 
 **XSS prevention**: User-generated HTML is sanitized with DOMPurify on the frontend before rendering, and with nh3 on the backend before storage.
 

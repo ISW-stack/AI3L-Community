@@ -100,6 +100,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning(f"WebSocket Redis subscriber start skipped: {e}")
 
     logger.info("All dependencies initialized")
+
+    # Production security warnings
+    if not settings.is_development:
+        _defaults = {
+            "SECRET_KEY": "changeme_secret_key_at_least_32_characters_long",
+            "POSTGRES_PASSWORD": "changeme_postgres",
+            "REDIS_PASSWORD": "changeme_redis",
+            "MINIO_ROOT_PASSWORD": "changeme_minio",
+            "JWT_SECRET_KEY": "changeme_jwt_secret_key",
+            "SUPER_ADMIN_PASSWORD": "changeme_admin",
+        }
+        for key, default in _defaults.items():
+            if getattr(settings, key) == default:
+                logger.warning(f"SECURITY: {key} is using default value — change it in .env before deploying")
+        if not settings.COOKIE_SECURE:
+            logger.warning("SECURITY: COOKIE_SECURE is False — cookies will be sent over HTTP. Set COOKIE_SECURE=true in .env for production")
+
     yield
 
     # Shutdown
@@ -127,7 +144,7 @@ app.add_middleware(
     allow_origins=settings.CORS_ORIGINS_LIST,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "X-CSRF-Token", "X-Idempotency-Key"],
 )
 
 # CSRF double-submit cookie middleware (after CORS so preflight is handled first)
@@ -139,11 +156,10 @@ app.add_middleware(IdempotencyMiddleware)
 
 # Trusted host middleware — prevents Host header attacks in production
 if not settings.is_development:
-    _trusted = (
-        [h.strip() for h in settings.TRUSTED_HOSTS.split(",") if h.strip()]
-        if settings.TRUSTED_HOSTS
-        else ["*"]
-    )
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=_trusted)
+    _trusted = [h.strip() for h in settings.TRUSTED_HOSTS.split(",") if h.strip()]
+    if _trusted:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=_trusted)
+    else:
+        logger.warning("TRUSTED_HOSTS not configured — TrustedHostMiddleware disabled")
 
 app.include_router(api_v1_router, prefix="/api/v1")

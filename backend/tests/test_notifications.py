@@ -52,8 +52,13 @@ class TestListNotifications:
 
         try:
             _override_auth("MEMBER", user_id=user_id)
-            with patch(
-                f"{_EP}.list_notifications", new_callable=AsyncMock, return_value=([notif], 1, 1)
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.list_notifications",
+                    new_callable=AsyncMock,
+                    return_value=([notif], 1, 1),
+                ),
             ):
                 resp = await client.get(
                     "/api/v1/notifications",
@@ -166,10 +171,13 @@ class TestBulkDeleteNotifications:
         """DELETE /notifications → 204 deletes all notifications for user."""
         try:
             _override_auth("MEMBER")
-            with patch(
-                "app.repositories.notification_repo.bulk_delete",
-                new_callable=AsyncMock,
-                return_value=5,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.repositories.notification_repo.bulk_delete",
+                    new_callable=AsyncMock,
+                    return_value=5,
+                ),
             ):
                 resp = await client.delete(
                     "/api/v1/notifications",
@@ -186,10 +194,13 @@ class TestBulkDeleteNotifications:
 
         try:
             _override_auth("MEMBER")
-            with patch(
-                "app.repositories.notification_repo.bulk_delete",
-                new_callable=AsyncMock,
-                return_value=2,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.repositories.notification_repo.bulk_delete",
+                    new_callable=AsyncMock,
+                    return_value=2,
+                ),
             ):
                 resp = await client.request(
                     "DELETE",

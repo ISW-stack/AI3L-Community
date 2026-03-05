@@ -93,6 +93,7 @@ async def upload_avatar(
 
 @router.put("/me/password", response_model=MessageResponse)
 async def change_my_password(
+    request: Request,
     req: ChangePasswordRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
@@ -105,6 +106,10 @@ async def change_my_password(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="PASSWORD_CHANGE", ip_address=ip)
 
     # Revoke ALL sessions (all devices) so user must re-login everywhere
     await revoke_user_sessions(current_user["sub"])

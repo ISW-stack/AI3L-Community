@@ -75,22 +75,121 @@ class TestPresignedUrlPathTraversal:
 class TestPdfSanitization:
     """sanitize_pdf should strip /JS, /JavaScript, /AA, /OpenAction."""
 
-    def test_sanitize_strips_javascript(self):
-        from pypdf import PdfWriter
-        from pypdf.generic import NameObject, TextStringObject
+    @staticmethod
+    def _make_pdf_with_root_key(key: str, value: str = "alert('xss')") -> bytes:
+        """Helper: create a minimal PDF with a dangerous key on the root catalog."""
+        import pikepdf
+
+        pdf = pikepdf.new()
+        pdf.add_blank_page(page_size=(200, 200))
+        pdf.Root[pikepdf.Name(key)] = pikepdf.String(value)
+        buf = BytesIO()
+        pdf.save(buf)
+        return buf.getvalue()
+
+    @staticmethod
+    def _make_pdf_with_page_key(key: str, value: str = "alert('xss')") -> bytes:
+        """Helper: create a minimal PDF with a dangerous key on a page object."""
+        import pikepdf
+
+        pdf = pikepdf.new()
+        pdf.add_blank_page(page_size=(200, 200))
+        pdf.pages[0].obj[pikepdf.Name(key)] = pikepdf.String(value)
+        buf = BytesIO()
+        pdf.save(buf)
+        return buf.getvalue()
+
+    def test_sanitize_strips_open_action(self):
+        from app.core.file_validation import sanitize_pdf
+
+        raw = self._make_pdf_with_root_key("/OpenAction")
+        sanitized = sanitize_pdf(raw)
+        assert len(sanitized) > 0
+        assert b"/OpenAction" not in sanitized
+
+    def test_sanitize_strips_js_key(self):
+        from app.core.file_validation import sanitize_pdf
+
+        raw = self._make_pdf_with_root_key("/JS")
+        sanitized = sanitize_pdf(raw)
+        assert b"/JS" not in sanitized
+
+    def test_sanitize_strips_javascript_key(self):
+        from app.core.file_validation import sanitize_pdf
+
+        raw = self._make_pdf_with_root_key("/JavaScript")
+        sanitized = sanitize_pdf(raw)
+        assert b"/JavaScript" not in sanitized
+
+    def test_sanitize_strips_aa_key(self):
+        from app.core.file_validation import sanitize_pdf
+
+        raw = self._make_pdf_with_root_key("/AA")
+        sanitized = sanitize_pdf(raw)
+        assert b"/AA" not in sanitized
+
+    def test_sanitize_strips_page_level_keys(self):
+        from app.core.file_validation import sanitize_pdf
+
+        raw = self._make_pdf_with_page_key("/AA")
+        sanitized = sanitize_pdf(raw)
+        assert b"/AA" not in sanitized
+
+    def test_sanitize_preserves_page_count(self):
+        import pikepdf
 
         from app.core.file_validation import sanitize_pdf
 
-        # Create a PDF with an OpenAction
-        writer = PdfWriter()
-        writer.add_blank_page(width=200, height=200)
-        writer._root_object[NameObject("/OpenAction")] = TextStringObject("alert('xss')")
-
+        pdf = pikepdf.new()
+        for _ in range(5):
+            pdf.add_blank_page(page_size=(200, 200))
         buf = BytesIO()
-        writer.write(buf)
+        pdf.save(buf)
+        raw = buf.getvalue()
+
+        sanitized = sanitize_pdf(raw)
+        result = pikepdf.open(BytesIO(sanitized))
+        assert len(result.pages) == 5
+
+    def test_sanitize_preserves_metadata(self):
+        import pikepdf
+
+        from app.core.file_validation import sanitize_pdf
+
+        pdf = pikepdf.new()
+        pdf.add_blank_page(page_size=(200, 200))
+        with pdf.open_metadata() as meta:
+            meta["dc:title"] = "Test Document"
+        buf = BytesIO()
+        pdf.save(buf)
+        raw = buf.getvalue()
+
+        sanitized = sanitize_pdf(raw)
+        result = pikepdf.open(BytesIO(sanitized))
+        with result.open_metadata() as meta:
+            assert meta.get("dc:title") == "Test Document"
+
+    def test_sanitize_clean_pdf_passthrough(self):
+        import pikepdf
+
+        from app.core.file_validation import sanitize_pdf
+
+        pdf = pikepdf.new()
+        pdf.add_blank_page(page_size=(200, 200))
+        buf = BytesIO()
+        pdf.save(buf)
         raw = buf.getvalue()
 
         sanitized = sanitize_pdf(raw)
         assert len(sanitized) > 0
-        # The sanitized PDF should not contain the dangerous key
-        assert b"/OpenAction" not in sanitized
+        # Should be readable
+        result = pikepdf.open(BytesIO(sanitized))
+        assert len(result.pages) == 1
+
+    def test_sanitize_invalid_pdf_raises(self):
+        import pytest
+
+        from app.core.file_validation import sanitize_pdf
+
+        with pytest.raises(ValueError, match="Invalid or corrupted PDF"):
+            sanitize_pdf(b"this is not a pdf")

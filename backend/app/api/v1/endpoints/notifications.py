@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.core.deps import get_current_user
+from app.core.rate_limit import check_rate_limit
 from app.repositories import notification_repo
 from app.schemas.auth import MessageResponse
 from app.schemas.notification import (
@@ -22,11 +23,14 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 @router.get("", response_model=NotificationListResponse)
 async def get_notifications(
+    request: Request,
     unread: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> NotificationListResponse:
+    if not await check_rate_limit(f"rl:notif:{current_user['sub']}", 60, 60):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     notifications, total, unread_count = await list_notifications(
         user_id=current_user["sub"],
         unread_only=unread,
@@ -56,9 +60,12 @@ async def read_notification(
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def bulk_delete_notifications(
+    request: Request,
     req: BulkDeleteNotificationsRequest | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> Response:
+    if not await check_rate_limit(f"rl:notif_del:{current_user['sub']}", 30, 60):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     ids = None
     if req and req.notification_ids:
         ids = [uuid.UUID(nid) for nid in req.notification_ids]
