@@ -113,9 +113,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         }
         for key, default in _defaults.items():
             if getattr(settings, key) == default:
-                logger.warning(f"SECURITY: {key} is using default value — change it in .env before deploying")
+                logger.warning(
+                    f"SECURITY: {key} is using default value — change it in .env before deploying"
+                )
         if not settings.COOKIE_SECURE:
-            logger.warning("SECURITY: COOKIE_SECURE is False — cookies will be sent over HTTP. Set COOKIE_SECURE=true in .env for production")
+            logger.warning(
+                "SECURITY: COOKIE_SECURE is False — cookies will be sent over HTTP. Set COOKIE_SECURE=true in .env for production"
+            )
 
     yield
 

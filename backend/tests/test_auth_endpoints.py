@@ -323,7 +323,11 @@ class TestGetCaptcha:
 
 
 class TestGenerateInviteCode:
-    @patch("app.repositories.invite_code_repo.count_active_by_user", new_callable=AsyncMock, return_value=0)
+    @patch(
+        "app.repositories.invite_code_repo.count_active_by_user",
+        new_callable=AsyncMock,
+        return_value=0,
+    )
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.create_invite_code", new_callable=AsyncMock)
     async def test_generate_invite_code(

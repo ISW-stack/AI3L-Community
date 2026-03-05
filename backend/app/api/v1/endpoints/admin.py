@@ -45,8 +45,15 @@ async def revoke_invite_code(
         )
     # Audit log
     from app.core.event_bus import emit
+
     ip = request.client.host if request.client else None
-    await emit("audit.action", user_id=current_user["sub"], action="INVITE_CODE_REVOKE", ip_address=ip, detail=str(code_id))
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="INVITE_CODE_REVOKE",
+        ip_address=ip,
+        detail=str(code_id),
+    )
     return {"message": "Invite code revoked."}
 
 
@@ -64,6 +71,13 @@ async def delete_invite_code(
         )
     # Audit log
     from app.core.event_bus import emit
+
     ip = request.client.host if request.client else None
-    await emit("audit.action", user_id=current_user["sub"], action="INVITE_CODE_DELETE", ip_address=ip, detail=str(code_id))
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="INVITE_CODE_DELETE",
+        ip_address=ip,
+        detail=str(code_id),
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

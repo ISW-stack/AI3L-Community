@@ -270,9 +270,7 @@ async def generate_invite_code(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> InviteCodeResponse:
-    if not await check_rate_limit(
-        f"rl:invite:{current_user['sub']}", *RATE_LIMIT_INVITE_GEN
-    ):
+    if not await check_rate_limit(f"rl:invite:{current_user['sub']}", *RATE_LIMIT_INVITE_GEN):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
 
     from app.repositories import invite_code_repo
