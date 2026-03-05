@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
 import NotificationBell from '@/components/NotificationBell.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import { Menu, X, ChevronDown, GraduationCap } from 'lucide-vue-next'
@@ -11,6 +12,9 @@ const router = useRouter()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
+
+const { handleKeydown: handleAdminKeydown } = useDropdownKeyNav(adminDropdownOpen)
+const { handleKeydown: handleUserKeydown } = useDropdownKeyNav(userDropdownOpen)
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -43,68 +47,6 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-function handleDropdownKeydown(e: KeyboardEvent, wrapperClass: string) {
-  const wrapper =
-    (e.target as HTMLElement).closest(`.${wrapperClass}`) ||
-    (e.currentTarget as HTMLElement).closest(`.${wrapperClass}`)
-  if (!wrapper) return
-
-  const isMenuOpen =
-    wrapperClass === 'admin-dropdown-wrapper' ? adminDropdownOpen.value : userDropdownOpen.value
-
-  // If closed and user presses ArrowDown, open it
-  if (!isMenuOpen && e.key === 'ArrowDown') {
-    e.preventDefault()
-    if (wrapperClass === 'admin-dropdown-wrapper') adminDropdownOpen.value = true
-    else userDropdownOpen.value = true
-
-    // Small delay to ensure the dropdown is rendered and focusable
-    setTimeout(() => {
-      const menuItems = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
-      menuItems[0]?.focus()
-    }, 10)
-    return
-  }
-
-  if (!isMenuOpen) return
-
-  if (e.key === 'Escape') {
-    e.preventDefault()
-    if (wrapperClass === 'admin-dropdown-wrapper') adminDropdownOpen.value = false
-    else userDropdownOpen.value = false
-    ;(wrapper.querySelector('button') as HTMLElement)?.focus()
-    return
-  }
-
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault()
-    const items = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
-    const current = document.activeElement as HTMLElement
-    const idx = items.indexOf(current)
-
-    if (idx === -1) {
-      // If focus is not on an item (e.g. on trigger), focus first or last
-      if (e.key === 'ArrowDown') items[0]?.focus()
-      else items[items.length - 1]?.focus()
-    } else {
-      const next =
-        e.key === 'ArrowDown'
-          ? items[(idx + 1) % items.length]
-          : items[(idx - 1 + items.length) % items.length]
-      next?.focus()
-    }
-    return
-  }
-
-  // Handle Space key for activation (standard for buttons, but needed for <a> tags)
-  if (e.key === ' ' || e.key === 'Spacebar') {
-    const current = document.activeElement as HTMLElement
-    if (current && (current.tagName === 'A' || current.tagName === 'BUTTON')) {
-      e.preventDefault()
-      current.click()
-    }
-  }
-}
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
@@ -151,7 +93,7 @@ onUnmounted(() => {
             <div
               v-if="auth.isAdmin"
               class="relative admin-dropdown-wrapper"
-              @keydown="handleDropdownKeydown($event, 'admin-dropdown-wrapper')"
+              @keydown="handleAdminKeydown($event, '.admin-dropdown-wrapper')"
             >
               <button
                 @click="adminDropdownOpen = !adminDropdownOpen"
@@ -237,7 +179,7 @@ onUnmounted(() => {
             <!-- User dropdown -->
             <div
               class="relative user-dropdown-wrapper"
-              @keydown="handleDropdownKeydown($event, 'user-dropdown-wrapper')"
+              @keydown="handleUserKeydown($event, '.user-dropdown-wrapper')"
             >
               <button
                 @click="userDropdownOpen = !userDropdownOpen"
