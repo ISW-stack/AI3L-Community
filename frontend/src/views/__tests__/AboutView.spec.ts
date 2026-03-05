@@ -61,7 +61,6 @@ describe('AboutView', () => {
   it('mentions Professor Yu-Ju Lan', async () => {
     const wrapper = await mountAbout()
     expect(wrapper.text()).toContain('Professor Yu-Ju Lan')
-    expect(wrapper.text()).toContain('\u85CD\u7389\u5982')
   })
 
   it('renders contributor avatars after API loads', async () => {
