@@ -4,7 +4,7 @@ import asyncio
 import time
 from typing import Any
 
-import requests as _requests
+import requests as _requests  # type: ignore[import-untyped]
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
