@@ -15,9 +15,7 @@ async def find_all() -> list[dict]:
 async def find_by_id(contributor_id: uuid.UUID) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT * FROM contributors WHERE id = $1", contributor_id
-        )
+        row = await conn.fetchrow("SELECT * FROM contributors WHERE id = $1", contributor_id)
         return dict(row) if row else None
 
 
@@ -74,9 +72,7 @@ async def update(
 async def delete(contributor_id: uuid.UUID) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
-        result = await conn.execute(
-            "DELETE FROM contributors WHERE id = $1", contributor_id
-        )
+        result = await conn.execute("DELETE FROM contributors WHERE id = $1", contributor_id)
         return bool(result == "DELETE 1")
 
 
