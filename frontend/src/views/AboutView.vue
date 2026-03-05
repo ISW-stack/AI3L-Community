@@ -52,7 +52,7 @@ onMounted(() => {
       <p class="text-base text-muted leading-relaxed max-w-2xl">
         AI3L Community is a small academic exchange platform for AI in Language Learning and
         Literacy. It is organized and convened by
-        <strong class="text-foreground">Professor Yu-Ju Lan (藍玉如)</strong>
+        <strong class="text-foreground">Professor Yu-Ju Lan</strong>
         from the National Taiwan Normal University (NTNU). This community-driven project aims to
         bring together researchers and practitioners who share an interest in exploring how AI can
         support language education and literacy development.
