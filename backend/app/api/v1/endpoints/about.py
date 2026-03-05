@@ -15,8 +15,8 @@ from app.schemas.about import (
     ContributorAdminResponse,
     ContributorCreateRequest,
     ContributorResponse,
-    ContributorUpdateRequest,
     ContributorsListResponse,
+    ContributorUpdateRequest,
 )
 from app.services import contributor as contributor_service
 
