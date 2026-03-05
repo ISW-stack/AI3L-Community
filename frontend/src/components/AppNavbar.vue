@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
 import NotificationBell from '@/components/NotificationBell.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import { Menu, X, ChevronDown, GraduationCap } from 'lucide-vue-next'
@@ -11,6 +12,9 @@ const router = useRouter()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
+
+const { handleKeydown: handleAdminKeydown } = useDropdownKeyNav(adminDropdownOpen)
+const { handleKeydown: handleUserKeydown } = useDropdownKeyNav(userDropdownOpen)
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -43,30 +47,6 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-function handleDropdownKeydown(e: KeyboardEvent, wrapperClass: string) {
-  const wrapper = (e.currentTarget as HTMLElement).closest(`.${wrapperClass}`)
-  if (!wrapper) return
-
-  if (e.key === 'Escape') {
-    e.preventDefault()
-    if (wrapperClass === 'admin-dropdown-wrapper') adminDropdownOpen.value = false
-    else userDropdownOpen.value = false
-    ;(wrapper.querySelector('button') as HTMLElement)?.focus()
-    return
-  }
-
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault()
-    const items = Array.from(wrapper.querySelectorAll<HTMLElement>('a, button'))
-    const current = document.activeElement as HTMLElement
-    const idx = items.indexOf(current)
-    const next =
-      e.key === 'ArrowDown'
-        ? items[(idx + 1) % items.length]
-        : items[(idx - 1 + items.length) % items.length]
-    next?.focus()
-  }
-}
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
@@ -113,7 +93,7 @@ onUnmounted(() => {
             <div
               v-if="auth.isAdmin"
               class="relative admin-dropdown-wrapper"
-              @keydown="handleDropdownKeydown($event, 'admin-dropdown-wrapper')"
+              @keydown="handleAdminKeydown($event, '.admin-dropdown-wrapper')"
             >
               <button
                 @click="adminDropdownOpen = !adminDropdownOpen"
@@ -137,6 +117,7 @@ onUnmounted(() => {
                     to="/admin"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Dashboard
                   </router-link>
@@ -144,6 +125,7 @@ onUnmounted(() => {
                     to="/admin/users"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Users
                   </router-link>
@@ -151,6 +133,7 @@ onUnmounted(() => {
                     to="/admin/applications"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Applications
                   </router-link>
@@ -158,6 +141,7 @@ onUnmounted(() => {
                     to="/admin/reports"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Reports
                   </router-link>
@@ -165,6 +149,7 @@ onUnmounted(() => {
                     to="/admin/categories"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Categories
                   </router-link>
@@ -172,6 +157,7 @@ onUnmounted(() => {
                     to="/admin/invite-codes"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Invite Codes
                   </router-link>
@@ -180,6 +166,7 @@ onUnmounted(() => {
                     to="/admin/audit-logs"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition border-t border-border"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
                     Audit Logs
                   </router-link>
@@ -192,7 +179,7 @@ onUnmounted(() => {
             <!-- User dropdown -->
             <div
               class="relative user-dropdown-wrapper"
-              @keydown="handleDropdownKeydown($event, 'user-dropdown-wrapper')"
+              @keydown="handleUserKeydown($event, '.user-dropdown-wrapper')"
             >
               <button
                 @click="userDropdownOpen = !userDropdownOpen"
@@ -215,12 +202,14 @@ onUnmounted(() => {
                   to="/profile"
                   class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                   @click="userDropdownOpen = false"
+                  tabindex="-1"
                 >
                   Profile
                 </router-link>
                 <button
                   @click="handleLogout"
                   class="block w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-surface-alt transition"
+                  tabindex="-1"
                 >
                   Log Out
                 </button>

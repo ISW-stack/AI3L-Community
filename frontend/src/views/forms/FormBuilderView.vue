@@ -480,6 +480,9 @@ onMounted(() => {
     <!-- Preview modal -->
     <BaseModal v-model="showPreview" :title="title || 'Untitled Form'" size="xl">
       <div class="space-y-4">
+        <BaseAlert type="info" class="text-center">
+          🔍 You are in Preview Mode. All inputs are disabled.
+        </BaseAlert>
         <div v-if="bannerUrl" class="rounded-lg overflow-hidden">
           <img :src="bannerUrl" alt="Banner" class="w-full h-32 object-cover" />
         </div>

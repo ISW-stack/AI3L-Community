@@ -3,12 +3,17 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Notification } from '@/types'
 import { useNotificationStore } from '@/stores/notifications'
+import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
 import { relativeTime } from '@/utils/datetime'
 import { Bell, Settings, User } from 'lucide-vue-next'
 
 const router = useRouter()
 const notifStore = useNotificationStore()
 const dropdownOpen = ref(false)
+
+const { handleKeydown: handleNotifKeydown } = useDropdownKeyNav(dropdownOpen, {
+  onOpen: () => notifStore.fetchRecent(),
+})
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value
@@ -57,7 +62,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative notification-bell-wrapper">
+  <div
+    class="relative notification-bell-wrapper"
+    @keydown="handleNotifKeydown($event, '.notification-bell-wrapper')"
+  >
     <button
       @click="toggleDropdown"
       class="relative p-1 text-muted hover:text-foreground focus:outline-none transition"
@@ -84,6 +92,7 @@ onUnmounted(() => {
           v-if="notifStore.unreadCount > 0"
           @click="notifStore.markAllRead()"
           class="text-xs text-brand-600 hover:text-brand-700 transition"
+          tabindex="-1"
         >
           Mark all as read
         </button>
@@ -107,6 +116,7 @@ onUnmounted(() => {
           @click="markRead(notif)"
           class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-alt border-b border-surface-alt last:border-0 transition"
           :class="{ 'bg-brand-50/50': !notif.is_read }"
+          tabindex="-1"
         >
           <div
             class="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
@@ -137,6 +147,7 @@ onUnmounted(() => {
           to="/notifications"
           @click="closeDropdown"
           class="block text-center text-sm text-brand-600 hover:text-brand-700 py-2 transition"
+          tabindex="-1"
         >
           View All
         </router-link>
