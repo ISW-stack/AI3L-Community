@@ -146,7 +146,9 @@ onMounted(fetchContributors)
           <div>
             <p class="text-sm font-medium text-foreground">{{ c.display_name }}</p>
             <p class="text-xs text-muted">{{ c.role }}</p>
-            <p class="text-xs text-muted/60">@{{ c.github_username }} &middot; #{{ c.display_order }}</p>
+            <p class="text-xs text-muted/60">
+              @{{ c.github_username }} &middot; #{{ c.display_order }}
+            </p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -183,13 +185,13 @@ onMounted(fetchContributors)
           placeholder="Display name"
           required
         />
-        <BaseInput v-model="formRole" label="Role" placeholder="e.g. Frontend Contributor" required />
         <BaseInput
-          v-model.number="formOrder"
-          label="Display Order"
-          type="number"
-          placeholder="0"
+          v-model="formRole"
+          label="Role"
+          placeholder="e.g. Frontend Contributor"
+          required
         />
+        <BaseInput v-model.number="formOrder" label="Display Order" type="number" placeholder="0" />
         <div class="flex justify-end gap-2">
           <BaseButton variant="secondary" @click="showModal = false" type="button">
             Cancel
