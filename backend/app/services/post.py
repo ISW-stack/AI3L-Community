@@ -208,3 +208,12 @@ async def pin_post(post_id: uuid.UUID, is_pinned: bool) -> bool:
 async def get_trending_posts(limit: int = 5, days: int = 7) -> list[dict]:
     rows = await post_repo.find_trending(limit, days)
     return [row_to_post(r) for r in rows]
+
+
+async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
+    """Soft-delete multiple posts in a single transaction."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            count = await post_repo.bulk_soft_delete(post_ids, conn)
+    return count

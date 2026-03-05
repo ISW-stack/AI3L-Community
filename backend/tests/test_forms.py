@@ -273,3 +273,59 @@ class TestSubmitFormMembership:
                 assert "submitted" in resp.json()["message"].lower()
         finally:
             _clear_overrides()
+
+
+class TestDeleteFormSigAdmin:
+    @pytest.mark.anyio
+    async def test_sig_admin_can_delete_others_form(self, client):
+        """DELETE /forms/{form_id} by SIG admin (not platform admin) → 204."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        creator_id = str(uuid.uuid4())  # different person
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.soft_delete_form", new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 204
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_non_admin_non_creator_forbidden(self, client):
+        """DELETE /forms/{form_id} by non-admin, non-creator → 403."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        creator_id = str(uuid.uuid4())
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.soft_delete_form",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError(
+                        "Only the form creator or admin can delete this form."
+                    ),
+                ),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()

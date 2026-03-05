@@ -179,3 +179,14 @@ async def list_users(
     search: str | None = None,
 ) -> tuple[list[dict], int]:
     return await user_repo.list_all(page=page, page_size=page_size, search=search)
+
+
+async def bulk_change_role(user_ids: list[uuid.UUID], role: str) -> int:
+    """Change role for multiple users in a single transaction."""
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            count = await user_repo.bulk_update_role(user_ids, role, conn)
+    return count

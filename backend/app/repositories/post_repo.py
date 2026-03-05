@@ -240,11 +240,13 @@ async def search(
     idx = 1
 
     if keyword:
-        ts_query_op = " & " if logic == "AND" else " | "
-        terms = keyword.strip().split()
-        ts_query = ts_query_op.join(terms)
-        conditions.append(f"p.search_vector @@ to_tsquery('english', ${idx})")
-        params.append(ts_query)
+        search_input = keyword.strip()
+        if logic == "OR":
+            # websearch_to_tsquery defaults to AND; inject OR between words
+            terms = search_input.split()
+            search_input = " OR ".join(terms)
+        conditions.append(f"p.search_vector @@ websearch_to_tsquery('english', ${idx})")
+        params.append(search_input)
         idx += 1
 
     if category_id:

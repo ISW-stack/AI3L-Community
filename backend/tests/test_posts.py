@@ -165,3 +165,36 @@ class TestGetPostWithView:
         assert result["title"] == "Test Post"
         # increment_view_count should have been called (via execute on pool)
         assert mock_conn.execute.call_count >= 1
+
+
+class TestSearchRepo:
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_search_uses_websearch_to_tsquery(self, mock_get_pool, mock_pool, mock_conn):
+        """search() should use websearch_to_tsquery, not to_tsquery."""
+        from app.repositories.post_repo import search
+
+        mock_conn.fetch.return_value = []
+        mock_conn.fetchval.return_value = 0
+        mock_get_pool.return_value = mock_pool
+
+        await search(keyword="hello world")
+        # Verify the SQL uses websearch_to_tsquery
+        call_args = mock_conn.fetch.call_args
+        sql = call_args[0][0]
+        assert "websearch_to_tsquery" in sql
+        assert "to_tsquery" not in sql.replace("websearch_to_tsquery", "")
+
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_search_or_logic(self, mock_get_pool, mock_pool, mock_conn):
+        """search() with logic=OR should join terms with OR."""
+        from app.repositories.post_repo import search
+
+        mock_conn.fetch.return_value = []
+        mock_conn.fetchval.return_value = 0
+        mock_get_pool.return_value = mock_pool
+
+        await search(keyword="AI learning", logic="OR")
+        call_args = mock_conn.fetch.call_args
+        # The second positional arg is the keyword param
+        keyword_param = call_args[0][1]
+        assert "OR" in keyword_param

@@ -2,12 +2,10 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
-from app.core.database import get_pool
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
-from app.repositories import post_repo
 from app.schemas.post import (
     BulkDeletePostsRequest,
     PinPostRequest,
@@ -105,6 +103,24 @@ async def get_trending(
 ) -> list[PostResponse]:
     posts = await get_trending_posts(limit=5, days=7)
     return [PostResponse(**p) for p in posts]  # type: ignore[arg-type]
+
+
+@router.delete("/bulk", status_code=status.HTTP_200_OK)
+async def bulk_delete_posts(
+    req: BulkDeletePostsRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> dict:
+    from app.services.audit import log_action
+    from app.services.post import bulk_soft_delete
+
+    count = await bulk_soft_delete(req.post_ids)
+    await log_action(
+        user_id=current_user["sub"],
+        action="BULK_DELETE_POSTS",
+        target_type="post",
+        target_id=",".join(str(pid) for pid in req.post_ids),
+    )
+    return {"deleted_count": count}
 
 
 @router.get("/{post_id}", response_model=PostResponse)
@@ -207,23 +223,3 @@ async def get_post_edit_history(
 
     history = await get_post_history(post_id)
     return PostHistoryResponse(history=history, total=len(history))  # type: ignore[arg-type]
-
-
-@router.delete("/bulk", status_code=status.HTTP_200_OK)
-async def bulk_delete_posts(
-    req: BulkDeletePostsRequest,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
-) -> dict:
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            count = await post_repo.bulk_soft_delete(req.post_ids, conn)
-    from app.services.audit import log_action
-
-    await log_action(
-        user_id=current_user["sub"],
-        action="BULK_DELETE_POSTS",
-        target_type="post",
-        target_id=",".join(str(pid) for pid in req.post_ids),
-    )
-    return {"deleted_count": count}

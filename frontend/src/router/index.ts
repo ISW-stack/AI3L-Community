@@ -14,6 +14,7 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: () => import('@/views/AboutView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
     },
     {
       path: '/login',
@@ -167,6 +168,11 @@ router.beforeEach((to) => {
   // Redirect unauthenticated users to login
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  // Block guest users from member-only pages
+  if (to.meta.requiresMember && auth.isGuest) {
+    return { name: 'home' }
   }
 
   // Check admin access

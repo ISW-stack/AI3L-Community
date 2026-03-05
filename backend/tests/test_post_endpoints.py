@@ -91,6 +91,48 @@ class TestSearchPosts:
             _clear_overrides()
 
 
+class TestSearchPostsSpecialChars:
+    @pytest.mark.anyio
+    async def test_search_with_special_chars(self, client):
+        """POST /posts/search with special tsquery chars → 200 (no crash)."""
+        post = _make_post()
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.search_posts",
+                new_callable=AsyncMock,
+                return_value=([post], 1, 1),
+            ):
+                resp = await client.post(
+                    "/api/v1/posts/search",
+                    json={"keyword": "hello & world | foo (bar)"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_search_with_or_logic(self, client):
+        """POST /posts/search with logic=OR → 200."""
+        post = _make_post()
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.search_posts",
+                new_callable=AsyncMock,
+                return_value=([post], 1, 1),
+            ):
+                resp = await client.post(
+                    "/api/v1/posts/search",
+                    json={"keyword": "AI learning", "logic": "OR"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+
 class TestGetPost:
     @pytest.mark.anyio
     async def test_get_post(self, client):
@@ -181,5 +223,57 @@ class TestPostHistory:
                 assert resp.status_code == 200
                 data = resp.json()
                 assert data["total"] == 1
+        finally:
+            _clear_overrides()
+
+
+class TestBulkDeletePosts:
+    @pytest.mark.anyio
+    async def test_bulk_delete_posts_admin(self, client):
+        """DELETE /posts/bulk by ADMIN → 200."""
+        import json as _json
+
+        post_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(
+                    "app.services.post.bulk_soft_delete",
+                    new_callable=AsyncMock,
+                    return_value=2,
+                ),
+                patch("app.services.audit.log_action", new_callable=AsyncMock),
+            ):
+                resp = await client.request(
+                    "DELETE",
+                    "/api/v1/posts/bulk",
+                    content=_json.dumps({"post_ids": post_ids}),
+                    headers={
+                        "Authorization": "Bearer fake",
+                        "Content-Type": "application/json",
+                    },
+                )
+                assert resp.status_code == 200
+                assert resp.json()["deleted_count"] == 2
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_bulk_delete_posts_forbidden_member(self, client):
+        """DELETE /posts/bulk by MEMBER → 403."""
+        import json as _json
+
+        try:
+            _override_auth("MEMBER")
+            resp = await client.request(
+                "DELETE",
+                "/api/v1/posts/bulk",
+                content=_json.dumps({"post_ids": [str(uuid.uuid4())]}),
+                headers={
+                    "Authorization": "Bearer fake",
+                    "Content-Type": "application/json",
+                },
+            )
+            assert resp.status_code == 403
         finally:
             _clear_overrides()

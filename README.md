@@ -361,6 +361,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 | GET | `/users` | Admin | List all users (paginated) |
 | POST | `/users` | Admin | Create user account manually |
 | PUT | `/users/{user_id}/role` | Super Admin | Change user role |
+| PUT | `/users/bulk-role` | Super Admin | Change role for multiple users in one transaction |
 | PUT | `/users/{user_id}/ban` | Admin | Ban user |
 | PUT | `/users/{user_id}/unban` | Admin | Remove ban |
 | DELETE | `/users/{user_id}` | Admin | Anonymize user (GDPR erasure) |
@@ -373,7 +374,8 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 | POST | `/categories` | Super Admin | Create category |
 | GET | `/posts` | Required | List posts (filterable by category, SIG, keyword) |
 | POST | `/posts` | Member+ | Create post (50 posts per user per day) |
-| GET | `/posts/search` | Required | Full-text search |
+| POST | `/posts/search` | Required | Full-text search with AND/OR logic (special characters are safely handled) |
+| DELETE | `/posts/bulk` | Admin | Soft delete multiple posts in one transaction |
 | GET | `/posts/{post_id}` | Required | Get single post |
 | PUT | `/posts/{post_id}` | Owner | Edit post (versioned) |
 | DELETE | `/posts/{post_id}` | Owner/Admin | Soft delete post |
@@ -407,10 +409,10 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/forms/{form_id}` | Required | Get form and response count |
-| PUT | `/forms/{form_id}` | Owner | Edit form (locked after first response) |
-| DELETE | `/forms/{form_id}` | Owner | Soft delete form |
+| PUT | `/forms/{form_id}` | Owner/SIG Admin | Edit form (locked after first response) |
+| DELETE | `/forms/{form_id}` | Owner/SIG Admin | Soft delete form |
 | POST | `/forms/{form_id}/responses` | Required | Submit a response |
-| GET | `/forms/{form_id}/responses` | Member+ | View responses |
+| GET | `/forms/{form_id}/responses` | SIG Admin | View responses |
 | POST | `/forms/{form_id}/export` | SIG Admin | Start CSV export (async task) |
 
 ### Notifications
@@ -444,6 +446,13 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 | DELETE | `/admin/invite-codes/{id}` | Admin | Hard-delete an invite code |
 | GET | `/admin/audit-logs` | Super Admin | Paginated audit log |
 
+### About
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/about/contributors` | Member+ | List platform contributors (avatar URLs proxied through the server — no GitHub usernames exposed) |
+| GET | `/about/contributors/{id}/avatar` | Member+ | Proxy contributor GitHub avatar (1-hour server-side cache) |
+
 ### System
 
 | Method | Path | Auth | Description |
@@ -460,7 +469,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation is av
 
 | Role | Capabilities |
 |---|---|
-| `GUEST` | Read forum, submit forms, apply for membership. Session limited to 45 minutes. |
+| `GUEST` | Read forum, submit forms, apply for membership. Session limited to 45 minutes. Cannot access member-only pages (e.g. About page). |
 | `MEMBER` | Post to forum, create SIGs, generate invite codes. |
 | `ADMIN` | Moderate reports, manage applications, ban users, view dashboard. |
 | `SUPER_ADMIN` | All of the above plus role assignment, audit log access, category management. |
@@ -687,15 +696,14 @@ Run with coverage:
 pytest tests/ --cov=app --cov-report=term-missing
 ```
 
-The test suite uses `pytest-asyncio` in auto mode. All tests mock the asyncpg pool and Redis client using `unittest.mock.AsyncMock`. No running database, Redis, or MinIO instance is required.
+The test suite uses `pytest-asyncio` in auto mode. All tests mock the asyncpg pool and Redis client using `unittest.mock.AsyncMock`. No running database, Redis, or MinIO instance is required. The current suite runs **219 tests** (15 integration tests skipped unless `INTEGRATION_TEST=1`).
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-npm run test:unit       # Vitest unit tests
-npm run test:e2e        # Playwright end-to-end tests
+npm run test:unit       # Vitest unit tests (293 tests across 21 files)
 ```
 
 Type check only:

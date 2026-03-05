@@ -153,6 +153,16 @@ async def delete_form(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> None:
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+
+    # If not a platform admin, check if user is a SIG admin for the form's SIG
+    if not is_admin:
+        form = await get_form_by_id(form_id)
+        if form is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        is_admin = await _check_sig_admin(
+            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+        )
+
     try:
         deleted = await soft_delete_form(form_id, current_user["sub"], is_admin)
     except PermissionError as e:

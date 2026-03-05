@@ -1,7 +1,32 @@
-import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AboutView from '../AboutView.vue'
+
+const mockGet = vi.fn()
+
+vi.mock('@/composables/api', () => ({
+  default: {
+    get: (...args: unknown[]) => mockGet(...args),
+    post: vi.fn(),
+  },
+}))
+
+const mockContributors = [
+  {
+    id: 1,
+    display_name: 'Alice',
+    role: 'Project Lead',
+    avatar_url: '/api/v1/about/contributors/1/avatar',
+  },
+  {
+    id: 2,
+    display_name: 'Bob',
+    role: 'Developer',
+    avatar_url: '/api/v1/about/contributors/2/avatar',
+  },
+]
 
 function createTestRouter() {
   return createRouter({
@@ -10,48 +35,72 @@ function createTestRouter() {
   })
 }
 
-function mountAbout() {
+async function mountAbout() {
+  const pinia = createPinia()
+  setActivePinia(pinia)
   const router = createTestRouter()
+
   const wrapper = mount(AboutView, {
-    global: { plugins: [router] },
+    global: { plugins: [pinia, router] },
   })
+  await flushPromises()
   return wrapper
 }
 
 describe('AboutView', () => {
-  it('renders the Platform Contributors heading', () => {
-    const wrapper = mountAbout()
-    expect(wrapper.text()).toContain('Platform Contributors')
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGet.mockResolvedValue({ data: { contributors: mockContributors } })
   })
 
-  it('renders a card for each contributor', () => {
-    const wrapper = mountAbout()
-    const cards = wrapper.findAll('.bg-surface')
-    expect(cards.length).toBe(2)
+  it('renders the About AI3L Community heading', async () => {
+    const wrapper = await mountAbout()
+    expect(wrapper.text()).toContain('About AI3L Community')
   })
 
-  it('displays contributor names', () => {
-    const wrapper = mountAbout()
-    expect(wrapper.text()).toContain('Isaries')
-    expect(wrapper.text()).toContain('SW9526')
+  it('mentions Professor Yu-Ju Lan', async () => {
+    const wrapper = await mountAbout()
+    expect(wrapper.text()).toContain('Professor Yu-Ju Lan')
+    expect(wrapper.text()).toContain('\u85CD\u7389\u5982')
   })
 
-  it('displays contributor roles', () => {
-    const wrapper = mountAbout()
-    expect(wrapper.text()).toContain('Project Lead & Full-Stack Developer')
-    expect(wrapper.text()).toContain('Frontend Contributor')
+  it('renders contributor avatars after API loads', async () => {
+    const wrapper = await mountAbout()
+    const images = wrapper.findAll('img')
+    expect(images.length).toBe(2)
+    expect(images[0].attributes('src')).toBe('/api/v1/about/contributors/1/avatar')
+    expect(images[1].attributes('src')).toBe('/api/v1/about/contributors/2/avatar')
   })
 
-  it('renders GitHub links with correct hrefs', () => {
-    const wrapper = mountAbout()
-    const links = wrapper.findAll('a[target="_blank"]')
-    const hrefs = links.map((l) => l.attributes('href'))
-    expect(hrefs).toContain('https://github.com/Isaries')
-    expect(hrefs).toContain('https://github.com/SW9526')
+  it('displays contributor names and roles', async () => {
+    const wrapper = await mountAbout()
+    expect(wrapper.text()).toContain('Alice')
+    expect(wrapper.text()).toContain('Project Lead')
+    expect(wrapper.text()).toContain('Bob')
+    expect(wrapper.text()).toContain('Developer')
   })
 
-  it('renders the About this Project section', () => {
-    const wrapper = mountAbout()
-    expect(wrapper.text()).toContain('About this Project')
+  it('does not contain any GitHub links', async () => {
+    const wrapper = await mountAbout()
+    const links = wrapper.findAll('a')
+    const githubLinks = links.filter((l) => (l.attributes('href') || '').includes('github.com'))
+    expect(githubLinks.length).toBe(0)
+  })
+
+  it('shows loading state initially', () => {
+    mockGet.mockReturnValue(new Promise(() => {})) // never resolves
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createTestRouter()
+    const wrapper = mount(AboutView, {
+      global: { plugins: [pinia, router] },
+    })
+    expect(wrapper.text()).toContain('Loading contributors...')
+  })
+
+  it('handles API error gracefully', async () => {
+    mockGet.mockRejectedValue(new Error('Network error'))
+    const wrapper = await mountAbout()
+    expect(wrapper.text()).toContain('No contributor information available')
   })
 })
