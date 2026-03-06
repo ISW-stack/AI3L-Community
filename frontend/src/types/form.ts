@@ -37,3 +37,10 @@ export interface FormData {
   updated_at: string
   user_is_sig_admin?: boolean
 }
+
+export interface FormResponse {
+  id: string
+  display_name: string
+  created_at: string
+  answers: Record<string, unknown>
+}

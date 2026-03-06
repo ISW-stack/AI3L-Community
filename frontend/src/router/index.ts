@@ -133,9 +133,26 @@ const router = createRouter({
     },
     {
       path: '/sigs/:id',
-      name: 'sig-detail',
-      component: () => import('@/views/sigs/SigDetailView.vue'),
+      component: () => import('@/views/sigs/SigLayout.vue'),
       meta: { requiresAuth: true },
+      children: [
+        { path: '', redirect: { name: 'sig-posts' } },
+        {
+          path: 'posts',
+          name: 'sig-posts',
+          component: () => import('@/views/sigs/SigPostsView.vue'),
+        },
+        {
+          path: 'members',
+          name: 'sig-members',
+          component: () => import('@/views/sigs/SigMembersView.vue'),
+        },
+        {
+          path: 'forms',
+          name: 'sig-forms',
+          component: () => import('@/views/sigs/SigFormsView.vue'),
+        },
+      ],
     },
     {
       path: '/sigs/:sigId/forms/new',
