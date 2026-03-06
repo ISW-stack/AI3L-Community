@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { watch } from 'vue'
-import { RouterView } from 'vue-router'
+import { watch, computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import ToastNotification from '@/components/ToastNotification.vue'
@@ -10,6 +10,9 @@ import { useWebSocket } from '@/composables/useWebSocket'
 
 const auth = useAuthStore()
 const { connect, cleanup } = useWebSocket()
+const route = useRoute()
+
+const isAdminPage = computed(() => route.path.startsWith('/admin'))
 
 watch(
   () => auth.isAuthenticated,
@@ -28,7 +31,12 @@ function onConsentAccepted() {
 <template>
   <div class="min-h-screen bg-surface-alt flex flex-col">
     <AppNavbar />
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <main
+      :class="[
+        'flex-1',
+        isAdminPage ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
+      ]"
+    >
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
           <component :is="Component" />

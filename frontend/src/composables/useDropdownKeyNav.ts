@@ -1,45 +1,48 @@
-import { nextTick, type Ref } from 'vue'
+import { nextTick, isRef, type Ref } from 'vue'
 
-/**
- * Reusable keyboard navigation for dropdown menus.
- * Handles ArrowUp/Down, Escape, and Space activation following WAI-ARIA patterns.
- */
-export function useDropdownKeyNav(
-  isOpen: Ref<boolean>,
-  options?: {
-    onOpen?: () => void
-    onClose?: () => void
-  },
-) {
-  function focusFirstItem(wrapper: Element) {
-    nextTick(() => {
-      const items = wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]')
-      items[0]?.focus()
-    })
+export interface DropdownKeyNavOptions {
+  isOpen: Ref<boolean> | (() => boolean)
+  onOpen: () => void
+  onClose: () => void
+  wrapperClass: string
+  triggerSelector?: string
+}
+
+export function useDropdownKeyNav(options: DropdownKeyNavOptions) {
+  const getIsOpen = () => {
+    return isRef(options.isOpen) ? options.isOpen.value : options.isOpen()
   }
 
-  function handleKeydown(e: KeyboardEvent, wrapperSelector: string) {
+  const handleDropdownKeydown = (e: KeyboardEvent) => {
     const wrapper =
-      (e.target as HTMLElement).closest(wrapperSelector) ||
-      (e.currentTarget as HTMLElement).closest(wrapperSelector)
+      (e.target as HTMLElement).closest(`.${options.wrapperClass}`) ||
+      (e.currentTarget as HTMLElement).closest(`.${options.wrapperClass}`)
+
     if (!wrapper) return
 
-    // Open on ArrowDown when closed
-    if (!isOpen.value && e.key === 'ArrowDown') {
+    const isOpen = getIsOpen()
+
+    // If closed and user presses ArrowDown, open it
+    if (!isOpen && e.key === 'ArrowDown') {
       e.preventDefault()
-      isOpen.value = true
-      options?.onOpen?.()
-      focusFirstItem(wrapper)
+      options.onOpen()
+
+      nextTick(() => {
+        const menuItems = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
+        menuItems[0]?.focus()
+      })
       return
     }
 
-    if (!isOpen.value) return
+    if (!isOpen) return
 
     if (e.key === 'Escape') {
       e.preventDefault()
-      isOpen.value = false
-      options?.onClose?.()
-      ;(wrapper.querySelector('button') as HTMLElement)?.focus()
+      options.onClose()
+      const trigger = options.triggerSelector
+        ? (wrapper.querySelector(options.triggerSelector) as HTMLElement)
+        : (wrapper.querySelector('button') as HTMLElement)
+      trigger?.focus()
       return
     }
 
@@ -50,7 +53,8 @@ export function useDropdownKeyNav(
       const idx = items.indexOf(current)
 
       if (idx === -1) {
-        ;(e.key === 'ArrowDown' ? items[0] : items[items.length - 1])?.focus()
+        if (e.key === 'ArrowDown') items[0]?.focus()
+        else items[items.length - 1]?.focus()
       } else {
         const next =
           e.key === 'ArrowDown'
@@ -61,6 +65,7 @@ export function useDropdownKeyNav(
       return
     }
 
+    // Handle Space key for activation (standard for buttons, but needed for <a> tags)
     if (e.key === ' ') {
       const current = document.activeElement as HTMLElement
       if (current && (current.tagName === 'A' || current.tagName === 'BUTTON')) {
@@ -70,5 +75,7 @@ export function useDropdownKeyNav(
     }
   }
 
-  return { handleKeydown }
+  return {
+    handleDropdownKeydown,
+  }
 }

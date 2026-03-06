@@ -13,8 +13,19 @@ const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
 
-const { handleKeydown: handleAdminKeydown } = useDropdownKeyNav(adminDropdownOpen)
-const { handleKeydown: handleUserKeydown } = useDropdownKeyNav(userDropdownOpen)
+const { handleDropdownKeydown: handleAdminKeydown } = useDropdownKeyNav({
+  isOpen: adminDropdownOpen,
+  onOpen: () => (adminDropdownOpen.value = true),
+  onClose: () => (adminDropdownOpen.value = false),
+  wrapperClass: 'admin-dropdown-wrapper',
+})
+
+const { handleDropdownKeydown: handleUserKeydown } = useDropdownKeyNav({
+  isOpen: userDropdownOpen,
+  onOpen: () => (userDropdownOpen.value = true),
+  onClose: () => (userDropdownOpen.value = false),
+  wrapperClass: 'user-dropdown-wrapper',
+})
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -92,7 +103,7 @@ onUnmounted(() => {
             <div
               v-if="auth.isAdmin"
               class="relative admin-dropdown-wrapper"
-              @keydown="handleAdminKeydown($event, '.admin-dropdown-wrapper')"
+              @keydown="handleAdminKeydown"
             >
               <button
                 @click="adminDropdownOpen = !adminDropdownOpen"
@@ -176,10 +187,7 @@ onUnmounted(() => {
             <NotificationBell />
 
             <!-- User dropdown -->
-            <div
-              class="relative user-dropdown-wrapper"
-              @keydown="handleUserKeydown($event, '.user-dropdown-wrapper')"
-            >
+            <div class="relative user-dropdown-wrapper" @keydown="handleUserKeydown">
               <button
                 @click="userDropdownOpen = !userDropdownOpen"
                 class="flex items-center gap-2 text-sm text-foreground hover:text-foreground/80 transition"
