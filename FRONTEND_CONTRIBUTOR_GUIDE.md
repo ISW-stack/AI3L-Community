@@ -45,16 +45,16 @@ Each item includes a difficulty rating and a step-by-step implementation plan.
 | 1.5 | Notification deletion | ✅ Done |
 | 1.6 | VirusTotal file safety indicator | ✅ Done |
 | 2.1 | Post draft auto-save | ✅ Done |
-| 2.2 | Form preview mode | ⬜ Pending |
+| 2.2 | Form preview mode | ✅ Done |
 | 2.3 | SIG search and filter | ✅ Done |
 | 2.4 | Password visibility toggle | ✅ Done |
 | 2.5 | Invite code generation for members | ✅ Done |
 | 2.6 | Admin bulk operations UI | ✅ Done |
 | 2.7 | Admin reports pagination | ✅ Done |
-| 2.8 | Platform contributors page | ⬜ Pending |
+| 2.8 | Platform contributors page | ✅ Done |
 | 3.1 | Post edit SYS_409 version conflict message | ✅ Done |
 | 3.2 | FormBuilder rating min/max validation | ✅ Done |
-| 4.1 | Keyboard navigation for dropdowns | ⬜ Pending |
+| 4.1 | Keyboard navigation for dropdowns | ✅ Done |
 | 4.2 | Forum search date range validation | ✅ Done |
 
 ---
