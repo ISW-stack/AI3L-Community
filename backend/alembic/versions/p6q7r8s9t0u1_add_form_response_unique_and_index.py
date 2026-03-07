@@ -15,8 +15,18 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute(
-        "ALTER TABLE form_responses "
-        "ADD CONSTRAINT uq_form_responses_form_user UNIQUE (form_id, user_id)"
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'uq_form_responses_form_user'
+            ) THEN
+                ALTER TABLE form_responses
+                ADD CONSTRAINT uq_form_responses_form_user UNIQUE (form_id, user_id);
+            END IF;
+        END $$;
+        """
     )
     op.execute(
         "CREATE INDEX IF NOT EXISTS idx_form_responses_form_created "
