@@ -47,6 +47,9 @@
   --color-info-600: #2563eb;
   --color-info-700: #1d4ed8;
 
+  /* Layout */
+  --spacing-layout: 8rem;
+
   /* Surface & Neutral (light defaults) */
   --color-surface: #ffffff;
   --color-surface-alt: #f9fafb;

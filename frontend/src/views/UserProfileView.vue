@@ -90,7 +90,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="w-full lg:px-32 px-4 py-6 sm:py-8 min-h-screen">
+  <div class="w-full lg:px-layout px-4 py-6 sm:py-8 min-h-screen">
     <div class="max-w-4xl mx-auto">
       <div class="mb-4 text-left">
         <router-link

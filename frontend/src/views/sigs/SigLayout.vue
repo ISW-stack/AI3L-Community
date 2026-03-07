@@ -151,7 +151,7 @@ const currentRouteName = computed(() => route.name)
 </script>
 
 <template>
-  <div class="flex flex-col h-full w-full lg:px-32 px-4 py-6 sm:py-8">
+  <div class="flex flex-col h-full w-full lg:px-layout px-4 py-6 sm:py-8">
     <!-- Back to Sigs -->
     <div class="shrink-0 mb-4">
       <router-link
