@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { usePagination } from '@/composables/usePagination'
 import { User, Settings, Trash2 } from 'lucide-vue-next'
 import type { Notification } from '@/types'
 import {
@@ -22,12 +23,9 @@ const router = useRouter()
 const toast = useToastStore()
 const notificationStore = useNotificationStore()
 const notifications = ref<Notification[]>([])
-const total = ref(0)
+const { page, total, totalPages, pageSize, setPage, updateFromResponse } = usePagination()
 const unreadCount = ref(0)
-const page = ref(1)
-const pageSize = 20
 const loading = ref(false)
-const totalPages = ref(1)
 const filter = ref<'all' | 'unread'>('all')
 let fetchId = 0
 
@@ -47,9 +45,8 @@ async function fetchNotifications() {
     const data = await listNotifications({ page: page.value, page_size: pageSize })
     if (localFetchId !== fetchId) return
     notifications.value = data.notifications
-    total.value = data.total
+    updateFromResponse(data.total)
     unreadCount.value = data.unread_count
-    totalPages.value = Math.max(1, Math.ceil(data.total / pageSize))
   } catch {
     // silent
   } finally {
@@ -115,7 +112,7 @@ async function handleClearAll() {
 }
 
 function goToPage(p: number) {
-  page.value = p
+  setPage(p)
   fetchNotifications()
 }
 

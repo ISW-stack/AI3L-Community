@@ -11,6 +11,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import { getErrorMessage } from '@/utils/error'
 import { MessageSquare, Users, FileText, BookOpen } from 'lucide-vue-next'
 
 const auth = useAuthStore()
@@ -32,9 +33,8 @@ async function submitApplication() {
     await applyForMembership(applicationDesc.value.trim())
     applicationSent.value = true
     toast.show('Application submitted successfully!', 'success')
-  } catch (err: any) {
-    const msg = err?.response?.data?.detail || 'Failed to submit application.'
-    toast.show(msg, 'error')
+  } catch (err: unknown) {
+    toast.show(getErrorMessage(err, 'Failed to submit application.'), 'error')
   } finally {
     applyLoading.value = false
   }

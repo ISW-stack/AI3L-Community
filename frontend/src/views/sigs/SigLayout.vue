@@ -13,6 +13,7 @@ import {
   leaveSig as leaveSigApi,
   joinSig as joinSigApi,
 } from '@/api/sigs'
+import { getErrorMessage } from '@/utils/error'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -93,8 +94,7 @@ async function saveEdit() {
     editing.value = false
     toastStore.show('SIG updated successfully.', 'success')
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    toastStore.show(err.response?.data?.detail || 'Failed to update SIG.', 'error')
+    toastStore.show(getErrorMessage(e, 'Failed to update SIG.'), 'error')
   } finally {
     editSaving.value = false
   }
@@ -106,8 +106,7 @@ async function handleDeleteSig() {
     router.push('/sigs')
     toastStore.show('SIG deleted.', 'info')
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    toastStore.show(err.response?.data?.detail || 'Failed to delete SIG.', 'error')
+    toastStore.show(getErrorMessage(e, 'Failed to delete SIG.'), 'error')
   } finally {
     showDeleteConfirm.value = false
   }
@@ -119,8 +118,7 @@ async function handleLeaveSig() {
     await fetchSigData()
     toastStore.show('You have left the SIG.', 'info')
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    toastStore.show(err.response?.data?.detail || 'Failed to leave SIG.', 'error')
+    toastStore.show(getErrorMessage(e, 'Failed to leave SIG.'), 'error')
   }
 }
 
@@ -131,8 +129,7 @@ async function handleJoinSig() {
     await fetchSigData()
     toastStore.show('You have joined the SIG.', 'success')
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    toastStore.show(err.response?.data?.detail || 'Failed to join SIG.', 'error')
+    toastStore.show(getErrorMessage(e, 'Failed to join SIG.'), 'error')
   } finally {
     joining.value = false
   }

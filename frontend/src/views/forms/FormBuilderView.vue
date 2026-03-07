@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Question } from '@/types'
+import { getErrorMessage } from '@/utils/error'
 import { getForm, createForm, updateForm } from '@/api/forms'
 import { uploadEditorFile } from '@/api/files'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -204,8 +205,8 @@ async function saveForm() {
       message.value = 'Form created successfully.'
       router.replace(`/forms/${data.id}`)
     }
-  } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Failed to save form.'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Failed to save form.')
   } finally {
     saving.value = false
   }

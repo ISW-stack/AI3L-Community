@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
 import { deleteForm as deleteFormApi, listFormResponses } from '@/api/forms'
+import { getErrorMessage } from '@/utils/error'
 import type { SigForm, FormResponse } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -60,8 +61,7 @@ async function handleDeleteForm() {
     await fetchForms()
     toastStore.show('Form deleted.', 'success')
   } catch (e: unknown) {
-    const error = e as { response?: { data?: { detail?: string } } }
-    toastStore.show(error.response?.data?.detail || 'Failed to delete form.', 'error')
+    toastStore.show(getErrorMessage(e, 'Failed to delete form.'), 'error')
   } finally {
     showFormDeleteConfirm.value = false
     formToDelete.value = null

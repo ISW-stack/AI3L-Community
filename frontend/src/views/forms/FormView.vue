@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { getErrorMessage } from '@/utils/error'
 import type { Question, FormData } from '@/types'
 import { getForm, submitForm as apiSubmitForm, exportForm } from '@/api/forms'
 import { getTaskStatus } from '@/api/tasks'
@@ -97,8 +98,8 @@ async function submitForm() {
     await apiSubmitForm(formId.value, cleanAnswers)
     submitted.value = true
     message.value = 'Your response has been submitted successfully!'
-  } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Failed to submit response.'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Failed to submit response.')
   } finally {
     submitting.value = false
   }
@@ -139,8 +140,8 @@ async function startExport() {
   try {
     const data = await exportForm(formId.value)
     pollExportStatus(data.task_id)
-  } catch (err: any) {
-    error.value = err.response?.data?.detail || 'Failed to start export.'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Failed to start export.')
     exporting.value = false
     exportStatus.value = ''
   }

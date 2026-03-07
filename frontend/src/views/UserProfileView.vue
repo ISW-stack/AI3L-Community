@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePagination } from '@/composables/usePagination'
 import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
 import { listPosts } from '@/api/posts'
@@ -19,10 +20,15 @@ const auth = useAuthStore()
 const userId = computed(() => route.params.id as string)
 const user = ref<PublicUser | null>(null)
 const posts = ref<Post[]>([])
-const postsTotal = ref(0)
-const postsPage = ref(1)
-const postsTotalPages = ref(1)
-const postsPageSize = 20
+const {
+  page: postsPage,
+  total: postsTotal,
+  totalPages: postsTotalPages,
+  pageSize: postsPageSize,
+  setPage,
+  resetPage,
+  updateFromResponse,
+} = usePagination()
 const loading = ref(true)
 const postsLoading = ref(false)
 
@@ -59,8 +65,7 @@ async function fetchPosts() {
       page_size: postsPageSize,
     })
     posts.value = data.posts
-    postsTotal.value = data.total
-    postsTotalPages.value = data.total_pages
+    updateFromResponse(data.total, data.total_pages)
   } catch (e) {
     console.error(e)
   } finally {
@@ -69,7 +74,7 @@ async function fetchPosts() {
 }
 
 function goToPage(page: number) {
-  postsPage.value = page
+  setPage(page)
   fetchPosts()
 }
 
@@ -78,7 +83,7 @@ function toLocaleTime(dateStr: string): string {
 }
 
 watch(userId, () => {
-  postsPage.value = 1
+  resetPage()
   fetchUser()
   fetchPosts()
 })

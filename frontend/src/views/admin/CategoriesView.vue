@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import type { Category } from '@/types'
 import { listCategories, createCategory, updateCategory, deleteCategory } from '@/api/categories'
 import { useToastStore } from '@/stores/toast'
+import { getErrorMessage } from '@/utils/error'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -74,9 +75,8 @@ async function handleSave() {
     }
     showModal.value = false
     await fetchCategories()
-  } catch (err: any) {
-    const msg = err?.response?.data?.detail || 'Failed to save category.'
-    toast.show(msg, 'error')
+  } catch (err: unknown) {
+    toast.show(getErrorMessage(err, 'Failed to save category.'), 'error')
   } finally {
     saving.value = false
   }
@@ -89,9 +89,8 @@ async function handleDelete() {
     toast.show('Category deleted.', 'success')
     confirmDelete.value = null
     await fetchCategories()
-  } catch (err: any) {
-    const msg = err?.response?.data?.detail || 'Failed to delete category.'
-    toast.show(msg, 'error')
+  } catch (err: unknown) {
+    toast.show(getErrorMessage(err, 'Failed to delete category.'), 'error')
   }
 }
 

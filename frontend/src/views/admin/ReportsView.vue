@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import type { Report } from '@/types'
 import { listReports, reviewReport as apiReviewReport } from '@/api/admin'
+import { usePagination } from '@/composables/usePagination'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
@@ -9,24 +10,21 @@ import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const reports = ref<Report[]>([])
-const total = ref(0)
+const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } =
+  usePagination()
 const statusFilter = ref<string>('')
 const loading = ref(false)
-const currentPage = ref(1)
-const totalPages = ref(1)
-const pageSize = 20
 
 async function fetchReports() {
   loading.value = true
   try {
     const data = await listReports({
       status_filter: statusFilter.value || undefined,
-      page: currentPage.value,
+      page: page.value,
       page_size: pageSize,
     })
     reports.value = data.reports
-    total.value = data.total
-    totalPages.value = data.total_pages || Math.max(1, Math.ceil(data.total / pageSize))
+    updateFromResponse(data.total, data.total_pages)
   } catch {
     /* silent */
   } finally {
@@ -50,12 +48,12 @@ const statusBadge: Record<string, 'warning' | 'success' | 'neutral'> = {
 }
 
 function handleStatusChange() {
-  currentPage.value = 1
+  resetPage()
   fetchReports()
 }
 
 function handlePageChange(p: number) {
-  currentPage.value = p
+  setPage(p)
   fetchReports()
 }
 
@@ -140,7 +138,7 @@ onMounted(fetchReports)
 
     <BasePagination
       v-if="totalPages > 1"
-      :current-page="currentPage"
+      :current-page="page"
       :total-pages="totalPages"
       class="mt-4"
       @update:current-page="handlePageChange"

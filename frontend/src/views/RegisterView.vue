@@ -8,6 +8,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
+import { getErrorMessage } from '@/utils/error'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -81,12 +82,8 @@ async function handleRegister() {
       captchaCode.value,
     )
     router.push('/')
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    error.value =
-      typeof detail === 'object' && detail?.message
-        ? detail.message
-        : detail || 'Registration failed. Please try again.'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Registration failed. Please try again.')
     await loadCaptcha()
   } finally {
     loading.value = false

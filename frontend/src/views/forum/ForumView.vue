@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { Post, Category } from '@/types'
 import { listPosts, searchPosts, getTrendingPosts } from '@/api/posts'
 import { listCategories } from '@/api/categories'
+import { usePagination } from '@/composables/usePagination'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PostCard from '@/components/PostCard.vue'
@@ -19,10 +20,16 @@ const auth = useAuthStore()
 const posts = ref<Post[]>([])
 const categories = ref<Category[]>([])
 const trendingPosts = ref<Post[]>([])
-const total = ref(0)
-const currentPage = ref(parseInt(route.query.page as string) || 1)
-const totalPages = ref(1)
-const pageSize = 20
+const {
+  page: currentPage,
+  total,
+  totalPages,
+  pageSize,
+  setPage,
+  resetPage,
+  updateFromResponse,
+} = usePagination()
+currentPage.value = parseInt(route.query.page as string) || 1
 const loading = ref(false)
 const categoryFilter = ref<string | null>((route.query.category as string) || null)
 
@@ -83,8 +90,7 @@ async function fetchPosts() {
     if (categoryFilter.value) params.category_id = categoryFilter.value
     const data = await listPosts(params)
     posts.value = data.posts
-    total.value = data.total
-    totalPages.value = data.total_pages
+    updateFromResponse(data.total, data.total_pages)
     isSearching.value = false
   } catch (e) {
     console.error(e)
@@ -95,7 +101,7 @@ async function fetchPosts() {
 }
 
 async function doSearch() {
-  currentPage.value = 1
+  resetPage()
   if (
     !searchKeyword.value &&
     !categoryFilter.value &&
@@ -119,8 +125,7 @@ async function doSearch() {
     if (searchDateTo.value) body.date_to = searchDateTo.value
     const data = await searchPosts(body as Parameters<typeof searchPosts>[0])
     posts.value = data.posts
-    total.value = data.total
-    totalPages.value = data.total_pages
+    updateFromResponse(data.total, data.total_pages)
   } catch (e) {
     console.error(e)
   } finally {
@@ -134,13 +139,13 @@ function clearSearch() {
   searchDateFrom.value = ''
   searchDateTo.value = ''
   categoryFilter.value = null
-  currentPage.value = 1
+  resetPage()
   sortBy.value = 'newest'
   fetchPosts()
 }
 
 function goToPage(page: number) {
-  currentPage.value = page
+  setPage(page)
   if (isSearching.value) {
     doSearch()
   } else {
@@ -161,11 +166,11 @@ function toggleAdvanced() {
 }
 
 watch(categoryFilter, () => {
-  currentPage.value = 1
+  resetPage()
   if (!isSearching.value) fetchPosts()
 })
 watch(sortBy, () => {
-  currentPage.value = 1
+  resetPage()
   if (!isSearching.value) fetchPosts()
 })
 onMounted(() => {

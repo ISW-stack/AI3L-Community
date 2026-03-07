@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { Category, Sig } from '@/types'
+import { getErrorMessage } from '@/utils/error'
 import { createPost as apiCreatePost } from '@/api/posts'
 import { listCategories } from '@/api/categories'
 import { listMySigs } from '@/api/sigs'
@@ -131,8 +132,7 @@ async function createPost() {
     clearDraft()
     router.push(`/forum/${data.id}`)
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    message.value = err.response?.data?.detail || 'Failed to create post.'
+    message.value = getErrorMessage(e, 'Failed to create post.')
   } finally {
     saving.value = false
   }

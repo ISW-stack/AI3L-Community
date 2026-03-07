@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { usePagination } from '@/composables/usePagination'
+import { getErrorMessage } from '@/utils/error'
 import type { AdminUser } from '@/api/admin'
 import {
   listUsers,
@@ -25,12 +27,10 @@ const auth = useAuthStore()
 const toast = useToastStore()
 
 const users = ref<AdminUser[]>([])
-const total = ref(0)
+const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } =
+  usePagination()
 const loading = ref(false)
 const message = ref('')
-const page = ref(1)
-const pageSize = 20
-const totalPages = ref(1)
 const searchQuery = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -68,12 +68,8 @@ async function applyBulkRole() {
     toast.show(`Role updated for ${selectedIds.value.size} user(s).`, 'success')
     selectedIds.value.clear()
     await fetchUsers()
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    toast.show(
-      typeof detail === 'object' ? detail?.message : detail || 'Bulk role update failed.',
-      'error',
-    )
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, 'Bulk role update failed.'), 'error')
   } finally {
     bulkLoading.value = false
   }
@@ -108,7 +104,7 @@ const roleBadge: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'> = {
 function onSearchInput() {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    page.value = 1
+    resetPage()
     fetchUsers()
   }, 300)
 }
@@ -123,8 +119,7 @@ async function fetchUsers() {
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     const data = await listUsers(params)
     users.value = data.users
-    total.value = data.total
-    totalPages.value = Math.max(1, Math.ceil(data.total / pageSize))
+    updateFromResponse(data.total)
   } catch {
     message.value = 'Failed to load user list.'
   } finally {
@@ -133,7 +128,7 @@ async function fetchUsers() {
 }
 
 function goToPage(p: number) {
-  page.value = p
+  setPage(p)
   fetchUsers()
 }
 
@@ -142,10 +137,8 @@ async function changeRole(userId: string, newRole: string) {
     await apiChangeRole(userId, newRole)
     message.value = 'Role updated successfully.'
     await fetchUsers()
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    message.value =
-      typeof detail === 'object' ? detail?.message : detail || 'Failed to update role.'
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, 'Failed to update role.')
   }
 }
 
@@ -166,10 +159,8 @@ async function createAccount() {
     newRole.value = 'MEMBER'
     message.value = 'Account created successfully.'
     await fetchUsers()
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    message.value =
-      typeof detail === 'object' ? detail?.message : detail || 'Failed to create account.'
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, 'Failed to create account.')
   } finally {
     creating.value = false
   }
@@ -189,9 +180,8 @@ async function confirmBan() {
     showBanModal.value = false
     message.value = `${banTargetUser.value.username} has been banned.`
     await fetchUsers()
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    message.value = typeof detail === 'object' ? detail?.message : detail || 'Failed to ban user.'
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, 'Failed to ban user.')
   } finally {
     banning.value = false
   }
@@ -202,9 +192,8 @@ async function handleUnban(user: AdminUser) {
     await apiUnbanUser(user.id)
     message.value = `${user.username} has been unbanned.`
     await fetchUsers()
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    message.value = typeof detail === 'object' ? detail?.message : detail || 'Failed to unban user.'
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, 'Failed to unban user.')
   }
 }
 

@@ -18,6 +18,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import { getErrorMessage } from '@/utils/error'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -88,14 +89,8 @@ async function generateInviteCode() {
     const data = await createInviteCode()
     generatedCode.value = data.invite_code
     toast.show('Invite code generated successfully.', 'success')
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    toast.show(
-      typeof detail === 'object' && detail?.message
-        ? detail.message
-        : detail || 'Failed to generate invite code.',
-      'error',
-    )
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, 'Failed to generate invite code.'), 'error')
   } finally {
     generatingCode.value = false
   }
@@ -135,8 +130,8 @@ async function saveProfile() {
     })
     auth.user = data
     message.value = 'Profile updated successfully.'
-  } catch (e: any) {
-    message.value = e.response?.data?.detail || 'Failed to update profile.'
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, 'Failed to update profile.')
   } finally {
     saving.value = false
   }
@@ -150,8 +145,8 @@ async function uploadAvatar(event: Event) {
     const data = await apiUploadAvatar(file)
     auth.user = data
     message.value = 'Avatar updated successfully.'
-  } catch (e: any) {
-    message.value = e.response?.data?.detail || 'Failed to upload avatar.'
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, 'Failed to upload avatar.')
   }
 }
 
@@ -180,8 +175,8 @@ async function changePassword() {
       await auth.logout()
       router.push({ name: 'login' })
     }, 1500)
-  } catch (e: any) {
-    passwordMessage.value = e.response?.data?.detail || 'Failed to change password.'
+  } catch (e: unknown) {
+    passwordMessage.value = getErrorMessage(e, 'Failed to change password.')
     passwordError.value = true
   } finally {
     changingPassword.value = false
@@ -207,8 +202,7 @@ async function handleDeleteAccount() {
     auth.clearSession()
     router.push({ name: 'login' })
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    message.value = err.response?.data?.detail || 'Failed to delete account.'
+    message.value = getErrorMessage(e, 'Failed to delete account.')
   } finally {
     deletingAccount.value = false
     showDeleteConfirm.value = false

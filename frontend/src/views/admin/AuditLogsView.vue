@@ -2,15 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import type { AuditLog } from '@/types'
 import { getAuditLogs } from '@/api/admin'
+import { usePagination } from '@/composables/usePagination'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const logs = ref<AuditLog[]>([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = 50
+const { page, total, pageSize, setPage, resetPage, updateFromResponse } = usePagination(50)
 const loading = ref(false)
 const error = ref('')
 
@@ -28,7 +27,7 @@ function toggleFilters() {
 }
 
 function applyFilters() {
-  page.value = 1
+  resetPage()
   fetchLogs()
 }
 
@@ -36,7 +35,7 @@ function clearFilters() {
   filterDateFrom.value = ''
   filterDateTo.value = ''
   filterUserId.value = ''
-  page.value = 1
+  resetPage()
   fetchLogs()
 }
 
@@ -60,7 +59,7 @@ async function fetchLogs() {
     if (filterDateTo.value) params.date_to = filterDateTo.value
     const data = await getAuditLogs(params)
     logs.value = data.logs
-    total.value = data.total
+    updateFromResponse(data.total)
   } catch {
     error.value = 'Failed to load audit logs.'
   } finally {
@@ -70,13 +69,13 @@ async function fetchLogs() {
 
 function prevPage() {
   if (page.value > 1) {
-    page.value--
+    setPage(page.value - 1)
     fetchLogs()
   }
 }
 function nextPage() {
   if (page.value * pageSize < total.value) {
-    page.value++
+    setPage(page.value + 1)
     fetchLogs()
   }
 }

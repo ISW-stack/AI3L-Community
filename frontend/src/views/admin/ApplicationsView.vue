@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import type { Application } from '@/types'
 import { listApplications, reviewApplication } from '@/api/admin'
+import { getErrorMessage } from '@/utils/error'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -44,8 +45,8 @@ async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
     await reviewApplication(appId, action)
     message.value = action === 'APPROVED' ? 'Application approved.' : 'Application rejected.'
     await fetchApplications()
-  } catch (e: any) {
-    message.value = e.response?.data?.detail || 'Operation failed.'
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, 'Operation failed.')
   }
 }
 

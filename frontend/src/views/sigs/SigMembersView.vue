@@ -8,6 +8,7 @@ import {
   removeMember as removeMemberApi,
   assignSubAdmin as assignSubAdminApi,
 } from '@/api/sigs'
+import { getErrorMessage } from '@/utils/error'
 import type { SigMember } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -61,8 +62,7 @@ async function handleRemoveMember(userId: string) {
     await fetchMembers()
     toastStore.show('Member removed.', 'info')
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    toastStore.show(err.response?.data?.detail || 'Failed to remove member.', 'error')
+    toastStore.show(getErrorMessage(e, 'Failed to remove member.'), 'error')
   }
 }
 
@@ -72,8 +72,7 @@ async function handleAssignSubAdmin(userId: string) {
     await fetchMembers()
     toastStore.show('Member promoted to Sub-Admin.', 'success')
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    toastStore.show(err.response?.data?.detail || 'Failed to assign Sub-Admin.', 'error')
+    toastStore.show(getErrorMessage(e, 'Failed to assign Sub-Admin.'), 'error')
   }
 }
 

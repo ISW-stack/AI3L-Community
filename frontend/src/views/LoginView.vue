@@ -8,6 +8,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
+import { getErrorMessage } from '@/utils/error'
 
 const router = useRouter()
 const route = useRoute()
@@ -40,12 +41,8 @@ async function handleLogin() {
     await auth.login(username.value, password.value, captchaId.value, captchaCode.value)
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    error.value =
-      typeof detail === 'object' && detail?.message
-        ? detail.message
-        : detail || 'Login failed. Please try again.'
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, 'Login failed. Please try again.')
     await loadCaptcha()
   } finally {
     loading.value = false
