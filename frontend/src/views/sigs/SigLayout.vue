@@ -92,8 +92,9 @@ async function saveEdit() {
     })
     editing.value = false
     toastStore.show('SIG updated successfully.', 'success')
-  } catch (e: any) {
-    toastStore.show(e.response?.data?.detail || 'Failed to update SIG.', 'error')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    toastStore.show(err.response?.data?.detail || 'Failed to update SIG.', 'error')
   } finally {
     editSaving.value = false
   }
@@ -104,8 +105,9 @@ async function handleDeleteSig() {
     await deleteSigApi(sigId.value)
     router.push('/sigs')
     toastStore.show('SIG deleted.', 'info')
-  } catch (e: any) {
-    toastStore.show(e.response?.data?.detail || 'Failed to delete SIG.', 'error')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    toastStore.show(err.response?.data?.detail || 'Failed to delete SIG.', 'error')
   } finally {
     showDeleteConfirm.value = false
   }
@@ -116,8 +118,9 @@ async function handleLeaveSig() {
     await leaveSigApi(sigId.value)
     await fetchSigData()
     toastStore.show('You have left the SIG.', 'info')
-  } catch (e: any) {
-    toastStore.show(e.response?.data?.detail || 'Failed to leave SIG.', 'error')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    toastStore.show(err.response?.data?.detail || 'Failed to leave SIG.', 'error')
   }
 }
 
@@ -127,8 +130,9 @@ async function handleJoinSig() {
     await joinSigApi(sigId.value)
     await fetchSigData()
     toastStore.show('You have joined the SIG.', 'success')
-  } catch (e: any) {
-    toastStore.show(e.response?.data?.detail || 'Failed to join SIG.', 'error')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    toastStore.show(err.response?.data?.detail || 'Failed to join SIG.', 'error')
   } finally {
     joining.value = false
   }

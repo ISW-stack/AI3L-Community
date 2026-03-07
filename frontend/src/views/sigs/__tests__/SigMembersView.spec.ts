@@ -1,0 +1,234 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import SigMembersView from '../SigMembersView.vue'
+import { useAuthStore } from '@/stores/auth'
+import type { SigMember } from '@/types'
+
+vi.mock('@/composables/api', () => ({
+  default: {
+    post: vi.fn(),
+    get: vi.fn(),
+  },
+}))
+
+vi.mock('@/constants', () => ({
+  HEARTBEAT_INTERVAL_MS: 30000,
+}))
+
+const mockGetSigMembers = vi.fn()
+const mockRemoveMember = vi.fn()
+const mockAssignSubAdmin = vi.fn()
+
+vi.mock('@/api/sigs', () => ({
+  getSigMembers: (...args: unknown[]) => mockGetSigMembers(...args),
+  removeMember: (...args: unknown[]) => mockRemoveMember(...args),
+  assignSubAdmin: (...args: unknown[]) => mockAssignSubAdmin(...args),
+}))
+
+function makeMember(overrides: Partial<SigMember> = {}): SigMember {
+  return {
+    id: 'mem-1',
+    sig_id: 'sig-1',
+    user_id: 'user-1',
+    role: 'MEMBER',
+    display_name: 'Alice Test',
+    username: 'alice',
+    avatar_url: null,
+    created_at: '2026-01-15T00:00:00Z',
+    ...overrides,
+  }
+}
+
+const sampleMembers: SigMember[] = [
+  makeMember({ id: 'mem-1', user_id: 'user-1', role: 'ADMIN', display_name: 'Admin User', username: 'adminuser' }),
+  makeMember({ id: 'mem-2', user_id: 'user-2', role: 'SUB_ADMIN', display_name: 'Sub Admin', username: 'subadmin' }),
+  makeMember({ id: 'mem-3', user_id: 'user-3', role: 'MEMBER', display_name: 'Regular Member', username: 'regular' }),
+]
+
+function createTestRouter() {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: { template: '<div />' } },
+      { path: '/sigs/:id/members', name: 'sig-members', component: SigMembersView },
+      { path: '/users/:id', name: 'user-profile', component: { template: '<div />' } },
+    ],
+  })
+}
+
+async function mountComponent(options: {
+  role?: string
+  userSigRole?: string | null
+  members?: SigMember[]
+  total?: number
+  currentUserId?: string
+} = {}) {
+  const {
+    role = 'MEMBER',
+    userSigRole = null,
+    members = sampleMembers,
+    total = members.length,
+    currentUserId = 'current-user',
+  } = options
+
+  mockGetSigMembers.mockResolvedValue({ members, total })
+
+  const router = createTestRouter()
+  const pinia = createPinia()
+  setActivePinia(pinia)
+
+  const auth = useAuthStore()
+  auth.setSession(role, 3600)
+  auth.user = { id: currentUserId } as never
+
+  await router.push('/sigs/sig-1/members')
+  await router.isReady()
+
+  const wrapper = mount(SigMembersView, {
+    global: {
+      plugins: [pinia, router],
+      provide: {
+        userSigRole: ref(userSigRole),
+      },
+      stubs: {
+        BaseCard: { template: '<div class="base-card"><slot /></div>' },
+        BaseBadge: { template: '<span class="base-badge" :data-variant="$attrs.variant"><slot /></span>', inheritAttrs: false },
+        BaseAvatar: { template: '<span class="base-avatar" />' },
+        SkeletonLoader: { template: '<div class="skeleton-loader" />' },
+        EmptyState: { template: '<div class="empty-state" />', props: ['title', 'message'] },
+      },
+    },
+  })
+
+  return { wrapper, auth, router }
+}
+
+describe('SigMembersView', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('shows loading skeleton initially', async () => {
+    // Make getSigMembers hang so loading stays true
+    mockGetSigMembers.mockReturnValue(new Promise(() => {}))
+
+    const router = createTestRouter()
+    const pinia = createPinia()
+    setActivePinia(pinia)
+
+    const auth = useAuthStore()
+    auth.setSession('MEMBER', 3600)
+
+    await router.push('/sigs/sig-1/members')
+    await router.isReady()
+
+    const wrapper = mount(SigMembersView, {
+      global: {
+        plugins: [pinia, router],
+        provide: { userSigRole: ref(null) },
+        stubs: {
+          BaseCard: { template: '<div class="base-card"><slot /></div>' },
+          BaseBadge: { template: '<span class="base-badge"><slot /></span>' },
+          BaseAvatar: { template: '<span class="base-avatar" />' },
+          SkeletonLoader: { template: '<div class="skeleton-loader" />' },
+          EmptyState: { template: '<div class="empty-state" />' },
+        },
+      },
+    })
+
+    expect(wrapper.find('.skeleton-loader').exists()).toBe(true)
+    expect(wrapper.find('table').exists()).toBe(false)
+  })
+
+  it('renders member table after loading', async () => {
+    const { wrapper } = await mountComponent()
+    await flushPromises()
+
+    expect(wrapper.find('.skeleton-loader').exists()).toBe(false)
+    expect(wrapper.find('table').exists()).toBe(true)
+  })
+
+  it('shows member display name and username', async () => {
+    const { wrapper } = await mountComponent()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Admin User')
+    expect(wrapper.text()).toContain('@adminuser')
+    expect(wrapper.text()).toContain('Regular Member')
+    expect(wrapper.text()).toContain('@regular')
+  })
+
+  it('shows role badges with correct variants', async () => {
+    const { wrapper } = await mountComponent()
+    await flushPromises()
+
+    const badges = wrapper.findAll('.base-badge')
+    const variants = badges.map((b) => b.attributes('data-variant'))
+
+    expect(variants).toContain('orange') // ADMIN
+    expect(variants).toContain('purple') // SUB_ADMIN
+    expect(variants).toContain('brand') // MEMBER
+  })
+
+  it('shows Promote button for platform admin when member is MEMBER role', async () => {
+    const { wrapper } = await mountComponent({ role: 'ADMIN' })
+    await flushPromises()
+
+    const buttons = wrapper.findAll('button')
+    const promoteButtons = buttons.filter((b) => b.text().includes('Promote'))
+
+    // Only the MEMBER-role member should get a Promote button
+    expect(promoteButtons.length).toBeGreaterThan(0)
+
+    // ADMIN and SUB_ADMIN should NOT get Promote
+    const tableRows = wrapper.findAll('tbody tr')
+    // Row 0 = ADMIN role, Row 1 = SUB_ADMIN role — neither should have Promote
+    // Row 2 = MEMBER role — should have Promote
+    const lastRowText = tableRows[2].text()
+    expect(lastRowText).toContain('Promote')
+
+    const firstRowText = tableRows[0].text()
+    expect(firstRowText).not.toContain('Promote')
+  })
+
+  it('hides Promote button for non-admin users', async () => {
+    const { wrapper } = await mountComponent({ role: 'MEMBER', userSigRole: null })
+    await flushPromises()
+
+    const buttons = wrapper.findAll('button')
+    const promoteButtons = buttons.filter((b) => b.text().includes('Promote'))
+    expect(promoteButtons.length).toBe(0)
+  })
+
+  it('shows Remove button for SIG admin but not for own user', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-2', // current user is user-2 (SUB_ADMIN)
+    })
+    await flushPromises()
+
+    // Scope to desktop table view to avoid double-counting with mobile cards
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+
+    // Row for user-2 (self) should NOT have Remove
+    const selfRow = tableRows[1] // user-2 is SUB_ADMIN at index 1
+    expect(selfRow.text()).not.toContain('Remove')
+
+    // Other rows should have Remove
+    expect(tableRows[0].text()).toContain('Remove')
+    expect(tableRows[2].text()).toContain('Remove')
+  })
+
+  it('shows EmptyState when no members', async () => {
+    const { wrapper } = await mountComponent({ members: [], total: 0 })
+    await flushPromises()
+
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
+    expect(wrapper.find('table').exists()).toBe(false)
+  })
+})

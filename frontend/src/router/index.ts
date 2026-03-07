@@ -38,13 +38,13 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
     },
     {
       path: '/users/:id',
       name: 'user-profile',
       component: () => import('@/views/UserProfileView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
     },
     {
       path: '/notifications',
@@ -73,7 +73,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: AdminLayout,
-      meta: { requiresAuth: true, requiresAdmin: true },
+      meta: { requiresAuth: true, requiresAdmin: true, fullWidth: true },
       children: [
         {
           path: '',
@@ -134,7 +134,7 @@ const router = createRouter({
     {
       path: '/sigs/:id',
       component: () => import('@/views/sigs/SigLayout.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
       children: [
         { path: '', redirect: { name: 'sig-posts' } },
         {

@@ -17,7 +17,7 @@ const posts = ref<Post[]>([])
 const total = ref(0)
 const loading = ref(true)
 
-const isMember = computed(() => userSigRole?.value !== null)
+const isMember = computed(() => userSigRole?.value != null)
 
 async function fetchPosts() {
   loading.value = true
@@ -53,7 +53,7 @@ onMounted(fetchPosts)
     <EmptyState
       v-else-if="posts.length === 0"
       title="No posts yet"
-      message="Started a discussion by creating the first post in this SIG."
+      message="Start a discussion by creating the first post in this SIG."
     />
 
     <div v-else class="space-y-3">

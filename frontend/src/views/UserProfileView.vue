@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
@@ -14,7 +14,6 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const route = useRoute()
-const router = useRouter()
 const auth = useAuthStore()
 
 const userId = computed(() => route.params.id as string)
@@ -94,12 +93,12 @@ onMounted(() => {
   <div class="w-full lg:px-32 px-4 py-6 sm:py-8 min-h-screen">
     <div class="max-w-4xl mx-auto">
       <div class="mb-4 text-left">
-        <button
-          @click="router.back()"
+        <router-link
+          to="/forum"
           class="text-sm text-brand-600 hover:underline flex items-center gap-1"
         >
           <span>&larr;</span> Back
-        </button>
+        </router-link>
       </div>
 
       <SkeletonLoader v-if="loading" :lines="2" variant="card" />

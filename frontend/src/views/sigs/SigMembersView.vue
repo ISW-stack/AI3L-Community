@@ -60,8 +60,9 @@ async function handleRemoveMember(userId: string) {
     await removeMemberApi(sigId.value, userId)
     await fetchMembers()
     toastStore.show('Member removed.', 'info')
-  } catch (e: any) {
-    toastStore.show(e.response?.data?.detail || 'Failed to remove member.', 'error')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    toastStore.show(err.response?.data?.detail || 'Failed to remove member.', 'error')
   }
 }
 
@@ -70,8 +71,9 @@ async function handleAssignSubAdmin(userId: string) {
     await assignSubAdminApi(sigId.value, userId)
     await fetchMembers()
     toastStore.show('Member promoted to Sub-Admin.', 'success')
-  } catch (e: any) {
-    toastStore.show(e.response?.data?.detail || 'Failed to assign Sub-Admin.', 'error')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    toastStore.show(err.response?.data?.detail || 'Failed to assign Sub-Admin.', 'error')
   }
 }
 

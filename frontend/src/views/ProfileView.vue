@@ -232,12 +232,12 @@ function toggleConfirmPassword() {
   <div class="w-full lg:px-32 px-4 py-6 sm:py-8 min-h-screen">
     <div class="max-w-2xl mx-auto">
       <div class="mb-4 text-left">
-        <button
-          @click="router.back()"
+        <router-link
+          to="/forum"
           class="text-sm text-brand-600 hover:underline flex items-center gap-1"
         >
           <span>&larr;</span> Back
-        </button>
+        </router-link>
       </div>
       <h1 class="text-2xl font-bold text-foreground mb-6">Profile</h1>
 
