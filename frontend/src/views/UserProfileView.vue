@@ -31,6 +31,8 @@ const {
 } = usePagination()
 const loading = ref(true)
 const postsLoading = ref(false)
+let userFetchId = 0
+let postsFetchId = 0
 
 const isOwnProfile = computed(() => auth.user && auth.user.id === userId.value)
 
@@ -46,17 +48,21 @@ const roleBadgeVariant = computed(() => {
 })
 
 async function fetchUser() {
+  const localId = ++userFetchId
   loading.value = true
   try {
-    user.value = await getPublicProfile(userId.value)
+    const data = await getPublicProfile(userId.value)
+    if (localId !== userFetchId) return
+    user.value = data
   } catch {
-    user.value = null
+    if (localId === userFetchId) user.value = null
   } finally {
-    loading.value = false
+    if (localId === userFetchId) loading.value = false
   }
 }
 
 async function fetchPosts() {
+  const localId = ++postsFetchId
   postsLoading.value = true
   try {
     const data = await listPosts({
@@ -64,12 +70,13 @@ async function fetchPosts() {
       page: postsPage.value,
       page_size: postsPageSize,
     })
+    if (localId !== postsFetchId) return
     posts.value = data.posts
     updateFromResponse(data.total, data.total_pages)
   } catch (e) {
     console.error(e)
   } finally {
-    postsLoading.value = false
+    if (localId === postsFetchId) postsLoading.value = false
   }
 }
 

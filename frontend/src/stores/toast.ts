@@ -14,18 +14,31 @@ const TOAST_DURATION_MS = 5000
 export const useToastStore = defineStore('toast', () => {
   const toasts = ref<Toast[]>([])
   let nextId = 0
+  const timers = new Map<number, ReturnType<typeof setTimeout>>()
 
   function show(message: string, type: ToastType = 'info') {
     const id = nextId++
     toasts.value.push({ id, message, type })
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       dismiss(id)
     }, TOAST_DURATION_MS)
+    timers.set(id, timer)
   }
 
   function dismiss(id: number) {
+    const timer = timers.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      timers.delete(id)
+    }
     toasts.value = toasts.value.filter((t) => t.id !== id)
   }
 
-  return { toasts, show, dismiss }
+  function clearAll() {
+    timers.forEach((timer) => clearTimeout(timer))
+    timers.clear()
+    toasts.value = []
+  }
+
+  return { toasts, show, dismiss, clearAll }
 })

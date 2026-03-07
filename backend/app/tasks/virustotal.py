@@ -98,7 +98,15 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
             logger.warning("Failed to update scan record to clean", exc_info=True)
         return {"status": "error", "code": resp.status_code}
 
-    data = resp.json()
+    try:
+        data = resp.json()
+    except (ValueError, requests.exceptions.JSONDecodeError):
+        logger.warning("VirusTotal response is not valid JSON", extra={"status": resp.status_code})
+        try:
+            _run_async(_update_scan(storage_key, "clean"))
+        except Exception:
+            logger.warning("Failed to update scan record to clean", exc_info=True)
+        return {"status": "error", "reason": "invalid_json"}
     stats = data.get("data", {}).get("attributes", {}).get("last_analysis_stats", {})
     malicious = stats.get("malicious", 0)
     suspicious = stats.get("suspicious", 0)

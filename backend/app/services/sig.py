@@ -92,13 +92,12 @@ async def join_sig(sig_id: uuid.UUID, user_id: str) -> dict:
     pool = get_pool()
     user_uuid = uuid.UUID(user_id)
 
-    # Check not already a member
-    existing_role = await sig_repo.get_member_role(sig_id, user_uuid)
-    if existing_role:
-        raise ValueError("Already a member of this SIG.")
-
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # Check inside transaction to prevent TOCTOU race
+            existing_role = await sig_repo.get_member_role_in_conn(sig_id, user_uuid, conn)
+            if existing_role:
+                raise ValueError("Already a member of this SIG.")
             row = await sig_repo.join_member(sig_id, user_uuid, conn)
             if row is None:
                 raise ValueError("SIG not found.")

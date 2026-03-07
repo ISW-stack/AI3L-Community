@@ -17,6 +17,7 @@ celery.conf.update(
     task_track_started=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    result_expires=86400,
 )
 
 celery.conf.beat_schedule = {

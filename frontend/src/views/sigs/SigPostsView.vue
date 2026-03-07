@@ -11,7 +11,7 @@ import EmptyState from '@/components/EmptyState.vue'
 
 const route = useRoute()
 const sigId = computed(() => route.params.id as string)
-const userSigRole = inject<Ref<string | null>>('userSigRole')
+const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
 
 const posts = ref<Post[]>([])
 const total = ref(0)

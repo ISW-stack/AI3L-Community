@@ -91,6 +91,24 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 headers=dict(response.headers),
             )
 
-        # Don't cache error responses — delete the processing marker
+        # Cache error JSON responses too (prevents duplicate side effects)
+        if "application/json" in content_type and response.status_code >= 400:
+            body = b""
+            async for chunk in response.body_iterator:  # type: ignore[attr-defined]
+                body += chunk if isinstance(chunk, bytes) else chunk.encode()
+            cache_data = json.dumps(
+                {
+                    "body": body.decode("utf-8", errors="replace"),
+                    "status_code": response.status_code,
+                }
+            )
+            await redis.set(redis_key, cache_data, ex=IDEMPOTENCY_TTL)
+            return Response(
+                content=body,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+            )
+
+        # Non-JSON or streaming responses — delete the processing marker
         await redis.delete(redis_key)
         return response

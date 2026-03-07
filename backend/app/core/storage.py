@@ -70,8 +70,15 @@ def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
         )
     )
     if settings.MINIO_PUBLIC_URL:
-        internal = f"{'https' if settings.MINIO_USE_SSL else 'http'}://{settings.MINIO_ENDPOINT}"
-        url = url.replace(internal, settings.MINIO_PUBLIC_URL.rstrip("/"), 1)
+        from urllib.parse import urlparse, urlunparse
+
+        parsed = urlparse(url)
+        public_parsed = urlparse(settings.MINIO_PUBLIC_URL.rstrip("/"))
+        safe_url = urlunparse(parsed._replace(
+            scheme=public_parsed.scheme,
+            netloc=public_parsed.netloc,
+        ))
+        url = safe_url
     return url
 
 

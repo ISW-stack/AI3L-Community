@@ -42,8 +42,13 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             return response
 
-        # Exempt paths (exact match first, then prefix match for dynamic routes)
+        # WebSocket endpoint path — skip (handled by ticket auth)
         path = request.url.path
+        if path.startswith("/api/v1/ws"):
+            response = await call_next(request)
+            return response
+
+        # Exempt paths (exact match first, then prefix match for dynamic routes)
         if path in _EXEMPT_EXACT:
             response = await call_next(request)
             return response

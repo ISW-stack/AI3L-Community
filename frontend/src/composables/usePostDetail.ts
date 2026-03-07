@@ -113,6 +113,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   const imageScanStatuses = ref<Record<string, 'pending' | 'clean' | 'malicious' | 'unknown'>>({})
   const postContentRef = ref<HTMLElement | null>(null)
   let scanPollTimers: ReturnType<typeof setTimeout>[] = []
+  let isUnmounted = false
 
   // --- Computed ---
   const isAuthor = computed(() => post.value && auth.user && post.value.author.id === auth.user.id)
@@ -198,11 +199,13 @@ export function usePostDetail(options: UsePostDetailOptions) {
   async function fetchPost() {
     loading.value = true
     try {
-      post.value = await getPost(postId.value)
+      const data = await getPost(postId.value)
+      if (isUnmounted) return
+      post.value = data
     } catch {
-      post.value = null
+      if (!isUnmounted) post.value = null
     } finally {
-      loading.value = false
+      if (!isUnmounted) loading.value = false
     }
   }
 
@@ -212,6 +215,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
         page: commentPage.value,
         page_size: commentPageSize,
       })
+      if (isUnmounted) return
       comments.value = data.comments
       updateCommentPagination(data.total)
     } catch (e) {
@@ -456,8 +460,10 @@ export function usePostDetail(options: UsePostDetailOptions) {
   }
 
   async function pollImageScanStatus(fileKey: string) {
+    if (isUnmounted) return
     try {
       const data = await getFileScanStatus(fileKey)
+      if (isUnmounted) return
       imageScanStatuses.value[fileKey] = data.status
       if (data.status === 'pending') {
         const timer = setTimeout(() => pollImageScanStatus(fileKey), 5000)
@@ -477,7 +483,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   }
 
   function applyMaliciousOverlays() {
-    if (!postContentRef.value) return
+    if (!postContentRef.value?.isConnected) return
     const imgs = postContentRef.value.querySelectorAll('img[src]')
     imgs.forEach((img) => {
       const src = img.getAttribute('src') || ''
@@ -515,6 +521,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   })
 
   onUnmounted(() => {
+    isUnmounted = true
     scanPollTimers.forEach(clearTimeout)
     scanPollTimers = []
   })

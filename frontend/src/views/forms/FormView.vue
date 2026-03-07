@@ -29,6 +29,7 @@ const error = ref('')
 const exporting = ref(false)
 const exportStatus = ref('')
 let exportPollTimer: ReturnType<typeof setInterval> | null = null
+let isUnmounted = false
 
 const canEdit = computed(() => {
   if (!form.value) return false
@@ -150,6 +151,11 @@ async function startExport() {
 function pollExportStatus(taskId: string) {
   let attempts = 0
   exportPollTimer = setInterval(async () => {
+    if (isUnmounted) {
+      clearInterval(exportPollTimer!)
+      exportPollTimer = null
+      return
+    }
     attempts++
     if (attempts > 30) {
       clearInterval(exportPollTimer!)
@@ -183,6 +189,7 @@ function pollExportStatus(taskId: string) {
 
 onMounted(() => fetchForm())
 onUnmounted(() => {
+  isUnmounted = true
   if (exportPollTimer) clearInterval(exportPollTimer)
 })
 </script>

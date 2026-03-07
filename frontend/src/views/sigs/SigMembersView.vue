@@ -21,7 +21,7 @@ const auth = useAuthStore()
 const toastStore = useToastStore()
 
 const sigId = computed(() => route.params.id as string)
-const userSigRole = inject<Ref<string | null>>('userSigRole')
+const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
 
 const members = ref<SigMember[]>([])
 const total = ref(0)
