@@ -112,7 +112,9 @@ function toggleSidebar() {
     </Transition>
 
     <!-- Main Content -->
-    <div class="flex-1 lg:pl-[calc(var(--spacing-layout)+20rem)] pr-layout py-4 [scrollbar-gutter:stable] min-w-0">
+    <div
+      class="flex-1 lg:pl-[calc(var(--spacing-layout)+20rem)] pr-layout py-4 [scrollbar-gutter:stable] min-w-0"
+    >
       <!-- Mobile header -->
       <div class="lg:hidden sticky top-0 z-20 bg-surface border-b border-border px-4 py-3">
         <button
