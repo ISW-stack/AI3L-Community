@@ -147,9 +147,9 @@ const currentRouteName = computed(() => route.name)
 </script>
 
 <template>
-  <div class="space-y-6 lg:pb-12">
+  <div class="flex flex-col h-full w-full lg:px-32 px-4 py-6 sm:py-8">
     <!-- Back to Sigs -->
-    <div class="mb-4">
+    <div class="shrink-0 mb-4">
       <router-link
         to="/sigs"
         class="text-sm text-brand-600 hover:underline flex items-center gap-1"
@@ -179,88 +179,91 @@ const currentRouteName = computed(() => route.name)
 
     <!-- Content -->
     <template v-else>
-      <BaseCard padding="lg" class="mb-6">
-        <template v-if="!editing">
-          <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div class="min-w-0 flex-1">
-              <h1 class="text-2xl font-bold text-foreground mb-2 break-words">{{ sig.name }}</h1>
-              <div
-                v-if="sig.description"
-                class="text-sm text-muted mb-3 prose prose-sm max-w-none prose-muted"
-                v-html="DOMPurify.sanitize(sig.description)"
-              ></div>
-              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
-                <span>Created by {{ sig.creator_display_name || 'Unknown' }}</span>
-                <span>{{ sig.member_count }} member{{ sig.member_count === 1 ? '' : 's' }}</span>
-                <span>Established {{ new Date(sig.created_at).toLocaleDateString() }}</span>
+      <div class="shrink-0">
+        <BaseCard padding="lg" class="mb-6">
+          <template v-if="!editing">
+            <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <h1 class="text-2xl font-bold text-foreground mb-2 break-words">{{ sig.name }}</h1>
+                <div
+                  v-if="sig.description"
+                  class="text-sm text-muted mb-3 prose prose-sm max-w-none prose-muted"
+                  v-html="DOMPurify.sanitize(sig.description)"
+                ></div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
+                  <span>Created by {{ sig.creator_display_name || 'Unknown' }}</span>
+                  <span>{{ sig.member_count }} member{{ sig.member_count === 1 ? '' : 's' }}</span>
+                  <span>Established {{ new Date(sig.created_at).toLocaleDateString() }}</span>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <CopyShareLinkButton :url="sigShareUrl" />
+
+                <BaseButton v-if="canJoin" size="sm" :loading="joining" @click="handleJoinSig">
+                  Join SIG
+                </BaseButton>
+
+                <BaseButton v-if="canEdit" size="sm" variant="secondary" @click="startEdit">
+                  Edit
+                </BaseButton>
+
+                <BaseButton
+                  v-if="canLeave && userSigRole !== 'ADMIN'"
+                  size="sm"
+                  class="bg-warning-50 text-warning-700 hover:bg-warning-100"
+                  @click="handleLeaveSig"
+                >
+                  Leave SIG
+                </BaseButton>
+
+                <BaseButton
+                  v-if="canDelete"
+                  size="sm"
+                  variant="soft-danger"
+                  @click="showDeleteConfirm = true"
+                >
+                  Delete SIG
+                </BaseButton>
               </div>
             </div>
+          </template>
 
-            <div class="flex flex-wrap items-center gap-2 shrink-0">
-              <CopyShareLinkButton :url="sigShareUrl" />
-
-              <BaseButton v-if="canJoin" size="sm" :loading="joining" @click="handleJoinSig">
-                Join SIG
-              </BaseButton>
-
-              <BaseButton v-if="canEdit" size="sm" variant="secondary" @click="startEdit">
-                Edit
-              </BaseButton>
-
-              <BaseButton
-                v-if="canLeave && userSigRole !== 'ADMIN'"
-                size="sm"
-                class="bg-warning-50 text-warning-700 hover:bg-warning-100"
-                @click="handleLeaveSig"
-              >
-                Leave SIG
-              </BaseButton>
-
-              <BaseButton
-                v-if="canDelete"
-                size="sm"
-                variant="soft-danger"
-                @click="showDeleteConfirm = true"
-              >
-                Delete SIG
-              </BaseButton>
+          <template v-else>
+            <div class="space-y-4">
+              <BaseInput v-model="editName" label="Name" placeholder="SIG Name" />
+              <BaseTextarea
+                v-model="editDescription"
+                label="Description (Markdown supported)"
+                :rows="4"
+                placeholder="Tell people what this SIG is about..."
+              />
+              <div class="flex gap-2">
+                <BaseButton :loading="editSaving" @click="saveEdit">Save Changes</BaseButton>
+                <BaseButton variant="secondary" @click="cancelEdit">Cancel</BaseButton>
+              </div>
             </div>
-          </div>
-        </template>
+          </template>
+        </BaseCard>
 
-        <template v-else>
-          <div class="space-y-4">
-            <BaseInput v-model="editName" label="Name" placeholder="SIG Name" />
-            <BaseTextarea
-              v-model="editDescription"
-              label="Description (Markdown supported)"
-              :rows="4"
-              placeholder="Tell people what this SIG is about..."
-            />
-            <div class="flex gap-2">
-              <BaseButton :loading="editSaving" @click="saveEdit">Save Changes</BaseButton>
-              <BaseButton variant="secondary" @click="cancelEdit">Cancel</BaseButton>
-            </div>
-          </div>
-        </template>
-      </BaseCard>
-
-      <!-- Delete confirmation -->
-      <BaseModal v-model="showDeleteConfirm" title="Delete SIG?" size="sm">
-        <p class="text-sm text-muted mb-4 leading-relaxed">
-          This will soft-delete this Special Interest Group and all its posts. This action cannot be
-          easily undone.
-        </p>
-        <template #footer>
-          <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
-          <BaseButton variant="danger" @click="handleDeleteSig">Confirm Delete</BaseButton>
-        </template>
-      </BaseModal>
+        <!-- Delete confirmation -->
+        <BaseModal v-model="showDeleteConfirm" title="Delete SIG?" size="sm">
+          <p class="text-sm text-muted mb-4 leading-relaxed">
+            This will soft-delete this Special Interest Group and all its posts. This action cannot
+            be easily undone.
+          </p>
+          <template #footer>
+            <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
+            <BaseButton variant="danger" @click="handleDeleteSig">Confirm Delete</BaseButton>
+          </template>
+        </BaseModal>
+      </div>
+      <!-- End shrink-0 header section -->
 
       <!-- Main Layout Grid -->
-      <div class="flex flex-col lg:flex-row gap-6 scrollbars-stable">
+      <div class="flex flex-col lg:flex-row gap-16 flex-1 min-h-0">
         <!-- Sidebar Navigation / Tabs -->
-        <aside class="w-full lg:w-64 shrink-0 lg:sticky lg:top-24 lg:self-start z-10">
+        <aside class="w-full lg:w-48 xl:w-64 shrink-0 flex flex-col">
           <!-- Desktop Sidebar (Underline style on the left) -->
           <nav
             class="hidden lg:flex flex-col space-y-1 bg-surface rounded-xl border border-border overflow-hidden shadow-sm"
@@ -301,7 +304,7 @@ const currentRouteName = computed(() => route.name)
         </aside>
 
         <!-- Dynamic Content Panel -->
-        <main class="flex-1 min-w-0 min-h-[500px] [scrollbar-gutter:stable]">
+        <main class="flex-1 min-w-0 overflow-y-auto pr-2 [scrollbar-gutter:stable] pb-12">
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
               <component :is="Component" />

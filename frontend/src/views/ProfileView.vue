@@ -229,237 +229,261 @@ function toggleConfirmPassword() {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold text-foreground mb-6">Profile</h1>
-
-    <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
-
-    <!-- Tab Navigation -->
-    <div class="flex gap-1 mb-6 border-b border-border">
-      <button
-        class="px-4 py-2 text-sm font-medium border-b-2 transition"
-        :class="
-          activeTab === 'general'
-            ? 'border-brand-600 text-brand-600'
-            : 'border-transparent text-muted hover:text-foreground'
-        "
-        @click="switchTab('general')"
-      >
-        General
-      </button>
-      <button
-        v-if="!auth.isGuest"
-        class="px-4 py-2 text-sm font-medium border-b-2 transition"
-        :class="
-          activeTab === 'security'
-            ? 'border-brand-600 text-brand-600'
-            : 'border-transparent text-muted hover:text-foreground'
-        "
-        @click="switchTab('security')"
-      >
-        Security
-      </button>
-      <button
-        v-if="!auth.isGuest"
-        class="px-4 py-2 text-sm font-medium border-b-2 transition"
-        :class="
-          activeTab === 'danger'
-            ? 'border-brand-600 text-brand-600'
-            : 'border-transparent text-muted hover:text-foreground'
-        "
-        @click="switchTab('danger')"
-      >
-        Danger Zone
-      </button>
-    </div>
-
-    <!-- General Tab -->
-    <div v-if="activeTab === 'general'">
-      <!-- Avatar -->
-      <div class="flex items-center gap-4 mb-6">
-        <div
-          class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+  <div class="w-full lg:px-32 px-4 py-6 sm:py-8 min-h-screen">
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-4 text-left">
+        <button
+          @click="router.back()"
+          class="text-sm text-brand-600 hover:underline flex items-center gap-1"
         >
-          <img
-            v-if="auth.user?.avatar_url"
-            :src="auth.user.avatar_url"
-            class="w-full h-full object-cover"
-            alt="Avatar"
-          />
-          <span v-else class="text-2xl text-muted">{{ (auth.user?.display_name || '?')[0] }}</span>
-        </div>
-        <label class="text-sm text-brand-600 hover:underline cursor-pointer">
-          Change Avatar
-          <input type="file" accept="image/png,image/jpeg" class="hidden" @change="uploadAvatar" />
-        </label>
+          <span>&larr;</span> Back
+        </button>
+      </div>
+      <h1 class="text-2xl font-bold text-foreground mb-6">Profile</h1>
+
+      <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
+
+      <!-- Tab Navigation -->
+      <div class="flex gap-1 mb-6 border-b border-border">
+        <button
+          class="px-4 py-2 text-sm font-medium border-b-2 transition"
+          :class="
+            activeTab === 'general'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-muted hover:text-foreground'
+          "
+          @click="switchTab('general')"
+        >
+          General
+        </button>
+        <button
+          v-if="!auth.isGuest"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition"
+          :class="
+            activeTab === 'security'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-muted hover:text-foreground'
+          "
+          @click="switchTab('security')"
+        >
+          Security
+        </button>
+        <button
+          v-if="!auth.isGuest"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition"
+          :class="
+            activeTab === 'danger'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-muted hover:text-foreground'
+          "
+          @click="switchTab('danger')"
+        >
+          Danger Zone
+        </button>
       </div>
 
-      <!-- Member Info -->
-      <BaseCard padding="lg" class="mb-6">
-        <h2 class="text-sm font-medium text-muted mb-3">Member Info</h2>
-        <div class="flex items-center gap-3">
-          <span class="text-sm text-foreground font-medium">{{
-            auth.user?.username || '---'
-          }}</span>
-          <BaseBadge :variant="roleBadgeVariant(auth.role)">{{
-            roleBadgeLabel(auth.role)
-          }}</BaseBadge>
-        </div>
-      </BaseCard>
-
-      <!-- Profile Form -->
-      <BaseCard padding="lg" class="mb-8">
-        <form @submit.prevent="saveProfile" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-foreground mb-1">Username</label>
+      <!-- General Tab -->
+      <div v-if="activeTab === 'general'">
+        <!-- Avatar -->
+        <div class="flex items-center gap-4 mb-6">
+          <div
+            class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+          >
+            <img
+              v-if="auth.user?.avatar_url"
+              :src="auth.user.avatar_url"
+              class="w-full h-full object-cover"
+              alt="Avatar"
+            />
+            <span v-else class="text-2xl text-muted">{{
+              (auth.user?.display_name || '?')[0]
+            }}</span>
+          </div>
+          <label class="text-sm text-brand-600 hover:underline cursor-pointer">
+            Change Avatar
             <input
-              :value="auth.user?.username"
-              disabled
-              class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
+              type="file"
+              accept="image/png,image/jpeg"
+              class="hidden"
+              @change="uploadAvatar"
             />
+          </label>
+        </div>
+
+        <!-- Member Info -->
+        <BaseCard padding="lg" class="mb-6">
+          <h2 class="text-sm font-medium text-muted mb-3">Member Info</h2>
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-foreground font-medium">{{
+              auth.user?.username || '---'
+            }}</span>
+            <BaseBadge :variant="roleBadgeVariant(auth.role)">{{
+              roleBadgeLabel(auth.role)
+            }}</BaseBadge>
           </div>
+        </BaseCard>
 
-          <BaseInput v-model="displayName" label="Display Name" :maxlength="100" />
-          <BaseTextarea v-model="bio" label="Bio" :rows="3" :maxlength="500" />
-          <BaseInput v-model="affiliation" label="Affiliation" :maxlength="200" />
-          <BaseInput
-            v-model="orcid"
-            label="ORCID"
-            :maxlength="50"
-            placeholder="0000-0000-0000-0000"
-          />
+        <!-- Profile Form -->
+        <BaseCard padding="lg" class="mb-8">
+          <form @submit.prevent="saveProfile" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">Username</label>
+              <input
+                :value="auth.user?.username"
+                disabled
+                class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
+              />
+            </div>
 
-          <BaseButton type="submit" :loading="saving">Save</BaseButton>
-        </form>
-      </BaseCard>
-    </div>
-
-    <!-- Security Tab -->
-    <div v-if="activeTab === 'security' && !auth.isGuest">
-      <!-- Change Password -->
-      <h2 class="text-xl font-bold text-foreground mb-4">Change Password</h2>
-
-      <BaseAlert v-if="passwordMessage" :type="passwordError ? 'error' : 'success'" class="mb-4">{{
-        passwordMessage
-      }}</BaseAlert>
-
-      <BaseCard padding="lg" class="mb-8">
-        <form @submit.prevent="changePassword" class="space-y-4">
-          <div class="relative">
+            <BaseInput v-model="displayName" label="Display Name" :maxlength="100" />
+            <BaseTextarea v-model="bio" label="Bio" :rows="3" :maxlength="500" />
+            <BaseInput v-model="affiliation" label="Affiliation" :maxlength="200" />
             <BaseInput
-              v-model="currentPassword"
-              label="Current Password"
-              :type="showCurrentPassword ? 'text' : 'password'"
+              v-model="orcid"
+              label="ORCID"
+              :maxlength="50"
+              placeholder="0000-0000-0000-0000"
             />
-            <button
-              type="button"
-              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-              @click="toggleCurrentPassword"
-              :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
-            >
-              <component :is="showCurrentPassword ? EyeOff : Eye" class="w-4 h-4" />
-            </button>
-          </div>
-          <div>
+
+            <BaseButton type="submit" :loading="saving">Save</BaseButton>
+          </form>
+        </BaseCard>
+      </div>
+
+      <!-- Security Tab -->
+      <div v-if="activeTab === 'security' && !auth.isGuest">
+        <!-- Change Password -->
+        <h2 class="text-xl font-bold text-foreground mb-4">Change Password</h2>
+
+        <BaseAlert
+          v-if="passwordMessage"
+          :type="passwordError ? 'error' : 'success'"
+          class="mb-4"
+          >{{ passwordMessage }}</BaseAlert
+        >
+
+        <BaseCard padding="lg" class="mb-8">
+          <form @submit.prevent="changePassword" class="space-y-4">
             <div class="relative">
               <BaseInput
-                v-model="newPassword"
-                label="New Password"
-                :type="showNewPassword ? 'text' : 'password'"
+                v-model="currentPassword"
+                label="Current Password"
+                :type="showCurrentPassword ? 'text' : 'password'"
               />
               <button
                 type="button"
                 class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-                @click="toggleNewPassword"
-                :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+                @click="toggleCurrentPassword"
+                :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
               >
-                <component :is="showNewPassword ? EyeOff : Eye" class="w-4 h-4" />
+                <component :is="showCurrentPassword ? EyeOff : Eye" class="w-4 h-4" />
               </button>
             </div>
-            <p class="text-xs text-muted mt-1">
-              At least 8 characters, with uppercase, lowercase, and a digit.
-            </p>
-          </div>
-          <div class="relative">
-            <BaseInput
-              v-model="confirmPassword"
-              label="Confirm New Password"
-              :type="showConfirmPassword ? 'text' : 'password'"
-            />
-            <button
-              type="button"
-              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-              @click="toggleConfirmPassword"
-              :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+            <div>
+              <div class="relative">
+                <BaseInput
+                  v-model="newPassword"
+                  label="New Password"
+                  :type="showNewPassword ? 'text' : 'password'"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+                  @click="toggleNewPassword"
+                  :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+                >
+                  <component :is="showNewPassword ? EyeOff : Eye" class="w-4 h-4" />
+                </button>
+              </div>
+              <p class="text-xs text-muted mt-1">
+                At least 8 characters, with uppercase, lowercase, and a digit.
+              </p>
+            </div>
+            <div class="relative">
+              <BaseInput
+                v-model="confirmPassword"
+                label="Confirm New Password"
+                :type="showConfirmPassword ? 'text' : 'password'"
+              />
+              <button
+                type="button"
+                class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+                @click="toggleConfirmPassword"
+                :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+              >
+                <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
+              </button>
+            </div>
+
+            <BaseButton
+              type="submit"
+              :loading="changingPassword"
+              :disabled="!currentPassword || !newPassword || !confirmPassword"
             >
-              <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
-            </button>
-          </div>
-
-          <BaseButton
-            type="submit"
-            :loading="changingPassword"
-            :disabled="!currentPassword || !newPassword || !confirmPassword"
-          >
-            Change Password
-          </BaseButton>
-        </form>
-      </BaseCard>
-
-      <!-- Invite Codes -->
-      <h2 class="text-xl font-bold text-foreground mb-4">Invite Codes</h2>
-      <BaseCard padding="lg">
-        <p class="text-sm text-muted mb-4">
-          Generate an invite code to share with others so they can create an account.
-        </p>
-        <div class="flex flex-col gap-3">
-          <BaseButton :loading="generatingCode" @click="generateInviteCode">
-            Generate Invite Code
-          </BaseButton>
-          <div v-if="generatedCode" class="flex items-center gap-2">
-            <BaseInput :model-value="generatedCode" disabled class="flex-1" />
-            <BaseButton variant="secondary" size="sm" @click="copyInviteCode">
-              <component :is="codeCopied ? Check : Copy" class="w-4 h-4 mr-1" />
-              {{ codeCopied ? 'Copied!' : 'Copy' }}
+              Change Password
             </BaseButton>
+          </form>
+        </BaseCard>
+
+        <!-- Invite Codes -->
+        <h2 class="text-xl font-bold text-foreground mb-4">Invite Codes</h2>
+        <BaseCard padding="lg">
+          <p class="text-sm text-muted mb-4">
+            Generate an invite code to share with others so they can create an account.
+          </p>
+          <div class="flex flex-col gap-3">
+            <BaseButton :loading="generatingCode" @click="generateInviteCode">
+              Generate Invite Code
+            </BaseButton>
+            <div v-if="generatedCode" class="flex items-center gap-2">
+              <BaseInput :model-value="generatedCode" disabled class="flex-1" />
+              <BaseButton variant="secondary" size="sm" @click="copyInviteCode">
+                <component :is="codeCopied ? Check : Copy" class="w-4 h-4 mr-1" />
+                {{ codeCopied ? 'Copied!' : 'Copy' }}
+              </BaseButton>
+            </div>
           </div>
-        </div>
-      </BaseCard>
-    </div>
+        </BaseCard>
+      </div>
 
-    <!-- Danger Zone Tab -->
-    <div v-if="activeTab === 'danger' && !auth.isGuest">
-      <BaseAlert type="warning" class="mb-4"
-        >Actions in this section are irreversible. Please proceed with caution.</BaseAlert
-      >
-
-      <h2 class="text-xl font-bold text-danger-600 mb-4">Danger Zone</h2>
-      <BaseCard padding="lg">
-        <p class="text-sm text-muted mb-4">
-          Permanently delete your account and anonymize all personal data. This action cannot be
-          undone.
-        </p>
-        <BaseButton variant="danger" @click="openDeleteConfirm"> Delete My Account </BaseButton>
-      </BaseCard>
-    </div>
-
-    <!-- Delete Account Confirmation Modal -->
-    <BaseModal v-model="showDeleteConfirm" title="Delete Account?" size="sm">
-      <p class="text-sm text-muted mb-4">
-        This will permanently anonymize your profile, remove all personal information, and log you
-        out. Your posts will remain but be attributed to a deleted user.
-      </p>
-      <BaseInput v-model="deleteConfirmText" label="Type DELETE to confirm" placeholder="DELETE" />
-      <template #footer>
-        <BaseButton variant="secondary" @click="closeDeleteConfirm">Cancel</BaseButton>
-        <BaseButton
-          variant="danger"
-          :disabled="deleteConfirmText !== 'DELETE'"
-          :loading="deletingAccount"
-          @click="handleDeleteAccount"
-          >Delete Account</BaseButton
+      <!-- Danger Zone Tab -->
+      <div v-if="activeTab === 'danger' && !auth.isGuest">
+        <BaseAlert type="warning" class="mb-4"
+          >Actions in this section are irreversible. Please proceed with caution.</BaseAlert
         >
-      </template>
-    </BaseModal>
+
+        <h2 class="text-xl font-bold text-danger-600 mb-4">Danger Zone</h2>
+        <BaseCard padding="lg">
+          <p class="text-sm text-muted mb-4">
+            Permanently delete your account and anonymize all personal data. This action cannot be
+            undone.
+          </p>
+          <BaseButton variant="danger" @click="openDeleteConfirm"> Delete My Account </BaseButton>
+        </BaseCard>
+      </div>
+
+      <!-- Delete Account Confirmation Modal -->
+      <BaseModal v-model="showDeleteConfirm" title="Delete Account?" size="sm">
+        <p class="text-sm text-muted mb-4">
+          This will permanently anonymize your profile, remove all personal information, and log you
+          out. Your posts will remain but be attributed to a deleted user.
+        </p>
+        <BaseInput
+          v-model="deleteConfirmText"
+          label="Type DELETE to confirm"
+          placeholder="DELETE"
+        />
+        <template #footer>
+          <BaseButton variant="secondary" @click="closeDeleteConfirm">Cancel</BaseButton>
+          <BaseButton
+            variant="danger"
+            :disabled="deleteConfirmText !== 'DELETE'"
+            :loading="deletingAccount"
+            @click="handleDeleteAccount"
+            >Delete Account</BaseButton
+          >
+        </template>
+      </BaseModal>
+    </div>
   </div>
 </template>

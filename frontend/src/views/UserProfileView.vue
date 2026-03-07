@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
@@ -14,6 +14,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 const userId = computed(() => route.params.id as string)
@@ -90,76 +91,87 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto">
-    <SkeletonLoader v-if="loading" :lines="2" variant="card" />
+  <div class="w-full lg:px-32 px-4 py-6 sm:py-8 min-h-screen">
+    <div class="max-w-4xl mx-auto">
+      <div class="mb-4 text-left">
+        <button
+          @click="router.back()"
+          class="text-sm text-brand-600 hover:underline flex items-center gap-1"
+        >
+          <span>&larr;</span> Back
+        </button>
+      </div>
 
-    <div v-else-if="!user" class="text-center py-12">
-      <p class="text-muted mb-4">User not found.</p>
-      <router-link to="/forum" class="text-brand-600 hover:underline">Back to Forum</router-link>
-    </div>
+      <SkeletonLoader v-if="loading" :lines="2" variant="card" />
 
-    <template v-else>
-      <!-- Profile Header -->
-      <BaseCard padding="lg" class="mb-6">
-        <div class="flex items-start gap-4">
-          <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="lg" />
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <h1 class="text-2xl font-bold text-foreground">{{ user.display_name }}</h1>
-              <BaseBadge :variant="roleBadgeVariant as any">{{ user.role }}</BaseBadge>
+      <div v-else-if="!user" class="text-center py-12">
+        <p class="text-muted mb-4">User not found.</p>
+        <router-link to="/forum" class="text-brand-600 hover:underline">Back to Forum</router-link>
+      </div>
+
+      <template v-else>
+        <!-- Profile Header -->
+        <BaseCard padding="lg" class="mb-6">
+          <div class="flex items-start gap-4">
+            <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="lg" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <h1 class="text-2xl font-bold text-foreground">{{ user.display_name }}</h1>
+                <BaseBadge :variant="roleBadgeVariant as any">{{ user.role }}</BaseBadge>
+              </div>
+              <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
+              <p class="text-xs text-muted">
+                Joined {{ new Date(user.created_at).toLocaleDateString() }}
+              </p>
             </div>
-            <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
-            <p class="text-xs text-muted">
-              Joined {{ new Date(user.created_at).toLocaleDateString() }}
-            </p>
+            <router-link
+              v-if="isOwnProfile"
+              to="/profile"
+              class="text-sm text-brand-600 hover:underline shrink-0"
+            >
+              Edit Profile
+            </router-link>
           </div>
-          <router-link
-            v-if="isOwnProfile"
-            to="/profile"
-            class="text-sm text-brand-600 hover:underline shrink-0"
-          >
-            Edit Profile
-          </router-link>
-        </div>
 
-        <!-- Info Cards -->
-        <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
-          <div v-if="user.bio" class="text-sm text-foreground/80">
-            <span class="font-medium text-foreground">Bio:</span> {{ user.bio }}
+          <!-- Info Cards -->
+          <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
+            <div v-if="user.bio" class="text-sm text-foreground/80">
+              <span class="font-medium text-foreground">Bio:</span> {{ user.bio }}
+            </div>
+            <div v-if="user.affiliation" class="text-sm text-foreground/80">
+              <span class="font-medium text-foreground">Affiliation:</span> {{ user.affiliation }}
+            </div>
+            <div v-if="user.orcid" class="text-sm text-foreground/80">
+              <span class="font-medium text-foreground">ORCID:</span> {{ user.orcid }}
+            </div>
           </div>
-          <div v-if="user.affiliation" class="text-sm text-foreground/80">
-            <span class="font-medium text-foreground">Affiliation:</span> {{ user.affiliation }}
-          </div>
-          <div v-if="user.orcid" class="text-sm text-foreground/80">
-            <span class="font-medium text-foreground">ORCID:</span> {{ user.orcid }}
-          </div>
-        </div>
-      </BaseCard>
+        </BaseCard>
 
-      <!-- Posts Feed -->
-      <h2 class="text-lg font-semibold text-foreground mb-4">Posts ({{ postsTotal }})</h2>
+        <!-- Posts Feed -->
+        <h2 class="text-lg font-semibold text-foreground mb-4">Posts ({{ postsTotal }})</h2>
 
-      <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
-      <EmptyState
-        v-else-if="posts.length === 0"
-        title="No posts yet"
-        message="This user hasn't posted anything."
-      />
-
-      <div v-else class="space-y-4">
-        <div v-for="p in posts" :key="p.id">
-          <PostCard :post="p" :format-time="toLocaleTime" :content-clamp="3" />
-        </div>
-      </div>
-
-      <div class="mt-6">
-        <BasePagination
-          v-if="postsTotalPages > 1"
-          :current-page="postsPage"
-          :total-pages="postsTotalPages"
-          @update:current-page="goToPage"
+        <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
+        <EmptyState
+          v-else-if="posts.length === 0"
+          title="No posts yet"
+          message="This user hasn't posted anything."
         />
-      </div>
-    </template>
+
+        <div v-else class="space-y-4">
+          <div v-for="p in posts" :key="p.id">
+            <PostCard :post="p" :format-time="toLocaleTime" :content-clamp="3" />
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <BasePagination
+            v-if="postsTotalPages > 1"
+            :current-page="postsPage"
+            :total-pages="postsTotalPages"
+            @update:current-page="goToPage"
+          />
+        </div>
+      </template>
+    </div>
   </div>
 </template>

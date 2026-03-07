@@ -104,7 +104,7 @@ onMounted(fetchForms)
     <div class="flex items-center justify-between">
       <h2 class="text-lg font-semibold text-foreground">Forms ({{ total }})</h2>
       <router-link v-if="canCreateForm" :to="`/sigs/${sigId}/forms/new`">
-        <BaseButton size="sm">Create Form</BaseButton>
+        <BaseButton size="md">Create Form</BaseButton>
       </router-link>
     </div>
 

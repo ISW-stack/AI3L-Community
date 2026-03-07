@@ -41,7 +41,7 @@ onMounted(fetchPosts)
     <div class="flex items-center justify-between">
       <h2 class="text-lg font-semibold text-foreground">Posts ({{ total }})</h2>
       <router-link v-if="isMember" :to="`/forum/create?sig_id=${sigId}`">
-        <BaseButton size="sm">New Post</BaseButton>
+        <BaseButton size="md">New Post</BaseButton>
       </router-link>
     </div>
 

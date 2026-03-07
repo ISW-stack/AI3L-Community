@@ -150,7 +150,16 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto">
+  <div class="max-w-3xl mx-auto py-6">
+    <div class="mb-4">
+      <router-link
+        :to="fromSig ? `/sigs/${sigId}` : '/forum'"
+        class="text-sm text-brand-600 hover:underline flex items-center gap-1"
+      >
+        <span>&larr;</span> Back
+      </router-link>
+    </div>
+
     <h1 class="text-2xl font-bold text-foreground mb-6">Create Post</h1>
 
     <BaseAlert v-if="draftRestored" type="info" class="mb-4">
