@@ -409,7 +409,8 @@ class TestCSRFWebSocketExemption:
             patch("app.main.close_db_pool", new_callable=AsyncMock),
             patch("app.main.close_redis", new_callable=AsyncMock),
         ):
-            from httpx import ASGITransport, AsyncClient as AC
+            from httpx import ASGITransport
+            from httpx import AsyncClient as AC
 
             transport = ASGITransport(app=app)
             async with AC(
@@ -433,7 +434,8 @@ class TestCSRFWebSocketExemption:
             patch("app.main.close_db_pool", new_callable=AsyncMock),
             patch("app.main.close_redis", new_callable=AsyncMock),
         ):
-            from httpx import ASGITransport, AsyncClient as AC
+            from httpx import ASGITransport
+            from httpx import AsyncClient as AC
 
             transport = ASGITransport(app=app)
             async with AC(
