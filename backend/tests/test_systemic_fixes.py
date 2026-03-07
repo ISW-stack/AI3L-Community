@@ -314,7 +314,6 @@ class TestIdempotencyErrorCaching:
         idem_key = "test-error-key-001"
 
         # First call: no cached response → returns processing marker, then caches error
-        call_count = 0
         stored_data = {}
 
         async def mock_get(key):
