@@ -1,5 +1,5 @@
 # Stage 0: Dev server (used by docker-compose.override.yml for local development)
-FROM node:20-alpine AS dev
+FROM node:22-alpine AS dev
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ EXPOSE 3210
 CMD ["npm", "run", "dev"]
 
 # Stage 1: Build
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve
-FROM nginx:1.25-alpine
+FROM nginx:1.27-alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf

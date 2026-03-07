@@ -48,7 +48,7 @@ function toggleSidebar() {
   <div class="min-h-screen bg-surface-alt/30">
     <!-- Desktop Sidebar -->
     <aside
-      class="hidden lg:flex fixed top-20 left-8 w-64 h-[calc(100vh-theme(spacing.24))] flex-col bg-surface border border-border rounded-xl shadow-sm z-30"
+      class="hidden lg:flex fixed top-20 left-32 w-64 h-[calc(100vh-theme(spacing.24))] flex-col bg-surface border border-border rounded-xl shadow-sm z-30"
     >
       <div class="px-6 py-8">
         <h2 class="text-xs font-bold text-muted uppercase tracking-widest">Administration</h2>
@@ -112,7 +112,7 @@ function toggleSidebar() {
     </Transition>
 
     <!-- Main Content -->
-    <div class="flex-1 lg:pl-[22rem] pr-8 py-4 [scrollbar-gutter:stable] min-w-0">
+    <div class="flex-1 lg:pl-[28rem] pr-32 py-4 [scrollbar-gutter:stable] min-w-0">
       <!-- Mobile header -->
       <div class="lg:hidden sticky top-0 z-20 bg-surface border-b border-border px-4 py-3">
         <button

@@ -36,8 +36,8 @@ Before you start, confirm the following tools are installed:
 | Tool | Minimum Version | Install |
 |------|----------------|---------|
 | Git | 2.40+ | https://git-scm.com/downloads |
-| Python | 3.11+ | https://python.org/downloads |
-| Node.js | 20 LTS+ | https://nodejs.org |
+| Python | 3.12+ | https://python.org/downloads |
+| Node.js | 22 LTS+ | https://nodejs.org |
 | Docker Desktop | Latest | https://docs.docker.com/get-docker/ |
 | VS Code | Latest | https://code.visualstudio.com (recommended editor) |
 

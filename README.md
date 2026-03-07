@@ -35,7 +35,7 @@ A full-stack community platform built for academic groups and special interest g
 
 | Component | Technology |
 |---|---|
-| Language | Python 3.11 |
+| Language | Python 3.12 |
 | Web framework | FastAPI |
 | Async DB driver | asyncpg |
 | Schema migrations | Alembic |
@@ -74,7 +74,7 @@ A full-stack community platform built for academic groups and special interest g
 | Database | PostgreSQL 15 |
 | Cache / queue broker | Redis 7 |
 | Object storage | MinIO |
-| Reverse proxy | Nginx 1.25 |
+| Reverse proxy | Nginx 1.27 |
 | Containerization | Docker Compose |
 | Monitoring (optional) | Datadog Agent |
 

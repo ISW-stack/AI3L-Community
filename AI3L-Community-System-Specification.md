@@ -59,12 +59,12 @@ Decoupled full-stack architecture (frontend and backend fully separated).
 | Layer | Technology | Notes |
 |-------|-----------|-------|
 | **Frontend** | Vue 3 (Composition API) + TypeScript + Vite + Tailwind CSS v4 | SPA served by Nginx |
-| **Backend** | Python 3.11 + FastAPI | Controller-Service-Repository-Converter layered architecture, async |
+| **Backend** | Python 3.12 + FastAPI | Controller-Service-Repository-Converter layered architecture, async |
 | **Database** | PostgreSQL 15+ (asyncpg driver) | SQLAlchemy ORM for model definition and Alembic migrations; raw asyncpg pool for runtime queries |
 | **Cache & State** | Redis 7 (AOF + RDB hybrid persistence) | Sessions, counters, rate limits, Pub/Sub for WebSocket fanout |
 | **Task Queue** | Celery + Redis (broker + result backend) | Async CSV export, guest cleanup, file scanning |
 | **File Storage** | MinIO (S3-compatible) | Avatars, editor attachments. Object keys stored in DB; presigned URLs generated on demand |
-| **Reverse Proxy** | Nginx 1.25 | TLS termination, rate limiting, SPA serving |
+| **Reverse Proxy** | Nginx 1.27 | TLS termination, rate limiting, SPA serving |
 | **Observability** | Sentry Cloud (errors), Datadog (metrics, optional profile) | SaaS to avoid local memory pressure |
 
 ### 2.2 Deployment Topology
@@ -124,7 +124,7 @@ MinIO initially co-exists on the same server. If concurrent traffic exceeds 200 
 | Service | Image | CPU | Memory | Health Check |
 |---------|-------|-----|--------|-------------|
 | nginx | nginx:1.25-alpine | 0.5 | 256 MB | `wget http://127.0.0.1/health-nginx` |
-| fastapi | ./backend (Python 3.11-slim) | 2.0 | 3 GB | urllib `http://localhost:8000/api/v1/health` |
+| fastapi | ./backend (Python 3.12-slim) | 2.0 | 3 GB | urllib `http://localhost:8000/api/v1/health` |
 | postgres | postgres:15-alpine | 2.0 | 4 GB | `pg_isready` |
 | redis | redis:7-alpine | 0.5 | 1 GB | `redis-cli ping` |
 | celery | ./backend | 1.0 | 1.5 GB | `celery inspect ping` |

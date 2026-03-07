@@ -102,8 +102,8 @@ onMounted(fetchCategories)
   <div>
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-foreground">Categories</h1>
-      <BaseButton @click="openCreate" size="sm">
-        <Plus :size="16" class="mr-1" />
+      <BaseButton @click="openCreate">
+        <Plus :size="18" class="mr-1.5" />
         New Category
       </BaseButton>
     </div>
