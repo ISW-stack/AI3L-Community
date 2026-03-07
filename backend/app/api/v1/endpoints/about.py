@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from collections import OrderedDict
 from typing import Any
 
 import requests as _requests  # type: ignore[import-untyped]
@@ -23,8 +24,9 @@ from app.services import contributor as contributor_service
 router = APIRouter(prefix="/about", tags=["about"])
 
 # In-memory avatar cache: contributor_id_str -> (bytes, content_type, timestamp)
-_avatar_cache: dict[str, tuple[bytes, str, float]] = {}
+_avatar_cache: OrderedDict[str, tuple[bytes, str, float]] = OrderedDict()
 _CACHE_TTL_SECONDS: int = 3600  # 1 hour
+_MAX_CACHE_ENTRIES: int = 50
 
 
 def _build_avatar_url(contributor_id: str) -> str:
@@ -70,6 +72,7 @@ async def get_contributor_avatar(
     if cached is not None:
         data, content_type, cached_at = cached
         if now - cached_at < _CACHE_TTL_SECONDS:
+            _avatar_cache.move_to_end(contributor_id)
             return Response(content=data, media_type=content_type)
 
     # Fetch from GitHub
@@ -88,6 +91,9 @@ async def get_contributor_avatar(
         content_type = resp.headers.get("content-type", "image/png")
 
         _avatar_cache[contributor_id] = (data, content_type, now)
+        _avatar_cache.move_to_end(contributor_id)
+        if len(_avatar_cache) > _MAX_CACHE_ENTRIES:
+            _avatar_cache.popitem(last=False)
 
         return Response(content=data, media_type=content_type)
     except _requests.RequestException:

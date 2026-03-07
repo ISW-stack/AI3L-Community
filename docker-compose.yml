@@ -81,18 +81,18 @@ services:
     command:
       - "postgres"
       - "-c"
-      - "shared_buffers=1GB"
+      - "shared_buffers=${PG_SHARED_BUFFERS:-256MB}"
       - "-c"
-      - "effective_cache_size=2GB"
+      - "effective_cache_size=${PG_EFFECTIVE_CACHE:-1GB}"
       - "-c"
-      - "work_mem=16MB"
+      - "work_mem=${PG_WORK_MEM:-4MB}"
       - "-c"
-      - "max_connections=100"
+      - "max_connections=${PG_MAX_CONNECTIONS:-50}"
     deploy:
       resources:
         limits:
           cpus: "2.0"
-          memory: 4G
+          memory: 2G
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai3l} -d ${POSTGRES_DB:-ai3l_community}"]
       interval: 10s
@@ -110,11 +110,11 @@ services:
       - "--requirepass"
       - "${REDIS_PASSWORD:-changeme}"
       - "--maxmemory"
-      - "512mb"
+      - "256mb"
       - "--maxmemory-policy"
-      - "noeviction"
+      - "allkeys-lru"
       - "--appendonly"
-      - "yes"
+      - "no"
       - "--save"
       - "60"
       - "1000"
@@ -137,7 +137,7 @@ services:
   celery:
     build: ./backend
     restart: unless-stopped
-    command: ["celery", "-A", "app.celery_app:celery", "worker", "--loglevel=info", "--concurrency=2"]
+    command: ["celery", "-A", "app.celery_app:celery", "worker", "--loglevel=info", "--concurrency=2", "--max-memory-per-child=256000"]
     env_file:
       - .env
     depends_on:

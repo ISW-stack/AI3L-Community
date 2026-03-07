@@ -1,5 +1,6 @@
 """Tests for about endpoints — contributors list, avatar proxy, and admin CRUD."""
 
+import time
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -414,3 +415,88 @@ class TestAdminDeleteContributor:
             assert resp.status_code == 403
         finally:
             _clear_overrides()
+
+
+class TestAvatarCacheBounding:
+    """Tests for LRU-bounded avatar cache."""
+
+    def test_cache_evicts_oldest_when_full(self):
+        """Inserting beyond _MAX_CACHE_ENTRIES evicts the oldest entry."""
+        from app.api.v1.endpoints import about as about_module
+
+        about_module._avatar_cache.clear()
+        original_max = about_module._MAX_CACHE_ENTRIES
+        try:
+            about_module._MAX_CACHE_ENTRIES = 5
+            now = time.time()
+            for i in range(6):
+                key = f"id-{i}"
+                about_module._avatar_cache[key] = (b"data", "image/png", now)
+                about_module._avatar_cache.move_to_end(key)
+                if len(about_module._avatar_cache) > about_module._MAX_CACHE_ENTRIES:
+                    about_module._avatar_cache.popitem(last=False)
+
+            # Oldest entry (id-0) should be evicted
+            assert "id-0" not in about_module._avatar_cache
+            # Newest entries should remain
+            for i in range(1, 6):
+                assert f"id-{i}" in about_module._avatar_cache
+            assert len(about_module._avatar_cache) == 5
+        finally:
+            about_module._avatar_cache.clear()
+            about_module._MAX_CACHE_ENTRIES = original_max
+
+    def test_lru_access_keeps_entry_alive(self):
+        """Accessing an entry moves it to end, so it survives eviction."""
+        from app.api.v1.endpoints import about as about_module
+
+        about_module._avatar_cache.clear()
+        original_max = about_module._MAX_CACHE_ENTRIES
+        try:
+            about_module._MAX_CACHE_ENTRIES = 3
+            now = time.time()
+
+            # Insert 3 entries: a, b, c
+            for key in ["a", "b", "c"]:
+                about_module._avatar_cache[key] = (b"data", "image/png", now)
+                about_module._avatar_cache.move_to_end(key)
+
+            # Access "a" to move it to end (most recently used)
+            about_module._avatar_cache.move_to_end("a")
+
+            # Insert "d" — should evict "b" (now the oldest)
+            about_module._avatar_cache["d"] = (b"data", "image/png", now)
+            about_module._avatar_cache.move_to_end("d")
+            if len(about_module._avatar_cache) > about_module._MAX_CACHE_ENTRIES:
+                about_module._avatar_cache.popitem(last=False)
+
+            assert "b" not in about_module._avatar_cache
+            assert "a" in about_module._avatar_cache  # survived due to LRU access
+            assert "c" in about_module._avatar_cache
+            assert "d" in about_module._avatar_cache
+        finally:
+            about_module._avatar_cache.clear()
+            about_module._MAX_CACHE_ENTRIES = original_max
+
+    def test_expired_entry_not_served(self):
+        """Expired cache entries are not returned."""
+        from app.api.v1.endpoints import about as about_module
+
+        about_module._avatar_cache.clear()
+        try:
+            # Insert an expired entry (timestamp far in the past)
+            expired_time = time.time() - about_module._CACHE_TTL_SECONDS - 100
+            about_module._avatar_cache["expired-id"] = (
+                b"old-data",
+                "image/png",
+                expired_time,
+            )
+
+            now = time.time()
+            cached = about_module._avatar_cache.get("expired-id")
+            assert cached is not None
+            _data, _ct, cached_at = cached
+            # Verify the entry IS expired
+            assert now - cached_at >= about_module._CACHE_TTL_SECONDS
+        finally:
+            about_module._avatar_cache.clear()

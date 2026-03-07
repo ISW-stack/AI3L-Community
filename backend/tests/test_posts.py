@@ -198,3 +198,51 @@ class TestSearchRepo:
         # The second positional arg is the keyword param
         keyword_param = call_args[0][1]
         assert "OR" in keyword_param
+
+
+class TestFindHistory:
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_find_history_default_limit(self, mock_get_pool, mock_pool, mock_conn):
+        """find_history() should pass LIMIT $2 with default limit=50."""
+        from app.repositories.post_repo import find_history
+
+        mock_conn.fetch.return_value = []
+        mock_get_pool.return_value = mock_pool
+
+        post_id = uuid.uuid4()
+        await find_history(post_id)
+
+        call_args = mock_conn.fetch.call_args
+        sql = call_args[0][0]
+        assert "LIMIT $2" in sql
+        # Default limit=50 should be the second positional arg
+        assert call_args[0][2] == 50
+
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_find_history_custom_limit(self, mock_get_pool, mock_pool, mock_conn):
+        """find_history(limit=10) should pass limit=10."""
+        from app.repositories.post_repo import find_history
+
+        mock_conn.fetch.return_value = []
+        mock_get_pool.return_value = mock_pool
+
+        post_id = uuid.uuid4()
+        await find_history(post_id, limit=10)
+
+        call_args = mock_conn.fetch.call_args
+        sql = call_args[0][0]
+        assert "LIMIT $2" in sql
+        assert call_args[0][2] == 10
+
+    @patch("app.repositories.post_repo.get_pool")
+    async def test_find_history_returns_dicts(self, mock_get_pool, mock_pool, mock_conn):
+        """find_history() should return list of dicts from rows."""
+        from app.repositories.post_repo import find_history
+
+        fake_row = {"id": uuid.uuid4(), "post_id": uuid.uuid4(), "version": 1, "title": "V1", "content": "body"}
+        mock_conn.fetch.return_value = [fake_row]
+        mock_get_pool.return_value = mock_pool
+
+        result = await find_history(uuid.uuid4())
+        assert len(result) == 1
+        assert result[0]["title"] == "V1"

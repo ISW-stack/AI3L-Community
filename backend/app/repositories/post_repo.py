@@ -154,12 +154,12 @@ async def find_owner_id(post_id: uuid.UUID) -> str | None:
         return str(row["user_id"]) if row else None
 
 
-async def find_history(post_id: uuid.UUID) -> list[dict]:
+async def find_history(post_id: uuid.UUID, limit: int = 50) -> list[dict]:
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT * FROM post_history WHERE post_id = $1 ORDER BY version DESC",
-            post_id,
+            "SELECT * FROM post_history WHERE post_id = $1 ORDER BY version DESC LIMIT $2",
+            post_id, limit,
         )
         return [dict(r) for r in rows]
 
