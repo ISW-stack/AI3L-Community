@@ -167,7 +167,8 @@ async function mountLayout(options?: {
       stubs: {
         BaseCard: { template: '<div class="base-card"><slot /></div>' },
         BaseButton: {
-          template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
+          template:
+            '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
           props: ['loading', 'variant', 'size'],
         },
         BaseModal: {
@@ -176,11 +177,13 @@ async function mountLayout(options?: {
           props: ['modelValue', 'title', 'size'],
         },
         BaseInput: {
-          template: '<input class="base-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+          template:
+            '<input class="base-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
           props: ['modelValue', 'label', 'placeholder'],
         },
         BaseTextarea: {
-          template: '<textarea class="base-textarea" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
+          template:
+            '<textarea class="base-textarea" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
           props: ['modelValue', 'label', 'rows', 'placeholder'],
         },
         SkeletonLoader: { template: '<div class="skeleton-loader" />' },

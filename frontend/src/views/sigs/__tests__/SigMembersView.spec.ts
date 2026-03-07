@@ -43,9 +43,27 @@ function makeMember(overrides: Partial<SigMember> = {}): SigMember {
 }
 
 const sampleMembers: SigMember[] = [
-  makeMember({ id: 'mem-1', user_id: 'user-1', role: 'ADMIN', display_name: 'Admin User', username: 'adminuser' }),
-  makeMember({ id: 'mem-2', user_id: 'user-2', role: 'SUB_ADMIN', display_name: 'Sub Admin', username: 'subadmin' }),
-  makeMember({ id: 'mem-3', user_id: 'user-3', role: 'MEMBER', display_name: 'Regular Member', username: 'regular' }),
+  makeMember({
+    id: 'mem-1',
+    user_id: 'user-1',
+    role: 'ADMIN',
+    display_name: 'Admin User',
+    username: 'adminuser',
+  }),
+  makeMember({
+    id: 'mem-2',
+    user_id: 'user-2',
+    role: 'SUB_ADMIN',
+    display_name: 'Sub Admin',
+    username: 'subadmin',
+  }),
+  makeMember({
+    id: 'mem-3',
+    user_id: 'user-3',
+    role: 'MEMBER',
+    display_name: 'Regular Member',
+    username: 'regular',
+  }),
 ]
 
 function createTestRouter() {
@@ -59,13 +77,15 @@ function createTestRouter() {
   })
 }
 
-async function mountComponent(options: {
-  role?: string
-  userSigRole?: string | null
-  members?: SigMember[]
-  total?: number
-  currentUserId?: string
-} = {}) {
+async function mountComponent(
+  options: {
+    role?: string
+    userSigRole?: string | null
+    members?: SigMember[]
+    total?: number
+    currentUserId?: string
+  } = {},
+) {
   const {
     role = 'MEMBER',
     userSigRole = null,
@@ -95,7 +115,10 @@ async function mountComponent(options: {
       },
       stubs: {
         BaseCard: { template: '<div class="base-card"><slot /></div>' },
-        BaseBadge: { template: '<span class="base-badge" :data-variant="$attrs.variant"><slot /></span>', inheritAttrs: false },
+        BaseBadge: {
+          template: '<span class="base-badge" :data-variant="$attrs.variant"><slot /></span>',
+          inheritAttrs: false,
+        },
         BaseAvatar: { template: '<span class="base-avatar" />' },
         SkeletonLoader: { template: '<div class="skeleton-loader" />' },
         EmptyState: { template: '<div class="empty-state" />', props: ['title', 'message'] },

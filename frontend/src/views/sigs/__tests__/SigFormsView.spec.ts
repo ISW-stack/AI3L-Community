@@ -109,7 +109,8 @@ async function mountComponent(opts: MountOptions = {}) {
           props: ['variant', 'size'],
         },
         BaseModal: {
-          template: '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
+          template:
+            '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
           props: ['modelValue', 'title', 'size'],
         },
         BasePagination: {
