@@ -21,9 +21,7 @@ def upgrade() -> None:
     # Drop the old unconditional unique constraint on sigs.name
     op.drop_constraint("sigs_name_key", "sigs", type_="unique")
     # Create a partial unique index that only applies to active (non-deleted) SIGs
-    op.execute(
-        "CREATE UNIQUE INDEX uq_sigs_name_active ON sigs (name) WHERE is_deleted = false"
-    )
+    op.execute("CREATE UNIQUE INDEX uq_sigs_name_active ON sigs (name) WHERE is_deleted = false")
 
 
 def downgrade() -> None:

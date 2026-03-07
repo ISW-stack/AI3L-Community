@@ -159,7 +159,8 @@ async def find_history(post_id: uuid.UUID, limit: int = 50) -> list[dict]:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             "SELECT * FROM post_history WHERE post_id = $1 ORDER BY version DESC LIMIT $2",
-            post_id, limit,
+            post_id,
+            limit,
         )
         return [dict(r) for r in rows]
 

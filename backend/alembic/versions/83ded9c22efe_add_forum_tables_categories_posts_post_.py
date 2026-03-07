@@ -142,7 +142,8 @@ def upgrade() -> None:
     op.create_index(op.f("ix_post_history_post_id"), "post_history", ["post_id"], unique=False)
 
     # Full-text search: auto-update search_vector trigger
-    op.execute("""
+    op.execute(
+        """
         CREATE OR REPLACE FUNCTION posts_search_vector_update() RETURNS trigger AS $$
         BEGIN
             NEW.search_vector :=
@@ -151,12 +152,15 @@ def upgrade() -> None:
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
-    """)
-    op.execute("""
+    """
+    )
+    op.execute(
+        """
         CREATE TRIGGER trg_posts_search_vector_update
         BEFORE INSERT OR UPDATE OF title, content ON posts
         FOR EACH ROW EXECUTE FUNCTION posts_search_vector_update();
-    """)
+    """
+    )
     # ### end Alembic commands ###
 
 

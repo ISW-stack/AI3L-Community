@@ -49,6 +49,7 @@ async def health_check() -> HealthResponse:
     # Check MinIO/Storage
     try:
         from app.core.storage import get_storage
+
         start = time.perf_counter()
         client = get_storage()
         client.head_bucket(Bucket=settings.MINIO_BUCKET_NAME)

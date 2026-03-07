@@ -239,7 +239,13 @@ class TestFindHistory:
         """find_history() should return list of dicts from rows."""
         from app.repositories.post_repo import find_history
 
-        fake_row = {"id": uuid.uuid4(), "post_id": uuid.uuid4(), "version": 1, "title": "V1", "content": "body"}
+        fake_row = {
+            "id": uuid.uuid4(),
+            "post_id": uuid.uuid4(),
+            "version": 1,
+            "title": "V1",
+            "content": "body",
+        }
         mock_conn.fetch.return_value = [fake_row]
         mock_get_pool.return_value = mock_pool
 

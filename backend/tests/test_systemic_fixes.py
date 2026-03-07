@@ -22,6 +22,7 @@ from httpx import AsyncClient
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _override_auth(role: str = "MEMBER", user_id: str | None = None):
     from app.core.deps import get_current_user
     from app.main import app
@@ -34,6 +35,7 @@ def _override_auth(role: str = "MEMBER", user_id: str | None = None):
 
 def _clear_overrides():
     from app.main import app
+
     app.dependency_overrides.clear()
 
 
@@ -55,6 +57,7 @@ def _make_member_row(sig_id: uuid.UUID, user_id: uuid.UUID) -> dict:
 # 1. SIG Join — Race condition fix (atomic check + join)
 # ===========================================================================
 
+
 class TestSigJoinRaceCondition:
     """join_sig() must check membership and insert within a single transaction."""
 
@@ -70,8 +73,16 @@ class TestSigJoinRaceCondition:
 
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value=None) as mock_check,
-            patch("app.repositories.sig_repo.join_member", new_callable=AsyncMock, return_value=member_row) as mock_join,
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value=None,
+            ) as mock_check,
+            patch(
+                "app.repositories.sig_repo.join_member",
+                new_callable=AsyncMock,
+                return_value=member_row,
+            ) as mock_join,
         ):
             result = await join_sig(sig_id, user_id)
 
@@ -93,7 +104,11 @@ class TestSigJoinRaceCondition:
 
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER"),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value="MEMBER",
+            ),
         ):
             with pytest.raises(ValueError, match="Already a member"):
                 await join_sig(sig_id, user_id)
@@ -108,8 +123,14 @@ class TestSigJoinRaceCondition:
 
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value=None),
-            patch("app.repositories.sig_repo.join_member", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.repositories.sig_repo.join_member", new_callable=AsyncMock, return_value=None
+            ),
         ):
             with pytest.raises(ValueError, match="SIG not found"):
                 await join_sig(sig_id, user_id)
@@ -118,6 +139,7 @@ class TestSigJoinRaceCondition:
 # ===========================================================================
 # 2. Comment Pagination — Empty page calls fetchval for count
 # ===========================================================================
+
 
 class TestCommentPaginationEmptyPage:
     """When rows is empty, find_many must fetchval for the total count."""
@@ -181,6 +203,7 @@ class TestCommentPaginationEmptyPage:
 # 3. Celery result_expires
 # ===========================================================================
 
+
 class TestCeleryResultExpires:
     """Celery conf.result_expires must be 86400 (24 hours)."""
 
@@ -188,9 +211,7 @@ class TestCeleryResultExpires:
         """Read the celery_app module source and verify result_expires=86400."""
         import ast
 
-        celery_app_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "celery_app.py"
-        )
+        celery_app_path = os.path.join(os.path.dirname(__file__), "..", "app", "celery_app.py")
         with open(celery_app_path) as f:
             source = f.read()
 
@@ -214,6 +235,7 @@ class TestCeleryResultExpires:
 # ===========================================================================
 # 4. Health Endpoint — MinIO check
 # ===========================================================================
+
 
 class TestHealthMinIO:
     """GET /health should include minio dependency."""
@@ -283,6 +305,7 @@ class TestHealthMinIO:
 # 5. Idempotency Middleware — Error response caching
 # ===========================================================================
 
+
 class TestIdempotencyErrorCaching:
     """4xx JSON error responses should be cached and replayed."""
 
@@ -322,7 +345,11 @@ class TestIdempotencyErrorCaching:
             assert resp.status_code >= 400
 
             # Check that the error was cached in our stored_data dict
-            cached_keys = [k for k in stored_data if "idempotency:" in k and "processing" not in str(stored_data[k])]
+            cached_keys = [
+                k
+                for k in stored_data
+                if "idempotency:" in k and "processing" not in str(stored_data[k])
+            ]
             # At least one key should have the error cached (not just processing)
             assert len(cached_keys) >= 0  # Just ensure no crash
 
@@ -330,16 +357,20 @@ class TestIdempotencyErrorCaching:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_cached_error_returned_on_repeat(self, client: AsyncClient, mock_redis: AsyncMock):
+    async def test_cached_error_returned_on_repeat(
+        self, client: AsyncClient, mock_redis: AsyncMock
+    ):
         """Second request with same idempotency key returns the cached error."""
         idem_key = "test-replay-key-002"
 
         # Pre-populate cache with a 422 error response
         cached_body = json.dumps({"detail": "Validation error"})
-        cached_response = json.dumps({
-            "body": cached_body,
-            "status_code": 422,
-        })
+        cached_response = json.dumps(
+            {
+                "body": cached_body,
+                "status_code": 422,
+            }
+        )
         mock_redis.get = AsyncMock(return_value=cached_response)
 
         try:
@@ -362,6 +393,7 @@ class TestIdempotencyErrorCaching:
 # ===========================================================================
 # 6. CSRF Middleware — WS path exemption
 # ===========================================================================
+
 
 class TestCSRFWebSocketExemption:
     """POST to /api/v1/ws paths should not trigger CSRF 403."""
@@ -419,6 +451,7 @@ class TestCSRFWebSocketExemption:
 # 7. VirusTotal — Invalid JSON handling
 # ===========================================================================
 
+
 class TestVirusTotalInvalidJSON:
     """When resp.json() raises ValueError, the task returns invalid_json error."""
 
@@ -471,7 +504,9 @@ class TestVirusTotalInvalidJSON:
                     patch.object(virustotal, "_run_async", return_value=None),
                 ):
                     mock_settings.VT_API_KEY = "fake-key"
-                    result = virustotal.check_virustotal(mock_self, "abc123hash", "uploads/test.txt")
+                    result = virustotal.check_virustotal(
+                        mock_self, "abc123hash", "uploads/test.txt"
+                    )
 
                 assert result["status"] == "error"
                 assert result["reason"] == "invalid_json"
@@ -486,6 +521,7 @@ class TestVirusTotalInvalidJSON:
 # ===========================================================================
 # 8. Storage — URL rewriting with urlparse
 # ===========================================================================
+
 
 class TestStorageURLRewriting:
     """generate_presigned_url should rewrite internal Docker URLs to public URL."""
@@ -558,6 +594,7 @@ class TestStorageURLRewriting:
 # ===========================================================================
 # 9. Alembic migration existence
 # ===========================================================================
+
 
 class TestAlembicMigration:
     """Migration p6q7r8s9t0u1 must exist with correct revision chain."""

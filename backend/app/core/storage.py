@@ -74,10 +74,12 @@ def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
 
         parsed = urlparse(url)
         public_parsed = urlparse(settings.MINIO_PUBLIC_URL.rstrip("/"))
-        safe_url = urlunparse(parsed._replace(
-            scheme=public_parsed.scheme,
-            netloc=public_parsed.netloc,
-        ))
+        safe_url = urlunparse(
+            parsed._replace(
+                scheme=public_parsed.scheme,
+                netloc=public_parsed.netloc,
+            )
+        )
         url = safe_url
     return url
 
