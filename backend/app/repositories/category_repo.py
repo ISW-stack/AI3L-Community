@@ -87,14 +87,12 @@ async def find_by_id_with_post_count(category_id: uuid.UUID) -> dict | None:
 async def find_all_with_post_counts() -> list[dict]:
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
+        rows = await conn.fetch("""
             SELECT c.*,
                    COUNT(p.id) FILTER (WHERE p.is_deleted = false) AS post_count
             FROM categories c
             LEFT JOIN posts p ON p.category_id = c.id
             GROUP BY c.id
             ORDER BY c.name ASC
-            """
-        )
+            """)
         return [dict(r) for r in rows]

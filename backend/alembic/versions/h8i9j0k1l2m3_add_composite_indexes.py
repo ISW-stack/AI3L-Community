@@ -18,42 +18,30 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute(
-        """
+    op.execute("""
         CREATE INDEX IF NOT EXISTS idx_posts_category_created
             ON posts (category_id, created_at DESC) WHERE NOT is_deleted
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE INDEX IF NOT EXISTS idx_posts_sig_created
             ON posts (sig_id, created_at DESC) WHERE NOT is_deleted
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE INDEX IF NOT EXISTS idx_comments_post_created
             ON comments (post_id, created_at) WHERE NOT is_deleted
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE INDEX IF NOT EXISTS idx_notifications_user_created
             ON notifications (user_id, created_at DESC)
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE INDEX IF NOT EXISTS idx_audit_logs_user_created
             ON audit_logs (user_id, created_at DESC)
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE INDEX IF NOT EXISTS idx_sig_members_sig_user
             ON sig_members (sig_id, user_id)
-        """
-    )
+        """)
 
 
 def downgrade() -> None:
