@@ -14,8 +14,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute(
-        """
+    op.execute("""
         DO $$
         BEGIN
             IF NOT EXISTS (
@@ -26,8 +25,7 @@ def upgrade() -> None:
                 ADD CONSTRAINT uq_form_responses_form_user UNIQUE (form_id, user_id);
             END IF;
         END $$;
-        """
-    )
+        """)
     op.execute(
         "CREATE INDEX IF NOT EXISTS idx_form_responses_form_created "
         "ON form_responses (form_id, created_at)"
