@@ -38,13 +38,13 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
     },
     {
       path: '/users/:id',
       name: 'user-profile',
       component: () => import('@/views/UserProfileView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
     },
     {
       path: '/notifications',
@@ -73,7 +73,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: AdminLayout,
-      meta: { requiresAuth: true, requiresAdmin: true },
+      meta: { requiresAuth: true, requiresAdmin: true, fullWidth: true },
       children: [
         {
           path: '',
@@ -133,9 +133,26 @@ const router = createRouter({
     },
     {
       path: '/sigs/:id',
-      name: 'sig-detail',
-      component: () => import('@/views/sigs/SigDetailView.vue'),
-      meta: { requiresAuth: true },
+      component: () => import('@/views/sigs/SigLayout.vue'),
+      meta: { requiresAuth: true, fullWidth: true },
+      children: [
+        { path: '', redirect: { name: 'sig-posts' } },
+        {
+          path: 'posts',
+          name: 'sig-posts',
+          component: () => import('@/views/sigs/SigPostsView.vue'),
+        },
+        {
+          path: 'members',
+          name: 'sig-members',
+          component: () => import('@/views/sigs/SigMembersView.vue'),
+        },
+        {
+          path: 'forms',
+          name: 'sig-forms',
+          component: () => import('@/views/sigs/SigFormsView.vue'),
+        },
+      ],
     },
     {
       path: '/sigs/:sigId/forms/new',

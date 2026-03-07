@@ -23,11 +23,11 @@ export default defineConfig({
       : undefined,
     proxy: {
       '/api': {
-        target: process.env.API_PROXY_TARGET ?? 'http://localhost:18000',
+        target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:18000',
         changeOrigin: true,
       },
       '/api/v1/ws': {
-        target: process.env.WS_PROXY_TARGET ?? 'ws://localhost:18000',
+        target: process.env.WS_PROXY_TARGET ?? 'ws://127.0.0.1:18000',
         ws: true,
       },
     },

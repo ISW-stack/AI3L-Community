@@ -1,0 +1,239 @@
+<script setup lang="ts">
+import { ref, onMounted, computed, inject, type Ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
+import { getSigForms } from '@/api/sigs'
+import { deleteForm as deleteFormApi, listFormResponses } from '@/api/forms'
+import type { SigForm, FormResponse } from '@/types'
+import BaseCard from '@/components/base/BaseCard.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import EmptyState from '@/components/EmptyState.vue'
+
+const route = useRoute()
+const auth = useAuthStore()
+const toastStore = useToastStore()
+
+const sigId = computed(() => route.params.id as string)
+const userSigRole = inject<Ref<string | null>>('userSigRole')
+
+const forms = ref<SigForm[]>([])
+const total = ref(0)
+const loading = ref(true)
+
+const canCreateForm = computed(() => {
+  if (auth.isAdmin) return true
+  // If user is ADMIN or SUB_ADMIN in this SIG
+  return userSigRole?.value === 'ADMIN' || userSigRole?.value === 'SUB_ADMIN'
+})
+
+async function fetchForms() {
+  loading.value = true
+  try {
+    const data = await getSigForms(sigId.value)
+    forms.value = data.forms
+    total.value = data.total
+  } catch (e) {
+    console.error('Failed to fetch forms:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Form deletion
+const showFormDeleteConfirm = ref(false)
+const formToDelete = ref<string | null>(null)
+
+function confirmDeleteForm(formId: string) {
+  formToDelete.value = formId
+  showFormDeleteConfirm.value = true
+}
+
+async function handleDeleteForm() {
+  if (!formToDelete.value) return
+  try {
+    await deleteFormApi(formToDelete.value)
+    await fetchForms()
+    toastStore.show('Form deleted.', 'success')
+  } catch (e: unknown) {
+    const error = e as { response?: { data?: { detail?: string } } }
+    toastStore.show(error.response?.data?.detail || 'Failed to delete form.', 'error')
+  } finally {
+    showFormDeleteConfirm.value = false
+    formToDelete.value = null
+  }
+}
+
+// Form response viewing
+const showResponsesModal = ref(false)
+const responsesFormId = ref('')
+const responsesFormTitle = ref('')
+const responses = ref<FormResponse[]>([])
+const responsesPage = ref(1)
+const responsesTotalPages = ref(1)
+const responsesLoading = ref(false)
+
+async function fetchResponses(formId: string, title: string, page = 1) {
+  responsesFormId.value = formId
+  responsesFormTitle.value = title
+  responsesPage.value = page
+  responsesLoading.value = true
+  showResponsesModal.value = true
+  try {
+    const data = await listFormResponses(formId, page)
+    responses.value = data.responses || []
+    const totalResp = data.total || 0
+    responsesTotalPages.value = Math.ceil(totalResp / 20) || 1
+  } catch {
+    toastStore.show('Failed to load responses.', 'error')
+  } finally {
+    responsesLoading.value = false
+  }
+}
+
+onMounted(fetchForms)
+</script>
+
+<template>
+  <div class="space-y-4">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-foreground">Forms ({{ total }})</h2>
+      <router-link v-if="canCreateForm" :to="`/sigs/${sigId}/forms/new`">
+        <BaseButton size="md">Create Form</BaseButton>
+      </router-link>
+    </div>
+
+    <!-- Content -->
+    <div v-if="loading" class="grid gap-4 sm:grid-cols-2">
+      <SkeletonLoader v-for="i in 2" :key="i" variant="card" :lines="3" />
+    </div>
+
+    <EmptyState
+      v-else-if="forms.length === 0"
+      title="No forms yet"
+      message="Create a form to collect responses from SIG members."
+    />
+
+    <div v-else class="grid gap-4 sm:grid-cols-2">
+      <BaseCard
+        v-for="f in forms"
+        :key="f.id"
+        class="h-full group hover:border-brand-300 transition-all flex flex-col"
+      >
+        <div class="flex items-start justify-between mb-3">
+          <router-link
+            :to="`/forms/${f.id}`"
+            class="font-bold text-foreground group-hover:text-brand-600 transition-colors leading-tight"
+          >
+            {{ f.title }}
+          </router-link>
+          <BaseBadge :variant="f.is_active ? 'success' : 'neutral'" size="sm" class="shrink-0 ml-2">
+            {{ f.is_active ? 'Active' : 'Closed' }}
+          </BaseBadge>
+        </div>
+
+        <p v-if="f.description" class="text-xs text-muted mb-4 line-clamp-3">
+          {{ f.description }}
+        </p>
+
+        <div class="mt-auto space-y-2">
+          <div
+            class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted font-medium uppercase tracking-tight"
+          >
+            <span class="flex items-center gap-1">{{ f.response_count }} responses</span>
+            <span v-if="f.deadline">Ends {{ new Date(f.deadline).toLocaleDateString() }}</span>
+            <span>By {{ f.created_by_name || 'Admin' }}</span>
+          </div>
+
+          <div
+            v-if="f.user_is_sig_admin || auth.isAdmin"
+            class="flex items-center gap-4 pt-3 mt-2 border-t border-border"
+          >
+            <router-link
+              :to="`/forms/${f.id}/edit`"
+              class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
+            >
+              Edit
+            </router-link>
+            <button
+              @click="fetchResponses(f.id, f.title)"
+              class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
+            >
+              Responses
+            </button>
+            <button
+              @click="confirmDeleteForm(f.id)"
+              class="text-xs text-danger-600 hover:text-danger-700 font-medium hover:underline ml-auto"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </BaseCard>
+    </div>
+
+    <!-- Modals -->
+    <BaseModal v-model="showFormDeleteConfirm" title="Delete Form?" size="sm">
+      <p class="text-sm text-muted mb-4 leading-relaxed">
+        Are you sure you want to delete this form? This action will permanently remove all
+        associated fields and responses.
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showFormDeleteConfirm = false">Cancel</BaseButton>
+        <BaseButton variant="danger" @click="handleDeleteForm">Confirm Delete</BaseButton>
+      </template>
+    </BaseModal>
+
+    <BaseModal v-model="showResponsesModal" :title="`Responses: ${responsesFormTitle}`" size="xl">
+      <div v-if="responsesLoading" class="py-12 flex justify-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+      </div>
+      <div v-else-if="responses.length === 0" class="py-12 text-center text-muted italic">
+        No one has responded to this form yet.
+      </div>
+      <div v-else class="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
+        <div
+          v-for="resp in responses"
+          :key="resp.id"
+          class="border border-border rounded-lg p-5 bg-surface-alt/30"
+        >
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-border/50">
+            <span class="font-bold text-foreground">{{ resp.display_name }}</span>
+            <span class="text-[10px] text-muted font-mono">{{
+              new Date(resp.created_at).toLocaleString()
+            }}</span>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div v-for="(value, key) in resp.answers" :key="key" class="space-y-1">
+              <div class="text-[10px] font-bold text-muted uppercase tracking-wider">{{ key }}</div>
+              <div class="text-sm text-foreground">
+                {{
+                  Array.isArray(value)
+                    ? value.join(', ')
+                    : typeof value === 'object'
+                      ? JSON.stringify(value)
+                      : value || '(None)'
+                }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <BasePagination
+          v-if="responsesTotalPages > 1"
+          :current-page="responsesPage"
+          :total-pages="responsesTotalPages"
+          class="mt-6 pt-4 border-t border-border"
+          @update:current-page="
+            (p: number) => fetchResponses(responsesFormId, responsesFormTitle, p)
+          "
+        />
+      </div>
+    </BaseModal>
+  </div>
+</template>

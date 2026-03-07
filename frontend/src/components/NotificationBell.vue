@@ -11,8 +11,15 @@ const router = useRouter()
 const notifStore = useNotificationStore()
 const dropdownOpen = ref(false)
 
-const { handleKeydown: handleNotifKeydown } = useDropdownKeyNav(dropdownOpen, {
-  onOpen: () => notifStore.fetchRecent(),
+const { handleDropdownKeydown } = useDropdownKeyNav({
+  isOpen: dropdownOpen,
+  onOpen: () => {
+    dropdownOpen.value = true
+    notifStore.fetchRecent()
+  },
+  onClose: () => (dropdownOpen.value = false),
+  wrapperClass: 'notification-bell-wrapper',
+  triggerSelector: 'button[aria-label="Notifications"]',
 })
 
 function toggleDropdown() {
@@ -62,10 +69,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    class="relative notification-bell-wrapper"
-    @keydown="handleNotifKeydown($event, '.notification-bell-wrapper')"
-  >
+  <div class="relative notification-bell-wrapper" @keydown="handleDropdownKeydown">
     <button
       @click="toggleDropdown"
       class="relative p-1 text-muted hover:text-foreground focus:outline-none transition"
