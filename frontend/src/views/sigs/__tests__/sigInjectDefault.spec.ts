@@ -47,7 +47,10 @@ const commonStubs = {
     template: '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
     props: ['modelValue', 'title', 'size'],
   },
-  BasePagination: { template: '<div class="base-pagination" />', props: ['currentPage', 'totalPages'] },
+  BasePagination: {
+    template: '<div class="base-pagination" />',
+    props: ['currentPage', 'totalPages'],
+  },
   BaseAvatar: { template: '<span class="base-avatar" />' },
   SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['variant', 'lines'] },
   EmptyState: {
@@ -231,7 +234,11 @@ describe('SIG Views — Inject Default Safety', () => {
         history: createMemoryHistory(),
         routes: [
           { path: '/sigs/:id/forms', name: 'sig-forms', component: SigFormsView },
-          { path: '/sigs/:id/forms/new', name: 'sig-forms-new', component: { template: '<div />' } },
+          {
+            path: '/sigs/:id/forms/new',
+            name: 'sig-forms-new',
+            component: { template: '<div />' },
+          },
           { path: '/forms/:id', name: 'form-detail', component: { template: '<div />' } },
           { path: '/forms/:id/edit', name: 'form-edit', component: { template: '<div />' } },
         ],
@@ -279,7 +286,11 @@ describe('SIG Views — Inject Default Safety', () => {
         history: createMemoryHistory(),
         routes: [
           { path: '/sigs/:id/forms', name: 'sig-forms', component: SigFormsView },
-          { path: '/sigs/:id/forms/new', name: 'sig-forms-new', component: { template: '<div />' } },
+          {
+            path: '/sigs/:id/forms/new',
+            name: 'sig-forms-new',
+            component: { template: '<div />' },
+          },
           { path: '/forms/:id', name: 'form-detail', component: { template: '<div />' } },
           { path: '/forms/:id/edit', name: 'form-edit', component: { template: '<div />' } },
         ],

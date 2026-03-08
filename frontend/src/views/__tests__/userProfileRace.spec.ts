@@ -76,7 +76,10 @@ async function mountComponent(userId: string) {
           template: '<div class="post-card">{{ post.title }}</div>',
           props: ['post', 'formatTime', 'contentClamp'],
         },
-        SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
+        SkeletonLoader: {
+          template: '<div class="skeleton-loader" />',
+          props: ['lines', 'variant'],
+        },
         EmptyState: {
           template: '<div class="empty-state">{{ title }}</div>',
           props: ['title', 'message'],
