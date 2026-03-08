@@ -147,18 +147,28 @@ onMounted(fetchCategories)
     </div>
 
     <!-- Create / Edit modal -->
-    <BaseModal v-model="showModal" :title="editing ? t('admin.categories.modal.editTitle') : t('admin.categories.modal.createTitle')">
+    <BaseModal
+      v-model="showModal"
+      :title="
+        editing ? t('admin.categories.modal.editTitle') : t('admin.categories.modal.createTitle')
+      "
+    >
       <form @submit.prevent="handleSave" class="space-y-4">
-        <BaseInput v-model="formName" :label="t('admin.categories.modal.nameLabel')" :placeholder="t('admin.categories.modal.namePlaceholder')" required />
+        <BaseInput
+          v-model="formName"
+          :label="t('admin.categories.modal.nameLabel')"
+          :placeholder="t('admin.categories.modal.namePlaceholder')"
+          required
+        />
         <BaseInput
           v-model="formDescription"
           :label="t('admin.categories.modal.descLabel')"
           :placeholder="t('admin.categories.modal.descPlaceholder')"
         />
         <div class="flex justify-end gap-2">
-          <BaseButton variant="secondary" @click="showModal = false" type="button"
-            >{{ t('common.cancel') }}</BaseButton
-          >
+          <BaseButton variant="secondary" @click="showModal = false" type="button">{{
+            t('common.cancel')
+          }}</BaseButton>
           <BaseButton :disabled="!formName.trim() || saving" :loading="saving" type="submit">
             {{ editing ? t('common.save') : t('common.create') }}
           </BaseButton>
@@ -172,7 +182,9 @@ onMounted(fetchCategories)
         {{ t('admin.categories.deleteConfirm.message', { name: confirmDelete?.name }) }}
       </p>
       <div class="flex justify-end gap-2">
-        <BaseButton variant="secondary" @click="showDeleteModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
         <BaseButton variant="danger" @click="handleDelete">{{ t('common.delete') }}</BaseButton>
       </div>
     </BaseModal>

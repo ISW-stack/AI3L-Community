@@ -101,7 +101,9 @@ onMounted(fetchLogs)
         @click="toggleFilters"
       >
         {{ showFilters ? t('admin.auditLogs.hideFilters') : t('admin.auditLogs.filters') }}
-        <span v-if="hasActiveFilters" class="ml-1 text-xs text-brand-600">{{ t('admin.auditLogs.filtersActive') }}</span>
+        <span v-if="hasActiveFilters" class="ml-1 text-xs text-brand-600">{{
+          t('admin.auditLogs.filtersActive')
+        }}</span>
       </button>
     </div>
 
@@ -109,7 +111,9 @@ onMounted(fetchLogs)
     <div v-if="showFilters" class="bg-surface rounded-lg border border-border p-4 mb-4 space-y-3">
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">{{ t('admin.auditLogs.filter.from') }}</label>
+          <label class="text-sm text-muted whitespace-nowrap">{{
+            t('admin.auditLogs.filter.from')
+          }}</label>
           <input
             v-model="filterDateFrom"
             type="date"
@@ -117,7 +121,9 @@ onMounted(fetchLogs)
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">{{ t('admin.auditLogs.filter.to') }}</label>
+          <label class="text-sm text-muted whitespace-nowrap">{{
+            t('admin.auditLogs.filter.to')
+          }}</label>
           <input
             v-model="filterDateTo"
             type="date"
@@ -125,7 +131,9 @@ onMounted(fetchLogs)
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">{{ t('admin.auditLogs.filter.userId') }}</label>
+          <label class="text-sm text-muted whitespace-nowrap">{{
+            t('admin.auditLogs.filter.userId')
+          }}</label>
           <input
             v-model="filterUserId"
             type="text"
@@ -138,10 +146,12 @@ onMounted(fetchLogs)
         {{ t('admin.auditLogs.invalidRange') }}
       </p>
       <div class="flex gap-2">
-        <BaseButton size="sm" :disabled="dateRangeInvalid" @click="applyFilters">{{ t('common.apply') }}</BaseButton>
-        <BaseButton v-if="hasActiveFilters" size="sm" variant="secondary" @click="clearFilters"
-          >{{ t('common.clear') }}</BaseButton
-        >
+        <BaseButton size="sm" :disabled="dateRangeInvalid" @click="applyFilters">{{
+          t('common.apply')
+        }}</BaseButton>
+        <BaseButton v-if="hasActiveFilters" size="sm" variant="secondary" @click="clearFilters">{{
+          t('common.clear')
+        }}</BaseButton>
       </div>
     </div>
 
@@ -158,16 +168,28 @@ onMounted(fetchLogs)
         <table class="w-full text-sm min-w-[750px]">
           <thead class="bg-surface-alt border-b border-border">
             <tr>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.timestamp') }}</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.user') }}</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.action') }}</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.target') }}</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.ipAddress') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.auditLogs.table.timestamp') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.auditLogs.table.user') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.auditLogs.table.action') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.auditLogs.table.target') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.auditLogs.table.ipAddress') }}
+              </th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="px-4 py-8 text-center text-muted">{{ t('common.loading') }}</td>
+              <td colspan="5" class="px-4 py-8 text-center text-muted">
+                {{ t('common.loading') }}
+              </td>
             </tr>
             <tr
               v-for="log in logs"
@@ -206,9 +228,9 @@ onMounted(fetchLogs)
     <div class="flex items-center justify-between mt-4">
       <p class="text-sm text-muted">{{ t('admin.auditLogs.total', { count: total }) }}</p>
       <div class="flex gap-2">
-        <BaseButton size="sm" variant="secondary" @click="prevPage" :disabled="page <= 1"
-          >{{ t('admin.auditLogs.previous') }}</BaseButton
-        >
+        <BaseButton size="sm" variant="secondary" @click="prevPage" :disabled="page <= 1">{{
+          t('admin.auditLogs.previous')
+        }}</BaseButton>
         <span class="px-3 py-1 text-sm text-muted">{{ t('admin.auditLogs.page', { page }) }}</span>
         <BaseButton
           size="sm"

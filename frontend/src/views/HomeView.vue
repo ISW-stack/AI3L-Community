@@ -72,7 +72,11 @@ onMounted(() => {
         <div class="lg:col-span-2 space-y-6">
           <BaseCard padding="lg">
             <h2 class="text-xl font-semibold text-foreground mb-2">
-              {{ auth.isGuest ? t('home.welcome.guest') : t('home.welcome.user', { name: auth.user?.display_name }) }}
+              {{
+                auth.isGuest
+                  ? t('home.welcome.guest')
+                  : t('home.welcome.user', { name: auth.user?.display_name })
+              }}
             </h2>
             <p class="text-muted">{{ t('home.tagline') }}</p>
             <div class="mt-4 flex flex-wrap gap-3">
@@ -87,13 +91,17 @@ onMounted(() => {
 
           <BaseAlert v-if="auth.isGuest" type="warning">
             {{ t('home.guestAlert') }}
-            <router-link to="/register" class="font-medium underline">{{ t('home.guestSignUp') }}</router-link>
+            <router-link to="/register" class="font-medium underline">{{
+              t('home.guestSignUp')
+            }}</router-link>
             {{ t('home.guestSignUpSuffix') }}
           </BaseAlert>
 
           <!-- Guest membership application -->
           <BaseCard v-if="auth.isGuest" padding="lg">
-            <h3 class="text-lg font-semibold text-foreground mb-2">{{ t('home.applyMembership.title') }}</h3>
+            <h3 class="text-lg font-semibold text-foreground mb-2">
+              {{ t('home.applyMembership.title') }}
+            </h3>
             <div v-if="applicationSent" class="text-sm text-success-600">
               {{ t('home.applyMembership.submitted') }}
             </div>
@@ -119,7 +127,9 @@ onMounted(() => {
 
           <!-- Recent posts -->
           <BaseCard padding="lg">
-            <h3 class="text-lg font-semibold text-foreground mb-3">{{ t('home.recentPosts.title') }}</h3>
+            <h3 class="text-lg font-semibold text-foreground mb-3">
+              {{ t('home.recentPosts.title') }}
+            </h3>
             <SkeletonLoader v-if="loadingPosts" :lines="3" variant="list" />
             <div v-else-if="recentPosts.length === 0" class="text-sm text-muted">
               {{ t('home.recentPosts.empty') }}
@@ -152,17 +162,22 @@ onMounted(() => {
           >
             <div class="flex items-center justify-between">
               <p class="text-sm text-foreground">
-                {{ t('home.notifications.title') }} <strong>{{ notifStore.unreadCount }}</strong> {{ t('home.notifications.count') }}
+                {{ t('home.notifications.title') }} <strong>{{ notifStore.unreadCount }}</strong>
+                {{ t('home.notifications.count') }}
               </p>
               <router-link to="/notifications">
-                <BaseButton size="sm" variant="ghost">{{ t('home.notifications.viewBtn') }}</BaseButton>
+                <BaseButton size="sm" variant="ghost">{{
+                  t('home.notifications.viewBtn')
+                }}</BaseButton>
               </router-link>
             </div>
           </BaseCard>
 
           <!-- Quick Links -->
           <BaseCard padding="md">
-            <h3 class="text-sm font-semibold text-foreground mb-3">{{ t('home.quickLinks.title') }}</h3>
+            <h3 class="text-sm font-semibold text-foreground mb-3">
+              {{ t('home.quickLinks.title') }}
+            </h3>
             <ul class="space-y-2">
               <li>
                 <router-link to="/forum/create" class="text-sm text-brand-600 hover:underline">
@@ -219,15 +234,21 @@ onMounted(() => {
       <!-- Community stats section -->
       <div class="grid grid-cols-3 gap-4 mb-8">
         <div class="text-center">
-          <p class="text-2xl font-bold text-foreground">{{ t('home.unauthenticated.stats.community') }}</p>
+          <p class="text-2xl font-bold text-foreground">
+            {{ t('home.unauthenticated.stats.community') }}
+          </p>
           <p class="text-sm text-muted">{{ t('home.unauthenticated.stats.communitySubtitle') }}</p>
         </div>
         <div class="text-center">
-          <p class="text-2xl font-bold text-foreground">{{ t('home.unauthenticated.stats.focus') }}</p>
+          <p class="text-2xl font-bold text-foreground">
+            {{ t('home.unauthenticated.stats.focus') }}
+          </p>
           <p class="text-sm text-muted">{{ t('home.unauthenticated.stats.focusSubtitle') }}</p>
         </div>
         <div class="text-center">
-          <p class="text-2xl font-bold text-foreground">{{ t('home.unauthenticated.stats.network') }}</p>
+          <p class="text-2xl font-bold text-foreground">
+            {{ t('home.unauthenticated.stats.network') }}
+          </p>
           <p class="text-sm text-muted">{{ t('home.unauthenticated.stats.networkSubtitle') }}</p>
         </div>
       </div>
@@ -241,7 +262,9 @@ onMounted(() => {
             >
               <MessageSquare class="w-6 h-6" aria-hidden="true" />
             </div>
-            <h3 class="font-semibold text-foreground">{{ t('home.unauthenticated.features.forum.title') }}</h3>
+            <h3 class="font-semibold text-foreground">
+              {{ t('home.unauthenticated.features.forum.title') }}
+            </h3>
             <p class="text-sm text-muted mt-1">
               {{ t('home.unauthenticated.features.forum.description') }}
             </p>
@@ -255,8 +278,12 @@ onMounted(() => {
             >
               <Users class="w-6 h-6" aria-hidden="true" />
             </div>
-            <h3 class="font-semibold text-foreground">{{ t('home.unauthenticated.features.sigs.title') }}</h3>
-            <p class="text-sm text-muted mt-1">{{ t('home.unauthenticated.features.sigs.description') }}</p>
+            <h3 class="font-semibold text-foreground">
+              {{ t('home.unauthenticated.features.sigs.title') }}
+            </h3>
+            <p class="text-sm text-muted mt-1">
+              {{ t('home.unauthenticated.features.sigs.description') }}
+            </p>
           </BaseCard>
         </router-link>
 
@@ -267,7 +294,9 @@ onMounted(() => {
             >
               <FileText class="w-6 h-6" aria-hidden="true" />
             </div>
-            <h3 class="font-semibold text-foreground">{{ t('home.unauthenticated.features.forms.title') }}</h3>
+            <h3 class="font-semibold text-foreground">
+              {{ t('home.unauthenticated.features.forms.title') }}
+            </h3>
             <p class="text-sm text-muted mt-1">
               {{ t('home.unauthenticated.features.forms.description') }}
             </p>
@@ -281,7 +310,9 @@ onMounted(() => {
             >
               <BookOpen class="w-6 h-6" aria-hidden="true" />
             </div>
-            <h3 class="font-semibold text-foreground">{{ t('home.unauthenticated.features.richContent.title') }}</h3>
+            <h3 class="font-semibold text-foreground">
+              {{ t('home.unauthenticated.features.richContent.title') }}
+            </h3>
             <p class="text-sm text-muted mt-1">
               {{ t('home.unauthenticated.features.richContent.description') }}
             </p>

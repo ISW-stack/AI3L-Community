@@ -119,7 +119,9 @@ onMounted(() => {
 
       <div v-else-if="!user" class="text-center py-12">
         <p class="text-muted mb-4">{{ t('userProfile.notFound') }}</p>
-        <router-link to="/forum" class="text-brand-600 hover:underline">{{ t('userProfile.backToForum') }}</router-link>
+        <router-link to="/forum" class="text-brand-600 hover:underline">{{
+          t('userProfile.backToForum')
+        }}</router-link>
       </div>
 
       <template v-else>
@@ -149,19 +151,24 @@ onMounted(() => {
           <!-- Info Cards -->
           <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
             <div v-if="user.bio" class="text-sm text-foreground/80">
-              <span class="font-medium text-foreground">{{ t('userProfile.bio') }}</span> {{ user.bio }}
+              <span class="font-medium text-foreground">{{ t('userProfile.bio') }}</span>
+              {{ user.bio }}
             </div>
             <div v-if="user.affiliation" class="text-sm text-foreground/80">
-              <span class="font-medium text-foreground">{{ t('userProfile.affiliation') }}</span> {{ user.affiliation }}
+              <span class="font-medium text-foreground">{{ t('userProfile.affiliation') }}</span>
+              {{ user.affiliation }}
             </div>
             <div v-if="user.orcid" class="text-sm text-foreground/80">
-              <span class="font-medium text-foreground">{{ t('userProfile.orcid') }}</span> {{ user.orcid }}
+              <span class="font-medium text-foreground">{{ t('userProfile.orcid') }}</span>
+              {{ user.orcid }}
             </div>
           </div>
         </BaseCard>
 
         <!-- Posts Feed -->
-        <h2 class="text-lg font-semibold text-foreground mb-4">{{ t('userProfile.postsTitle') }} ({{ postsTotal }})</h2>
+        <h2 class="text-lg font-semibold text-foreground mb-4">
+          {{ t('userProfile.postsTitle') }} ({{ postsTotal }})
+        </h2>
 
         <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
         <EmptyState

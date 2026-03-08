@@ -113,7 +113,8 @@ export default {
     title: 'Datenschutz- und Datenspeicherungs-Einwilligung',
     description:
       'Diese Plattform speichert Ihre Daten auf Servern in Hongkong. Durch Ihre Nutzung stimmen Sie dieser Datenspeicherungsvereinbarung zu.',
-    requirement: 'Sie müssen dieser Vereinbarung zustimmen, um die Plattform weiterhin nutzen zu können.',
+    requirement:
+      'Sie müssen dieser Vereinbarung zustimmen, um die Plattform weiterhin nutzen zu können.',
     acceptButton: 'Ich stimme zu',
     rejectButton: 'Ich stimme nicht zu — Abmelden',
     error: 'Einwilligung konnte nicht gespeichert werden. Bitte erneut versuchen.',
@@ -163,7 +164,8 @@ export default {
     applyMembership: {
       title: 'Mitgliedschaft beantragen',
       submitted: 'Ihre Bewerbung wurde eingereicht. Ein Administrator wird sie in Kürze prüfen.',
-      description: 'Erzählen Sie uns etwas über sich und warum Sie der Community beitreten möchten.',
+      description:
+        'Erzählen Sie uns etwas über sich und warum Sie der Community beitreten möchten.',
       placeholder: 'Beschreiben Sie Ihren Hintergrund und Ihre Forschungsinteressen...',
       submitBtn: 'Bewerbung einreichen',
       success: 'Bewerbung erfolgreich eingereicht!',
@@ -188,7 +190,8 @@ export default {
     unauthenticated: {
       title: 'AI3L Community',
       subtitle: 'AI in Language Learning and Literacy — Akademische Austauschplattform',
-      tagline: 'Verbinden Sie sich mit Forschenden und Lehrenden im Bereich KI-gestütztes Sprachenlernen.',
+      tagline:
+        'Verbinden Sie sich mit Forschenden und Lehrenden im Bereich KI-gestütztes Sprachenlernen.',
       getStartedBtn: 'Jetzt starten',
       browseGuestBtn: 'Als Gast durchsuchen',
       stats: {
@@ -202,7 +205,8 @@ export default {
       features: {
         forum: {
           title: 'Akademisches Forum',
-          description: 'Forschung diskutieren, Artikel teilen und Ideen mit Fachkolleginnen und -kollegen austauschen',
+          description:
+            'Forschung diskutieren, Artikel teilen und Ideen mit Fachkolleginnen und -kollegen austauschen',
         },
         sigs: {
           title: 'Arbeitsgruppen (SIGs)',
@@ -311,7 +315,8 @@ export default {
     },
     deleteDialog: {
       title: 'Beitrag löschen?',
-      message: 'Möchten Sie diesen Beitrag wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+      message:
+        'Möchten Sie diesen Beitrag wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
     },
     deleteCommentDialog: {
       title: 'Kommentar löschen?',
@@ -440,7 +445,8 @@ export default {
       title: 'Beiträge',
       newPostBtn: 'Neuer Beitrag',
       emptyTitle: 'Noch keine Beiträge',
-      emptyMessage: 'Starten Sie eine Diskussion, indem Sie den ersten Beitrag in dieser SIG erstellen.',
+      emptyMessage:
+        'Starten Sie eine Diskussion, indem Sie den ersten Beitrag in dieser SIG erstellen.',
       comments: 'Kommentare',
     },
     members: {
@@ -498,7 +504,8 @@ export default {
       maxRespondentsLabel: 'Maximale Teilnehmerzahl',
       maxRespondentsPlaceholder: 'Unbegrenzt',
       allowNonMembers: 'Nicht-SIG-Mitgliedern die Einreichung erlauben',
-      allowNonMembersHint: 'Wenn aktiviert, kann jeder authentifizierte Benutzer dieses Formular ausfüllen.',
+      allowNonMembersHint:
+        'Wenn aktiviert, kann jeder authentifizierte Benutzer dieses Formular ausfüllen.',
       questionsTitle: 'Fragen',
       addQuestionBtn: '+ Frage hinzufügen',
       schemaLockedWarning:

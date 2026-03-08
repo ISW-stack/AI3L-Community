@@ -53,7 +53,9 @@ function toggleSidebar() {
       class="hidden lg:flex fixed top-20 left-layout w-64 h-[calc(100vh-theme(spacing.24))] flex-col bg-surface border border-border rounded-xl shadow-sm z-30"
     >
       <div class="px-6 py-8">
-        <h2 class="text-xs font-bold text-muted uppercase tracking-widest">{{ t('admin.layout.title') }}</h2>
+        <h2 class="text-xs font-bold text-muted uppercase tracking-widest">
+          {{ t('admin.layout.title') }}
+        </h2>
       </div>
 
       <nav class="flex-1 px-3 pb-4 space-y-1 overflow-y-auto">
@@ -86,7 +88,9 @@ function toggleSidebar() {
         class="fixed inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col z-50 lg:hidden"
       >
         <div class="flex items-center justify-between px-4 py-6 border-b border-border">
-          <h2 class="text-sm font-semibold uppercase tracking-wider">{{ t('admin.layout.title') }}</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wider">
+            {{ t('admin.layout.title') }}
+          </h2>
 
           <button
             @click="closeSidebar"

@@ -67,7 +67,10 @@ async function applyBulkRole() {
       user_ids: Array.from(selectedIds.value),
       role: bulkRole.value,
     })
-    toast.show(t('admin.users.message.bulkRoleUpdated', { count: selectedIds.value.size }), 'success')
+    toast.show(
+      t('admin.users.message.bulkRoleUpdated', { count: selectedIds.value.size }),
+      'success',
+    )
     selectedIds.value.clear()
     await fetchUsers()
   } catch (e: unknown) {
@@ -227,14 +230,18 @@ onMounted(fetchUsers)
       v-if="auth.isSuperAdmin && selectedIds.size > 0"
       class="mb-4 flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-3"
     >
-      <span class="text-sm text-foreground font-medium">{{ t('admin.users.selectedCount', { count: selectedIds.size }) }}</span>
+      <span class="text-sm text-foreground font-medium">{{
+        t('admin.users.selectedCount', { count: selectedIds.size })
+      }}</span>
       <select
         v-model="bulkRole"
         class="text-sm border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option v-for="r in roles" :key="r" :value="r">{{ t(roleKeyMap[r]) }}</option>
       </select>
-      <BaseButton size="sm" :loading="bulkLoading" @click="applyBulkRole">{{ t('admin.users.bulkApplyRole') }}</BaseButton>
+      <BaseButton size="sm" :loading="bulkLoading" @click="applyBulkRole">{{
+        t('admin.users.bulkApplyRole')
+      }}</BaseButton>
       <button class="text-sm text-muted hover:text-foreground" @click="selectedIds.clear()">
         {{ t('admin.users.bulkClear') }}
       </button>
@@ -261,10 +268,18 @@ onMounted(fetchUsers)
                   class="rounded"
                 />
               </th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.username') }}</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.displayName') }}</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.role') }}</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.status') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.users.table.username') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.users.table.displayName') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.users.table.role') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.users.table.status') }}
+              </th>
               <th v-if="auth.isSuperAdmin" class="text-left px-4 py-3 font-medium text-muted">
                 {{ t('admin.users.table.actions') }}
               </th>
@@ -293,9 +308,9 @@ onMounted(fetchUsers)
                 }}</BaseBadge>
               </td>
               <td class="px-4 py-3">
-                <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''"
-                  >{{ t('admin.users.table.banned') }}</BaseBadge
-                >
+                <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''">{{
+                  t('admin.users.table.banned')
+                }}</BaseBadge>
                 <span v-else class="text-xs text-muted">{{ t('admin.users.table.active') }}</span>
               </td>
               <td v-if="auth.isSuperAdmin" class="px-4 py-3">
@@ -308,7 +323,9 @@ onMounted(fetchUsers)
                   >
                     <option v-for="r in roles" :key="r" :value="r">{{ t(roleKeyMap[r]) }}</option>
                   </select>
-                  <span v-else class="text-xs text-muted">{{ t('admin.users.table.currentUser') }}</span>
+                  <span v-else class="text-xs text-muted">{{
+                    t('admin.users.table.currentUser')
+                  }}</span>
 
                   <template v-if="user.id !== auth.user?.id">
                     <BaseButton
@@ -318,9 +335,9 @@ onMounted(fetchUsers)
                       @click="openBanModal(user)"
                       >{{ t('admin.users.banBtn') }}</BaseButton
                     >
-                    <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)"
-                      >{{ t('admin.users.unbanBtn') }}</BaseButton
-                    >
+                    <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)">{{
+                      t('admin.users.unbanBtn')
+                    }}</BaseButton>
                   </template>
                 </div>
               </td>
@@ -346,7 +363,12 @@ onMounted(fetchUsers)
     <!-- Create account modal -->
     <BaseModal v-model="showCreateModal" :title="t('admin.users.createModal.title')" size="sm">
       <form @submit.prevent="createAccount" class="space-y-3">
-        <BaseInput v-model="newUsername" :label="t('admin.users.createModal.usernameLabel')" required :placeholder="t('admin.users.createModal.usernamePlaceholder')" />
+        <BaseInput
+          v-model="newUsername"
+          :label="t('admin.users.createModal.usernameLabel')"
+          required
+          :placeholder="t('admin.users.createModal.usernamePlaceholder')"
+        />
         <BaseInput
           v-model="newDisplayName"
           :label="t('admin.users.createModal.displayNameLabel')"
@@ -361,18 +383,24 @@ onMounted(fetchUsers)
           :placeholder="t('admin.users.createModal.passwordPlaceholder')"
         />
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{ t('admin.users.createModal.roleLabel') }}</label>
+          <label class="block text-sm font-medium text-foreground mb-1">{{
+            t('admin.users.createModal.roleLabel')
+          }}</label>
           <select
             v-model="newRole"
             class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="MEMBER">{{ t('admin.users.createModal.roleMember') }}</option>
-            <option v-if="auth.isSuperAdmin" value="ADMIN">{{ t('admin.users.createModal.roleAdmin') }}</option>
+            <option v-if="auth.isSuperAdmin" value="ADMIN">
+              {{ t('admin.users.createModal.roleAdmin') }}
+            </option>
           </select>
         </div>
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showCreateModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showCreateModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
         <BaseButton :loading="creating" @click="createAccount">{{ t('common.create') }}</BaseButton>
       </template>
     </BaseModal>
@@ -392,8 +420,12 @@ onMounted(fetchUsers)
         />
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showBanModal = false">{{ t('common.cancel') }}</BaseButton>
-        <BaseButton variant="danger" :loading="banning" @click="confirmBan">{{ t('admin.users.banModal.confirmBtn') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showBanModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" :loading="banning" @click="confirmBan">{{
+          t('admin.users.banModal.confirmBtn')
+        }}</BaseButton>
       </template>
     </BaseModal>
   </div>

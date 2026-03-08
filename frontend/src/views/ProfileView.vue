@@ -324,7 +324,9 @@ function toggleConfirmPassword() {
         <BaseCard padding="lg" class="mb-8">
           <form @submit.prevent="saveProfile" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-foreground mb-1">{{ t('profile.form.usernameLabel') }}</label>
+              <label class="block text-sm font-medium text-foreground mb-1">{{
+                t('profile.form.usernameLabel')
+              }}</label>
               <input
                 :value="auth.user?.username"
                 disabled
@@ -332,9 +334,22 @@ function toggleConfirmPassword() {
               />
             </div>
 
-            <BaseInput v-model="displayName" :label="t('profile.form.displayNameLabel')" :maxlength="100" />
-            <BaseTextarea v-model="bio" :label="t('profile.form.bioLabel')" :rows="3" :maxlength="500" />
-            <BaseInput v-model="affiliation" :label="t('profile.form.affiliationLabel')" :maxlength="200" />
+            <BaseInput
+              v-model="displayName"
+              :label="t('profile.form.displayNameLabel')"
+              :maxlength="100"
+            />
+            <BaseTextarea
+              v-model="bio"
+              :label="t('profile.form.bioLabel')"
+              :rows="3"
+              :maxlength="500"
+            />
+            <BaseInput
+              v-model="affiliation"
+              :label="t('profile.form.affiliationLabel')"
+              :maxlength="200"
+            />
             <BaseInput
               v-model="orcid"
               :label="t('profile.form.orcidLabel')"
@@ -344,13 +359,17 @@ function toggleConfirmPassword() {
 
             <!-- Language selector -->
             <div>
-              <label class="block text-sm font-medium text-foreground mb-1">{{ t('profile.form.languageLabel') }}</label>
+              <label class="block text-sm font-medium text-foreground mb-1">{{
+                t('profile.form.languageLabel')
+              }}</label>
               <select
                 :value="currentLocale"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
                 @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
               >
-                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
               </select>
             </div>
 
@@ -362,7 +381,9 @@ function toggleConfirmPassword() {
       <!-- Security Tab -->
       <div v-if="activeTab === 'security' && !auth.isGuest">
         <!-- Change Password -->
-        <h2 class="text-xl font-bold text-foreground mb-4">{{ t('profile.security.changePassword.title') }}</h2>
+        <h2 class="text-xl font-bold text-foreground mb-4">
+          {{ t('profile.security.changePassword.title') }}
+        </h2>
 
         <BaseAlert
           v-if="passwordMessage"
@@ -435,7 +456,9 @@ function toggleConfirmPassword() {
         </BaseCard>
 
         <!-- Invite Codes -->
-        <h2 class="text-xl font-bold text-foreground mb-4">{{ t('profile.security.inviteCodes.title') }}</h2>
+        <h2 class="text-xl font-bold text-foreground mb-4">
+          {{ t('profile.security.inviteCodes.title') }}
+        </h2>
         <BaseCard padding="lg">
           <p class="text-sm text-muted mb-4">
             {{ t('profile.security.inviteCodes.description') }}
@@ -448,7 +471,11 @@ function toggleConfirmPassword() {
               <BaseInput :model-value="generatedCode" disabled class="flex-1" />
               <BaseButton variant="secondary" size="sm" @click="copyInviteCode">
                 <component :is="codeCopied ? Check : Copy" class="w-4 h-4 mr-1" />
-                {{ codeCopied ? t('profile.security.inviteCodes.copiedBtn') : t('profile.security.inviteCodes.copyBtn') }}
+                {{
+                  codeCopied
+                    ? t('profile.security.inviteCodes.copiedBtn')
+                    : t('profile.security.inviteCodes.copyBtn')
+                }}
               </BaseButton>
             </div>
           </div>
@@ -457,21 +484,25 @@ function toggleConfirmPassword() {
 
       <!-- Danger Zone Tab -->
       <div v-if="activeTab === 'danger' && !auth.isGuest">
-        <BaseAlert type="warning" class="mb-4"
-          >{{ t('profile.dangerZone.warning') }}</BaseAlert
-        >
+        <BaseAlert type="warning" class="mb-4">{{ t('profile.dangerZone.warning') }}</BaseAlert>
 
         <h2 class="text-xl font-bold text-danger-600 mb-4">{{ t('profile.dangerZone.title') }}</h2>
         <BaseCard padding="lg">
           <p class="text-sm text-muted mb-4">
             {{ t('profile.dangerZone.deleteDescription') }}
           </p>
-          <BaseButton variant="danger" @click="openDeleteConfirm"> {{ t('profile.dangerZone.deleteBtn') }} </BaseButton>
+          <BaseButton variant="danger" @click="openDeleteConfirm">
+            {{ t('profile.dangerZone.deleteBtn') }}
+          </BaseButton>
         </BaseCard>
       </div>
 
       <!-- Delete Account Confirmation Modal -->
-      <BaseModal v-model="showDeleteConfirm" :title="t('profile.dangerZone.deleteConfirm.title')" size="sm">
+      <BaseModal
+        v-model="showDeleteConfirm"
+        :title="t('profile.dangerZone.deleteConfirm.title')"
+        size="sm"
+      >
         <p class="text-sm text-muted mb-4">
           {{ t('profile.dangerZone.deleteConfirm.message') }}
         </p>
@@ -481,7 +512,9 @@ function toggleConfirmPassword() {
           :placeholder="t('profile.dangerZone.deleteConfirm.placeholder')"
         />
         <template #footer>
-          <BaseButton variant="secondary" @click="closeDeleteConfirm">{{ t('common.cancel') }}</BaseButton>
+          <BaseButton variant="secondary" @click="closeDeleteConfirm">{{
+            t('common.cancel')
+          }}</BaseButton>
           <BaseButton
             variant="danger"
             :disabled="deleteConfirmText !== 'DELETE'"

@@ -42,7 +42,9 @@ onMounted(fetchPosts)
   <div class="space-y-4">
     <!-- Header/Actions -->
     <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-foreground">{{ t('sigs.posts.title') }} ({{ total }})</h2>
+      <h2 class="text-lg font-semibold text-foreground">
+        {{ t('sigs.posts.title') }} ({{ total }})
+      </h2>
     </div>
 
     <!-- Content -->
@@ -83,7 +85,9 @@ onMounted(fetchPosts)
           </router-link>
 
           <div class="flex items-center gap-4 mt-3 text-xs text-muted">
-            <span class="flex items-center gap-1"> {{ p.comment_count }} {{ t('sigs.posts.comments') }} </span>
+            <span class="flex items-center gap-1">
+              {{ p.comment_count }} {{ t('sigs.posts.comments') }}
+            </span>
           </div>
         </BaseCard>
       </div>

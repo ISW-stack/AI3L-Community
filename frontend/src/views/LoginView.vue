@@ -64,7 +64,9 @@ loadCaptcha()
         class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
         @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
       >
-        <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+          {{ opt.label }}
+        </option>
       </select>
     </div>
     <!-- Left branding panel (desktop only) -->
@@ -114,7 +116,9 @@ loadCaptcha()
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">{{ t('auth.captcha') }}</label>
+            <label class="block text-sm font-medium text-foreground mb-1">{{
+              t('auth.captcha')
+            }}</label>
             <div class="flex gap-3 items-center">
               <input
                 v-model="captchaCode"
@@ -143,11 +147,15 @@ loadCaptcha()
         <div class="mt-6 text-center text-sm text-muted space-y-2">
           <p>
             {{ t('auth.noAccount') }}
-            <router-link to="/register" class="text-brand-600 hover:underline">{{ t('auth.noAccountLink') }}</router-link>
+            <router-link to="/register" class="text-brand-600 hover:underline">{{
+              t('auth.noAccountLink')
+            }}</router-link>
           </p>
           <p>
             {{ t('auth.browseAsGuest') }}
-            <router-link to="/guest" class="text-brand-600 hover:underline">{{ t('auth.browseAsGuestLink') }}</router-link>
+            <router-link to="/guest" class="text-brand-600 hover:underline">{{
+              t('auth.browseAsGuestLink')
+            }}</router-link>
           </p>
         </div>
       </BaseCard>

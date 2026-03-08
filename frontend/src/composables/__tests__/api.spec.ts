@@ -258,7 +258,10 @@ describe('api composable', () => {
 
       await expect(errorHandler(error)).rejects.toBe(error)
 
-      expect(mockToastShow).toHaveBeenCalledWith('Guest capacity reached. Please try again later.', 'warning')
+      expect(mockToastShow).toHaveBeenCalledWith(
+        'Guest capacity reached. Please try again later.',
+        'warning',
+      )
       // Should NOT clear session or redirect
       expect(mockClearSession).not.toHaveBeenCalled()
       expect(mockRouterPush).not.toHaveBeenCalled()
@@ -286,7 +289,10 @@ describe('api composable', () => {
 
       await expect(errorHandler(error)).rejects.toBe(error)
 
-      expect(mockToastShow).toHaveBeenCalledWith('Too many requests. Please try again later.', 'warning')
+      expect(mockToastShow).toHaveBeenCalledWith(
+        'Too many requests. Please try again later.',
+        'warning',
+      )
     })
 
     it('should show toast for generic structured error codes', async () => {

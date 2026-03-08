@@ -128,7 +128,9 @@ export const useAuthStore = defineStore('auth', () => {
       }
       // Sync locale preference from DB
       if (data.preferred_language) {
-        const { syncFromProfile } = await import('@/composables/useLocale').then((m) => m.useLocale())
+        const { syncFromProfile } = await import('@/composables/useLocale').then((m) =>
+          m.useLocale(),
+        )
         syncFromProfile()
       }
     } catch {

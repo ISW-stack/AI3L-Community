@@ -58,7 +58,9 @@ onMounted(() => {
 
     <!-- Contributors Section -->
     <div>
-      <h2 class="text-2xl font-semibold text-foreground mb-6">{{ t('about.contributors.title') }}</h2>
+      <h2 class="text-2xl font-semibold text-foreground mb-6">
+        {{ t('about.contributors.title') }}
+      </h2>
 
       <div v-if="loading" class="text-muted">{{ t('about.contributors.loading') }}</div>
 

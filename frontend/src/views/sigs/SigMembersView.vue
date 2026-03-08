@@ -83,7 +83,9 @@ onMounted(fetchMembers)
 
 <template>
   <div class="space-y-4">
-    <h2 class="text-lg font-semibold text-foreground">{{ t('sigs.members.title') }} ({{ total }})</h2>
+    <h2 class="text-lg font-semibold text-foreground">
+      {{ t('sigs.members.title') }} ({{ total }})
+    </h2>
 
     <div v-if="loading" class="space-y-3">
       <SkeletonLoader variant="card" :lines="4" />
@@ -199,7 +201,8 @@ onMounted(fetchMembers)
 
           <div class="mt-4 pt-3 border-t border-border flex items-center justify-between">
             <span class="text-[10px] text-muted">
-              {{ t('sigs.members.tableHeader.joined') }} {{ new Date(m.created_at).toLocaleDateString() }}
+              {{ t('sigs.members.tableHeader.joined') }}
+              {{ new Date(m.created_at).toLocaleDateString() }}
             </span>
 
             <div v-if="canEdit" class="flex gap-3">

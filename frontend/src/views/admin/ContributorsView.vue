@@ -172,7 +172,14 @@ onMounted(fetchContributors)
     </div>
 
     <!-- Create / Edit modal -->
-    <BaseModal v-model="showModal" :title="editing ? t('admin.contributors.modal.editTitle') : t('admin.contributors.modal.createTitle')">
+    <BaseModal
+      v-model="showModal"
+      :title="
+        editing
+          ? t('admin.contributors.modal.editTitle')
+          : t('admin.contributors.modal.createTitle')
+      "
+    >
       <form @submit.prevent="handleSave" class="space-y-4">
         <BaseInput
           v-model="formGithub"
@@ -192,7 +199,12 @@ onMounted(fetchContributors)
           :placeholder="t('admin.contributors.modal.rolePlaceholder')"
           required
         />
-        <BaseInput v-model.number="formOrder" :label="t('admin.contributors.modal.orderLabel')" type="number" :placeholder="t('admin.contributors.modal.orderPlaceholder')" />
+        <BaseInput
+          v-model.number="formOrder"
+          :label="t('admin.contributors.modal.orderLabel')"
+          type="number"
+          :placeholder="t('admin.contributors.modal.orderPlaceholder')"
+        />
         <div class="flex justify-end gap-2">
           <BaseButton variant="secondary" @click="showModal = false" type="button">
             {{ t('common.cancel') }}
@@ -214,7 +226,9 @@ onMounted(fetchContributors)
         {{ t('admin.contributors.deleteConfirm.message', { name: confirmDelete?.display_name }) }}
       </p>
       <div class="flex justify-end gap-2">
-        <BaseButton variant="secondary" @click="showDeleteModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
         <BaseButton variant="danger" @click="handleDelete">{{ t('common.delete') }}</BaseButton>
       </div>
     </BaseModal>

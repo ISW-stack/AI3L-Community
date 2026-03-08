@@ -162,10 +162,8 @@ export default {
     guestSignUpSuffix: 'para acceso completo.',
     applyMembership: {
       title: 'Solicitar membresía',
-      submitted:
-        'Su solicitud ha sido enviada. Un administrador la revisará en breve.',
-      description:
-        'Cuéntenos un poco sobre usted y por qué desea unirse a la comunidad.',
+      submitted: 'Su solicitud ha sido enviada. Un administrador la revisará en breve.',
+      description: 'Cuéntenos un poco sobre usted y por qué desea unirse a la comunidad.',
       placeholder: 'Describa su formación e intereses de investigación...',
       submitBtn: 'Enviar solicitud',
       success: '¡Solicitud enviada correctamente!',
@@ -190,8 +188,7 @@ export default {
     unauthenticated: {
       title: 'AI3L Community',
       subtitle: 'AI in Language Learning and Literacy — Plataforma de intercambio académico',
-      tagline:
-        'Únase a investigadores y educadores que impulsan el aprendizaje de idiomas con IA.',
+      tagline: 'Únase a investigadores y educadores que impulsan el aprendizaje de idiomas con IA.',
       getStartedBtn: 'Comenzar',
       browseGuestBtn: 'Explorar como invitado',
       stats: {
@@ -210,8 +207,7 @@ export default {
         },
         sigs: {
           title: 'Grupos de interés especial',
-          description:
-            'Únase o cree GIEs centrados en su área de investigación',
+          description: 'Únase o cree GIEs centrados en su área de investigación',
         },
         forms: {
           title: 'Formularios colaborativos',
@@ -220,8 +216,7 @@ export default {
         },
         richContent: {
           title: 'Contenido enriquecido',
-          description:
-            'Redacte con tablas, imágenes y texto formateado usando nuestro editor',
+          description: 'Redacte con tablas, imágenes y texto formateado usando nuestro editor',
         },
       },
     },

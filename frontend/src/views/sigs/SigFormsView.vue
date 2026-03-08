@@ -104,7 +104,9 @@ onMounted(fetchForms)
   <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-foreground">{{ t('sigs.forms.title') }} ({{ total }})</h2>
+      <h2 class="text-lg font-semibold text-foreground">
+        {{ t('sigs.forms.title') }} ({{ total }})
+      </h2>
       <router-link v-if="canCreateForm" :to="`/sigs/${sigId}/forms/new`">
         <BaseButton size="md">{{ t('sigs.forms.createBtn') }}</BaseButton>
       </router-link>
@@ -147,8 +149,12 @@ onMounted(fetchForms)
           <div
             class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted font-medium uppercase tracking-tight"
           >
-            <span class="flex items-center gap-1">{{ f.response_count }} {{ t('sigs.forms.responses') }}</span>
-            <span v-if="f.deadline">{{ t('sigs.forms.ends') }} {{ new Date(f.deadline).toLocaleDateString() }}</span>
+            <span class="flex items-center gap-1"
+              >{{ f.response_count }} {{ t('sigs.forms.responses') }}</span
+            >
+            <span v-if="f.deadline"
+              >{{ t('sigs.forms.ends') }} {{ new Date(f.deadline).toLocaleDateString() }}</span
+            >
             <span>{{ t('common.by') }} {{ f.created_by_name || 'Admin' }}</span>
           </div>
 
@@ -180,17 +186,29 @@ onMounted(fetchForms)
     </div>
 
     <!-- Modals -->
-    <BaseModal v-model="showFormDeleteConfirm" :title="t('sigs.forms.deleteConfirm.title')" size="sm">
+    <BaseModal
+      v-model="showFormDeleteConfirm"
+      :title="t('sigs.forms.deleteConfirm.title')"
+      size="sm"
+    >
       <p class="text-sm text-muted mb-4 leading-relaxed">
         {{ t('sigs.forms.deleteConfirm.message') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showFormDeleteConfirm = false">{{ t('common.cancel') }}</BaseButton>
-        <BaseButton variant="danger" @click="handleDeleteForm">{{ t('sigs.forms.deleteConfirm.confirmBtn') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showFormDeleteConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="handleDeleteForm">{{
+          t('sigs.forms.deleteConfirm.confirmBtn')
+        }}</BaseButton>
       </template>
     </BaseModal>
 
-    <BaseModal v-model="showResponsesModal" :title="`${t('sigs.forms.responsesBtn')}: ${responsesFormTitle}`" size="xl">
+    <BaseModal
+      v-model="showResponsesModal"
+      :title="`${t('sigs.forms.responsesBtn')}: ${responsesFormTitle}`"
+      size="xl"
+    >
       <div v-if="responsesLoading" class="py-12 flex justify-center">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
       </div>

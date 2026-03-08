@@ -63,8 +63,10 @@ function validateAnswers(): string | null {
   for (const q of form.value.questions) {
     const val = answers.value[q.id]
     if (q.required) {
-      if (val === null || val === undefined || val === '') return `"${q.label}" ${t('common.required').toLowerCase()}.`
-      if (Array.isArray(val) && val.length === 0) return `"${q.label}" ${t('common.required').toLowerCase()}.`
+      if (val === null || val === undefined || val === '')
+        return `"${q.label}" ${t('common.required').toLowerCase()}.`
+      if (Array.isArray(val) && val.length === 0)
+        return `"${q.label}" ${t('common.required').toLowerCase()}.`
     }
     if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0))
       continue
@@ -227,8 +229,12 @@ onUnmounted(() => {
         <div class="flex items-center gap-4 text-xs text-muted mt-2">
           <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
           <span>{{ form.response_count }} {{ t('forms.view.response') }}</span>
-          <span v-if="form.deadline">{{ t('forms.view.deadline') }} {{ new Date(form.deadline).toLocaleString() }}</span>
-          <span v-if="form.max_respondents">{{ t('forms.view.max') }} {{ form.max_respondents }}</span>
+          <span v-if="form.deadline"
+            >{{ t('forms.view.deadline') }} {{ new Date(form.deadline).toLocaleString() }}</span
+          >
+          <span v-if="form.max_respondents"
+            >{{ t('forms.view.max') }} {{ form.max_respondents }}</span
+          >
         </div>
         <div v-if="auth.isAuthenticated" class="flex items-center gap-2 mt-4">
           <CopyShareLinkButton :url="formShareUrl" />
@@ -250,9 +256,9 @@ onUnmounted(() => {
         </div>
       </BaseCard>
 
-      <BaseAlert v-if="!form.is_active" type="error" class="mb-6 text-center"
-        >{{ t('forms.view.closedAlert') }}</BaseAlert
-      >
+      <BaseAlert v-if="!form.is_active" type="error" class="mb-6 text-center">{{
+        t('forms.view.closedAlert')
+      }}</BaseAlert>
       <BaseAlert v-if="submitted" type="success" class="mb-6 text-center">{{ message }}</BaseAlert>
       <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
 
@@ -364,15 +370,17 @@ onUnmounted(() => {
         </BaseCard>
 
         <div class="flex justify-end pt-4">
-          <BaseButton size="lg" :loading="submitting" @click="submitForm">{{ t('forms.view.submitBtn') }}</BaseButton>
+          <BaseButton size="lg" :loading="submitting" @click="submitForm">{{
+            t('forms.view.submitBtn')
+          }}</BaseButton>
         </div>
       </div>
 
       <BaseAlert v-if="!auth.isAuthenticated && form.is_active" type="info" class="text-center">
         {{ t('forms.view.loginPrompt') }}
-        <router-link to="/login" class="text-brand-600 hover:underline font-medium"
-          >{{ t('forms.view.loginLink') }}</router-link
-        >
+        <router-link to="/login" class="text-brand-600 hover:underline font-medium">{{
+          t('forms.view.loginLink')
+        }}</router-link>
         {{ t('forms.view.submitPromptSuffix') }}
       </BaseAlert>
     </template>

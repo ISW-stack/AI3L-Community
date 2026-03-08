@@ -192,7 +192,9 @@ onUnmounted(() => {
               class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
               @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
             >
-              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
             </select>
 
             <NotificationBell />
@@ -241,12 +243,14 @@ onUnmounted(() => {
               class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
               @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
             >
-              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
             </select>
 
-            <router-link to="/login" class="text-sm text-muted hover:text-foreground transition"
-              >{{ t('nav.logIn') }}</router-link
-            >
+            <router-link to="/login" class="text-sm text-muted hover:text-foreground transition">{{
+              t('nav.logIn')
+            }}</router-link>
             <router-link
               to="/register"
               class="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 transition"
@@ -369,7 +373,9 @@ onUnmounted(() => {
                 class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground w-full"
                 @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
               >
-                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
               </select>
             </div>
             <router-link
@@ -396,7 +402,9 @@ onUnmounted(() => {
                   class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground w-full"
                   @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
                 >
-                  <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
                 </select>
               </div>
               <router-link

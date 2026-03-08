@@ -241,7 +241,9 @@ onMounted(() => {
 
       <BaseCard padding="lg" class="mb-6 space-y-4">
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{ t('forms.builder.bannerLabel') }}</label>
+          <label class="block text-sm font-medium text-foreground mb-1">{{
+            t('forms.builder.bannerLabel')
+          }}</label>
           <div v-if="bannerUrl" class="mb-2">
             <img :src="bannerUrl" alt="Banner" class="w-full h-40 object-cover rounded-lg" />
           </div>
@@ -252,7 +254,11 @@ onMounted(() => {
             class="text-sm text-muted"
           />
         </div>
-        <BaseInput v-model="title" :label="t('forms.builder.titleLabel')" :placeholder="t('forms.builder.titlePlaceholder')" />
+        <BaseInput
+          v-model="title"
+          :label="t('forms.builder.titleLabel')"
+          :placeholder="t('forms.builder.titlePlaceholder')"
+        />
         <BaseTextarea
           v-model="description"
           :label="t('forms.builder.descLabel')"
@@ -261,7 +267,9 @@ onMounted(() => {
         />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">{{ t('forms.builder.deadlineLabel') }}</label>
+            <label class="block text-sm font-medium text-foreground mb-1">{{
+              t('forms.builder.deadlineLabel')
+            }}</label>
             <input
               v-model="deadline"
               type="datetime-local"
@@ -269,7 +277,9 @@ onMounted(() => {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">{{ t('forms.builder.maxRespondentsLabel') }}</label>
+            <label class="block text-sm font-medium text-foreground mb-1">{{
+              t('forms.builder.maxRespondentsLabel')
+            }}</label>
             <input
               v-model.number="maxRespondents"
               type="number"
@@ -290,15 +300,17 @@ onMounted(() => {
 
       <div class="mb-6">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold text-foreground">{{ t('forms.builder.questionsTitle') }}</h2>
-          <BaseButton v-if="!isSchemaLocked" size="sm" @click="addQuestion"
-            >{{ t('forms.builder.addQuestionBtn') }}</BaseButton
-          >
+          <h2 class="text-lg font-semibold text-foreground">
+            {{ t('forms.builder.questionsTitle') }}
+          </h2>
+          <BaseButton v-if="!isSchemaLocked" size="sm" @click="addQuestion">{{
+            t('forms.builder.addQuestionBtn')
+          }}</BaseButton>
         </div>
 
-        <BaseAlert v-if="isSchemaLocked" type="warning" class="mb-4"
-          >{{ t('forms.builder.schemaLockedWarning') }}</BaseAlert
-        >
+        <BaseAlert v-if="isSchemaLocked" type="warning" class="mb-4">{{
+          t('forms.builder.schemaLockedWarning')
+        }}</BaseAlert>
 
         <div class="space-y-4">
           <div
@@ -308,7 +320,9 @@ onMounted(() => {
             :class="isSchemaLocked ? 'border-gray-300 opacity-75' : 'border-brand-500'"
           >
             <div class="flex items-center justify-between mb-3">
-              <span class="text-sm font-medium text-muted">{{ t('forms.builder.questionLabel') }} {{ i + 1 }}</span>
+              <span class="text-sm font-medium text-muted"
+                >{{ t('forms.builder.questionLabel') }} {{ i + 1 }}</span
+              >
               <div v-if="!isSchemaLocked" class="flex items-center gap-1">
                 <button
                   @click="moveQuestion(i, -1)"
@@ -335,7 +349,9 @@ onMounted(() => {
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
               <div>
-                <label class="block text-xs text-muted mb-1">{{ t('forms.builder.typeLabel') }}</label>
+                <label class="block text-xs text-muted mb-1">{{
+                  t('forms.builder.typeLabel')
+                }}</label>
                 <select
                   v-model="q.type"
                   :disabled="isSchemaLocked"
@@ -347,7 +363,9 @@ onMounted(() => {
                 </select>
               </div>
               <div class="sm:col-span-2">
-                <label class="block text-xs text-muted mb-1">{{ t('forms.builder.labelRequired') }}</label>
+                <label class="block text-xs text-muted mb-1">{{
+                  t('forms.builder.labelRequired')
+                }}</label>
                 <input
                   v-model="q.label"
                   :disabled="isSchemaLocked"
@@ -473,7 +491,9 @@ onMounted(() => {
       </div>
 
       <div class="flex justify-end gap-3">
-        <BaseButton variant="secondary" size="lg" @click="showPreview = true">{{ t('forms.builder.previewBtn') }}</BaseButton>
+        <BaseButton variant="secondary" size="lg" @click="showPreview = true">{{
+          t('forms.builder.previewBtn')
+        }}</BaseButton>
         <BaseButton size="lg" :loading="saving" :disabled="hasInvalidRating" @click="saveForm">{{
           isEdit ? t('forms.builder.updateBtn') : t('forms.builder.createBtn')
         }}</BaseButton>

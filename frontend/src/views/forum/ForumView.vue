@@ -318,7 +318,8 @@ onMounted(() => {
             {{ t('forum.sort.mostDiscussed') }}
           </button>
           <span v-if="activeCategoryName" class="ml-3 text-sm text-muted">
-            {{ t('common.in') }} <span class="font-medium text-foreground">{{ activeCategoryName }}</span>
+            {{ t('common.in') }}
+            <span class="font-medium text-foreground">{{ activeCategoryName }}</span>
           </span>
         </div>
 
@@ -345,14 +346,18 @@ onMounted(() => {
             @update:current-page="goToPage"
           />
         </div>
-        <p class="mt-4 text-sm text-muted text-center">{{ t('forum.postsTotal', { count: total }) }}</p>
+        <p class="mt-4 text-sm text-muted text-center">
+          {{ t('forum.postsTotal', { count: total }) }}
+        </p>
       </div>
 
       <!-- Right Sidebar (desktop only) -->
       <aside class="hidden lg:block w-[280px] shrink-0 space-y-6">
         <!-- About -->
         <BaseCard>
-          <h3 class="text-sm font-semibold text-foreground mb-2">{{ t('forum.sidebar.aboutTitle') }}</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-2">
+            {{ t('forum.sidebar.aboutTitle') }}
+          </h3>
           <p class="text-sm text-muted">
             {{ t('forum.sidebar.aboutDescription') }}
           </p>
@@ -360,7 +365,9 @@ onMounted(() => {
 
         <!-- Categories -->
         <BaseCard>
-          <h3 class="text-sm font-semibold text-foreground mb-3">{{ t('forum.sidebar.categoriesTitle') }}</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-3">
+            {{ t('forum.sidebar.categoriesTitle') }}
+          </h3>
           <ul class="space-y-1">
             <li>
               <button
@@ -394,7 +401,9 @@ onMounted(() => {
 
         <!-- Trending Posts -->
         <BaseCard v-if="trendingPosts.length > 0">
-          <h3 class="text-sm font-semibold text-foreground mb-3">{{ t('forum.sidebar.trendingTitle') }}</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-3">
+            {{ t('forum.sidebar.trendingTitle') }}
+          </h3>
           <ul class="space-y-3">
             <li v-for="tp in trendingPosts" :key="tp.id">
               <router-link

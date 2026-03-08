@@ -44,7 +44,13 @@ async function handleCreate() {
     <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>
 
     <form @submit.prevent="handleCreate" class="space-y-4">
-      <BaseInput v-model="name" :label="t('sigs.create.nameLabel')" :placeholder="t('sigs.create.namePlaceholder')" required :maxlength="200" />
+      <BaseInput
+        v-model="name"
+        :label="t('sigs.create.nameLabel')"
+        :placeholder="t('sigs.create.namePlaceholder')"
+        required
+        :maxlength="200"
+      />
       <BaseTextarea
         v-model="description"
         :label="t('sigs.create.descLabel')"
@@ -53,9 +59,13 @@ async function handleCreate() {
       />
 
       <div class="flex gap-3 pt-2">
-        <BaseButton type="submit" size="lg" :loading="saving">{{ t('sigs.create.createBtn') }}</BaseButton>
+        <BaseButton type="submit" size="lg" :loading="saving">{{
+          t('sigs.create.createBtn')
+        }}</BaseButton>
         <router-link to="/sigs">
-          <BaseButton type="button" variant="secondary" size="lg">{{ t('sigs.create.cancelBtn') }}</BaseButton>
+          <BaseButton type="button" variant="secondary" size="lg">{{
+            t('sigs.create.cancelBtn')
+          }}</BaseButton>
         </router-link>
       </div>
     </form>

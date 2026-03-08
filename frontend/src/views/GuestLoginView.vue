@@ -56,7 +56,9 @@ loadCaptcha()
         class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
         @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
       >
-        <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
+          {{ opt.label }}
+        </option>
       </select>
     </div>
     <!-- Left branding panel (desktop only) -->
@@ -74,7 +76,9 @@ loadCaptcha()
     <!-- Right form panel -->
     <div class="flex-1 flex items-center justify-center p-4">
       <BaseCard padding="lg" class="w-full max-w-md shadow-lg">
-        <h1 class="text-2xl font-bold text-center text-foreground mb-2">{{ t('auth.guestTitle') }}</h1>
+        <h1 class="text-2xl font-bold text-center text-foreground mb-2">
+          {{ t('auth.guestTitle') }}
+        </h1>
         <p class="text-center text-sm text-muted mb-6">
           {{ t('auth.guestSubtitle') }}
         </p>
@@ -96,7 +100,9 @@ loadCaptcha()
           />
 
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">{{ t('auth.captcha') }}</label>
+            <label class="block text-sm font-medium text-foreground mb-1">{{
+              t('auth.captcha')
+            }}</label>
             <div class="flex gap-3 items-center">
               <input
                 v-model="captchaCode"
@@ -131,11 +137,15 @@ loadCaptcha()
         <div class="mt-6 text-center text-sm text-muted space-y-2">
           <p>
             {{ t('auth.wantFullAccess') }}
-            <router-link to="/register" class="text-brand-600 hover:underline">{{ t('auth.wantFullAccessLink') }}</router-link>
+            <router-link to="/register" class="text-brand-600 hover:underline">{{
+              t('auth.wantFullAccessLink')
+            }}</router-link>
           </p>
           <p>
             {{ t('auth.hasAccount') }}
-            <router-link to="/login" class="text-brand-600 hover:underline">{{ t('auth.hasAccountLink') }}</router-link>
+            <router-link to="/login" class="text-brand-600 hover:underline">{{
+              t('auth.hasAccountLink')
+            }}</router-link>
           </p>
         </div>
       </BaseCard>

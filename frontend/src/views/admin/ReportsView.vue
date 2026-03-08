@@ -89,11 +89,21 @@ onMounted(fetchReports)
       <table class="w-full text-sm min-w-[700px]">
         <thead class="bg-surface-alt border-b border-border">
           <tr>
-            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.post') }}</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.reason') }}</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.status') }}</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.reported') }}</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.actions') }}</th>
+            <th class="text-left px-4 py-3 font-medium text-muted">
+              {{ t('admin.reports.table.post') }}
+            </th>
+            <th class="text-left px-4 py-3 font-medium text-muted">
+              {{ t('admin.reports.table.reason') }}
+            </th>
+            <th class="text-left px-4 py-3 font-medium text-muted">
+              {{ t('admin.reports.table.status') }}
+            </th>
+            <th class="text-left px-4 py-3 font-medium text-muted">
+              {{ t('admin.reports.table.reported') }}
+            </th>
+            <th class="text-left px-4 py-3 font-medium text-muted">
+              {{ t('admin.reports.table.actions') }}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -121,7 +131,10 @@ onMounted(fetchReports)
             </td>
             <td class="px-4 py-3">
               <div v-if="report.status === 'PENDING'" class="flex gap-2">
-                <BaseButton size="sm" variant="success" @click="reviewReport(report.id, 'RESOLVED')"
+                <BaseButton
+                  size="sm"
+                  variant="success"
+                  @click="reviewReport(report.id, 'RESOLVED')"
                   >{{ t('admin.reports.resolveBtn') }}</BaseButton
                 >
                 <BaseButton

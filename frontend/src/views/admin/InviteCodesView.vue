@@ -41,7 +41,10 @@ async function generateCode() {
     const data = await createInviteCode()
     try {
       await navigator.clipboard.writeText(data.invite_code)
-      toastStore.show(t('admin.inviteCodes.message.generated', { code: data.invite_code }), 'success')
+      toastStore.show(
+        t('admin.inviteCodes.message.generated', { code: data.invite_code }),
+        'success',
+      )
     } catch {
       message.value = t('admin.inviteCodes.message.generatedOnly', { code: data.invite_code })
     }
@@ -87,7 +90,9 @@ onMounted(fetchCodes)
   <div>
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('admin.inviteCodes.title') }}</h1>
-      <BaseButton :loading="generating" @click="generateCode">{{ t('admin.inviteCodes.generateBtn') }}</BaseButton>
+      <BaseButton :loading="generating" @click="generateCode">{{
+        t('admin.inviteCodes.generateBtn')
+      }}</BaseButton>
     </div>
 
     <BaseAlert v-if="message" type="success" class="mb-4">{{ message }}</BaseAlert>
@@ -108,19 +113,35 @@ onMounted(fetchCodes)
 
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
-    <EmptyState v-else-if="codes.length === 0" :message="t('admin.inviteCodes.emptyMessage')" :title="t('admin.inviteCodes.emptyTitle')" />
+    <EmptyState
+      v-else-if="codes.length === 0"
+      :message="t('admin.inviteCodes.emptyMessage')"
+      :title="t('admin.inviteCodes.emptyTitle')"
+    />
 
     <div v-else class="relative">
       <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
         <table class="w-full text-sm min-w-[650px]">
           <thead class="bg-surface-alt text-left border-b border-border">
             <tr>
-              <th class="px-4 py-3 font-medium text-muted">{{ t('admin.inviteCodes.table.code') }}</th>
-              <th class="px-4 py-3 font-medium text-muted">{{ t('admin.inviteCodes.table.status') }}</th>
-              <th class="px-4 py-3 font-medium text-muted">{{ t('admin.inviteCodes.table.createdBy') }}</th>
-              <th class="px-4 py-3 font-medium text-muted">{{ t('admin.inviteCodes.table.usedBy') }}</th>
-              <th class="px-4 py-3 font-medium text-muted">{{ t('admin.inviteCodes.table.created') }}</th>
-              <th class="px-4 py-3 font-medium text-muted">{{ t('admin.inviteCodes.table.expires') }}</th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.code') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.status') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.createdBy') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.usedBy') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.created') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.expires') }}
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">

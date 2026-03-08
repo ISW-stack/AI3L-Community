@@ -4,7 +4,7 @@ export default {
     title: 'AI3L Community',
     tagline: 'AI in Language Learning and Literacy',
     description:
-      'Rejoignez des chercheurs et des éducateurs qui font avancer le futur de l\'apprentissage des langues assisté par l\'IA.',
+      "Rejoignez des chercheurs et des éducateurs qui font avancer le futur de l'apprentissage des langues assisté par l'IA.",
   },
 
   // ── Common / Shared ──
@@ -40,7 +40,7 @@ export default {
     required: 'Obligatoire',
     optional: 'Facultatif',
     noResults: 'Aucun résultat trouvé.',
-    unknownError: 'Une erreur inattendue s\'est produite.',
+    unknownError: "Une erreur inattendue s'est produite.",
     role: {
       superAdmin: 'Super Administrateur',
       admin: 'Administrateur',
@@ -68,14 +68,14 @@ export default {
     guestTitle: 'Accès invité',
     guestSubtitle:
       'Les invités peuvent parcourir le contenu public. Les sessions durent 45 minutes. Maximum 30 invités simultanés.',
-    username: 'Nom d\'utilisateur',
+    username: "Nom d'utilisateur",
     usernameHelper: '3-50 caractères',
-    displayName: 'Nom d\'affichage',
+    displayName: "Nom d'affichage",
     password: 'Mot de passe',
     passwordPlaceholder: 'Entrez votre mot de passe',
     confirmPassword: 'Confirmer le mot de passe',
-    inviteCode: 'Code d\'invitation',
-    inviteCodePlaceholder: 'Entrez votre code d\'invitation',
+    inviteCode: "Code d'invitation",
+    inviteCodePlaceholder: "Entrez votre code d'invitation",
     captcha: 'Captcha',
     captchaPlaceholder: 'Entrez le code captcha',
     captchaRefresh: 'Cliquez pour actualiser le captcha',
@@ -91,20 +91,20 @@ export default {
     passwordInvalid: 'Le mot de passe ne satisfait pas les exigences de sécurité.',
     loginButton: 'Se connecter',
     loginLoading: 'Connexion en cours...',
-    signUpButton: 'S\'inscrire',
+    signUpButton: "S'inscrire",
     signUpLoading: 'Inscription en cours...',
-    guestButton: 'Entrer en tant qu\'invité',
+    guestButton: "Entrer en tant qu'invité",
     guestLoading: 'Connexion en cours...',
-    noAccount: 'Vous n\'avez pas de compte ?',
-    noAccountLink: 'S\'inscrire',
+    noAccount: "Vous n'avez pas de compte ?",
+    noAccountLink: "S'inscrire",
     browseAsGuest: 'Ou naviguer en tant que',
     browseAsGuestLink: 'Invité',
     hasAccount: 'Vous avez déjà un compte ?',
     hasAccountLink: 'Se connecter',
     wantFullAccess: 'Vous souhaitez un accès complet ?',
-    wantFullAccessLink: 'S\'inscrire',
+    wantFullAccessLink: "S'inscrire",
     loginFailed: 'Échec de la connexion. Veuillez réessayer.',
-    registerFailed: 'Échec de l\'inscription. Veuillez réessayer.',
+    registerFailed: "Échec de l'inscription. Veuillez réessayer.",
     guestLoginFailed: 'Échec de la connexion invité. Veuillez réessayer.',
   },
 
@@ -114,9 +114,9 @@ export default {
     description:
       'Cette plateforme stocke vos données sur des serveurs situés à Hong Kong. En continuant, vous consentez à cette disposition de résidence des données.',
     requirement: 'Vous devez accepter cet accord pour continuer à utiliser la plateforme.',
-    acceptButton: 'J\'accepte',
+    acceptButton: "J'accepte",
     rejectButton: 'Je refuse — Se déconnecter',
-    error: 'Échec de l\'enregistrement du consentement. Veuillez réessayer.',
+    error: "Échec de l'enregistrement du consentement. Veuillez réessayer.",
   },
 
   // ── Navigation ──
@@ -131,8 +131,8 @@ export default {
     applications: 'Candidatures',
     reports: 'Signalements',
     categories: 'Catégories',
-    inviteCodes: 'Codes d\'invitation',
-    auditLogs: 'Journaux d\'audit',
+    inviteCodes: "Codes d'invitation",
+    auditLogs: "Journaux d'audit",
     contributors: 'Contributeurs',
     profile: 'Profil',
     logOut: 'Se déconnecter',
@@ -157,13 +157,14 @@ export default {
     tagline: 'Explorez les discussions et partagez vos recherches.',
     browseForumBtn: 'Parcourir le forum',
     mySigsBtn: 'Mes GIS',
-    guestAlert: 'Vous naviguez en tant qu\'invité. Votre session dure 45 minutes.',
+    guestAlert: "Vous naviguez en tant qu'invité. Votre session dure 45 minutes.",
     guestSignUp: 'Inscrivez-vous',
     guestSignUpSuffix: 'pour un accès complet.',
     applyMembership: {
       title: 'Demander une adhésion',
-      submitted: 'Votre candidature a été soumise. Un administrateur l\'examinera prochainement.',
-      description: 'Parlez-nous un peu de vous et de la raison pour laquelle vous souhaitez rejoindre la communauté.',
+      submitted: "Votre candidature a été soumise. Un administrateur l'examinera prochainement.",
+      description:
+        'Parlez-nous un peu de vous et de la raison pour laquelle vous souhaitez rejoindre la communauté.',
       placeholder: 'Décrivez votre parcours et vos intérêts de recherche...',
       submitBtn: 'Soumettre la candidature',
       success: 'Candidature soumise avec succès !',
@@ -171,7 +172,7 @@ export default {
     },
     recentPosts: {
       title: 'Publications récentes',
-      empty: 'Aucune publication pour l\'instant. Soyez le premier à lancer une discussion !',
+      empty: "Aucune publication pour l'instant. Soyez le premier à lancer une discussion !",
       comments: 'commentaires',
     },
     notifications: {
@@ -187,10 +188,11 @@ export default {
     },
     unauthenticated: {
       title: 'AI3L Community',
-      subtitle: 'AI in Language Learning and Literacy — Plateforme d\'échange académique',
-      tagline: 'Rejoignez des chercheurs et des éducateurs qui font avancer l\'apprentissage des langues assisté par l\'IA.',
+      subtitle: "AI in Language Learning and Literacy — Plateforme d'échange académique",
+      tagline:
+        "Rejoignez des chercheurs et des éducateurs qui font avancer l'apprentissage des langues assisté par l'IA.",
       getStartedBtn: 'Commencer',
-      browseGuestBtn: 'Naviguer en tant qu\'invité',
+      browseGuestBtn: "Naviguer en tant qu'invité",
       stats: {
         community: 'Ouverte',
         communitySubtitle: 'Communauté',
@@ -202,19 +204,22 @@ export default {
       features: {
         forum: {
           title: 'Forum académique',
-          description: 'Discutez de recherches, partagez des articles et échangez des idées avec vos pairs',
+          description:
+            'Discutez de recherches, partagez des articles et échangez des idées avec vos pairs',
         },
         sigs: {
-          title: 'Groupes d\'intérêt spécial',
+          title: "Groupes d'intérêt spécial",
           description: 'Rejoignez ou créez des GIS axés sur votre domaine de recherche',
         },
         forms: {
           title: 'Formulaires collaboratifs',
-          description: 'Créez des sondages et collectez des données avec les outils de formulaire intégrés',
+          description:
+            'Créez des sondages et collectez des données avec les outils de formulaire intégrés',
         },
         richContent: {
           title: 'Contenu enrichi',
-          description: 'Rédigez avec des tableaux, des images et du texte formaté grâce à notre éditeur',
+          description:
+            'Rédigez avec des tableaux, des images et du texte formaté grâce à notre éditeur',
         },
       },
     },
@@ -240,14 +245,14 @@ export default {
       and: 'ET',
       or: 'OU',
     },
-    emptyTitle: 'Rien ici pour l\'instant',
+    emptyTitle: "Rien ici pour l'instant",
     emptyMessage: 'Aucune publication trouvée',
     createPostAction: 'Créer une publication',
     postsTotal: '{count} publication(s) au total',
     sidebar: {
       aboutTitle: 'À propos',
       aboutDescription:
-        'Une communauté pour les chercheurs et les éducateurs explorant l\'IA dans l\'apprentissage des langues et la littératie.',
+        "Une communauté pour les chercheurs et les éducateurs explorant l'IA dans l'apprentissage des langues et la littératie.",
       categoriesTitle: 'Catégories',
       allPosts: 'Toutes les publications',
       trendingTitle: 'Tendances (7j)',
@@ -262,7 +267,7 @@ export default {
       views: '{count}',
       lastReply: 'Dernière réponse {time}',
       timeFormat: {
-        justNow: 'à l\'instant',
+        justNow: "à l'instant",
         minutesAgo: 'il y a {count} min',
         hoursAgo: 'il y a {count} h',
         daysAgo: 'il y a {count} j',
@@ -283,10 +288,10 @@ export default {
       commentCount: '{count} commentaire | {count} commentaires',
       viewCount: '{count} vues',
       lastReply: 'Dernière réponse {time}',
-      viewEditHistory: 'Voir l\'historique des modifications',
+      viewEditHistory: "Voir l'historique des modifications",
       commentsTitle: 'Commentaires ({count})',
       commentsDisabled: 'Les commentaires sont désactivés pour cette publication.',
-      noComments: 'Aucun commentaire pour l\'instant.',
+      noComments: "Aucun commentaire pour l'instant.",
     },
     comment: {
       reply: 'Répondre',
@@ -311,7 +316,8 @@ export default {
     },
     deleteDialog: {
       title: 'Supprimer la publication ?',
-      message: 'Êtes-vous sûr de vouloir supprimer cette publication ? Cette action est irréversible.',
+      message:
+        'Êtes-vous sûr de vouloir supprimer cette publication ? Cette action est irréversible.',
     },
     deleteCommentDialog: {
       title: 'Supprimer le commentaire ?',
@@ -370,26 +376,26 @@ export default {
       malicious: 'Signalé comme malveillant',
       unknown: 'Analyse non concluante',
     },
-    uploadFailed: 'Échec du téléchargement de l\'image.',
+    uploadFailed: "Échec du téléchargement de l'image.",
     maliciousFile: 'Le fichier téléchargé a été signalé comme potentiellement malveillant.',
-    promptLinkUrl: 'Entrez l\'URL',
+    promptLinkUrl: "Entrez l'URL",
   },
 
   // ── SIGs ──
   sigs: {
     directory: {
-      title: 'Groupes d\'intérêt spécial',
+      title: "Groupes d'intérêt spécial",
       createBtn: 'Créer un GIS',
       searchPlaceholder: 'Rechercher des GIS...',
       emptyTitle: 'Aucun GIS',
-      emptyMessage: 'Aucun GIS n\'a encore été créé.',
+      emptyMessage: "Aucun GIS n'a encore été créé.",
       memberCount: 'membre(s)',
       totalCount: 'GIS au total',
     },
     detail: {
       backLink: 'Tous les GIS',
       notFound: 'GIS introuvable.',
-      returnBtn: 'Retour à l\'annuaire',
+      returnBtn: "Retour à l'annuaire",
       createdBy: 'Créé par',
       member: 'membre',
       members: 'membres',
@@ -412,7 +418,7 @@ export default {
       deleteConfirm: {
         title: 'Supprimer le GIS ?',
         message:
-          'Cela supprimera de manière réversible ce groupe d\'intérêt spécial et toutes ses publications. Cette action ne peut pas être facilement annulée.',
+          "Cela supprimera de manière réversible ce groupe d'intérêt spécial et toutes ses publications. Cette action ne peut pas être facilement annulée.",
         confirmBtn: 'Confirmer la suppression',
       },
       updateSuccess: 'GIS mis à jour avec succès.',
@@ -422,7 +428,7 @@ export default {
       leaveSuccess: 'Vous avez quitté le GIS.',
       leaveError: 'Échec de la sortie du GIS.',
       joinSuccess: 'Vous avez rejoint le GIS.',
-      joinError: 'Échec de l\'adhésion au GIS.',
+      joinError: "Échec de l'adhésion au GIS.",
     },
     create: {
       title: 'Créer un GIS',
@@ -430,7 +436,7 @@ export default {
       namePlaceholder: 'Nom du GIS',
       nameRequired: 'Le nom est obligatoire.',
       descLabel: 'Description (facultatif)',
-      descPlaceholder: 'Décrivez l\'objet de ce GIS...',
+      descPlaceholder: "Décrivez l'objet de ce GIS...",
       createBtn: 'Créer le GIS',
       cancelBtn: 'Annuler',
       error: 'Échec de la création du GIS.',
@@ -445,10 +451,10 @@ export default {
     members: {
       title: 'Membres',
       emptyTitle: 'Aucun membre',
-      emptyMessage: 'Ce GIS n\'a encore aucun membre.',
+      emptyMessage: "Ce GIS n'a encore aucun membre.",
       tableHeader: {
         name: 'Nom',
-        username: 'Nom d\'utilisateur',
+        username: "Nom d'utilisateur",
         role: 'Rôle',
         joined: 'Adhésion',
         actions: 'Actions',
@@ -458,7 +464,7 @@ export default {
       removeSuccess: 'Membre retiré.',
       removeError: 'Échec du retrait du membre.',
       promoteSuccess: 'Membre promu sous-administrateur.',
-      promoteError: 'Échec de l\'attribution du rôle de sous-administrateur.',
+      promoteError: "Échec de l'attribution du rôle de sous-administrateur.",
     },
     forms: {
       title: 'Formulaires',
@@ -478,7 +484,7 @@ export default {
       },
       deleteSuccess: 'Formulaire supprimé.',
       deleteError: 'Échec de la suppression du formulaire.',
-      noResponses: 'Personne n\'a encore répondu à ce formulaire.',
+      noResponses: "Personne n'a encore répondu à ce formulaire.",
     },
   },
 
@@ -497,7 +503,8 @@ export default {
       maxRespondentsLabel: 'Nombre maximum de répondants',
       maxRespondentsPlaceholder: 'Illimité',
       allowNonMembers: 'Autoriser les non-membres du GIS à soumettre ce formulaire',
-      allowNonMembersHint: 'Lorsque cette option est activée, tout utilisateur authentifié peut remplir ce formulaire.',
+      allowNonMembersHint:
+        'Lorsque cette option est activée, tout utilisateur authentifié peut remplir ce formulaire.',
       questionsTitle: 'Questions',
       addQuestionBtn: '+ Ajouter une question',
       schemaLockedWarning:
@@ -507,7 +514,7 @@ export default {
       labelRequired: 'Intitulé *',
       labelPlaceholder: 'Texte de la question',
       requiredCheckbox: 'Obligatoire',
-      placeholderLabel: 'Texte d\'espace réservé',
+      placeholderLabel: "Texte d'espace réservé",
       maxLengthLabel: 'Longueur maximale :',
       maxLengthPlaceholder: 'Sans limite',
       addOptionBtn: '+ Ajouter une option',
@@ -526,7 +533,7 @@ export default {
       shortTextPlaceholder: 'Réponse courte',
       longTextPlaceholder: 'Réponse longue',
       selectPlaceholder: 'Sélectionner...',
-      noQuestionsAdded: 'Aucune question ajoutée pour l\'instant.',
+      noQuestionsAdded: "Aucune question ajoutée pour l'instant.",
       questionType: {
         shortText: 'Texte court',
         longText: 'Texte long',
@@ -543,11 +550,11 @@ export default {
         optionsRequired: 'La question « {label} » nécessite au moins 2 options.',
         ratingError: 'Question « {label} » : Le minimum doit être inférieur au maximum.',
       },
-      uploadBannerError: 'Échec du téléchargement de l\'image de bannière.',
+      uploadBannerError: "Échec du téléchargement de l'image de bannière.",
       loadError: 'Échec du chargement du formulaire.',
       successMessage: 'Formulaire créé avec succès.',
       updateSuccess: 'Formulaire mis à jour avec succès.',
-      saveError: 'Échec de l\'enregistrement du formulaire.',
+      saveError: "Échec de l'enregistrement du formulaire.",
     },
     view: {
       backBtn: 'Retour',
@@ -557,7 +564,7 @@ export default {
       max: 'Max :',
       editFormBtn: 'Modifier le formulaire',
       exportCSVBtn: 'Exporter en CSV',
-      closedAlert: 'Ce formulaire est fermé et n\'accepte plus de réponses.',
+      closedAlert: "Ce formulaire est fermé et n'accepte plus de réponses.",
       successMessage: 'Votre réponse a été soumise avec succès !',
       loginPrompt: 'Veuillez',
       loginLink: 'vous connecter',
@@ -569,10 +576,10 @@ export default {
       fileUploadError: 'Échec du téléchargement du fichier.',
       loadError: 'Échec du chargement du formulaire.',
       submitError: 'Échec de la soumission de la réponse.',
-      exportError: 'Échec du démarrage de l\'exportation.',
-      exportTimeout: 'L\'exportation a expiré.',
-      exportFailed: 'Échec de l\'exportation.',
-      exportStarting: 'Démarrage de l\'exportation...',
+      exportError: "Échec du démarrage de l'exportation.",
+      exportTimeout: "L'exportation a expiré.",
+      exportFailed: "Échec de l'exportation.",
+      exportStarting: "Démarrage de l'exportation...",
       exportStatus: 'Statut :',
     },
   },
@@ -581,7 +588,7 @@ export default {
   profile: {
     title: 'Profil',
     backBtn: 'Retour',
-    changeAvatar: 'Changer l\'avatar',
+    changeAvatar: "Changer l'avatar",
     memberInfo: 'Informations du membre',
     tabs: {
       general: 'Général',
@@ -589,8 +596,8 @@ export default {
       dangerZone: 'Zone dangereuse',
     },
     form: {
-      usernameLabel: 'Nom d\'utilisateur',
-      displayNameLabel: 'Nom d\'affichage',
+      usernameLabel: "Nom d'utilisateur",
+      displayNameLabel: "Nom d'affichage",
       bioLabel: 'Biographie',
       affiliationLabel: 'Affiliation',
       orcidLabel: 'ORCID',
@@ -601,7 +608,7 @@ export default {
     saveSuccess: 'Profil mis à jour avec succès.',
     saveError: 'Échec de la mise à jour du profil.',
     avatarSuccess: 'Avatar mis à jour avec succès.',
-    avatarError: 'Échec du téléchargement de l\'avatar.',
+    avatarError: "Échec du téléchargement de l'avatar.",
     security: {
       changePassword: {
         title: 'Changer le mot de passe',
@@ -615,20 +622,22 @@ export default {
         error: 'Échec du changement de mot de passe.',
       },
       inviteCodes: {
-        title: 'Codes d\'invitation',
-        description: 'Générez un code d\'invitation à partager avec d\'autres personnes pour qu\'elles puissent créer un compte.',
-        generateBtn: 'Générer un code d\'invitation',
+        title: "Codes d'invitation",
+        description:
+          "Générez un code d'invitation à partager avec d'autres personnes pour qu'elles puissent créer un compte.",
+        generateBtn: "Générer un code d'invitation",
         copyBtn: 'Copier',
         copiedBtn: 'Copié !',
-        success: 'Code d\'invitation généré avec succès.',
-        copySuccess: 'Code d\'invitation copié dans le presse-papiers.',
-        copyError: 'Échec de la copie du code d\'invitation.',
-        generateError: 'Échec de la génération du code d\'invitation.',
+        success: "Code d'invitation généré avec succès.",
+        copySuccess: "Code d'invitation copié dans le presse-papiers.",
+        copyError: "Échec de la copie du code d'invitation.",
+        generateError: "Échec de la génération du code d'invitation.",
       },
     },
     dangerZone: {
       title: 'Zone dangereuse',
-      warning: 'Les actions dans cette section sont irréversibles. Veuillez procéder avec prudence.',
+      warning:
+        'Les actions dans cette section sont irréversibles. Veuillez procéder avec prudence.',
       deleteDescription:
         'Supprimez définitivement votre compte et anonymisez toutes les données personnelles. Cette action est irréversible.',
       deleteBtn: 'Supprimer mon compte',
@@ -655,7 +664,7 @@ export default {
     orcid: 'ORCID :',
     postsTitle: 'Publications',
     postsEmptyTitle: 'Aucune publication',
-    postsEmptyMessage: 'Cet utilisateur n\'a rien publié.',
+    postsEmptyMessage: "Cet utilisateur n'a rien publié.",
   },
 
   // ── Notifications ──
@@ -668,7 +677,7 @@ export default {
       unread: 'Non lues',
     },
     emptyTitle: 'Tout est à jour',
-    emptyMessage: 'Aucune notification pour l\'instant.',
+    emptyMessage: "Aucune notification pour l'instant.",
     deleteSuccess: 'Toutes les notifications ont été effacées.',
     deleteError: 'Échec de la suppression des notifications.',
   },
@@ -677,7 +686,7 @@ export default {
   about: {
     title: 'À propos de AI3L Community',
     description:
-      'AI3L Community est une petite plateforme d\'échange académique dédiée à l\'IA dans l\'apprentissage des langues et la littératie. Elle est organisée et animée par la professeure Yu-Ju Lan de l\'Université nationale normale de Taïwan (NTNU). Ce projet communautaire vise à rassembler des chercheurs et des praticiens partageant un intérêt pour l\'exploration du rôle de l\'IA dans l\'éducation linguistique et le développement de la littératie.',
+      "AI3L Community est une petite plateforme d'échange académique dédiée à l'IA dans l'apprentissage des langues et la littératie. Elle est organisée et animée par la professeure Yu-Ju Lan de l'Université nationale normale de Taïwan (NTNU). Ce projet communautaire vise à rassembler des chercheurs et des praticiens partageant un intérêt pour l'exploration du rôle de l'IA dans l'éducation linguistique et le développement de la littératie.",
     contributors: {
       title: 'Contributeurs',
       loading: 'Chargement des contributeurs...',
@@ -691,7 +700,7 @@ export default {
       title: 'Administration',
       menu: 'Menu',
       closeSidebar: 'Fermer la barre latérale',
-      toggleSidebar: 'Basculer la barre latérale d\'administration',
+      toggleSidebar: "Basculer la barre latérale d'administration",
     },
     dashboard: {
       title: 'Tableau de bord administrateur',
@@ -714,13 +723,13 @@ export default {
     users: {
       title: 'Gestion des utilisateurs',
       createButton: 'Créer un compte',
-      searchPlaceholder: 'Rechercher par nom d\'utilisateur ou nom d\'affichage...',
+      searchPlaceholder: "Rechercher par nom d'utilisateur ou nom d'affichage...",
       selectedCount: '{count} sélectionné(s)',
       bulkApplyRole: 'Appliquer le rôle',
       bulkClear: 'Effacer',
       table: {
-        username: 'Nom d\'utilisateur',
-        displayName: 'Nom d\'affichage',
+        username: "Nom d'utilisateur",
+        displayName: "Nom d'affichage",
         role: 'Rôle',
         status: 'Statut',
         actions: 'Actions',
@@ -733,10 +742,10 @@ export default {
       total: '{count} utilisateur(s) au total',
       createModal: {
         title: 'Créer un compte',
-        usernameLabel: 'Nom d\'utilisateur',
-        usernamePlaceholder: 'Nom d\'utilisateur',
-        displayNameLabel: 'Nom d\'affichage',
-        displayNamePlaceholder: 'Nom d\'affichage',
+        usernameLabel: "Nom d'utilisateur",
+        usernamePlaceholder: "Nom d'utilisateur",
+        displayNameLabel: "Nom d'affichage",
+        displayNamePlaceholder: "Nom d'affichage",
         passwordLabel: 'Mot de passe',
         passwordPlaceholder: '8+ caractères, majuscule/minuscule/chiffre',
         roleLabel: 'Rôle',
@@ -744,7 +753,7 @@ export default {
         roleAdmin: 'Administrateur',
       },
       banModal: {
-        title: 'Bannir l\'utilisateur',
+        title: "Bannir l'utilisateur",
         message: 'Bannir {username} ? Cela révoquera immédiatement sa session.',
         reasonLabel: 'Motif du bannissement',
         reasonPlaceholder: 'Motif du bannissement',
@@ -760,14 +769,14 @@ export default {
         createFailed: 'Échec de la création du compte.',
         banned: '{username} a été banni.',
         unbanned: '{username} a été débanni.',
-        banFailed: 'Échec du bannissement de l\'utilisateur.',
-        unbanFailed: 'Échec du débannissement de l\'utilisateur.',
+        banFailed: "Échec du bannissement de l'utilisateur.",
+        unbanFailed: "Échec du débannissement de l'utilisateur.",
         bulkRoleUpdated: 'Rôle mis à jour pour {count} utilisateur(s).',
         bulkRoleFailed: 'Échec de la mise à jour en masse des rôles.',
       },
     },
     applications: {
-      title: 'Candidatures d\'adhésion',
+      title: "Candidatures d'adhésion",
       filter: {
         pending: 'En attente',
         approved: 'Approuvées',
@@ -830,12 +839,12 @@ export default {
         updated: 'Catégorie mise à jour.',
         deleted: 'Catégorie supprimée.',
         loadFailed: 'Échec du chargement des catégories.',
-        saveFailed: 'Échec de l\'enregistrement de la catégorie.',
+        saveFailed: "Échec de l'enregistrement de la catégorie.",
         deleteFailed: 'Échec de la suppression de la catégorie.',
       },
     },
     auditLogs: {
-      title: 'Journaux d\'audit',
+      title: "Journaux d'audit",
       filters: 'Filtres',
       hideFilters: 'Masquer les filtres',
       filtersActive: '(actifs)',
@@ -846,9 +855,9 @@ export default {
         userIdPlaceholder: 'UUID...',
       },
       invalidRange: 'La date de début doit être antérieure à la date de fin.',
-      error: 'Échec du chargement des journaux d\'audit.',
-      emptyTitle: 'Aucun journal d\'audit',
-      emptyMessage: 'Aucun journal d\'audit trouvé.',
+      error: "Échec du chargement des journaux d'audit.",
+      emptyTitle: "Aucun journal d'audit",
+      emptyMessage: "Aucun journal d'audit trouvé.",
       table: {
         timestamp: 'Horodatage',
         user: 'Utilisateur',
@@ -861,7 +870,7 @@ export default {
       previous: 'Précédent',
     },
     inviteCodes: {
-      title: 'Codes d\'invitation',
+      title: "Codes d'invitation",
       generateBtn: 'Générer un code',
       filter: {
         all: 'Tous les statuts',
@@ -870,7 +879,7 @@ export default {
         expired: 'Expiré',
       },
       emptyTitle: 'Aucun code',
-      emptyMessage: 'Aucun code d\'invitation trouvé.',
+      emptyMessage: "Aucun code d'invitation trouvé.",
       table: {
         code: 'Code',
         status: 'Statut',
@@ -879,7 +888,7 @@ export default {
         created: 'Créé le',
         expires: 'Expire le',
       },
-      copyAriaLabel: 'Copier le code d\'invitation',
+      copyAriaLabel: "Copier le code d'invitation",
       message: {
         generated: 'Code généré et copié : {code}',
         generatedOnly: 'Généré : {code}',
@@ -897,13 +906,13 @@ export default {
       modal: {
         createTitle: 'Nouveau contributeur',
         editTitle: 'Modifier le contributeur',
-        githubLabel: 'Nom d\'utilisateur GitHub',
+        githubLabel: "Nom d'utilisateur GitHub",
         githubPlaceholder: 'ex. octocat',
-        displayNameLabel: 'Nom d\'affichage',
-        displayNamePlaceholder: 'Nom d\'affichage',
+        displayNameLabel: "Nom d'affichage",
+        displayNamePlaceholder: "Nom d'affichage",
         roleLabel: 'Rôle',
         rolePlaceholder: 'ex. Contributeur frontend',
-        orderLabel: 'Ordre d\'affichage',
+        orderLabel: "Ordre d'affichage",
         orderPlaceholder: '0',
       },
       deleteConfirm: {
@@ -915,7 +924,7 @@ export default {
         updated: 'Contributeur mis à jour.',
         deleted: 'Contributeur supprimé.',
         loadFailed: 'Échec du chargement des contributeurs.',
-        saveFailed: 'Échec de l\'enregistrement du contributeur.',
+        saveFailed: "Échec de l'enregistrement du contributeur.",
         deleteFailed: 'Échec de la suppression du contributeur.',
       },
     },
@@ -925,10 +934,10 @@ export default {
   errors: {
     AUTH_001: 'Session expirée. Veuillez vous reconnecter.',
     AUTH_002: 'Session invalide ou révoquée.',
-    AUTH_003: 'Capacité d\'invités atteinte. Veuillez réessayer ultérieurement.',
+    AUTH_003: "Capacité d'invités atteinte. Veuillez réessayer ultérieurement.",
     AUTH_004: 'Votre compte a été banni.',
     RATE_LIMIT: 'Trop de requêtes. Veuillez réessayer ultérieurement.',
     RATE_LIMIT_RETRY: 'Trop de requêtes. Veuillez réessayer après {seconds} secondes.',
-    unknown: 'Une erreur inattendue s\'est produite.',
+    unknown: "Une erreur inattendue s'est produite.",
   },
 }

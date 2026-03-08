@@ -100,8 +100,7 @@ export default {
   },
   privacy: {
     title: '隱私與資料存放地同意書',
-    description:
-      '本平台將您的資料儲存於位於香港的伺服器。繼續使用即表示您同意此資料存放安排。',
+    description: '本平台將您的資料儲存於位於香港的伺服器。繼續使用即表示您同意此資料存放安排。',
     requirement: '您必須接受此協議才能繼續使用平台。',
     acceptButton: '我同意',
     rejectButton: '我不同意 — 登出',

@@ -194,9 +194,20 @@ const currentRouteName = computed(() => route.name)
                   v-html="DOMPurify.sanitize(sig.description)"
                 ></div>
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
-                  <span>{{ t('sigs.detail.createdBy') }} {{ sig.creator_display_name || 'Unknown' }}</span>
-                  <span>{{ sig.member_count }} {{ sig.member_count === 1 ? t('sigs.detail.member') : t('sigs.detail.members') }}</span>
-                  <span>{{ t('sigs.detail.established') }} {{ new Date(sig.created_at).toLocaleDateString() }}</span>
+                  <span
+                    >{{ t('sigs.detail.createdBy') }}
+                    {{ sig.creator_display_name || 'Unknown' }}</span
+                  >
+                  <span
+                    >{{ sig.member_count }}
+                    {{
+                      sig.member_count === 1 ? t('sigs.detail.member') : t('sigs.detail.members')
+                    }}</span
+                  >
+                  <span
+                    >{{ t('sigs.detail.established') }}
+                    {{ new Date(sig.created_at).toLocaleDateString() }}</span
+                  >
                 </div>
               </div>
 
@@ -234,7 +245,11 @@ const currentRouteName = computed(() => route.name)
 
           <template v-else>
             <div class="space-y-4">
-              <BaseInput v-model="editName" :label="t('sigs.detail.editForm.nameLabel')" :placeholder="t('sigs.detail.editForm.namePlaceholder')" />
+              <BaseInput
+                v-model="editName"
+                :label="t('sigs.detail.editForm.nameLabel')"
+                :placeholder="t('sigs.detail.editForm.namePlaceholder')"
+              />
               <BaseTextarea
                 v-model="editDescription"
                 :label="t('sigs.detail.editForm.descLabel')"
@@ -242,21 +257,33 @@ const currentRouteName = computed(() => route.name)
                 :placeholder="t('sigs.detail.editForm.descPlaceholder')"
               />
               <div class="flex gap-2">
-                <BaseButton :loading="editSaving" @click="saveEdit">{{ t('sigs.detail.editForm.saveBtn') }}</BaseButton>
-                <BaseButton variant="secondary" @click="cancelEdit">{{ t('sigs.detail.editForm.cancelBtn') }}</BaseButton>
+                <BaseButton :loading="editSaving" @click="saveEdit">{{
+                  t('sigs.detail.editForm.saveBtn')
+                }}</BaseButton>
+                <BaseButton variant="secondary" @click="cancelEdit">{{
+                  t('sigs.detail.editForm.cancelBtn')
+                }}</BaseButton>
               </div>
             </div>
           </template>
         </BaseCard>
 
         <!-- Delete confirmation -->
-        <BaseModal v-model="showDeleteConfirm" :title="t('sigs.detail.deleteConfirm.title')" size="sm">
+        <BaseModal
+          v-model="showDeleteConfirm"
+          :title="t('sigs.detail.deleteConfirm.title')"
+          size="sm"
+        >
           <p class="text-sm text-muted mb-4 leading-relaxed">
             {{ t('sigs.detail.deleteConfirm.message') }}
           </p>
           <template #footer>
-            <BaseButton variant="secondary" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</BaseButton>
-            <BaseButton variant="danger" @click="handleDeleteSig">{{ t('sigs.detail.deleteConfirm.confirmBtn') }}</BaseButton>
+            <BaseButton variant="secondary" @click="showDeleteConfirm = false">{{
+              t('common.cancel')
+            }}</BaseButton>
+            <BaseButton variant="danger" @click="handleDeleteSig">{{
+              t('sigs.detail.deleteConfirm.confirmBtn')
+            }}</BaseButton>
           </template>
         </BaseModal>
       </div>

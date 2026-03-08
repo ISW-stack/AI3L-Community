@@ -45,7 +45,10 @@ async function fetchApplications() {
 async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
   try {
     await reviewApplication(appId, action)
-    message.value = action === 'APPROVED' ? t('admin.applications.message.approved') : t('admin.applications.message.rejected')
+    message.value =
+      action === 'APPROVED'
+        ? t('admin.applications.message.approved')
+        : t('admin.applications.message.rejected')
     await fetchApplications()
   } catch (e: unknown) {
     message.value = getErrorMessage(e, t('admin.applications.message.failed'))
@@ -113,12 +116,12 @@ onMounted(fetchApplications)
           </div>
 
           <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">
-            <BaseButton size="sm" variant="success" @click="review(app.id, 'APPROVED')"
-              >{{ t('admin.applications.approveBtn') }}</BaseButton
-            >
-            <BaseButton size="sm" variant="soft-danger" @click="review(app.id, 'REJECTED')"
-              >{{ t('admin.applications.rejectBtn') }}</BaseButton
-            >
+            <BaseButton size="sm" variant="success" @click="review(app.id, 'APPROVED')">{{
+              t('admin.applications.approveBtn')
+            }}</BaseButton>
+            <BaseButton size="sm" variant="soft-danger" @click="review(app.id, 'REJECTED')">{{
+              t('admin.applications.rejectBtn')
+            }}</BaseButton>
           </div>
         </div>
       </BaseCard>

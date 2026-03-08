@@ -89,7 +89,9 @@ const {
 
     <div v-else-if="!post" class="text-center py-12">
       <p class="text-muted mb-4">{{ t('post.detail.notFound') }}</p>
-      <router-link to="/forum" class="text-brand-600 hover:underline">{{ t('post.detail.backToForum') }}</router-link>
+      <router-link to="/forum" class="text-brand-600 hover:underline">{{
+        t('post.detail.backToForum')
+      }}</router-link>
     </div>
 
     <template v-else>
@@ -100,8 +102,12 @@ const {
         <BaseInput v-model="editTitle" :placeholder="t('post.create.titlePlaceholder')" />
         <TiptapEditor v-model="editContent" />
         <div class="flex gap-3">
-          <BaseButton :loading="editSaving" @click="saveEdit">{{ t('post.detail.saveChanges') }}</BaseButton>
-          <BaseButton variant="secondary" @click="editing = false">{{ t('common.cancel') }}</BaseButton>
+          <BaseButton :loading="editSaving" @click="saveEdit">{{
+            t('post.detail.saveChanges')
+          }}</BaseButton>
+          <BaseButton variant="secondary" @click="editing = false">{{
+            t('common.cancel')
+          }}</BaseButton>
         </div>
       </div>
 
@@ -154,7 +160,9 @@ const {
                   </svg>
                   {{ t('post.detail.pinned') }}
                 </span>
-                <span v-if="post.version > 1" class="text-xs text-muted">{{ t('post.detail.version', { version: post.version }) }}</span>
+                <span v-if="post.version > 1" class="text-xs text-muted">{{
+                  t('post.detail.version', { version: post.version })
+                }}</span>
               </div>
             </div>
             <div class="flex gap-2 shrink-0">
@@ -249,7 +257,9 @@ const {
 
         <!-- Comments Section -->
         <BaseCard padding="lg">
-          <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('post.detail.commentsTitle', { count: commentsTotal }) }}</h3>
+          <h3 class="text-lg font-semibold text-foreground mb-4">
+            {{ t('post.detail.commentsTitle', { count: commentsTotal }) }}
+          </h3>
 
           <div v-if="!post.allow_comments" class="text-sm text-muted mb-4">
             {{ t('post.detail.commentsDisabled') }}
@@ -300,9 +310,9 @@ const {
                       >
                         {{ t('post.comment.save') }}
                       </BaseButton>
-                      <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
-                        >{{ t('post.comment.cancel') }}</BaseButton
-                      >
+                      <BaseButton size="sm" variant="secondary" @click="cancelEditComment">{{
+                        t('post.comment.cancel')
+                      }}</BaseButton>
                     </div>
                   </template>
                   <template v-else>
@@ -416,9 +426,9 @@ const {
                         >
                           {{ t('post.comment.save') }}
                         </BaseButton>
-                        <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
-                          >{{ t('post.comment.cancel') }}</BaseButton
-                        >
+                        <BaseButton size="sm" variant="secondary" @click="cancelEditComment">{{
+                          t('post.comment.cancel')
+                        }}</BaseButton>
                       </div>
                     </template>
                     <template v-else>
@@ -506,7 +516,9 @@ const {
       </div>
       <div v-for="item in history" :key="item.id" class="border-b border-border last:border-0 py-4">
         <div class="flex justify-between items-center mb-2">
-          <span class="text-sm font-medium text-foreground/80">{{ t('post.history.version', { version: item.version }) }}</span>
+          <span class="text-sm font-medium text-foreground/80">{{
+            t('post.history.version', { version: item.version })
+          }}</span>
           <span class="text-xs text-muted">{{ new Date(item.edited_at).toLocaleString() }}</span>
         </div>
         <h4 class="text-sm font-semibold text-foreground mb-1">{{ item.title }}</h4>
@@ -527,7 +539,9 @@ const {
         class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground mb-3"
       ></textarea>
       <template #footer>
-        <BaseButton variant="secondary" @click="showReportModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showReportModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
         <BaseButton
           class="bg-orange-600 hover:bg-orange-700 text-white"
           :loading="reportSaving"
@@ -544,21 +558,31 @@ const {
         {{ t('post.deleteDialog.message') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeletePostConfirm = false">{{ t('common.cancel') }}</BaseButton>
-        <BaseButton variant="danger" @click="deletePostHandler">{{ t('common.delete') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showDeletePostConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="deletePostHandler">{{
+          t('common.delete')
+        }}</BaseButton>
       </template>
     </BaseModal>
 
     <!-- Delete Comment Confirmation -->
-    <BaseModal v-model="showDeleteCommentConfirm" :title="t('post.deleteCommentDialog.title')" size="sm">
+    <BaseModal
+      v-model="showDeleteCommentConfirm"
+      :title="t('post.deleteCommentDialog.title')"
+      size="sm"
+    >
       <p class="text-sm text-muted">
         {{ t('post.deleteCommentDialog.message') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false"
-          >{{ t('common.cancel') }}</BaseButton
-        >
-        <BaseButton variant="danger" @click="deleteCommentHandler">{{ t('common.delete') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="deleteCommentHandler">{{
+          t('common.delete')
+        }}</BaseButton>
       </template>
     </BaseModal>
 

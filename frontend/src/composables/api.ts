@@ -78,7 +78,10 @@ api.interceptors.response.use(
     if (code) {
       const errorKey = `errors.${code}`
       const translated = t(errorKey)
-      useToastStore().show(translated !== errorKey ? translated : message || t('errors.unknown'), 'error')
+      useToastStore().show(
+        translated !== errorKey ? translated : message || t('errors.unknown'),
+        'error',
+      )
     }
 
     return Promise.reject(error)

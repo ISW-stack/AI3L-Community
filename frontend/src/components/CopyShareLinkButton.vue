@@ -32,6 +32,6 @@ async function copyLink(url: string) {
 <template>
   <BaseButton variant="secondary" size="sm" @click="copyLink(url)">
     <component :is="copied ? Check : Copy" class="w-4 h-4 mr-1" />
-    {{ copied ? t('share.copied') : (label || t('share.copyLink')) }}
+    {{ copied ? t('share.copied') : label || t('share.copyLink') }}
   </BaseButton>
 </template>

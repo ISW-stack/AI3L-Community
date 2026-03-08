@@ -104,16 +104,24 @@ onMounted(fetchStats)
       </div>
 
       <BaseCard padding="lg" class="mt-6">
-        <h2 class="text-lg font-semibold text-foreground mb-4">{{ t('admin.dashboard.quickActions') }}</h2>
+        <h2 class="text-lg font-semibold text-foreground mb-4">
+          {{ t('admin.dashboard.quickActions') }}
+        </h2>
         <div class="flex flex-wrap gap-3">
           <router-link to="/admin/users">
-            <BaseButton variant="secondary" size="sm">{{ t('admin.dashboard.action.manageUsers') }}</BaseButton>
+            <BaseButton variant="secondary" size="sm">{{
+              t('admin.dashboard.action.manageUsers')
+            }}</BaseButton>
           </router-link>
           <router-link to="/admin/applications">
-            <BaseButton variant="secondary" size="sm">{{ t('admin.dashboard.action.reviewApplications') }}</BaseButton>
+            <BaseButton variant="secondary" size="sm">{{
+              t('admin.dashboard.action.reviewApplications')
+            }}</BaseButton>
           </router-link>
           <router-link to="/admin/reports">
-            <BaseButton variant="secondary" size="sm">{{ t('admin.dashboard.action.viewReports') }}</BaseButton>
+            <BaseButton variant="secondary" size="sm">{{
+              t('admin.dashboard.action.viewReports')
+            }}</BaseButton>
           </router-link>
         </div>
       </BaseCard>

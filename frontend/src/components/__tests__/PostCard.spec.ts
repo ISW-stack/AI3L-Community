@@ -272,7 +272,9 @@ describe('PostCard', () => {
 
     it('does not show SIG context when sig_name is null', () => {
       const wrapper = mountCard(makePost({ sig_id: null, sig_name: null }))
-      const sigLinks = wrapper.findAll('a').filter((a) => a.attributes('href')?.startsWith('/sigs/'))
+      const sigLinks = wrapper
+        .findAll('a')
+        .filter((a) => a.attributes('href')?.startsWith('/sigs/'))
       expect(sigLinks.length).toBe(0)
     })
   })

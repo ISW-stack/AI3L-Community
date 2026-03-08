@@ -166,16 +166,25 @@ onUnmounted(() => {
 
     <BaseAlert v-if="draftRestored" type="info" class="mb-4">
       {{ t('post.create.draftRestored') }}
-      <button @click="discardDraft" class="ml-2 underline text-brand-600">{{ t('post.create.discardDraft') }}</button>
+      <button @click="discardDraft" class="ml-2 underline text-brand-600">
+        {{ t('post.create.discardDraft') }}
+      </button>
     </BaseAlert>
 
     <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>
 
     <form @submit.prevent="createPost" class="space-y-4">
-      <BaseInput v-model="title" :label="t('post.create.titleLabel')" :placeholder="t('post.create.titlePlaceholder')" required />
+      <BaseInput
+        v-model="title"
+        :label="t('post.create.titleLabel')"
+        :placeholder="t('post.create.titlePlaceholder')"
+        required
+      />
 
       <div v-if="!fromSig">
-        <label class="block text-sm font-medium text-foreground mb-1">{{ t('post.create.categoryLabel') }}</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.categoryLabel')
+        }}</label>
         <select
           v-model="categoryId"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
@@ -186,7 +195,9 @@ onUnmounted(() => {
       </div>
 
       <div v-if="!fromSig && mySigs.length > 0">
-        <label class="block text-sm font-medium text-foreground mb-1">{{ t('post.create.sigLabel') }}</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.sigLabel')
+        }}</label>
         <select
           v-model="sigId"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
@@ -204,14 +215,16 @@ onUnmounted(() => {
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{ t('post.create.contentLabel') }}</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.contentLabel')
+        }}</label>
         <TiptapEditor v-model="content" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1"
-          >{{ t('post.create.keywordsLabel', { current: keywords.length, max: 15 }) }}</label
-        >
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.keywordsLabel', { current: keywords.length, max: 15 })
+        }}</label>
         <div class="flex gap-2 mb-2 flex-wrap">
           <BaseBadge v-for="(kw, i) in keywords" :key="i" class="gap-1">
             {{ kw }}
@@ -233,7 +246,9 @@ onUnmounted(() => {
             :placeholder="t('post.create.keywordsPlaceholder')"
             @keydown.enter.prevent="addKeyword"
           />
-          <BaseButton type="button" variant="secondary" @click="addKeyword">{{ t('post.create.keywordsAdd') }}</BaseButton>
+          <BaseButton type="button" variant="secondary" @click="addKeyword">{{
+            t('post.create.keywordsAdd')
+          }}</BaseButton>
         </div>
       </div>
 
@@ -244,13 +259,19 @@ onUnmounted(() => {
           type="checkbox"
           class="rounded border-border"
         />
-        <label for="allow-comments" class="text-sm text-foreground">{{ t('post.create.allowComments') }}</label>
+        <label for="allow-comments" class="text-sm text-foreground">{{
+          t('post.create.allowComments')
+        }}</label>
       </div>
 
       <div class="flex gap-3 pt-2">
-        <BaseButton type="submit" size="lg" :loading="saving">{{ t('post.create.publish') }}</BaseButton>
+        <BaseButton type="submit" size="lg" :loading="saving">{{
+          t('post.create.publish')
+        }}</BaseButton>
         <router-link :to="fromSig ? `/sigs/${sigId}` : '/forum'"
-          ><BaseButton type="button" variant="secondary" size="lg">{{ t('common.cancel') }}</BaseButton></router-link
+          ><BaseButton type="button" variant="secondary" size="lg">{{
+            t('common.cancel')
+          }}</BaseButton></router-link
         >
       </div>
     </form>

@@ -34,7 +34,9 @@ class UserUpdateRequest(BaseModel):
     bio: str | None = Field(None, max_length=500)
     affiliation: str | None = Field(None, max_length=200)
     orcid: str | None = Field(None, max_length=50)
-    preferred_language: str | None = Field(None, max_length=10, pattern="^(en|zh-TW|zh-CN|ja|fr|es|de)$")
+    preferred_language: str | None = Field(
+        None, max_length=10, pattern="^(en|zh-TW|zh-CN|ja|fr|es|de)$"
+    )
 
 
 class CreateAccountRequest(BaseModel):

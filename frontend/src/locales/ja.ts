@@ -3,8 +3,7 @@ export default {
   branding: {
     title: 'AI3L Community',
     tagline: 'AI in Language Learning and Literacy',
-    description:
-      'AI を活用した言語学習の未来を切り拓く研究者・教育者とつながりましょう。',
+    description: 'AI を活用した言語学習の未来を切り拓く研究者・教育者とつながりましょう。',
   },
 
   // ── Common / Shared ──
