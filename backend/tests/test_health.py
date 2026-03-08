@@ -96,7 +96,9 @@ class TestStartupSecurityChecks:
             except Exception:
                 pass
 
-        assert exit_called_with == [1], "sys.exit(1) must be called for default SECRET_KEY in production"
+        assert exit_called_with == [
+            1
+        ], "sys.exit(1) must be called for default SECRET_KEY in production"
 
     @pytest.mark.anyio
     async def test_startup_aborts_on_cookie_secure_false_in_production(self) -> None:
@@ -145,7 +147,9 @@ class TestStartupSecurityChecks:
             except Exception:
                 pass
 
-        assert exit_called_with == [1], "sys.exit(1) must be called when COOKIE_SECURE=False in production"
+        assert exit_called_with == [
+            1
+        ], "sys.exit(1) must be called when COOKIE_SECURE=False in production"
 
     @pytest.mark.anyio
     async def test_startup_succeeds_in_development_with_defaults(self) -> None:
@@ -192,4 +196,6 @@ class TestStartupSecurityChecks:
             async with lifespan(_app):
                 pass
 
-        assert not exit_called, "sys.exit must NOT be called in development mode even with default secrets"
+        assert (
+            not exit_called
+        ), "sys.exit must NOT be called in development mode even with default secrets"

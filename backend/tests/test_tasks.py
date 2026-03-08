@@ -56,7 +56,9 @@ class TestRedisTimeoutConfig:
 
         source = inspect.getsource(redis_module.init_redis)
         assert "socket_timeout" in source, "socket_timeout must be set in init_redis"
-        assert "socket_connect_timeout" in source, "socket_connect_timeout must be set in init_redis"
+        assert (
+            "socket_connect_timeout" in source
+        ), "socket_connect_timeout must be set in init_redis"
         assert "retry_on_timeout" in source, "retry_on_timeout must be set in init_redis"
         assert "max_connections" in source, "max_connections must be set in init_redis"
 
@@ -79,12 +81,12 @@ class TestRedisTimeoutConfig:
 
         socket_timeout = kw_values.get("socket_timeout")
         socket_connect_timeout = kw_values.get("socket_connect_timeout")
-        assert isinstance(socket_timeout, (int, float)) and socket_timeout >= 5, (
-            f"socket_timeout should be at least 5s, got {socket_timeout}"
-        )
-        assert isinstance(socket_connect_timeout, (int, float)) and socket_connect_timeout >= 3, (
-            f"socket_connect_timeout should be at least 3s, got {socket_connect_timeout}"
-        )
+        assert (
+            isinstance(socket_timeout, (int, float)) and socket_timeout >= 5
+        ), f"socket_timeout should be at least 5s, got {socket_timeout}"
+        assert (
+            isinstance(socket_connect_timeout, (int, float)) and socket_connect_timeout >= 3
+        ), f"socket_connect_timeout should be at least 3s, got {socket_connect_timeout}"
 
 
 class TestTaskStatus:

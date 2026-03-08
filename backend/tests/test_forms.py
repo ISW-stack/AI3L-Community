@@ -367,9 +367,7 @@ class TestUpdateFormTransaction:
         creator_row = {"display_name": "Test User"}
 
         # find_for_update → update fetchrow → creator fetchrow for update result
-        mock_conn.fetchrow = AsyncMock(
-            side_effect=[form_row, updated_row, creator_row]
-        )
+        mock_conn.fetchrow = AsyncMock(side_effect=[form_row, updated_row, creator_row])
         # count_responses inside form_repo.update
         mock_conn.fetchval = AsyncMock(return_value=0)
 

@@ -353,7 +353,7 @@ class TestSigMemberBatchNotification:
             side_effect=[
                 (page1_members, 201),  # first batch: 1 member, total=201
                 (page2_members, 201),  # second batch: 1 member, total=201
-                ([], 201),             # third call: empty → loop ends
+                ([], 201),  # third call: empty → loop ends
             ]
         )
 
@@ -390,8 +390,12 @@ class TestSigMemberBatchNotification:
         first_call_kwargs = calls[0]
         second_call_kwargs = calls[1]
         # Verify offset incremented by BATCH_SIZE between calls
-        first_offset = first_call_kwargs[1].get("offset", first_call_kwargs[0][1] if len(first_call_kwargs[0]) > 1 else None)
-        second_offset = second_call_kwargs[1].get("offset", second_call_kwargs[0][1] if len(second_call_kwargs[0]) > 1 else None)
+        first_offset = first_call_kwargs[1].get(
+            "offset", first_call_kwargs[0][1] if len(first_call_kwargs[0]) > 1 else None
+        )
+        second_offset = second_call_kwargs[1].get(
+            "offset", second_call_kwargs[0][1] if len(second_call_kwargs[0]) > 1 else None
+        )
         assert second_offset == first_offset + _SIG_MEMBER_BATCH_SIZE
 
     @pytest.mark.anyio

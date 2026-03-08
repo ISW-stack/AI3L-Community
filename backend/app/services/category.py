@@ -29,9 +29,7 @@ async def update_category(
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            current = await conn.fetchrow(
-                "SELECT * FROM categories WHERE id = $1", category_id
-            )
+            current = await conn.fetchrow("SELECT * FROM categories WHERE id = $1", category_id)
             if not current:
                 return None
 
