@@ -3,7 +3,6 @@
   "exclude": [],
   "compilerOptions": {
     "composite": false,
-    "lib": [],
-    "types": ["node", "jsdom", "vitest/globals"]
+    "types": ["node", "vitest/globals"]
   }
 }
