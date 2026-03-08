@@ -7,7 +7,7 @@ from loguru import logger
 
 from app.core.constants import MAX_GUESTS
 from app.core.redis import get_redis
-from app.core.security import ROLE_TTL_MAP, create_access_token, verify_password
+from app.core.security import ROLE_TTL_MAP, async_verify_password, create_access_token
 from app.models.user import UserRole
 from app.repositories import auth_repo
 from app.services.user import get_user_by_username
@@ -23,7 +23,7 @@ async def authenticate_user(username: str, password: str) -> dict | None:
         return None
     if user.get("is_deleted"):
         return None
-    if not verify_password(password, user["password_hash"]):
+    if not await async_verify_password(password, user["password_hash"]):
         return None
     return user
 
@@ -179,10 +179,10 @@ async def register_new_user(
     Returns the created user dict.
     """
     from app.core.database import get_pool
-    from app.core.security import hash_password
+    from app.core.security import async_hash_password
 
     user_id = uuid.uuid4()
-    pw_hash = hash_password(password)
+    pw_hash = await async_hash_password(password)
     if not display_name:
         display_name = username
 

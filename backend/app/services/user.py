@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.event_bus import emit
 from app.core.file_validation import validate_avatar
 from app.core.redis import get_redis
-from app.core.security import hash_password, validate_password_policy, verify_password
+from app.core.security import async_hash_password, async_verify_password, validate_password_policy
 from app.core.storage import generate_avatar_key
 from app.models.user import UserRole
 from app.repositories import user_repo
@@ -30,7 +30,7 @@ async def create_user(
     display_name: str = "",
 ) -> dict:
     user_id = uuid.uuid4()
-    pw_hash = hash_password(password)
+    pw_hash = await async_hash_password(password)
     if not display_name:
         display_name = username
 
@@ -162,14 +162,14 @@ async def change_password(user_id: uuid.UUID, old_password: str, new_password: s
     if not pw_hash:
         raise ValueError("User not found.")
 
-    if not verify_password(old_password, pw_hash):
+    if not await async_verify_password(old_password, pw_hash):
         raise ValueError("Current password is incorrect.")
 
     error = validate_password_policy(new_password)
     if error:
         raise ValueError(error)
 
-    new_hash = hash_password(new_password)
+    new_hash = await async_hash_password(new_password)
     await user_repo.update_password_hash(user_id, new_hash)
     logger.info("Password changed", extra={"user_id": str(user_id)})
     return True

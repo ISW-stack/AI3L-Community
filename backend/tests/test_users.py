@@ -15,7 +15,7 @@ _UEP = "app.api.v1.endpoints.users"
 
 class TestCreateUser:
     @patch("app.repositories.user_repo.get_pool")
-    @patch("app.services.user.hash_password", return_value="hashed")
+    @patch("app.services.user.async_hash_password", new_callable=AsyncMock, return_value="hashed")
     async def test_create_user(self, mock_hash, mock_get_pool, mock_pool, mock_conn):
         from app.services.user import create_user
 

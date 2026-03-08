@@ -29,7 +29,7 @@ from app.core.storage import close_storage, init_storage
 
 async def bootstrap_super_admin() -> None:
     """Create or sync Super Admin credentials from .env."""
-    from app.core.security import hash_password
+    from app.core.security import async_hash_password
     from app.repositories import user_repo
     from app.services.user import create_user, user_exists_by_username
 
@@ -48,7 +48,7 @@ async def bootstrap_super_admin() -> None:
         # Sync password so .env credentials are always authoritative
         user = await user_repo.find_by_username(username)
         if user:
-            new_hash = hash_password(password)
+            new_hash = await async_hash_password(password)
             await user_repo.update_password_hash(user["id"], new_hash)
             logger.info("Super Admin password synced from .env", extra={"username": username})
 

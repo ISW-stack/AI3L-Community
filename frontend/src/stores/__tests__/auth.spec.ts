@@ -33,6 +33,12 @@ vi.mock('@/stores/toast', () => ({
   }),
 }))
 
+// Mock useLocale composable — syncLocaleFromProfile is a standalone export
+const mockSyncLocaleFromProfile = vi.fn()
+vi.mock('@/composables/useLocale', () => ({
+  syncLocaleFromProfile: (...args: unknown[]) => mockSyncLocaleFromProfile(...args),
+}))
+
 describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -42,6 +48,7 @@ describe('useAuthStore', () => {
     mockGet.mockReset()
     mockNotifReset.mockReset()
     mockToastClearAll.mockReset()
+    mockSyncLocaleFromProfile.mockReset()
   })
 
   afterEach(() => {
@@ -346,6 +353,41 @@ describe('useAuthStore', () => {
 
       await expect(auth.fetchProfile()).resolves.toBeUndefined()
       expect(auth.user).toBeNull()
+    })
+
+    it('should call syncLocaleFromProfile when preferred_language is set', async () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      mockGet.mockResolvedValueOnce({
+        data: {
+          id: '1',
+          username: 'alice',
+          display_name: 'Alice',
+          role: 'MEMBER',
+          preferred_language: 'zh-TW',
+        },
+      })
+
+      await auth.fetchProfile()
+
+      expect(mockSyncLocaleFromProfile).toHaveBeenCalledWith('zh-TW')
+    })
+
+    it('should not call syncLocaleFromProfile when preferred_language is not set', async () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      mockGet.mockResolvedValueOnce({
+        data: {
+          id: '1',
+          username: 'bob',
+          display_name: 'Bob',
+          role: 'MEMBER',
+        },
+      })
+
+      await auth.fetchProfile()
+
+      expect(mockSyncLocaleFromProfile).not.toHaveBeenCalled()
     })
   })
 
