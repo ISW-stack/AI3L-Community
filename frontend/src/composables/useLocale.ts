@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { type Ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { updateProfile } from '@/api/users'
@@ -10,7 +10,8 @@ import { i18n, SUPPORTED_LOCALES, LOCALE_OPTIONS, type SupportedLocale } from '@
  */
 export function syncLocaleFromProfile(preferredLanguage: string | undefined) {
   if (preferredLanguage && SUPPORTED_LOCALES.includes(preferredLanguage as SupportedLocale)) {
-    i18n.global.locale.value = preferredLanguage
+    const locale = i18n.global.locale as unknown as Ref<string>
+    locale.value = preferredLanguage
     localStorage.setItem('locale', preferredLanguage)
     document.documentElement.lang = preferredLanguage
   }

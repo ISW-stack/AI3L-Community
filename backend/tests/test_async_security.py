@@ -157,7 +157,7 @@ class TestFileUploadUsesThreadpool:
             from io import BytesIO
 
             png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
-            resp = await client.post(
+            await client.post(
                 "/api/v1/files/upload/editor",
                 files={"file": ("test.png", BytesIO(png_data), "image/png")},
                 headers={"Authorization": "Bearer fake"},
