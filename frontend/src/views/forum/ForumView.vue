@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/auth'
 import type { Post, Category } from '@/types'
 import { listPosts, searchPosts, getTrendingPosts } from '@/api/posts'
 import { listCategories } from '@/api/categories'
@@ -11,14 +10,12 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
 
 const posts = ref<Post[]>([])
 const categories = ref<Category[]>([])
