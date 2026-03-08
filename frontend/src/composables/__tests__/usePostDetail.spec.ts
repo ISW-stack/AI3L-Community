@@ -45,20 +45,16 @@ vi.mock('dompurify', () => ({
 }))
 
 import { usePostDetail } from '../usePostDetail'
-import { getPost, updatePost, deletePost, getPostHistory, togglePinPost } from '@/api/posts'
-import { listComments, createComment, deleteComment, updateComment } from '@/api/comments'
+import { getPost, updatePost, deletePost } from '@/api/posts'
+import { listComments, createComment } from '@/api/comments'
 import { createReport } from '@/api/reports'
 
 const mockGetPost = getPost as ReturnType<typeof vi.fn>
 const mockUpdatePost = updatePost as ReturnType<typeof vi.fn>
 const mockDeletePost = deletePost as ReturnType<typeof vi.fn>
-const mockGetPostHistory = getPostHistory as ReturnType<typeof vi.fn>
 const mockListComments = listComments as ReturnType<typeof vi.fn>
 const mockCreateComment = createComment as ReturnType<typeof vi.fn>
-const mockDeleteComment = deleteComment as ReturnType<typeof vi.fn>
-const mockUpdateComment = updateComment as ReturnType<typeof vi.fn>
 const mockCreateReport = createReport as ReturnType<typeof vi.fn>
-const mockTogglePinPost = togglePinPost as ReturnType<typeof vi.fn>
 
 function makePost(overrides: Partial<Post> = {}): Post {
   return {
