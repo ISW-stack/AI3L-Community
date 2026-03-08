@@ -87,8 +87,8 @@ class TestStartupSecurityChecks:
             patch("app.api.v1.endpoints.ws.stop_redis_subscriber", new_callable=AsyncMock),
             patch.object(sys, "exit", side_effect=fake_exit),
         ):
-            from app.main import lifespan
             from app.main import app as _app
+            from app.main import lifespan
 
             try:
                 async with lifespan(_app):
@@ -138,8 +138,8 @@ class TestStartupSecurityChecks:
             patch("app.api.v1.endpoints.ws.stop_redis_subscriber", new_callable=AsyncMock),
             patch.object(sys, "exit", side_effect=fake_exit),
         ):
-            from app.main import lifespan
             from app.main import app as _app
+            from app.main import lifespan
 
             try:
                 async with lifespan(_app):
@@ -190,8 +190,8 @@ class TestStartupSecurityChecks:
             patch("app.api.v1.endpoints.ws.stop_redis_subscriber", new_callable=AsyncMock),
             patch.object(sys, "exit", side_effect=fake_exit),
         ):
-            from app.main import lifespan
             from app.main import app as _app
+            from app.main import lifespan
 
             async with lifespan(_app):
                 pass
