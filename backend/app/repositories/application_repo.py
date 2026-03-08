@@ -7,24 +7,25 @@ from app.core.database import get_pool
 async def insert(app_id: uuid.UUID, user_id: uuid.UUID, description: str) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
-        existing = await conn.fetchval(
-            "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",  # noqa: E501
-            user_id,
-        )
-        if existing > 0:
-            return None  # duplicate pending
+        async with conn.transaction():
+            existing = await conn.fetchval(
+                "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",  # noqa: E501
+                user_id,
+            )
+            if existing > 0:
+                return None  # duplicate pending
 
-        row = await conn.fetchrow(
-            """
-            INSERT INTO membership_applications (id, user_id, description)
-            VALUES ($1, $2, $3)
-            RETURNING *
-            """,
-            app_id,
-            user_id,
-            description,
-        )
-        return dict(row)
+            row = await conn.fetchrow(
+                """
+                INSERT INTO membership_applications (id, user_id, description)
+                VALUES ($1, $2, $3)
+                RETURNING *
+                """,
+                app_id,
+                user_id,
+                description,
+            )
+            return dict(row)
 
 
 async def find_many(

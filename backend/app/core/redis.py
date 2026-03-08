@@ -10,6 +10,10 @@ async def init_redis(url: str) -> Redis:
         url,
         decode_responses=True,
         socket_keepalive=True,
+        socket_timeout=10,
+        socket_connect_timeout=5,
+        retry_on_timeout=True,
+        max_connections=50,
     )
     logger.info("Redis client initialized")
     return _redis

@@ -27,6 +27,8 @@ router = APIRouter(prefix="/about", tags=["about"])
 _avatar_cache: OrderedDict[str, tuple[bytes, str, float]] = OrderedDict()
 _CACHE_TTL_SECONDS: int = 3600  # 1 hour
 _MAX_CACHE_ENTRIES: int = 50
+_MAX_CACHE_BYTES: int = 10 * 1024 * 1024  # 10 MB total
+_cache_total_bytes: int = 0
 
 
 def _build_avatar_url(contributor_id: str) -> str:
@@ -90,10 +92,19 @@ async def get_contributor_avatar(
         data = resp.content
         content_type = resp.headers.get("content-type", "image/png")
 
+        global _cache_total_bytes
+        new_size = len(data)
+        # Evict oldest entries until there is room (byte limit)
+        while _avatar_cache and _cache_total_bytes + new_size > _MAX_CACHE_BYTES:
+            _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)
+            _cache_total_bytes -= len(_oldest_val[0])
+        # Evict oldest entry if count limit reached
+        if len(_avatar_cache) >= _MAX_CACHE_ENTRIES:
+            _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)
+            _cache_total_bytes -= len(_oldest_val[0])
         _avatar_cache[contributor_id] = (data, content_type, now)
         _avatar_cache.move_to_end(contributor_id)
-        if len(_avatar_cache) > _MAX_CACHE_ENTRIES:
-            _avatar_cache.popitem(last=False)
+        _cache_total_bytes += new_size
 
         return Response(content=data, media_type=content_type)
     except _requests.RequestException:
@@ -174,8 +185,10 @@ async def admin_update_contributor(
         raise HTTPException(status_code=404, detail="Contributor not found.")
 
     # Clear avatar cache if github_username changed
+    global _cache_total_bytes
     cid_str = str(contributor_id)
     if body.github_username is not None and cid_str in _avatar_cache:
+        _cache_total_bytes -= len(_avatar_cache[cid_str][0])
         del _avatar_cache[cid_str]
 
     return ContributorAdminResponse(
@@ -199,8 +212,10 @@ async def admin_delete_contributor(
     if not deleted:
         raise HTTPException(status_code=404, detail="Contributor not found.")
 
+    global _cache_total_bytes
     cid_str = str(contributor_id)
     if cid_str in _avatar_cache:
+        _cache_total_bytes -= len(_avatar_cache[cid_str][0])
         del _avatar_cache[cid_str]
 
     return Response(status_code=204)

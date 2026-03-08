@@ -64,14 +64,17 @@ async def create_comment(
                 if parent_user_id and parent_user_id != user_id:
                     reply_target = (parent_user_id, str(post_id))
 
-    # Fire notifications via event bus (outside the transaction)
-    await emit(
-        "comment.created",
-        user_id=user_id,
-        commenter_name=commenter_name,
-        mention_targets=mention_targets,
-        reply_target=reply_target,
-    )
+    # Fire notifications via event bus (outside the transaction so handlers see committed data)
+    try:
+        await emit(
+            "comment.created",
+            user_id=user_id,
+            commenter_name=commenter_name,
+            mention_targets=mention_targets,
+            reply_target=reply_target,
+        )
+    except Exception:
+        logger.error("Failed to emit comment.created event", exc_info=True)
 
     logger.info("Comment created", extra={"comment_id": str(comment_id), "post_id": str(post_id)})
     return comment_dict

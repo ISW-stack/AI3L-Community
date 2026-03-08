@@ -17,6 +17,22 @@ vi.mock('@/constants', () => ({
   HEARTBEAT_INTERVAL_MS: 30000,
 }))
 
+// Mock notification store
+const mockNotifReset = vi.fn()
+vi.mock('@/stores/notifications', () => ({
+  useNotificationStore: () => ({
+    $reset: mockNotifReset,
+  }),
+}))
+
+// Mock toast store
+const mockToastClearAll = vi.fn()
+vi.mock('@/stores/toast', () => ({
+  useToastStore: () => ({
+    clearAll: mockToastClearAll,
+  }),
+}))
+
 describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -24,6 +40,8 @@ describe('useAuthStore', () => {
     vi.useFakeTimers()
     mockPost.mockReset()
     mockGet.mockReset()
+    mockNotifReset.mockReset()
+    mockToastClearAll.mockReset()
   })
 
   afterEach(() => {
@@ -93,6 +111,22 @@ describe('useAuthStore', () => {
       // Advance past heartbeat interval; heartbeat should NOT fire
       vi.advanceTimersByTime(60000)
       expect(mockPost).not.toHaveBeenCalledWith('/auth/heartbeat')
+    })
+
+    it('clearSession resets notification store', () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      auth.clearSession()
+
+      expect(mockNotifReset).toHaveBeenCalledOnce()
+    })
+
+    it('clearSession resets toast store', () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      auth.clearSession()
+
+      expect(mockToastClearAll).toHaveBeenCalledOnce()
     })
   })
 

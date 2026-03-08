@@ -18,12 +18,19 @@ celery.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     result_expires=86400,
+    task_soft_time_limit=300,
+    task_time_limit=600,
+    broker_connection_retry_on_startup=True,
+    broker_connection_retry=True,
+    broker_connection_max_retries=10,
+    worker_max_memory_per_child=262144,
 )
 
 celery.conf.beat_schedule = {
     "retry-failed-events": {
         "task": "retry_failed_events",
         "schedule": 300.0,
+        "options": {"soft_time_limit": 250, "time_limit": 300},
     },
 }
 

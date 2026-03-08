@@ -82,12 +82,20 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
     return bool(stored_jti == jti)
 
 
+_GUEST_COUNT_KEY = "meta:active_guest_count"
+_GUEST_COUNT_TTL = 60  # seconds
+
+
 async def _count_active_guests() -> int:
-    """Count active guest sessions by scanning Redis keys."""
+    """Count active guest sessions by scanning Redis keys. Result cached for 60s."""
     redis = get_redis()
+    cached = await redis.get(_GUEST_COUNT_KEY)
+    if cached is not None:
+        return int(cached)
     count = 0
     async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
         count += 1
+    await redis.setex(_GUEST_COUNT_KEY, _GUEST_COUNT_TTL, count)
     return count
 
 
@@ -99,6 +107,10 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
 
     guest_id = str(uuid.uuid4())
     token, ttl_seconds = await create_session(guest_id, "GUEST")
+
+    # Invalidate cached guest count so the next check reflects the new session
+    redis = get_redis()
+    await redis.delete(_GUEST_COUNT_KEY)
 
     logger.info(
         "Guest login",

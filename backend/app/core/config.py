@@ -37,7 +37,9 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = True
 
     # Cookie settings
-    COOKIE_SECURE: bool = False  # Set True in production (requires HTTPS)
+    # COOKIE_SECURE must be True in production (requires HTTPS).
+    # Startup will abort if this is False in a non-development environment.
+    COOKIE_SECURE: bool = False
     COOKIE_SAMESITE: str = "lax"
     COOKIE_DOMAIN: str = ""  # Empty = browser default (current domain)
 

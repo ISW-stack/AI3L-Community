@@ -1,3 +1,4 @@
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -23,7 +24,7 @@ from app.core.csrf import CSRFMiddleware
 from app.core.database import close_db_pool, init_db_pool
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
-from app.core.storage import init_storage
+from app.core.storage import close_storage, init_storage
 
 
 async def bootstrap_super_admin() -> None:
@@ -101,7 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("All dependencies initialized")
 
-    # Production security warnings
+    # Production security checks — abort startup on insecure defaults
     if not settings.is_development:
         _defaults = {
             "SECRET_KEY": "changeme_secret_key_at_least_32_characters_long",
@@ -111,15 +112,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             "JWT_SECRET_KEY": "changeme_jwt_secret_key",
             "SUPER_ADMIN_PASSWORD": "changeme_admin",
         }
+        _insecure = False
         for key, default in _defaults.items():
             if getattr(settings, key) == default:
-                logger.warning(
+                logger.error(
                     f"SECURITY: {key} is using default value — change it in .env before deploying"
                 )
+                _insecure = True
         if not settings.COOKIE_SECURE:
-            logger.warning(
+            logger.error(
                 "SECURITY: COOKIE_SECURE is False — cookies will be sent over HTTP. Set COOKIE_SECURE=true in .env for production"  # noqa: E501
             )
+            _insecure = True
+        if _insecure:
+            logger.error("Aborting startup due to insecure production configuration.")
+            sys.exit(1)
 
     yield
 
@@ -129,6 +136,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await stop_redis_subscriber()
     except Exception:
         pass
+    close_storage()
     await close_redis()
     await close_db_pool()
     logger.info("All dependencies closed")

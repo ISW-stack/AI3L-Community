@@ -51,20 +51,26 @@ function navigateToEntity(notif: Notification) {
   }
 }
 
-function handleClickOutside(e: MouseEvent) {
-  const el = (e.target as HTMLElement).closest('.notification-bell-wrapper')
-  if (!el) {
-    closeDropdown()
-  }
-}
+// Store the registered handler reference so addEventListener and
+// removeEventListener receive the exact same function object.
+let _clickHandler: ((e: MouseEvent) => void) | null = null
 
 onMounted(() => {
   notifStore.fetchUnreadCount()
-  document.addEventListener('click', handleClickOutside)
+  _clickHandler = (e: MouseEvent) => {
+    const el = (e.target as HTMLElement).closest('.notification-bell-wrapper')
+    if (!el) {
+      closeDropdown()
+    }
+  }
+  document.addEventListener('click', _clickHandler)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  if (_clickHandler) {
+    document.removeEventListener('click', _clickHandler)
+    _clickHandler = null
+  }
 })
 </script>
 

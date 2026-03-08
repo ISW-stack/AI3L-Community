@@ -327,3 +327,115 @@ class TestToggleReaction:
                 assert "LIKE" in resp.json()["reactions"]
         finally:
             _clear_overrides()
+
+
+class TestSigMemberBatchNotification:
+    """Verify _on_post_created_in_sig paginates through all SIG members in batches."""
+
+    @pytest.mark.anyio
+    async def test_find_members_called_multiple_batches(self):
+        """When total > BATCH_SIZE, find_members is called in multiple rounds."""
+        from app.event_handlers import _SIG_MEMBER_BATCH_SIZE, _on_post_created_in_sig
+
+        sig_id = str(uuid.uuid4())
+        post_id = str(uuid.uuid4())
+        author_id = str(uuid.uuid4())
+        member_id_1 = str(uuid.uuid4())
+        member_id_2 = str(uuid.uuid4())
+
+        # Simulate two pages: first returns 1 member with total=2, second returns 1 with total=2
+        page1_members = [{"user_id": uuid.UUID(member_id_1)}]
+        page2_members = [{"user_id": uuid.UUID(member_id_2)}]
+
+        # total must be > _SIG_MEMBER_BATCH_SIZE (200) so the loop continues after
+        # the first call (offset becomes 200, and 200 < 201 → second call fires).
+        find_members_mock = AsyncMock(
+            side_effect=[
+                (page1_members, 201),  # first batch: 1 member, total=201
+                (page2_members, 201),  # second batch: 1 member, total=201
+                ([], 201),             # third call: empty → loop ends
+            ]
+        )
+
+        with (
+            patch(
+                "app.repositories.sig_repo.find_members",
+                new=find_members_mock,
+            ),
+            patch(
+                "app.services.user.get_user_by_id",
+                new_callable=AsyncMock,
+                return_value={"display_name": "Author"},
+            ),
+            patch(
+                "app.services.notification.create_notification",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.event_handlers._check_idempotent",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await _on_post_created_in_sig(
+                sig_id=sig_id,
+                post_id=post_id,
+                author_id=author_id,
+                post_title="Test Post",
+            )
+
+        # find_members must have been called with increasing offsets
+        calls = find_members_mock.call_args_list
+        assert len(calls) >= 2
+        first_call_kwargs = calls[0]
+        second_call_kwargs = calls[1]
+        # Verify offset incremented by BATCH_SIZE between calls
+        first_offset = first_call_kwargs[1].get("offset", first_call_kwargs[0][1] if len(first_call_kwargs[0]) > 1 else None)
+        second_offset = second_call_kwargs[1].get("offset", second_call_kwargs[0][1] if len(second_call_kwargs[0]) > 1 else None)
+        assert second_offset == first_offset + _SIG_MEMBER_BATCH_SIZE
+
+    @pytest.mark.anyio
+    async def test_find_members_single_batch_when_small(self):
+        """When total <= BATCH_SIZE, find_members is called exactly once (offset >= total)."""
+        from app.event_handlers import _on_post_created_in_sig
+
+        sig_id = str(uuid.uuid4())
+        post_id = str(uuid.uuid4())
+        author_id = str(uuid.uuid4())
+        member_id = str(uuid.uuid4())
+
+        find_members_mock = AsyncMock(
+            side_effect=[
+                ([{"user_id": uuid.UUID(member_id)}], 1),  # first batch: 1 member, total=1
+            ]
+        )
+
+        with (
+            patch(
+                "app.repositories.sig_repo.find_members",
+                new=find_members_mock,
+            ),
+            patch(
+                "app.services.user.get_user_by_id",
+                new_callable=AsyncMock,
+                return_value={"display_name": "Author"},
+            ),
+            patch(
+                "app.services.notification.create_notification",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.event_handlers._check_idempotent",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await _on_post_created_in_sig(
+                sig_id=sig_id,
+                post_id=post_id,
+                author_id=author_id,
+                post_title="Test Post",
+            )
+
+        # Only one call needed: offset=0, total=1, offset+BATCH_SIZE >= total so loop ends
+        assert find_members_mock.call_count == 1

@@ -116,7 +116,10 @@ class TestSigUpdate:
 
         try:
             _override_auth("ADMIN")
-            with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
+            with (
+                patch("app.services.sig.get_pool", return_value=mock_pool),
+                patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+            ):
                 resp = await client.put(
                     f"/api/v1/sigs/{sig_id}",
                     json={"name": "New", "description": "New desc"},
@@ -231,7 +234,10 @@ class TestCategoryUpdate:
 
         try:
             _override_auth("ADMIN")
-            with patch("app.repositories.category_repo.get_pool", return_value=mock_pool):
+            with (
+                patch("app.services.category.get_pool", return_value=mock_pool),
+                patch("app.repositories.category_repo.get_pool", return_value=mock_pool),
+            ):
                 resp = await client.put(
                     f"/api/v1/categories/{cat_id}",
                     json={"name": "New Name", "description": "desc"},

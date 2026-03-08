@@ -7,6 +7,10 @@ import api from '@/composables/api'
 
 import { WS_INITIAL_BACKOFF_MS, WS_MAX_BACKOFF_MS } from '@/constants'
 
+// Module-level guard: prevents registering the visibilitychange listener more
+// than once when useWebSocket() is called from multiple component instances.
+let _visibilityListenerRegistered = false
+
 export function useWebSocket() {
   const auth = useAuthStore()
   const notificationStore = useNotificationStore()
@@ -108,10 +112,14 @@ export function useWebSocket() {
     }
   }
 
-  document.addEventListener('visibilitychange', handleVisibility)
+  if (!_visibilityListenerRegistered) {
+    document.addEventListener('visibilitychange', handleVisibility)
+    _visibilityListenerRegistered = true
+  }
 
   onUnmounted(() => {
     document.removeEventListener('visibilitychange', handleVisibility)
+    _visibilityListenerRegistered = false
     cleanup()
   })
 

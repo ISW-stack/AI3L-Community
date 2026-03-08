@@ -133,7 +133,11 @@ class TestGuestLogin:
                 yield key
 
         redis = AsyncMock()
+        # No cached count — forces scan
+        redis.get = AsyncMock(return_value=None)
         redis.scan_iter = _few_guests
+        redis.setex = AsyncMock()
+        redis.delete = AsyncMock()
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("token-guest", 2700)
 
@@ -142,6 +146,8 @@ class TestGuestLogin:
         token, ttl = result
         assert token == "token-guest"
         assert ttl == 2700
+        # Cache invalidated after guest session created
+        redis.delete.assert_called()
 
     @patch("app.services.auth.get_redis")
     async def test_guest_login_limit_reached(self, mock_get_redis):
@@ -152,8 +158,39 @@ class TestGuestLogin:
                 yield key
 
         redis = AsyncMock()
+        # No cached count — forces scan
+        redis.get = AsyncMock(return_value=None)
         redis.scan_iter = _full_guests
+        redis.setex = AsyncMock()
         mock_get_redis.return_value = redis
 
         result = await guest_login("Guest User")
         assert result is None
+
+    @patch("app.services.auth.get_redis")
+    async def test_guest_count_uses_cache_on_second_call(self, mock_get_redis):
+        """_count_active_guests returns cached value without scan_iter on second call."""
+        from app.services.auth import _count_active_guests
+
+        scan_calls = 0
+
+        async def _counting_scan(*args, **kwargs):
+            nonlocal scan_calls
+            scan_calls += 1
+            for key in [f"session:GUEST:{i}" for i in range(3)]:
+                yield key
+
+        redis = AsyncMock()
+        # First call: cache miss → scan; second call: cache hit
+        redis.get = AsyncMock(side_effect=[None, b"3"])
+        redis.scan_iter = _counting_scan
+        redis.setex = AsyncMock()
+        mock_get_redis.return_value = redis
+
+        count1 = await _count_active_guests()
+        count2 = await _count_active_guests()
+
+        assert count1 == 3
+        assert count2 == 3
+        # scan_iter was only called once (second call used cache)
+        assert scan_calls == 1

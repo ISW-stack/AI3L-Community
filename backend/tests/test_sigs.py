@@ -1,11 +1,12 @@
 """Tests for SIGs endpoints.
 
 list, create, get, not-found, remove member, assign sub-admin, list members, list posts.
+Also covers update_sig transaction safety.
 """
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -248,3 +249,85 @@ class TestListSigPosts:
                 assert data["total"] == 0
         finally:
             _clear_overrides()
+
+
+class TestUpdateSigTransaction:
+    """Verify update_sig wraps the read-then-update in a single transaction."""
+
+    @pytest.mark.anyio
+    async def test_update_sig_uses_transaction(self, mock_pool, mock_conn):
+        """update_sig must open a transaction before reading current values."""
+        from app.services.sig import update_sig
+
+        sig_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        sig_row = {
+            "id": sig_id,
+            "name": "Updated SIG",
+            "description": "New desc",
+            "created_by": uuid.uuid4(),
+            "member_count": 1,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Creator",
+        }
+
+        # First fetchrow returns current values (SELECT), second returns updated row (UPDATE CTE)
+        mock_conn.fetchrow = AsyncMock(side_effect=[sig_row, sig_row])
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            result = await update_sig(sig_id, name="Updated SIG")
+
+        assert result is not None
+        assert result["name"] == "Updated SIG"
+        # transaction() must have been entered
+        mock_conn.transaction.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_update_sig_not_found_returns_none(self, mock_pool, mock_conn):
+        """update_sig returns None when the SIG does not exist, transaction still used."""
+        from app.services.sig import update_sig
+
+        sig_id = uuid.uuid4()
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            result = await update_sig(sig_id, name="Ghost SIG")
+
+        assert result is None
+        mock_conn.transaction.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_update_sig_concurrent_transaction_isolation(self, mock_pool, mock_conn):
+        """Simulate two concurrent updates: each must use its own transaction."""
+        import asyncio
+
+        from app.services.sig import update_sig
+
+        sig_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        sig_row = {
+            "id": sig_id,
+            "name": "Concurrent SIG",
+            "description": "desc",
+            "created_by": uuid.uuid4(),
+            "member_count": 1,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Creator",
+        }
+
+        # Each call to update_sig gets its own mock_pool/mock_conn invocation
+        mock_conn.fetchrow = AsyncMock(side_effect=[sig_row, sig_row, sig_row, sig_row])
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            results = await asyncio.gather(
+                update_sig(sig_id, name="Concurrent SIG"),
+                update_sig(sig_id, name="Concurrent SIG"),
+            )
+
+        assert all(r is not None for r in results)
+        # transaction() called once per update_sig call (2 total)
+        assert mock_conn.transaction.call_count == 2

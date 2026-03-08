@@ -1,4 +1,6 @@
-"""Tests for reports endpoints — report post, list reports, review report."""
+"""Tests for reports endpoints — report post, list reports, review report.
+Also covers atomic check+insert transaction safety in report_repo.
+"""
 
 import uuid
 from datetime import datetime, timezone
@@ -7,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 _EP = "app.api.v1.endpoints.reports"
+_REPO = "app.repositories.report_repo"
 
 
 def _override_auth(role="MEMBER", user_id=None):
@@ -248,3 +251,105 @@ class TestListReportsFiltered:
                 assert data["reports"][0]["status"] == "PENDING"
         finally:
             _clear_overrides()
+
+
+class TestReportInsertTransaction:
+    """Verify report_repo.insert wraps check+insert in a transaction."""
+
+    @pytest.mark.anyio
+    async def test_insert_no_duplicate_uses_transaction(self, mock_pool, mock_conn):
+        """insert() must open a transaction and insert when no duplicate report exists."""
+        from app.repositories.report_repo import insert
+
+        report_id = uuid.uuid4()
+        post_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        new_row = {
+            "id": report_id,
+            "post_id": post_id,
+            "user_id": user_id,
+            "reason": "Spam",
+            "status": "PENDING",
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        # fetchval returns None (no existing pending report), fetchrow returns new row
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert(report_id, post_id, user_id, "Spam")
+
+        assert result is not None
+        assert result["id"] == report_id
+        mock_conn.transaction.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_insert_duplicate_returns_none_uses_transaction(self, mock_pool, mock_conn):
+        """insert() returns None for duplicate report, inside a transaction."""
+        from app.repositories.report_repo import insert
+
+        report_id = uuid.uuid4()
+        post_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        existing_report_id = uuid.uuid4()
+
+        # fetchval returns an existing report id (duplicate)
+        mock_conn.fetchval = AsyncMock(return_value=existing_report_id)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert(report_id, post_id, user_id, "Spam again")
+
+        assert result is None
+        # INSERT should NOT have been called
+        mock_conn.fetchrow.assert_not_called()
+        mock_conn.transaction.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_insert_concurrent_only_one_succeeds(self, mock_pool, mock_conn):
+        """Simulate concurrent report inserts: second call sees duplicate and returns None."""
+        import asyncio
+
+        from app.repositories.report_repo import insert
+
+        post_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+
+        call_count = 0
+
+        async def fetchval_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            # First call: no duplicate; second call: sees the first report as existing
+            return None if call_count == 1 else uuid.uuid4()
+
+        new_row = {
+            "id": uuid.uuid4(),
+            "post_id": post_id,
+            "user_id": user_id,
+            "reason": "Spam",
+            "status": "PENDING",
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+        mock_conn.fetchval = AsyncMock(side_effect=fetchval_side_effect)
+        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            results = await asyncio.gather(
+                insert(uuid.uuid4(), post_id, user_id, "Spam"),
+                insert(uuid.uuid4(), post_id, user_id, "Spam"),
+            )
+
+        non_none = [r for r in results if r is not None]
+        none_results = [r for r in results if r is None]
+        assert len(non_none) == 1
+        assert len(none_results) == 1
+        assert mock_conn.transaction.call_count == 2

@@ -1,4 +1,6 @@
-"""Tests for forms endpoints — create, list, get, update, delete, submit, export."""
+"""Tests for forms endpoints — create, list, get, update, delete, submit, export.
+Also covers update_form transaction safety.
+"""
 
 import uuid
 from datetime import datetime, timezone
@@ -7,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 _EP = "app.api.v1.endpoints.forms"
+_SVC = "app.services.form"
 
 
 def _override_auth(role="MEMBER", user_id=None):
@@ -329,3 +332,112 @@ class TestDeleteFormSigAdmin:
                 assert resp.status_code == 403
         finally:
             _clear_overrides()
+
+
+class TestUpdateFormTransaction:
+    """Verify update_form wraps its read-then-update in a single transaction."""
+
+    @pytest.mark.anyio
+    async def test_update_form_uses_transaction(self, mock_pool, mock_conn):
+        """update_form must wrap find_for_update → UPDATE inside conn.transaction()."""
+        from app.services.form import update_form
+
+        form_id = uuid.uuid4()
+        creator_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": creator_id,
+            "title": "Original Title",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+        }
+        updated_row = dict(form_row)
+        updated_row["title"] = "New Title"
+        creator_row = {"display_name": "Test User"}
+
+        # find_for_update → update fetchrow → creator fetchrow for update result
+        mock_conn.fetchrow = AsyncMock(
+            side_effect=[form_row, updated_row, creator_row]
+        )
+        # count_responses inside form_repo.update
+        mock_conn.fetchval = AsyncMock(return_value=0)
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            result = await update_form(
+                form_id=form_id,
+                user_id=str(creator_id),
+                is_admin=False,
+                title="New Title",
+            )
+
+        assert result is not None
+        mock_conn.transaction.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_update_form_not_found_uses_transaction(self, mock_pool, mock_conn):
+        """update_form returns None for missing form but still enters transaction."""
+        from app.services.form import update_form
+
+        form_id = uuid.uuid4()
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            result = await update_form(
+                form_id=form_id,
+                user_id=str(uuid.uuid4()),
+                is_admin=False,
+                title="Whatever",
+            )
+
+        assert result is None
+        mock_conn.transaction.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_update_form_permission_error_uses_transaction(self, mock_pool, mock_conn):
+        """update_form raises PermissionError for non-owner, inside a transaction."""
+        from app.services.form import update_form
+
+        form_id = uuid.uuid4()
+        creator_id = uuid.uuid4()
+        other_user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": creator_id,
+            "title": "Title",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+        }
+        mock_conn.fetchrow = AsyncMock(return_value=form_row)
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with pytest.raises(PermissionError):
+                await update_form(
+                    form_id=form_id,
+                    user_id=other_user_id,
+                    is_admin=False,
+                    title="Attempt",
+                )
+
+        mock_conn.transaction.assert_called_once()

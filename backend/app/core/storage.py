@@ -41,6 +41,14 @@ def get_storage() -> Any:
     return _s3_client
 
 
+def close_storage() -> None:
+    """Close the boto3 S3 client and release its resources."""
+    global _s3_client
+    if _s3_client is not None:
+        _s3_client.close()
+        _s3_client = None
+
+
 def upload_file(data: bytes, key: str, content_type: str) -> str:
     """Upload file to MinIO. Returns the storage key."""
     client = get_storage()

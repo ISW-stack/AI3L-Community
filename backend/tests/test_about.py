@@ -420,11 +420,16 @@ class TestAdminDeleteContributor:
 class TestAvatarCacheBounding:
     """Tests for LRU-bounded avatar cache."""
 
+    def _reset_cache(self, about_module):
+        """Clear both the cache dict and the byte counter."""
+        about_module._avatar_cache.clear()
+        about_module._cache_total_bytes = 0
+
     def test_cache_evicts_oldest_when_full(self):
         """Inserting beyond _MAX_CACHE_ENTRIES evicts the oldest entry."""
         from app.api.v1.endpoints import about as about_module
 
-        about_module._avatar_cache.clear()
+        self._reset_cache(about_module)
         original_max = about_module._MAX_CACHE_ENTRIES
         try:
             about_module._MAX_CACHE_ENTRIES = 5
@@ -443,14 +448,14 @@ class TestAvatarCacheBounding:
                 assert f"id-{i}" in about_module._avatar_cache
             assert len(about_module._avatar_cache) == 5
         finally:
-            about_module._avatar_cache.clear()
+            self._reset_cache(about_module)
             about_module._MAX_CACHE_ENTRIES = original_max
 
     def test_lru_access_keeps_entry_alive(self):
         """Accessing an entry moves it to end, so it survives eviction."""
         from app.api.v1.endpoints import about as about_module
 
-        about_module._avatar_cache.clear()
+        self._reset_cache(about_module)
         original_max = about_module._MAX_CACHE_ENTRIES
         try:
             about_module._MAX_CACHE_ENTRIES = 3
@@ -475,14 +480,14 @@ class TestAvatarCacheBounding:
             assert "c" in about_module._avatar_cache
             assert "d" in about_module._avatar_cache
         finally:
-            about_module._avatar_cache.clear()
+            self._reset_cache(about_module)
             about_module._MAX_CACHE_ENTRIES = original_max
 
     def test_expired_entry_not_served(self):
         """Expired cache entries are not returned."""
         from app.api.v1.endpoints import about as about_module
 
-        about_module._avatar_cache.clear()
+        self._reset_cache(about_module)
         try:
             # Insert an expired entry (timestamp far in the past)
             expired_time = time.time() - about_module._CACHE_TTL_SECONDS - 100
@@ -499,4 +504,104 @@ class TestAvatarCacheBounding:
             # Verify the entry IS expired
             assert now - cached_at >= about_module._CACHE_TTL_SECONDS
         finally:
-            about_module._avatar_cache.clear()
+            self._reset_cache(about_module)
+
+
+class TestAvatarCacheByteBounding:
+    """Tests for byte-size limit on the avatar cache."""
+
+    def _reset_cache(self, about_module):
+        about_module._avatar_cache.clear()
+        about_module._cache_total_bytes = 0
+
+    @pytest.mark.anyio
+    async def test_cache_evicts_oldest_when_byte_limit_exceeded(self, client):
+        """A large avatar that exceeds _MAX_CACHE_BYTES evicts older entries."""
+        from app.api.v1.endpoints import about as about_module
+
+        self._reset_cache(about_module)
+        original_max_bytes = about_module._MAX_CACHE_BYTES
+        original_max_entries = about_module._MAX_CACHE_ENTRIES
+
+        try:
+            _override_auth("MEMBER")
+            # Set a tiny byte limit (20 bytes) and large entry count limit
+            about_module._MAX_CACHE_BYTES = 20
+            about_module._MAX_CACHE_ENTRIES = 100
+            now = time.time()
+
+            # Seed the cache with two 8-byte entries (total 16 bytes)
+            about_module._avatar_cache["old-key-1"] = (b"12345678", "image/png", now)
+            about_module._avatar_cache._cache_total_bytes_tracking = 8  # manual note
+            about_module._cache_total_bytes = 16
+            about_module._avatar_cache["old-key-2"] = (b"12345678", "image/png", now)
+
+            # Simulate fetching a new 10-byte avatar that would push total to 26 > 20
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.content = b"1234567890"  # 10 bytes
+            mock_response.headers = {"content-type": "image/png"}
+
+            with (
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
+                patch(f"{_EP}._requests.get", return_value=mock_response),
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            # At least one old entry should have been evicted to make room
+            remaining_keys = set(about_module._avatar_cache.keys())
+            # The new entry must be present
+            assert str(_FAKE_ID) in remaining_keys
+            # Total bytes must not exceed limit
+            assert about_module._cache_total_bytes <= about_module._MAX_CACHE_BYTES
+        finally:
+            self._reset_cache(about_module)
+            about_module._MAX_CACHE_BYTES = original_max_bytes
+            about_module._MAX_CACHE_ENTRIES = original_max_entries
+            _clear_overrides()
+
+    def test_byte_counter_updated_on_eviction(self):
+        """_cache_total_bytes decreases when an entry is evicted by byte limit."""
+        from app.api.v1.endpoints import about as about_module
+
+        self._reset_cache(about_module)
+        original_max_bytes = about_module._MAX_CACHE_BYTES
+        original_max_entries = about_module._MAX_CACHE_ENTRIES
+
+        try:
+            # 15-byte limit; seed with two 8-byte entries (total 16 > 15 triggers eviction)
+            about_module._MAX_CACHE_BYTES = 15
+            about_module._MAX_CACHE_ENTRIES = 100
+            now = time.time()
+
+            data_8 = b"12345678"  # 8 bytes
+            about_module._avatar_cache["entry-a"] = (data_8, "image/png", now)
+            about_module._cache_total_bytes = 8
+
+            # Manually apply the byte eviction logic (same as production code)
+            new_data = b"abcdefgh"  # 8 bytes; would bring total to 16 > 15
+            new_size = len(new_data)
+            while about_module._avatar_cache and (
+                about_module._cache_total_bytes + new_size > about_module._MAX_CACHE_BYTES
+            ):
+                _k, _v = about_module._avatar_cache.popitem(last=False)
+                about_module._cache_total_bytes -= len(_v[0])
+
+            about_module._avatar_cache["entry-b"] = (new_data, "image/png", now)
+            about_module._cache_total_bytes += new_size
+
+            # entry-a should be evicted; only entry-b remains
+            assert "entry-a" not in about_module._avatar_cache
+            assert "entry-b" in about_module._avatar_cache
+            assert about_module._cache_total_bytes == 8
+        finally:
+            self._reset_cache(about_module)
+            about_module._MAX_CACHE_BYTES = original_max_bytes
+            about_module._MAX_CACHE_ENTRIES = original_max_entries

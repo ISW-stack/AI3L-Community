@@ -10,6 +10,8 @@ import {
 import { getProfile } from '@/api/users'
 import { HEARTBEAT_INTERVAL_MS } from '@/constants'
 import type { UserProfile } from '@/types/user'
+import { useNotificationStore } from '@/stores/notifications'
+import { useToastStore } from '@/stores/toast'
 
 export const useAuthStore = defineStore('auth', () => {
   // Role is non-sensitive — kept in localStorage for UI state across page reloads
@@ -48,6 +50,13 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('expiresAt')
 
     stopHeartbeat()
+
+    // Reset other stores so stale data from the previous session is cleared.
+    // Use lazy calls inside clearSession to avoid circular dependency at module level.
+    const notifStore = useNotificationStore()
+    const toastStore = useToastStore()
+    notifStore.$reset()
+    toastStore.clearAll()
   }
 
   async function login(username: string, password: string, captchaId: string, captchaCode: string) {

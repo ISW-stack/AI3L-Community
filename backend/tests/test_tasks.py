@@ -1,4 +1,4 @@
-"""Tests for tasks endpoint — pending, success."""
+"""Tests for tasks endpoint — pending, success — and Redis config validation."""
 
 import sys
 import types
@@ -43,6 +43,48 @@ def _mock_celery():
         },
     ):
         yield celery_result_mod
+
+
+class TestRedisTimeoutConfig:
+    """Verify that init_redis passes the required timeout parameters."""
+
+    def test_redis_from_url_called_with_timeout_params(self) -> None:
+        """init_redis must configure socket_timeout, socket_connect_timeout, and retry_on_timeout."""
+        import inspect
+
+        from app.core import redis as redis_module
+
+        source = inspect.getsource(redis_module.init_redis)
+        assert "socket_timeout" in source, "socket_timeout must be set in init_redis"
+        assert "socket_connect_timeout" in source, "socket_connect_timeout must be set in init_redis"
+        assert "retry_on_timeout" in source, "retry_on_timeout must be set in init_redis"
+        assert "max_connections" in source, "max_connections must be set in init_redis"
+
+    def test_redis_timeout_values_are_reasonable(self) -> None:
+        """socket_timeout should be >=5s and socket_connect_timeout >=3s (source inspection)."""
+        import ast
+        import inspect
+
+        from app.core import redis as redis_module
+
+        source = inspect.getsource(redis_module.init_redis)
+        # Parse the source to find keyword arguments in the Redis.from_url call
+        tree = ast.parse(source)
+        kw_values: dict[str, object] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                for kw in node.keywords:
+                    if isinstance(kw.value, ast.Constant):
+                        kw_values[kw.arg] = kw.value.value
+
+        socket_timeout = kw_values.get("socket_timeout")
+        socket_connect_timeout = kw_values.get("socket_connect_timeout")
+        assert isinstance(socket_timeout, (int, float)) and socket_timeout >= 5, (
+            f"socket_timeout should be at least 5s, got {socket_timeout}"
+        )
+        assert isinstance(socket_connect_timeout, (int, float)) and socket_connect_timeout >= 3, (
+            f"socket_connect_timeout should be at least 3s, got {socket_connect_timeout}"
+        )
 
 
 class TestTaskStatus:
