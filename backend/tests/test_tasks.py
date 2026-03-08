@@ -49,7 +49,7 @@ class TestRedisTimeoutConfig:
     """Verify that init_redis passes the required timeout parameters."""
 
     def test_redis_from_url_called_with_timeout_params(self) -> None:
-        """init_redis must configure socket_timeout, socket_connect_timeout, and retry_on_timeout."""
+        """init_redis must configure socket_timeout, socket_connect_timeout, retry_on_timeout."""
         import inspect
 
         from app.core import redis as redis_module

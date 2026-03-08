@@ -52,7 +52,7 @@ class TestStartupSecurityChecks:
     @pytest.mark.anyio
     async def test_startup_aborts_on_default_secret_key_in_production(self) -> None:
         """In production mode, startup must call sys.exit(1) when SECRET_KEY is default."""
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock, patch
 
         from app.core.config import Settings
 
