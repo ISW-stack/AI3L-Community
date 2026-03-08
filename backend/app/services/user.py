@@ -46,6 +46,7 @@ async def update_user_profile(
     affiliation: str | None = None,
     orcid: str | None = None,
     avatar_url: str | None = None,
+    preferred_language: str | None = None,
 ) -> dict | None:
     return await user_repo.update_profile(
         user_id,
@@ -54,6 +55,7 @@ async def update_user_profile(
         affiliation=affiliation,
         orcid=orcid,
         avatar_url=avatar_url,
+        preferred_language=preferred_language,
     )
 
 
