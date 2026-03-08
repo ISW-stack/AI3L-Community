@@ -239,7 +239,7 @@ describe('api composable', () => {
       await expect(errorHandler(error)).rejects.toBe(error)
 
       expect(mockClearSession).toHaveBeenCalled()
-      expect(mockToastShow).toHaveBeenCalledWith('You have been banned.', 'error')
+      expect(mockToastShow).toHaveBeenCalledWith('Your account has been banned.', 'error')
       expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
     })
 
@@ -258,7 +258,7 @@ describe('api composable', () => {
 
       await expect(errorHandler(error)).rejects.toBe(error)
 
-      expect(mockToastShow).toHaveBeenCalledWith('Guest slots full', 'warning')
+      expect(mockToastShow).toHaveBeenCalledWith('Guest capacity reached. Please try again later.', 'warning')
       // Should NOT clear session or redirect
       expect(mockClearSession).not.toHaveBeenCalled()
       expect(mockRouterPush).not.toHaveBeenCalled()
@@ -286,7 +286,7 @@ describe('api composable', () => {
 
       await expect(errorHandler(error)).rejects.toBe(error)
 
-      expect(mockToastShow).toHaveBeenCalledWith('Rate limited', 'warning')
+      expect(mockToastShow).toHaveBeenCalledWith('Too many requests. Please try again later.', 'warning')
     })
 
     it('should show toast for generic structured error codes', async () => {

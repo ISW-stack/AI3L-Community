@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { AuditLog } from '@/types'
 import { getAuditLogs } from '@/api/admin'
 import { usePagination } from '@/composables/usePagination'
@@ -8,6 +9,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const { t } = useI18n()
 const logs = ref<AuditLog[]>([])
 const { page, total, pageSize, setPage, resetPage, updateFromResponse } = usePagination(50)
 const loading = ref(false)
@@ -61,7 +63,7 @@ async function fetchLogs() {
     logs.value = data.logs
     updateFromResponse(data.total)
   } catch {
-    error.value = 'Failed to load audit logs.'
+    error.value = t('admin.auditLogs.error')
   } finally {
     loading.value = false
   }
@@ -93,13 +95,13 @@ onMounted(fetchLogs)
 <template>
   <div>
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Audit Logs</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('admin.auditLogs.title') }}</h1>
       <button
         class="text-sm text-brand-600 hover:text-brand-700 hover:underline"
         @click="toggleFilters"
       >
-        {{ showFilters ? 'Hide Filters' : 'Filters' }}
-        <span v-if="hasActiveFilters" class="ml-1 text-xs text-brand-600">(active)</span>
+        {{ showFilters ? t('admin.auditLogs.hideFilters') : t('admin.auditLogs.filters') }}
+        <span v-if="hasActiveFilters" class="ml-1 text-xs text-brand-600">{{ t('admin.auditLogs.filtersActive') }}</span>
       </button>
     </div>
 
@@ -107,7 +109,7 @@ onMounted(fetchLogs)
     <div v-if="showFilters" class="bg-surface rounded-lg border border-border p-4 mb-4 space-y-3">
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">From</label>
+          <label class="text-sm text-muted whitespace-nowrap">{{ t('admin.auditLogs.filter.from') }}</label>
           <input
             v-model="filterDateFrom"
             type="date"
@@ -115,7 +117,7 @@ onMounted(fetchLogs)
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">To</label>
+          <label class="text-sm text-muted whitespace-nowrap">{{ t('admin.auditLogs.filter.to') }}</label>
           <input
             v-model="filterDateTo"
             type="date"
@@ -123,22 +125,22 @@ onMounted(fetchLogs)
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">User ID</label>
+          <label class="text-sm text-muted whitespace-nowrap">{{ t('admin.auditLogs.filter.userId') }}</label>
           <input
             v-model="filterUserId"
             type="text"
-            placeholder="UUID..."
+            :placeholder="t('admin.auditLogs.filter.userIdPlaceholder')"
             class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none w-48"
           />
         </div>
       </div>
       <p v-if="dateRangeInvalid" class="text-sm text-danger-600">
-        Start date must be before end date.
+        {{ t('admin.auditLogs.invalidRange') }}
       </p>
       <div class="flex gap-2">
-        <BaseButton size="sm" :disabled="dateRangeInvalid" @click="applyFilters">Apply</BaseButton>
+        <BaseButton size="sm" :disabled="dateRangeInvalid" @click="applyFilters">{{ t('common.apply') }}</BaseButton>
         <BaseButton v-if="hasActiveFilters" size="sm" variant="secondary" @click="clearFilters"
-          >Clear</BaseButton
+          >{{ t('common.clear') }}</BaseButton
         >
       </div>
     </div>
@@ -147,8 +149,8 @@ onMounted(fetchLogs)
 
     <EmptyState
       v-if="!loading && logs.length === 0"
-      title="No Audit Logs"
-      message="No audit logs found."
+      :title="t('admin.auditLogs.emptyTitle')"
+      :message="t('admin.auditLogs.emptyMessage')"
     />
 
     <div v-else class="relative">
@@ -156,16 +158,16 @@ onMounted(fetchLogs)
         <table class="w-full text-sm min-w-[750px]">
           <thead class="bg-surface-alt border-b border-border">
             <tr>
-              <th class="text-left px-4 py-3 font-medium text-muted">Timestamp</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">User</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">Action</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">Target</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">IP Address</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.timestamp') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.user') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.action') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.target') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.auditLogs.table.ipAddress') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="px-4 py-8 text-center text-muted">Loading...</td>
+              <td colspan="5" class="px-4 py-8 text-center text-muted">{{ t('common.loading') }}</td>
             </tr>
             <tr
               v-for="log in logs"
@@ -202,18 +204,18 @@ onMounted(fetchLogs)
     </div>
 
     <div class="flex items-center justify-between mt-4">
-      <p class="text-sm text-muted">{{ total }} logs total</p>
+      <p class="text-sm text-muted">{{ t('admin.auditLogs.total', { count: total }) }}</p>
       <div class="flex gap-2">
         <BaseButton size="sm" variant="secondary" @click="prevPage" :disabled="page <= 1"
-          >Previous</BaseButton
+          >{{ t('admin.auditLogs.previous') }}</BaseButton
         >
-        <span class="px-3 py-1 text-sm text-muted">Page {{ page }}</span>
+        <span class="px-3 py-1 text-sm text-muted">{{ t('admin.auditLogs.page', { page }) }}</span>
         <BaseButton
           size="sm"
           variant="secondary"
           @click="nextPage"
           :disabled="page * pageSize >= total"
-          >Next</BaseButton
+          >{{ t('common.next') }}</BaseButton
         >
       </div>
     </div>

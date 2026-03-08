@@ -3,12 +3,15 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
+import { useLocale } from '@/composables/useLocale'
+import type { SupportedLocale } from '@/locales'
 import NotificationBell from '@/components/NotificationBell.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import { Menu, X, ChevronDown, GraduationCap } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t, currentLocale, localeOptions, setLocale } = useLocale()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
@@ -70,7 +73,7 @@ onUnmounted(() => {
 <template>
   <nav
     class="sticky top-0 z-50 backdrop-blur-md bg-surface/80 border-b border-border"
-    aria-label="Main navigation"
+    :aria-label="t('nav.ariaLabel')"
   >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16 items-center">
@@ -85,17 +88,17 @@ onUnmounted(() => {
           <router-link
             to="/forum"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >Forum</router-link
+            >{{ t('nav.forum') }}</router-link
           >
           <router-link
             to="/sigs"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >SIGs</router-link
+            >{{ t('nav.sigs') }}</router-link
           >
           <router-link
             to="/about"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >About</router-link
+            >{{ t('nav.about') }}</router-link
           >
 
           <template v-if="auth.isAuthenticated">
@@ -110,7 +113,7 @@ onUnmounted(() => {
                 class="flex items-center gap-1 text-sm text-muted hover:text-foreground transition"
                 :aria-expanded="adminDropdownOpen"
               >
-                Admin
+                {{ t('nav.admin') }}
                 <ChevronDown
                   class="w-4 h-4 transition-transform"
                   :class="{ 'rotate-180': adminDropdownOpen }"
@@ -129,7 +132,7 @@ onUnmounted(() => {
                     @click="adminDropdownOpen = false"
                     tabindex="-1"
                   >
-                    Dashboard
+                    {{ t('nav.dashboard') }}
                   </router-link>
                   <router-link
                     to="/admin/users"
@@ -137,7 +140,7 @@ onUnmounted(() => {
                     @click="adminDropdownOpen = false"
                     tabindex="-1"
                   >
-                    Users
+                    {{ t('nav.users') }}
                   </router-link>
                   <router-link
                     to="/admin/applications"
@@ -145,7 +148,7 @@ onUnmounted(() => {
                     @click="adminDropdownOpen = false"
                     tabindex="-1"
                   >
-                    Applications
+                    {{ t('nav.applications') }}
                   </router-link>
                   <router-link
                     to="/admin/reports"
@@ -153,7 +156,7 @@ onUnmounted(() => {
                     @click="adminDropdownOpen = false"
                     tabindex="-1"
                   >
-                    Reports
+                    {{ t('nav.reports') }}
                   </router-link>
                   <router-link
                     to="/admin/categories"
@@ -161,7 +164,7 @@ onUnmounted(() => {
                     @click="adminDropdownOpen = false"
                     tabindex="-1"
                   >
-                    Categories
+                    {{ t('nav.categories') }}
                   </router-link>
                   <router-link
                     to="/admin/invite-codes"
@@ -169,7 +172,7 @@ onUnmounted(() => {
                     @click="adminDropdownOpen = false"
                     tabindex="-1"
                   >
-                    Invite Codes
+                    {{ t('nav.inviteCodes') }}
                   </router-link>
                   <router-link
                     v-if="auth.isSuperAdmin"
@@ -178,11 +181,19 @@ onUnmounted(() => {
                     @click="adminDropdownOpen = false"
                     tabindex="-1"
                   >
-                    Audit Logs
+                    {{ t('nav.auditLogs') }}
                   </router-link>
                 </div>
               </Transition>
             </div>
+
+            <select
+              :value="currentLocale"
+              class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
+              @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
+            >
+              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
 
             <NotificationBell />
 
@@ -211,22 +222,30 @@ onUnmounted(() => {
                   @click="userDropdownOpen = false"
                   tabindex="-1"
                 >
-                  Profile
+                  {{ t('nav.profile') }}
                 </router-link>
                 <button
                   @click="handleLogout"
                   class="block w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-surface-alt transition"
                   tabindex="-1"
                 >
-                  Log Out
+                  {{ t('nav.logOut') }}
                 </button>
               </div>
             </div>
           </template>
 
           <template v-else>
+            <select
+              :value="currentLocale"
+              class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
+              @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
+            >
+              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+
             <router-link to="/login" class="text-sm text-muted hover:text-foreground transition"
-              >Log In</router-link
+              >{{ t('nav.logIn') }}</router-link
             >
             <router-link
               to="/register"
@@ -244,7 +263,7 @@ onUnmounted(() => {
             @click="mobileMenuOpen = !mobileMenuOpen"
             class="p-1 text-muted hover:text-foreground transition"
             :aria-expanded="mobileMenuOpen"
-            aria-label="Toggle menu"
+            :aria-label="t('nav.toggleMenu')"
           >
             <Menu v-if="!mobileMenuOpen" class="w-6 h-6" aria-hidden="true" />
             <X v-else class="w-6 h-6" aria-hidden="true" />
@@ -265,14 +284,14 @@ onUnmounted(() => {
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
-            Forum
+            {{ t('nav.forum') }}
           </router-link>
           <router-link
             to="/sigs"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
-            SIGs
+            {{ t('nav.sigs') }}
           </router-link>
 
           <router-link
@@ -280,49 +299,49 @@ onUnmounted(() => {
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
-            About
+            {{ t('nav.about') }}
           </router-link>
 
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
               <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
-                Admin
+                {{ t('nav.sectionAdmin') }}
               </div>
               <router-link
                 to="/admin"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Dashboard</router-link
+                >{{ t('nav.dashboard') }}</router-link
               >
               <router-link
                 to="/admin/users"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Users</router-link
+                >{{ t('nav.users') }}</router-link
               >
               <router-link
                 to="/admin/applications"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Applications</router-link
+                >{{ t('nav.applications') }}</router-link
               >
               <router-link
                 to="/admin/reports"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Reports</router-link
+                >{{ t('nav.reports') }}</router-link
               >
               <router-link
                 to="/admin/categories"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Categories</router-link
+                >{{ t('nav.categories') }}</router-link
               >
               <router-link
                 to="/admin/invite-codes"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Invite Codes</router-link
+                >{{ t('nav.inviteCodes') }}</router-link
               >
             </template>
             <router-link
@@ -330,11 +349,11 @@ onUnmounted(() => {
               to="/admin/audit-logs"
               class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
               @click="mobileMenuOpen = false"
-              >Audit Logs</router-link
+              >{{ t('nav.auditLogs') }}</router-link
             >
 
             <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
-              Account
+              {{ t('nav.sectionAccount') }}
             </div>
             <div class="flex items-center gap-2 px-3 py-2">
               <span class="text-sm text-foreground">{{
@@ -344,30 +363,48 @@ onUnmounted(() => {
                 {{ roleLabels[auth.role || ''] || auth.role }}
               </BaseBadge>
             </div>
+            <div class="px-3 py-2">
+              <select
+                :value="currentLocale"
+                class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground w-full"
+                @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
+              >
+                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+            </div>
             <router-link
               v-if="!auth.isGuest"
               to="/profile"
               class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
               @click="mobileMenuOpen = false"
             >
-              Profile
+              {{ t('nav.profile') }}
             </router-link>
             <button
               @click="handleLogout"
               class="block w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-surface-alt rounded-lg transition"
             >
-              Log Out
+              {{ t('nav.logOut') }}
             </button>
           </template>
 
           <template v-else>
             <div class="pt-3 space-y-2">
+              <div class="px-3 py-2">
+                <select
+                  :value="currentLocale"
+                  class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground w-full"
+                  @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
+                >
+                  <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
               <router-link
                 to="/login"
                 class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
               >
-                Log In
+                {{ t('nav.logIn') }}
               </router-link>
               <router-link
                 to="/register"

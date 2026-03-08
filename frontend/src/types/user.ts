@@ -14,6 +14,7 @@ export interface UserProfile {
   affiliation: string | null
   orcid: string | null
   avatar_url: string | null
+  preferred_language: string
   is_banned: boolean
   ban_reason: string | null
   created_at: string

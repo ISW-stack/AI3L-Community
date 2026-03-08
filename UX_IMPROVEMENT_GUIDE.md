@@ -1,165 +1,63 @@
 # AI3L Community — UX Improvement Contributor Guide
 
 > **Created:** 2026-03-06
-> **Audience:** Frontend contributors
+> **Last Updated:** 2026-03-08
+> **Audience:** Frontend + Backend contributors
 > **Language:** English throughout
 
-This guide describes six confirmed UX issues in the AI3L Community platform. Each section explains the problem, pinpoints the affected files, and provides a detailed implementation plan. Contributors should pick up one task at a time and open a PR against the `frontend` branch.
+This guide catalogues confirmed UX issues and improvement opportunities in the AI3L Community platform. Each section explains the problem, pinpoints the affected files, and provides a detailed implementation plan. Contributors should pick up one task at a time and open a PR against the `frontend` branch (or `backend` for backend-only tasks).
 
 ---
 
 ## Table of Contents
 
-1. [Admin Sidebar Layout Shift](#1-admin-sidebar-layout-shift)
-2. [SIG Detail Page Redesign](#2-sig-detail-page-redesign)
-3. [Forum Post Card — Richer Preview](#3-forum-post-card--richer-preview)
-4. [Home Page Enhancement](#4-home-page-enhancement)
-5. [Internationalization (i18n) and Language Switcher](#5-internationalization-i18n-and-language-switcher)
-6. [Post-Level Reactions and Inline Comments](#6-post-level-reactions-and-inline-comments)
+**Completed:**
+- ~~[1. Admin Sidebar Layout Shift](#1-admin-sidebar-layout-shift--done)~~ — Done
+- ~~[2. SIG Detail Page Redesign](#2-sig-detail-page-redesign--done)~~ — Done
+
+**Open — Original Tasks:**
+- [3. Forum Post Card — Richer Preview](#3-forum-post-card--richer-preview)
+- [4. Home Page Enhancement](#4-home-page-enhancement)
+- [5. Post-Level Reactions](#5-post-level-reactions)
+- [6. Internationalization (i18n) and Language Switcher](#6-internationalization-i18n-and-language-switcher)
+
+**Open — New Tasks (from codebase audit 2026-03-08):**
+- [7. Silent Error Handling — Toast Notifications](#7-silent-error-handling--toast-notifications)
+- [8. Confirmation Dialogs for Destructive Actions](#8-confirmation-dialogs-for-destructive-actions)
+- [9. Image Lazy Loading and Fallbacks](#9-image-lazy-loading-and-fallbacks)
+- [10. Breadcrumb Navigation](#10-breadcrumb-navigation)
+- [11. Accessibility Improvements](#11-accessibility-improvements)
+- [12. Empty State Consistency](#12-empty-state-consistency)
+- [13. Page Transition Animations](#13-page-transition-animations)
+- [14. Responsive Breakpoint Gaps](#14-responsive-breakpoint-gaps)
+- [15. Forum Search UX](#15-forum-search-ux)
+- [16. Pagination Enhancements](#16-pagination-enhancements)
+- [17. Public Stats API Endpoint (Backend)](#17-public-stats-api-endpoint-backend)
+- [18. User Preferences API (Backend)](#18-user-preferences-api-backend)
+- [19. Search Suggestions API (Backend)](#19-search-suggestions-api-backend)
+- [20. SIG Members Pagination](#20-sig-members-pagination)
 
 ---
 
-## 1. Admin Sidebar Layout Shift
+## 1. Admin Sidebar Layout Shift — DONE
 
-**Problem:** The admin panel's left sidebar navigation jumps horizontally when navigating between pages. Pages with short content (Dashboard, Categories) have no vertical scrollbar, while pages with long content (Users, Audit Logs) trigger one — the ~15px scrollbar appearance/disappearance shifts the entire layout.
+> **Status:** Completed. `scrollbar-gutter: stable` added to `src/style.css` (line 62).
 
-### Affected Files
-
-| File | Lines | Role |
-|------|-------|------|
-| `src/components/AdminLayout.vue` | 48-128 | Admin layout with sidebar + content flex container |
-| `src/style.css` | — | Global stylesheet (no scrollbar rules exist) |
-
-### Root Cause
-
-The layout uses `display: flex` with the main content area set to `flex-1`. When the browser's vertical scrollbar appears or disappears, the viewport width changes, causing the flex container to resize. The sidebar itself (`lg:w-56 lg:shrink-0`) is stable, but the content area shifts because the available width changes.
-
-### Implementation Plan
-
-**Option A — CSS `scrollbar-gutter` (Recommended, simplest)**
-
-In `src/style.css`, add to the existing `html` rule or create one:
-
-```css
-html {
-  scrollbar-gutter: stable;
-}
-```
-
-This reserves space for the scrollbar at all times, preventing any width change when content overflows. Supported in all modern browsers (Chrome 94+, Firefox 97+, Safari 17.4+).
-
-**Option B — Always-visible thin scrollbar (fallback)**
-
-If broader browser support is needed:
-
-```css
-html {
-  overflow-y: scroll;
-}
-```
-
-This forces the scrollbar to always be visible. Combine with custom scrollbar styling to keep it unobtrusive:
-
-```css
-html {
-  overflow-y: scroll;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
-}
-```
-
-### Verification
-
-1. Navigate to Admin > Dashboard (short content, no scroll)
-2. Navigate to Admin > Users (long table, scroll appears)
-3. The sidebar and header should not shift horizontally during navigation
+No further action needed.
 
 ---
 
-## 2. SIG Detail Page Redesign
+## 2. SIG Detail Page Redesign — DONE
 
-**Problem:** The SIG detail page (`SigDetailView.vue`) stacks Posts, Members, and Forms under horizontal pill-button tabs. The three sections use completely different layouts (post cards vs. data table vs. 2-column grid), making the page feel disjointed. The tab style also differs from the underline tabs used on `ProfileView.vue`.
+> **Status:** Completed. Refactored into `SigLayout.vue` + `SigPostsView.vue` + `SigMembersView.vue` + `SigFormsView.vue` with nested routes and `provide/inject`. Old `SigDetailView.vue` deleted.
 
-### Affected Files
-
-| File | Lines | Role |
-|------|-------|------|
-| `src/views/sigs/SigDetailView.vue` | 1-611 | SIG detail page with tabs |
-| `src/router/index.ts` | 134-139 | SIG detail route |
-
-### Current Structure
-
-```
-SigDetailView.vue
-  +-- Header (SIG name, description, actions)
-  +-- Tab bar: [Posts] [Members] [Forms]  (pill-button style)
-  +-- Tab content:
-      +-- Posts:   single-column card list
-      +-- Members: full-width data table
-      +-- Forms:   2-column card grid
-```
-
-### Recommended Approach — Sub-route Layout with Sidebar
-
-Convert the SIG detail page from a single-component tab view into a **layout + nested routes** pattern. This gives each section its own URL and makes navigation more natural.
-
-**Step 1 — Create a SIG layout wrapper**
-
-Create `src/views/sigs/SigLayout.vue`:
-
-```
-+----------------------------------------------+
-| SIG Header (name, description, actions)      |
-+----------+-----------------------------------+
-| Sidebar  | <router-view />                   |
-| - Posts  |                                   |
-| - Members|                                   |
-| - Forms  |                                   |
-+----------+-----------------------------------+
-```
-
-The sidebar should use the same underline/highlight style as `ProfileView.vue` for consistency.
-
-On mobile (below `lg` breakpoint), collapse the sidebar into horizontal tabs or a dropdown.
-
-**Step 2 — Split into child views**
-
-- `src/views/sigs/SigPostsView.vue` — Post list with "New Post" button
-- `src/views/sigs/SigMembersView.vue` — Members table with role management
-- `src/views/sigs/SigFormsView.vue` — Forms grid with create/manage actions
-
-**Step 3 — Update router**
-
-```typescript
-{
-  path: '/sigs/:id',
-  component: () => import('@/views/sigs/SigLayout.vue'),
-  meta: { requiresAuth: true },
-  children: [
-    { path: '',        redirect: { name: 'sig-posts' } },
-    { path: 'posts',   name: 'sig-posts',   component: () => import('@/views/sigs/SigPostsView.vue') },
-    { path: 'members', name: 'sig-members', component: () => import('@/views/sigs/SigMembersView.vue') },
-    { path: 'forms',   name: 'sig-forms',   component: () => import('@/views/sigs/SigFormsView.vue') },
-  ]
-}
-```
-
-**Step 4 — Unify card styles**
-
-All three child views should use `BaseCard` with consistent padding, spacing, and hover behavior. The Members view should switch from a raw table to member cards on mobile (responsive).
-
-### Benefits
-
-- Each section has a shareable URL (`/sigs/123/members`)
-- Browser back/forward works per section
-- Code splitting — only the active section's component is loaded
-- SIG header data is fetched once in the layout and shared via `provide/inject`
+No further action needed.
 
 ---
 
 ## 3. Forum Post Card — Richer Preview
 
-**Problem:** The `PostCard.vue` component shows minimal information before clicking into a post. Content is stripped of HTML and clamped to 6 lines with a gradient fade. There are no images, no post-level reactions, and no engagement metrics beyond comment count and view count.
+**Problem:** The `PostCard.vue` component (126 lines) shows minimal information before clicking into a post. Content is stripped of HTML and clamped to 6 lines with a gradient fade. There are no images, no post-level reactions, and no engagement metrics beyond comment count and view count.
 
 ### Affected Files
 
@@ -187,23 +85,25 @@ Content preview (text only, line-clamp-6, gradient fade)...
 
 **3.1 — Extract first image from post content**
 
-Add a utility function in `src/utils/` or directly in `PostCard.vue`:
+> **Note:** Avoid regex-based HTML parsing (`/<img[^>]+src="([^"]+)"/`) — it is fragile. Prefer `DOMParser` in the browser, or better yet, extract and store the first image URL on the backend when a post is saved (add a `thumbnail_url` column).
+
+**Browser-side approach (if backend change is out of scope):**
 
 ```typescript
 function extractFirstImage(html: string): string | null {
-  const match = html.match(/<img[^>]+src="([^"]+)"/)
-  return match ? match[1] : null
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const img = doc.querySelector('img')
+  return img?.getAttribute('src') ?? null
 }
 ```
 
-If an image is found, display it as a thumbnail on the right side of the card (similar to Reddit/Facebook link previews) or as a full-width banner above the content.
+If an image is found, display it as a thumbnail on the right side of the card or as a full-width banner above the content.
 
 **3.2 — Increase content preview**
 
-Change the default line clamp from 6 to a more generous value, or switch to a character-based truncation (~300 characters) to show more meaningful content:
+Change the default line clamp from 6 to 8, or switch to character-based truncation (~300 characters):
 
 ```vue
-<!-- PostCard.vue: change line 80 area -->
 <p class="text-sm text-muted line-clamp-8">
   {{ stripHtml(post.content).slice(0, 300) }}
 </p>
@@ -211,13 +111,11 @@ Change the default line clamp from 6 to a more generous value, or switch to a ch
 
 **3.3 — Add engagement metrics to card footer**
 
-Redesign the footer to show richer information:
+Redesign the footer to show richer information (requires post-level reactions from [Section 5](#5-post-level-reactions)):
 
 ```
 LIKE 12  SMILE 3  CRY 1    |    [chat] 5 comments    [eye] 120    Last reply 2h ago
 ```
-
-This requires post-level reactions (see [Section 6](#6-post-level-reactions-and-inline-comments)).
 
 **3.4 — Show author context**
 
@@ -244,22 +142,13 @@ Think Facebook post card:
 |------|-------|------|
 | `src/views/HomeView.vue` | 1-292 | Home page (authenticated + unauthenticated) |
 
-### Current Layout (Authenticated User)
+### Backend Status
 
-```
-+------------------------------------------+
-| Welcome back, {name}                     |
-| [Browse Forum]  [My SIGs]               |
-+------------------------------------------+
-| Guest warning (if guest)                 |
-| Guest membership form (if guest)         |
-+------------------------------------------+
-| Recent Posts (5 items)     | Notifications|
-|                            | Quick Links  |
-+------------------------------------------+
-```
+- `GET /posts/trending` — **already exists** (top 5 posts, last 7 days, by comments+views)
+- `GET /sigs/my` — **already exists** (returns user's joined SIGs with `my_role`)
+- Public stats endpoint — **missing** (see [Section 17](#17-public-stats-api-endpoint-backend))
 
-### Proposed Layout
+### Proposed Layout (Authenticated)
 
 ```
 +------------------------------------------+
@@ -284,25 +173,15 @@ Think Facebook post card:
 
 **4.1 — Community statistics widget**
 
-Create a new component `src/components/CommunityStats.vue` that shows real data. The admin dashboard API already returns stats — create a lightweight public endpoint or reuse existing data:
-
-- Total members (from user count)
-- Total posts (from post count)
-- Active SIGs (from SIG count)
-
-Display as a compact card with icon + number + label in a vertical stack.
+Create `src/components/CommunityStats.vue`. Requires a public stats endpoint ([Section 17](#17-public-stats-api-endpoint-backend)) or reuse admin dashboard data for authenticated users.
 
 **4.2 — Trending posts section**
 
-The backend already has `GET /posts?sort=trending` support (or can be added). Show 3-5 posts sorted by engagement (comments + views) from the last 7 days. Use `PostCard` with `contentClamp: 3` for a compact view.
+Use the existing `GET /posts/trending` endpoint. Show 3-5 posts with `PostCard` using a compact `contentClamp: 3`.
 
 **4.3 — User's SIGs section**
 
-Fetch the SIGs the current user has joined (`GET /sigs?member=true` or filter from `/sigs`). Show as small cards with:
-- SIG name
-- Member count
-- Latest post title
-- Quick "View" link
+Use the existing `GET /sigs/my` endpoint. Show as small cards with SIG name, member count, and quick "View" link.
 
 **4.4 — Featured SIGs sidebar**
 
@@ -310,204 +189,23 @@ Show 3 most active or newest SIGs for users who haven't joined many groups. Acts
 
 **4.5 — Unauthenticated landing page**
 
-Replace the hardcoded stat cards ("Open Community", "Academic Focus", "Global Network") with real numbers fetched from a public stats endpoint.
+Replace the hardcoded feature cards ("Open Community", "Academic Focus", "Global Network") with real numbers once the public stats endpoint exists.
 
 ### Priority
 
-Start with 4.1 (stats) and 4.2 (trending) — they add the most value with the least effort.
+Start with 4.2 (trending — endpoint exists) and 4.3 (my SIGs — endpoint exists). They add the most value with existing backend support.
 
 ---
 
-## 5. Internationalization (i18n) and Language Switcher
+## 5. Post-Level Reactions
 
-**Problem:** All UI text is hardcoded in English across 51 Vue files (~500-700 strings). There is no i18n infrastructure, no translation files, and no language switcher.
+**Problem:** Users must click into a post to leave a reaction. Reactions (LIKE, SMILE, CRY) only exist on comments, not on posts themselves. This creates friction for quick engagement.
 
-### Current State
+### Dependency Note
 
-- **No i18n library** installed
-- **No locale files** or translation directories
-- **~51 Vue files** with hardcoded English strings
-- Strings are in templates, computed properties, error handlers, and object literals
+This task is a **prerequisite** for Section 3.3 (post card engagement metrics). Complete this first.
 
-### Affected Files (All Vue files, highest priority first)
-
-| File | Estimated Strings | Complexity |
-|------|------------------|------------|
-| `src/views/admin/UsersView.vue` | 80+ | High |
-| `src/views/forum/ForumView.vue` | 60+ | High |
-| `src/views/forms/FormBuilderView.vue` | 60+ | High |
-| `src/components/AppNavbar.vue` | 40+ | Medium |
-| `src/views/ProfileView.vue` | 50+ | High |
-| `src/views/auth/LoginView.vue` | 20+ | Low |
-| `src/views/auth/RegisterView.vue` | 25+ | Low |
-| All other views and components | 200+ | Varies |
-
-### Implementation Plan
-
-This is a large task. Break it into phases and assign to multiple contributors.
-
-#### Phase 1 — Setup (1 PR)
-
-**1.1 Install vue-i18n:**
-
-```bash
-cd frontend
-npm install vue-i18n@11
-```
-
-**1.2 Create locale directory structure:**
-
-```
-src/
-  locales/
-    en/
-      common.ts      # Shared: buttons, labels, errors
-      nav.ts         # Navigation labels
-      auth.ts        # Login, register, password
-      forum.ts       # Forum, posts, comments
-      admin.ts       # Admin panel strings
-      sigs.ts        # SIG-related strings
-      forms.ts       # Form builder strings
-      notifications.ts
-    zh-TW/           # Future: Traditional Chinese
-      ...same files...
-    index.ts         # Merges all locale modules, exports i18n instance
-```
-
-**1.3 Initialize in `main.ts`:**
-
-```typescript
-import { createI18n } from 'vue-i18n'
-import en from '@/locales/en'
-
-const i18n = createI18n({
-  legacy: false,            // Composition API mode
-  locale: 'en',
-  fallbackLocale: 'en',
-  messages: { en }
-})
-
-app.use(i18n)
-```
-
-**1.4 Create a composable helper:**
-
-```typescript
-// src/composables/useLocale.ts
-import { useI18n } from 'vue-i18n'
-
-export function useLocale() {
-  const { t, locale } = useI18n()
-
-  function setLocale(lang: string) {
-    locale.value = lang
-    localStorage.setItem('locale', lang)
-  }
-
-  return { t, locale, setLocale }
-}
-```
-
-#### Phase 2 — String Extraction (Multiple PRs, one domain per PR)
-
-For each domain (auth, forum, admin, etc.), create a PR that:
-
-1. Extracts all hardcoded strings into the corresponding locale file
-2. Replaces template strings with `{{ t('key') }}`
-3. Replaces script strings with `const { t } = useI18n()`
-4. Updates tests to provide the i18n plugin in test mounts
-
-**Example — Before:**
-```vue
-<BaseButton>Log In</BaseButton>
-<p v-if="error">Login failed. Please try again.</p>
-```
-
-**Example — After:**
-```vue
-<BaseButton>{{ t('auth.login') }}</BaseButton>
-<p v-if="error">{{ t('auth.loginFailed') }}</p>
-```
-
-**String key conventions:**
-- Use dot-notation namespacing: `domain.section.key`
-- Use camelCase for keys: `auth.loginFailed`, not `auth.login-failed`
-- Keep keys short but descriptive
-- Group related strings under common parents
-
-#### Phase 3 — Language Switcher UI (1 PR)
-
-Add a language dropdown in `src/components/AppNavbar.vue` between the notification bell and user dropdown:
-
-```vue
-<!-- Desktop -->
-<button @click="toggleLangMenu" class="text-sm px-2 py-1 rounded hover:bg-surface-alt">
-  {{ currentLocaleLabel }}
-</button>
-
-<!-- Dropdown -->
-<div v-if="langMenuOpen" class="absolute right-0 mt-2 w-32 bg-surface border rounded shadow-lg">
-  <button @click="setLocale('en')">English</button>
-  <button @click="setLocale('zh-TW')">繁體中文</button>
-</div>
-```
-
-Persist the selection to `localStorage` and read it on app startup.
-
-#### Phase 4 — Add Translation Files (Per language)
-
-Once the English keys are extracted, contributors can add translation files for other languages by copying `src/locales/en/` and translating each value.
-
-### Testing Considerations
-
-All existing Vitest tests that mount Vue components will need the i18n plugin injected. Create a test helper:
-
-```typescript
-// tests/helpers/i18n.ts
-import { createI18n } from 'vue-i18n'
-import en from '@/locales/en'
-
-export const testI18n = createI18n({
-  legacy: false,
-  locale: 'en',
-  messages: { en }
-})
-```
-
-Use in tests:
-```typescript
-mount(Component, { global: { plugins: [testI18n] } })
-```
-
----
-
-## 6. Post-Level Reactions and Inline Comments
-
-**Problem:** Users must click into a post to leave a comment or react. Reactions (LIKE, SMILE, CRY) only exist on comments, not on posts themselves. This creates friction for quick engagement.
-
-### Affected Files
-
-**Frontend:**
-
-| File | Lines | Role |
-|------|-------|------|
-| `src/components/PostCard.vue` | 1-126 | Post preview card (no reactions) |
-| `src/views/forum/PostDetailView.vue` | 1-982 | Post detail with comment reactions |
-| `src/types/post.ts` | 1-36 | Post type (no reactions field) |
-| `src/types/comment.ts` | 1-13 | Comment type (has reactions) |
-| `src/api/posts.ts` | — | Post API module |
-| `src/api/comments.ts` | 1-42 | Comment API (has reaction toggle) |
-
-**Backend:**
-
-| File | Lines | Role |
-|------|-------|------|
-| `app/api/v1/endpoints/posts.py` | 1-226 | Post endpoints (no reaction endpoint) |
-| `app/api/v1/endpoints/comments.py` | 1-119 | Comment endpoints (has reaction toggle) |
-| `app/repositories/comment_repo.py` | 174-216 | Reaction toggle logic (JSONB update) |
-| `app/schemas/post.py` | 49-64 | PostResponse (no reactions field) |
-
-### Current Reaction Architecture
+### Current Reaction Architecture (Comments)
 
 Reactions are stored as JSONB on the `comments` table:
 ```json
@@ -516,67 +214,75 @@ Reactions are stored as JSONB on the `comments` table:
 
 Available types: `LIKE`, `SMILE`, `CRY` (validated in `app/schemas/comment.py:39`).
 
-Toggle logic in `comment_repo.py:174-216`:
+Toggle logic in `comment_repo.py:177-219`:
 1. Lock row with `SELECT ... FOR UPDATE`
 2. Parse JSONB reactions
 3. Add or remove user ID from the reaction array
 4. Remove empty reaction keys
 5. Write back to DB
 
+### Affected Files
+
+**Backend:**
+
+| File | Role |
+|------|------|
+| `app/api/v1/endpoints/posts.py` | Post endpoints (no reaction endpoint yet) |
+| `app/repositories/post_repo.py` | Post repo (no reaction method yet) |
+| `app/repositories/comment_repo.py:177-219` | Existing reaction toggle pattern to reuse |
+| `app/schemas/post.py` | PostResponse (no reactions field yet) |
+| `app/schemas/comment.py:39` | ReactionRequest schema (reuse) |
+
+**Frontend:**
+
+| File | Role |
+|------|------|
+| `src/components/PostCard.vue` | Post preview card (no reactions) |
+| `src/types/post.ts` | Post type (no reactions field) |
+| `src/api/posts.ts` | Post API module |
+
 ### Implementation Plan
 
-#### 6.1 — Backend: Add post-level reactions
+#### 5.1 — Backend
 
-**Step 1 — Database migration:**
+**Step 1 — Database migration:** Add `reactions JSONB` to `posts` table.
 
-Create a new Alembic migration to add a `reactions` JSONB column to the `posts` table:
-
-```python
-op.add_column('posts', sa.Column('reactions', sa.JSON(), nullable=True))
-```
-
-**Step 2 — Update PostResponse schema (`app/schemas/post.py`):**
-
-Add to the `PostResponse` class:
-```python
-reactions: dict[str, list[str]] | None = None
-```
-
-**Step 3 — Create reaction endpoint (`app/api/v1/endpoints/posts.py`):**
+**Step 2 — Extract shared helper:** Create `app/repositories/reaction_helpers.py`:
 
 ```python
-@router.post("/{post_id}/reactions")
-async def toggle_post_reaction(
-    post_id: str,
-    body: ReactionToggle,  # reuse from comment schema
-    current_user = Depends(get_current_user),
-    conn = Depends(get_connection)
-):
-    ...
-```
-
-**Step 4 — Add repository method (`app/repositories/post_repo.py`):**
-
-Reuse the same JSONB toggle pattern from `comment_repo.py:174-216`. Consider extracting a shared helper to avoid duplication:
-
-```python
-# app/repositories/reaction_helpers.py
 async def toggle_reaction_jsonb(
     conn, table: str, row_id: str, user_id: str, reaction_type: str
 ) -> dict:
     ...
 ```
 
-#### 6.2 — Frontend: Post reactions on PostCard
+Refactor `comment_repo.py` to use this shared helper too.
+
+**Step 3 — Update PostResponse schema** — add `reactions: dict[str, list[str]] | None = None`
+
+**Step 4 — Create endpoint:**
+
+```python
+@router.post("/{post_id}/reactions")
+async def toggle_post_reaction(
+    post_id: str,
+    body: ReactionRequest,  # reuse from comment schema
+    current_user = Depends(get_current_user),
+    conn = Depends(get_connection)
+):
+    ...
+```
+
+> **Route ordering:** Place this route BEFORE `/{post_id}` param routes to avoid 422 errors.
+
+#### 5.2 — Frontend
 
 **Step 1 — Update Post type (`src/types/post.ts`):**
-
 ```typescript
 reactions: Record<string, string[]> | null
 ```
 
 **Step 2 — Add API function (`src/api/posts.ts`):**
-
 ```typescript
 export function togglePostReaction(postId: string, reactionType: string) {
   return api.post(`/posts/${postId}/reactions`, { reaction_type: reactionType })
@@ -584,8 +290,6 @@ export function togglePostReaction(postId: string, reactionType: string) {
 ```
 
 **Step 3 — Add reaction bar to `PostCard.vue`:**
-
-Below the existing footer divider, add reaction buttons:
 
 ```vue
 <div class="flex items-center gap-2 px-4 pb-2">
@@ -603,57 +307,485 @@ Below the existing footer divider, add reaction buttons:
 </div>
 ```
 
-Use `@click.stop` to prevent the card click (navigation to detail) from firing.
+Use `@click.stop` to prevent card click (navigation) from firing.
 
-**Step 4 — Optimistic UI update:**
+**Step 4 — Optimistic UI update** with rollback on API failure.
 
-Instead of refetching all posts after a reaction toggle, update the local state immediately:
+---
+
+## 6. Internationalization (i18n) and Language Switcher
+
+**Problem:** All UI text is hardcoded in English across ~54 Vue files (~500-700 strings). There is no i18n infrastructure, no translation files, and no language switcher.
+
+> **Recommendation:** This is the largest task (~30-50 hours). Only start if there is a confirmed need for multi-language support. The setup phase (Phase 1) can be done independently.
+
+### Implementation Plan
+
+#### Phase 1 — Setup (1 PR)
+
+1. Install `vue-i18n@11`
+2. Create `src/locales/en/` directory with domain-based files (common, nav, auth, forum, admin, sigs, forms, notifications)
+3. Initialize in `main.ts` with `legacy: false` (Composition API mode)
+4. Create `src/composables/useLocale.ts` helper
+5. Create test helper for injecting i18n plugin in Vitest mounts
+
+#### Phase 2 — String Extraction (Multiple PRs, one domain per PR)
+
+For each domain, extract hardcoded strings into locale files and replace with `t('key')` calls.
+
+**String key conventions:**
+- Dot-notation namespacing: `domain.section.key`
+- camelCase keys: `auth.loginFailed`
+- Short but descriptive
+
+#### Phase 3 — Language Switcher UI (1 PR)
+
+Add language dropdown in `AppNavbar.vue`. Persist to `localStorage`.
+
+#### Phase 4 — Translation Files (Per language)
+
+Copy `src/locales/en/` and translate each value.
+
+### Testing Impact
+
+All 391 Vitest tests that mount Vue components will need the i18n plugin injected. Use a shared test helper.
+
+---
+
+## 7. Silent Error Handling — Toast Notifications
+
+**Problem:** 11+ views silently swallow API errors in `catch` blocks, leaving users with blank content and no feedback. The platform already has a working toast system (`useToastStore`) — it's just not used consistently.
+
+### Affected Files
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/views/NotificationsView.vue` | 50, 66, 78 | Silent catch on fetch/mark-read/mark-all |
+| `src/views/sigs/SigsDirectoryView.vue` | 36 | Silent catch on SIG list fetch |
+| `src/views/HomeView.vue` | 50 | Silent catch on recent posts fetch |
+| `src/views/admin/AdminDashboardView.vue` | 19 | Silent catch on stats fetch |
+| `src/views/forum/PostCreateView.vue` | 91, 99 | Silent catch on category/SIG fetch |
+| `src/views/admin/ReportsView.vue` | 29, 40 | Silent catch on fetch + review action |
+| `src/views/admin/InviteCodesView.vue` | 29 | Silent catch on codes fetch |
+| `src/views/sigs/SigPostsView.vue` | 29 | console.error only, no user feedback |
+| `src/views/sigs/SigMembersView.vue` | 48 | console.error only, no user feedback |
+| `src/views/forum/ForumView.vue` | 58, 66, 96, 130 | console.error only |
+| `src/views/sigs/SigLayout.vue` | 70 | console.error only |
+| `src/views/UserProfileView.vue` | 77 | console.error only |
+
+### Implementation Plan
+
+For each silent catch block, add toast feedback using the existing pattern:
 
 ```typescript
-function toggleReaction(type: string) {
-  const reactions = { ...(post.reactions || {}) }
-  const users = reactions[type] || []
-  if (users.includes(currentUserId)) {
-    reactions[type] = users.filter(id => id !== currentUserId)
-  } else {
-    reactions[type] = [...users, currentUserId]
-  }
-  // Update locally first, then call API
-  emit('update:reactions', reactions)
-  togglePostReaction(post.id, type).catch(() => {
-    // Revert on failure
-  })
+import { useToastStore } from '@/stores/toast'
+import { getErrorMessage } from '@/utils/error'
+
+const toast = useToastStore()
+
+// In catch block:
+catch (e: unknown) {
+  toast.show(getErrorMessage(e, 'Failed to load data.'), 'error')
 }
 ```
 
-#### 6.3 — Inline quick comment (Optional, lower priority)
+**For fetch errors** (data loading): Show error toast + set an `error` ref to display inline error state.
 
-Adding full inline commenting from the list view is complex. A simpler approach:
+**For action errors** (save, delete, update): Show error toast only — the user can retry.
 
-**Quick comment input:** Add a collapsed text input at the bottom of `PostCard.vue` that expands on click. When submitted, it posts a top-level comment via the existing `POST /posts/{post_id}/comments` endpoint and increments the local comment count.
+### Effort: 1-2 hours | Impact: High
 
-This can be a follow-up PR after post-level reactions are working.
+---
+
+## 8. Confirmation Dialogs for Destructive Actions
+
+**Problem:** Two destructive actions lack confirmation dialogs — member removal and SIG leave. The platform already uses `BaseModal` for confirmation elsewhere (post delete, account delete, category delete, etc.).
+
+### Affected Files
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/views/sigs/SigMembersView.vue` | 59-66 | `removeMember()` — no confirmation, removes immediately |
+| `src/views/sigs/SigLayout.vue` | 119-121 | `leaveSig()` — no confirmation, leaves immediately |
+
+### Implementation Plan
+
+Follow the existing pattern used in `PostDetailView.vue` and `CategoriesView.vue`:
+
+1. Add a `confirmAction` ref to store pending action details
+2. Show `BaseModal` with warning message and Cancel/Confirm buttons
+3. Execute action only on confirm
+
+### Effort: 30 min | Impact: Medium (prevents accidental data loss)
+
+---
+
+## 9. Image Lazy Loading and Fallbacks
+
+**Problem:** No images in the app use `loading="lazy"` or explicit `width/height` attributes. All images load immediately on page render regardless of viewport position, and there are no error fallbacks.
+
+### Affected Files
+
+| File | Element | Issue |
+|------|---------|-------|
+| `src/components/base/BaseAvatar.vue` | Avatar images | No lazy loading, no error fallback |
+| `src/views/forms/FormView.vue:212` | Banner image | No lazy loading |
+| `src/views/forms/FormBuilderView.vue:243,488` | Banner images | No lazy loading |
+| `src/views/ProfileView.vue:286` | Avatar preview | No lazy loading |
+| `src/views/AboutView.vue:79` | Contributor avatars | No lazy loading (multiple images) |
+| `src/views/NotificationsView.vue:196` | Notification avatars | No lazy loading |
+
+### Implementation Plan
+
+**9.1 — Add `loading="lazy"` to all off-viewport images.**
+
+Exception: above-the-fold images (e.g., the user's own avatar in navbar) should keep eager loading.
+
+**9.2 — Add `width` and `height` attributes** to prevent Cumulative Layout Shift (CLS).
+
+**9.3 — Add `@error` fallback handler** on `<img>` tags to show a placeholder when images fail to load.
+
+```vue
+<img
+  :src="avatarUrl"
+  loading="lazy"
+  width="40"
+  height="40"
+  @error="(e: Event) => (e.target as HTMLImageElement).src = '/fallback-avatar.svg'"
+  class="w-10 h-10 object-cover rounded-full"
+/>
+```
+
+### Effort: 1 hour | Impact: Medium (performance + robustness)
+
+---
+
+## 10. Breadcrumb Navigation
+
+**Problem:** A `BaseBreadcrumb.vue` component exists in the codebase but is **never used** in any view. Users have no contextual navigation path and rely on hardcoded "Back" links that always point to `/forum`.
+
+### Affected Files
+
+| File | Issue |
+|------|-------|
+| `src/components/base/BaseBreadcrumb.vue` | Exists but unused |
+| `src/views/ProfileView.vue:231` | Hardcoded "Back to Forum" link |
+| `src/views/UserProfileView.vue:111` | Hardcoded "Back to Forum" link |
+
+### Implementation Plan
+
+Add `BaseBreadcrumb` to key views:
+
+| View | Breadcrumb Path |
+|------|----------------|
+| PostDetailView | Home > Forum > [Category] > Post Title |
+| ProfileView | Home > My Profile |
+| UserProfileView | Home > Forum > [User Name] |
+| SigLayout (children) | Home > SIGs > [SIG Name] > Posts/Members/Forms |
+| Admin pages | Admin > [Page Name] |
+| FormBuilderView | Home > SIGs > [SIG Name] > Forms > [Form Title] |
+
+### Effort: 2-3 hours | Impact: Medium (navigation clarity)
+
+---
+
+## 11. Accessibility Improvements
+
+**Problem:** Several interactive elements lack ARIA attributes, making the platform harder to use with screen readers and keyboard navigation.
+
+### Issues by File
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/views/forms/FormBuilderView.vue` | 310-330 | Move/delete buttons (↑ ↓ ×) have no `aria-label` |
+| `src/views/forms/FormBuilderView.vue` | 394-408 | Choice option inputs have no labels |
+| `src/views/forms/FormView.vue` | 325-340 | Rating buttons lack `aria-label` and `aria-pressed` |
+| `src/views/forms/FormView.vue` | 261 | Required fields: `*` only, no `aria-required="true"` |
+| `src/views/NotificationsView.vue` | 147-173 | Filter tabs missing `aria-selected` |
+| `src/components/base/BasePagination.vue` | 49-60 | Active page missing `aria-current="page"` |
+| `src/components/base/BaseModal.vue` | 109-110 | `aria-labelledby` undefined when no title |
+
+### Implementation Plan
+
+Each item is a small, independent fix. Can be batched into one PR:
+
+1. Add `aria-label="Move question up/down"` and `aria-label="Delete question"` to FormBuilder buttons
+2. Add `aria-label="Option N"` to choice input fields
+3. Add `aria-label="Rate N out of M"` and `aria-pressed` to rating buttons
+4. Add `aria-required="true"` to required form inputs
+5. Add `aria-selected` to notification filter tabs
+6. Add `aria-current="page"` to active pagination button
+7. Ensure BaseModal always has a valid `aria-labelledby` target
+
+### Effort: 1-2 hours | Impact: High (WCAG compliance)
+
+---
+
+## 12. Empty State Consistency
+
+**Problem:** Some list views show styled `EmptyState` components when data is empty, while others use plain text. The experience is inconsistent.
+
+### Affected Files
+
+| File | Lines | Current | Recommended |
+|------|-------|---------|-------------|
+| `src/views/forum/PostDetailView.vue` | 257-259 | Plain text "No comments yet." | `EmptyState` with CTA |
+| `src/views/sigs/SigFormsView.vue` | 196-197 | Plain text "No one has responded..." | `EmptyState` component |
+| `src/views/forms/FormView.vue` | 572-574 | Plain text "No questions added yet" | `EmptyState` with icon |
+| `src/views/sigs/SigsDirectoryView.vue` | — | No empty state for search results | Add "No SIGs found" |
+
+### Implementation Plan
+
+Replace plain text with the existing `EmptyState` component pattern used elsewhere in the app. Include an icon, a title, and a helpful message or CTA.
+
+### Effort: 30 min | Impact: Low (visual polish)
+
+---
+
+## 13. Page Transition Animations
+
+**Problem:** `App.vue:41` wraps `<RouterView>` in `<Transition name="page" mode="out-in">` but no `.page-enter-active` / `.page-leave-active` CSS classes are defined. Route changes have no visual transition.
+
+### Affected Files
+
+| File | Lines | Role |
+|------|-------|------|
+| `src/App.vue` | 41 | Transition wrapper (name="page") |
+| `src/style.css` | — | Missing transition CSS |
+
+### Implementation Plan
+
+Add to `src/style.css`:
+
+```css
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+```
+
+Keep it subtle (150ms opacity fade). Avoid slide animations — they feel sluggish on fast navigations.
+
+### Effort: 10 min | Impact: Low (perceived polish)
+
+---
+
+## 14. Responsive Breakpoint Gaps
+
+**Problem:** Several views jump from single-column to multi-column layout at `lg:` (1024px) with no intermediate `md:` (768px) breakpoint. Tablets get either a cramped multi-column or an unnecessarily wide single-column.
+
+### Affected Files
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/views/HomeView.vue` | 68 | `grid-cols-1 lg:grid-cols-3` — no `md:` |
+| `src/views/forms/FormBuilderView.vue` | 334-357 | `grid-cols-1 sm:grid-cols-3` — jumps too early |
+| `src/views/ProfileView.vue` | 226 | Only `lg:px-layout` — no `md:` padding |
+| `src/views/forum/ForumView.vue` | 352 | Right sidebar fixed `w-[280px]` — not responsive |
+
+### Implementation Plan
+
+Add `md:` breakpoint variants where only `lg:` exists. Example for HomeView:
+
+```vue
+<!-- Before -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+<!-- After -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+```
+
+### Effort: 1-2 hours | Impact: Medium (tablet UX)
+
+---
+
+## 15. Forum Search UX
+
+**Problem:** Forum search triggers only on Enter key with no debounce, no loading indicator during search, and no search suggestions. The `UsersView.vue` admin search has a proper 300ms debounce — the forum should follow the same pattern.
+
+### Affected Files
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/views/forum/ForumView.vue` | 232-245 | Search on Enter only, no debounce |
+| `src/views/forum/ForumView.vue` | 250-281 | Advanced filters with no debounce |
+
+### Implementation Plan
+
+**15.1 — Add debounce to search input** (300ms, matching UsersView pattern).
+
+**15.2 — Add loading spinner** next to search input while API request is in-flight.
+
+**15.3 — (Optional) Search suggestions** — requires backend endpoint (see [Section 19](#19-search-suggestions-api-backend)).
+
+### Effort: 1 hour (15.1 + 15.2) | Impact: Medium
+
+---
+
+## 16. Pagination Enhancements
+
+**Problem:** `BasePagination.vue` shows page numbers and prev/next buttons but lacks "Showing X-Y of Z" context, page size selector, and mobile-optimized display.
+
+### Affected Files
+
+| File | Role |
+|------|------|
+| `src/components/base/BasePagination.vue` | Shared pagination component |
+| `src/composables/usePagination.ts` | Pagination composable |
+
+### Implementation Plan
+
+**16.1 — Add result count text:** "Showing 1-20 of 150" below or above pagination buttons.
+
+**16.2 — Mobile-optimize:** On narrow screens, show only prev/next + current page indicator instead of all page numbers.
+
+**16.3 — (Optional) Page size selector:** Allow users to choose 10/20/50 items per page.
+
+### Effort: 1-2 hours | Impact: Low-Medium
+
+---
+
+## 17. Public Stats API Endpoint (Backend)
+
+**Problem:** The admin dashboard has stats (user/post/SIG counts) but they're admin-only. The home page needs public-accessible community stats for both authenticated and unauthenticated users.
+
+### Affected Files
+
+| File | Role |
+|------|------|
+| `backend/app/api/v1/endpoints/admin.py:15-20` | Existing admin-only stats |
+| `backend/app/repositories/dashboard_repo.py` | Has all count functions |
+
+### Implementation Plan
+
+Create a lightweight public endpoint:
+
+```python
+# app/api/v1/endpoints/public.py (new file)
+@router.get("/stats")
+async def get_public_stats(conn=Depends(get_connection)):
+    return {
+        "member_count": await dashboard_repo.get_user_count(conn),
+        "post_count": await dashboard_repo.get_post_count(conn),
+        "sig_count": await dashboard_repo.get_sig_count(conn),
+    }
+```
+
+Register in the API router under `/public/stats`. No authentication required.
+
+**Cache consideration:** Add a 5-minute in-memory cache since stats don't change frequently.
+
+### Effort: 30 min | Impact: Enables Home Page Enhancement (Section 4)
+
+---
+
+## 18. User Preferences API (Backend)
+
+**Problem:** No backend support for storing user preferences (theme, language, notification settings). All preferences are currently client-side only (localStorage).
+
+### Implementation Plan
+
+**Step 1 — Create `user_preferences` table:**
+
+```sql
+CREATE TABLE user_preferences (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    theme VARCHAR(10) DEFAULT 'light',
+    language VARCHAR(10) DEFAULT 'en',
+    notify_mentions BOOLEAN DEFAULT TRUE,
+    notify_replies BOOLEAN DEFAULT TRUE,
+    notify_sig_posts BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**Step 2 — Create endpoint:** `GET/PUT /users/me/preferences`
+
+**Step 3 — Return preferences in auth response** so the frontend can apply them on login.
+
+### Effort: 3-4 hours | Impact: Medium (enables i18n, dark mode, notification control)
+
+---
+
+## 19. Search Suggestions API (Backend)
+
+**Problem:** No autocomplete/suggestions endpoint exists. Users must type full queries and wait for results.
+
+### Implementation Plan
+
+Create lightweight suggestion endpoints:
+
+```python
+@router.get("/posts/suggestions")
+async def search_suggestions(q: str = Query(min_length=2), limit: int = 5):
+    # Return matching post titles and keywords using ILIKE or trigram similarity
+    ...
+```
+
+Use PostgreSQL `pg_trgm` extension for fuzzy matching if available, otherwise simple `ILIKE '%query%'`.
+
+### Effort: 2-3 hours | Impact: Medium (better search UX)
+
+---
+
+## 20. SIG Members Pagination
+
+**Problem:** `SigMembersView.vue` loads **all members at once** via `getSigMembers()` without pagination. This works for small SIGs but will cause performance issues as membership grows.
+
+### Affected Files
+
+| File | Role |
+|------|------|
+| `src/views/sigs/SigMembersView.vue:44` | Frontend — fetches all members |
+| `backend/app/api/v1/endpoints/sigs.py` | Backend — members endpoint |
+
+### Implementation Plan
+
+1. Add `page` and `page_size` query params to the backend members endpoint
+2. Return paginated response with `total` and `items`
+3. Use `usePagination` composable in `SigMembersView.vue`
+
+### Effort: 1-2 hours | Impact: Medium (scalability)
 
 ---
 
 ## Priority Order
 
-| Priority | Task | Effort | Impact |
-|----------|------|--------|--------|
-| 1 | Admin sidebar layout shift | 15 min | Quick win, eliminates visual bug |
-| 2 | Forum post card richer preview | 2-4 hours | Immediate UX improvement |
-| 3 | Home page enhancement | 4-8 hours | Better first impression |
-| 4 | Post-level reactions | 6-10 hours | More engagement (backend + frontend) |
-| 5 | SIG detail page redesign | 8-12 hours | Better information architecture |
-| 6 | i18n and language switcher | 30-50 hours | Large, can be phased across sprints |
+| Priority | Task | Effort | Impact | Scope |
+|----------|------|--------|--------|-------|
+| 1 | **#7** Silent error handling → toasts | 1-2h | High | Frontend |
+| 2 | **#13** Page transition CSS | 10 min | Low | Frontend |
+| 3 | **#8** Confirmation dialogs (SIG member/leave) | 30 min | Medium | Frontend |
+| 4 | **#12** Empty state consistency | 30 min | Low | Frontend |
+| 5 | **#9** Image lazy loading + fallbacks | 1h | Medium | Frontend |
+| 6 | **#11** Accessibility (ARIA) improvements | 1-2h | High | Frontend |
+| 7 | **#17** Public stats API | 30 min | Medium | Backend |
+| 8 | **#3** Forum post card richer preview | 2-4h | High | Frontend |
+| 9 | **#5** Post-level reactions | 6-10h | High | Full-stack |
+| 10 | **#4** Home page enhancement | 4-8h | High | Frontend |
+| 11 | **#10** Breadcrumb navigation | 2-3h | Medium | Frontend |
+| 12 | **#14** Responsive breakpoint gaps | 1-2h | Medium | Frontend |
+| 13 | **#15** Forum search UX (debounce) | 1h | Medium | Frontend |
+| 14 | **#16** Pagination enhancements | 1-2h | Low-Medium | Frontend |
+| 15 | **#20** SIG members pagination | 1-2h | Medium | Full-stack |
+| 16 | **#18** User preferences API | 3-4h | Medium | Backend |
+| 17 | **#19** Search suggestions API | 2-3h | Medium | Backend |
+| 18 | **#6** i18n and language switcher | 30-50h | High | Full-stack |
 
 ---
 
 ## General Guidelines
 
 - **One PR per task** (or per sub-task for larger items)
-- **Branch naming:** `feat/ux-admin-sidebar`, `feat/ux-post-reactions`, etc.
+- **Branch naming:** `feat/ux-error-toasts`, `feat/ux-post-reactions`, `fix/ux-a11y-aria`, etc.
 - **Test coverage:** Add or update Vitest tests for any new components or changed behavior
 - **Mobile responsiveness:** All changes must work on screens down to 375px width
 - **Accessibility:** Maintain keyboard navigation and ARIA attributes
 - **No Chinese in UI:** All user-facing text must be in English (translations come later via i18n)
+- **Use existing patterns:** The codebase has `getErrorMessage()`, `useToastStore()`, `usePagination()`, `BaseModal`, `EmptyState`, `BaseBreadcrumb` — use them instead of creating new utilities
+- **TypeScript:** Avoid `any` — use proper types. Use `e: unknown` in catch blocks

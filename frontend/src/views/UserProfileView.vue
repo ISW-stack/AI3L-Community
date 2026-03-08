@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { usePagination } from '@/composables/usePagination'
 import type { PublicUser, Post } from '@/types'
@@ -14,6 +15,7 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 
@@ -109,15 +111,15 @@ onMounted(() => {
           to="/forum"
           class="text-sm text-brand-600 hover:underline flex items-center gap-1"
         >
-          <span>&larr;</span> Back
+          <span>&larr;</span> {{ t('userProfile.backBtn') }}
         </router-link>
       </div>
 
       <SkeletonLoader v-if="loading" :lines="2" variant="card" />
 
       <div v-else-if="!user" class="text-center py-12">
-        <p class="text-muted mb-4">User not found.</p>
-        <router-link to="/forum" class="text-brand-600 hover:underline">Back to Forum</router-link>
+        <p class="text-muted mb-4">{{ t('userProfile.notFound') }}</p>
+        <router-link to="/forum" class="text-brand-600 hover:underline">{{ t('userProfile.backToForum') }}</router-link>
       </div>
 
       <template v-else>
@@ -132,7 +134,7 @@ onMounted(() => {
               </div>
               <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
               <p class="text-xs text-muted">
-                Joined {{ new Date(user.created_at).toLocaleDateString() }}
+                {{ t('userProfile.joined') }} {{ new Date(user.created_at).toLocaleDateString() }}
               </p>
             </div>
             <router-link
@@ -140,32 +142,32 @@ onMounted(() => {
               to="/profile"
               class="text-sm text-brand-600 hover:underline shrink-0"
             >
-              Edit Profile
+              {{ t('userProfile.editProfileBtn') }}
             </router-link>
           </div>
 
           <!-- Info Cards -->
           <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
             <div v-if="user.bio" class="text-sm text-foreground/80">
-              <span class="font-medium text-foreground">Bio:</span> {{ user.bio }}
+              <span class="font-medium text-foreground">{{ t('userProfile.bio') }}</span> {{ user.bio }}
             </div>
             <div v-if="user.affiliation" class="text-sm text-foreground/80">
-              <span class="font-medium text-foreground">Affiliation:</span> {{ user.affiliation }}
+              <span class="font-medium text-foreground">{{ t('userProfile.affiliation') }}</span> {{ user.affiliation }}
             </div>
             <div v-if="user.orcid" class="text-sm text-foreground/80">
-              <span class="font-medium text-foreground">ORCID:</span> {{ user.orcid }}
+              <span class="font-medium text-foreground">{{ t('userProfile.orcid') }}</span> {{ user.orcid }}
             </div>
           </div>
         </BaseCard>
 
         <!-- Posts Feed -->
-        <h2 class="text-lg font-semibold text-foreground mb-4">Posts ({{ postsTotal }})</h2>
+        <h2 class="text-lg font-semibold text-foreground mb-4">{{ t('userProfile.postsTitle') }} ({{ postsTotal }})</h2>
 
         <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
         <EmptyState
           v-else-if="posts.length === 0"
-          title="No posts yet"
-          message="This user hasn't posted anything."
+          :title="t('userProfile.postsEmptyTitle')"
+          :message="t('userProfile.postsEmptyMessage')"
         />
 
         <div v-else class="space-y-4">

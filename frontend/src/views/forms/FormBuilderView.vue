@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { Question } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { getForm, createForm, updateForm } from '@/api/forms'
@@ -13,14 +14,16 @@ import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
+const { t } = useI18n()
+
 const QUESTION_TYPES = [
-  { value: 'text', label: 'Short Text' },
-  { value: 'textarea', label: 'Long Text' },
-  { value: 'single_choice', label: 'Single Choice' },
-  { value: 'multiple_choice', label: 'Multiple Choice' },
-  { value: 'dropdown', label: 'Dropdown' },
-  { value: 'rating', label: 'Rating' },
-  { value: 'file_upload', label: 'File Upload' },
+  { value: 'text', key: 'forms.builder.questionType.shortText' },
+  { value: 'textarea', key: 'forms.builder.questionType.longText' },
+  { value: 'single_choice', key: 'forms.builder.questionType.singleChoice' },
+  { value: 'multiple_choice', key: 'forms.builder.questionType.multipleChoice' },
+  { value: 'dropdown', key: 'forms.builder.questionType.dropdown' },
+  { value: 'rating', key: 'forms.builder.questionType.rating' },
+  { value: 'file_upload', key: 'forms.builder.questionType.fileUpload' },
 ]
 
 const route = useRoute()
@@ -98,7 +101,7 @@ async function uploadBanner(event: Event) {
     const data = await uploadEditorFile(file)
     bannerUrl.value = data.url
   } catch {
-    error.value = 'Failed to upload banner image.'
+    error.value = t('forms.builder.uploadBannerError')
   }
 }
 
@@ -129,7 +132,7 @@ async function fetchForm() {
       max_size_mb: q.max_size_mb ?? null,
     }))
   } catch {
-    error.value = 'Failed to load form.'
+    error.value = t('forms.builder.loadError')
   } finally {
     loading.value = false
   }
@@ -161,27 +164,27 @@ async function saveForm() {
   error.value = ''
   message.value = ''
   if (!title.value.trim()) {
-    error.value = 'Title is required.'
+    error.value = t('forms.builder.validation.titleRequired')
     return
   }
   if (questions.value.length === 0) {
-    error.value = 'At least one question is required.'
+    error.value = t('forms.builder.validation.questionRequired')
     return
   }
   for (const q of questions.value) {
     if (!q.label.trim()) {
-      error.value = 'All questions must have a label.'
+      error.value = t('forms.builder.validation.labelRequired')
       return
     }
     if (
       ['single_choice', 'multiple_choice', 'dropdown'].includes(q.type) &&
       (q.options?.length ?? 0) < 2
     ) {
-      error.value = `Question "${q.label}" needs at least 2 options.`
+      error.value = t('forms.builder.validation.optionsRequired', { label: q.label })
       return
     }
     if (q.type === 'rating' && (q.min ?? 1) >= (q.max ?? 5)) {
-      error.value = `Question "${q.label}": Minimum must be less than maximum.`
+      error.value = t('forms.builder.validation.ratingError', { label: q.label })
       return
     }
   }
@@ -198,15 +201,15 @@ async function saveForm() {
     if (isEdit.value) {
       if (!isSchemaLocked.value) payload.questions = questions.value.map(serializeQuestion)
       await updateForm(formId.value, payload)
-      message.value = 'Form updated successfully.'
+      message.value = t('forms.builder.updateSuccess')
     } else {
       payload.questions = questions.value.map(serializeQuestion)
       const data = await createForm(sigId.value, payload)
-      message.value = 'Form created successfully.'
+      message.value = t('forms.builder.successMessage')
       router.replace(`/forms/${data.id}`)
     }
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to save form.')
+    error.value = getErrorMessage(e, t('forms.builder.saveError'))
   } finally {
     saving.value = false
   }
@@ -222,12 +225,12 @@ onMounted(() => {
   <div class="max-w-3xl mx-auto">
     <div class="mb-6">
       <button @click="router.back()" class="text-sm text-brand-600 hover:underline">
-        &larr; Back
+        &larr; {{ t('forms.builder.backBtn') }}
       </button>
     </div>
 
     <h1 class="text-2xl font-bold text-foreground mb-6">
-      {{ isEdit ? 'Edit Form' : 'Create Form' }}
+      {{ isEdit ? t('forms.builder.editTitle') : t('forms.builder.createTitle') }}
     </h1>
 
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
@@ -238,7 +241,7 @@ onMounted(() => {
 
       <BaseCard padding="lg" class="mb-6 space-y-4">
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">Banner Image</label>
+          <label class="block text-sm font-medium text-foreground mb-1">{{ t('forms.builder.bannerLabel') }}</label>
           <div v-if="bannerUrl" class="mb-2">
             <img :src="bannerUrl" alt="Banner" class="w-full h-40 object-cover rounded-lg" />
           </div>
@@ -249,16 +252,16 @@ onMounted(() => {
             class="text-sm text-muted"
           />
         </div>
-        <BaseInput v-model="title" label="Title *" placeholder="Form title" />
+        <BaseInput v-model="title" :label="t('forms.builder.titleLabel')" :placeholder="t('forms.builder.titlePlaceholder')" />
         <BaseTextarea
           v-model="description"
-          label="Description"
-          placeholder="Optional description"
+          :label="t('forms.builder.descLabel')"
+          :placeholder="t('forms.builder.descPlaceholder')"
           :rows="3"
         />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">Deadline</label>
+            <label class="block text-sm font-medium text-foreground mb-1">{{ t('forms.builder.deadlineLabel') }}</label>
             <input
               v-model="deadline"
               type="datetime-local"
@@ -266,36 +269,35 @@ onMounted(() => {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">Max Respondents</label>
+            <label class="block text-sm font-medium text-foreground mb-1">{{ t('forms.builder.maxRespondentsLabel') }}</label>
             <input
               v-model.number="maxRespondents"
               type="number"
               min="1"
-              placeholder="Unlimited"
+              :placeholder="t('forms.builder.maxRespondentsPlaceholder')"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
             />
           </div>
         </div>
         <label class="flex items-center gap-2 text-sm text-foreground mt-4">
           <input type="checkbox" v-model="allowNonMembers" class="rounded" />
-          Allow non-SIG members to submit this form
+          {{ t('forms.builder.allowNonMembers') }}
         </label>
         <p class="text-xs text-muted mt-1">
-          When enabled, any authenticated user can fill out this form.
+          {{ t('forms.builder.allowNonMembersHint') }}
         </p>
       </BaseCard>
 
       <div class="mb-6">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold text-foreground">Questions</h2>
+          <h2 class="text-lg font-semibold text-foreground">{{ t('forms.builder.questionsTitle') }}</h2>
           <BaseButton v-if="!isSchemaLocked" size="sm" @click="addQuestion"
-            >+ Add Question</BaseButton
+            >{{ t('forms.builder.addQuestionBtn') }}</BaseButton
           >
         </div>
 
         <BaseAlert v-if="isSchemaLocked" type="warning" class="mb-4"
-          >Questions are locked because responses have been submitted. You can still edit title,
-          description, and deadline.</BaseAlert
+          >{{ t('forms.builder.schemaLockedWarning') }}</BaseAlert
         >
 
         <div class="space-y-4">
@@ -306,7 +308,7 @@ onMounted(() => {
             :class="isSchemaLocked ? 'border-gray-300 opacity-75' : 'border-brand-500'"
           >
             <div class="flex items-center justify-between mb-3">
-              <span class="text-sm font-medium text-muted">Question {{ i + 1 }}</span>
+              <span class="text-sm font-medium text-muted">{{ t('forms.builder.questionLabel') }} {{ i + 1 }}</span>
               <div v-if="!isSchemaLocked" class="flex items-center gap-1">
                 <button
                   @click="moveQuestion(i, -1)"
@@ -333,24 +335,24 @@ onMounted(() => {
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
               <div>
-                <label class="block text-xs text-muted mb-1">Type</label>
+                <label class="block text-xs text-muted mb-1">{{ t('forms.builder.typeLabel') }}</label>
                 <select
                   v-model="q.type"
                   :disabled="isSchemaLocked"
                   class="w-full border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
-                  <option v-for="t in QUESTION_TYPES" :key="t.value" :value="t.value">
-                    {{ t.label }}
+                  <option v-for="qt in QUESTION_TYPES" :key="qt.value" :value="qt.value">
+                    {{ t(qt.key) }}
                   </option>
                 </select>
               </div>
               <div class="sm:col-span-2">
-                <label class="block text-xs text-muted mb-1">Label *</label>
+                <label class="block text-xs text-muted mb-1">{{ t('forms.builder.labelRequired') }}</label>
                 <input
                   v-model="q.label"
                   :disabled="isSchemaLocked"
                   type="text"
-                  placeholder="Question text"
+                  :placeholder="t('forms.builder.labelPlaceholder')"
                   class="w-full border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
@@ -363,7 +365,7 @@ onMounted(() => {
                 :disabled="isSchemaLocked"
                 class="rounded"
               />
-              Required
+              {{ t('forms.builder.requiredCheckbox') }}
             </label>
 
             <div v-if="q.type === 'text' || q.type === 'textarea'" class="space-y-2">
@@ -371,17 +373,17 @@ onMounted(() => {
                 v-model="q.placeholder"
                 :disabled="isSchemaLocked"
                 type="text"
-                placeholder="Placeholder text"
+                :placeholder="t('forms.builder.placeholderLabel')"
                 class="w-full border border-border rounded-lg px-2 py-1.5 text-sm"
               />
               <div class="flex items-center gap-2">
-                <label class="text-xs text-muted">Max length:</label>
+                <label class="text-xs text-muted">{{ t('forms.builder.maxLengthLabel') }}</label>
                 <input
                   v-model.number="q.max_length"
                   :disabled="isSchemaLocked"
                   type="number"
                   min="1"
-                  placeholder="No limit"
+                  :placeholder="t('forms.builder.maxLengthPlaceholder')"
                   class="w-24 border border-border rounded-lg px-2 py-1.5 text-sm"
                 />
               </div>
@@ -412,14 +414,14 @@ onMounted(() => {
                 @click="addOption(q)"
                 class="text-sm text-brand-600 hover:underline"
               >
-                + Add option
+                {{ t('forms.builder.addOptionBtn') }}
               </button>
             </div>
 
             <div v-if="q.type === 'rating'">
               <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
-                  <label class="text-xs text-muted">Min:</label
+                  <label class="text-xs text-muted">{{ t('forms.builder.minLabel') }}</label
                   ><input
                     v-model.number="q.min"
                     :disabled="isSchemaLocked"
@@ -428,7 +430,7 @@ onMounted(() => {
                   />
                 </div>
                 <div class="flex items-center gap-2">
-                  <label class="text-xs text-muted">Max:</label
+                  <label class="text-xs text-muted">{{ t('forms.builder.maxLabel') }}</label
                   ><input
                     v-model.number="q.max"
                     :disabled="isSchemaLocked"
@@ -438,30 +440,30 @@ onMounted(() => {
                 </div>
               </div>
               <p v-if="(q.min ?? 1) >= (q.max ?? 5)" class="text-sm text-danger-600 mt-1">
-                Minimum must be less than maximum.
+                {{ t('forms.builder.minMaxError') }}
               </p>
             </div>
 
             <div v-if="q.type === 'file_upload'" class="space-y-2">
               <div class="flex items-center gap-2">
-                <label class="text-xs text-muted">Allowed types:</label>
+                <label class="text-xs text-muted">{{ t('forms.builder.allowedTypesLabel') }}</label>
                 <input
                   :value="(q.allowed_types ?? []).join(', ')"
                   @input="updateAllowedTypes(q, $event)"
                   :disabled="isSchemaLocked"
                   type="text"
-                  placeholder="pdf, docx, png"
+                  :placeholder="t('forms.builder.allowedTypesPlaceholder')"
                   class="flex-1 border border-border rounded-lg px-2 py-1.5 text-sm"
                 />
               </div>
               <div class="flex items-center gap-2">
-                <label class="text-xs text-muted">Max size (MB):</label>
+                <label class="text-xs text-muted">{{ t('forms.builder.maxSizeLabel') }}</label>
                 <input
                   v-model.number="q.max_size_mb"
                   :disabled="isSchemaLocked"
                   type="number"
                   min="1"
-                  placeholder="No limit"
+                  :placeholder="t('forms.builder.maxSizePlaceholder')"
                   class="w-24 border border-border rounded-lg px-2 py-1.5 text-sm"
                 />
               </div>
@@ -471,18 +473,18 @@ onMounted(() => {
       </div>
 
       <div class="flex justify-end gap-3">
-        <BaseButton variant="secondary" size="lg" @click="showPreview = true">Preview</BaseButton>
+        <BaseButton variant="secondary" size="lg" @click="showPreview = true">{{ t('forms.builder.previewBtn') }}</BaseButton>
         <BaseButton size="lg" :loading="saving" :disabled="hasInvalidRating" @click="saveForm">{{
-          isEdit ? 'Update Form' : 'Create Form'
+          isEdit ? t('forms.builder.updateBtn') : t('forms.builder.createBtn')
         }}</BaseButton>
       </div>
     </template>
 
     <!-- Preview modal -->
-    <BaseModal v-model="showPreview" :title="title || 'Untitled Form'" size="xl">
+    <BaseModal v-model="showPreview" :title="title || t('forms.builder.createTitle')" size="xl">
       <div class="space-y-4">
         <BaseAlert type="info" class="text-center">
-          🔍 You are in Preview Mode. All inputs are disabled.
+          {{ t('forms.builder.previewMode') }}
         </BaseAlert>
         <div v-if="bannerUrl" class="rounded-lg overflow-hidden">
           <img :src="bannerUrl" alt="Banner" class="w-full h-32 object-cover" />
@@ -495,7 +497,7 @@ onMounted(() => {
           class="bg-surface-alt rounded-lg p-4 border border-border"
         >
           <p class="text-sm font-medium text-foreground mb-2">
-            {{ i + 1 }}. {{ q.label || 'Untitled question' }}
+            {{ i + 1 }}. {{ q.label || t('forms.builder.untitledQuestion') }}
             <span v-if="q.required" class="text-danger-500">*</span>
           </p>
 
@@ -504,7 +506,7 @@ onMounted(() => {
             v-if="q.type === 'text'"
             type="text"
             disabled
-            :placeholder="q.placeholder || 'Short text answer'"
+            :placeholder="q.placeholder || t('forms.builder.shortTextPlaceholder')"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
           />
 
@@ -512,7 +514,7 @@ onMounted(() => {
           <textarea
             v-else-if="q.type === 'textarea'"
             disabled
-            :placeholder="q.placeholder || 'Long text answer'"
+            :placeholder="q.placeholder || t('forms.builder.longTextPlaceholder')"
             :rows="3"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
           />
@@ -547,7 +549,7 @@ onMounted(() => {
             disabled
             class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
           >
-            <option value="">Select...</option>
+            <option value="">{{ t('forms.builder.selectPlaceholder') }}</option>
             <option v-for="opt in q.options" :key="opt.id">{{ opt.label }}</option>
           </select>
 
@@ -570,7 +572,7 @@ onMounted(() => {
         </div>
 
         <div v-if="questions.length === 0" class="text-sm text-muted text-center py-4">
-          No questions added yet.
+          {{ t('forms.builder.noQuestionsAdded') }}
         </div>
       </div>
     </BaseModal>

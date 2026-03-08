@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { getErrorMessage } from '@/utils/error'
 import type { Question, FormData } from '@/types'
@@ -14,6 +15,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -50,19 +52,19 @@ async function fetchForm() {
       answers.value[q.id] = q.type === 'multiple_choice' ? [] : q.type === 'rating' ? null : ''
     }
   } catch {
-    error.value = 'Failed to load form.'
+    error.value = t('forms.view.loadError')
   } finally {
     loading.value = false
   }
 }
 
 function validateAnswers(): string | null {
-  if (!form.value) return 'Form not loaded.'
+  if (!form.value) return t('forms.view.loadError')
   for (const q of form.value.questions) {
     const val = answers.value[q.id]
     if (q.required) {
-      if (val === null || val === undefined || val === '') return `"${q.label}" is required.`
-      if (Array.isArray(val) && val.length === 0) return `"${q.label}" is required.`
+      if (val === null || val === undefined || val === '') return `"${q.label}" ${t('common.required').toLowerCase()}.`
+      if (Array.isArray(val) && val.length === 0) return `"${q.label}" ${t('common.required').toLowerCase()}.`
     }
     if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0))
       continue
@@ -98,9 +100,9 @@ async function submitForm() {
     }
     await apiSubmitForm(formId.value, cleanAnswers)
     submitted.value = true
-    message.value = 'Your response has been submitted successfully!'
+    message.value = t('forms.view.successMessage')
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to submit response.')
+    error.value = getErrorMessage(e, t('forms.view.submitError'))
   } finally {
     submitting.value = false
   }
@@ -113,7 +115,7 @@ async function handleFileUpload(questionId: string, event: Event) {
     const data = await uploadEditorFile(file)
     answers.value[questionId] = { key: data.key || data.url, filename: file.name }
   } catch {
-    error.value = 'Failed to upload file.'
+    error.value = t('forms.view.fileUploadError')
   }
 }
 
@@ -137,12 +139,12 @@ function ratingRange(q: Question): number[] {
 
 async function startExport() {
   exporting.value = true
-  exportStatus.value = 'Starting export...'
+  exportStatus.value = t('forms.view.exportStarting')
   try {
     const data = await exportForm(formId.value)
     pollExportStatus(data.task_id)
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to start export.')
+    error.value = getErrorMessage(e, t('forms.view.exportError'))
     exporting.value = false
     exportStatus.value = ''
   }
@@ -162,12 +164,12 @@ function pollExportStatus(taskId: string) {
       exportPollTimer = null
       exporting.value = false
       exportStatus.value = ''
-      error.value = 'Export timed out.'
+      error.value = t('forms.view.exportTimeout')
       return
     }
     try {
       const data = await getTaskStatus(taskId)
-      exportStatus.value = `Status: ${data.status}`
+      exportStatus.value = `${t('forms.view.exportStatus')} ${data.status}`
       if (data.status === 'SUCCESS' && data.download_url) {
         clearInterval(exportPollTimer!)
         exportPollTimer = null
@@ -179,7 +181,7 @@ function pollExportStatus(taskId: string) {
         exportPollTimer = null
         exporting.value = false
         exportStatus.value = ''
-        error.value = 'Export failed.'
+        error.value = t('forms.view.exportFailed')
       }
     } catch {
       /* continue */
@@ -198,13 +200,13 @@ onUnmounted(() => {
   <div class="max-w-3xl mx-auto">
     <div class="mb-6">
       <button @click="router.back()" class="text-sm text-brand-600 hover:underline">
-        &larr; Back
+        &larr; {{ t('forms.view.backBtn') }}
       </button>
     </div>
 
     <SkeletonLoader v-if="loading" :lines="2" variant="card" />
     <div v-else-if="!form" class="text-center py-12">
-      <p class="text-muted mb-4">Form not found.</p>
+      <p class="text-muted mb-4">{{ t('forms.view.notFound') }}</p>
     </div>
 
     <template v-else>
@@ -219,14 +221,14 @@ onUnmounted(() => {
             <p v-if="form.description" class="text-sm text-muted mb-3">{{ form.description }}</p>
           </div>
           <BaseBadge :variant="form.is_active ? 'success' : 'danger'">{{
-            form.is_active ? 'Active' : 'Closed'
+            form.is_active ? t('common.active') : t('common.closed')
           }}</BaseBadge>
         </div>
         <div class="flex items-center gap-4 text-xs text-muted mt-2">
-          <span>By {{ form.created_by_name }}</span>
-          <span>{{ form.response_count }} response(s)</span>
-          <span v-if="form.deadline">Deadline: {{ new Date(form.deadline).toLocaleString() }}</span>
-          <span v-if="form.max_respondents">Max: {{ form.max_respondents }}</span>
+          <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
+          <span>{{ form.response_count }} {{ t('forms.view.response') }}</span>
+          <span v-if="form.deadline">{{ t('forms.view.deadline') }} {{ new Date(form.deadline).toLocaleString() }}</span>
+          <span v-if="form.max_respondents">{{ t('forms.view.max') }} {{ form.max_respondents }}</span>
         </div>
         <div v-if="auth.isAuthenticated" class="flex items-center gap-2 mt-4">
           <CopyShareLinkButton :url="formShareUrl" />
@@ -234,7 +236,7 @@ onUnmounted(() => {
             v-if="canEdit"
             :to="`/forms/${form.id}/edit`"
             class="text-sm text-brand-600 hover:underline"
-            >Edit form</router-link
+            >{{ t('forms.view.editFormBtn') }}</router-link
           >
           <BaseButton
             v-if="canExport"
@@ -242,14 +244,14 @@ onUnmounted(() => {
             size="sm"
             :loading="exporting"
             @click="startExport"
-            >Export CSV</BaseButton
+            >{{ t('forms.view.exportCSVBtn') }}</BaseButton
           >
           <span v-if="exportStatus" class="text-xs text-muted">{{ exportStatus }}</span>
         </div>
       </BaseCard>
 
       <BaseAlert v-if="!form.is_active" type="error" class="mb-6 text-center"
-        >This form is closed and no longer accepting responses.</BaseAlert
+        >{{ t('forms.view.closedAlert') }}</BaseAlert
       >
       <BaseAlert v-if="submitted" type="success" class="mb-6 text-center">{{ message }}</BaseAlert>
       <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
@@ -318,7 +320,7 @@ onUnmounted(() => {
             v-model="answers[q.id]"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
           >
-            <option value="">Select an option</option>
+            <option value="">{{ t('forms.view.selectOptionPlaceholder') }}</option>
             <option v-for="opt in q.options" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
           </select>
 
@@ -346,10 +348,10 @@ onUnmounted(() => {
               class="text-sm text-muted"
             />
             <p v-if="answers[q.id]?.filename" class="text-xs text-success-600 mt-1">
-              Uploaded: {{ answers[q.id].filename }}
+              {{ t('forms.view.uploadedFile') }} {{ answers[q.id].filename }}
             </p>
             <p v-if="q.allowed_types && q.allowed_types.length" class="text-xs text-muted mt-1">
-              Allowed: {{ q.allowed_types.join(', ') }}
+              {{ t('forms.view.allowedTypes') }} {{ q.allowed_types.join(', ') }}
             </p>
           </div>
 
@@ -362,16 +364,16 @@ onUnmounted(() => {
         </BaseCard>
 
         <div class="flex justify-end pt-4">
-          <BaseButton size="lg" :loading="submitting" @click="submitForm">Submit</BaseButton>
+          <BaseButton size="lg" :loading="submitting" @click="submitForm">{{ t('forms.view.submitBtn') }}</BaseButton>
         </div>
       </div>
 
       <BaseAlert v-if="!auth.isAuthenticated && form.is_active" type="info" class="text-center">
-        Please
+        {{ t('forms.view.loginPrompt') }}
         <router-link to="/login" class="text-brand-600 hover:underline font-medium"
-          >log in</router-link
+          >{{ t('forms.view.loginLink') }}</router-link
         >
-        to submit a response.
+        {{ t('forms.view.submitPromptSuffix') }}
       </BaseAlert>
     </template>
   </div>

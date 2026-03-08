@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { usePagination } from '@/composables/usePagination'
 import { User, Settings, Trash2 } from 'lucide-vue-next'
 import type { Notification } from '@/types'
@@ -19,6 +20,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const toast = useToastStore()
 const notificationStore = useNotificationStore()
@@ -96,7 +98,7 @@ async function handleDeleteNotification(id: string) {
     notifications.value = notifications.value.filter((n) => n.id !== id)
     notificationStore.fetchUnreadCount()
   } catch {
-    toast.show('Failed to delete notification.', 'error')
+    toast.show(t('notifications.deleteError'), 'error')
   }
 }
 
@@ -105,9 +107,9 @@ async function handleClearAll() {
     await bulkDeleteNotifications()
     notifications.value = []
     notificationStore.fetchUnreadCount()
-    toast.show('All notifications cleared.', 'success')
+    toast.show(t('notifications.deleteSuccess'), 'success')
   } catch {
-    toast.show('Failed to clear notifications.', 'error')
+    toast.show(t('notifications.deleteError'), 'error')
   }
 }
 
@@ -122,14 +124,14 @@ onMounted(fetchNotifications)
 <template>
   <div class="max-w-3xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Notifications</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('notifications.title') }}</h1>
       <div class="flex items-center gap-3">
         <button
           v-if="unreadCount > 0"
           @click="markAllRead"
           class="text-sm text-brand-600 hover:text-brand-800 hover:underline"
         >
-          Mark all as read ({{ unreadCount }})
+          {{ t('notifications.markAllRead') }} ({{ unreadCount }})
         </button>
         <BaseButton
           v-if="notifications.length > 0"
@@ -137,7 +139,7 @@ onMounted(fetchNotifications)
           size="sm"
           @click="handleClearAll"
         >
-          Clear All
+          {{ t('notifications.clearAllBtn') }}
         </BaseButton>
       </div>
     </div>
@@ -153,7 +155,7 @@ onMounted(fetchNotifications)
         "
         @click="changeFilter('all')"
       >
-        All
+        {{ t('notifications.filter.all') }}
       </button>
       <button
         class="px-4 py-2 text-sm font-medium border-b-2 transition"
@@ -164,7 +166,7 @@ onMounted(fetchNotifications)
         "
         @click="changeFilter('unread')"
       >
-        Unread
+        {{ t('notifications.filter.unread') }}
         <span
           v-if="unreadCount > 0"
           class="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5"
@@ -177,8 +179,8 @@ onMounted(fetchNotifications)
 
     <EmptyState
       v-else-if="filteredNotifications.length === 0"
-      message="No notifications yet."
-      title="All Caught Up"
+      :message="t('notifications.emptyMessage')"
+      :title="t('notifications.emptyTitle')"
     />
 
     <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
@@ -222,7 +224,7 @@ onMounted(fetchNotifications)
         <button
           @click.stop="handleDeleteNotification(notif.id)"
           class="flex-shrink-0 p-1 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
-          title="Delete notification"
+          :title="t('common.delete')"
         >
           <Trash2 :size="16" />
         </button>

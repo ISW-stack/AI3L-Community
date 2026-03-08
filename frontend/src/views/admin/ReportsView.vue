@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Report } from '@/types'
 import { listReports, reviewReport as apiReviewReport } from '@/api/admin'
 import { usePagination } from '@/composables/usePagination'
@@ -9,6 +10,7 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
+const { t } = useI18n()
 const reports = ref<Report[]>([])
 const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } =
   usePagination()
@@ -62,36 +64,36 @@ onMounted(fetchReports)
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-foreground mb-6">Post Reports</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('admin.reports.title') }}</h1>
 
     <!-- Filter -->
     <div class="mb-4 flex gap-3 items-center">
-      <label class="text-sm text-muted">Filter by status:</label>
+      <label class="text-sm text-muted">{{ t('admin.reports.filterLabel') }}</label>
       <select
         v-model="statusFilter"
         class="px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         @change="handleStatusChange"
       >
-        <option value="">All</option>
-        <option value="PENDING">Pending</option>
-        <option value="RESOLVED">Resolved</option>
-        <option value="DISMISSED">Dismissed</option>
+        <option value="">{{ t('admin.reports.filter.all') }}</option>
+        <option value="PENDING">{{ t('admin.reports.filter.pending') }}</option>
+        <option value="RESOLVED">{{ t('admin.reports.filter.resolved') }}</option>
+        <option value="DISMISSED">{{ t('admin.reports.filter.dismissed') }}</option>
       </select>
     </div>
 
     <SkeletonLoader v-if="loading" :lines="4" variant="list" />
 
-    <EmptyState v-else-if="reports.length === 0" message="No reports found." />
+    <EmptyState v-else-if="reports.length === 0" :message="t('admin.reports.emptyMessage')" />
 
     <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
       <table class="w-full text-sm min-w-[700px]">
         <thead class="bg-surface-alt border-b border-border">
           <tr>
-            <th class="text-left px-4 py-3 font-medium text-muted">Post</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Reason</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Status</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Reported</th>
-            <th class="text-left px-4 py-3 font-medium text-muted">Actions</th>
+            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.post') }}</th>
+            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.reason') }}</th>
+            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.status') }}</th>
+            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.reported') }}</th>
+            <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.reports.table.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -120,16 +122,16 @@ onMounted(fetchReports)
             <td class="px-4 py-3">
               <div v-if="report.status === 'PENDING'" class="flex gap-2">
                 <BaseButton size="sm" variant="success" @click="reviewReport(report.id, 'RESOLVED')"
-                  >Resolve</BaseButton
+                  >{{ t('admin.reports.resolveBtn') }}</BaseButton
                 >
                 <BaseButton
                   size="sm"
                   variant="secondary"
                   @click="reviewReport(report.id, 'DISMISSED')"
-                  >Dismiss</BaseButton
+                  >{{ t('admin.reports.dismissBtn') }}</BaseButton
                 >
               </div>
-              <span v-else class="text-xs text-muted">Reviewed</span>
+              <span v-else class="text-xs text-muted">{{ t('admin.reports.reviewedBtn') }}</span>
             </td>
           </tr>
         </tbody>
@@ -144,6 +146,6 @@ onMounted(fetchReports)
       @update:current-page="handlePageChange"
     />
 
-    <p class="mt-3 text-xs text-muted">{{ total }} report(s) total</p>
+    <p class="mt-3 text-xs text-muted">{{ t('admin.reports.total', { count: total }) }}</p>
   </div>
 </template>

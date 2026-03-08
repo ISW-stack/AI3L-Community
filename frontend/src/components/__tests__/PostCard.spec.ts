@@ -26,6 +26,7 @@ vi.mock('@/components/base/BaseAvatar.vue', () => ({
 vi.mock('lucide-vue-next', () => ({
   Pin: { name: 'Pin', template: '<svg data-testid="pin-icon" />' },
   Eye: { name: 'Eye', template: '<svg data-testid="eye-icon" />' },
+  MessageCircle: { name: 'MessageCircle', template: '<svg data-testid="message-icon" />' },
 }))
 
 function createTestRouter() {
@@ -35,6 +36,7 @@ function createTestRouter() {
       { path: '/', component: { template: '<div />' } },
       { path: '/forum/:id', name: 'post', component: { template: '<div />' } },
       { path: '/users/:id', name: 'user', component: { template: '<div />' } },
+      { path: '/sigs/:id', name: 'sig', component: { template: '<div />' } },
     ],
   })
 }
@@ -166,21 +168,21 @@ describe('PostCard', () => {
     })
   })
 
-  describe('comment count pluralization', () => {
-    it('shows "3 comments" for comment_count = 3', () => {
+  describe('comment count', () => {
+    it('shows comment count with icon for comment_count = 3', () => {
       const wrapper = mountCard(makePost({ comment_count: 3 }))
-      expect(wrapper.text()).toContain('3 comments')
+      expect(wrapper.text()).toContain('3')
+      expect(wrapper.find('[data-testid="message-icon"]').exists()).toBe(true)
     })
 
-    it('shows "1 comment" (singular) for comment_count = 1', () => {
+    it('shows comment count for comment_count = 1', () => {
       const wrapper = mountCard(makePost({ comment_count: 1 }))
-      expect(wrapper.text()).toContain('1 comment')
-      expect(wrapper.text()).not.toContain('1 comments')
+      expect(wrapper.text()).toContain('1')
     })
 
-    it('shows "0 comments" for comment_count = 0', () => {
+    it('shows 0 for comment_count = 0', () => {
       const wrapper = mountCard(makePost({ comment_count: 0 }))
-      expect(wrapper.text()).toContain('0 comments')
+      expect(wrapper.text()).toContain('0')
     })
   })
 
@@ -257,6 +259,39 @@ describe('PostCard', () => {
       )
       const links = wrapper.findAll('a[href="/users/user-99"]')
       expect(links.length).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  describe('SIG context', () => {
+    it('shows SIG name and link when sig_name is set', () => {
+      const wrapper = mountCard(makePost({ sig_id: 'sig-1', sig_name: 'NLP Research' }))
+      expect(wrapper.text()).toContain('NLP Research')
+      const sigLink = wrapper.find('a[href="/sigs/sig-1"]')
+      expect(sigLink.exists()).toBe(true)
+    })
+
+    it('does not show SIG context when sig_name is null', () => {
+      const wrapper = mountCard(makePost({ sig_id: null, sig_name: null }))
+      const sigLinks = wrapper.findAll('a').filter((a) => a.attributes('href')?.startsWith('/sigs/'))
+      expect(sigLinks.length).toBe(0)
+    })
+  })
+
+  describe('image thumbnail', () => {
+    it('shows thumbnail when content contains an image', () => {
+      const wrapper = mountCard(
+        makePost({ content: '<p>Hello</p><img src="https://example.com/img.jpg" />' }),
+      )
+      const img = wrapper.find('img[src="https://example.com/img.jpg"]')
+      expect(img.exists()).toBe(true)
+    })
+
+    it('does not show thumbnail when content has no image', () => {
+      const wrapper = mountCard(makePost({ content: '<p>No images here</p>' }))
+      // Only the avatar img should exist
+      const imgs = wrapper.findAll('img')
+      const contentImgs = imgs.filter((img) => img.attributes('alt') !== 'Alice')
+      expect(contentImgs.length).toBe(0)
     })
   })
 })

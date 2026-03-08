@@ -9,6 +9,10 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import { getErrorMessage } from '@/utils/error'
+import { useLocale } from '@/composables/useLocale'
+import type { SupportedLocale } from '@/locales'
+
+const { t, currentLocale, localeOptions, setLocale } = useLocale()
 
 const router = useRouter()
 const route = useRoute()
@@ -42,7 +46,7 @@ async function handleLogin() {
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Login failed. Please try again.')
+    error.value = getErrorMessage(e, t('auth.loginFailed'))
     await loadCaptcha()
   } finally {
     loading.value = false
@@ -54,16 +58,24 @@ loadCaptcha()
 
 <template>
   <div class="flex min-h-[70vh]">
+    <div class="absolute top-4 right-4 z-10">
+      <select
+        :value="currentLocale"
+        class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
+        @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
+      >
+        <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+      </select>
+    </div>
     <!-- Left branding panel (desktop only) -->
     <div
       class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-900 to-brand-700 rounded-l-lg items-center justify-center p-12"
     >
       <div class="text-center text-white">
-        <h2 class="text-3xl font-bold mb-3">AI3L Community</h2>
-        <p class="text-brand-200 text-lg">AI in Language Learning and Literacy</p>
+        <h2 class="text-3xl font-bold mb-3">{{ t('branding.title') }}</h2>
+        <p class="text-brand-200 text-lg">{{ t('branding.tagline') }}</p>
         <p class="text-brand-300 mt-4 text-sm max-w-sm">
-          Connect with researchers and educators advancing the future of AI-powered language
-          learning.
+          {{ t('branding.description') }}
         </p>
       </div>
     </div>
@@ -71,7 +83,7 @@ loadCaptcha()
     <div class="flex-1 flex items-center justify-center p-4">
       <BaseCard padding="lg" class="w-full max-w-md shadow-lg">
         <h1 class="text-2xl font-bold text-center text-foreground mb-6">
-          Log In to AI3L Community
+          {{ t('auth.loginTitle') }}
         </h1>
 
         <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
@@ -79,30 +91,30 @@ loadCaptcha()
         <form @submit.prevent="handleLogin" class="space-y-4">
           <BaseInput
             v-model="username"
-            label="Username"
-            placeholder="Enter your username"
+            :label="t('auth.username')"
+            :placeholder="t('auth.username')"
             required
           />
           <div class="relative">
             <BaseInput
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
-              label="Password"
-              placeholder="Enter your password"
+              :label="t('auth.password')"
+              :placeholder="t('auth.passwordPlaceholder')"
               required
             />
             <button
               type="button"
               class="absolute right-3 top-[34px] text-muted hover:text-foreground"
               @click="togglePassword"
-              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              :aria-label="showPassword ? t('auth.hidePassword') : t('auth.showPassword')"
             >
               <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
             </button>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">Captcha</label>
+            <label class="block text-sm font-medium text-foreground mb-1">{{ t('auth.captcha') }}</label>
             <div class="flex gap-3 items-center">
               <input
                 v-model="captchaCode"
@@ -110,7 +122,7 @@ loadCaptcha()
                 required
                 maxlength="4"
                 class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
-                placeholder="Enter captcha code"
+                :placeholder="t('auth.captchaPlaceholder')"
               />
               <img
                 v-if="captchaImage"
@@ -118,24 +130,24 @@ loadCaptcha()
                 alt="captcha"
                 class="h-10 rounded cursor-pointer"
                 @click="loadCaptcha"
-                title="Click to refresh captcha"
+                :title="t('auth.captchaRefresh')"
               />
             </div>
           </div>
 
           <BaseButton type="submit" size="full" :loading="loading" :disabled="loading">
-            {{ loading ? 'Logging in...' : 'Log In' }}
+            {{ loading ? t('auth.loginLoading') : t('auth.loginButton') }}
           </BaseButton>
         </form>
 
         <div class="mt-6 text-center text-sm text-muted space-y-2">
           <p>
-            Don't have an account?
-            <router-link to="/register" class="text-brand-600 hover:underline">Sign Up</router-link>
+            {{ t('auth.noAccount') }}
+            <router-link to="/register" class="text-brand-600 hover:underline">{{ t('auth.noAccountLink') }}</router-link>
           </p>
           <p>
-            Or browse as a
-            <router-link to="/guest" class="text-brand-600 hover:underline">Guest</router-link>
+            {{ t('auth.browseAsGuest') }}
+            <router-link to="/guest" class="text-brand-600 hover:underline">{{ t('auth.browseAsGuestLink') }}</router-link>
           </p>
         </div>
       </BaseCard>

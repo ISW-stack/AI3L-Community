@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, inject, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import {
@@ -16,6 +17,7 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 const toastStore = useToastStore()
@@ -60,9 +62,9 @@ async function handleRemoveMember(userId: string) {
   try {
     await removeMemberApi(sigId.value, userId)
     await fetchMembers()
-    toastStore.show('Member removed.', 'info')
+    toastStore.show(t('sigs.members.removeSuccess'), 'info')
   } catch (e: unknown) {
-    toastStore.show(getErrorMessage(e, 'Failed to remove member.'), 'error')
+    toastStore.show(getErrorMessage(e, t('sigs.members.removeError')), 'error')
   }
 }
 
@@ -70,9 +72,9 @@ async function handleAssignSubAdmin(userId: string) {
   try {
     await assignSubAdminApi(sigId.value, userId)
     await fetchMembers()
-    toastStore.show('Member promoted to Sub-Admin.', 'success')
+    toastStore.show(t('sigs.members.promoteSuccess'), 'success')
   } catch (e: unknown) {
-    toastStore.show(getErrorMessage(e, 'Failed to assign Sub-Admin.'), 'error')
+    toastStore.show(getErrorMessage(e, t('sigs.members.promoteError')), 'error')
   }
 }
 
@@ -81,7 +83,7 @@ onMounted(fetchMembers)
 
 <template>
   <div class="space-y-4">
-    <h2 class="text-lg font-semibold text-foreground">Members ({{ total }})</h2>
+    <h2 class="text-lg font-semibold text-foreground">{{ t('sigs.members.title') }} ({{ total }})</h2>
 
     <div v-if="loading" class="space-y-3">
       <SkeletonLoader variant="card" :lines="4" />
@@ -89,8 +91,8 @@ onMounted(fetchMembers)
 
     <EmptyState
       v-else-if="members.length === 0"
-      title="No members"
-      message="This SIG doesn't have any members yet."
+      :title="t('sigs.members.emptyTitle')"
+      :message="t('sigs.members.emptyMessage')"
     />
 
     <div v-else class="space-y-4">
@@ -104,28 +106,28 @@ onMounted(fetchMembers)
               <th
                 class="text-left px-6 py-4 font-semibold text-muted tracking-wider uppercase text-[10px]"
               >
-                Name
+                {{ t('sigs.members.tableHeader.name') }}
               </th>
               <th
                 class="text-left px-6 py-4 font-semibold text-muted tracking-wider uppercase text-[10px]"
               >
-                Username
+                {{ t('sigs.members.tableHeader.username') }}
               </th>
               <th
                 class="text-left px-6 py-4 font-semibold text-muted tracking-wider uppercase text-[10px]"
               >
-                Role
+                {{ t('sigs.members.tableHeader.role') }}
               </th>
               <th
                 class="text-left px-6 py-4 font-semibold text-muted tracking-wider uppercase text-[10px]"
               >
-                Joined
+                {{ t('sigs.members.tableHeader.joined') }}
               </th>
               <th
                 v-if="canEdit"
                 class="text-right px-6 py-4 font-semibold text-muted tracking-wider uppercase text-[10px]"
               >
-                Actions
+                {{ t('sigs.members.tableHeader.actions') }}
               </th>
             </tr>
           </thead>
@@ -159,14 +161,14 @@ onMounted(fetchMembers)
                   @click="handleAssignSubAdmin(m.user_id)"
                   class="text-brand-600 hover:text-brand-700 font-medium hover:underline"
                 >
-                  Promote
+                  {{ t('sigs.members.promoteBtn') }}
                 </button>
                 <button
                   v-if="canRemoveMember(m)"
                   @click="handleRemoveMember(m.user_id)"
                   class="text-danger-600 hover:text-danger-700 font-medium hover:underline"
                 >
-                  Remove
+                  {{ t('sigs.members.removeBtn') }}
                 </button>
               </td>
             </tr>
@@ -197,7 +199,7 @@ onMounted(fetchMembers)
 
           <div class="mt-4 pt-3 border-t border-border flex items-center justify-between">
             <span class="text-[10px] text-muted">
-              Joined {{ new Date(m.created_at).toLocaleDateString() }}
+              {{ t('sigs.members.tableHeader.joined') }} {{ new Date(m.created_at).toLocaleDateString() }}
             </span>
 
             <div v-if="canEdit" class="flex gap-3">
@@ -206,14 +208,14 @@ onMounted(fetchMembers)
                 @click="handleAssignSubAdmin(m.user_id)"
                 class="text-xs text-brand-600 font-medium"
               >
-                Promote
+                {{ t('sigs.members.promoteBtn') }}
               </button>
               <button
                 v-if="canRemoveMember(m)"
                 @click="handleRemoveMember(m.user_id)"
                 class="text-xs text-danger-600 font-medium"
               >
-                Remove
+                {{ t('sigs.members.removeBtn') }}
               </button>
             </div>
           </div>

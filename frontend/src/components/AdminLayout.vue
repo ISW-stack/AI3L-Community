@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import {
   LayoutDashboard,
@@ -14,25 +15,26 @@ import {
   X,
 } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const sidebarOpen = ref(false)
 
 interface NavItem {
-  label: string
+  labelKey: string
   to: string
   icon: typeof LayoutDashboard
   superAdminOnly?: boolean
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
-  { label: 'Users', to: '/admin/users', icon: Users },
-  { label: 'Applications', to: '/admin/applications', icon: FileCheck },
-  { label: 'Reports', to: '/admin/reports', icon: Flag },
-  { label: 'Categories', to: '/admin/categories', icon: FolderOpen },
-  { label: 'Invite Codes', to: '/admin/invite-codes', icon: KeyRound },
-  { label: 'Contributors', to: '/admin/contributors', icon: Users2, superAdminOnly: true },
-  { label: 'Audit Logs', to: '/admin/audit-logs', icon: Shield, superAdminOnly: true },
+  { labelKey: 'nav.dashboard', to: '/admin', icon: LayoutDashboard },
+  { labelKey: 'nav.users', to: '/admin/users', icon: Users },
+  { labelKey: 'nav.applications', to: '/admin/applications', icon: FileCheck },
+  { labelKey: 'nav.reports', to: '/admin/reports', icon: Flag },
+  { labelKey: 'nav.categories', to: '/admin/categories', icon: FolderOpen },
+  { labelKey: 'nav.inviteCodes', to: '/admin/invite-codes', icon: KeyRound },
+  { labelKey: 'nav.contributors', to: '/admin/contributors', icon: Users2, superAdminOnly: true },
+  { labelKey: 'nav.auditLogs', to: '/admin/audit-logs', icon: Shield, superAdminOnly: true },
 ]
 
 function closeSidebar() {
@@ -51,7 +53,7 @@ function toggleSidebar() {
       class="hidden lg:flex fixed top-20 left-layout w-64 h-[calc(100vh-theme(spacing.24))] flex-col bg-surface border border-border rounded-xl shadow-sm z-30"
     >
       <div class="px-6 py-8">
-        <h2 class="text-xs font-bold text-muted uppercase tracking-widest">Administration</h2>
+        <h2 class="text-xs font-bold text-muted uppercase tracking-widest">{{ t('admin.layout.title') }}</h2>
       </div>
 
       <nav class="flex-1 px-3 pb-4 space-y-1 overflow-y-auto">
@@ -62,7 +64,7 @@ function toggleSidebar() {
             class="sidebar-link flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition text-muted hover:text-foreground hover:bg-surface-alt"
           >
             <component :is="item.icon" class="w-5 h-5 shrink-0" />
-            {{ item.label }}
+            {{ t(item.labelKey) }}
           </router-link>
         </template>
       </nav>
@@ -84,12 +86,12 @@ function toggleSidebar() {
         class="fixed inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col z-50 lg:hidden"
       >
         <div class="flex items-center justify-between px-4 py-6 border-b border-border">
-          <h2 class="text-sm font-semibold uppercase tracking-wider">Administration</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wider">{{ t('admin.layout.title') }}</h2>
 
           <button
             @click="closeSidebar"
             class="p-1 text-muted hover:text-foreground transition"
-            aria-label="Close sidebar"
+            :aria-label="t('admin.layout.closeSidebar')"
           >
             <X class="w-5 h-5" aria-hidden="true" />
           </button>
@@ -104,7 +106,7 @@ function toggleSidebar() {
               @click="closeSidebar"
             >
               <component :is="item.icon" class="w-5 h-5 shrink-0" />
-              {{ item.label }}
+              {{ t(item.labelKey) }}
             </router-link>
           </template>
         </nav>
@@ -120,10 +122,10 @@ function toggleSidebar() {
         <button
           @click="toggleSidebar"
           class="flex items-center gap-2 text-sm text-muted hover:text-foreground transition"
-          aria-label="Toggle admin sidebar"
+          :aria-label="t('admin.layout.toggleSidebar')"
         >
           <Menu class="w-5 h-5" aria-hidden="true" />
-          <span>Menu</span>
+          <span>{{ t('admin.layout.menu') }}</span>
         </button>
       </div>
 

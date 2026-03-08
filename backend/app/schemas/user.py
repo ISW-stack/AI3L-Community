@@ -12,6 +12,7 @@ class UserResponse(BaseModel):
     orcid: str | None = None
     affiliation: str | None = None
     bio: str | None = None
+    preferred_language: str = "en"
     is_banned: bool = False
     ban_reason: str | None = None
 
@@ -33,6 +34,7 @@ class UserUpdateRequest(BaseModel):
     bio: str | None = Field(None, max_length=500)
     affiliation: str | None = Field(None, max_length=200)
     orcid: str | None = Field(None, max_length=50)
+    preferred_language: str | None = Field(None, max_length=10, pattern="^(en|zh-TW|zh-CN|ja|fr|es|de)$")
 
 
 class CreateAccountRequest(BaseModel):

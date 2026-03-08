@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Contributor } from '@/types/contributor'
 import {
   listContributors,
@@ -16,6 +17,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const toast = useToastStore()
 const contributors = ref<Contributor[]>([])
 const loading = ref(false)
@@ -43,7 +45,7 @@ async function fetchContributors() {
   try {
     contributors.value = await listContributors()
   } catch {
-    toast.show('Failed to load contributors.', 'error')
+    toast.show(t('admin.contributors.message.loadFailed'), 'error')
   } finally {
     loading.value = false
   }
@@ -78,7 +80,7 @@ async function handleSave() {
         role: formRole.value.trim(),
         display_order: formOrder.value,
       })
-      toast.show('Contributor updated.', 'success')
+      toast.show(t('admin.contributors.message.updated'), 'success')
     } else {
       await createContributor({
         github_username: formGithub.value.trim(),
@@ -86,12 +88,12 @@ async function handleSave() {
         role: formRole.value.trim(),
         display_order: formOrder.value,
       })
-      toast.show('Contributor created.', 'success')
+      toast.show(t('admin.contributors.message.created'), 'success')
     }
     showModal.value = false
     await fetchContributors()
   } catch (err: unknown) {
-    toast.show(getErrorMessage(err, 'Failed to save contributor.'), 'error')
+    toast.show(getErrorMessage(err, t('admin.contributors.message.saveFailed')), 'error')
   } finally {
     saving.value = false
   }
@@ -101,11 +103,11 @@ async function handleDelete() {
   if (!confirmDelete.value) return
   try {
     await deleteContributor(confirmDelete.value.id)
-    toast.show('Contributor deleted.', 'success')
+    toast.show(t('admin.contributors.message.deleted'), 'success')
     confirmDelete.value = null
     await fetchContributors()
   } catch (err: unknown) {
-    toast.show(getErrorMessage(err, 'Failed to delete contributor.'), 'error')
+    toast.show(getErrorMessage(err, t('admin.contributors.message.deleteFailed')), 'error')
   }
 }
 
@@ -115,10 +117,10 @@ onMounted(fetchContributors)
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Contributors</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('admin.contributors.title') }}</h1>
       <BaseButton @click="openCreate">
         <Plus :size="18" class="mr-1.5" />
-        New Contributor
+        {{ t('admin.contributors.newBtn') }}
       </BaseButton>
     </div>
 
@@ -126,8 +128,8 @@ onMounted(fetchContributors)
 
     <EmptyState
       v-else-if="contributors.length === 0"
-      title="No Contributors"
-      message="Add your first contributor to the About page."
+      :title="t('admin.contributors.emptyTitle')"
+      :message="t('admin.contributors.emptyMessage')"
     />
 
     <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
@@ -154,14 +156,14 @@ onMounted(fetchContributors)
           <button
             @click="openEdit(c)"
             class="p-1.5 rounded text-muted hover:text-brand-600 hover:bg-brand-50 transition"
-            title="Edit"
+            :title="t('common.edit')"
           >
             <Pencil :size="16" />
           </button>
           <button
             @click="confirmDelete = c"
             class="p-1.5 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
-            title="Delete"
+            :title="t('common.delete')"
           >
             <Trash2 :size="16" />
           </button>
@@ -170,51 +172,50 @@ onMounted(fetchContributors)
     </div>
 
     <!-- Create / Edit modal -->
-    <BaseModal v-model="showModal" :title="editing ? 'Edit Contributor' : 'New Contributor'">
+    <BaseModal v-model="showModal" :title="editing ? t('admin.contributors.modal.editTitle') : t('admin.contributors.modal.createTitle')">
       <form @submit.prevent="handleSave" class="space-y-4">
         <BaseInput
           v-model="formGithub"
-          label="GitHub Username"
-          placeholder="e.g. octocat"
+          :label="t('admin.contributors.modal.githubLabel')"
+          :placeholder="t('admin.contributors.modal.githubPlaceholder')"
           required
         />
         <BaseInput
           v-model="formDisplayName"
-          label="Display Name"
-          placeholder="Display name"
+          :label="t('admin.contributors.modal.displayNameLabel')"
+          :placeholder="t('admin.contributors.modal.displayNamePlaceholder')"
           required
         />
         <BaseInput
           v-model="formRole"
-          label="Role"
-          placeholder="e.g. Frontend Contributor"
+          :label="t('admin.contributors.modal.roleLabel')"
+          :placeholder="t('admin.contributors.modal.rolePlaceholder')"
           required
         />
-        <BaseInput v-model.number="formOrder" label="Display Order" type="number" placeholder="0" />
+        <BaseInput v-model.number="formOrder" :label="t('admin.contributors.modal.orderLabel')" type="number" :placeholder="t('admin.contributors.modal.orderPlaceholder')" />
         <div class="flex justify-end gap-2">
           <BaseButton variant="secondary" @click="showModal = false" type="button">
-            Cancel
+            {{ t('common.cancel') }}
           </BaseButton>
           <BaseButton
             :disabled="!formGithub.trim() || !formDisplayName.trim() || !formRole.trim() || saving"
             :loading="saving"
             type="submit"
           >
-            {{ editing ? 'Save' : 'Create' }}
+            {{ editing ? t('common.save') : t('common.create') }}
           </BaseButton>
         </div>
       </form>
     </BaseModal>
 
     <!-- Delete confirm modal -->
-    <BaseModal v-model="showDeleteModal" title="Delete Contributor">
+    <BaseModal v-model="showDeleteModal" :title="t('admin.contributors.deleteConfirm.title')">
       <p class="text-sm text-foreground mb-4">
-        Are you sure you want to delete <strong>{{ confirmDelete?.display_name }}</strong
-        >?
+        {{ t('admin.contributors.deleteConfirm.message', { name: confirmDelete?.display_name }) }}
       </p>
       <div class="flex justify-end gap-2">
-        <BaseButton variant="secondary" @click="showDeleteModal = false">Cancel</BaseButton>
-        <BaseButton variant="danger" @click="handleDelete">Delete</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="danger" @click="handleDelete">{{ t('common.delete') }}</BaseButton>
       </div>
     </BaseModal>
   </div>

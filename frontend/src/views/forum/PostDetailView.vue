@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import DOMPurify from 'dompurify'
 import { renderMentions } from '@/utils/html'
@@ -17,7 +18,9 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import SigShareCard from '@/components/SigShareCard.vue'
 import FormShareCard from '@/components/FormShareCard.vue'
+import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -85,20 +88,20 @@ const {
     <SkeletonLoader v-if="loading" :lines="1" variant="card" />
 
     <div v-else-if="!post" class="text-center py-12">
-      <p class="text-muted mb-4">Post not found.</p>
-      <router-link to="/forum" class="text-brand-600 hover:underline">Back to Forum</router-link>
+      <p class="text-muted mb-4">{{ t('post.detail.notFound') }}</p>
+      <router-link to="/forum" class="text-brand-600 hover:underline">{{ t('post.detail.backToForum') }}</router-link>
     </div>
 
     <template v-else>
       <!-- Editing mode -->
       <div v-if="editing" class="space-y-4">
-        <h2 class="text-xl font-bold text-foreground mb-4">Edit Post</h2>
+        <h2 class="text-xl font-bold text-foreground mb-4">{{ t('post.detail.editTitle') }}</h2>
         <BaseAlert v-if="editMessage" type="error">{{ editMessage }}</BaseAlert>
-        <BaseInput v-model="editTitle" placeholder="Post title" />
+        <BaseInput v-model="editTitle" :placeholder="t('post.create.titlePlaceholder')" />
         <TiptapEditor v-model="editContent" />
         <div class="flex gap-3">
-          <BaseButton :loading="editSaving" @click="saveEdit">Save Changes</BaseButton>
-          <BaseButton variant="secondary" @click="editing = false">Cancel</BaseButton>
+          <BaseButton :loading="editSaving" @click="saveEdit">{{ t('post.detail.saveChanges') }}</BaseButton>
+          <BaseButton variant="secondary" @click="editing = false">{{ t('common.cancel') }}</BaseButton>
         </div>
       </div>
 
@@ -106,7 +109,7 @@ const {
       <div v-else>
         <div class="mb-6">
           <router-link to="/forum" class="text-sm text-brand-600 hover:underline"
-            >&larr; Back to Forum</router-link
+            >&larr; {{ t('post.detail.backToForum') }}</router-link
           >
         </div>
 
@@ -149,9 +152,9 @@ const {
                       d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"
                     />
                   </svg>
-                  Pinned
+                  {{ t('post.detail.pinned') }}
                 </span>
-                <span v-if="post.version > 1" class="text-xs text-muted">v{{ post.version }}</span>
+                <span v-if="post.version > 1" class="text-xs text-muted">{{ t('post.detail.version', { version: post.version }) }}</span>
               </div>
             </div>
             <div class="flex gap-2 shrink-0">
@@ -161,28 +164,28 @@ const {
                 class="text-sm text-amber-600 hover:underline disabled:opacity-50"
                 @click="handleTogglePin"
               >
-                {{ post.is_pinned ? 'Unpin' : 'Pin' }}
+                {{ post.is_pinned ? t('post.detail.unpin') : t('post.detail.pin') }}
               </button>
               <button
                 v-if="canModify"
                 class="text-sm text-brand-600 hover:underline"
                 @click="startEdit"
               >
-                Edit
+                {{ t('post.detail.edit') }}
               </button>
               <button
                 v-if="canModify"
                 class="text-sm text-danger-600 hover:underline"
                 @click="showDeletePostConfirm = true"
               >
-                Delete
+                {{ t('post.detail.delete') }}
               </button>
               <button
                 v-if="canReport"
                 class="text-sm text-orange-600 hover:underline"
                 @click="showReportModal = true"
               >
-                Report
+                {{ t('post.detail.report') }}
               </button>
             </div>
           </div>
@@ -228,10 +231,10 @@ const {
                   />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                {{ post.view_count }} views
+                {{ t('post.detail.viewCount', { count: post.view_count }) }}
               </span>
               <span v-if="post.last_comment_at" class="text-xs text-muted">
-                Last reply {{ formatRelativeTime(post.last_comment_at) }}
+                {{ t('post.detail.lastReply', { time: formatRelativeTime(post.last_comment_at) }) }}
               </span>
             </div>
             <button
@@ -239,23 +242,23 @@ const {
               class="text-xs text-brand-600 hover:underline"
               @click="fetchHistory"
             >
-              View edit history
+              {{ t('post.detail.viewEditHistory') }}
             </button>
           </div>
         </BaseCard>
 
         <!-- Comments Section -->
         <BaseCard padding="lg">
-          <h3 class="text-lg font-semibold text-foreground mb-4">Comments ({{ commentsTotal }})</h3>
+          <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('post.detail.commentsTitle', { count: commentsTotal }) }}</h3>
 
           <div v-if="!post.allow_comments" class="text-sm text-muted mb-4">
-            Comments are disabled for this post.
+            {{ t('post.detail.commentsDisabled') }}
           </div>
 
           <!-- Threaded comments -->
           <div class="space-y-4">
             <div v-if="commentTree.length === 0" class="text-sm text-muted text-center py-4">
-              No comments yet.
+              {{ t('post.detail.noComments') }}
             </div>
             <div
               v-for="node in commentTree"
@@ -295,10 +298,10 @@ const {
                         :loading="editCommentSaving"
                         @click="saveEditComment(node.root.id)"
                       >
-                        Save
+                        {{ t('post.comment.save') }}
                       </BaseButton>
                       <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
-                        >Cancel</BaseButton
+                        >{{ t('post.comment.cancel') }}</BaseButton
                       >
                     </div>
                   </template>
@@ -329,21 +332,21 @@ const {
                         @click="handleReply(node.root.id)"
                         class="text-xs text-muted hover:text-brand-600"
                       >
-                        Reply
+                        {{ t('post.comment.reply') }}
                       </button>
                       <button
                         v-if="canEditComment(node.root)"
                         @click="startEditComment(node.root)"
                         class="text-xs text-muted hover:text-brand-600"
                       >
-                        Edit
+                        {{ t('post.comment.edit') }}
                       </button>
                       <button
                         v-if="canDeleteComment(node.root)"
                         @click="confirmDeleteComment(node.root.id)"
                         class="text-xs text-danger-500 hover:text-danger-600"
                       >
-                        Delete
+                        {{ t('post.comment.delete') }}
                       </button>
                     </div>
                   </template>
@@ -353,7 +356,7 @@ const {
                     <textarea
                       v-model="inlineReplyContent"
                       rows="2"
-                      placeholder="Write a reply..."
+                      :placeholder="t('post.comment.writeReply')"
                       class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
                     ></textarea>
                     <div class="flex gap-2">
@@ -363,10 +366,10 @@ const {
                         :disabled="!inlineReplyContent.trim()"
                         @click="submitInlineReply"
                       >
-                        Reply
+                        {{ t('post.comment.replyButton') }}
                       </BaseButton>
                       <BaseButton size="sm" variant="secondary" @click="inlineReplyTo = null">
-                        Cancel
+                        {{ t('post.comment.cancel') }}
                       </BaseButton>
                     </div>
                   </div>
@@ -411,10 +414,10 @@ const {
                           :loading="editCommentSaving"
                           @click="saveEditComment(reply.id)"
                         >
-                          Save
+                          {{ t('post.comment.save') }}
                         </BaseButton>
                         <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
-                          >Cancel</BaseButton
+                          >{{ t('post.comment.cancel') }}</BaseButton
                         >
                       </div>
                     </template>
@@ -445,14 +448,14 @@ const {
                           @click="startEditComment(reply)"
                           class="text-xs text-muted hover:text-brand-600"
                         >
-                          Edit
+                          {{ t('post.comment.edit') }}
                         </button>
                         <button
                           v-if="canDeleteComment(reply)"
                           @click="confirmDeleteComment(reply.id)"
                           class="text-xs text-danger-500 hover:text-danger-600"
                         >
-                          Delete
+                          {{ t('post.comment.delete') }}
                         </button>
                       </div>
                     </template>
@@ -481,7 +484,7 @@ const {
             <textarea
               v-model="newComment"
               rows="3"
-              placeholder="Write a comment..."
+              :placeholder="t('post.comment.writeComment')"
               class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
             ></textarea>
             <BaseButton
@@ -489,7 +492,7 @@ const {
               :loading="commentSaving"
               :disabled="!newComment.trim()"
               @click="submitComment"
-              >Post Comment</BaseButton
+              >{{ t('post.comment.postComment') }}</BaseButton
             >
           </div>
         </BaseCard>
@@ -497,13 +500,13 @@ const {
     </template>
 
     <!-- History Modal -->
-    <BaseModal v-model="showHistory" title="Edit History" size="xl">
+    <BaseModal v-model="showHistory" :title="t('post.history.title')" size="xl">
       <div v-if="history.length === 0" class="text-muted text-sm text-center py-4">
-        No edit history.
+        {{ t('post.history.empty') }}
       </div>
       <div v-for="item in history" :key="item.id" class="border-b border-border last:border-0 py-4">
         <div class="flex justify-between items-center mb-2">
-          <span class="text-sm font-medium text-foreground/80">Version {{ item.version }}</span>
+          <span class="text-sm font-medium text-foreground/80">{{ t('post.history.version', { version: item.version }) }}</span>
           <span class="text-xs text-muted">{{ new Date(item.edited_at).toLocaleString() }}</span>
         </div>
         <h4 class="text-sm font-semibold text-foreground mb-1">{{ item.title }}</h4>
@@ -515,48 +518,50 @@ const {
     </BaseModal>
 
     <!-- Report Modal -->
-    <BaseModal v-model="showReportModal" title="Report Post">
+    <BaseModal v-model="showReportModal" :title="t('post.reportDialog.title')">
       <BaseAlert v-if="reportMessage" type="error" class="mb-3">{{ reportMessage }}</BaseAlert>
       <textarea
         v-model="reportReason"
         rows="4"
-        placeholder="Describe why you are reporting this post..."
+        :placeholder="t('post.reportDialog.placeholder')"
         class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground mb-3"
       ></textarea>
       <template #footer>
-        <BaseButton variant="secondary" @click="showReportModal = false">Cancel</BaseButton>
+        <BaseButton variant="secondary" @click="showReportModal = false">{{ t('common.cancel') }}</BaseButton>
         <BaseButton
           class="bg-orange-600 hover:bg-orange-700 text-white"
           :loading="reportSaving"
           :disabled="!reportReason.trim()"
           @click="submitReport"
-          >Submit Report</BaseButton
+          >{{ t('post.reportDialog.submit') }}</BaseButton
         >
       </template>
     </BaseModal>
 
     <!-- Delete Post Confirmation -->
-    <BaseModal v-model="showDeletePostConfirm" title="Delete Post?" size="sm">
+    <BaseModal v-model="showDeletePostConfirm" :title="t('post.deleteDialog.title')" size="sm">
       <p class="text-sm text-muted">
-        Are you sure you want to delete this post? This action cannot be undone.
+        {{ t('post.deleteDialog.message') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeletePostConfirm = false">Cancel</BaseButton>
-        <BaseButton variant="danger" @click="deletePostHandler">Delete</BaseButton>
+        <BaseButton variant="secondary" @click="showDeletePostConfirm = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="danger" @click="deletePostHandler">{{ t('common.delete') }}</BaseButton>
       </template>
     </BaseModal>
 
     <!-- Delete Comment Confirmation -->
-    <BaseModal v-model="showDeleteCommentConfirm" title="Delete Comment?" size="sm">
+    <BaseModal v-model="showDeleteCommentConfirm" :title="t('post.deleteCommentDialog.title')" size="sm">
       <p class="text-sm text-muted">
-        Are you sure you want to delete this comment? This action cannot be undone.
+        {{ t('post.deleteCommentDialog.message') }}
       </p>
       <template #footer>
         <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false"
-          >Cancel</BaseButton
+          >{{ t('common.cancel') }}</BaseButton
         >
-        <BaseButton variant="danger" @click="deleteCommentHandler">Delete</BaseButton>
+        <BaseButton variant="danger" @click="deleteCommentHandler">{{ t('common.delete') }}</BaseButton>
       </template>
     </BaseModal>
+
+    <FloatingCreateButton to="/forum/create" />
   </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, inject, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
@@ -15,6 +16,7 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 const toastStore = useToastStore()
@@ -59,9 +61,9 @@ async function handleDeleteForm() {
   try {
     await deleteFormApi(formToDelete.value)
     await fetchForms()
-    toastStore.show('Form deleted.', 'success')
+    toastStore.show(t('sigs.forms.deleteSuccess'), 'success')
   } catch (e: unknown) {
-    toastStore.show(getErrorMessage(e, 'Failed to delete form.'), 'error')
+    toastStore.show(getErrorMessage(e, t('sigs.forms.deleteError')), 'error')
   } finally {
     showFormDeleteConfirm.value = false
     formToDelete.value = null
@@ -89,7 +91,7 @@ async function fetchResponses(formId: string, title: string, page = 1) {
     const totalResp = data.total || 0
     responsesTotalPages.value = Math.ceil(totalResp / 20) || 1
   } catch {
-    toastStore.show('Failed to load responses.', 'error')
+    toastStore.show(t('sigs.forms.deleteError'), 'error')
   } finally {
     responsesLoading.value = false
   }
@@ -102,9 +104,9 @@ onMounted(fetchForms)
   <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-foreground">Forms ({{ total }})</h2>
+      <h2 class="text-lg font-semibold text-foreground">{{ t('sigs.forms.title') }} ({{ total }})</h2>
       <router-link v-if="canCreateForm" :to="`/sigs/${sigId}/forms/new`">
-        <BaseButton size="md">Create Form</BaseButton>
+        <BaseButton size="md">{{ t('sigs.forms.createBtn') }}</BaseButton>
       </router-link>
     </div>
 
@@ -115,8 +117,8 @@ onMounted(fetchForms)
 
     <EmptyState
       v-else-if="forms.length === 0"
-      title="No forms yet"
-      message="Create a form to collect responses from SIG members."
+      :title="t('sigs.forms.emptyTitle')"
+      :message="t('sigs.forms.emptyMessage')"
     />
 
     <div v-else class="grid gap-4 sm:grid-cols-2">
@@ -133,7 +135,7 @@ onMounted(fetchForms)
             {{ f.title }}
           </router-link>
           <BaseBadge :variant="f.is_active ? 'success' : 'neutral'" size="sm" class="shrink-0 ml-2">
-            {{ f.is_active ? 'Active' : 'Closed' }}
+            {{ f.is_active ? t('common.active') : t('common.closed') }}
           </BaseBadge>
         </div>
 
@@ -145,9 +147,9 @@ onMounted(fetchForms)
           <div
             class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted font-medium uppercase tracking-tight"
           >
-            <span class="flex items-center gap-1">{{ f.response_count }} responses</span>
-            <span v-if="f.deadline">Ends {{ new Date(f.deadline).toLocaleDateString() }}</span>
-            <span>By {{ f.created_by_name || 'Admin' }}</span>
+            <span class="flex items-center gap-1">{{ f.response_count }} {{ t('sigs.forms.responses') }}</span>
+            <span v-if="f.deadline">{{ t('sigs.forms.ends') }} {{ new Date(f.deadline).toLocaleDateString() }}</span>
+            <span>{{ t('common.by') }} {{ f.created_by_name || 'Admin' }}</span>
           </div>
 
           <div
@@ -158,19 +160,19 @@ onMounted(fetchForms)
               :to="`/forms/${f.id}/edit`"
               class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
             >
-              Edit
+              {{ t('sigs.forms.editBtn') }}
             </router-link>
             <button
               @click="fetchResponses(f.id, f.title)"
               class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
             >
-              Responses
+              {{ t('sigs.forms.responsesBtn') }}
             </button>
             <button
               @click="confirmDeleteForm(f.id)"
               class="text-xs text-danger-600 hover:text-danger-700 font-medium hover:underline ml-auto"
             >
-              Delete
+              {{ t('sigs.forms.deleteBtn') }}
             </button>
           </div>
         </div>
@@ -178,23 +180,22 @@ onMounted(fetchForms)
     </div>
 
     <!-- Modals -->
-    <BaseModal v-model="showFormDeleteConfirm" title="Delete Form?" size="sm">
+    <BaseModal v-model="showFormDeleteConfirm" :title="t('sigs.forms.deleteConfirm.title')" size="sm">
       <p class="text-sm text-muted mb-4 leading-relaxed">
-        Are you sure you want to delete this form? This action will permanently remove all
-        associated fields and responses.
+        {{ t('sigs.forms.deleteConfirm.message') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showFormDeleteConfirm = false">Cancel</BaseButton>
-        <BaseButton variant="danger" @click="handleDeleteForm">Confirm Delete</BaseButton>
+        <BaseButton variant="secondary" @click="showFormDeleteConfirm = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="danger" @click="handleDeleteForm">{{ t('sigs.forms.deleteConfirm.confirmBtn') }}</BaseButton>
       </template>
     </BaseModal>
 
-    <BaseModal v-model="showResponsesModal" :title="`Responses: ${responsesFormTitle}`" size="xl">
+    <BaseModal v-model="showResponsesModal" :title="`${t('sigs.forms.responsesBtn')}: ${responsesFormTitle}`" size="xl">
       <div v-if="responsesLoading" class="py-12 flex justify-center">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
       </div>
       <div v-else-if="responses.length === 0" class="py-12 text-center text-muted italic">
-        No one has responded to this form yet.
+        {{ t('sigs.forms.noResponses') }}
       </div>
       <div v-else class="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
         <div

@@ -118,6 +118,10 @@ async function mountComponent(options?: { userSigRole?: ReturnType<typeof ref> |
           template: '<div class="empty-state" v-bind="$props" />',
           props: ['title', 'message'],
         },
+        FloatingCreateButton: {
+          template: '<div class="fab" v-bind="$props" />',
+          props: ['to'],
+        },
       },
     },
   })
@@ -151,32 +155,34 @@ describe('SigPostsView', () => {
     expect(wrapper.findAll('.skeleton-loader').length).toBe(0)
   })
 
-  it('shows "New Post" button when user is a SIG member', async () => {
+  it('shows floating create button when user is a SIG member', async () => {
     mockGetSigPosts.mockResolvedValue({ posts: fakePosts, total: 2 })
 
     const { wrapper } = await mountComponent({ userSigRole: ref('MEMBER') })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('New Post')
+    const fab = wrapper.find('.fab')
+    expect(fab.exists()).toBe(true)
+    expect(fab.attributes('to')).toContain('sig_id=sig1')
   })
 
-  it('hides "New Post" button when user is not a member', async () => {
+  it('hides floating create button when user is not a member', async () => {
     mockGetSigPosts.mockResolvedValue({ posts: fakePosts, total: 2 })
 
     const { wrapper } = await mountComponent({ userSigRole: ref(null) })
     await flushPromises()
 
-    expect(wrapper.text()).not.toContain('New Post')
+    expect(wrapper.find('.fab').exists()).toBe(false)
   })
 
-  it('hides "New Post" button when userSigRole inject is missing (undefined)', async () => {
+  it('hides floating create button when userSigRole inject is missing (undefined)', async () => {
     mockGetSigPosts.mockResolvedValue({ posts: fakePosts, total: 2 })
 
     // Do not provide userSigRole at all — simulates inject returning undefined
     const { wrapper } = await mountComponent()
     await flushPromises()
 
-    expect(wrapper.text()).not.toContain('New Post')
+    expect(wrapper.find('.fab').exists()).toBe(false)
   })
 
   it('shows EmptyState with correct message when no posts', async () => {

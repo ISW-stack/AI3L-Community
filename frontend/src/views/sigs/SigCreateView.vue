@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { createSig } from '@/api/sigs'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const name = ref('')
 const description = ref('')
@@ -15,7 +17,7 @@ const message = ref('')
 
 async function handleCreate() {
   if (!name.value.trim()) {
-    message.value = 'Name is required.'
+    message.value = t('sigs.create.nameRequired')
     return
   }
   saving.value = true
@@ -28,7 +30,7 @@ async function handleCreate() {
     router.push(`/sigs/${sig.id}`)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } }
-    message.value = err.response?.data?.detail || 'Failed to create SIG.'
+    message.value = err.response?.data?.detail || t('sigs.create.error')
   } finally {
     saving.value = false
   }
@@ -37,23 +39,23 @@ async function handleCreate() {
 
 <template>
   <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold text-foreground mb-6">Create SIG</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('sigs.create.title') }}</h1>
 
     <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>
 
     <form @submit.prevent="handleCreate" class="space-y-4">
-      <BaseInput v-model="name" label="Name" placeholder="SIG name" required :maxlength="200" />
+      <BaseInput v-model="name" :label="t('sigs.create.nameLabel')" :placeholder="t('sigs.create.namePlaceholder')" required :maxlength="200" />
       <BaseTextarea
         v-model="description"
-        label="Description (optional)"
-        placeholder="Describe the purpose of this SIG..."
+        :label="t('sigs.create.descLabel')"
+        :placeholder="t('sigs.create.descPlaceholder')"
         :rows="4"
       />
 
       <div class="flex gap-3 pt-2">
-        <BaseButton type="submit" size="lg" :loading="saving">Create SIG</BaseButton>
+        <BaseButton type="submit" size="lg" :loading="saving">{{ t('sigs.create.createBtn') }}</BaseButton>
         <router-link to="/sigs">
-          <BaseButton type="button" variant="secondary" size="lg">Cancel</BaseButton>
+          <BaseButton type="button" variant="secondary" size="lg">{{ t('sigs.create.cancelBtn') }}</BaseButton>
         </router-link>
       </div>
     </form>

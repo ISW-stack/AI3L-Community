@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
@@ -23,6 +24,7 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const toast = useToastStore()
 
@@ -65,11 +67,11 @@ async function applyBulkRole() {
       user_ids: Array.from(selectedIds.value),
       role: bulkRole.value,
     })
-    toast.show(`Role updated for ${selectedIds.value.size} user(s).`, 'success')
+    toast.show(t('admin.users.message.bulkRoleUpdated', { count: selectedIds.value.size }), 'success')
     selectedIds.value.clear()
     await fetchUsers()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Bulk role update failed.'), 'error')
+    toast.show(getErrorMessage(e, t('admin.users.message.bulkRoleFailed')), 'error')
   } finally {
     bulkLoading.value = false
   }
@@ -88,11 +90,11 @@ const banReason = ref('')
 const banning = ref(false)
 
 const roles = ['MEMBER', 'ADMIN', 'SUPER_ADMIN']
-const roleLabels: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ADMIN: 'Admin',
-  MEMBER: 'Member',
-  GUEST: 'Guest',
+const roleKeyMap: Record<string, string> = {
+  SUPER_ADMIN: 'common.role.superAdmin',
+  ADMIN: 'common.role.admin',
+  MEMBER: 'common.role.member',
+  GUEST: 'common.role.guest',
 }
 const roleBadge: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'> = {
   SUPER_ADMIN: 'danger',
@@ -121,7 +123,7 @@ async function fetchUsers() {
     users.value = data.users
     updateFromResponse(data.total)
   } catch {
-    message.value = 'Failed to load user list.'
+    message.value = t('admin.users.message.loadFailed', 'Failed to load user list.')
   } finally {
     loading.value = false
   }
@@ -135,10 +137,10 @@ function goToPage(p: number) {
 async function changeRole(userId: string, newRole: string) {
   try {
     await apiChangeRole(userId, newRole)
-    message.value = 'Role updated successfully.'
+    message.value = t('admin.users.message.roleUpdated')
     await fetchUsers()
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to update role.')
+    message.value = getErrorMessage(e, t('admin.users.message.roleFailed'))
   }
 }
 
@@ -157,10 +159,10 @@ async function createAccount() {
     newPassword.value = ''
     newDisplayName.value = ''
     newRole.value = 'MEMBER'
-    message.value = 'Account created successfully.'
+    message.value = t('admin.users.message.accountCreated')
     await fetchUsers()
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to create account.')
+    message.value = getErrorMessage(e, t('admin.users.message.createFailed'))
   } finally {
     creating.value = false
   }
@@ -178,10 +180,10 @@ async function confirmBan() {
   try {
     await banUser(banTargetUser.value.id, banReason.value)
     showBanModal.value = false
-    message.value = `${banTargetUser.value.username} has been banned.`
+    message.value = t('admin.users.message.banned', { username: banTargetUser.value.username })
     await fetchUsers()
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to ban user.')
+    message.value = getErrorMessage(e, t('admin.users.message.banFailed'))
   } finally {
     banning.value = false
   }
@@ -190,10 +192,10 @@ async function confirmBan() {
 async function handleUnban(user: AdminUser) {
   try {
     await apiUnbanUser(user.id)
-    message.value = `${user.username} has been unbanned.`
+    message.value = t('admin.users.message.unbanned', { username: user.username })
     await fetchUsers()
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to unban user.')
+    message.value = getErrorMessage(e, t('admin.users.message.unbanFailed'))
   }
 }
 
@@ -203,8 +205,8 @@ onMounted(fetchUsers)
 <template>
   <div>
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">User Management</h1>
-      <BaseButton @click="showCreateModal = true">Create Account</BaseButton>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('admin.users.title') }}</h1>
+      <BaseButton @click="showCreateModal = true">{{ t('admin.users.createButton') }}</BaseButton>
     </div>
 
     <!-- Search bar -->
@@ -212,7 +214,7 @@ onMounted(fetchUsers)
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="Search by username or display name..."
+        :placeholder="t('admin.users.searchPlaceholder')"
         class="w-full sm:w-80 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
         @input="onSearchInput"
       />
@@ -225,16 +227,16 @@ onMounted(fetchUsers)
       v-if="auth.isSuperAdmin && selectedIds.size > 0"
       class="mb-4 flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-3"
     >
-      <span class="text-sm text-foreground font-medium">{{ selectedIds.size }} selected</span>
+      <span class="text-sm text-foreground font-medium">{{ t('admin.users.selectedCount', { count: selectedIds.size }) }}</span>
       <select
         v-model="bulkRole"
         class="text-sm border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
-        <option v-for="r in roles" :key="r" :value="r">{{ roleLabels[r] }}</option>
+        <option v-for="r in roles" :key="r" :value="r">{{ t(roleKeyMap[r]) }}</option>
       </select>
-      <BaseButton size="sm" :loading="bulkLoading" @click="applyBulkRole">Apply Role</BaseButton>
+      <BaseButton size="sm" :loading="bulkLoading" @click="applyBulkRole">{{ t('admin.users.bulkApplyRole') }}</BaseButton>
       <button class="text-sm text-muted hover:text-foreground" @click="selectedIds.clear()">
-        Clear
+        {{ t('admin.users.bulkClear') }}
       </button>
     </div>
 
@@ -242,8 +244,8 @@ onMounted(fetchUsers)
 
     <EmptyState
       v-else-if="users.length === 0"
-      title="No Users"
-      message="No users found matching your search."
+      :title="t('admin.users.emptyTitle')"
+      :message="t('admin.users.emptyMessage')"
     />
 
     <div v-else class="relative">
@@ -259,12 +261,12 @@ onMounted(fetchUsers)
                   class="rounded"
                 />
               </th>
-              <th class="text-left px-4 py-3 font-medium text-muted">Username</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">Display Name</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">Role</th>
-              <th class="text-left px-4 py-3 font-medium text-muted">Status</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.username') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.displayName') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.role') }}</th>
+              <th class="text-left px-4 py-3 font-medium text-muted">{{ t('admin.users.table.status') }}</th>
               <th v-if="auth.isSuperAdmin" class="text-left px-4 py-3 font-medium text-muted">
-                Actions
+                {{ t('admin.users.table.actions') }}
               </th>
             </tr>
           </thead>
@@ -287,14 +289,14 @@ onMounted(fetchUsers)
               <td class="px-4 py-3 text-foreground">{{ user.display_name }}</td>
               <td class="px-4 py-3">
                 <BaseBadge :variant="roleBadge[user.role] || 'neutral'">{{
-                  roleLabels[user.role] || user.role
+                  t(roleKeyMap[user.role] || 'common.role.guest')
                 }}</BaseBadge>
               </td>
               <td class="px-4 py-3">
                 <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''"
-                  >Banned</BaseBadge
+                  >{{ t('admin.users.table.banned') }}</BaseBadge
                 >
-                <span v-else class="text-xs text-muted">Active</span>
+                <span v-else class="text-xs text-muted">{{ t('admin.users.table.active') }}</span>
               </td>
               <td v-if="auth.isSuperAdmin" class="px-4 py-3">
                 <div class="flex items-center gap-2">
@@ -304,9 +306,9 @@ onMounted(fetchUsers)
                     @change="changeRole(user.id, ($event.target as HTMLSelectElement).value)"
                     class="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
-                    <option v-for="r in roles" :key="r" :value="r">{{ roleLabels[r] }}</option>
+                    <option v-for="r in roles" :key="r" :value="r">{{ t(roleKeyMap[r]) }}</option>
                   </select>
-                  <span v-else class="text-xs text-muted">Current user</span>
+                  <span v-else class="text-xs text-muted">{{ t('admin.users.table.currentUser') }}</span>
 
                   <template v-if="user.id !== auth.user?.id">
                     <BaseButton
@@ -314,10 +316,10 @@ onMounted(fetchUsers)
                       size="sm"
                       variant="soft-danger"
                       @click="openBanModal(user)"
-                      >Ban</BaseButton
+                      >{{ t('admin.users.banBtn') }}</BaseButton
                     >
                     <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)"
-                      >Unban</BaseButton
+                      >{{ t('admin.users.unbanBtn') }}</BaseButton
                     >
                   </template>
                 </div>
@@ -332,7 +334,7 @@ onMounted(fetchUsers)
     </div>
 
     <div class="mt-4 flex items-center justify-between">
-      <p class="text-sm text-muted">{{ total }} users total</p>
+      <p class="text-sm text-muted">{{ t('admin.users.total', { count: total }) }}</p>
       <BasePagination
         v-if="totalPages > 1"
         :current-page="page"
@@ -342,57 +344,56 @@ onMounted(fetchUsers)
     </div>
 
     <!-- Create account modal -->
-    <BaseModal v-model="showCreateModal" title="Create Account" size="sm">
+    <BaseModal v-model="showCreateModal" :title="t('admin.users.createModal.title')" size="sm">
       <form @submit.prevent="createAccount" class="space-y-3">
-        <BaseInput v-model="newUsername" label="Username" required placeholder="Username" />
+        <BaseInput v-model="newUsername" :label="t('admin.users.createModal.usernameLabel')" required :placeholder="t('admin.users.createModal.usernamePlaceholder')" />
         <BaseInput
           v-model="newDisplayName"
-          label="Display Name"
+          :label="t('admin.users.createModal.displayNameLabel')"
           required
-          placeholder="Display Name"
+          :placeholder="t('admin.users.createModal.displayNamePlaceholder')"
         />
         <BaseInput
           v-model="newPassword"
-          label="Password"
+          :label="t('admin.users.createModal.passwordLabel')"
           type="password"
           required
-          placeholder="8+ chars, upper/lower/digit"
+          :placeholder="t('admin.users.createModal.passwordPlaceholder')"
         />
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">Role</label>
+          <label class="block text-sm font-medium text-foreground mb-1">{{ t('admin.users.createModal.roleLabel') }}</label>
           <select
             v-model="newRole"
             class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
-            <option value="MEMBER">Member</option>
-            <option v-if="auth.isSuperAdmin" value="ADMIN">Admin</option>
+            <option value="MEMBER">{{ t('admin.users.createModal.roleMember') }}</option>
+            <option v-if="auth.isSuperAdmin" value="ADMIN">{{ t('admin.users.createModal.roleAdmin') }}</option>
           </select>
         </div>
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showCreateModal = false">Cancel</BaseButton>
-        <BaseButton :loading="creating" @click="createAccount">Create</BaseButton>
+        <BaseButton variant="secondary" @click="showCreateModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton :loading="creating" @click="createAccount">{{ t('common.create') }}</BaseButton>
       </template>
     </BaseModal>
 
     <!-- Ban user modal -->
-    <BaseModal v-model="showBanModal" title="Ban User" size="sm">
+    <BaseModal v-model="showBanModal" :title="t('admin.users.banModal.title')" size="sm">
       <p class="text-sm text-muted mb-4">
-        Ban <strong class="text-foreground">{{ banTargetUser?.username }}</strong
-        >? This will immediately revoke their session.
+        {{ t('admin.users.banModal.message', { username: banTargetUser?.username }) }}
       </p>
       <form @submit.prevent="confirmBan">
         <BaseTextarea
           v-model="banReason"
-          label="Reason for ban"
+          :label="t('admin.users.banModal.reasonLabel')"
           required
           :rows="3"
-          placeholder="Reason for ban"
+          :placeholder="t('admin.users.banModal.reasonPlaceholder')"
         />
       </form>
       <template #footer>
-        <BaseButton variant="secondary" @click="showBanModal = false">Cancel</BaseButton>
-        <BaseButton variant="danger" :loading="banning" @click="confirmBan">Confirm Ban</BaseButton>
+        <BaseButton variant="secondary" @click="showBanModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="danger" :loading="banning" @click="confirmBan">{{ t('admin.users.banModal.confirmBtn') }}</BaseButton>
       </template>
     </BaseModal>
   </div>

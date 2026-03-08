@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Category } from '@/types'
 import { listCategories, createCategory, updateCategory, deleteCategory } from '@/api/categories'
 import { useToastStore } from '@/stores/toast'
@@ -11,6 +12,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const toast = useToastStore()
 const categories = ref<Category[]>([])
 const loading = ref(false)
@@ -36,7 +38,7 @@ async function fetchCategories() {
   try {
     categories.value = await listCategories()
   } catch {
-    toast.show('Failed to load categories.', 'error')
+    toast.show(t('admin.categories.message.loadFailed'), 'error')
   } finally {
     loading.value = false
   }
@@ -65,18 +67,18 @@ async function handleSave() {
         name: formName.value.trim(),
         description: formDescription.value.trim() || undefined,
       })
-      toast.show('Category updated.', 'success')
+      toast.show(t('admin.categories.message.updated'), 'success')
     } else {
       await createCategory({
         name: formName.value.trim(),
         description: formDescription.value.trim() || undefined,
       })
-      toast.show('Category created.', 'success')
+      toast.show(t('admin.categories.message.created'), 'success')
     }
     showModal.value = false
     await fetchCategories()
   } catch (err: unknown) {
-    toast.show(getErrorMessage(err, 'Failed to save category.'), 'error')
+    toast.show(getErrorMessage(err, t('admin.categories.message.saveFailed')), 'error')
   } finally {
     saving.value = false
   }
@@ -86,11 +88,11 @@ async function handleDelete() {
   if (!confirmDelete.value) return
   try {
     await deleteCategory(confirmDelete.value.id)
-    toast.show('Category deleted.', 'success')
+    toast.show(t('admin.categories.message.deleted'), 'success')
     confirmDelete.value = null
     await fetchCategories()
   } catch (err: unknown) {
-    toast.show(getErrorMessage(err, 'Failed to delete category.'), 'error')
+    toast.show(getErrorMessage(err, t('admin.categories.message.deleteFailed')), 'error')
   }
 }
 
@@ -100,10 +102,10 @@ onMounted(fetchCategories)
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Categories</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('admin.categories.title') }}</h1>
       <BaseButton @click="openCreate">
         <Plus :size="18" class="mr-1.5" />
-        New Category
+        {{ t('admin.categories.newBtn') }}
       </BaseButton>
     </div>
 
@@ -111,8 +113,8 @@ onMounted(fetchCategories)
 
     <EmptyState
       v-else-if="categories.length === 0"
-      title="No Categories"
-      message="Create your first category to organize forum posts."
+      :title="t('admin.categories.emptyTitle')"
+      :message="t('admin.categories.emptyMessage')"
     />
 
     <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
@@ -129,14 +131,14 @@ onMounted(fetchCategories)
           <button
             @click="openEdit(cat)"
             class="p-1.5 rounded text-muted hover:text-brand-600 hover:bg-brand-50 transition"
-            title="Edit"
+            :title="t('common.edit')"
           >
             <Pencil :size="16" />
           </button>
           <button
             @click="confirmDelete = cat"
             class="p-1.5 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
-            title="Delete"
+            :title="t('common.delete')"
           >
             <Trash2 :size="16" />
           </button>
@@ -145,34 +147,33 @@ onMounted(fetchCategories)
     </div>
 
     <!-- Create / Edit modal -->
-    <BaseModal v-model="showModal" :title="editing ? 'Edit Category' : 'New Category'">
+    <BaseModal v-model="showModal" :title="editing ? t('admin.categories.modal.editTitle') : t('admin.categories.modal.createTitle')">
       <form @submit.prevent="handleSave" class="space-y-4">
-        <BaseInput v-model="formName" label="Name" placeholder="Category name" required />
+        <BaseInput v-model="formName" :label="t('admin.categories.modal.nameLabel')" :placeholder="t('admin.categories.modal.namePlaceholder')" required />
         <BaseInput
           v-model="formDescription"
-          label="Description"
-          placeholder="Optional description"
+          :label="t('admin.categories.modal.descLabel')"
+          :placeholder="t('admin.categories.modal.descPlaceholder')"
         />
         <div class="flex justify-end gap-2">
           <BaseButton variant="secondary" @click="showModal = false" type="button"
-            >Cancel</BaseButton
+            >{{ t('common.cancel') }}</BaseButton
           >
           <BaseButton :disabled="!formName.trim() || saving" :loading="saving" type="submit">
-            {{ editing ? 'Save' : 'Create' }}
+            {{ editing ? t('common.save') : t('common.create') }}
           </BaseButton>
         </div>
       </form>
     </BaseModal>
 
     <!-- Delete confirm modal -->
-    <BaseModal v-model="showDeleteModal" title="Delete Category">
+    <BaseModal v-model="showDeleteModal" :title="t('admin.categories.deleteConfirm.title')">
       <p class="text-sm text-foreground mb-4">
-        Are you sure you want to delete <strong>{{ confirmDelete?.name }}</strong
-        >? Posts using this category will become uncategorized.
+        {{ t('admin.categories.deleteConfirm.message', { name: confirmDelete?.name }) }}
       </p>
       <div class="flex justify-end gap-2">
-        <BaseButton variant="secondary" @click="showDeleteModal = false">Cancel</BaseButton>
-        <BaseButton variant="danger" @click="handleDelete">Delete</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteModal = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="danger" @click="handleDelete">{{ t('common.delete') }}</BaseButton>
       </div>
     </BaseModal>
   </div>

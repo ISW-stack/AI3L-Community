@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/composables/api'
 
 interface Contributor {
@@ -9,6 +10,7 @@ interface Contributor {
   avatar_url: string
 }
 
+const { t } = useI18n()
 const contributors = ref<Contributor[]>([])
 const loading = ref(true)
 
@@ -48,25 +50,20 @@ onMounted(() => {
   <div class="max-w-4xl mx-auto px-4 py-8">
     <!-- Header Section -->
     <div class="mb-10">
-      <h1 class="text-3xl font-bold text-foreground mb-4">About AI3L Community</h1>
+      <h1 class="text-3xl font-bold text-foreground mb-4">{{ t('about.title') }}</h1>
       <p class="text-base text-muted leading-relaxed max-w-2xl">
-        AI3L Community is a small academic exchange platform for AI in Language Learning and
-        Literacy. It is organized and convened by
-        <strong class="text-foreground">Professor Yu-Ju Lan</strong>
-        from the National Taiwan Normal University (NTNU). This community-driven project aims to
-        bring together researchers and practitioners who share an interest in exploring how AI can
-        support language education and literacy development.
+        {{ t('about.description') }}
       </p>
     </div>
 
     <!-- Contributors Section -->
     <div>
-      <h2 class="text-2xl font-semibold text-foreground mb-6">Contributors</h2>
+      <h2 class="text-2xl font-semibold text-foreground mb-6">{{ t('about.contributors.title') }}</h2>
 
-      <div v-if="loading" class="text-muted">Loading contributors...</div>
+      <div v-if="loading" class="text-muted">{{ t('about.contributors.loading') }}</div>
 
       <div v-else-if="contributors.length === 0" class="text-muted">
-        No contributor information available.
+        {{ t('about.contributors.empty') }}
       </div>
 
       <div v-else class="flex flex-wrap gap-8">

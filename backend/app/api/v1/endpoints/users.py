@@ -62,6 +62,7 @@ async def update_my_profile(
         bio=req.bio,
         affiliation=req.affiliation,
         orcid=req.orcid,
+        preferred_language=req.preferred_language,
     )
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")

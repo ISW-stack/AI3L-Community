@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Application } from '@/types'
 import { listApplications, reviewApplication } from '@/api/admin'
 import { getErrorMessage } from '@/utils/error'
@@ -10,16 +11,17 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const { t } = useI18n()
 const applications = ref<Application[]>([])
 const total = ref(0)
 const loading = ref(false)
 const message = ref('')
 const statusFilter = ref('PENDING')
 
-const statusLabels: Record<string, string> = {
-  PENDING: 'Pending',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected',
+const statusKeyMap: Record<string, string> = {
+  PENDING: 'admin.applications.filter.pending',
+  APPROVED: 'admin.applications.filter.approved',
+  REJECTED: 'admin.applications.filter.rejected',
 }
 const statusBadge: Record<string, 'warning' | 'success' | 'danger'> = {
   PENDING: 'warning',
@@ -34,7 +36,7 @@ async function fetchApplications() {
     applications.value = data.applications
     total.value = data.total
   } catch {
-    message.value = 'Failed to load applications.'
+    message.value = t('admin.applications.message.loadFailed')
   } finally {
     loading.value = false
   }
@@ -43,10 +45,10 @@ async function fetchApplications() {
 async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
   try {
     await reviewApplication(appId, action)
-    message.value = action === 'APPROVED' ? 'Application approved.' : 'Application rejected.'
+    message.value = action === 'APPROVED' ? t('admin.applications.message.approved') : t('admin.applications.message.rejected')
     await fetchApplications()
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Operation failed.')
+    message.value = getErrorMessage(e, t('admin.applications.message.failed'))
   }
 }
 
@@ -68,7 +70,7 @@ onMounted(fetchApplications)
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-foreground mb-6">Membership Applications</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('admin.applications.title') }}</h1>
 
     <div class="flex gap-2 mb-4">
       <button
@@ -82,7 +84,7 @@ onMounted(fetchApplications)
             : 'bg-surface-alt text-muted hover:text-foreground'
         "
       >
-        {{ statusLabels[s] }}
+        {{ t(statusKeyMap[s]) }}
       </button>
     </div>
 
@@ -92,8 +94,8 @@ onMounted(fetchApplications)
       <SkeletonLoader v-if="loading" :lines="3" variant="card" />
       <EmptyState
         v-else-if="applications.length === 0"
-        title="No Applications"
-        message="No applications found."
+        :title="t('admin.applications.emptyTitle')"
+        :message="t('admin.applications.emptyMessage')"
       />
 
       <BaseCard v-for="app in applications" :key="app.id" padding="lg">
@@ -103,7 +105,7 @@ onMounted(fetchApplications)
               <span class="font-medium text-foreground">{{ app.display_name }}</span>
               <span class="text-sm text-muted">@{{ app.username }}</span>
               <BaseBadge :variant="statusBadge[app.status] || 'neutral'">{{
-                statusLabels[app.status]
+                t(statusKeyMap[app.status])
               }}</BaseBadge>
             </div>
             <p class="text-sm text-muted mb-1">{{ app.description }}</p>
@@ -112,16 +114,16 @@ onMounted(fetchApplications)
 
           <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">
             <BaseButton size="sm" variant="success" @click="review(app.id, 'APPROVED')"
-              >Approve</BaseButton
+              >{{ t('admin.applications.approveBtn') }}</BaseButton
             >
             <BaseButton size="sm" variant="soft-danger" @click="review(app.id, 'REJECTED')"
-              >Reject</BaseButton
+              >{{ t('admin.applications.rejectBtn') }}</BaseButton
             >
           </div>
         </div>
       </BaseCard>
     </div>
 
-    <p class="mt-4 text-sm text-muted">{{ total }} total</p>
+    <p class="mt-4 text-sm text-muted">{{ t('admin.applications.total', { count: total }) }}</p>
   </div>
 </template>

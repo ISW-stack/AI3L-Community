@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Users, FileText, UsersRound, ClipboardList, Flag, UserPlus } from 'lucide-vue-next'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -8,6 +9,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import type { DashboardStats } from '@/types'
 import { getDashboard } from '@/api/admin'
 
+const { t } = useI18n()
 const stats = ref<DashboardStats | null>(null)
 const loading = ref(false)
 
@@ -25,7 +27,7 @@ async function fetchStats() {
 const cards = [
   {
     key: 'users',
-    label: 'Users',
+    labelKey: 'admin.dashboard.card.users',
     icon: Users,
     bg: 'bg-brand-50',
     text: 'text-brand-700',
@@ -33,7 +35,7 @@ const cards = [
   },
   {
     key: 'posts',
-    label: 'Posts',
+    labelKey: 'admin.dashboard.card.posts',
     icon: FileText,
     bg: 'bg-success-50',
     text: 'text-success-600',
@@ -41,7 +43,7 @@ const cards = [
   },
   {
     key: 'sigs',
-    label: 'SIGs',
+    labelKey: 'admin.dashboard.card.sigs',
     icon: UsersRound,
     bg: 'bg-info-50',
     text: 'text-info-600',
@@ -49,7 +51,7 @@ const cards = [
   },
   {
     key: 'forms',
-    label: 'Forms',
+    labelKey: 'admin.dashboard.card.forms',
     icon: ClipboardList,
     bg: 'bg-info-50',
     text: 'text-info-600',
@@ -57,7 +59,7 @@ const cards = [
   },
   {
     key: 'pending_reports',
-    label: 'Pending Reports',
+    labelKey: 'admin.dashboard.card.pendingReports',
     icon: Flag,
     bg: 'bg-warning-50',
     text: 'text-warning-600',
@@ -65,7 +67,7 @@ const cards = [
   },
   {
     key: 'pending_applications',
-    label: 'Pending Applications',
+    labelKey: 'admin.dashboard.card.pendingApplications',
     icon: UserPlus,
     bg: 'bg-danger-50',
     text: 'text-danger-600',
@@ -78,18 +80,18 @@ onMounted(fetchStats)
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-foreground mb-6">Admin Dashboard</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('admin.dashboard.title') }}</h1>
 
     <SkeletonLoader v-if="loading" :lines="2" variant="card" />
 
-    <EmptyState v-else-if="!stats" message="No dashboard data available." />
+    <EmptyState v-else-if="!stats" :message="t('admin.dashboard.noData')" />
 
     <template v-else>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <BaseCard v-for="card in cards" :key="card.key" padding="lg">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm text-muted">{{ card.label }}</p>
+              <p class="text-sm text-muted">{{ t(card.labelKey) }}</p>
               <p class="text-3xl font-bold" :class="card.text">
                 {{ stats[card.key] }}
               </p>
@@ -102,16 +104,16 @@ onMounted(fetchStats)
       </div>
 
       <BaseCard padding="lg" class="mt-6">
-        <h2 class="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+        <h2 class="text-lg font-semibold text-foreground mb-4">{{ t('admin.dashboard.quickActions') }}</h2>
         <div class="flex flex-wrap gap-3">
           <router-link to="/admin/users">
-            <BaseButton variant="secondary" size="sm">Manage Users</BaseButton>
+            <BaseButton variant="secondary" size="sm">{{ t('admin.dashboard.action.manageUsers') }}</BaseButton>
           </router-link>
           <router-link to="/admin/applications">
-            <BaseButton variant="secondary" size="sm">Review Applications</BaseButton>
+            <BaseButton variant="secondary" size="sm">{{ t('admin.dashboard.action.reviewApplications') }}</BaseButton>
           </router-link>
           <router-link to="/admin/reports">
-            <BaseButton variant="secondary" size="sm">View Reports</BaseButton>
+            <BaseButton variant="secondary" size="sm">{{ t('admin.dashboard.action.viewReports') }}</BaseButton>
           </router-link>
         </div>
       </BaseCard>

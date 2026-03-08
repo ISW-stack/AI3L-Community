@@ -57,6 +57,10 @@ const commonStubs = {
     template: '<div class="empty-state">{{ title }}</div>',
     props: ['title', 'message'],
   },
+  FloatingCreateButton: {
+    template: '<div class="fab" v-bind="$props" />',
+    props: ['to'],
+  },
 }
 
 describe('SIG Views — Inject Default Safety', () => {
@@ -118,8 +122,8 @@ describe('SIG Views — Inject Default Safety', () => {
       })
       await flushPromises()
 
-      // "New Post" button should not appear when inject defaults to null
-      expect(wrapper.text()).not.toContain('New Post')
+      // Floating create button should not appear when inject defaults to null
+      expect(wrapper.find('.fab').exists()).toBe(false)
     })
 
     it('isMember becomes true when userSigRole is provided with a value', async () => {
@@ -145,7 +149,7 @@ describe('SIG Views — Inject Default Safety', () => {
       })
       await flushPromises()
 
-      expect(wrapper.text()).toContain('New Post')
+      expect(wrapper.find('.fab').exists()).toBe(true)
     })
   })
 

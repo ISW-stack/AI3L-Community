@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, inject, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { getSigPosts } from '@/api/sigs'
 import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -8,7 +9,9 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const sigId = computed(() => route.params.id as string)
 const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
@@ -39,10 +42,7 @@ onMounted(fetchPosts)
   <div class="space-y-4">
     <!-- Header/Actions -->
     <div class="flex items-center justify-between">
-      <h2 class="text-lg font-semibold text-foreground">Posts ({{ total }})</h2>
-      <router-link v-if="isMember" :to="`/forum/create?sig_id=${sigId}`">
-        <BaseButton size="md">New Post</BaseButton>
-      </router-link>
+      <h2 class="text-lg font-semibold text-foreground">{{ t('sigs.posts.title') }} ({{ total }})</h2>
     </div>
 
     <!-- Content -->
@@ -52,8 +52,8 @@ onMounted(fetchPosts)
 
     <EmptyState
       v-else-if="posts.length === 0"
-      title="No posts yet"
-      message="Start a discussion by creating the first post in this SIG."
+      :title="t('sigs.posts.emptyTitle')"
+      :message="t('sigs.posts.emptyMessage')"
     />
 
     <div v-else class="space-y-3">
@@ -83,10 +83,12 @@ onMounted(fetchPosts)
           </router-link>
 
           <div class="flex items-center gap-4 mt-3 text-xs text-muted">
-            <span class="flex items-center gap-1"> {{ p.comment_count }} comments </span>
+            <span class="flex items-center gap-1"> {{ p.comment_count }} {{ t('sigs.posts.comments') }} </span>
           </div>
         </BaseCard>
       </div>
     </div>
+
+    <FloatingCreateButton v-if="isMember" :to="`/forum/create?sig_id=${sigId}`" />
   </div>
 </template>

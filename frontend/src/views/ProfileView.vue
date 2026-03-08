@@ -19,7 +19,10 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import { getErrorMessage } from '@/utils/error'
+import { useLocale } from '@/composables/useLocale'
+import type { SupportedLocale } from '@/locales'
 
+const { t, currentLocale, localeOptions, setLocale } = useLocale()
 const auth = useAuthStore()
 const router = useRouter()
 
@@ -67,13 +70,13 @@ function roleBadgeVariant(
 function roleBadgeLabel(role: string | null | undefined): string {
   switch (role) {
     case 'SUPER_ADMIN':
-      return 'Super Admin'
+      return t('common.role.superAdmin')
     case 'ADMIN':
-      return 'Admin'
+      return t('common.role.admin')
     case 'MEMBER':
-      return 'Member'
+      return t('common.role.member')
     case 'GUEST':
-      return 'Guest'
+      return t('common.role.guest')
     default:
       return role || 'Unknown'
   }
@@ -88,9 +91,9 @@ async function generateInviteCode() {
   try {
     const data = await createInviteCode()
     generatedCode.value = data.invite_code
-    toast.show('Invite code generated successfully.', 'success')
+    toast.show(t('profile.security.inviteCodes.success'), 'success')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to generate invite code.'), 'error')
+    toast.show(getErrorMessage(e, t('profile.security.inviteCodes.generateError')), 'error')
   } finally {
     generatingCode.value = false
   }
@@ -100,12 +103,12 @@ async function copyInviteCode() {
   try {
     await navigator.clipboard.writeText(generatedCode.value)
     codeCopied.value = true
-    toast.show('Invite code copied to clipboard.', 'success')
+    toast.show(t('profile.security.inviteCodes.copySuccess'), 'success')
     setTimeout(() => {
       codeCopied.value = false
     }, 2000)
   } catch {
-    toast.show('Failed to copy invite code.', 'error')
+    toast.show(t('profile.security.inviteCodes.copyError'), 'error')
   }
 }
 
@@ -129,9 +132,9 @@ async function saveProfile() {
       orcid: orcid.value || undefined,
     })
     auth.user = data
-    message.value = 'Profile updated successfully.'
+    message.value = t('profile.saveSuccess')
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to update profile.')
+    message.value = getErrorMessage(e, t('profile.saveError'))
   } finally {
     saving.value = false
   }
@@ -144,9 +147,9 @@ async function uploadAvatar(event: Event) {
   try {
     const data = await apiUploadAvatar(file)
     auth.user = data
-    message.value = 'Avatar updated successfully.'
+    message.value = t('profile.avatarSuccess')
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to upload avatar.')
+    message.value = getErrorMessage(e, t('profile.avatarError'))
   }
 }
 
@@ -155,7 +158,7 @@ async function changePassword() {
   passwordError.value = false
 
   if (newPassword.value !== confirmPassword.value) {
-    passwordMessage.value = 'New passwords do not match.'
+    passwordMessage.value = t('profile.security.changePassword.mismatch')
     passwordError.value = true
     return
   }
@@ -166,7 +169,7 @@ async function changePassword() {
       current_password: currentPassword.value,
       new_password: newPassword.value,
     })
-    passwordMessage.value = 'Password changed successfully. Redirecting to login...'
+    passwordMessage.value = t('profile.security.changePassword.success')
     passwordError.value = false
     currentPassword.value = ''
     newPassword.value = ''
@@ -176,7 +179,7 @@ async function changePassword() {
       router.push({ name: 'login' })
     }, 1500)
   } catch (e: unknown) {
-    passwordMessage.value = getErrorMessage(e, 'Failed to change password.')
+    passwordMessage.value = getErrorMessage(e, t('profile.security.changePassword.error'))
     passwordError.value = true
   } finally {
     changingPassword.value = false
@@ -202,7 +205,7 @@ async function handleDeleteAccount() {
     auth.clearSession()
     router.push({ name: 'login' })
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to delete account.')
+    message.value = getErrorMessage(e, t('common.unknownError'))
   } finally {
     deletingAccount.value = false
     showDeleteConfirm.value = false
@@ -230,10 +233,10 @@ function toggleConfirmPassword() {
           to="/forum"
           class="text-sm text-brand-600 hover:underline flex items-center gap-1"
         >
-          <span>&larr;</span> Back
+          <span>&larr;</span> {{ t('profile.backBtn') }}
         </router-link>
       </div>
-      <h1 class="text-2xl font-bold text-foreground mb-6">Profile</h1>
+      <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('profile.title') }}</h1>
 
       <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
@@ -248,7 +251,7 @@ function toggleConfirmPassword() {
           "
           @click="switchTab('general')"
         >
-          General
+          {{ t('profile.tabs.general') }}
         </button>
         <button
           v-if="!auth.isGuest"
@@ -260,7 +263,7 @@ function toggleConfirmPassword() {
           "
           @click="switchTab('security')"
         >
-          Security
+          {{ t('profile.tabs.security') }}
         </button>
         <button
           v-if="!auth.isGuest"
@@ -272,7 +275,7 @@ function toggleConfirmPassword() {
           "
           @click="switchTab('danger')"
         >
-          Danger Zone
+          {{ t('profile.tabs.dangerZone') }}
         </button>
       </div>
 
@@ -294,7 +297,7 @@ function toggleConfirmPassword() {
             }}</span>
           </div>
           <label class="text-sm text-brand-600 hover:underline cursor-pointer">
-            Change Avatar
+            {{ t('profile.changeAvatar') }}
             <input
               type="file"
               accept="image/png,image/jpeg"
@@ -306,7 +309,7 @@ function toggleConfirmPassword() {
 
         <!-- Member Info -->
         <BaseCard padding="lg" class="mb-6">
-          <h2 class="text-sm font-medium text-muted mb-3">Member Info</h2>
+          <h2 class="text-sm font-medium text-muted mb-3">{{ t('profile.memberInfo') }}</h2>
           <div class="flex items-center gap-3">
             <span class="text-sm text-foreground font-medium">{{
               auth.user?.username || '---'
@@ -321,7 +324,7 @@ function toggleConfirmPassword() {
         <BaseCard padding="lg" class="mb-8">
           <form @submit.prevent="saveProfile" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-foreground mb-1">Username</label>
+              <label class="block text-sm font-medium text-foreground mb-1">{{ t('profile.form.usernameLabel') }}</label>
               <input
                 :value="auth.user?.username"
                 disabled
@@ -329,17 +332,29 @@ function toggleConfirmPassword() {
               />
             </div>
 
-            <BaseInput v-model="displayName" label="Display Name" :maxlength="100" />
-            <BaseTextarea v-model="bio" label="Bio" :rows="3" :maxlength="500" />
-            <BaseInput v-model="affiliation" label="Affiliation" :maxlength="200" />
+            <BaseInput v-model="displayName" :label="t('profile.form.displayNameLabel')" :maxlength="100" />
+            <BaseTextarea v-model="bio" :label="t('profile.form.bioLabel')" :rows="3" :maxlength="500" />
+            <BaseInput v-model="affiliation" :label="t('profile.form.affiliationLabel')" :maxlength="200" />
             <BaseInput
               v-model="orcid"
-              label="ORCID"
+              :label="t('profile.form.orcidLabel')"
               :maxlength="50"
-              placeholder="0000-0000-0000-0000"
+              :placeholder="t('profile.form.orcidPlaceholder')"
             />
 
-            <BaseButton type="submit" :loading="saving">Save</BaseButton>
+            <!-- Language selector -->
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">{{ t('profile.form.languageLabel') }}</label>
+              <select
+                :value="currentLocale"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
+                @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
+              >
+                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+            </div>
+
+            <BaseButton type="submit" :loading="saving">{{ t('profile.form.saveBtn') }}</BaseButton>
           </form>
         </BaseCard>
       </div>
@@ -347,7 +362,7 @@ function toggleConfirmPassword() {
       <!-- Security Tab -->
       <div v-if="activeTab === 'security' && !auth.isGuest">
         <!-- Change Password -->
-        <h2 class="text-xl font-bold text-foreground mb-4">Change Password</h2>
+        <h2 class="text-xl font-bold text-foreground mb-4">{{ t('profile.security.changePassword.title') }}</h2>
 
         <BaseAlert
           v-if="passwordMessage"
@@ -361,14 +376,14 @@ function toggleConfirmPassword() {
             <div class="relative">
               <BaseInput
                 v-model="currentPassword"
-                label="Current Password"
+                :label="t('profile.security.changePassword.currentLabel')"
                 :type="showCurrentPassword ? 'text' : 'password'"
               />
               <button
                 type="button"
                 class="absolute right-3 top-[34px] text-muted hover:text-foreground"
                 @click="toggleCurrentPassword"
-                :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
+                :aria-label="showCurrentPassword ? t('auth.hidePassword') : t('auth.showPassword')"
               >
                 <component :is="showCurrentPassword ? EyeOff : Eye" class="w-4 h-4" />
               </button>
@@ -377,33 +392,33 @@ function toggleConfirmPassword() {
               <div class="relative">
                 <BaseInput
                   v-model="newPassword"
-                  label="New Password"
+                  :label="t('profile.security.changePassword.newLabel')"
                   :type="showNewPassword ? 'text' : 'password'"
                 />
                 <button
                   type="button"
                   class="absolute right-3 top-[34px] text-muted hover:text-foreground"
                   @click="toggleNewPassword"
-                  :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+                  :aria-label="showNewPassword ? t('auth.hidePassword') : t('auth.showPassword')"
                 >
                   <component :is="showNewPassword ? EyeOff : Eye" class="w-4 h-4" />
                 </button>
               </div>
               <p class="text-xs text-muted mt-1">
-                At least 8 characters, with uppercase, lowercase, and a digit.
+                {{ t('profile.security.changePassword.newHint') }}
               </p>
             </div>
             <div class="relative">
               <BaseInput
                 v-model="confirmPassword"
-                label="Confirm New Password"
+                :label="t('profile.security.changePassword.confirmLabel')"
                 :type="showConfirmPassword ? 'text' : 'password'"
               />
               <button
                 type="button"
                 class="absolute right-3 top-[34px] text-muted hover:text-foreground"
                 @click="toggleConfirmPassword"
-                :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+                :aria-label="showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')"
               >
                 <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
               </button>
@@ -414,26 +429,26 @@ function toggleConfirmPassword() {
               :loading="changingPassword"
               :disabled="!currentPassword || !newPassword || !confirmPassword"
             >
-              Change Password
+              {{ t('profile.security.changePassword.btn') }}
             </BaseButton>
           </form>
         </BaseCard>
 
         <!-- Invite Codes -->
-        <h2 class="text-xl font-bold text-foreground mb-4">Invite Codes</h2>
+        <h2 class="text-xl font-bold text-foreground mb-4">{{ t('profile.security.inviteCodes.title') }}</h2>
         <BaseCard padding="lg">
           <p class="text-sm text-muted mb-4">
-            Generate an invite code to share with others so they can create an account.
+            {{ t('profile.security.inviteCodes.description') }}
           </p>
           <div class="flex flex-col gap-3">
             <BaseButton :loading="generatingCode" @click="generateInviteCode">
-              Generate Invite Code
+              {{ t('profile.security.inviteCodes.generateBtn') }}
             </BaseButton>
             <div v-if="generatedCode" class="flex items-center gap-2">
               <BaseInput :model-value="generatedCode" disabled class="flex-1" />
               <BaseButton variant="secondary" size="sm" @click="copyInviteCode">
                 <component :is="codeCopied ? Check : Copy" class="w-4 h-4 mr-1" />
-                {{ codeCopied ? 'Copied!' : 'Copy' }}
+                {{ codeCopied ? t('profile.security.inviteCodes.copiedBtn') : t('profile.security.inviteCodes.copyBtn') }}
               </BaseButton>
             </div>
           </div>
@@ -443,38 +458,36 @@ function toggleConfirmPassword() {
       <!-- Danger Zone Tab -->
       <div v-if="activeTab === 'danger' && !auth.isGuest">
         <BaseAlert type="warning" class="mb-4"
-          >Actions in this section are irreversible. Please proceed with caution.</BaseAlert
+          >{{ t('profile.dangerZone.warning') }}</BaseAlert
         >
 
-        <h2 class="text-xl font-bold text-danger-600 mb-4">Danger Zone</h2>
+        <h2 class="text-xl font-bold text-danger-600 mb-4">{{ t('profile.dangerZone.title') }}</h2>
         <BaseCard padding="lg">
           <p class="text-sm text-muted mb-4">
-            Permanently delete your account and anonymize all personal data. This action cannot be
-            undone.
+            {{ t('profile.dangerZone.deleteDescription') }}
           </p>
-          <BaseButton variant="danger" @click="openDeleteConfirm"> Delete My Account </BaseButton>
+          <BaseButton variant="danger" @click="openDeleteConfirm"> {{ t('profile.dangerZone.deleteBtn') }} </BaseButton>
         </BaseCard>
       </div>
 
       <!-- Delete Account Confirmation Modal -->
-      <BaseModal v-model="showDeleteConfirm" title="Delete Account?" size="sm">
+      <BaseModal v-model="showDeleteConfirm" :title="t('profile.dangerZone.deleteConfirm.title')" size="sm">
         <p class="text-sm text-muted mb-4">
-          This will permanently anonymize your profile, remove all personal information, and log you
-          out. Your posts will remain but be attributed to a deleted user.
+          {{ t('profile.dangerZone.deleteConfirm.message') }}
         </p>
         <BaseInput
           v-model="deleteConfirmText"
-          label="Type DELETE to confirm"
-          placeholder="DELETE"
+          :label="t('profile.dangerZone.deleteConfirm.typeLabel')"
+          :placeholder="t('profile.dangerZone.deleteConfirm.placeholder')"
         />
         <template #footer>
-          <BaseButton variant="secondary" @click="closeDeleteConfirm">Cancel</BaseButton>
+          <BaseButton variant="secondary" @click="closeDeleteConfirm">{{ t('common.cancel') }}</BaseButton>
           <BaseButton
             variant="danger"
             :disabled="deleteConfirmText !== 'DELETE'"
             :loading="deletingAccount"
             @click="handleDeleteAccount"
-            >Delete Account</BaseButton
+            >{{ t('profile.dangerZone.deleteConfirm.confirmBtn') }}</BaseButton
           >
         </template>
       </BaseModal>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import type { Post, Category } from '@/types'
 import { listPosts, searchPosts, getTrendingPosts } from '@/api/posts'
@@ -12,7 +13,9 @@ import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
+import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -185,12 +188,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto">
+  <div>
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Forum</h1>
-      <router-link v-if="auth.isAuthenticated && !auth.isGuest" to="/forum/create">
-        <BaseButton>New Post</BaseButton>
-      </router-link>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('forum.title') }}</h1>
     </div>
 
     <!-- Mobile Category Pills -->
@@ -205,7 +205,7 @@ onMounted(() => {
           "
           @click="selectCategory(null)"
         >
-          All
+          {{ t('common.all') }}
         </button>
         <button
           v-for="cat in categories"
@@ -232,16 +232,16 @@ onMounted(() => {
             <input
               v-model="searchKeyword"
               type="text"
-              placeholder="Search posts..."
+              :placeholder="t('forum.searchPlaceholder')"
               class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
               @keyup.enter="doSearch"
             />
-            <BaseButton @click="doSearch">Search</BaseButton>
+            <BaseButton @click="doSearch">{{ t('common.search') }}</BaseButton>
             <button
               class="text-sm text-brand-600 hover:text-brand-700 hover:underline shrink-0"
               @click="toggleAdvanced"
             >
-              {{ showAdvanced ? 'Hide Advanced' : 'Advanced' }}
+              {{ showAdvanced ? t('forum.hideAdvanced') : t('forum.advanced') }}
             </button>
           </div>
 
@@ -253,7 +253,7 @@ onMounted(() => {
                 type="date"
                 class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
               />
-              <span class="text-muted text-sm hidden sm:inline">to</span>
+              <span class="text-muted text-sm hidden sm:inline">{{ t('common.to') }}</span>
               <input
                 v-model="searchDateTo"
                 type="date"
@@ -263,19 +263,19 @@ onMounted(() => {
                 v-model="searchLogic"
                 class="px-3 py-2 border border-border rounded-lg text-sm w-20 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
               >
-                <option value="AND">AND</option>
-                <option value="OR">OR</option>
+                <option value="AND">{{ t('forum.searchLogic.and') }}</option>
+                <option value="OR">{{ t('forum.searchLogic.or') }}</option>
               </select>
             </div>
             <p v-if="dateRangeInvalid" class="text-sm text-danger-600">
-              Start date must be before end date.
+              {{ t('forum.dateRangeError') }}
             </p>
             <div class="flex gap-2">
               <BaseButton :disabled="dateRangeInvalid" @click="doSearch">
-                Apply Filters
+                {{ t('forum.applyFilters') }}
               </BaseButton>
               <BaseButton v-if="isSearching" variant="secondary" @click="clearSearch">
-                Clear
+                {{ t('forum.clearFilters') }}
               </BaseButton>
             </div>
           </div>
@@ -283,7 +283,7 @@ onMounted(() => {
 
         <!-- Sort Button Group -->
         <div class="flex items-center gap-1 mb-4">
-          <span class="text-sm text-muted mr-2">Sort:</span>
+          <span class="text-sm text-muted mr-2">{{ t('forum.sortLabel') }}</span>
           <button
             class="px-3 py-1.5 text-sm font-medium rounded-l-lg border transition"
             :class="
@@ -293,7 +293,7 @@ onMounted(() => {
             "
             @click="selectSort('newest')"
           >
-            Newest
+            {{ t('forum.sort.newest') }}
           </button>
           <button
             class="px-3 py-1.5 text-sm font-medium border-y transition"
@@ -304,7 +304,7 @@ onMounted(() => {
             "
             @click="selectSort('oldest')"
           >
-            Oldest
+            {{ t('forum.sort.oldest') }}
           </button>
           <button
             class="px-3 py-1.5 text-sm font-medium rounded-r-lg border transition"
@@ -315,19 +315,19 @@ onMounted(() => {
             "
             @click="selectSort('most_comments')"
           >
-            Most Discussed
+            {{ t('forum.sort.mostDiscussed') }}
           </button>
           <span v-if="activeCategoryName" class="ml-3 text-sm text-muted">
-            in <span class="font-medium text-foreground">{{ activeCategoryName }}</span>
+            {{ t('common.in') }} <span class="font-medium text-foreground">{{ activeCategoryName }}</span>
           </span>
         </div>
 
         <SkeletonLoader v-if="loading" :lines="3" variant="card" />
         <EmptyState
           v-else-if="posts.length === 0"
-          message="No posts found"
-          title="Nothing here yet"
-          action-label="Create Post"
+          :message="t('forum.emptyMessage')"
+          :title="t('forum.emptyTitle')"
+          :action-label="t('forum.createPostAction')"
           action-to="/forum/create"
         />
 
@@ -345,23 +345,22 @@ onMounted(() => {
             @update:current-page="goToPage"
           />
         </div>
-        <p class="mt-4 text-sm text-muted text-center">{{ total }} posts total</p>
+        <p class="mt-4 text-sm text-muted text-center">{{ t('forum.postsTotal', { count: total }) }}</p>
       </div>
 
       <!-- Right Sidebar (desktop only) -->
       <aside class="hidden lg:block w-[280px] shrink-0 space-y-6">
         <!-- About -->
         <BaseCard>
-          <h3 class="text-sm font-semibold text-foreground mb-2">About</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-2">{{ t('forum.sidebar.aboutTitle') }}</h3>
           <p class="text-sm text-muted">
-            A community for researchers and educators exploring AI in Language Learning and
-            Literacy.
+            {{ t('forum.sidebar.aboutDescription') }}
           </p>
         </BaseCard>
 
         <!-- Categories -->
         <BaseCard>
-          <h3 class="text-sm font-semibold text-foreground mb-3">Categories</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-3">{{ t('forum.sidebar.categoriesTitle') }}</h3>
           <ul class="space-y-1">
             <li>
               <button
@@ -373,7 +372,7 @@ onMounted(() => {
                 "
                 @click="selectCategory(null)"
               >
-                All Posts
+                {{ t('forum.sidebar.allPosts') }}
               </button>
             </li>
             <li v-for="cat in categories" :key="cat.id">
@@ -395,7 +394,7 @@ onMounted(() => {
 
         <!-- Trending Posts -->
         <BaseCard v-if="trendingPosts.length > 0">
-          <h3 class="text-sm font-semibold text-foreground mb-3">Trending (7d)</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-3">{{ t('forum.sidebar.trendingTitle') }}</h3>
           <ul class="space-y-3">
             <li v-for="tp in trendingPosts" :key="tp.id">
               <router-link
@@ -413,5 +412,7 @@ onMounted(() => {
         </BaseCard>
       </aside>
     </div>
+
+    <FloatingCreateButton to="/forum/create" />
   </div>
 </template>
