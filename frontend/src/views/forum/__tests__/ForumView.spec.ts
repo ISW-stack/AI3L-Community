@@ -247,7 +247,7 @@ describe('ForumView', () => {
 
   it('restores search query from URL', async () => {
     mockSearchPosts.mockResolvedValue({ posts: fakePosts, total: 2, total_pages: 1 })
-    const { wrapper } = await mountForum({ q: 'AI' })
+    await mountForum({ q: 'AI' })
     expect(mockSearchPosts).toHaveBeenCalledWith(expect.objectContaining({ keyword: 'AI' }))
   })
 })

@@ -8,7 +8,6 @@ import { useAuthStore } from '@/stores/auth'
 
 const mockListPosts = vi.fn()
 const mockApplyForMembership = vi.fn()
-const mockFetchUnreadCount = vi.fn()
 
 vi.mock('@/api/posts', () => ({
   listPosts: (...args: unknown[]) => mockListPosts(...args),
