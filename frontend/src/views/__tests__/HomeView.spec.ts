@@ -76,7 +76,10 @@ function createTestRouter() {
 
 function createStubs() {
   return {
-    BaseCard: { template: '<div class="base-card"><slot /></div>', props: ['hoverable', 'padding'] },
+    BaseCard: {
+      template: '<div class="base-card"><slot /></div>',
+      props: ['hoverable', 'padding'],
+    },
     BaseButton: {
       template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
       props: ['loading', 'variant', 'size'],

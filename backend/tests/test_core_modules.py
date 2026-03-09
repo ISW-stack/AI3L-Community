@@ -4,10 +4,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # config.py
 # ---------------------------------------------------------------------------
+
 
 class TestSettings:
     """Test Settings class default values and computed properties."""
@@ -191,6 +191,7 @@ class TestSettings:
 # rate_limit.py
 # ---------------------------------------------------------------------------
 
+
 class TestRateLimit:
     """Test rate limiting via Lua script (mocked Redis)."""
 
@@ -327,6 +328,7 @@ class TestRateLimit:
 # database.py
 # ---------------------------------------------------------------------------
 
+
 class TestDatabase:
     """Test database pool initialization and lifecycle."""
 
@@ -335,7 +337,9 @@ class TestDatabase:
         """init_db_pool should call asyncpg.create_pool with correct params."""
         mock_pool = AsyncMock()
 
-        with patch("app.core.database.asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool):
+        with patch(
+            "app.core.database.asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool
+        ):
             import app.core.database as db_mod
             from app.core.database import init_db_pool
 
@@ -350,7 +354,9 @@ class TestDatabase:
         """DSN should have 'postgresql+asyncpg://' replaced with 'postgresql://'."""
         mock_pool = AsyncMock()
 
-        with patch("app.core.database.asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool) as mock_create:
+        with patch(
+            "app.core.database.asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool
+        ) as mock_create:
             import app.core.database as db_mod
             from app.core.database import init_db_pool
 
@@ -434,7 +440,9 @@ class TestDatabase:
 
         mock_pool = AsyncMock()
 
-        with patch("app.core.database.asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool):
+        with patch(
+            "app.core.database.asyncpg.create_pool", new_callable=AsyncMock, return_value=mock_pool
+        ):
             await db_mod.init_db_pool("postgresql://u:p@h/d")
 
         assert db_mod.get_pool() is mock_pool

@@ -127,7 +127,9 @@ describe('FormBuilderView', () => {
     mockUpdateForm.mockResolvedValue({})
     // Mock crypto.randomUUID
     let counter = 0
-    vi.spyOn(crypto, 'randomUUID').mockImplementation(() => `uuid-${++counter}` as `${string}-${string}-${string}-${string}-${string}`)
+    vi.spyOn(crypto, 'randomUUID').mockImplementation(
+      () => `uuid-${++counter}` as `${string}-${string}-${string}-${string}-${string}`,
+    )
   })
 
   describe('Create mode', () => {
@@ -149,9 +151,7 @@ describe('FormBuilderView', () => {
 
     it('renders add question button and can add questions', async () => {
       const { wrapper } = await mountBuilder()
-      const addBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('+ Add Question'),
-      )
+      const addBtn = wrapper.findAll('button').find((b) => b.text().includes('+ Add Question'))
       expect(addBtn).toBeTruthy()
 
       // Verify there are question cards rendered
@@ -162,9 +162,7 @@ describe('FormBuilderView', () => {
     it('removes a question', async () => {
       const { wrapper } = await mountBuilder()
       // Add a second question first
-      const addBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('+ Add Question'),
-      )
+      const addBtn = wrapper.findAll('button').find((b) => b.text().includes('+ Add Question'))
       await addBtn!.trigger('click')
       await nextTick()
       const afterAddCount = wrapper.findAll('.border-l-4').length
@@ -184,9 +182,7 @@ describe('FormBuilderView', () => {
       vm.title = ''
       vm.questions[0].label = 'Q1'
 
-      const saveBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('Create Form'),
-      )
+      const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))
       await saveBtn!.trigger('click')
       await flushPromises()
 
@@ -200,9 +196,7 @@ describe('FormBuilderView', () => {
       vm.title = 'Survey Title'
       vm.questions = []
 
-      const saveBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('Create Form'),
-      )
+      const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))
       await saveBtn!.trigger('click')
       await flushPromises()
 
@@ -215,9 +209,7 @@ describe('FormBuilderView', () => {
       vm.title = 'Survey Title'
       vm.questions[0].label = ''
 
-      const saveBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('Create Form'),
-      )
+      const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))
       await saveBtn!.trigger('click')
       await flushPromises()
 
@@ -231,9 +223,7 @@ describe('FormBuilderView', () => {
       vm.title = 'New Survey'
       vm.questions[0].label = 'Question 1'
 
-      const saveBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('Create Form'),
-      )
+      const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))
       await saveBtn!.trigger('click')
       await flushPromises()
 
@@ -253,9 +243,7 @@ describe('FormBuilderView', () => {
       vm.title = 'New Survey'
       vm.questions[0].label = 'Q1'
 
-      const saveBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('Create Form'),
-      )
+      const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))
       await saveBtn!.trigger('click')
       await flushPromises()
 
@@ -270,9 +258,7 @@ describe('FormBuilderView', () => {
 
     it('shows preview modal', async () => {
       const { wrapper } = await mountBuilder()
-      const previewBtn = wrapper.findAll('button').find((b) =>
-        b.text().includes('Preview'),
-      )
+      const previewBtn = wrapper.findAll('button').find((b) => b.text().includes('Preview'))
       expect(previewBtn).toBeTruthy()
       await previewBtn!.trigger('click')
       await nextTick()

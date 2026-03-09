@@ -161,9 +161,7 @@ describe('NotificationsView', () => {
 
   it('marks all as read when button clicked', async () => {
     const { wrapper } = await mountNotifications()
-    const markAllBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Mark all as read'),
-    )
+    const markAllBtn = wrapper.findAll('button').find((b) => b.text().includes('Mark all as read'))
     expect(markAllBtn).toBeTruthy()
     await markAllBtn!.trigger('click')
     await flushPromises()
@@ -184,9 +182,9 @@ describe('NotificationsView', () => {
 
   it('does not call markRead for already-read notification', async () => {
     const { wrapper } = await mountNotifications()
-    const notifButtons = wrapper.findAll('button').filter((b) =>
-      b.text().includes('Bob commented on your post'),
-    )
+    const notifButtons = wrapper
+      .findAll('button')
+      .filter((b) => b.text().includes('Bob commented on your post'))
     expect(notifButtons.length).toBeGreaterThan(0)
     // n2 is already read
     await notifButtons[0].trigger('click')
@@ -213,9 +211,9 @@ describe('NotificationsView', () => {
   it('shows unread count badge on unread tab', async () => {
     const { wrapper } = await mountNotifications()
     // The Unread tab should show the unread count
-    const unreadTab = wrapper.findAll('button').find(
-      (b) => b.text().includes('Unread') && !b.text().includes('All'),
-    )
+    const unreadTab = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Unread') && !b.text().includes('All'))
     expect(unreadTab).toBeTruthy()
     expect(unreadTab!.text()).toContain('2')
   })
@@ -249,9 +247,7 @@ describe('NotificationsView', () => {
 
   it('clears all notifications', async () => {
     const { wrapper } = await mountNotifications()
-    const clearBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Clear All'),
-    )
+    const clearBtn = wrapper.findAll('button').find((b) => b.text().includes('Clear All'))
     expect(clearBtn).toBeTruthy()
     await clearBtn!.trigger('click')
     await flushPromises()

@@ -248,9 +248,7 @@ describe('FormView', () => {
   it('shows validation error for required empty fields', async () => {
     const { wrapper } = await mountFormView()
     // Submit without filling required fields
-    const submitBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Submit'),
-    )
+    const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
     expect(submitBtn).toBeTruthy()
     await submitBtn!.trigger('click')
     await flushPromises()
@@ -268,13 +266,14 @@ describe('FormView', () => {
     vm.answers['q1'] = 'John Doe'
     vm.answers['q2'] = 'opt1'
 
-    const submitBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Submit'),
-    )
+    const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
     await submitBtn!.trigger('click')
     await flushPromises()
 
-    expect(mockSubmitForm).toHaveBeenCalledWith('form-1', expect.objectContaining({ q1: 'John Doe', q2: 'opt1' }))
+    expect(mockSubmitForm).toHaveBeenCalledWith(
+      'form-1',
+      expect.objectContaining({ q1: 'John Doe', q2: 'opt1' }),
+    )
   })
 
   it('shows success message after submission', async () => {
@@ -283,9 +282,7 @@ describe('FormView', () => {
     vm.answers['q1'] = 'John'
     vm.answers['q2'] = 'opt1'
 
-    const submitBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Submit'),
-    )
+    const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
     await submitBtn!.trigger('click')
     await flushPromises()
 
@@ -301,9 +298,7 @@ describe('FormView', () => {
     vm.answers['q1'] = 'John'
     vm.answers['q2'] = 'opt1'
 
-    const submitBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Submit'),
-    )
+    const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
     await submitBtn!.trigger('click')
     await flushPromises()
 

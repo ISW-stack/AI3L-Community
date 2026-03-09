@@ -214,17 +214,13 @@ describe('ProfileView', () => {
 
     // Find generate button
     const buttons = wrapper.findAll('button')
-    const generateBtn = buttons.find((b) =>
-      b.text().includes('Generate Invite Code'),
-    )
+    const generateBtn = buttons.find((b) => b.text().includes('Generate Invite Code'))
     expect(generateBtn).toBeTruthy()
     await generateBtn!.trigger('click')
     await flushPromises()
     expect(mockCreateInviteCode).toHaveBeenCalled()
     // After generation, the copy button should appear
-    const copyBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Copy'),
-    )
+    const copyBtn = wrapper.findAll('button').find((b) => b.text().includes('Copy'))
     expect(copyBtn).toBeTruthy()
   })
 

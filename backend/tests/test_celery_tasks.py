@@ -14,7 +14,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Module-level Celery mock fixtures
 # ---------------------------------------------------------------------------
@@ -211,9 +210,7 @@ class TestAsyncRetry:
 
             await _async_retry()
 
-        mock_persist.assert_awaited_once_with(
-            "test.event", "my_handler", {"x": 1}, retry_count=2
-        )
+        mock_persist.assert_awaited_once_with("test.event", "my_handler", {"x": 1}, retry_count=2)
 
     @pytest.mark.anyio
     async def test_drops_event_with_missing_event_name(self):
@@ -871,9 +868,7 @@ class TestVirusTotal:
             mock_requests.get.return_value = mock_response
             mock_requests.RequestException = Exception
             mock_requests.exceptions = MagicMock()
-            mock_requests.exceptions.JSONDecodeError = type(
-                "JSONDecodeError", (ValueError,), {}
-            )
+            mock_requests.exceptions.JSONDecodeError = type("JSONDecodeError", (ValueError,), {})
             mock_run.return_value = None
 
             from app.tasks.virustotal import check_virustotal

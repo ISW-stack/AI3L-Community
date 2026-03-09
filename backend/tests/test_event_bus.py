@@ -146,9 +146,7 @@ class TestRetryBehaviour:
     @pytest.mark.asyncio
     async def test_retry_succeeds_on_third_attempt(self):
         """Handler fails twice then succeeds on the last allowed attempt."""
-        handler = AsyncMock(
-            side_effect=[Exception("1"), Exception("2"), None]
-        )
+        handler = AsyncMock(side_effect=[Exception("1"), Exception("2"), None])
         on("evt", handler)
 
         with patch("app.core.event_bus.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
@@ -256,9 +254,7 @@ class TestPersistFailedEvent:
     @pytest.mark.asyncio
     async def test_persist_handles_get_redis_import_error(self):
         """If get_redis itself raises, _persist_failed_event suppresses it."""
-        with patch(
-            "app.core.redis.get_redis", side_effect=RuntimeError("not initialised")
-        ):
+        with patch("app.core.redis.get_redis", side_effect=RuntimeError("not initialised")):
             await _persist_failed_event("e", "h", {}, retry_count=0)
 
     @pytest.mark.asyncio

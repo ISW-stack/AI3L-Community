@@ -133,9 +133,7 @@ describe('UserProfileView', () => {
 
   it('fetches user posts on mount', async () => {
     await mountUserProfile()
-    expect(mockListPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ author_id: 'user-other' }),
-    )
+    expect(mockListPosts).toHaveBeenCalledWith(expect.objectContaining({ author_id: 'user-other' }))
   })
 
   it('renders user display name', async () => {

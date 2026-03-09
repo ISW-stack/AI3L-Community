@@ -78,8 +78,12 @@ async function mountUsers(options?: {
   role?: string
   userId?: string
 }) {
-  const { users = fakeUsers, total = fakeUsers.length, role = 'SUPER_ADMIN', userId = 'admin-1' } =
-    options ?? {}
+  const {
+    users = fakeUsers,
+    total = fakeUsers.length,
+    role = 'SUPER_ADMIN',
+    userId = 'admin-1',
+  } = options ?? {}
 
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -139,8 +143,7 @@ async function mountUsers(options?: {
           emits: ['update:modelValue'],
         },
         BasePagination: {
-          template:
-            '<div class="base-pagination" @click="$emit(\'update:current-page\', 2)" />',
+          template: '<div class="base-pagination" @click="$emit(\'update:current-page\', 2)" />',
           props: ['currentPage', 'totalPages'],
         },
         SkeletonLoader: { template: '<div class="skeleton-loader" />' },
@@ -255,9 +258,7 @@ describe('UsersView', () => {
     await flushPromises()
 
     expect(mockListUsers).toHaveBeenCalledTimes(2)
-    expect(mockListUsers).toHaveBeenLastCalledWith(
-      expect.objectContaining({ search: 'alice' }),
-    )
+    expect(mockListUsers).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'alice' }))
   })
 
   it('opens create account modal when create button is clicked', async () => {
@@ -362,7 +363,14 @@ describe('UsersView', () => {
 
   it('does not show role select for current user (self)', async () => {
     const singleUser = [
-      { id: 'admin-1', username: 'admin', display_name: 'Admin', role: 'SUPER_ADMIN', is_banned: false, ban_reason: null },
+      {
+        id: 'admin-1',
+        username: 'admin',
+        display_name: 'Admin',
+        role: 'SUPER_ADMIN',
+        is_banned: false,
+        ban_reason: null,
+      },
     ]
     const { wrapper } = await mountUsers({ users: singleUser, total: 1, userId: 'admin-1' })
     // No role select should be rendered for self

@@ -194,9 +194,7 @@ describe('ForumView', () => {
   it('toggles advanced search panel', async () => {
     const { wrapper } = await mountForum()
     // Find the advanced toggle button
-    const advancedBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Advanced'),
-    )
+    const advancedBtn = wrapper.findAll('button').find((b) => b.text().includes('Advanced'))
     expect(advancedBtn).toBeTruthy()
     await advancedBtn!.trigger('click')
     await nextTick()
@@ -239,9 +237,7 @@ describe('ForumView', () => {
   it('selects category filter', async () => {
     const { wrapper } = await mountForum()
     // Find category button (in sidebar)
-    const catButtons = wrapper.findAll('button').filter((b) =>
-      b.text().includes('AI Research'),
-    )
+    const catButtons = wrapper.findAll('button').filter((b) => b.text().includes('AI Research'))
     expect(catButtons.length).toBeGreaterThan(0)
     await catButtons[0].trigger('click')
     await flushPromises()

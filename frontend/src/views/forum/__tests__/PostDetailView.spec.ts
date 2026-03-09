@@ -311,9 +311,7 @@ describe('PostDetailView', () => {
 
   it('shows back to forum link', async () => {
     const { wrapper } = await mountPostDetail()
-    const backLink = wrapper.findAll('a').find((l) =>
-      l.attributes('href')?.includes('/forum'),
-    )
+    const backLink = wrapper.findAll('a').find((l) => l.attributes('href')?.includes('/forum'))
     expect(backLink).toBeTruthy()
   })
 

@@ -180,12 +180,7 @@ describe('GuestLoginView', () => {
       await wrapper.find('form').trigger('submit')
       await flushPromises()
 
-      expect(mockGuestLogin).toHaveBeenCalledWith(
-        'GUEST-CODE',
-        'Guest User',
-        'cap-guest-1',
-        '1234',
-      )
+      expect(mockGuestLogin).toHaveBeenCalledWith('GUEST-CODE', 'Guest User', 'cap-guest-1', '1234')
     })
 
     it('navigates to home after successful guest login', async () => {

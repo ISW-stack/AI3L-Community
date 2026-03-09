@@ -35,7 +35,13 @@ const fakeCategories = [
 ]
 
 const fakeSigs = [
-  { id: 'sig1', name: 'NLP SIG', description: 'NLP', member_count: 10, created_at: '2026-01-01T00:00:00Z' },
+  {
+    id: 'sig1',
+    name: 'NLP SIG',
+    description: 'NLP',
+    member_count: 10,
+    created_at: '2026-01-01T00:00:00Z',
+  },
 ]
 
 function createTestRouter(query?: Record<string, string>) {
@@ -77,7 +83,8 @@ async function mountPostCreate(options?: { query?: Record<string, string> }) {
   setActivePinia(pinia)
   const router = createTestRouter()
 
-  const path = '/forum/create' + (options?.query ? '?' + new URLSearchParams(options.query).toString() : '')
+  const path =
+    '/forum/create' + (options?.query ? '?' + new URLSearchParams(options.query).toString() : '')
   await router.push(path)
   await router.isReady()
 
@@ -157,9 +164,9 @@ describe('PostCreateView', () => {
   it('adds and removes keywords', async () => {
     const { wrapper } = await mountPostCreate()
     // Find keyword input
-    const kwInput = wrapper.findAll('input[type="text"]').find((i) =>
-      i.attributes('maxlength') === '50',
-    )
+    const kwInput = wrapper
+      .findAll('input[type="text"]')
+      .find((i) => i.attributes('maxlength') === '50')
     expect(kwInput).toBeTruthy()
     await kwInput!.setValue('machine-learning')
     await kwInput!.trigger('keydown.enter')
@@ -235,9 +242,7 @@ describe('PostCreateView', () => {
     )
 
     const { wrapper } = await mountPostCreate()
-    const discardBtn = wrapper.findAll('button').find((b) =>
-      b.text().includes('Discard draft'),
-    )
+    const discardBtn = wrapper.findAll('button').find((b) => b.text().includes('Discard draft'))
     expect(discardBtn).toBeTruthy()
     await discardBtn!.trigger('click')
     await flushPromises()
@@ -247,17 +252,13 @@ describe('PostCreateView', () => {
 
   it('shows back link to forum', async () => {
     const { wrapper } = await mountPostCreate()
-    const backLink = wrapper.findAll('a').find((l) =>
-      l.attributes('href')?.includes('/forum'),
-    )
+    const backLink = wrapper.findAll('a').find((l) => l.attributes('href')?.includes('/forum'))
     expect(backLink).toBeTruthy()
   })
 
   it('shows back link to SIG when posting from SIG', async () => {
     const { wrapper } = await mountPostCreate({ query: { sig_id: 'sig1' } })
-    const backLink = wrapper.findAll('a').find((l) =>
-      l.attributes('href')?.includes('/sigs/sig1'),
-    )
+    const backLink = wrapper.findAll('a').find((l) => l.attributes('href')?.includes('/sigs/sig1'))
     expect(backLink).toBeTruthy()
   })
 })

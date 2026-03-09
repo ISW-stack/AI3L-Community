@@ -177,9 +177,7 @@ describe('ApplicationsView', () => {
     mockListApplications.mockResolvedValue({ applications: [], total: 0 })
 
     // Find the APPROVED/REJECTED filter buttons (second and third filter)
-    const filterButtons = wrapper
-      .findAll('button')
-      .filter((b) => !b.find('.base-card').exists())
+    const filterButtons = wrapper.findAll('button').filter((b) => !b.find('.base-card').exists())
     // Click the second filter button (should be APPROVED)
     if (filterButtons.length >= 2) {
       await filterButtons[1].trigger('click')

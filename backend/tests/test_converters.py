@@ -5,8 +5,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -89,9 +87,7 @@ class TestApplicationConverter:
         assert result["display_name"] is None
 
     def test_datetime_isoformat(self):
-        row = self._make_row(
-            created_at=datetime(2026, 1, 15, 8, 30, 0, tzinfo=timezone.utc)
-        )
+        row = self._make_row(created_at=datetime(2026, 1, 15, 8, 30, 0, tzinfo=timezone.utc))
         result = self._conv(row)
         assert result["created_at"] == "2026-01-15T08:30:00+00:00"
 
@@ -274,9 +270,7 @@ class TestFormConverter:
         assert result["updated_at"] == _NOW.isoformat()
 
     def test_null_optional_fields(self):
-        row = self._make_row(
-            description=None, banner_url=None, deadline=None, max_respondents=None
-        )
+        row = self._make_row(description=None, banner_url=None, deadline=None, max_respondents=None)
         result = self._conv(row)
 
         assert result["description"] is None
@@ -916,9 +910,7 @@ class TestUserToPublicResponse:
         assert result.created_at == _NOW.isoformat()
 
     def test_null_optional_fields(self):
-        user = self._make_user(
-            avatar_url=None, bio=None, affiliation=None, orcid=None
-        )
+        user = self._make_user(avatar_url=None, bio=None, affiliation=None, orcid=None)
         result = self._conv(user)
 
         assert result.avatar_url is None
