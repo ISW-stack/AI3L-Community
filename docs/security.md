@@ -157,13 +157,16 @@ A corrupted or invalid PDF that cannot be parsed is rejected before reaching sto
 
 ### 4.3 VirusTotal Async Scanning
 
-After a file is stored in MinIO, it is queued for asynchronous scanning via the VirusTotal API. The scan result is stored in the `file_scans` table. Clients can poll `GET /files/{key}/scan` to retrieve the scan status and verdict.
+After a file is stored in MinIO, it is queued for asynchronous scanning via the VirusTotal API. The scan result is stored in the `file_scans` table. Clients can poll `GET /files/scan-status/{key}` to retrieve the scan status and verdict (`pending` / `clean` / `malicious`). Files flagged as malicious return HTTP 451 from the content proxy.
 
 This provides a second line of defense against malware that passes magic byte checks (e.g. a valid PDF with malicious content). The UI surfaces the scan status to the user (pending / clean / flagged).
 
 ### 4.4 Object Storage Access Control
 
-Files in MinIO are **never publicly accessible**. All read access goes through the backend, which generates short-lived (7-day TTL) **presigned URLs** at request time. Presigned URLs are scoped to a single object and expire automatically — there is no permanent public URL for any stored file.
+Files in MinIO are **never publicly accessible**. Read access is served in two ways:
+
+- **Editor-embedded images**: accessed via the stable backend proxy `GET /files/content/{key}`. The proxy streams the file from MinIO and requires authentication. This avoids the expiry problem of embedded presigned URLs.
+- **Attachments / on-demand downloads**: the backend generates short-lived (7-day TTL) **presigned URLs** at request time via `GET /files/presigned/{key}`. Presigned URLs are scoped to a single object and expire automatically.
 
 When MinIO is accessed through a different hostname from the browser (e.g. behind Nginx or in Docker development), `MINIO_PUBLIC_URL` rewrites the internal hostname in generated presigned URLs so the browser can reach the file without the internal service name being exposed.
 

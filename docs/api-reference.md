@@ -25,17 +25,20 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/users/me` | Required | Get own profile |
-| GET | `/users/{user_id}` | Required | Get any user's public profile |
-| PUT | `/users/{user_id}` | Required | Update own profile |
-| PUT | `/users/{user_id}/avatar` | Required | Upload avatar image |
+| PUT | `/users/me` | Required | Update own profile |
+| PUT | `/users/me/avatar` | Required | Upload avatar image |
+| PUT | `/users/me/password` | Required | Change own password |
 | POST | `/users/me/consent` | Required | Record privacy policy consent |
+| DELETE | `/users/me` | Required | Self-delete account (GDPR Right to Erasure) |
 | POST | `/users/apply-member` | Guest | Submit membership application |
+| GET | `/users/{user_id}` | Required | Get any user's public profile |
+| GET | `/users/{user_id}/avatar` | Required | Get a user's avatar image |
 | GET | `/users` | Admin | List all users (paginated) |
-| POST | `/users` | Admin | Create user account manually |
+| POST | `/users/admin-create` | Admin | Create user account manually |
 | PUT | `/users/bulk-role` | Super Admin | Change role for multiple users in one transaction |
 | PUT | `/users/{user_id}/role` | Super Admin | Change a single user's role |
-| PUT | `/users/{user_id}/ban` | Admin | Ban user (terminates all active sessions immediately) |
-| PUT | `/users/{user_id}/unban` | Admin | Remove ban |
+| POST | `/users/{user_id}/ban` | Admin | Ban user (terminates all active sessions immediately) |
+| POST | `/users/{user_id}/unban` | Admin | Remove ban |
 | DELETE | `/users/{user_id}` | Admin | Anonymize user (GDPR Right to Erasure) |
 
 ---
@@ -45,23 +48,26 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/categories` | Required | List all categories |
-| POST | `/categories` | Super Admin | Create a category |
-| PATCH | `/categories/{id}` | Super Admin | Update a category |
-| DELETE | `/categories/{id}` | Super Admin | Delete a category |
+| GET | `/categories/{id}` | Required | Get a single category |
+| POST | `/categories` | Admin | Create a category |
+| PUT | `/categories/{id}` | Admin | Update a category |
+| DELETE | `/categories/{id}` | Admin | Delete a category |
 | GET | `/posts` | Required | List posts (filterable by category, SIG, keyword) |
 | POST | `/posts` | Member+ | Create post (50 posts per user per day) |
 | POST | `/posts/search` | Required | Full-text search with AND/OR logic and date range (special characters safe) |
+| GET | `/posts/trending` | Required | List trending posts |
 | DELETE | `/posts/bulk` | Admin | Soft-delete multiple posts in one transaction |
 | GET | `/posts/{post_id}` | Required | Get a single post |
 | PUT | `/posts/{post_id}` | Owner | Edit post (versioned, version conflict detected) |
 | DELETE | `/posts/{post_id}` | Owner/Admin | Soft-delete a post |
+| PATCH | `/posts/{post_id}/pin` | Admin | Pin or unpin a post |
 | GET | `/posts/{post_id}/history` | Required | Get the post's edit history |
 | POST | `/posts/{post_id}/report` | Member+ | Flag post for admin moderation |
 | GET | `/posts/{post_id}/comments` | Required | List comments on a post |
 | POST | `/posts/{post_id}/comments` | Required | Add a comment |
 | PUT | `/posts/{post_id}/comments/{comment_id}` | Owner | Edit a comment |
 | DELETE | `/posts/{post_id}/comments/{comment_id}` | Owner/Admin | Delete a comment |
-| POST | `/posts/{post_id}/comments/{comment_id}/reactions` | Required | Add or toggle a reaction |
+| POST | `/posts/{post_id}/comments/{comment_id}/reaction` | Required | Add or toggle a reaction |
 
 ---
 
@@ -71,13 +77,15 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 |---|---|---|---|
 | GET | `/sigs` | Required | List all SIGs (filterable by name) |
 | POST | `/sigs` | Member+ | Create a SIG |
+| GET | `/sigs/my` | Required | List SIGs the current user belongs to |
 | GET | `/sigs/{sig_id}` | Required | Get SIG detail |
 | PUT | `/sigs/{sig_id}` | SIG Admin | Update SIG metadata |
 | DELETE | `/sigs/{sig_id}` | Admin | Soft-delete SIG (cascades to SIG posts and forms) |
 | GET | `/sigs/{sig_id}/members` | Required | List SIG members |
-| POST | `/sigs/{sig_id}/members` | Required | Join a SIG |
-| DELETE | `/sigs/{sig_id}/members/{user_id}` | Member/Admin | Leave or remove a member |
-| PUT | `/sigs/{sig_id}/sub-admin` | SIG Admin | Promote member to sub-admin |
+| POST | `/sigs/{sig_id}/join` | Required | Join a SIG |
+| DELETE | `/sigs/{sig_id}/members/me` | Required | Leave a SIG |
+| DELETE | `/sigs/{sig_id}/members/{user_id}` | SIG Admin/Admin | Remove a member from a SIG |
+| POST | `/sigs/{sig_id}/sub-admin` | SIG Admin | Promote member to sub-admin |
 | GET | `/sigs/{sig_id}/posts` | Required | Posts in this SIG |
 | GET | `/sigs/{sig_id}/forms` | Required | Forms in this SIG |
 | POST | `/sigs/{sig_id}/forms` | SIG Admin | Create a form in this SIG |
@@ -91,9 +99,9 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | GET | `/forms/{form_id}` | Required | Get form definition and response count |
 | PUT | `/forms/{form_id}` | Owner/SIG Admin | Edit form (locked after first response is submitted) |
 | DELETE | `/forms/{form_id}` | Owner/SIG Admin | Soft-delete form |
-| POST | `/forms/{form_id}/responses` | Required | Submit a response |
-| GET | `/forms/{form_id}/responses` | SIG Admin | View all responses |
-| POST | `/forms/{form_id}/export` | SIG Admin | Start async CSV export (returns a task ID) |
+| POST | `/forms/{form_id}/submit` | Required | Submit a response |
+| GET | `/forms/{form_id}/responses` | SIG Admin | View all responses (paginated) |
+| POST | `/forms/{form_id}/export` | SIG Admin | Start async CSV export (returns a Celery task ID) |
 
 ---
 
@@ -114,8 +122,9 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/files/upload/editor` | Required | Upload file (PNG, JPEG, PDF, DOCX · max 20 MB) |
-| GET | `/files/presigned/{key}` | Required | Generate a 7-day presigned download URL |
-| GET | `/files/{key}/scan` | Required | Poll VirusTotal scan status for an uploaded file |
+| GET | `/files/content/{key}` | Required | Stream file content via backend proxy (stable URL, used for editor-embedded images) |
+| GET | `/files/presigned/{key}` | Required | Generate a 7-day presigned download URL (for attachment downloads) |
+| GET | `/files/scan-status/{key}` | Required | Poll VirusTotal scan status for an uploaded file (`pending` / `clean` / `malicious`) |
 
 ---
 
@@ -141,6 +150,10 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 |---|---|---|---|
 | GET | `/about/contributors` | Member+ | List platform contributors (GitHub avatars proxied through the server — no GitHub usernames exposed to the client) |
 | GET | `/about/contributors/{id}/avatar` | Member+ | Proxy a contributor's GitHub avatar (1-hour server-side cache) |
+| GET | `/about/admin/contributors` | Super Admin | List all contributors with full details (including github_username) |
+| POST | `/about/admin/contributors` | Super Admin | Add a new contributor |
+| PUT | `/about/admin/contributors/{id}` | Super Admin | Update contributor details |
+| DELETE | `/about/admin/contributors/{id}` | Super Admin | Remove a contributor |
 
 ---
 
@@ -149,7 +162,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/health` | None | PostgreSQL and Redis connectivity check |
-| GET | `/tasks/{task_id}` | Required | Celery task status (`PENDING`, `SUCCESS`, `FAILURE`) and result |
+| GET | `/tasks/{task_id}/status` | Required | Celery task status (`PENDING`, `SUCCESS`, `FAILURE`) and result |
 | WS | `/ws?ticket={ticket}` | Required | Real-time notification stream — see [`websocket.md`](websocket.md) |
 
 ---

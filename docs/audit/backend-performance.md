@@ -43,9 +43,8 @@ Date: 2026-03-07
 - **Issue:** The `/health` endpoint may query the database to verify connectivity, adding load during health check intervals (every 30s from Docker + any load balancer).
 - **Fix:** Use a lightweight health check that only verifies the process is running. Add a separate `/health/ready` endpoint for deep checks.
 
-### 9. No Structured Logging in Backend
-- **Issue:** Backend uses `print()` and basic `logging` without structured JSON output. Makes log aggregation and querying difficult in production.
-- **Fix:** Configure `python-json-logger` or similar for structured JSON logging.
+### 9. Structured Logging — ✅ Resolved
+- **Status:** Loguru is configured as the logging backend. `LOG_FORMAT=json` (the current default) produces structured JSON output. `LOG_FORMAT=text` is available for local development readability. No further action needed.
 
 ### 10. Missing Cache Headers on Static Content
 - **Issue:** API responses for rarely-changing data (categories, SIG list) don't include cache headers. Browsers refetch this data on every navigation.

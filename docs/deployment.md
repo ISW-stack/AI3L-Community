@@ -180,6 +180,8 @@ docker compose exec fastapi alembic current
 | `n4o5p6q7r8s9` | Add contributors table |
 | `o5p6q7r8s9t0` | Fix SIG name unique constraint |
 | `p6q7r8s9t0u1` | Add form_response unique constraint and index |
+| `q7r8s9t0u1v2` | Add indexes on notifications and post_history |
+| `r9s0t1u2v3w4` | Add preferred_language to users (i18n support) |
 
 ---
 
