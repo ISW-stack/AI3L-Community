@@ -44,7 +44,7 @@ const fakeSigs = [
   },
 ]
 
-function createTestRouter(_query?: Record<string, string>) {
+function createTestRouter() {
   return createRouter({
     history: createMemoryHistory(),
     routes: [

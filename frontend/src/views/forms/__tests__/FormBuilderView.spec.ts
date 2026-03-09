@@ -54,8 +54,7 @@ const fakeEditForm = {
   ],
 }
 
-function createTestRouter(options?: { isEdit?: boolean }) {
-  const { isEdit: _isEdit = false } = options ?? {}
+function createTestRouter() {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
