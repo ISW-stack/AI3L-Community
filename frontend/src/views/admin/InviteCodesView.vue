@@ -6,6 +6,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import type { InviteCode } from '@/types'
 import { listInviteCodes, createInviteCode } from '@/api/admin'
+import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -27,8 +28,8 @@ async function fetchCodes() {
     const data = await listInviteCodes({ status: statusFilter.value || undefined })
     codes.value = data.codes
     total.value = data.total
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('admin.inviteCodes.message.fetchFailed')), 'error')
   } finally {
     loading.value = false
   }

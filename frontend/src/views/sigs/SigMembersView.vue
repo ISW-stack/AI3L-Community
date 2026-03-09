@@ -46,8 +46,8 @@ async function fetchMembers() {
     const data = await getSigMembers(sigId.value)
     members.value = data.members
     total.value = data.total
-  } catch (e) {
-    console.error('Failed to fetch members:', e)
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('sigs.members.fetchError')), 'error')
   } finally {
     loading.value = false
   }

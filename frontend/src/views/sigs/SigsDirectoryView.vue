@@ -2,7 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { listSigs } from '@/api/sigs'
+import { getErrorMessage } from '@/utils/error'
 import type { Sig } from '@/types'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -12,6 +14,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const sigs = ref<Sig[]>([])
 const total = ref(0)
@@ -34,8 +37,8 @@ async function fetchSigs() {
     const data = await listSigs()
     sigs.value = data.sigs
     total.value = data.total
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('sigs.directory.fetchError')), 'error')
   } finally {
     loading.value = false
   }

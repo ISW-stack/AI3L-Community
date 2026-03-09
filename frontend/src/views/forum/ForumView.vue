@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 import type { Post, Category } from '@/types'
 import { listPosts, searchPosts, getTrendingPosts } from '@/api/posts'
 import { listCategories } from '@/api/categories'
+import { getErrorMessage } from '@/utils/error'
+import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -14,6 +16,7 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 
 const { t } = useI18n()
+const toast = useToastStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -54,16 +57,16 @@ const activeCategoryName = computed(() => {
 async function fetchCategories() {
   try {
     categories.value = await listCategories()
-  } catch (e) {
-    console.error(e)
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('forum.fetchCategoriesError')), 'error')
   }
 }
 
 async function fetchTrending() {
   try {
     trendingPosts.value = await getTrendingPosts()
-  } catch (e) {
-    console.error(e)
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('forum.fetchTrendingError')), 'error')
   }
 }
 
@@ -92,8 +95,8 @@ async function fetchPosts() {
     posts.value = data.posts
     updateFromResponse(data.total, data.total_pages)
     isSearching.value = false
-  } catch (e) {
-    console.error(e)
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('forum.fetchPostsError')), 'error')
   } finally {
     loading.value = false
   }
@@ -126,8 +129,8 @@ async function doSearch() {
     const data = await searchPosts(body as Parameters<typeof searchPosts>[0])
     posts.value = data.posts
     updateFromResponse(data.total, data.total_pages)
-  } catch (e) {
-    console.error(e)
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('forum.searchError')), 'error')
   } finally {
     loading.value = false
   }

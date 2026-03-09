@@ -68,8 +68,8 @@ async function fetchSigData() {
     sig.value = sigData
     const me = membersData.members.find((m: SigMember) => m.user_id === auth.user?.id)
     userSigRole.value = me?.role ?? null
-  } catch (e) {
-    console.error('Failed to fetch SIG data:', e)
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('sigs.detail.fetchError')), 'error')
   } finally {
     loading.value = false
   }

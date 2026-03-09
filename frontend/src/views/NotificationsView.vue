@@ -13,6 +13,7 @@ import {
   bulkDeleteNotifications,
 } from '@/api/notifications'
 import { relativeTime } from '@/utils/datetime'
+import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
 import { useNotificationStore } from '@/stores/notifications'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -49,8 +50,8 @@ async function fetchNotifications() {
     notifications.value = data.notifications
     updateFromResponse(data.total)
     unreadCount.value = data.unread_count
-  } catch {
-    // silent
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('notifications.fetchError')), 'error')
   } finally {
     if (localFetchId === fetchId) {
       loading.value = false
@@ -64,8 +65,8 @@ async function markRead(notif: Notification) {
       await apiMarkRead(notif.id)
       notif.is_read = true
       unreadCount.value = Math.max(0, unreadCount.value - 1)
-    } catch {
-      /* silent */
+    } catch (e: unknown) {
+      toast.show(getErrorMessage(e, t('notifications.markReadError')), 'error')
     }
   }
   navigateToEntity(notif)
@@ -76,8 +77,8 @@ async function markAllRead() {
     await apiMarkAllRead()
     notifications.value.forEach((n) => (n.is_read = true))
     unreadCount.value = 0
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('notifications.markReadError')), 'error')
   }
 }
 

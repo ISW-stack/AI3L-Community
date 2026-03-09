@@ -39,6 +39,12 @@ vi.mock('@/api/forms', () => ({
   listFormResponses: vi.fn(),
 }))
 
+vi.mock('@/stores/toast', () => ({
+  useToastStore: vi.fn(() => ({
+    show: vi.fn(),
+  })),
+}))
+
 const commonStubs = {
   BaseCard: { template: '<div class="base-card"><slot /></div>' },
   BaseButton: { template: '<button class="base-button"><slot /></button>' },
@@ -83,13 +89,15 @@ describe('SIG Views — Inject Default Safety', () => {
           },
         ],
       })
+      const pinia = createPinia()
+      setActivePinia(pinia)
       await router.push('/sigs/sig1/posts')
       await router.isReady()
 
       // No provide for userSigRole — should use default ref(null)
       const wrapper = mount(SigPostsView, {
         global: {
-          plugins: [router],
+          plugins: [pinia, router],
           provide: {},
           stubs: commonStubs,
         },
@@ -110,12 +118,14 @@ describe('SIG Views — Inject Default Safety', () => {
           },
         ],
       })
+      const pinia = createPinia()
+      setActivePinia(pinia)
       await router.push('/sigs/sig1/posts')
       await router.isReady()
 
       const wrapper = mount(SigPostsView, {
         global: {
-          plugins: [router],
+          plugins: [pinia, router],
           provide: {},
           stubs: commonStubs,
         },
@@ -137,12 +147,14 @@ describe('SIG Views — Inject Default Safety', () => {
           },
         ],
       })
+      const pinia = createPinia()
+      setActivePinia(pinia)
       await router.push('/sigs/sig1/posts')
       await router.isReady()
 
       const wrapper = mount(SigPostsView, {
         global: {
-          plugins: [router],
+          plugins: [pinia, router],
           provide: { userSigRole: ref('MEMBER') },
           stubs: commonStubs,
         },
