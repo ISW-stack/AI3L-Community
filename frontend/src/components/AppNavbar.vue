@@ -100,6 +100,11 @@ onUnmounted(() => {
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.about') }}</router-link
           >
+          <router-link
+            to="/about"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >About</router-link
+          >
 
           <template v-if="auth.isAuthenticated">
             <!-- Admin dropdown -->
@@ -288,6 +293,14 @@ onUnmounted(() => {
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.about') }}
+          </router-link>
+
+          <router-link
+            to="/about"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            About
           </router-link>
 
           <template v-if="auth.isAuthenticated">
