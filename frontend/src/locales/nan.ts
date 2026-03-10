@@ -111,7 +111,7 @@ export default {
     guestLoading: '入場中...',
     noAccount: '猶未有帳號？',
     noAccountLink: '去註冊',
-    browseAsGuest: 'iah-sī以',
+    browseAsGuest: 'iah-sī 以',
     browseAsGuestLink: '訪客',
     hasAccount: '已經有帳號矣？',
     hasAccountLink: '去登入',
@@ -569,7 +569,7 @@ export default {
       },
       validation: {
         titleRequired: '標題是必填ê。',
-        questionRequired: '至少愛有一道題目。',
+        questionRequired: '至少著有一道題目。',
         labelRequired: '所有題目攏著有題目文字。',
         optionsRequired: '「{label}」ê題目著有至少 2 个選項。',
         ratingError: '「{label}」ê題目：最小值著比最大值細。',
@@ -647,7 +647,7 @@ export default {
       },
       inviteCodes: {
         title: '邀請碼',
-        description: '產生一个邀請碼，分享予他人，予𪜶ē-tàng建立帳號。',
+        description: '產生一个邀請碼來分享，予別人ē-tàng建立帳號。',
         generateBtn: '產生邀請碼',
         copyBtn: '複製',
         copiedBtn: '已複製！',
@@ -961,7 +961,7 @@ export default {
   // ── Errors (backend error codes) ──
   errors: {
     AUTH_001: 'Session 已過期，請重新登入。',
-    AUTH_002: '無效 iah-sī 已撤銷ê Session。',
+    AUTH_002: 'Session 無效，iah-sī 已撤銷。',
     AUTH_003: '訪客容量已滿，請稍後再試。',
     AUTH_004: '你ê帳號已被封禁。',
     RATE_LIMIT: '要求次數太濟，請稍後再試。',
