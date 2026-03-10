@@ -41,6 +41,13 @@ const editSaving = ref(false)
 const showDeleteConfirm = ref(false)
 const joining = ref(false)
 
+const confirmAction = ref<{ action: 'leave' } | null>(null)
+const showLeaveConfirm = computed({
+  get: () => !!confirmAction.value && confirmAction.value.action === 'leave',
+  set: (v: boolean) => {
+    if (!v) confirmAction.value = null
+  },
+})
 // Shared state for children
 provide('sig', sig)
 provide('userSigRole', userSigRole)
@@ -114,13 +121,19 @@ async function handleDeleteSig() {
   }
 }
 
-async function handleLeaveSig() {
+function promptLeaveSig() {
+  confirmAction.value = { action: 'leave' }
+}
+
+async function executeLeaveSig() {
   try {
     await leaveSigApi(sigId.value)
     await fetchSigData()
     toastStore.show(t('sigs.detail.leaveSuccess'), 'info')
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.detail.leaveError')), 'error')
+  } finally {
+    confirmAction.value = null
   }
 }
 
@@ -226,7 +239,7 @@ const currentRouteName = computed(() => route.name)
                   v-if="canLeave && userSigRole !== 'ADMIN'"
                   size="sm"
                   class="bg-warning-50 text-warning-700 hover:bg-warning-100"
-                  @click="handleLeaveSig"
+                  @click="promptLeaveSig"
                 >
                   {{ t('sigs.detail.leaveBtn') }}
                 </BaseButton>
@@ -286,8 +299,26 @@ const currentRouteName = computed(() => route.name)
             }}</BaseButton>
           </template>
         </BaseModal>
+
+        <!-- Leave confirmation -->
+        <BaseModal
+          v-model="showLeaveConfirm"
+          :title="t('sigs.detail.leaveConfirmTitle', 'Leave SIG')"
+          size="sm"
+        >
+          <p class="text-sm text-muted mb-4 leading-relaxed">
+            {{ t('sigs.detail.leaveConfirmMessage', 'Are you sure you want to leave this SIG?') }}
+          </p>
+          <template #footer>
+            <BaseButton variant="secondary" @click="showLeaveConfirm = false">{{
+              t('common.cancel', 'Cancel')
+            }}</BaseButton>
+            <BaseButton variant="danger" @click="executeLeaveSig">{{
+              t('sigs.detail.leaveConfirmBtn', 'Leave')
+            }}</BaseButton>
+          </template>
+        </BaseModal>
       </div>
-      <!-- End shrink-0 header section -->
 
       <!-- Main Layout Grid -->
       <div class="flex flex-col lg:flex-row gap-16 flex-1 min-h-0">

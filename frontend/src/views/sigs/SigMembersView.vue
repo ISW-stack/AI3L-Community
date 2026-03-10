@@ -16,6 +16,8 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -28,6 +30,14 @@ const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
 const members = ref<SigMember[]>([])
 const total = ref(0)
 const loading = ref(true)
+
+const confirmAction = ref<{ action: 'remove'; user: SigMember } | null>(null)
+const showConfirmModal = computed({
+  get: () => !!confirmAction.value,
+  set: (v: boolean) => {
+    if (!v) confirmAction.value = null
+  },
+})
 
 const isSigAdmin = computed(
   () => userSigRole?.value === 'ADMIN' || userSigRole?.value === 'SUB_ADMIN',
@@ -58,13 +68,20 @@ function canRemoveMember(m: SigMember) {
   return auth.isAdmin || isSigAdmin.value
 }
 
-async function handleRemoveMember(userId: string) {
+function promptRemoveMember(user: SigMember) {
+  confirmAction.value = { action: 'remove', user }
+}
+
+async function executeRemoveMember() {
+  if (!confirmAction.value) return
   try {
-    await removeMemberApi(sigId.value, userId)
+    await removeMemberApi(sigId.value, confirmAction.value.user.user_id)
     await fetchMembers()
     toastStore.show(t('sigs.members.removeSuccess'), 'info')
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.members.removeError')), 'error')
+  } finally {
+    confirmAction.value = null
   }
 }
 
@@ -167,7 +184,7 @@ onMounted(fetchMembers)
                 </button>
                 <button
                   v-if="canRemoveMember(m)"
-                  @click="handleRemoveMember(m.user_id)"
+                  @click="promptRemoveMember(m)"
                   class="text-danger-600 hover:text-danger-700 font-medium hover:underline"
                 >
                   {{ t('sigs.members.removeBtn') }}
@@ -215,7 +232,7 @@ onMounted(fetchMembers)
               </button>
               <button
                 v-if="canRemoveMember(m)"
-                @click="handleRemoveMember(m.user_id)"
+                @click="promptRemoveMember(m)"
                 class="text-xs text-danger-600 font-medium"
               >
                 {{ t('sigs.members.removeBtn') }}
@@ -225,5 +242,28 @@ onMounted(fetchMembers)
         </BaseCard>
       </div>
     </div>
+    <!-- Confirm Action Modal -->
+    <BaseModal
+      v-model="showConfirmModal"
+      :title="t('sigs.members.removeConfirmTitle', 'Remove Member')"
+      size="sm"
+    >
+      <p class="text-sm text-muted mb-4 leading-relaxed">
+        {{
+          t(
+            'sigs.members.removeConfirmMessage',
+            'Are you sure you want to remove this member? This action cannot be undone.',
+          )
+        }}
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showConfirmModal = false">
+          {{ t('common.cancel', 'Cancel') }}
+        </BaseButton>
+        <BaseButton variant="danger" @click="executeRemoveMember">
+          {{ t('sigs.members.removeConfirmBtn', 'Remove') }}
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
