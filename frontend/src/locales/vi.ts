@@ -52,6 +52,12 @@ export default {
   // ── Language ──
   language: {
     label: 'Ngôn ngữ',
+    region: {
+      europe: 'Châu Âu',
+      eastAsia: 'Đông Á',
+      southSoutheastAsia: 'Nam & Đông Nam Á',
+      arabWorld: 'Thế giới Ả Rập',
+    },
     en: 'English',
     'zh-TW': '繁體中文',
     'zh-CN': '简体中文',

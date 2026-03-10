@@ -231,7 +231,7 @@ describe('ProfileView', () => {
 
   it('renders language selector on general tab', async () => {
     const { wrapper } = await mountProfile()
-    const selects = wrapper.findAll('select')
-    expect(selects.length).toBeGreaterThanOrEqual(1)
+    expect(wrapper.text()).toContain('Language')
+    expect(wrapper.find('[aria-haspopup="true"]').exists()).toBe(true)
   })
 })

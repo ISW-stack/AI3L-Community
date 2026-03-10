@@ -52,6 +52,35 @@ export const LOCALE_OPTIONS: { value: SupportedLocale; label: string }[] = [
   { value: 'vi', label: 'Tiếng Việt' },
 ]
 
+export interface LocaleGroup {
+  id: string
+  labelKey: string
+  locales: SupportedLocale[]
+}
+
+export const LOCALE_GROUPS: LocaleGroup[] = [
+  {
+    id: 'europe',
+    labelKey: 'language.region.europe',
+    locales: ['fr', 'es', 'de', 'pt', 'it', 'ru'],
+  },
+  {
+    id: 'eastAsia',
+    labelKey: 'language.region.eastAsia',
+    locales: ['zh-TW', 'zh-CN', 'ja', 'ko'],
+  },
+  {
+    id: 'southSoutheastAsia',
+    labelKey: 'language.region.southSoutheastAsia',
+    locales: ['hi', 'id', 'vi'],
+  },
+  {
+    id: 'arabWorld',
+    labelKey: 'language.region.arabWorld',
+    locales: ['ar'],
+  },
+]
+
 function detectInitialLocale(): SupportedLocale {
   const saved = localStorage.getItem('locale')
   if (saved && SUPPORTED_LOCALES.includes(saved as SupportedLocale)) {

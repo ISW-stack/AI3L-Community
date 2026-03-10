@@ -4,14 +4,14 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
 import { useLocale } from '@/composables/useLocale'
-import type { SupportedLocale } from '@/locales'
 import NotificationBell from '@/components/NotificationBell.vue'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import { Menu, X, ChevronDown, GraduationCap } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
-const { t, currentLocale, localeOptions, setLocale } = useLocale()
+const { t } = useLocale()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
@@ -187,15 +187,7 @@ onUnmounted(() => {
               </Transition>
             </div>
 
-            <select
-              :value="currentLocale"
-              class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
-              @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
-            >
-              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
+            <LanguageSwitcher />
 
             <NotificationBell />
 
@@ -238,15 +230,7 @@ onUnmounted(() => {
           </template>
 
           <template v-else>
-            <select
-              :value="currentLocale"
-              class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
-              @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
-            >
-              <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
+            <LanguageSwitcher />
 
             <router-link to="/login" class="text-sm text-muted hover:text-foreground transition">{{
               t('nav.logIn')
@@ -368,15 +352,7 @@ onUnmounted(() => {
               </BaseBadge>
             </div>
             <div class="px-3 py-2">
-              <select
-                :value="currentLocale"
-                class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground w-full"
-                @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
-              >
-                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
+              <LanguageSwitcher variant="form" />
             </div>
             <router-link
               v-if="!auth.isGuest"
@@ -397,15 +373,7 @@ onUnmounted(() => {
           <template v-else>
             <div class="pt-3 space-y-2">
               <div class="px-3 py-2">
-                <select
-                  :value="currentLocale"
-                  class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground w-full"
-                  @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
-                >
-                  <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                  </option>
-                </select>
+                <LanguageSwitcher variant="form" />
               </div>
               <router-link
                 to="/login"

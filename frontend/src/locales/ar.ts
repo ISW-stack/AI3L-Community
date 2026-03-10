@@ -51,6 +51,12 @@ export default {
   // ── Language ──
   language: {
     label: 'اللغة',
+    region: {
+      europe: 'أوروبا',
+      eastAsia: 'شرق آسيا',
+      southSoutheastAsia: 'جنوب وجنوب شرق آسيا',
+      arabWorld: 'العالم العربي',
+    },
     en: 'English',
     'zh-TW': '繁體中文',
     'zh-CN': '简体中文',
