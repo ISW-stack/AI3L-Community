@@ -87,7 +87,7 @@ describe('AboutView', () => {
   })
 
   it('shows loading state initially', () => {
-    mockGet.mockReturnValue(new Promise(() => { })) // never resolves
+    mockGet.mockReturnValue(new Promise(() => {})) // never resolves
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
