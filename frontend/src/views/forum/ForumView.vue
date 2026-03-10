@@ -100,8 +100,8 @@ async function fetchPosts() {
   syncQueryParams()
 }
 
-async function doSearch() {
-  resetPage()
+async function doSearch({ resetPageBeforeSearch = true }: { resetPageBeforeSearch?: boolean } = {}) {
+  if (resetPageBeforeSearch) resetPage()
   if (
     !searchKeyword.value &&
     !categoryFilter.value &&
@@ -118,6 +118,7 @@ async function doSearch() {
       page: currentPage.value,
       page_size: pageSize,
       logic: searchLogic.value,
+      sort: sortBy.value,
     }
     if (searchKeyword.value) body.keyword = searchKeyword.value
     if (categoryFilter.value) body.category_id = categoryFilter.value
@@ -147,7 +148,7 @@ function clearSearch() {
 function goToPage(page: number) {
   setPage(page)
   if (isSearching.value) {
-    doSearch()
+    doSearch({ resetPageBeforeSearch: false })
   } else {
     fetchPosts()
   }
@@ -171,7 +172,11 @@ watch(categoryFilter, () => {
 })
 watch(sortBy, () => {
   resetPage()
-  if (!isSearching.value) fetchPosts()
+  if (isSearching.value) {
+    doSearch({ resetPageBeforeSearch: false })
+  } else {
+    fetchPosts()
+  }
 })
 onMounted(() => {
   fetchCategories()

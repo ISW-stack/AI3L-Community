@@ -219,8 +219,9 @@ describe('PostCreateView', () => {
   })
 
   it('restores draft from localStorage on mount', async () => {
+    // Key for route without sig_id is ai3l_post_draft_general
     localStorage.setItem(
-      'ai3l_post_draft',
+      'ai3l_post_draft_general',
       JSON.stringify({
         title: 'Draft Title',
         content: '<p>Draft content</p>',
@@ -237,7 +238,7 @@ describe('PostCreateView', () => {
 
   it('discards draft when discard button clicked', async () => {
     localStorage.setItem(
-      'ai3l_post_draft',
+      'ai3l_post_draft_general',
       JSON.stringify({ title: 'Draft', content: '<p>Draft</p>' }),
     )
 
@@ -247,7 +248,32 @@ describe('PostCreateView', () => {
     await discardBtn!.trigger('click')
     await flushPromises()
 
-    expect(localStorage.getItem('ai3l_post_draft')).toBeNull()
+    expect(localStorage.getItem('ai3l_post_draft_general')).toBeNull()
+  })
+
+  it('uses sig-specific draft key when posting from SIG', async () => {
+    localStorage.setItem(
+      'ai3l_post_draft_sig1',
+      JSON.stringify({ title: 'SIG Draft', content: '<p>SIG content</p>' }),
+    )
+
+    const { wrapper } = await mountPostCreate({ query: { sig_id: 'sig1' } })
+    expect(wrapper.text()).toContain('Draft restored')
+  })
+
+  it('rejects Tiptap empty HTML content on submit', async () => {
+    const { wrapper } = await mountPostCreate()
+
+    const vm = wrapper.vm as any
+    vm.title = 'My Title'
+    vm.content = '<p></p>' // Tiptap default empty
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Title and content are required')
   })
 
   it('shows back link to forum', async () => {

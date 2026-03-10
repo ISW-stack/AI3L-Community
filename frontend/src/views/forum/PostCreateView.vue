@@ -33,7 +33,7 @@ const saving = ref(false)
 const message = ref('')
 const draftRestored = ref(false)
 
-const DRAFT_KEY = 'ai3l_post_draft'
+const DRAFT_KEY = `ai3l_post_draft_${querySigId || 'general'}`
 
 function saveDraft() {
   const draft = {
@@ -114,8 +114,12 @@ function removeKeyword(index: number) {
   keywords.value.splice(index, 1)
 }
 
+function isContentEmpty(html: string): boolean {
+  return !html || html === '<p></p>' || !html.replace(/<[^>]*>/g, '').trim()
+}
+
 async function createPost() {
-  if (!title.value.trim() || !content.value.trim()) {
+  if (!title.value.trim() || isContentEmpty(content.value)) {
     message.value = t('post.create.errorRequired')
     return
   }

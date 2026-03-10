@@ -250,4 +250,53 @@ describe('ForumView', () => {
     await mountForum({ q: 'AI' })
     expect(mockSearchPosts).toHaveBeenCalledWith(expect.objectContaining({ keyword: 'AI' }))
   })
+
+  it('search pagination: goToPage in search mode passes page to searchPosts (not reset to 1)', async () => {
+    mockSearchPosts.mockResolvedValue({
+      posts: fakePosts,
+      total: 40,
+      total_pages: 2,
+    })
+
+    const { wrapper } = await mountForum({ q: 'AI' })
+    vi.clearAllMocks()
+    mockSearchPosts.mockResolvedValue({ posts: [], total: 40, total_pages: 2 })
+
+    // Simulate pagination to page 2
+    const vm = wrapper.vm as any
+    vm.goToPage(2)
+    await flushPromises()
+
+    const lastCall = mockSearchPosts.mock.calls[mockSearchPosts.mock.calls.length - 1][0]
+    expect(lastCall.page).toBe(2)
+  })
+
+  it('sort param is included in search API call', async () => {
+    const { wrapper } = await mountForum({ q: 'AI' })
+    vi.clearAllMocks()
+    mockSearchPosts.mockResolvedValue({ posts: [], total: 0, total_pages: 0 })
+
+    // Trigger sort change while in search mode
+    const vm = wrapper.vm as any
+    vm.sortBy = 'oldest'
+    await flushPromises()
+
+    expect(mockSearchPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: 'oldest' }),
+    )
+  })
+
+  it('changing sort in search mode calls searchPosts not listPosts', async () => {
+    mockSearchPosts.mockResolvedValue({ posts: fakePosts, total: 2, total_pages: 1 })
+    const { wrapper } = await mountForum({ q: 'AI' })
+    vi.clearAllMocks()
+    mockSearchPosts.mockResolvedValue({ posts: [], total: 0, total_pages: 0 })
+
+    const vm = wrapper.vm as any
+    vm.sortBy = 'most_comments'
+    await flushPromises()
+
+    expect(mockSearchPosts).toHaveBeenCalled()
+    expect(mockListPosts).not.toHaveBeenCalled()
+  })
 })
