@@ -149,24 +149,15 @@ An `onBeforeRouteLeave` guard warns when navigating away with unsaved content.
 
 ---
 
-### 2.2 Form Preview Mode
+### 2.2 Form Preview Mode — ✅ DONE
 
-**Difficulty: Intermediate**
+**File:** `src/views/forms/FormBuilderView.vue`
 
-**Affected files:** `src/views/forms/FormBuilderView.vue`
-
-Form builders have no way to preview what respondents will see before
-publishing.
-
-**Implementation Plan:**
-1. Add a "Preview" `BaseButton` in the form builder toolbar.
-2. When clicked, open a `BaseModal` in large (`xl`) size.
-3. Inside the modal, render all the current form questions using the same
-   question-rendering logic found in `FormView.vue` (the respondent view).
-4. The preview should be fully read-only (disable all inputs, hide the
-   submit button, or show a "Preview Mode" banner).
-5. No API call is needed; all data comes from the component's existing
-   reactive state.
+Done. A "Preview" button in the form builder toolbar opens a `BaseModal`
+(size `xl`) that renders all current questions read-only using the same
+question-rendering logic as `FormView.vue`. A "Preview Mode" banner is
+shown at the top so it is clear no submission occurs. No API call needed;
+data comes from the component's reactive state.
 
 ---
 
