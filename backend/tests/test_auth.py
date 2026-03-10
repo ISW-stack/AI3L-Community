@@ -6,7 +6,7 @@ from tests.conftest import make_user_dict
 
 
 class TestAuthenticateUser:
-    @patch("app.services.auth.verify_password", return_value=True)
+    @patch("app.services.auth.async_verify_password", new_callable=AsyncMock, return_value=True)
     @patch("app.services.auth.get_user_by_username")
     async def test_authenticate_user_success(self, mock_get_user, mock_verify):
         from app.services.auth import authenticate_user
@@ -19,7 +19,7 @@ class TestAuthenticateUser:
         assert result["username"] == "alice"
         mock_verify.assert_called_once_with("Password1", user["password_hash"])
 
-    @patch("app.services.auth.verify_password", return_value=False)
+    @patch("app.services.auth.async_verify_password", new_callable=AsyncMock, return_value=False)
     @patch("app.services.auth.get_user_by_username")
     async def test_authenticate_user_wrong_password(self, mock_get_user, mock_verify):
         from app.services.auth import authenticate_user

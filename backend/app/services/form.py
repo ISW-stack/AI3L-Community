@@ -71,8 +71,9 @@ async def update_form(
             if not is_admin and str(current["created_by"]) != user_id:
                 raise PermissionError("Only the form creator or admin can update this form.")
 
-            if questions is not None and current["is_schema_locked"]:
-                raise ValueError("Cannot modify questions after responses have been submitted.")
+            # Silently drop questions if schema is locked (defense-in-depth)
+            if current["is_schema_locked"]:
+                questions = None
 
             fields = []
             values = []

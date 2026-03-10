@@ -100,6 +100,15 @@ async function submitForm() {
       )
         cleanAnswers[key] = val
     }
+
+    // Upload any pending files before submitting
+    for (const [key, val] of Object.entries(cleanAnswers)) {
+      if (val instanceof File) {
+        const data = await uploadEditorFile(val)
+        cleanAnswers[key] = { key: data.key || data.url, filename: val.name }
+      }
+    }
+
     await apiSubmitForm(formId.value, cleanAnswers)
     submitted.value = true
     message.value = t('forms.view.successMessage')
@@ -110,15 +119,21 @@ async function submitForm() {
   }
 }
 
-async function handleFileUpload(questionId: string, event: Event) {
+function handleFileUpload(questionId: string, event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
-  try {
-    const data = await uploadEditorFile(file)
-    answers.value[questionId] = { key: data.key || data.url, filename: file.name }
-  } catch {
-    error.value = t('forms.view.fileUploadError')
-  }
+  // Store the raw File; it will be uploaded during submitForm()
+  answers.value[questionId] = file
+}
+
+function isFileObject(val: unknown): val is File {
+  return val instanceof File
+}
+
+function getFileName(val: unknown): string {
+  if (val instanceof File) return val.name
+  if (val && typeof val === 'object' && 'filename' in val) return (val as { filename: string }).filename
+  return ''
 }
 
 function toggleMultipleChoice(questionId: string, optionId: string) {
@@ -297,7 +312,7 @@ onUnmounted(() => {
             >
               <input
                 type="radio"
-                :name="q.id"
+                :name="formId + '-' + q.id"
                 :value="opt.id"
                 v-model="answers[q.id]"
                 class="text-brand-600"
@@ -353,8 +368,8 @@ onUnmounted(() => {
               @change="handleFileUpload(q.id, $event)"
               class="text-sm text-muted"
             />
-            <p v-if="answers[q.id]?.filename" class="text-xs text-success-600 mt-1">
-              {{ t('forms.view.uploadedFile') }} {{ answers[q.id].filename }}
+            <p v-if="isFileObject(answers[q.id]) || answers[q.id]?.filename" class="text-xs text-success-600 mt-1">
+              {{ t('forms.view.uploadedFile') }} {{ getFileName(answers[q.id]) }}
             </p>
             <p v-if="q.allowed_types && q.allowed_types.length" class="text-xs text-muted mt-1">
               {{ t('forms.view.allowedTypes') }} {{ q.allowed_types.join(', ') }}

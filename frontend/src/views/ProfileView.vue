@@ -20,9 +20,9 @@ import BaseModal from '@/components/base/BaseModal.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import { getErrorMessage } from '@/utils/error'
 import { useLocale } from '@/composables/useLocale'
-import type { SupportedLocale } from '@/locales'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 
-const { t, currentLocale, localeOptions, setLocale } = useLocale()
+const { t } = useLocale()
 const auth = useAuthStore()
 const router = useRouter()
 
@@ -362,15 +362,7 @@ function toggleConfirmPassword() {
               <label class="block text-sm font-medium text-foreground mb-1">{{
                 t('profile.form.languageLabel')
               }}</label>
-              <select
-                :value="currentLocale"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
-                @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
-              >
-                <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
+              <LanguageSwitcher variant="form" />
             </div>
 
             <BaseButton type="submit" :loading="saving">{{ t('profile.form.saveBtn') }}</BaseButton>

@@ -55,6 +55,7 @@ export async function searchPosts(payload: {
   date_from?: string
   date_to?: string
   logic?: string
+  sort?: string
   page?: number
   page_size?: number
 }) {

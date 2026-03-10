@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class QuestionOption(BaseModel):
@@ -33,10 +33,22 @@ class QuestionSchema(BaseModel):
     allowed_types: list[str] | None = None
     max_size_mb: int | None = None
 
+    @model_validator(mode="after")
+    def validate_choice_options(self) -> "QuestionSchema":
+        """Ensure choice-type questions have at least 2 options."""
+        choice_types = {"single_choice", "multiple_choice", "dropdown"}
+        if self.type in choice_types:
+            if not self.options or len(self.options) < 2:
+                raise ValueError(
+                    f"Question '{self.label}' of type '{self.type}' "
+                    f"requires at least 2 options."
+                )
+        return self
+
 
 class FormCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
-    description: str | None = None
+    description: str | None = Field(None, max_length=5000)
     banner_url: str | None = None
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)
@@ -46,7 +58,7 @@ class FormCreateRequest(BaseModel):
 
 class FormUpdateRequest(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
-    description: str | None = None
+    description: str | None = Field(None, max_length=5000)
     banner_url: str | None = None
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)

@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
+import asyncpg
 from loguru import logger
 
 from app.converters.post_converter import row_to_history, row_to_post
@@ -61,19 +62,28 @@ async def create_post(
             keywords,
             allow_comments,
         )
+    except asyncpg.exceptions.ForeignKeyViolationError:
+        await _rollback_daily_post_count(user_id)
+        raise ValueError("Category not found or has been deleted.")
     except Exception:
         await _rollback_daily_post_count(user_id)
         raise
     logger.info("Post created", extra={"post_id": str(post_id), "user_id": user_id})
 
     if sig_id:
-        await emit(
-            "post.created_in_sig",
-            sig_id=sig_id,
-            post_id=str(post_id),
-            author_id=user_id,
-            post_title=title,
-        )
+        try:
+            await emit(
+                "post.created_in_sig",
+                sig_id=sig_id,
+                post_id=str(post_id),
+                author_id=user_id,
+                post_title=title,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to emit post.created_in_sig event",
+                extra={"error": str(e), "post_id": str(post_id)},
+            )
 
     return row_to_post(row)
 
@@ -192,11 +202,12 @@ async def search_posts(
     logic: str = "AND",
     page: int = 1,
     page_size: int = 20,
+    sort: str = "newest",
 ) -> tuple[list[dict], int, int]:
     """Full-text search with compound filters."""
     cat_uuid = uuid.UUID(category_id) if category_id else None
     rows, total, total_pages = await post_repo.search(
-        keyword, cat_uuid, keywords_filter, date_from, date_to, logic, page, page_size
+        keyword, cat_uuid, keywords_filter, date_from, date_to, logic, page, page_size, sort
     )
     return [row_to_post(r) for r in rows], total, total_pages
 

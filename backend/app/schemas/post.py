@@ -16,8 +16,8 @@ class PostCreateRequest(BaseModel):
     def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
         if v:
             for kw in v:
-                if len(kw) > 100:
-                    raise ValueError("Each keyword must be 100 characters or fewer.")
+                if len(kw) > 50:
+                    raise ValueError("Each keyword must be 50 characters or fewer.")
         return v
 
 
@@ -34,8 +34,8 @@ class PostUpdateRequest(BaseModel):
     def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
         if v:
             for kw in v:
-                if len(kw) > 100:
-                    raise ValueError("Each keyword must be 100 characters or fewer.")
+                if len(kw) > 50:
+                    raise ValueError("Each keyword must be 50 characters or fewer.")
         return v
 
 
@@ -95,6 +95,7 @@ class PostSearchRequest(BaseModel):
     date_from: str | None = None
     date_to: str | None = None
     logic: str = Field(default="AND", pattern="^(AND|OR)$")
+    sort: str = Field(default="newest", pattern="^(newest|oldest|most_comments)$")
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 

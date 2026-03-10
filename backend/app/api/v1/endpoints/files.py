@@ -3,6 +3,7 @@ import uuid
 
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from loguru import logger
 
@@ -43,7 +44,7 @@ async def upload_editor_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File size exceeds 20MB limit.",
         )
-    expected_type, data = validate_editor_file(filename, data)
+    expected_type, data = await run_in_threadpool(validate_editor_file, filename, data)
 
     # Acquire per-user upload lock to prevent concurrent quota bypass
     redis = get_redis()
@@ -84,7 +85,7 @@ async def upload_editor_file(
     try:
         from app.tasks.virustotal import check_virustotal, compute_sha256
 
-        file_hash = compute_sha256(data)
+        file_hash = await run_in_threadpool(compute_sha256, data)
         result = check_virustotal.delay(file_hash, key)
         scan_task_id = result.id
     except ImportError:

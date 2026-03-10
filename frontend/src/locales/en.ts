@@ -52,6 +52,12 @@ export default {
   // ── Language ──
   language: {
     label: 'Language',
+    region: {
+      europe: 'Europe',
+      eastAsia: 'East Asia',
+      southSoutheastAsia: 'South & SE Asia',
+      arabWorld: 'Arab World',
+    },
     en: 'English',
     'zh-TW': '繁體中文',
     'zh-CN': '简体中文',
@@ -59,6 +65,14 @@ export default {
     fr: 'Français',
     es: 'Español',
     de: 'Deutsch',
+    ar: 'العربية',
+    pt: 'Português',
+    ru: 'Русский',
+    hi: 'हिन्दी',
+    ko: '한국어',
+    id: 'Bahasa Indonesia',
+    it: 'Italiano',
+    vi: 'Tiếng Việt',
   },
 
   // ── Auth ──

@@ -175,9 +175,12 @@ def sanitize_html(html_content: str) -> str:
         "img": {"src", "alt", "width", "height"},
         "td": {"colspan", "rowspan"},
         "th": {"colspan", "rowspan"},
+        "code": {"class"},
+        "pre": {"class"},
     }
     return nh3.clean(
         html_content,
         tags=allowed_tags,
         attributes=allowed_attrs,
+        link_rel="noopener noreferrer",
     )

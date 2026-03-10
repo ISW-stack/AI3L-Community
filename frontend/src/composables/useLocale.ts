@@ -1,8 +1,26 @@
-import { computed } from 'vue'
+import { type Ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { updateProfile } from '@/api/users'
-import { SUPPORTED_LOCALES, LOCALE_OPTIONS, type SupportedLocale } from '@/locales'
+import { i18n, SUPPORTED_LOCALES, LOCALE_OPTIONS, type SupportedLocale } from '@/locales'
+
+/**
+ * Sync locale from user profile (DB preferred_language).
+ * Safe to call outside component setup — uses the global i18n instance directly.
+ */
+function applyLocaleToDocument(lang: string) {
+  document.documentElement.lang = lang
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+}
+
+export function syncLocaleFromProfile(preferredLanguage: string | undefined) {
+  if (preferredLanguage && SUPPORTED_LOCALES.includes(preferredLanguage as SupportedLocale)) {
+    const locale = i18n.global.locale as unknown as Ref<string>
+    locale.value = preferredLanguage
+    localStorage.setItem('locale', preferredLanguage)
+    applyLocaleToDocument(preferredLanguage)
+  }
+}
 
 export function useLocale() {
   const { locale, t } = useI18n({ useScope: 'global' })
@@ -12,7 +30,7 @@ export function useLocale() {
 
   async function setLocale(lang: SupportedLocale) {
     locale.value = lang
-    document.documentElement.lang = lang
+    applyLocaleToDocument(lang)
 
     // Guest users: change locale for current session only, no persistence
     if (!auth.isAuthenticated || auth.isGuest) return
@@ -27,12 +45,7 @@ export function useLocale() {
 
   /** Called after login/profile fetch to sync locale from DB */
   function syncFromProfile() {
-    const lang = auth.user?.preferred_language
-    if (lang && SUPPORTED_LOCALES.includes(lang as SupportedLocale)) {
-      locale.value = lang
-      localStorage.setItem('locale', lang)
-      document.documentElement.lang = lang
-    }
+    syncLocaleFromProfile(auth.user?.preferred_language)
   }
 
   return { t, currentLocale, localeOptions: LOCALE_OPTIONS, setLocale, syncFromProfile }

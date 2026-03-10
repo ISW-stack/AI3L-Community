@@ -475,6 +475,8 @@ class TestVirusTotalInvalidJSON:
                 saved_modules[mod_name] = sys.modules.pop(mod_name)
 
         try:
+            import importlib
+
             with patch.dict(
                 sys.modules,
                 {
@@ -482,15 +484,7 @@ class TestVirusTotalInvalidJSON:
                     "app.celery_app": celery_app_mod,
                 },
             ):
-                # Force re-import
-                import importlib
-
-                if "app.tasks.virustotal" in sys.modules:
-                    del sys.modules["app.tasks.virustotal"]
-
-                from app.tasks import virustotal
-
-                importlib.reload(virustotal)
+                virustotal = importlib.import_module("app.tasks.virustotal")
 
                 mock_resp = MagicMock()
                 mock_resp.status_code = 200

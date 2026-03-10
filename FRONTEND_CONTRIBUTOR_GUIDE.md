@@ -1,6 +1,6 @@
 # AI3L Community Frontend -- Contributor Task Guide
 
-> **Last Updated:** 2026-03-03
+> **Last Updated:** 2026-03-09
 > **Applies to:** Frontend codebase (`frontend/src/`)
 > **Audience:** Collaborators who are new to the project or learning Vue/TypeScript
 
@@ -221,46 +221,17 @@ report count is shown at the bottom.
 
 ---
 
-### 2.8 Platform Contributors Page
+### 2.8 Platform Contributors Page — ✅ DONE
 
-**Difficulty: Beginner**
+**Files:** `src/views/AboutView.vue`, `src/router/index.ts`,
+`src/components/AppNavbar.vue`
 
-**Affected files:** `src/views/AboutView.vue` (new file), `src/router/index.ts`
-(add one route), `src/components/AppNavbar.vue` (add one link)
-
-**Background:**
-There is currently no page that acknowledges the people who designed and
-built the AI3L Community platform.
-
-**Implementation Plan:**
-
-1. Create `src/views/AboutView.vue`. The page should contain:
-   - A heading ("Platform Contributors") and a short paragraph about the project.
-   - A contributor list rendered from a local static array.
-
-2. Define the contributor array in the `<script setup>` block:
-   ```typescript
-   interface Contributor {
-     name: string
-     role: string
-     github?: string
-   }
-   const contributors: Contributor[] = [
-     { name: 'Alice Chen', role: 'Project Lead & Backend', github: 'alicecodes' },
-     // Add more contributors here
-   ]
-   ```
-
-3. In the template, render a responsive grid of cards using CSS variable
-   classes (`bg-surface`, `text-foreground`, `border-border`).
-
-4. In `src/router/index.ts`, add:
-   ```typescript
-   { path: '/about', component: () => import('../views/AboutView.vue') }
-   ```
-
-5. In `src/components/AppNavbar.vue`, add an "About" link visible to all
-   users (including guests).
+Done. `AboutView.vue` is implemented as a member-only page
+(`meta: { requiresAuth: true, requiresMember: true }`) that fetches
+contributor data from `GET /about/contributors` via a backend proxy.
+GitHub usernames are kept server-side only; the frontend renders name,
+role, and a proxied avatar image. An "About" link is visible in the
+navbar for authenticated members.
 
 ---
 
@@ -291,26 +262,16 @@ submission is blocked until the values are corrected.
 
 ---
 
-### 4.1 Keyboard Navigation for Dropdown Menus
+### 4.1 Keyboard Navigation for Dropdown Menus — ✅ DONE
 
-**Difficulty: Intermediate**
-**Files:** `src/components/AppNavbar.vue`, `src/components/NotificationBell.vue`
+**Files:** `src/composables/useDropdownKeyNav.ts`,
+`src/components/AppNavbar.vue`, `src/components/NotificationBell.vue`
 
-**Problem:**
-The user dropdown and notification bell dropdown cannot be operated by
-keyboard. This is a barrier for users who navigate without a mouse.
-
-**Implementation Plan:**
-1. On each dropdown trigger button, add a `@keydown` listener.
-2. When `ArrowDown` is pressed and the dropdown is closed, open it and
-   focus the first menu item.
-3. When the dropdown is open:
-   - `ArrowDown`: move focus to the next menu item.
-   - `ArrowUp`: move focus to the previous item.
-   - `Enter`/`Space`: activate the focused item.
-   - `Escape`: close the dropdown and return focus to the trigger button.
-4. Add `tabindex="-1"` to each menu item so they can receive programmatic
-   focus without appearing in the natural tab order.
+Done. A `useDropdownKeyNav` composable (options object API) handles
+`ArrowDown`, `ArrowUp`, `Enter`/`Space`, and `Escape` for all dropdowns.
+Applied to the user dropdown in `AppNavbar.vue` and the notification bell
+in `NotificationBell.vue`. Menu items use `tabindex="-1"` so they receive
+programmatic focus without appearing in the natural tab order.
 
 ---
 
@@ -339,18 +300,27 @@ frontend/src/
 ├── api/           HTTP request functions (one file per domain area)
 ├── components/    Reusable Vue components; base/ is the design system
 │   └── __tests__/ Component unit tests (Vitest + @vue/test-utils)
-├── composables/   Vue composables (api.ts, useWebSocket.ts)
-│   └── __tests__/ Composable unit tests
+├── composables/   Vue composables
+│   ├── api.ts             Axios instance + CSRF/credential interceptor
+│   ├── useDropdownKeyNav.ts  Keyboard nav for dropdowns (options object API)
+│   ├── useLocale.ts       i18n/locale helpers
+│   ├── usePagination.ts   Shared pagination state (page, total, setPage, etc.)
+│   ├── usePostDetail.ts   Post detail business logic (extracted from PostDetailView)
+│   ├── useWebSocket.ts    WebSocket connection, PING/PONG, auto-reconnect
+│   └── __tests__/         Composable unit tests
 ├── router/        Route definitions and navigation guards (index.ts)
 ├── stores/        Pinia global state (auth.ts, notifications.ts, toast.ts)
 │   └── __tests__/ Store unit tests
 ├── types/         TypeScript interfaces for all data models
 ├── utils/         Utility functions (datetime, html including renderMentions)
 └── views/         One file per page/route
-    ├── admin/     Admin-only views (Categories, Users, Reports, etc.)
+    ├── admin/     Admin-only views (Categories, Users, Reports, AuditLogs,
+    │              InviteCodesView, ContributorsView, etc.)
     ├── forms/     FormBuilderView, FormView
     ├── forum/     ForumView, PostDetailView, PostCreateView
-    └── sigs/      SigDetailView, SigCreateView, SigsDirectoryView
+    └── sigs/      SigLayout (parent, provide/inject), SigPostsView,
+                   SigMembersView, SigFormsView, SigCreateView,
+                   SigsDirectoryView
 ```
 
 ### Design System Rules
@@ -374,7 +344,7 @@ The site uses a fixed light theme (dark mode is not active).
 ### Running Tests
 
 ```bash
-# Frontend unit tests (105 tests across 6 files)
+# Frontend unit tests (1,112 tests across 84 files)
 cd frontend && npx vitest run
 
 # TypeScript type checking

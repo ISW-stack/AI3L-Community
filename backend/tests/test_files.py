@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 from httpx import AsyncClient
 
-from app.core.file_validation import validate_magic_number
+from app.core.file_validation import sanitize_html, validate_magic_number
 
 
 class TestMagicNumberValidation:
@@ -37,6 +37,47 @@ class TestMagicNumberValidation:
 
     def test_empty_data(self):
         assert validate_magic_number(b"", "image/png") is False
+
+
+class TestSanitizeHtml:
+    def test_preserves_code_class_for_syntax_highlighting(self):
+        """code tag with language-* class must survive sanitization."""
+        html = '<pre><code class="language-python">print("hi")</code></pre>'
+        result = sanitize_html(html)
+        assert 'class="language-python"' in result
+
+    def test_preserves_pre_class(self):
+        """pre tag with class must survive sanitization."""
+        html = '<pre class="language-javascript">const x = 1;</pre>'
+        result = sanitize_html(html)
+        assert 'class="language-javascript"' in result
+
+    def test_strips_class_from_other_tags(self):
+        """class attribute on p/div/span must be stripped (XSS prevention)."""
+        html = '<p class="evil-class">text</p>'
+        result = sanitize_html(html)
+        assert 'class="evil-class"' not in result
+        assert "<p>" in result  # tag itself survives
+
+    def test_link_rel_noopener_added(self):
+        """All links must get rel="noopener noreferrer"."""
+        html = '<a href="https://example.com" target="_blank">link</a>'
+        result = sanitize_html(html)
+        assert "noopener" in result
+        assert "noreferrer" in result
+
+    def test_strips_script_tags(self):
+        """script tags must always be stripped."""
+        html = '<p>safe</p><script>alert(1)</script>'
+        result = sanitize_html(html)
+        assert "<script>" not in result
+        assert "safe" in result
+
+    def test_strips_onclick_attributes(self):
+        """on* event attributes must be stripped."""
+        html = '<p onclick="alert(1)">text</p>'
+        result = sanitize_html(html)
+        assert "onclick" not in result
 
 
 class TestPresignedUrlPathTraversal:

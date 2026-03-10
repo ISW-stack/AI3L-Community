@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
+from fastapi.concurrency import run_in_threadpool
 from jwt import InvalidTokenError as JWTError
 from passlib.context import CryptContext
 
@@ -19,6 +20,16 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bool(pwd_context.verify(plain_password, hashed_password))
+
+
+async def async_hash_password(password: str) -> str:
+    """Non-blocking hash_password — runs Argon2id in a thread."""
+    return await run_in_threadpool(hash_password, password)
+
+
+async def async_verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Non-blocking verify_password — runs Argon2id in a thread."""
+    return await run_in_threadpool(verify_password, plain_password, hashed_password)
 
 
 def validate_password_policy(password: str) -> str | None:

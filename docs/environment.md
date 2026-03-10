@@ -45,7 +45,9 @@ Copy `.env.example` to `.env` and set all values. Every variable marked `changem
 | `FASTAPI_WORKERS` | `1` | Uvicorn worker count. Set to number of CPU cores in production |
 | `SECRET_KEY` | — | Application secret, minimum 32 characters |
 | `LOG_LEVEL` | `DEBUG` | Set to `INFO` in production |
-| `LOG_FORMAT` | `text` | Set to `json` in production for structured logging |
+| `LOG_FORMAT` | `json` | Log output format (`json` for structured logging, `text` for human-readable) |
+| `TRUSTED_HOSTS` | — | Comma-separated list of allowed `Host` header values (enforced by `TrustedHostMiddleware` in production) |
+| `MAX_USER_STORAGE_BYTES` | `1073741824` | Per-user upload quota in bytes (default: 1 GB) |
 
 ---
 
@@ -55,7 +57,10 @@ Copy `.env.example` to `.env` and set all values. Every variable marked `changem
 |---|---|---|
 | `JWT_SECRET_KEY` | — | Token signing key |
 | `JWT_ALGORITHM` | `HS256` | Signing algorithm |
-| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Default token TTL (per-role TTLs override this at runtime) |
+| `JWT_GUEST_EXPIRE_MINUTES` | `45` | Token TTL for `GUEST` role (minutes) |
+| `JWT_MEMBER_EXPIRE_MINUTES` | `180` | Token TTL for `MEMBER` role (minutes) |
+| `JWT_ADMIN_EXPIRE_MINUTES` | `300` | Token TTL for `ADMIN` role (minutes) |
+| `JWT_SUPER_ADMIN_EXPIRE_MINUTES` | `480` | Token TTL for `SUPER_ADMIN` role (minutes) |
 
 ---
 
@@ -100,12 +105,21 @@ Copy `.env.example` to `.env` and set all values. Every variable marked `changem
 
 ---
 
+## VirusTotal (Optional)
+
+| Variable | Default | Description |
+|---|---|---|
+| `VT_API_KEY` | — | VirusTotal API key. If empty, file scanning is silently skipped. |
+
+---
+
 ## Observability (Optional)
 
 | Variable | Description |
 |---|---|
 | `SENTRY_DSN` | Sentry project DSN for error tracking |
 | `SENTRY_TRACES_SAMPLE_RATE` | APM trace sampling rate (`0.0` to `1.0`) |
-| `DD_API_KEY` | Datadog API key |
-| `DD_SITE` | Datadog site (`datadoghq.com` or `datadoghq.eu`) |
+| `DD_AGENT_HOST` | Datadog agent hostname for ddtrace (e.g. `datadog-agent`) |
 | `DD_TRACE_ENABLED` | Enable ddtrace auto-instrumentation (`true` or `false`) |
+| `DD_API_KEY` | Datadog API key (set on the `datadog-agent` Docker service) |
+| `DD_SITE` | Datadog ingestion site (`datadoghq.com` or `datadoghq.eu`) |

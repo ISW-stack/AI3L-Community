@@ -8,6 +8,7 @@ import {
   type Ref,
   type ComputedRef,
 } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import type { Post, HistoryItem, Comment } from '@/types'
 import {
   getPost,
@@ -237,16 +238,70 @@ export function usePostDetail(options: UsePostDetailOptions) {
     }
   }
 
+  const editDraftKey = () => `post_edit_draft_${postId.value}`
+  const EDIT_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+  function saveEditDraft() {
+    try {
+      localStorage.setItem(
+        editDraftKey(),
+        JSON.stringify({ title: editTitle.value, content: editContent.value, savedAt: Date.now() }),
+      )
+    } catch {
+      /* storage full or private mode */
+    }
+  }
+
+  function clearEditDraft() {
+    localStorage.removeItem(editDraftKey())
+  }
+
   function startEdit() {
     if (!post.value) return
+    // Restore draft if recent, otherwise use current post data
+    try {
+      const raw = localStorage.getItem(editDraftKey())
+      if (raw) {
+        const draft = JSON.parse(raw)
+        if (draft.savedAt && Date.now() - draft.savedAt < EDIT_DRAFT_MAX_AGE_MS) {
+          editTitle.value = draft.title ?? post.value.title
+          editContent.value = draft.content ?? post.value.content
+          editMessage.value = ''
+          editing.value = true
+          return
+        }
+      }
+    } catch {
+      /* ignore malformed draft */
+    }
     editTitle.value = post.value.title
     editContent.value = post.value.content
     editMessage.value = ''
     editing.value = true
   }
 
+  function cancelEdit() {
+    editing.value = false
+    editMessage.value = ''
+    clearEditDraft()
+  }
+
+  // Auto-save draft while editing
+  watch([editTitle, editContent], () => {
+    if (editing.value) saveEditDraft()
+  })
+
   async function saveEdit() {
     if (!post.value) return
+    if (!editTitle.value.trim()) {
+      editMessage.value = 'Title cannot be empty.'
+      return
+    }
+    const rawText = editContent.value.replace(/<[^>]*>/g, '').trim()
+    if (!editContent.value || editContent.value === '<p></p>' || !rawText) {
+      editMessage.value = 'Content cannot be empty.'
+      return
+    }
     editSaving.value = true
     editMessage.value = ''
     try {
@@ -256,6 +311,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
         version: post.value.version,
       })
       editing.value = false
+      clearEditDraft()
     } catch (err: unknown) {
       const apiError = err as {
         response?: { status?: number; data?: { detail?: string | { code?: string } } }
@@ -514,16 +570,39 @@ export function usePostDetail(options: UsePostDetailOptions) {
   // --- Watchers ---
   watch(imageScanStatuses, () => applyMaliciousOverlays(), { deep: true })
 
+  // --- Leave guard (unsaved edits) ---
+  onBeforeRouteLeave((_to, _from, next) => {
+    if (editing.value) {
+      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?')
+      if (confirmed) {
+        clearEditDraft()
+        next()
+      } else {
+        next(false)
+      }
+    } else {
+      next()
+    }
+  })
+
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (editing.value) {
+      e.preventDefault()
+    }
+  }
+
   // --- Lifecycle ---
   onMounted(() => {
     fetchPost().then(() => scanPostImages())
     fetchComments()
+    window.addEventListener('beforeunload', handleBeforeUnload)
   })
 
   onUnmounted(() => {
     isUnmounted = true
     scanPollTimers.forEach(clearTimeout)
     scanPollTimers = []
+    window.removeEventListener('beforeunload', handleBeforeUnload)
   })
 
   return {
@@ -577,6 +656,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     goToCommentPage,
     fetchHistory,
     startEdit,
+    cancelEdit,
     saveEdit,
     deletePostHandler,
     submitComment,

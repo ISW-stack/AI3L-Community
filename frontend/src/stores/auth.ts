@@ -126,12 +126,10 @@ export const useAuthStore = defineStore('auth', () => {
         role.value = data.role
         localStorage.setItem('role', data.role)
       }
-      // Sync locale preference from DB
+      // Sync locale preference from DB (uses global i18n instance — safe outside setup)
       if (data.preferred_language) {
-        const { syncFromProfile } = await import('@/composables/useLocale').then((m) =>
-          m.useLocale(),
-        )
-        syncFromProfile()
+        const { syncLocaleFromProfile } = await import('@/composables/useLocale')
+        syncLocaleFromProfile(data.preferred_language)
       }
     } catch {
       // 401/403 is already handled by the axios interceptor (clears session)

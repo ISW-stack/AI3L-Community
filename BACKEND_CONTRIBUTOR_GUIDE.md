@@ -1,6 +1,6 @@
 # AI3L Community Backend -- Contributor Task Guide
 
-> **Last Updated:** 2026-03-03
+> **Last Updated:** 2026-03-09
 > **Applies to:** Backend codebase (`backend/`)
 > **Audience:** Collaborators working on the FastAPI backend
 > **See also:** `FRONTEND_CONTRIBUTOR_GUIDE.md` for frontend tasks
@@ -463,7 +463,7 @@ user receive HTTP 429.
 ### Running Tests
 
 ```bash
-# Unit tests (149 tests)
+# Unit tests (525 tests)
 cd backend && python -m pytest tests/ -v
 
 # Integration tests (requires Docker — PostgreSQL + Redis)

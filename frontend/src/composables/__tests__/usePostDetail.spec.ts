@@ -15,6 +15,15 @@ vi.mock('vue', async () => {
   }
 })
 
+// Mock vue-router navigation guard to avoid "no active router" errors
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual<typeof import('vue-router')>('vue-router')
+  return {
+    ...actual,
+    onBeforeRouteLeave: vi.fn(),
+  }
+})
+
 // Mock all API modules
 vi.mock('@/api/posts', () => ({
   getPost: vi.fn(),
@@ -119,6 +128,7 @@ describe('usePostDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     onMountedCallbacks.length = 0
+    localStorage.clear()
     mockGetPost.mockResolvedValue(makePost())
     mockListComments.mockResolvedValue({ comments: [], total: 0 })
   })
@@ -389,6 +399,112 @@ describe('usePostDetail', () => {
 
     handleReply('c2')
     expect(inlineReplyTo.value).toBe('c2')
+  })
+
+  // saveEdit validation: empty title
+  it('saveEdit rejects empty title without calling API', async () => {
+    const testPost = makePost({ version: 1 })
+    mockGetPost.mockResolvedValue(testPost)
+
+    const { fetchPost, startEdit, saveEdit, editMessage, editTitle } = createHarness()
+    await fetchPost()
+    startEdit()
+    editTitle.value = '   '
+    await saveEdit()
+
+    expect(mockUpdatePost).not.toHaveBeenCalled()
+    expect(editMessage.value).toContain('Title cannot be empty')
+  })
+
+  // saveEdit validation: empty Tiptap content
+  it('saveEdit rejects Tiptap empty content <p></p> without calling API', async () => {
+    const testPost = makePost({ version: 1 })
+    mockGetPost.mockResolvedValue(testPost)
+
+    const { fetchPost, startEdit, saveEdit, editMessage, editContent } = createHarness()
+    await fetchPost()
+    startEdit()
+    editContent.value = '<p></p>'
+    await saveEdit()
+
+    expect(mockUpdatePost).not.toHaveBeenCalled()
+    expect(editMessage.value).toContain('Content cannot be empty')
+  })
+
+  // Draft save on edit
+  it('draft is saved to localStorage when editing and title changes', async () => {
+    const testPost = makePost({ version: 1 })
+    mockGetPost.mockResolvedValue(testPost)
+
+    const { fetchPost, startEdit, editTitle, editing } = createHarness()
+    await fetchPost()
+    startEdit()
+    editing.value = true // ensure editing flag is set for the watch
+    editTitle.value = 'Changed Title'
+
+    // Wait for the watch to fire
+    await new Promise((r) => setTimeout(r, 0))
+
+    const stored = localStorage.getItem('post_edit_draft_post1')
+    expect(stored).not.toBeNull()
+    const parsed = JSON.parse(stored!)
+    expect(parsed.title).toBe('Changed Title')
+  })
+
+  // Draft restore on startEdit
+  it('startEdit restores draft from localStorage if recent', async () => {
+    const testPost = makePost({ version: 1 })
+    mockGetPost.mockResolvedValue(testPost)
+    localStorage.setItem(
+      'post_edit_draft_post1',
+      JSON.stringify({ title: 'Draft Title', content: '<p>Draft</p>', savedAt: Date.now() }),
+    )
+
+    const { fetchPost, startEdit, editTitle, editContent } = createHarness()
+    await fetchPost()
+    startEdit()
+
+    expect(editTitle.value).toBe('Draft Title')
+    expect(editContent.value).toBe('<p>Draft</p>')
+  })
+
+  // cancelEdit clears draft
+  it('cancelEdit clears draft and sets editing to false', async () => {
+    const testPost = makePost({ version: 1 })
+    mockGetPost.mockResolvedValue(testPost)
+    localStorage.setItem(
+      'post_edit_draft_post1',
+      JSON.stringify({ title: 'Draft', content: '<p>X</p>', savedAt: Date.now() }),
+    )
+
+    const { fetchPost, startEdit, cancelEdit, editing } = createHarness()
+    await fetchPost()
+    startEdit()
+    expect(editing.value).toBe(true)
+
+    cancelEdit()
+    expect(editing.value).toBe(false)
+    expect(localStorage.getItem('post_edit_draft_post1')).toBeNull()
+  })
+
+  // saveEdit success clears draft
+  it('saveEdit on success clears draft from localStorage', async () => {
+    const testPost = makePost({ version: 1 })
+    const updatedPost = makePost({ version: 2, title: 'New Title' })
+    mockGetPost.mockResolvedValue(testPost)
+    mockUpdatePost.mockResolvedValue(updatedPost)
+    localStorage.setItem(
+      'post_edit_draft_post1',
+      JSON.stringify({ title: 'New Title', content: '<p>X</p>', savedAt: Date.now() }),
+    )
+
+    const { fetchPost, startEdit, saveEdit, editing } = createHarness()
+    await fetchPost()
+    startEdit()
+    await saveEdit()
+
+    expect(editing.value).toBe(false)
+    expect(localStorage.getItem('post_edit_draft_post1')).toBeNull()
   })
 
   // Additional: canDeleteComment
