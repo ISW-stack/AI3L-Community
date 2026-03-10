@@ -1135,7 +1135,9 @@ class TestFormDescriptionSanitization:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
-                patch(f"{_EP}.create_form", new_callable=AsyncMock, return_value=form) as mock_create,
+                patch(
+                    f"{_EP}.create_form", new_callable=AsyncMock, return_value=form
+                ) as mock_create,
                 patch(
                     f"{_EP}.sanitize_html",
                     return_value="<p>clean</p>",

@@ -246,7 +246,12 @@ onMounted(() => {
             t('forms.builder.bannerLabel')
           }}</label>
           <div v-if="bannerUrl" class="mb-2">
-            <img :src="bannerUrl" alt="Banner" loading="lazy" class="w-full h-40 object-cover rounded-lg" />
+            <img
+              :src="bannerUrl"
+              alt="Banner"
+              loading="lazy"
+              class="w-full h-40 object-cover rounded-lg"
+            />
           </div>
           <input
             type="file"

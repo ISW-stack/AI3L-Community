@@ -229,7 +229,12 @@ onUnmounted(() => {
 
     <template v-else>
       <div v-if="form.banner_url" class="mb-6">
-        <img :src="form.banner_url" alt="Form banner" loading="lazy" class="w-full h-48 object-cover rounded-lg" />
+        <img
+          :src="form.banner_url"
+          alt="Form banner"
+          loading="lazy"
+          class="w-full h-48 object-cover rounded-lg"
+        />
       </div>
 
       <BaseCard padding="lg" class="mb-6">

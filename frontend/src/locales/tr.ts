@@ -203,12 +203,12 @@ export default {
       sigs: 'SIGs',
     },
     yourSigs: {
-      title: 'SIG\'larım',
+      title: "SIG'larım",
       members: 'üye',
-      viewAll: 'Tüm SIG\'ları görüntüle →',
+      viewAll: "Tüm SIG'ları görüntüle →",
     },
     featuredSigs: {
-      title: 'SIG\'ları Keşfet',
+      title: "SIG'ları Keşfet",
     },
     notifications: {
       title: 'Sahipsiniz',

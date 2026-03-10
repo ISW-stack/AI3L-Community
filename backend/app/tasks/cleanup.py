@@ -43,15 +43,13 @@ async def _get_referenced_keys() -> set[str]:
     await _ensure_pool()
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
+        rows = await conn.fetch("""
             SELECT content AS html FROM posts
             WHERE is_deleted = FALSE AND content IS NOT NULL AND content <> ''
             UNION ALL
             SELECT description AS html FROM forms
             WHERE is_deleted = FALSE AND description IS NOT NULL AND description <> ''
-            """
-        )
+            """)
     keys: set[str] = set()
     for row in rows:
         html = row["html"] or ""
@@ -86,9 +84,7 @@ async def _delete_orphans(orphan_keys: list[str]) -> int:
             await file_scan_repo.delete_by_key(key)
             deleted += 1
         except Exception:
-            logger.warning(
-                "Failed to delete orphan file key=%s", key, exc_info=True
-            )
+            logger.warning("Failed to delete orphan file key=%s", key, exc_info=True)
     return deleted
 
 
@@ -105,9 +101,7 @@ def cleanup_orphan_files(self: Any) -> dict:
 
         cutoff = datetime.now(timezone.utc) - timedelta(days=_ORPHAN_MAX_AGE_DAYS)
         orphans = [
-            key
-            for key, modified in all_files
-            if key not in referenced and modified < cutoff
+            key for key, modified in all_files if key not in referenced and modified < cutoff
         ]
 
         logger.info(

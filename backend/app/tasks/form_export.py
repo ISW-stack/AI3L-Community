@@ -18,7 +18,6 @@ from app.core.storage import (
     upload_file,
 )
 
-
 _CSV_FORMULA_CHARS = frozenset("=+-@\t\r")
 
 
