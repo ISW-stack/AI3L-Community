@@ -13,6 +13,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
 
@@ -591,9 +592,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-if="questions.length === 0" class="text-sm text-muted text-center py-4">
-          {{ t('forms.builder.noQuestionsAdded') }}
-        </div>
+        <EmptyState v-if="questions.length === 0" :message="t('forms.builder.noQuestionsAdded')" />
       </div>
     </BaseModal>
   </div>
