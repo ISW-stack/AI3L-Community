@@ -19,6 +19,16 @@ from app.core.storage import (
 )
 
 
+_CSV_FORMULA_CHARS = frozenset("=+-@\t\r")
+
+
+def _sanitize_csv_value(val: str) -> str:
+    """Prefix formula-injection characters with apostrophe to prevent Excel DDE attacks."""
+    if val and val[0] in _CSV_FORMULA_CHARS:
+        return "'" + val
+    return val
+
+
 async def _async_export(form_id: str, task_id: str) -> dict:
     # Ensure DB pool is available (worker may not have it)
     try:
@@ -66,7 +76,10 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     question_ids = [q["id"] for q in questions]
 
     writer = csv.writer(output)
-    writer.writerow(["Response ID", "Username", "Display Name", "Submitted At"] + question_labels)
+    writer.writerow(
+        ["Response ID", "Username", "Display Name", "Submitted At"]
+        + [_sanitize_csv_value(label) for label in question_labels]
+    )
 
     for row in rows:
         answers = json.loads(row["answers"]) if isinstance(row["answers"], str) else row["answers"]
@@ -82,11 +95,11 @@ async def _async_export(form_id: str, task_id: str) -> dict:
         writer.writerow(
             [
                 str(row["id"]),
-                row["username"],
-                row["display_name"],
+                _sanitize_csv_value(row["username"]),
+                _sanitize_csv_value(row["display_name"]),
                 row["created_at"].isoformat(),
             ]
-            + answer_values
+            + [_sanitize_csv_value(v) for v in answer_values]
         )
 
     # Upload CSV to MinIO
@@ -108,7 +121,7 @@ def _run_async(coro: Any) -> dict:
         return result
 
 
-@celery.task(bind=True, name="tasks.export_form_csv")
+@celery.task(bind=True, name="tasks.export_form_csv", max_retries=2, default_retry_delay=60)
 def export_form_csv(self: Any, form_id: str) -> dict:
     """Export form responses to CSV. Runs in Celery worker (sync)."""
     return _run_async(_async_export(form_id, self.request.id))

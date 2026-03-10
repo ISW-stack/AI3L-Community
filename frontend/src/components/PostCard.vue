@@ -110,6 +110,7 @@ function stripHtml(html: string): string {
           v-if="thumbnailUrl"
           :src="thumbnailUrl"
           alt=""
+          loading="lazy"
           class="w-28 h-28 sm:w-36 sm:h-28 object-cover rounded-lg shrink-0 bg-surface-alt"
         />
       </div>

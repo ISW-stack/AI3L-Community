@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
@@ -8,7 +8,7 @@ import { getErrorMessage } from '@/utils/error'
 import { createPost as apiCreatePost } from '@/api/posts'
 import { listCategories } from '@/api/categories'
 import { listMySigs } from '@/api/sigs'
-import TiptapEditor from '@/components/TiptapEditor.vue'
+const TiptapEditor = defineAsyncComponent(() => import('@/components/TiptapEditor.vue'))
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'

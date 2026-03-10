@@ -83,14 +83,31 @@ async def get_contributor_avatar(
         loop = asyncio.get_event_loop()
         resp = await loop.run_in_executor(
             None,
-            lambda: _requests.get(github_url, timeout=10, allow_redirects=True),
+            lambda: _requests.get(github_url, timeout=10, allow_redirects=False),
         )
+
+        # Follow redirect only if target is a trusted GitHub domain
+        if resp.status_code in (301, 302, 303, 307, 308):
+            redirect_url = resp.headers.get("location", "")
+            from urllib.parse import urlparse
+
+            parsed = urlparse(redirect_url)
+            _ALLOWED_HOSTS = (".github.com", ".githubusercontent.com")
+            if not any(parsed.hostname and parsed.hostname.endswith(h) for h in _ALLOWED_HOSTS):
+                return Response(status_code=502, content=b"Untrusted redirect target")
+            resp = await loop.run_in_executor(
+                None,
+                lambda: _requests.get(redirect_url, timeout=10, allow_redirects=False),
+            )
 
         if resp.status_code != 200:
             return Response(status_code=502, content=b"Failed to fetch avatar")
 
-        data = resp.content
         content_type = resp.headers.get("content-type", "image/png")
+        if not content_type.startswith("image/"):
+            return Response(status_code=502, content=b"Invalid content type from upstream")
+
+        data = resp.content
 
         global _cache_total_bytes
         new_size = len(data)

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import DOMPurify from 'dompurify'
 import { renderMentions } from '@/utils/html'
 import { usePostDetail } from '@/composables/usePostDetail'
-import TiptapEditor from '@/components/TiptapEditor.vue'
+const TiptapEditor = defineAsyncComponent(() => import('@/components/TiptapEditor.vue'))
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'

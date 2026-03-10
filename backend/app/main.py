@@ -13,8 +13,9 @@ try:
 except Exception:
     pass
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -175,3 +176,17 @@ if not settings.is_development:
         logger.warning("TRUSTED_HOSTS not configured — TrustedHostMiddleware disabled")
 
 app.include_router(api_v1_router, prefix="/api/v1")
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Catch-all for unhandled exceptions — return generic 500 without leaking internals."""
+    logger.error(
+        "Unhandled exception",
+        extra={"path": request.url.path, "method": request.method},
+        exc_info=exc,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error."},
+    )

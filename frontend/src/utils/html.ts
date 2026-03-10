@@ -57,6 +57,15 @@ export function extractMentions(text: string): string[] {
   return Array.from(seen)
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function renderMentions(html: string, mentions: string[] | null): string {
   if (!mentions || mentions.length === 0) return html
   let result = html
@@ -65,7 +74,7 @@ export function renderMentions(html: string, mentions: string[] | null): string 
     const pattern = new RegExp(`@${escaped}(?![\\w-])`, 'g')
     result = result.replace(
       pattern,
-      `<span class="text-brand-600 font-semibold">@${username}</span>`,
+      `<span class="text-brand-600 font-semibold">@${escapeHtml(username)}</span>`,
     )
   }
   return result

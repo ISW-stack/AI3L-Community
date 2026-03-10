@@ -1,6 +1,7 @@
 import time
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.database import get_pool
@@ -8,6 +9,12 @@ from app.core.redis import get_redis
 from app.schemas.health import DependencyStatus, HealthResponse
 
 router = APIRouter(tags=["health"])
+
+
+@router.get("/health/live")
+async def liveness() -> JSONResponse:
+    """Lightweight liveness probe — no external dependency checks."""
+    return JSONResponse(content={"status": "ok"}, status_code=200)
 
 
 @router.get("/health", response_model=HealthResponse)

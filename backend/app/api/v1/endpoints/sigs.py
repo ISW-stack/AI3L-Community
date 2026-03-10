@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.core.deps import get_current_user, require_role
 from app.schemas.auth import MessageResponse
@@ -37,10 +37,12 @@ router = APIRouter(prefix="/sigs", tags=["sigs"])
 
 @router.get("", response_model=SigListResponse)
 async def get_sigs(
+    response: Response,
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> SigListResponse:
+    response.headers["Cache-Control"] = "private, max-age=60"
     sigs, total = await list_sigs(offset=offset, limit=limit)
     return SigListResponse(
         sigs=[SigResponse(**s) for s in sigs],

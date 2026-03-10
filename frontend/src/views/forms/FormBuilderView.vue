@@ -246,7 +246,7 @@ onMounted(() => {
             t('forms.builder.bannerLabel')
           }}</label>
           <div v-if="bannerUrl" class="mb-2">
-            <img :src="bannerUrl" alt="Banner" class="w-full h-40 object-cover rounded-lg" />
+            <img :src="bannerUrl" alt="Banner" loading="lazy" class="w-full h-40 object-cover rounded-lg" />
           </div>
           <input
             type="file"
@@ -508,7 +508,7 @@ onMounted(() => {
           {{ t('forms.builder.previewMode') }}
         </BaseAlert>
         <div v-if="bannerUrl" class="rounded-lg overflow-hidden">
-          <img :src="bannerUrl" alt="Banner" class="w-full h-32 object-cover" />
+          <img :src="bannerUrl" alt="Banner" loading="lazy" class="w-full h-32 object-cover" />
         </div>
         <p v-if="description" class="text-sm text-muted">{{ description }}</p>
 

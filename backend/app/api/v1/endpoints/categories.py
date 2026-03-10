@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.core.deps import get_current_user, require_role
 from app.schemas.category import (
@@ -23,8 +23,10 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 @router.get("", response_model=CategoryListResponse)
 async def get_categories(
+    response: Response,
     current_user: dict = Depends(get_current_user),
 ) -> CategoryListResponse:
+    response.headers["Cache-Control"] = "private, max-age=60"
     categories = await list_categories()
     items = [
         CategoryResponse(

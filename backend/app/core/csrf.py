@@ -4,6 +4,7 @@ Compares the `csrf_token` cookie with the `X-CSRF-Token` header for
 state-changing requests (POST/PUT/PATCH/DELETE).
 """
 
+import secrets
 from typing import Any
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -61,7 +62,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         cookie_token = request.cookies.get("csrf_token")
         header_token = request.headers.get(self.header_name)
 
-        if not cookie_token or not header_token or cookie_token != header_token:
+        if not cookie_token or not header_token or not secrets.compare_digest(cookie_token, header_token):
             return JSONResponse(
                 status_code=403,
                 content={"detail": "CSRF token missing or mismatched."},
