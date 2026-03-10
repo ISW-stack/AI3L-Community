@@ -8,12 +8,17 @@ import { i18n, SUPPORTED_LOCALES, LOCALE_OPTIONS, type SupportedLocale } from '@
  * Sync locale from user profile (DB preferred_language).
  * Safe to call outside component setup — uses the global i18n instance directly.
  */
+function applyLocaleToDocument(lang: string) {
+  document.documentElement.lang = lang
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+}
+
 export function syncLocaleFromProfile(preferredLanguage: string | undefined) {
   if (preferredLanguage && SUPPORTED_LOCALES.includes(preferredLanguage as SupportedLocale)) {
     const locale = i18n.global.locale as unknown as Ref<string>
     locale.value = preferredLanguage
     localStorage.setItem('locale', preferredLanguage)
-    document.documentElement.lang = preferredLanguage
+    applyLocaleToDocument(preferredLanguage)
   }
 }
 
@@ -25,7 +30,7 @@ export function useLocale() {
 
   async function setLocale(lang: SupportedLocale) {
     locale.value = lang
-    document.documentElement.lang = lang
+    applyLocaleToDocument(lang)
 
     // Guest users: change locale for current session only, no persistence
     if (!auth.isAuthenticated || auth.isGuest) return

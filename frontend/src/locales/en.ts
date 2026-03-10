@@ -59,6 +59,14 @@ export default {
     fr: 'Français',
     es: 'Español',
     de: 'Deutsch',
+    ar: 'العربية',
+    pt: 'Português',
+    ru: 'Русский',
+    hi: 'हिन्दी',
+    ko: '한국어',
+    id: 'Bahasa Indonesia',
+    it: 'Italiano',
+    vi: 'Tiếng Việt',
   },
 
   // ── Auth ──
