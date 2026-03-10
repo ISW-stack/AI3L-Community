@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_SUBMIT
 from app.core.deps import get_current_user, require_role
+from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
 from app.repositories import sig_repo
 from app.schemas.form import (
@@ -58,7 +59,7 @@ async def create_new_form(
             sig_id=str(sig_id),
             user_id=current_user["sub"],
             title=req.title,
-            description=req.description,
+            description=sanitize_html(req.description) if req.description else req.description,
             banner_url=req.banner_url,
             deadline=req.deadline,
             max_respondents=req.max_respondents,
@@ -130,7 +131,7 @@ async def update_existing_form(
             user_id=current_user["sub"],
             is_admin=is_admin,
             title=req.title,
-            description=req.description,
+            description=sanitize_html(req.description) if req.description else req.description,
             banner_url=req.banner_url,
             deadline=req.deadline,
             max_respondents=req.max_respondents,

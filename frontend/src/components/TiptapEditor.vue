@@ -129,14 +129,25 @@ function addImage() {
   fileInputRef.value?.click()
 }
 
-async function handleImageUpload(event: Event) {
+async function handleFileUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file || !editor.value) return
 
   uploading.value = true
   try {
     const data = await uploadEditorFile(file)
-    editor.value.chain().focus().setImage({ src: data.url }).run()
+    const isImage = file.type.startsWith('image/')
+    if (isImage) {
+      editor.value.chain().focus().setImage({ src: data.url }).run()
+    } else {
+      editor.value
+        .chain()
+        .focus()
+        .insertContent(
+          `<a href="${data.url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`,
+        )
+        .run()
+    }
     if (data.scan_task_id && data.key) {
       clearScanTimers()
       scanKey.value = data.key
@@ -154,13 +165,13 @@ async function handleImageUpload(event: Event) {
 
 <template>
   <div class="border border-border rounded-lg overflow-hidden">
-    <!-- Hidden file input for image upload -->
+    <!-- Hidden file input for image/document upload -->
     <input
       ref="fileInputRef"
       type="file"
-      accept="image/png,image/jpeg,image/gif,image/webp"
+      accept="image/png,image/jpeg,image/gif,image/webp,.pdf,.docx"
       class="hidden"
-      @change="handleImageUpload"
+      @change="handleFileUpload"
     />
 
     <!-- Toolbar -->
@@ -270,7 +281,7 @@ async function handleImageUpload(event: Event) {
         class="p-1.5 rounded hover:bg-gray-200 transition"
         :class="{ 'opacity-50 cursor-wait': uploading }"
         :disabled="uploading"
-        :aria-label="t('editor.toolbar.insertImage')"
+        :aria-label="t('editor.toolbar.insertFile')"
       >
         <ImagePlus class="w-4 h-4" aria-hidden="true" />
       </button>

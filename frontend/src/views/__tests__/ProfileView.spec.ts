@@ -11,6 +11,7 @@ const mockUploadAvatar = vi.fn()
 const mockChangePassword = vi.fn()
 const mockDeleteAccount = vi.fn()
 const mockCreateInviteCode = vi.fn()
+const mockGetStorageUsage = vi.fn()
 
 vi.mock('@/api/users', () => ({
   updateProfile: (...args: unknown[]) => mockUpdateProfile(...args),
@@ -22,6 +23,10 @@ vi.mock('@/api/users', () => ({
 
 vi.mock('@/api/admin', () => ({
   createInviteCode: (...args: unknown[]) => mockCreateInviteCode(...args),
+}))
+
+vi.mock('@/api/files', () => ({
+  getStorageUsage: (...args: unknown[]) => mockGetStorageUsage(...args),
 }))
 
 vi.mock('@/composables/api', () => ({
@@ -123,6 +128,7 @@ describe('ProfileView', () => {
       ban_reason: null,
     })
     mockCreateInviteCode.mockResolvedValue({ invite_code: 'ABC123' })
+    mockGetStorageUsage.mockResolvedValue({ used_bytes: 500_000_000, quota_bytes: 1_073_741_824 })
   })
 
   it('renders profile title', async () => {
@@ -233,5 +239,72 @@ describe('ProfileView', () => {
     const { wrapper } = await mountProfile()
     expect(wrapper.text()).toContain('Language')
     expect(wrapper.find('[aria-haspopup="true"]').exists()).toBe(true)
+  })
+
+  describe('storage usage card', () => {
+    it('calls getStorageUsage on mount for non-guest users', async () => {
+      await mountProfile({ role: 'MEMBER' })
+      expect(mockGetStorageUsage).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not call getStorageUsage for guest users', async () => {
+      await mountProfile({ role: 'GUEST' })
+      expect(mockGetStorageUsage).not.toHaveBeenCalled()
+    })
+
+    it('renders storage usage bar after loading', async () => {
+      const { wrapper } = await mountProfile({ role: 'MEMBER' })
+      // The progress bar container should exist
+      const progressBar = wrapper.find('.rounded-full.h-2')
+      expect(progressBar.exists()).toBe(true)
+    })
+
+    it('renders storage percent text', async () => {
+      // 500_000_000 / 1_073_741_824 ≈ 46.57% → Math.round → 47%
+      const { wrapper } = await mountProfile({ role: 'MEMBER' })
+      expect(wrapper.text()).toContain('47%')
+    })
+
+    it('shows error state when storage fetch fails', async () => {
+      mockGetStorageUsage.mockRejectedValue(new Error('Network error'))
+      const { wrapper } = await mountProfile({ role: 'MEMBER' })
+      // i18n resolves the key to actual translated text
+      expect(wrapper.text()).toContain('Failed to load storage usage')
+    })
+
+    it('does not show storage card for guest users', async () => {
+      const { wrapper } = await mountProfile({ role: 'GUEST' })
+      // Storage card is hidden for guests (v-if="!auth.isGuest")
+      expect(wrapper.text()).not.toContain('profile.storage.title')
+    })
+  })
+
+  describe('formatBytes helper (via component state)', () => {
+    it('formats bytes below 1024 as B', async () => {
+      mockGetStorageUsage.mockResolvedValue({ used_bytes: 512, quota_bytes: 1_073_741_824 })
+      const { wrapper } = await mountProfile({ role: 'MEMBER' })
+      expect(wrapper.text()).toContain('512 B')
+    })
+
+    it('formats bytes in KB range', async () => {
+      mockGetStorageUsage.mockResolvedValue({ used_bytes: 10_240, quota_bytes: 1_073_741_824 })
+      const { wrapper } = await mountProfile({ role: 'MEMBER' })
+      expect(wrapper.text()).toContain('10.0 KB')
+    })
+
+    it('formats bytes in MB range', async () => {
+      mockGetStorageUsage.mockResolvedValue({ used_bytes: 500_000_000, quota_bytes: 1_073_741_824 })
+      const { wrapper } = await mountProfile({ role: 'MEMBER' })
+      expect(wrapper.text()).toContain('476.8 MB')
+    })
+
+    it('formats bytes in GB range for quota', async () => {
+      mockGetStorageUsage.mockResolvedValue({
+        used_bytes: 500_000_000,
+        quota_bytes: 2_147_483_648,
+      })
+      const { wrapper } = await mountProfile({ role: 'MEMBER' })
+      expect(wrapper.text()).toContain('2.00 GB')
+    })
   })
 })

@@ -160,7 +160,7 @@ export default {
 
   // ── Footer ──
   footer: {
-    copyright: '© 2025 AI3L Community. All rights reserved.',
+    copyright: '© 2025 AI3L Community. Tous droits réservés.',
     tagline: "L'IA dans l'apprentissage des langues",
   },
 
@@ -192,6 +192,25 @@ export default {
       comments: 'commentaires',
       fetchError: 'Échec du chargement des publications récentes.',
     },
+    trending: {
+      title: 'Tendances cette semaine',
+      empty: 'Aucune publication tendance cette semaine.',
+      fetchError: 'Échec du chargement des publications tendances.',
+    },
+    stats: {
+      title: 'Communauté',
+      members: 'Membres',
+      posts: 'Publications',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'Mes GIS',
+      members: 'membres',
+      viewAll: 'Voir tous les GIS →',
+    },
+    featuredSigs: {
+      title: 'Découvrir les GIS',
+    },
     notifications: {
       title: 'Vous avez',
       count: 'notification(s) non lue(s).',
@@ -210,14 +229,6 @@ export default {
         "Rejoignez des chercheurs et des éducateurs qui font avancer l'apprentissage des langues assisté par l'IA.",
       getStartedBtn: 'Commencer',
       browseGuestBtn: "Naviguer en tant qu'invité",
-      stats: {
-        community: 'Ouverte',
-        communitySubtitle: 'Communauté',
-        focus: 'Académique',
-        focusSubtitle: 'Orientation',
-        network: 'Mondial',
-        networkSubtitle: 'Réseau',
-      },
       features: {
         forum: {
           title: 'Forum académique',
@@ -388,7 +399,7 @@ export default {
       blockquote: 'Citation',
       codeBlock: 'Bloc de code',
       insertLink: 'Insérer un lien',
-      insertImage: 'Insérer une image',
+      insertFile: 'Insérer une image ou un fichier',
       insertTable: 'Insérer un tableau',
       undo: 'Annuler',
       redo: 'Rétablir',
@@ -399,7 +410,7 @@ export default {
       malicious: 'Signalé comme malveillant',
       unknown: 'Analyse non concluante',
     },
-    uploadFailed: "Échec du téléchargement de l'image.",
+    uploadFailed: 'Échec du téléchargement du fichier.',
     maliciousFile: 'Le fichier téléchargé a été signalé comme potentiellement malveillant.',
     promptLinkUrl: "Entrez l'URL",
   },
@@ -644,6 +655,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Langue',
       saveBtn: 'Enregistrer',
+    },
+    storage: {
+      title: 'Utilisation du stockage',
+      used: '{used} sur {total} utilisé',
+      fetchError: "Impossible de charger l'utilisation du stockage.",
     },
     saveSuccess: 'Profil mis à jour avec succès.',
     saveError: 'Échec de la mise à jour du profil.',

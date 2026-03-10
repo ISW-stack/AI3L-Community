@@ -173,6 +173,25 @@ export default {
       comments: '則留言',
       fetchError: '載入最新文章失敗。',
     },
+    trending: {
+      title: '本週熱門',
+      empty: '本週沒有熱門文章。',
+      fetchError: '載入熱門文章失敗。',
+    },
+    stats: {
+      title: '社群',
+      members: '成員',
+      posts: '文章',
+      sigs: 'SIG',
+    },
+    yourSigs: {
+      title: '我的 SIG',
+      members: '位成員',
+      viewAll: '查看全部 SIG →',
+    },
+    featuredSigs: {
+      title: '探索 SIG',
+    },
     notifications: {
       title: '您有',
       count: '則未讀通知。',
@@ -190,14 +209,6 @@ export default {
       tagline: '加入推動 AI 語言學習的研究者和教育者。',
       getStartedBtn: '立即開始',
       browseGuestBtn: '以訪客身分瀏覽',
-      stats: {
-        community: '開放',
-        communitySubtitle: '社群',
-        focus: '學術',
-        focusSubtitle: '導向',
-        network: '全球',
-        networkSubtitle: '網路',
-      },
       features: {
         forum: {
           title: '學術論壇',
@@ -355,7 +366,7 @@ export default {
       blockquote: '引用',
       codeBlock: '程式碼區塊',
       insertLink: '插入連結',
-      insertImage: '插入圖片',
+      insertFile: '插入圖片或檔案',
       insertTable: '插入表格',
       undo: '復原',
       redo: '重做',
@@ -366,7 +377,7 @@ export default {
       malicious: '標記為惡意',
       unknown: '掃描結果不確定',
     },
-    uploadFailed: '圖片上傳失敗。',
+    uploadFailed: '檔案上傳失敗。',
     maliciousFile: '上傳的檔案被標記為潛在惡意檔案。',
     promptLinkUrl: '輸入網址',
   },
@@ -599,6 +610,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: '語言',
       saveBtn: '儲存',
+    },
+    storage: {
+      title: '儲存空間使用量',
+      used: '已使用 {used}，共 {total}',
+      fetchError: '載入儲存空間使用量失敗。',
     },
     saveSuccess: '個人檔案更新成功。',
     saveError: '個人檔案更新失敗。',

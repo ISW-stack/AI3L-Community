@@ -191,6 +191,25 @@ export default {
       comments: 'комментарии',
       fetchError: 'Не удалось загрузить последние записи.',
     },
+    trending: {
+      title: 'Популярное на этой неделе',
+      empty: 'Нет популярных записей на этой неделе.',
+      fetchError: 'Не удалось загрузить популярные записи.',
+    },
+    stats: {
+      title: 'Сообщество',
+      members: 'Участники',
+      posts: 'Записи',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'Мои SIGs',
+      members: 'участников',
+      viewAll: 'Все SIGs →',
+    },
+    featuredSigs: {
+      title: 'Найти SIGs',
+    },
     notifications: {
       title: 'У вас',
       count: 'непрочитанных уведомлений.',
@@ -208,14 +227,6 @@ export default {
       tagline: 'Присоединяйтесь к исследователям и педагогам, развивающим языковое обучение с AI.',
       getStartedBtn: 'Начать',
       browseGuestBtn: 'Войти как гость',
-      stats: {
-        community: 'Открытое',
-        communitySubtitle: 'Сообщество',
-        focus: 'Академическая',
-        focusSubtitle: 'направленность',
-        network: 'Глобальная',
-        networkSubtitle: 'сеть',
-      },
       features: {
         forum: {
           title: 'Академический форум',
@@ -383,7 +394,7 @@ export default {
       blockquote: 'Цитата',
       codeBlock: 'Блок кода',
       insertLink: 'Вставить ссылку',
-      insertImage: 'Вставить изображение',
+      insertFile: 'Вставить изображение или файл',
       insertTable: 'Вставить таблицу',
       undo: 'Отменить',
       redo: 'Повторить',
@@ -394,7 +405,7 @@ export default {
       malicious: 'Помечен как вредоносный',
       unknown: 'Результат сканирования неоднозначен',
     },
-    uploadFailed: 'Не удалось загрузить изображение.',
+    uploadFailed: 'Не удалось загрузить файл.',
     maliciousFile: 'Загруженный файл помечен как потенциально вредоносный.',
     promptLinkUrl: 'Введите URL',
   },
@@ -639,6 +650,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Язык',
       saveBtn: 'Сохранить',
+    },
+    storage: {
+      title: 'Использование хранилища',
+      used: 'Использовано {used} из {total}',
+      fetchError: 'Не удалось загрузить данные об использовании хранилища.',
     },
     saveSuccess: 'Профиль успешно обновлён.',
     saveError: 'Не удалось обновить профиль.',

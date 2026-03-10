@@ -41,3 +41,13 @@ export async function getPresignedUrl(key: string) {
   const { data } = await api.get('/files/presigned-url', { params: { key } })
   return data as { url: string }
 }
+
+export interface StorageUsage {
+  used_bytes: number
+  quota_bytes: number
+}
+
+export async function getStorageUsage() {
+  const { data } = await api.get<StorageUsage>('/files/storage-usage')
+  return data
+}

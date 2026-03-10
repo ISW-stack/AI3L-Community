@@ -10,7 +10,13 @@ vi.mock('@/composables/api', () => ({
   },
 }))
 
-import { getTaskStatus, uploadEditorFile, getFileScanStatus, getPresignedUrl } from '../files'
+import {
+  getTaskStatus,
+  uploadEditorFile,
+  getFileScanStatus,
+  getPresignedUrl,
+  getStorageUsage,
+} from '../files'
 
 describe('files API', () => {
   beforeEach(() => {
@@ -204,6 +210,51 @@ describe('files API', () => {
       mockGet.mockRejectedValue(new Error('Forbidden'))
 
       await expect(getPresignedUrl('private-key')).rejects.toThrow('Forbidden')
+    })
+  })
+
+  describe('getStorageUsage', () => {
+    it('calls GET /files/storage-usage and returns usage data', async () => {
+      const mockData = { used_bytes: 500_000_000, quota_bytes: 1_073_741_824 }
+      mockGet.mockResolvedValue({ data: mockData })
+
+      const result = await getStorageUsage()
+
+      expect(mockGet).toHaveBeenCalledWith('/files/storage-usage')
+      expect(result).toEqual(mockData)
+    })
+
+    it('returns used_bytes and quota_bytes from response', async () => {
+      const mockData = { used_bytes: 102_400, quota_bytes: 10_737_418_240 }
+      mockGet.mockResolvedValue({ data: mockData })
+
+      const result = await getStorageUsage()
+
+      expect(result.used_bytes).toBe(102_400)
+      expect(result.quota_bytes).toBe(10_737_418_240)
+    })
+
+    it('returns zero used_bytes when storage is empty', async () => {
+      const mockData = { used_bytes: 0, quota_bytes: 1_073_741_824 }
+      mockGet.mockResolvedValue({ data: mockData })
+
+      const result = await getStorageUsage()
+
+      expect(result.used_bytes).toBe(0)
+    })
+
+    it('calls GET exactly once', async () => {
+      mockGet.mockResolvedValue({ data: { used_bytes: 0, quota_bytes: 1_073_741_824 } })
+
+      await getStorageUsage()
+
+      expect(mockGet).toHaveBeenCalledTimes(1)
+    })
+
+    it('propagates API errors', async () => {
+      mockGet.mockRejectedValue(new Error('Unauthorized'))
+
+      await expect(getStorageUsage()).rejects.toThrow('Unauthorized')
     })
   })
 })

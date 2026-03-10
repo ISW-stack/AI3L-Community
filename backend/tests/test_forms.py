@@ -1114,3 +1114,146 @@ class TestFormSchemaValidation:
         # Any integer should fail validation since min > max makes range impossible
         with pytest.raises(ValueError, match="must be between"):
             _validate_answers(questions, {"q1": 3})
+
+
+# ──────────────────────────────────────────────────────────────────────
+# NEW TESTS: sanitize_html applied on form create/update
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestFormDescriptionSanitization:
+    """Verify sanitize_html is called when creating or updating a form with a description."""
+
+    @pytest.mark.anyio
+    async def test_create_form_sanitizes_description(self, client) -> None:
+        """POST /sigs/{sig_id}/forms — description containing script tags is sanitized."""
+        sig_id = uuid.uuid4()
+        form = _make_form(sig_id=str(sig_id))
+        form["description"] = "<p>clean</p>"  # what the service returns after sanitizing
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.create_form", new_callable=AsyncMock, return_value=form) as mock_create,
+                patch(
+                    f"{_EP}.sanitize_html",
+                    return_value="<p>clean</p>",
+                ) as mock_sanitize,
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/forms",
+                    json={
+                        "title": "Test Form",
+                        "description": "<script>alert(1)</script><p>clean</p>",
+                        "questions": [
+                            {"id": "q1", "type": "text", "label": "Name", "required": True}
+                        ],
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 201
+                # sanitize_html must have been called with the raw description
+                mock_sanitize.assert_called_once()
+                call_arg = mock_sanitize.call_args[0][0]
+                assert "<script>" in call_arg
+                # create_form must receive the sanitized description
+                _, kwargs = mock_create.call_args
+                assert kwargs.get("description") == "<p>clean</p>"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_create_form_null_description_skips_sanitize(self, client) -> None:
+        """POST /sigs/{sig_id}/forms — None description does not call sanitize_html."""
+        sig_id = uuid.uuid4()
+        form = _make_form(sig_id=str(sig_id))
+        form["description"] = None
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.create_form", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}.sanitize_html", return_value="") as mock_sanitize,
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/forms",
+                    json={
+                        "title": "Test Form",
+                        "questions": [
+                            {"id": "q1", "type": "text", "label": "Name", "required": True}
+                        ],
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 201
+                mock_sanitize.assert_not_called()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_update_form_sanitizes_description(self, client) -> None:
+        """PUT /forms/{form_id} — description with XSS payload gets sanitized."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form = _make_form(creator_id=user_id)
+        form["id"] = str(form_id)
+        form["description"] = "<p>safe</p>"
+
+        updated_form = dict(form)
+        updated_form["description"] = "<p>safe</p>"
+
+        try:
+            _override_auth("ADMIN", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form
+                ) as mock_update,
+                patch(
+                    f"{_EP}.sanitize_html",
+                    return_value="<p>safe</p>",
+                ) as mock_sanitize,
+            ):
+                resp = await client.put(
+                    f"/api/v1/forms/{form_id}",
+                    json={
+                        "title": "Title",
+                        "description": '<img src=x onerror="alert(1)"><p>safe</p>',
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                mock_sanitize.assert_called_once()
+                _, kwargs = mock_update.call_args
+                assert kwargs.get("description") == "<p>safe</p>"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_update_form_null_description_skips_sanitize(self, client) -> None:
+        """PUT /forms/{form_id} — omitting description does not call sanitize_html."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form = _make_form(creator_id=user_id)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("ADMIN", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}.sanitize_html", return_value="") as mock_sanitize,
+            ):
+                resp = await client.put(
+                    f"/api/v1/forms/{form_id}",
+                    json={"title": "New Title"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                mock_sanitize.assert_not_called()
+        finally:
+            _clear_overrides()

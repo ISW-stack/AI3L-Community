@@ -191,6 +191,25 @@ export default {
       comments: 'comentários',
       fetchError: 'Falha ao carregar postagens recentes.',
     },
+    trending: {
+      title: 'Tendências desta semana',
+      empty: 'Nenhuma publicação em tendência esta semana.',
+      fetchError: 'Falha ao carregar publicações em tendência.',
+    },
+    stats: {
+      title: 'Comunidade',
+      members: 'Membros',
+      posts: 'Publicações',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'Meus SIGs',
+      members: 'membros',
+      viewAll: 'Ver todos os SIGs →',
+    },
+    featuredSigs: {
+      title: 'Descobrir SIGs',
+    },
     notifications: {
       title: 'Você tem',
       count: 'notificação(ões) não lida(s).',
@@ -208,14 +227,6 @@ export default {
       tagline: 'Junte-se a pesquisadores e educadores que avançam o aprendizado de línguas com IA.',
       getStartedBtn: 'Começar',
       browseGuestBtn: 'Navegar como Visitante',
-      stats: {
-        community: 'Aberta',
-        communitySubtitle: 'Comunidade',
-        focus: 'Acadêmico',
-        focusSubtitle: 'Foco',
-        network: 'Global',
-        networkSubtitle: 'Rede',
-      },
       features: {
         forum: {
           title: 'Fórum Acadêmico',
@@ -254,8 +265,8 @@ export default {
       mostDiscussed: 'Mais discutidas',
     },
     searchLogic: {
-      and: 'AND',
-      or: 'OR',
+      and: 'E',
+      or: 'OU',
     },
     emptyTitle: 'Nada aqui ainda',
     emptyMessage: 'Nenhuma publicação encontrada',
@@ -382,7 +393,7 @@ export default {
       blockquote: 'Citação em bloco',
       codeBlock: 'Bloco de código',
       insertLink: 'Inserir link',
-      insertImage: 'Inserir imagem',
+      insertFile: 'Inserir imagem ou arquivo',
       insertTable: 'Inserir tabela',
       undo: 'Desfazer',
       redo: 'Refazer',
@@ -393,7 +404,7 @@ export default {
       malicious: 'Sinalizado como malicioso',
       unknown: 'Verificação inconclusiva',
     },
-    uploadFailed: 'Falha ao enviar imagem.',
+    uploadFailed: 'Falha ao enviar arquivo.',
     maliciousFile: 'O arquivo enviado foi sinalizado como potencialmente malicioso.',
     promptLinkUrl: 'Digite a URL',
   },
@@ -638,6 +649,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Idioma',
       saveBtn: 'Salvar',
+    },
+    storage: {
+      title: 'Uso do armazenamento',
+      used: '{used} de {total} usado',
+      fetchError: 'Falha ao carregar o uso do armazenamento.',
     },
     saveSuccess: 'Perfil atualizado com sucesso.',
     saveError: 'Falha ao atualizar perfil.',

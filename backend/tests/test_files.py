@@ -1,8 +1,10 @@
 """Tests for file upload validation — magic number check, path traversal, PDF sanitization."""
 
+import uuid
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from httpx import AsyncClient
 
 from app.core.file_validation import sanitize_html, validate_magic_number
@@ -234,3 +236,88 @@ class TestPdfSanitization:
 
         with pytest.raises(ValueError, match="Invalid or corrupted PDF"):
             sanitize_pdf(b"this is not a pdf")
+
+
+def _override_auth_files(role: str = "MEMBER", user_id: str | None = None) -> dict:
+    from app.core.deps import get_current_user
+    from app.main import app
+
+    uid = user_id or str(uuid.uuid4())
+    payload = {"sub": uid, "role": role, "jti": str(uuid.uuid4())}
+    app.dependency_overrides[get_current_user] = lambda: payload
+    return payload
+
+
+def _clear_overrides_files() -> None:
+    from app.main import app
+
+    app.dependency_overrides.clear()
+
+
+class TestStorageUsageEndpoint:
+    """GET /files/storage-usage — returns used_bytes and quota_bytes."""
+
+    @pytest.mark.anyio
+    async def test_storage_usage_authenticated_member(self, client: AsyncClient) -> None:
+        """Authenticated member receives used_bytes and quota_bytes."""
+        _override_auth_files("MEMBER")
+        try:
+            with patch(
+                "app.api.v1.endpoints.files.get_user_storage_used",
+                new_callable=AsyncMock,
+                return_value=123456789,
+            ):
+                resp = await client.get(
+                    "/api/v1/files/storage-usage",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert "used_bytes" in data
+            assert "quota_bytes" in data
+            assert data["used_bytes"] == 123456789
+            assert data["quota_bytes"] > 0
+        finally:
+            _clear_overrides_files()
+
+    @pytest.mark.anyio
+    async def test_storage_usage_unauthenticated_returns_401(self, client: AsyncClient) -> None:
+        """Unauthenticated request to storage-usage endpoint returns 401."""
+        resp = await client.get("/api/v1/files/storage-usage")
+        assert resp.status_code == 401
+
+    @pytest.mark.anyio
+    async def test_storage_usage_zero_used(self, client: AsyncClient) -> None:
+        """User with no uploads reports used_bytes of 0."""
+        _override_auth_files("MEMBER")
+        try:
+            with patch(
+                "app.api.v1.endpoints.files.get_user_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ):
+                resp = await client.get(
+                    "/api/v1/files/storage-usage",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            assert resp.json()["used_bytes"] == 0
+        finally:
+            _clear_overrides_files()
+
+
+class TestCleanupTaskImport:
+    """Verify the cleanup task module can be imported without errors."""
+
+    def test_cleanup_module_importable(self) -> None:
+        """cleanup.py must be importable (no syntax errors, safe top-level imports)."""
+        import importlib
+
+        import app.tasks.cleanup as cleanup_mod
+
+        importlib.reload(cleanup_mod)
+        assert hasattr(cleanup_mod, "cleanup_orphan_files")
+        assert hasattr(cleanup_mod, "_run_async")
+        assert hasattr(cleanup_mod, "_get_referenced_keys")
+        assert hasattr(cleanup_mod, "_list_editor_files")
+        assert hasattr(cleanup_mod, "_delete_orphans")

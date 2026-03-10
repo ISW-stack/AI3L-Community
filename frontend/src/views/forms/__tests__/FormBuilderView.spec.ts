@@ -85,16 +85,19 @@ function createStubs() {
         '<input class="base-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
       props: ['modelValue', 'label', 'placeholder'],
     },
-    BaseTextarea: {
+    // Description field was migrated from BaseTextarea to TiptapEditor
+    TiptapEditor: {
       template:
-        '<textarea class="base-textarea" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
-      props: ['modelValue', 'label', 'rows', 'placeholder'],
+        '<div class="tiptap-editor"><textarea class="tiptap-textarea" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea></div>',
+      props: ['modelValue'],
+      emits: ['update:modelValue'],
     },
     BaseModal: {
       template: '<div class="base-modal" v-if="modelValue"><slot /></div>',
       props: ['modelValue', 'title', 'size'],
     },
     SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
+    EmptyState: { template: '<div class="empty-state" />', props: ['message'] },
   }
 }
 
@@ -142,10 +145,11 @@ describe('FormBuilderView', () => {
       expect(wrapper.text()).toContain('Question')
     })
 
-    it('renders title and description inputs', async () => {
+    it('renders title input and TiptapEditor for description', async () => {
       const { wrapper } = await mountBuilder()
       expect(wrapper.find('.base-input').exists()).toBe(true)
-      expect(wrapper.find('.base-textarea').exists()).toBe(true)
+      // Description field uses TiptapEditor (not BaseTextarea)
+      expect(wrapper.find('.tiptap-editor').exists()).toBe(true)
     })
 
     it('renders add question button and can add questions', async () => {

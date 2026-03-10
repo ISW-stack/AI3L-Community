@@ -191,6 +191,25 @@ export default {
       comments: 'yorum',
       fetchError: 'Son gönderiler yüklenemedi.',
     },
+    trending: {
+      title: 'Bu Hafta Öne Çıkanlar',
+      empty: 'Bu hafta öne çıkan gönderi yok.',
+      fetchError: 'Öne çıkan gönderiler yüklenemedi.',
+    },
+    stats: {
+      title: 'Topluluk',
+      members: 'Üyeler',
+      posts: 'Gönderiler',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'SIG\'larım',
+      members: 'üye',
+      viewAll: 'Tüm SIG\'ları görüntüle →',
+    },
+    featuredSigs: {
+      title: 'SIG\'ları Keşfet',
+    },
     notifications: {
       title: 'Sahipsiniz',
       count: 'okunmamış bildirim.',
@@ -209,14 +228,6 @@ export default {
         'Yapay zeka destekli dil öğrenimini ilerletmek için araştırmacı ve eğitimcilere katılın.',
       getStartedBtn: 'Başlayın',
       browseGuestBtn: 'Misafir Olarak Gözat',
-      stats: {
-        community: 'Açık',
-        communitySubtitle: 'Topluluk',
-        focus: 'Akademik',
-        focusSubtitle: 'Odak',
-        network: 'Küresel',
-        networkSubtitle: 'Ağ',
-      },
       features: {
         forum: {
           title: 'Akademik Forum',
@@ -384,7 +395,7 @@ export default {
       blockquote: 'Alıntı',
       codeBlock: 'Kod bloğu',
       insertLink: 'Bağlantı ekle',
-      insertImage: 'Resim ekle',
+      insertFile: 'Resim veya dosya ekle',
       insertTable: 'Tablo ekle',
       undo: 'Geri Al',
       redo: 'Yinele',
@@ -395,7 +406,7 @@ export default {
       malicious: 'Zararlı olarak işaretlendi',
       unknown: 'Tarama sonuçsuz',
     },
-    uploadFailed: 'Resim yüklenemedi.',
+    uploadFailed: 'Dosya yüklenemedi.',
     maliciousFile: 'Yüklenen dosya potansiyel olarak zararlı olarak işaretlendi.',
     promptLinkUrl: 'URL girin',
   },
@@ -640,6 +651,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Dil',
       saveBtn: 'Kaydet',
+    },
+    storage: {
+      title: 'Depolama Kullanımı',
+      used: '{total} içinde {used} kullanıldı',
+      fetchError: 'Depolama kullanımı yüklenemedi.',
     },
     saveSuccess: 'Profil başarıyla güncellendi.',
     saveError: 'Profil güncellenemedi.',

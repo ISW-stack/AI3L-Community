@@ -161,7 +161,7 @@ export default {
 
   // ── Footer ──
   footer: {
-    copyright: '© 2025 AI3L Community. All rights reserved.',
+    copyright: '© 2025 AI3L Community. Alle Rechte vorbehalten.',
     tagline: 'KI im Sprachlernen und der Alphabetisierung',
   },
 
@@ -193,6 +193,25 @@ export default {
       comments: 'Kommentare',
       fetchError: 'Die neuesten Beiträge konnten nicht geladen werden.',
     },
+    trending: {
+      title: 'Trending diese Woche',
+      empty: 'Keine beliebten Beiträge diese Woche.',
+      fetchError: 'Beliebte Beiträge konnten nicht geladen werden.',
+    },
+    stats: {
+      title: 'Community',
+      members: 'Mitglieder',
+      posts: 'Beiträge',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'Meine SIGs',
+      members: 'Mitglieder',
+      viewAll: 'Alle SIGs anzeigen →',
+    },
+    featuredSigs: {
+      title: 'SIGs entdecken',
+    },
     notifications: {
       title: 'Sie haben',
       count: 'ungelesene Benachrichtigung(en).',
@@ -211,14 +230,6 @@ export default {
         'Verbinden Sie sich mit Forschenden und Lehrenden im Bereich KI-gestütztes Sprachenlernen.',
       getStartedBtn: 'Jetzt starten',
       browseGuestBtn: 'Als Gast durchsuchen',
-      stats: {
-        community: 'Offen',
-        communitySubtitle: 'Community',
-        focus: 'Akademisch',
-        focusSubtitle: 'Ausrichtung',
-        network: 'Global',
-        networkSubtitle: 'Netzwerk',
-      },
       features: {
         forum: {
           title: 'Akademisches Forum',
@@ -388,7 +399,7 @@ export default {
       blockquote: 'Zitat',
       codeBlock: 'Codeblock',
       insertLink: 'Link einfügen',
-      insertImage: 'Bild einfügen',
+      insertFile: 'Bild oder Datei einfügen',
       insertTable: 'Tabelle einfügen',
       undo: 'Rückgängig',
       redo: 'Wiederholen',
@@ -399,7 +410,7 @@ export default {
       malicious: 'Als bösartig markiert',
       unknown: 'Scan nicht eindeutig',
     },
-    uploadFailed: 'Bild konnte nicht hochgeladen werden.',
+    uploadFailed: 'Datei konnte nicht hochgeladen werden.',
     maliciousFile: 'Die hochgeladene Datei wurde als potenziell bösartig eingestuft.',
     promptLinkUrl: 'URL eingeben',
   },
@@ -645,6 +656,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Sprache',
       saveBtn: 'Speichern',
+    },
+    storage: {
+      title: 'Speichernutzung',
+      used: '{used} von {total} verwendet',
+      fetchError: 'Speichernutzung konnte nicht geladen werden.',
     },
     saveSuccess: 'Profil erfolgreich aktualisiert.',
     saveError: 'Profil konnte nicht aktualisiert werden.',

@@ -191,6 +191,25 @@ export default {
       comments: 'bình luận',
       fetchError: 'Không tải được bài đăng gần đây.',
     },
+    trending: {
+      title: 'Xu hướng tuần này',
+      empty: 'Không có bài đăng xu hướng tuần này.',
+      fetchError: 'Không tải được bài đăng xu hướng.',
+    },
+    stats: {
+      title: 'Cộng đồng',
+      members: 'Thành viên',
+      posts: 'Bài đăng',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'SIG của tôi',
+      members: 'thành viên',
+      viewAll: 'Xem tất cả SIG →',
+    },
+    featuredSigs: {
+      title: 'Khám phá SIG',
+    },
     notifications: {
       title: 'Bạn có',
       count: 'thông báo chưa đọc.',
@@ -208,14 +227,6 @@ export default {
       tagline: 'Tham gia cùng các nhà nghiên cứu và nhà giáo dục thúc đẩy học ngôn ngữ bằng AI.',
       getStartedBtn: 'Bắt đầu ngay',
       browseGuestBtn: 'Duyệt với tư cách Khách',
-      stats: {
-        community: 'Mở',
-        communitySubtitle: 'Cộng đồng',
-        focus: 'Học thuật',
-        focusSubtitle: 'Trọng tâm',
-        network: 'Toàn cầu',
-        networkSubtitle: 'Mạng lưới',
-      },
       features: {
         forum: {
           title: 'Diễn đàn Học thuật',
@@ -255,8 +266,8 @@ export default {
       mostDiscussed: 'Nhiều thảo luận nhất',
     },
     searchLogic: {
-      and: 'AND',
-      or: 'OR',
+      and: 'VÀ',
+      or: 'HOẶC',
     },
     emptyTitle: 'Chưa có gì ở đây',
     emptyMessage: 'Không tìm thấy bài viết nào',
@@ -383,7 +394,7 @@ export default {
       blockquote: 'Trích dẫn',
       codeBlock: 'Khối mã',
       insertLink: 'Chèn liên kết',
-      insertImage: 'Chèn hình ảnh',
+      insertFile: 'Chèn hình ảnh hoặc tệp',
       insertTable: 'Chèn bảng',
       undo: 'Hoàn tác',
       redo: 'Làm lại',
@@ -394,7 +405,7 @@ export default {
       malicious: 'Bị gắn cờ độc hại',
       unknown: 'Kết quả quét không xác định',
     },
-    uploadFailed: 'Tải hình ảnh lên thất bại.',
+    uploadFailed: 'Tải tệp lên thất bại.',
     maliciousFile: 'Tệp đã tải lên bị gắn cờ là có thể độc hại.',
     promptLinkUrl: 'Nhập URL',
   },
@@ -639,6 +650,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Ngôn ngữ',
       saveBtn: 'Lưu',
+    },
+    storage: {
+      title: 'Sử dụng bộ nhớ',
+      used: '{used} trên {total} đã dùng',
+      fetchError: 'Không thể tải thông tin sử dụng bộ nhớ.',
     },
     saveSuccess: 'Hồ sơ đã được cập nhật thành công.',
     saveError: 'Cập nhật hồ sơ thất bại.',

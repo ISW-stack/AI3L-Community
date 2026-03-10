@@ -173,6 +173,25 @@ export default {
       comments: '条评论',
       fetchError: '加载最新帖子失败。',
     },
+    trending: {
+      title: '本周热门',
+      empty: '本周没有热门文章。',
+      fetchError: '加载热门文章失败。',
+    },
+    stats: {
+      title: '社区',
+      members: '成员',
+      posts: '文章',
+      sigs: 'SIG',
+    },
+    yourSigs: {
+      title: '我的 SIG',
+      members: '位成员',
+      viewAll: '查看全部 SIG →',
+    },
+    featuredSigs: {
+      title: '探索 SIG',
+    },
     notifications: {
       title: '您有',
       count: '条未读通知。',
@@ -190,14 +209,6 @@ export default {
       tagline: '加入推动 AI 语言学习的研究者和教育者。',
       getStartedBtn: '立即开始',
       browseGuestBtn: '以访客身份浏览',
-      stats: {
-        community: '开放',
-        communitySubtitle: '社区',
-        focus: '学术',
-        focusSubtitle: '导向',
-        network: '全球',
-        networkSubtitle: '网络',
-      },
       features: {
         forum: {
           title: '学术论坛',
@@ -355,7 +366,7 @@ export default {
       blockquote: '引用',
       codeBlock: '代码块',
       insertLink: '插入链接',
-      insertImage: '插入图片',
+      insertFile: '插入图片或文件',
       insertTable: '插入表格',
       undo: '撤销',
       redo: '重做',
@@ -366,7 +377,7 @@ export default {
       malicious: '标记为恶意',
       unknown: '扫描结果不确定',
     },
-    uploadFailed: '图片上传失败。',
+    uploadFailed: '文件上传失败。',
     maliciousFile: '上传的文件被标记为潜在恶意文件。',
     promptLinkUrl: '输入网址',
   },
@@ -599,6 +610,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: '语言',
       saveBtn: '保存',
+    },
+    storage: {
+      title: '存储空间使用量',
+      used: '已使用 {used}，共 {total}',
+      fetchError: '加载存储空间使用量失败。',
     },
     saveSuccess: '个人资料更新成功。',
     saveError: '个人资料更新失败。',

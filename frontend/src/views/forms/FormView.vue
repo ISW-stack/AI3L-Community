@@ -236,7 +236,11 @@ onUnmounted(() => {
         <div class="flex items-start justify-between">
           <div>
             <h1 class="text-2xl font-bold text-foreground mb-2">{{ form.title }}</h1>
-            <p v-if="form.description" class="text-sm text-muted mb-3">{{ form.description }}</p>
+            <div
+              v-if="form.description"
+              class="prose prose-sm max-w-none text-muted mb-3"
+              v-html="form.description"
+            ></div>
           </div>
           <BaseBadge :variant="form.is_active ? 'success' : 'danger'">{{
             form.is_active ? t('common.active') : t('common.closed')

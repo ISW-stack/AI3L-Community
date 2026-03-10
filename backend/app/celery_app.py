@@ -32,6 +32,11 @@ celery.conf.beat_schedule = {
         "schedule": 300.0,
         "options": {"soft_time_limit": 250, "time_limit": 300},
     },
+    "cleanup-orphan-files": {
+        "task": "cleanup_orphan_files",
+        "schedule": 604800.0,  # every 7 days
+        "options": {"soft_time_limit": 3500, "time_limit": 3600},
+    },
 }
 
 celery.autodiscover_tasks(["app.tasks"])

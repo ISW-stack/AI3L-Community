@@ -191,6 +191,25 @@ export default {
       comments: 'commenti',
       fetchError: 'Impossibile caricare i post recenti.',
     },
+    trending: {
+      title: 'Di tendenza questa settimana',
+      empty: 'Nessun post di tendenza questa settimana.',
+      fetchError: 'Impossibile caricare i post di tendenza.',
+    },
+    stats: {
+      title: 'Community',
+      members: 'Membri',
+      posts: 'Post',
+      sigs: 'SIG',
+    },
+    yourSigs: {
+      title: 'I miei SIG',
+      members: 'membri',
+      viewAll: 'Vedi tutti i SIG →',
+    },
+    featuredSigs: {
+      title: 'Scopri i SIG',
+    },
     notifications: {
       title: 'Hai',
       count: 'notifica/e non letta/e.',
@@ -209,14 +228,6 @@ export default {
         "Unisciti a ricercatori ed educatori che fanno avanzare l'apprendimento linguistico con l'IA.",
       getStartedBtn: 'Inizia',
       browseGuestBtn: 'Naviga come ospite',
-      stats: {
-        community: 'Aperta',
-        communitySubtitle: 'Comunità',
-        focus: 'Accademico',
-        focusSubtitle: 'Approccio',
-        network: 'Globale',
-        networkSubtitle: 'Rete',
-      },
       features: {
         forum: {
           title: 'Forum accademico',
@@ -255,8 +266,8 @@ export default {
       mostDiscussed: 'Più discussi',
     },
     searchLogic: {
-      and: 'AND',
-      or: 'OR',
+      and: 'E',
+      or: 'O',
     },
     emptyTitle: 'Ancora niente qui',
     emptyMessage: 'Nessun post trovato',
@@ -384,7 +395,7 @@ export default {
       blockquote: 'Citazione',
       codeBlock: 'Blocco di codice',
       insertLink: 'Inserisci link',
-      insertImage: 'Inserisci immagine',
+      insertFile: 'Inserisci immagine o file',
       insertTable: 'Inserisci tabella',
       undo: 'Annulla',
       redo: 'Ripristina',
@@ -395,7 +406,7 @@ export default {
       malicious: 'Segnalato come dannoso',
       unknown: 'Scansione inconcludente',
     },
-    uploadFailed: "Caricamento dell'immagine non riuscito.",
+    uploadFailed: 'Caricamento del file non riuscito.',
     maliciousFile: 'Il file caricato è stato segnalato come potenzialmente dannoso.',
     promptLinkUrl: 'Inserisci URL',
   },
@@ -640,6 +651,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Lingua',
       saveBtn: 'Salva',
+    },
+    storage: {
+      title: 'Utilizzo dello spazio',
+      used: '{used} di {total} utilizzati',
+      fetchError: "Impossibile caricare l'utilizzo dello spazio.",
     },
     saveSuccess: 'Profilo aggiornato con successo.',
     saveError: 'Aggiornamento del profilo non riuscito.',

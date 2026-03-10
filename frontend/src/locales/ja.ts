@@ -190,6 +190,25 @@ export default {
       comments: 'コメント',
       fetchError: '最近の投稿の読み込みに失敗しました。',
     },
+    trending: {
+      title: '今週のトレンド',
+      empty: '今週のトレンド投稿はありません。',
+      fetchError: 'トレンド投稿の読み込みに失敗しました。',
+    },
+    stats: {
+      title: 'コミュニティ',
+      members: 'メンバー',
+      posts: '投稿',
+      sigs: 'SIG',
+    },
+    yourSigs: {
+      title: 'マイ SIG',
+      members: '名のメンバー',
+      viewAll: 'すべての SIG を見る →',
+    },
+    featuredSigs: {
+      title: 'SIG を探す',
+    },
     notifications: {
       title: '未読通知が',
       count: '件あります。',
@@ -207,14 +226,6 @@ export default {
       tagline: 'AI を活用した言語学習を推進する研究者・教育者に参加しましょう。',
       getStartedBtn: '始める',
       browseGuestBtn: 'ゲストとして閲覧',
-      stats: {
-        community: 'オープン',
-        communitySubtitle: 'コミュニティ',
-        focus: '学術',
-        focusSubtitle: 'フォーカス',
-        network: 'グローバル',
-        networkSubtitle: 'ネットワーク',
-      },
       features: {
         forum: {
           title: '学術フォーラム',
@@ -381,7 +392,7 @@ export default {
       blockquote: '引用',
       codeBlock: 'コードブロック',
       insertLink: 'リンクを挿入',
-      insertImage: '画像を挿入',
+      insertFile: '画像またはファイルを挿入',
       insertTable: '表を挿入',
       undo: '元に戻す',
       redo: 'やり直す',
@@ -392,7 +403,7 @@ export default {
       malicious: '悪意のあるファイルとして検出',
       unknown: 'スキャン結果が不確定',
     },
-    uploadFailed: '画像のアップロードに失敗しました。',
+    uploadFailed: 'ファイルのアップロードに失敗しました。',
     maliciousFile: 'アップロードされたファイルが潜在的に悪意のあるものとして検出されました。',
     promptLinkUrl: 'URL を入力',
   },
@@ -635,6 +646,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: '言語',
       saveBtn: '保存',
+    },
+    storage: {
+      title: 'ストレージ使用量',
+      used: '{total}中{used}使用済み',
+      fetchError: 'ストレージ使用量の読み込みに失敗しました。',
     },
     saveSuccess: 'プロフィールが正常に更新されました。',
     saveError: 'プロフィールの更新に失敗しました。',

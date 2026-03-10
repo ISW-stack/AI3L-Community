@@ -191,6 +191,25 @@ export default {
       comments: 'comments',
       fetchError: 'Failed to load recent posts.',
     },
+    trending: {
+      title: 'Trending This Week',
+      empty: 'No trending posts this week.',
+      fetchError: 'Failed to load trending posts.',
+    },
+    stats: {
+      title: 'Community',
+      members: 'Members',
+      posts: 'Posts',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'Your SIGs',
+      members: 'members',
+      viewAll: 'View all SIGs →',
+    },
+    featuredSigs: {
+      title: 'Discover SIGs',
+    },
     notifications: {
       title: 'You have',
       count: 'unread notification(s).',
@@ -208,14 +227,6 @@ export default {
       tagline: 'Join researchers and educators advancing AI-powered language learning.',
       getStartedBtn: 'Get Started',
       browseGuestBtn: 'Browse as Guest',
-      stats: {
-        community: 'Open',
-        communitySubtitle: 'Community',
-        focus: 'Academic',
-        focusSubtitle: 'Focus',
-        network: 'Global',
-        networkSubtitle: 'Network',
-      },
       features: {
         forum: {
           title: 'Academic Forum',
@@ -382,7 +393,7 @@ export default {
       blockquote: 'Blockquote',
       codeBlock: 'Code block',
       insertLink: 'Insert link',
-      insertImage: 'Insert image',
+      insertFile: 'Insert image or file',
       insertTable: 'Insert table',
       undo: 'Undo',
       redo: 'Redo',
@@ -393,7 +404,7 @@ export default {
       malicious: 'Flagged as malicious',
       unknown: 'Scan inconclusive',
     },
-    uploadFailed: 'Failed to upload image.',
+    uploadFailed: 'Failed to upload file.',
     maliciousFile: 'Uploaded file was flagged as potentially malicious.',
     promptLinkUrl: 'Enter URL',
   },
@@ -637,6 +648,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Language',
       saveBtn: 'Save',
+    },
+    storage: {
+      title: 'Storage Usage',
+      used: '{used} of {total} used',
+      fetchError: 'Failed to load storage usage.',
     },
     saveSuccess: 'Profile updated successfully.',
     saveError: 'Failed to update profile.',

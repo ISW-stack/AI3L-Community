@@ -160,7 +160,7 @@ export default {
 
   // ── Footer ──
   footer: {
-    copyright: '© 2025 AI3L Community. All rights reserved.',
+    copyright: '© 2025 AI3L Community. Todos los derechos reservados.',
     tagline: 'IA en el aprendizaje de idiomas y alfabetización',
   },
 
@@ -191,6 +191,25 @@ export default {
       comments: 'comentarios',
       fetchError: 'Error al cargar las publicaciones recientes.',
     },
+    trending: {
+      title: 'Tendencias esta semana',
+      empty: 'No hay publicaciones en tendencia esta semana.',
+      fetchError: 'Error al cargar las publicaciones en tendencia.',
+    },
+    stats: {
+      title: 'Comunidad',
+      members: 'Miembros',
+      posts: 'Publicaciones',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'Mis GIEs',
+      members: 'miembros',
+      viewAll: 'Ver todos los GIEs →',
+    },
+    featuredSigs: {
+      title: 'Descubrir GIEs',
+    },
     notifications: {
       title: 'Tiene',
       count: 'notificación(es) sin leer.',
@@ -208,14 +227,6 @@ export default {
       tagline: 'Únase a investigadores y educadores que impulsan el aprendizaje de idiomas con IA.',
       getStartedBtn: 'Comenzar',
       browseGuestBtn: 'Explorar como invitado',
-      stats: {
-        community: 'Abierta',
-        communitySubtitle: 'Comunidad',
-        focus: 'Académico',
-        focusSubtitle: 'Enfoque',
-        network: 'Global',
-        networkSubtitle: 'Red',
-      },
       features: {
         forum: {
           title: 'Foro académico',
@@ -386,7 +397,7 @@ export default {
       blockquote: 'Cita en bloque',
       codeBlock: 'Bloque de código',
       insertLink: 'Insertar enlace',
-      insertImage: 'Insertar imagen',
+      insertFile: 'Insertar imagen o archivo',
       insertTable: 'Insertar tabla',
       undo: 'Deshacer',
       redo: 'Rehacer',
@@ -397,7 +408,7 @@ export default {
       malicious: 'Marcado como malicioso',
       unknown: 'Análisis no concluyente',
     },
-    uploadFailed: 'Error al cargar la imagen.',
+    uploadFailed: 'Error al cargar el archivo.',
     maliciousFile: 'El archivo cargado fue marcado como potencialmente malicioso.',
     promptLinkUrl: 'Ingrese la URL',
   },
@@ -642,6 +653,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Idioma',
       saveBtn: 'Guardar',
+    },
+    storage: {
+      title: 'Uso del almacenamiento',
+      used: '{used} de {total} usado',
+      fetchError: 'Error al cargar el uso del almacenamiento.',
     },
     saveSuccess: 'Perfil actualizado correctamente.',
     saveError: 'Error al actualizar el perfil.',

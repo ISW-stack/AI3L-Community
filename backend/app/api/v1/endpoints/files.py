@@ -158,6 +158,18 @@ async def serve_file(
     )
 
 
+@router.get("/storage-usage")
+async def get_storage_usage(
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> dict[str, int]:
+    """Return the current user's storage usage and quota in bytes."""
+    used = await get_user_storage_used(current_user["sub"])
+    return {
+        "used_bytes": used,
+        "quota_bytes": settings.MAX_USER_STORAGE_BYTES,
+    }
+
+
 @router.get("/scan-status/{key:path}")
 async def get_scan_status(
     key: str,

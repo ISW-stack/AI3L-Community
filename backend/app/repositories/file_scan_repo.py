@@ -57,3 +57,13 @@ async def update_status(
             total,
             file_key,
         )
+
+
+async def delete_by_key(file_key: str) -> None:
+    """Delete a file scan record by file_key."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM file_scans WHERE file_key = $1",
+            file_key,
+        )

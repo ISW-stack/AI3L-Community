@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -10,6 +10,7 @@ import {
   deleteAccount as apiDeleteAccount,
 } from '@/api/users'
 import { createInviteCode } from '@/api/admin'
+import { getStorageUsage } from '@/api/files'
 import { Eye, EyeOff, Copy, Check } from 'lucide-vue-next'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -46,6 +47,37 @@ const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 
 const toast = useToastStore()
+
+// Storage usage
+const storageUsed = ref(0)
+const storageQuota = ref(1_073_741_824)
+const storageLoading = ref(false)
+const storageError = ref(false)
+const storagePercent = computed(() =>
+  storageQuota.value > 0 ? Math.round((storageUsed.value / storageQuota.value) * 100) : 0,
+)
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
+async function fetchStorageUsage() {
+  storageLoading.value = true
+  storageError.value = false
+  try {
+    const data = await getStorageUsage()
+    storageUsed.value = data.used_bytes
+    storageQuota.value = data.quota_bytes
+  } catch {
+    storageError.value = true
+  } finally {
+    storageLoading.value = false
+  }
+}
+
 const generatedCode = ref('')
 const generatingCode = ref(false)
 const codeCopied = ref(false)
@@ -118,6 +150,9 @@ onMounted(() => {
     bio.value = auth.user.bio || ''
     affiliation.value = auth.user.affiliation || ''
     orcid.value = auth.user.orcid || ''
+  }
+  if (!auth.isGuest) {
+    fetchStorageUsage()
   }
 })
 
@@ -317,6 +352,39 @@ function toggleConfirmPassword() {
             <BaseBadge :variant="roleBadgeVariant(auth.role)">{{
               roleBadgeLabel(auth.role)
             }}</BaseBadge>
+          </div>
+        </BaseCard>
+
+        <!-- Storage Usage -->
+        <BaseCard v-if="!auth.isGuest" padding="lg" class="mb-6">
+          <h2 class="text-sm font-medium text-muted mb-3">{{ t('profile.storage.title') }}</h2>
+          <div v-if="storageLoading" class="text-sm text-muted">{{ t('common.loading') }}</div>
+          <div v-else-if="storageError" class="text-sm text-danger-600">
+            {{ t('profile.storage.fetchError') }}
+          </div>
+          <div v-else>
+            <div class="flex justify-between text-sm text-foreground mb-1.5">
+              <span>{{
+                t('profile.storage.used', {
+                  used: formatBytes(storageUsed),
+                  total: formatBytes(storageQuota),
+                })
+              }}</span>
+              <span class="text-muted">{{ storagePercent }}%</span>
+            </div>
+            <div class="w-full bg-surface-alt rounded-full h-2">
+              <div
+                class="h-2 rounded-full transition-all"
+                :class="
+                  storagePercent >= 90
+                    ? 'bg-danger-500'
+                    : storagePercent >= 70
+                      ? 'bg-warning-500'
+                      : 'bg-brand-500'
+                "
+                :style="{ width: `${Math.min(storagePercent, 100)}%` }"
+              ></div>
+            </div>
           </div>
         </BaseCard>
 

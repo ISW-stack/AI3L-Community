@@ -192,6 +192,25 @@ export default {
       comments: 'komentar',
       fetchError: 'Gagal memuat postingan terbaru.',
     },
+    trending: {
+      title: 'Trending Minggu Ini',
+      empty: 'Tidak ada postingan trending minggu ini.',
+      fetchError: 'Gagal memuat postingan trending.',
+    },
+    stats: {
+      title: 'Komunitas',
+      members: 'Anggota',
+      posts: 'Postingan',
+      sigs: 'SIGs',
+    },
+    yourSigs: {
+      title: 'SIG Saya',
+      members: 'anggota',
+      viewAll: 'Lihat semua SIG →',
+    },
+    featuredSigs: {
+      title: 'Temukan SIG',
+    },
     notifications: {
       title: 'Anda memiliki',
       count: 'notifikasi belum dibaca.',
@@ -210,14 +229,6 @@ export default {
         'Bergabunglah dengan peneliti dan pendidik yang memajukan pembelajaran bahasa berbasis AI.',
       getStartedBtn: 'Mulai',
       browseGuestBtn: 'Jelajahi sebagai Tamu',
-      stats: {
-        community: 'Terbuka',
-        communitySubtitle: 'Komunitas',
-        focus: 'Akademik',
-        focusSubtitle: 'Fokus',
-        network: 'Global',
-        networkSubtitle: 'Jaringan',
-      },
       features: {
         forum: {
           title: 'Forum Akademik',
@@ -256,8 +267,8 @@ export default {
       mostDiscussed: 'Paling Banyak Didiskusikan',
     },
     searchLogic: {
-      and: 'AND',
-      or: 'OR',
+      and: 'DAN',
+      or: 'ATAU',
     },
     emptyTitle: 'Belum ada apa-apa',
     emptyMessage: 'Tidak ada postingan ditemukan',
@@ -386,7 +397,7 @@ export default {
       blockquote: 'Kutipan blok',
       codeBlock: 'Blok kode',
       insertLink: 'Sisipkan tautan',
-      insertImage: 'Sisipkan gambar',
+      insertFile: 'Sisipkan gambar atau file',
       insertTable: 'Sisipkan tabel',
       undo: 'Batalkan',
       redo: 'Ulangi',
@@ -397,7 +408,7 @@ export default {
       malicious: 'Ditandai sebagai berbahaya',
       unknown: 'Pemindaian tidak meyakinkan',
     },
-    uploadFailed: 'Gagal mengunggah gambar.',
+    uploadFailed: 'Gagal mengunggah file.',
     maliciousFile: 'File yang diunggah ditandai sebagai berpotensi berbahaya.',
     promptLinkUrl: 'Masukkan URL',
   },
@@ -642,6 +653,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'Bahasa',
       saveBtn: 'Simpan',
+    },
+    storage: {
+      title: 'Penggunaan Penyimpanan',
+      used: '{used} dari {total} digunakan',
+      fetchError: 'Gagal memuat penggunaan penyimpanan.',
     },
     saveSuccess: 'Profil berhasil diperbarui.',
     saveError: 'Gagal memperbarui profil.',

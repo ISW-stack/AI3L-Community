@@ -10,8 +10,8 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
-import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
+import TiptapEditor from '@/components/TiptapEditor.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
@@ -260,12 +260,12 @@ onMounted(() => {
           :label="t('forms.builder.titleLabel')"
           :placeholder="t('forms.builder.titlePlaceholder')"
         />
-        <BaseTextarea
-          v-model="description"
-          :label="t('forms.builder.descLabel')"
-          :placeholder="t('forms.builder.descPlaceholder')"
-          :rows="3"
-        />
+        <div>
+          <label class="block text-sm font-medium text-foreground mb-1">{{
+            t('forms.builder.descLabel')
+          }}</label>
+          <TiptapEditor v-model="description" />
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-foreground mb-1">{{
@@ -510,7 +510,11 @@ onMounted(() => {
         <div v-if="bannerUrl" class="rounded-lg overflow-hidden">
           <img :src="bannerUrl" alt="Banner" loading="lazy" class="w-full h-32 object-cover" />
         </div>
-        <p v-if="description" class="text-sm text-muted">{{ description }}</p>
+        <div
+          v-if="description"
+          class="prose prose-sm max-w-none text-muted"
+          v-html="description"
+        ></div>
 
         <div
           v-for="(q, i) in questions"

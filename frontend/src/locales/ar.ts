@@ -190,6 +190,25 @@ export default {
       comments: 'تعليقات',
       fetchError: 'فشل في تحميل المنشورات الحديثة.',
     },
+    trending: {
+      title: 'الرائج هذا الأسبوع',
+      empty: 'لا توجد مشاركات رائجة هذا الأسبوع.',
+      fetchError: 'فشل في تحميل المنشورات الرائجة.',
+    },
+    stats: {
+      title: 'المجتمع',
+      members: 'أعضاء',
+      posts: 'مشاركات',
+      sigs: 'مجموعات',
+    },
+    yourSigs: {
+      title: 'مجموعاتي',
+      members: 'عضو',
+      viewAll: 'عرض جميع المجموعات ←',
+    },
+    featuredSigs: {
+      title: 'اكتشف المجموعات',
+    },
     notifications: {
       title: 'لديك',
       count: 'إشعار(ات) غير مقروءة.',
@@ -207,14 +226,6 @@ export default {
       tagline: 'انضم إلى الباحثين والمعلمين الذين يطورون تعلم اللغات بالذكاء الاصطناعي.',
       getStartedBtn: 'ابدأ الآن',
       browseGuestBtn: 'تصفح كضيف',
-      stats: {
-        community: 'مفتوح',
-        communitySubtitle: 'مجتمع',
-        focus: 'أكاديمي',
-        focusSubtitle: 'تركيز',
-        network: 'عالمي',
-        networkSubtitle: 'شبكة',
-      },
       features: {
         forum: {
           title: 'المنتدى الأكاديمي',
@@ -381,7 +392,7 @@ export default {
       blockquote: 'اقتباس',
       codeBlock: 'كتلة كود',
       insertLink: 'إدراج رابط',
-      insertImage: 'إدراج صورة',
+      insertFile: 'إدراج صورة أو ملف',
       insertTable: 'إدراج جدول',
       undo: 'تراجع',
       redo: 'إعادة',
@@ -392,7 +403,7 @@ export default {
       malicious: 'مُصنَّف كضار',
       unknown: 'نتيجة الفحص غير حاسمة',
     },
-    uploadFailed: 'فشل تحميل الصورة.',
+    uploadFailed: 'فشل تحميل الملف.',
     maliciousFile: 'تم تصنيف الملف المُحمَّل كضار محتمل.',
     promptLinkUrl: 'أدخل الرابط',
   },
@@ -636,6 +647,11 @@ export default {
       orcidPlaceholder: '0000-0000-0000-0000',
       languageLabel: 'اللغة',
       saveBtn: 'حفظ',
+    },
+    storage: {
+      title: 'استخدام التخزين',
+      used: '{used} من {total} مستخدم',
+      fetchError: 'فشل تحميل استخدام التخزين.',
     },
     saveSuccess: 'تم تحديث الملف الشخصي بنجاح.',
     saveError: 'فشل تحديث الملف الشخصي.',

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import TiptapEditor from '../TiptapEditor.vue'
@@ -16,6 +16,7 @@ const mockChain = {
   toggleCodeBlock: vi.fn().mockReturnThis(),
   setLink: vi.fn().mockReturnThis(),
   setImage: vi.fn().mockReturnThis(),
+  insertContent: vi.fn().mockReturnThis(),
   insertTable: vi.fn().mockReturnThis(),
   undo: vi.fn().mockReturnThis(),
   redo: vi.fn().mockReturnThis(),
@@ -94,11 +95,23 @@ vi.mock('lucide-vue-next', () => ({
 describe('TiptapEditor', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    vi.restoreAllMocks()
-    // Re-setup chain mocks after restoreAllMocks
+    vi.clearAllMocks()
+    // Re-setup chain mocks after clearAllMocks
     mockChain.focus.mockReturnThis()
     mockChain.toggleBold.mockReturnThis()
     mockChain.toggleItalic.mockReturnThis()
+    mockChain.setImage.mockReturnThis()
+    mockChain.insertContent.mockReturnThis()
+    mockChain.setLink.mockReturnThis()
+    mockChain.insertTable.mockReturnThis()
+    mockChain.toggleHeading.mockReturnThis()
+    mockChain.toggleBulletList.mockReturnThis()
+    mockChain.toggleOrderedList.mockReturnThis()
+    mockChain.toggleBlockquote.mockReturnThis()
+    mockChain.toggleCodeBlock.mockReturnThis()
+    mockChain.undo.mockReturnThis()
+    mockChain.redo.mockReturnThis()
+    mockChain.setContent.mockReturnThis()
     mockChain.run.mockReturnValue(undefined)
     mockEditor.chain.mockReturnValue(mockChain)
     mockEditor.isActive.mockReturnValue(false)
@@ -167,6 +180,138 @@ describe('TiptapEditor', () => {
       expect(wrapper.find('[data-testid="loader"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="shield-check"]').exists()).toBe(false)
       expect(wrapper.find('[data-testid="shield-alert"]').exists()).toBe(false)
+    })
+  })
+
+  describe('handleFileUpload', () => {
+    it('accepts image/png,image/jpeg,image/gif,image/webp,.pdf,.docx in file input', () => {
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const fileInput = wrapper.find('input[type="file"]')
+      const accept = fileInput.attributes('accept') ?? ''
+      expect(accept).toContain('image/png')
+      expect(accept).toContain('image/jpeg')
+      expect(accept).toContain('.pdf')
+      expect(accept).toContain('.docx')
+    })
+
+    it('calls setImage when an image file is uploaded', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/photo.png',
+        key: 'editor/x/photo.png',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'photo.png', { type: 'image/png' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(mockChain.setImage).toHaveBeenCalledWith({
+        src: '/api/v1/files/content/editor/x/photo.png',
+      })
+      expect(mockChain.run).toHaveBeenCalled()
+    })
+
+    it('calls insertContent with an <a> tag when a PDF file is uploaded', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/report.pdf',
+        key: 'editor/x/report.pdf',
+        scan_task_id: 'task-abc',
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'report.pdf', { type: 'application/pdf' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(mockChain.insertContent).toHaveBeenCalledWith(
+        expect.stringContaining('<a href="/api/v1/files/content/editor/x/report.pdf"'),
+      )
+      expect(mockChain.insertContent).toHaveBeenCalledWith(expect.stringContaining('report.pdf'))
+      expect(mockChain.run).toHaveBeenCalled()
+    })
+
+    it('calls insertContent with an <a> tag when a DOCX file is uploaded', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/doc.docx',
+        key: 'editor/x/doc.docx',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'doc.docx', {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(mockChain.setImage).not.toHaveBeenCalled()
+      expect(mockChain.insertContent).toHaveBeenCalledWith(
+        expect.stringContaining('target="_blank"'),
+      )
+    })
+
+    it('does not call setImage or insertContent when no file is selected', async () => {
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const fakeEvent = { target: { files: [], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(mockChain.setImage).not.toHaveBeenCalled()
+      expect(mockChain.insertContent).not.toHaveBeenCalled()
+    })
+
+    it('sets scan status to pending when upload returns a scan_task_id', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/file.pdf',
+        key: 'editor/x/file.pdf',
+        scan_task_id: 'task-123',
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'file.pdf', { type: 'application/pdf' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      // After upload with scan_task_id, scanStatus should be 'pending'
+      expect(vm.scanStatus).toBe('pending')
+    })
+
+    it('does not set scan status to pending when scan_task_id is absent', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/photo.png',
+        key: 'editor/x/photo.png',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'photo.png', { type: 'image/png' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(vm.scanStatus).toBeNull()
     })
   })
 })
