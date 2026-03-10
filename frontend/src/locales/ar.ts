@@ -60,6 +60,7 @@ export default {
     en: 'English',
     'zh-TW': '繁體中文',
     vi: 'Tiếng Việt',
+    tr: 'التركية',
     it: 'Italiano',
     id: 'Bahasa Indonesia',
     ko: '한국어',

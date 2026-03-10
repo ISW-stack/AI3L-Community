@@ -14,6 +14,7 @@ import ko from './ko'
 import id from './id'
 import it from './it'
 import vi from './vi'
+import tr from './tr'
 
 export const SUPPORTED_LOCALES = [
   'en',
@@ -31,6 +32,7 @@ export const SUPPORTED_LOCALES = [
   'id',
   'it',
   'vi',
+  'tr',
 ] as const
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
@@ -50,6 +52,7 @@ export const LOCALE_OPTIONS: { value: SupportedLocale; label: string }[] = [
   { value: 'id', label: 'Bahasa Indonesia' },
   { value: 'it', label: 'Italiano' },
   { value: 'vi', label: 'Tiếng Việt' },
+  { value: 'tr', label: 'Türkçe' },
 ]
 
 export interface LocaleGroup {
@@ -62,7 +65,7 @@ export const LOCALE_GROUPS: LocaleGroup[] = [
   {
     id: 'europe',
     labelKey: 'language.region.europe',
-    locales: ['fr', 'es', 'de', 'pt', 'it', 'ru'],
+    locales: ['fr', 'es', 'de', 'pt', 'it', 'ru', 'tr'],
   },
   {
     id: 'eastAsia',
@@ -102,6 +105,7 @@ function detectInitialLocale(): SupportedLocale {
   if (browserLang.startsWith('id')) return 'id'
   if (browserLang.startsWith('it')) return 'it'
   if (browserLang.startsWith('vi')) return 'vi'
+  if (browserLang.startsWith('tr')) return 'tr'
   return 'en'
 }
 
@@ -125,6 +129,7 @@ export const i18n = createI18n({
     id,
     it,
     vi,
+    tr,
   },
   missing: (_locale, key) => {
     if (import.meta.env.DEV) {

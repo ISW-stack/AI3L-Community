@@ -73,6 +73,7 @@ export default {
     id: 'Bahasa Indonesia',
     it: 'Italiano',
     vi: 'Tiếng Việt',
+    tr: 'Turkish',
   },
 
   // ── Auth ──

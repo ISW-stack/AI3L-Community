@@ -55,6 +55,7 @@ export default {
     en: 'English',
     'zh-TW': '繁體中文',
     vi: 'Tiếng Việt',
+    tr: '土耳其文',
     it: 'Italiano',
     id: 'Bahasa Indonesia',
     ko: '한국어',
