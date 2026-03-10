@@ -187,6 +187,7 @@ export default {
       title: 'Post recenti',
       empty: 'Ancora nessun post. Sii il primo ad avviare una discussione!',
       comments: 'commenti',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: 'Hai',
@@ -267,6 +268,10 @@ export default {
       allPosts: 'Tutti i post',
       trendingTitle: 'Di tendenza (7g)',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
 
   // ── Post ──
@@ -351,6 +356,8 @@ export default {
       publish: 'Pubblica',
       errorRequired: 'Titolo e contenuto sono obbligatori.',
       errorFailed: 'Creazione del post non riuscita.',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
 
@@ -401,6 +408,7 @@ export default {
       emptyMessage: 'Non è ancora stato creato alcun SIG.',
       memberCount: 'membro/i',
       totalCount: 'SIG in totale',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: 'Tutti i SIG',
@@ -439,6 +447,7 @@ export default {
       leaveError: 'Impossibile lasciare il SIG.',
       joinSuccess: 'Ti sei iscritto al SIG.',
       joinError: 'Iscrizione al SIG non riuscita.',
+      fetchError: 'Failed to load SIG details.',
     },
     create: {
       title: 'Crea SIG',
@@ -457,6 +466,7 @@ export default {
       emptyTitle: 'Ancora nessun post',
       emptyMessage: 'Avvia una discussione creando il primo post in questo SIG.',
       comments: 'commenti',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: 'Membri',
@@ -475,6 +485,7 @@ export default {
       removeError: 'Rimozione del membro non riuscita.',
       promoteSuccess: 'Membro promosso a Sub-Admin.',
       promoteError: 'Assegnazione Sub-Admin non riuscita.',
+      fetchError: 'Failed to load members.',
     },
     forms: {
       title: 'Moduli',
@@ -674,6 +685,8 @@ export default {
     postsTitle: 'Post',
     postsEmptyTitle: 'Ancora nessun post',
     postsEmptyMessage: 'Questo utente non ha ancora pubblicato nulla.',
+    fetchError: 'Failed to load user profile.',
+    fetchPostsError: 'Failed to load user posts.',
   },
 
   // ── Notifications ──
@@ -689,6 +702,8 @@ export default {
     emptyMessage: 'Ancora nessuna notifica.',
     deleteSuccess: 'Tutte le notifiche sono state cancellate.',
     deleteError: 'Cancellazione delle notifiche non riuscita.',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
 
   // ── About ──
@@ -728,6 +743,7 @@ export default {
         reviewApplications: 'Esamina candidature',
         viewReports: 'Visualizza segnalazioni',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: 'Gestione utenti',
@@ -824,6 +840,8 @@ export default {
       dismissBtn: 'Ignora',
       reviewedBtn: 'Esaminato',
       total: '{count} segnalazione/i in totale',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: 'Categorie',
@@ -904,6 +922,7 @@ export default {
         generateFailed: 'Generazione del codice non riuscita.',
         copied: 'Codice copiato negli appunti.',
         copyFailed: 'Copia del codice non riuscita.',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: '{count} codice/i in totale',
     },

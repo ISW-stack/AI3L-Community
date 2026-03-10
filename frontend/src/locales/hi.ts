@@ -187,6 +187,7 @@ export default {
       title: 'हाल की पोस्ट',
       empty: 'अभी तक कोई पोस्ट नहीं। चर्चा शुरू करने वाले पहले बनें!',
       comments: 'टिप्पणियाँ',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: 'आपके पास',
@@ -266,6 +267,10 @@ export default {
       allPosts: 'सभी पोस्ट',
       trendingTitle: 'ट्रेंडिंग (7 दिन)',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
 
   // ── Post ──
@@ -349,6 +354,8 @@ export default {
       publish: 'प्रकाशित करें',
       errorRequired: 'शीर्षक और सामग्री आवश्यक हैं।',
       errorFailed: 'पोस्ट बनाने में विफल।',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
 
@@ -399,6 +406,7 @@ export default {
       emptyMessage: 'अभी तक कोई SIG नहीं बनाया गया।',
       memberCount: 'सदस्य',
       totalCount: 'कुल SIG',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: 'सभी SIGs',
@@ -437,6 +445,7 @@ export default {
       leaveError: 'SIG छोड़ने में विफल।',
       joinSuccess: 'आप SIG में शामिल हो गए।',
       joinError: 'SIG में शामिल होने में विफल।',
+      fetchError: 'Failed to load SIG details.',
     },
     create: {
       title: 'SIG बनाएँ',
@@ -455,6 +464,7 @@ export default {
       emptyTitle: 'अभी तक कोई पोस्ट नहीं',
       emptyMessage: 'इस SIG में पहली पोस्ट बनाकर चर्चा शुरू करें।',
       comments: 'टिप्पणियाँ',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: 'सदस्य',
@@ -473,6 +483,7 @@ export default {
       removeError: 'सदस्य हटाने में विफल।',
       promoteSuccess: 'सदस्य को उप-व्यवस्थापक बनाया गया।',
       promoteError: 'उप-व्यवस्थापक नियुक्त करने में विफल।',
+      fetchError: 'Failed to load members.',
     },
     forms: {
       title: 'फ़ॉर्म',
@@ -671,6 +682,8 @@ export default {
     postsTitle: 'पोस्ट',
     postsEmptyTitle: 'अभी तक कोई पोस्ट नहीं',
     postsEmptyMessage: 'इस उपयोगकर्ता ने अभी तक कुछ पोस्ट नहीं किया।',
+    fetchError: 'Failed to load user profile.',
+    fetchPostsError: 'Failed to load user posts.',
   },
 
   // ── Notifications ──
@@ -686,6 +699,8 @@ export default {
     emptyMessage: 'अभी तक कोई अधिसूचना नहीं।',
     deleteSuccess: 'सभी अधिसूचनाएँ साफ़ हो गईं।',
     deleteError: 'अधिसूचनाएँ साफ़ करने में विफल।',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
 
   // ── About ──
@@ -725,6 +740,7 @@ export default {
         reviewApplications: 'आवेदन समीक्षा करें',
         viewReports: 'रिपोर्ट देखें',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: 'उपयोगकर्ता प्रबंधन',
@@ -821,6 +837,8 @@ export default {
       dismissBtn: 'खारिज करें',
       reviewedBtn: 'समीक्षित',
       total: 'कुल {count} रिपोर्ट',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: 'श्रेणियाँ',
@@ -901,6 +919,7 @@ export default {
         generateFailed: 'कोड उत्पन्न करने में विफल।',
         copied: 'कोड क्लिपबोर्ड पर कॉपी हुआ।',
         copyFailed: 'कोड कॉपी करने में विफल।',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: 'कुल {count} कोड',
     },

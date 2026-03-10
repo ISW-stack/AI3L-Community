@@ -180,6 +180,7 @@ export default {
       title: 'Publications récentes',
       empty: "Aucune publication pour l'instant. Soyez le premier à lancer une discussion !",
       comments: 'commentaires',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: 'Vous avez',
@@ -263,6 +264,10 @@ export default {
       allPosts: 'Toutes les publications',
       trendingTitle: 'Tendances (7j)',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
 
   // ── Post ──
@@ -347,6 +352,8 @@ export default {
       publish: 'Publier',
       errorRequired: 'Le titre et le contenu sont obligatoires.',
       errorFailed: 'Échec de la création de la publication.',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
 
@@ -397,6 +404,7 @@ export default {
       emptyMessage: "Aucun GIS n'a encore été créé.",
       memberCount: 'membre(s)',
       totalCount: 'GIS au total',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: 'Tous les GIS',
@@ -453,6 +461,7 @@ export default {
       emptyTitle: 'Aucune publication',
       emptyMessage: 'Lancez une discussion en créant la première publication dans ce GIS.',
       comments: 'commentaires',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: 'Membres',
@@ -686,6 +695,8 @@ export default {
     emptyMessage: "Aucune notification pour l'instant.",
     deleteSuccess: 'Toutes les notifications ont été effacées.',
     deleteError: 'Échec de la suppression des notifications.',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
 
   // ── About ──
@@ -725,6 +736,7 @@ export default {
         reviewApplications: 'Examiner les candidatures',
         viewReports: 'Voir les signalements',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: 'Gestion des utilisateurs',
@@ -821,6 +833,8 @@ export default {
       dismissBtn: 'Rejeter',
       reviewedBtn: 'Examiné',
       total: '{count} signalement(s) au total',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: 'Catégories',
@@ -901,6 +915,7 @@ export default {
         generateFailed: 'Échec de la génération du code.',
         copied: 'Code copié dans le presse-papiers.',
         copyFailed: 'Échec de la copie du code.',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: '{count} code(s) au total',
     },

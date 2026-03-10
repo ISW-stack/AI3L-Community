@@ -179,6 +179,7 @@ export default {
       title: 'المشاركات الأخيرة',
       empty: 'لا توجد مشاركات بعد. كن أول من يبدأ نقاشاً!',
       comments: 'تعليقات',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: 'لديك',
@@ -258,6 +259,10 @@ export default {
       allPosts: 'جميع المشاركات',
       trendingTitle: 'الرائج (7 أيام)',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
 
   // ── Post ──
@@ -341,6 +346,8 @@ export default {
       publish: 'نشر',
       errorRequired: 'العنوان والمحتوى مطلوبان.',
       errorFailed: 'فشل إنشاء المشاركة.',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
 
@@ -391,6 +398,7 @@ export default {
       emptyMessage: 'لم يتم إنشاء أي مجموعات بعد.',
       memberCount: 'عضو(أعضاء)',
       totalCount: 'مجموعة(مجموعات) إجمالاً',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: 'جميع المجموعات',
@@ -429,6 +437,7 @@ export default {
       leaveError: 'فشل مغادرة المجموعة.',
       joinSuccess: 'لقد انضممت إلى المجموعة.',
       joinError: 'فشل الانضمام إلى المجموعة.',
+      fetchError: 'Failed to load SIG details.',
     },
     create: {
       title: 'إنشاء مجموعة',
@@ -447,6 +456,7 @@ export default {
       emptyTitle: 'لا توجد مشاركات بعد',
       emptyMessage: 'ابدأ نقاشاً بإنشاء أول مشاركة في هذه المجموعة.',
       comments: 'تعليقات',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: 'الأعضاء',
@@ -465,6 +475,7 @@ export default {
       removeError: 'فشل إزالة العضو.',
       promoteSuccess: 'تمت ترقية العضو إلى مشرف فرعي.',
       promoteError: 'فشل تعيين مشرف فرعي.',
+      fetchError: 'Failed to load members.',
     },
     forms: {
       title: 'النماذج',
@@ -662,6 +673,8 @@ export default {
     postsTitle: 'المشاركات',
     postsEmptyTitle: 'لا توجد مشاركات بعد',
     postsEmptyMessage: 'لم ينشر هذا المستخدم أي شيء.',
+    fetchError: 'Failed to load user profile.',
+    fetchPostsError: 'Failed to load user posts.',
   },
 
   // ── Notifications ──
@@ -677,6 +690,8 @@ export default {
     emptyMessage: 'لا توجد إشعارات بعد.',
     deleteSuccess: 'تم مسح جميع الإشعارات.',
     deleteError: 'فشل مسح الإشعارات.',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
 
   // ── About ──
@@ -716,6 +731,7 @@ export default {
         reviewApplications: 'مراجعة الطلبات',
         viewReports: 'عرض التقارير',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: 'إدارة المستخدمين',
@@ -812,6 +828,8 @@ export default {
       dismissBtn: 'رفض',
       reviewedBtn: 'تمت المراجعة',
       total: '{count} تقرير(ات) إجمالاً',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: 'الفئات',
@@ -891,6 +909,7 @@ export default {
         generateFailed: 'فشل إنشاء الرمز.',
         copied: 'تم نسخ الرمز إلى الحافظة.',
         copyFailed: 'فشل نسخ الرمز.',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: '{count} رمز(رموز) إجمالاً',
     },

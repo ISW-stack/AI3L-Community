@@ -161,6 +161,7 @@ export default {
       title: '最新文章',
       empty: '尚無文章。成為第一個發起討論的人！',
       comments: '則留言',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: '您有',
@@ -237,6 +238,10 @@ export default {
       allPosts: '所有文章',
       trendingTitle: '熱門 (7天)',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
   post: {
     card: {
@@ -318,6 +323,8 @@ export default {
       publish: '發佈',
       errorRequired: '標題和內容為必填。',
       errorFailed: '文章建立失敗。',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
   share: {
@@ -362,6 +369,7 @@ export default {
       emptyMessage: '尚未建立任何 SIG。',
       memberCount: '位成員',
       totalCount: '個 SIG',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: '所有 SIG',
@@ -399,6 +407,7 @@ export default {
       leaveError: '離開 SIG 失敗。',
       joinSuccess: '您已加入此 SIG。',
       joinError: '加入 SIG 失敗。',
+      fetchError: 'Failed to load SIG details.',
     },
     create: {
       title: '建立 SIG',
@@ -417,6 +426,7 @@ export default {
       emptyTitle: '尚無文章',
       emptyMessage: '在此 SIG 中發表第一篇文章來開始討論。',
       comments: '則留言',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: '成員',
@@ -435,6 +445,7 @@ export default {
       removeError: '移除成員失敗。',
       promoteSuccess: '成員已晉升為副管理員。',
       promoteError: '指派副管理員失敗。',
+      fetchError: 'Failed to load members.',
     },
     forms: {
       title: '表單',
@@ -623,6 +634,8 @@ export default {
     postsTitle: '文章',
     postsEmptyTitle: '尚無文章',
     postsEmptyMessage: '此使用者尚未發表任何文章。',
+    fetchError: 'Failed to load user profile.',
+    fetchPostsError: 'Failed to load user posts.',
   },
   notifications: {
     title: '通知',
@@ -636,6 +649,8 @@ export default {
     emptyMessage: '尚無通知。',
     deleteSuccess: '所有通知已清除。',
     deleteError: '清除通知失敗。',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
   about: {
     title: '關於 AI3L 社群',
@@ -671,6 +686,7 @@ export default {
         reviewApplications: '審核申請',
         viewReports: '查看檢舉',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: '使用者管理',
@@ -765,6 +781,8 @@ export default {
       dismissBtn: '駁回',
       reviewedBtn: '已審查',
       total: '共 {count} 項檢舉',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: '分類',
@@ -844,6 +862,7 @@ export default {
         generateFailed: '邀請碼產生失敗。',
         copied: '邀請碼已複製到剪貼簿。',
         copyFailed: '邀請碼複製失敗。',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: '共 {count} 個邀請碼',
     },
