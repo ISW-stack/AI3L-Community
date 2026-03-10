@@ -103,7 +103,9 @@ async function fetchPosts() {
   syncQueryParams()
 }
 
-async function doSearch({ resetPageBeforeSearch = true }: { resetPageBeforeSearch?: boolean } = {}) {
+async function doSearch({
+  resetPageBeforeSearch = true,
+}: { resetPageBeforeSearch?: boolean } = {}) {
   if (resetPageBeforeSearch) resetPage()
   if (
     !searchKeyword.value &&

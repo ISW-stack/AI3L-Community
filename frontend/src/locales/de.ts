@@ -2,7 +2,7 @@ export default {
   // ── Branding ──
   branding: {
     title: 'AI3L Community',
-    tagline: 'AI in Language Learning and Literacy',
+    tagline: 'KI im Sprachlernen und der Alphabetisierung',
     description:
       'Vernetzen Sie sich mit Forschenden und Lehrenden, die die Zukunft des KI-gestützten Sprachenlernens vorantreiben.',
   },
@@ -60,6 +60,14 @@ export default {
     },
     en: 'English',
     'zh-TW': '繁體中文',
+    vi: 'Tiếng Việt',
+    it: 'Italiano',
+    id: 'Bahasa Indonesia',
+    ko: '한국어',
+    hi: 'हिन्दी',
+    ru: 'Русский',
+    pt: 'Português',
+    ar: 'العربية',
     'zh-CN': '简体中文',
     ja: '日本語',
     fr: 'Français',
@@ -152,7 +160,7 @@ export default {
   // ── Footer ──
   footer: {
     copyright: '© 2025 AI3L Community. All rights reserved.',
-    tagline: 'AI in Language Learning and Literacy',
+    tagline: 'KI im Sprachlernen und der Alphabetisierung',
   },
 
   // ── Home ──
@@ -181,7 +189,7 @@ export default {
       title: 'Aktuelle Beiträge',
       empty: 'Noch keine Beiträge. Starten Sie als Erste(r) eine Diskussion!',
       comments: 'Kommentare',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: 'Die neuesten Beiträge konnten nicht geladen werden.',
     },
     notifications: {
       title: 'Sie haben',
@@ -263,10 +271,10 @@ export default {
       allPosts: 'Alle Beiträge',
       trendingTitle: 'Trending (7T)',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: 'Kategorien konnten nicht geladen werden.',
+    fetchTrendingError: 'Beliebte Beiträge konnten nicht geladen werden.',
+    fetchPostsError: 'Beiträge konnten nicht geladen werden.',
+    searchError: 'Suche fehlgeschlagen. Bitte versuchen Sie es erneut.',
   },
 
   // ── Post ──
@@ -352,8 +360,8 @@ export default {
       publish: 'Veröffentlichen',
       errorRequired: 'Titel und Inhalt sind erforderlich.',
       errorFailed: 'Beitrag konnte nicht erstellt werden.',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: 'Kategorien konnten nicht geladen werden.',
+      fetchSigsError: 'SIG-Liste konnte nicht geladen werden.',
     },
   },
 
@@ -404,7 +412,7 @@ export default {
       emptyMessage: 'Es wurden noch keine SIGs erstellt.',
       memberCount: 'Mitglied(er)',
       totalCount: 'SIG(s) insgesamt',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: 'SIG-Verzeichnis konnte nicht geladen werden.',
     },
     detail: {
       backLink: 'Alle SIGs',
@@ -443,7 +451,7 @@ export default {
       leaveError: 'SIG konnte nicht verlassen werden.',
       joinSuccess: 'Sie sind der SIG beigetreten.',
       joinError: 'Beitritt zur SIG fehlgeschlagen.',
-      fetchError: 'Failed to load SIG details.',
+      fetchError: 'SIG-Details konnten nicht geladen werden.',
     },
     create: {
       title: 'SIG erstellen',
@@ -463,7 +471,7 @@ export default {
       emptyMessage:
         'Starten Sie eine Diskussion, indem Sie den ersten Beitrag in dieser SIG erstellen.',
       comments: 'Kommentare',
-      fetchError: 'Failed to load posts.',
+      fetchError: 'Beiträge konnten nicht geladen werden.',
     },
     members: {
       title: 'Mitglieder',
@@ -482,7 +490,7 @@ export default {
       removeError: 'Mitglied konnte nicht entfernt werden.',
       promoteSuccess: 'Mitglied zum Unteradministrator befördert.',
       promoteError: 'Unteradministrator konnte nicht zugewiesen werden.',
-      fetchError: 'Failed to load members.',
+      fetchError: 'Mitglieder konnten nicht geladen werden.',
     },
     forms: {
       title: 'Formulare',
@@ -682,8 +690,8 @@ export default {
     postsTitle: 'Beiträge',
     postsEmptyTitle: 'Noch keine Beiträge',
     postsEmptyMessage: 'Dieser Benutzer hat noch nichts gepostet.',
-    fetchError: 'Failed to load user profile.',
-    fetchPostsError: 'Failed to load user posts.',
+    fetchError: 'Benutzerprofil konnte nicht geladen werden.',
+    fetchPostsError: 'Benutzerbeiträge konnten nicht geladen werden.',
   },
 
   // ── Notifications ──
@@ -699,8 +707,8 @@ export default {
     emptyMessage: 'Noch keine Benachrichtigungen.',
     deleteSuccess: 'Alle Benachrichtigungen gelöscht.',
     deleteError: 'Benachrichtigungen konnten nicht gelöscht werden.',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: 'Benachrichtigungen konnten nicht geladen werden.',
+    markReadError: 'Benachrichtigung konnte nicht als gelesen markiert werden.',
   },
 
   // ── About ──
@@ -718,7 +726,7 @@ export default {
   // ── Admin ──
   admin: {
     layout: {
-      title: 'Administration',
+      title: 'Verwaltung',
       menu: 'Menü',
       closeSidebar: 'Seitenleiste schließen',
       toggleSidebar: 'Admin-Seitenleiste umschalten',
@@ -740,7 +748,7 @@ export default {
         reviewApplications: 'Bewerbungen prüfen',
         viewReports: 'Meldungen ansehen',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: 'Dashboard-Statistiken konnten nicht geladen werden.',
     },
     users: {
       title: 'Benutzerverwaltung',
@@ -837,8 +845,8 @@ export default {
       dismissBtn: 'Abweisen',
       reviewedBtn: 'Geprüft',
       total: '{count} Meldung(en) insgesamt',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: 'Berichte konnten nicht geladen werden.',
+      reviewError: 'Berichtsstatus konnte nicht aktualisiert werden.',
     },
     categories: {
       title: 'Kategorien',
@@ -919,7 +927,7 @@ export default {
         generateFailed: 'Code konnte nicht generiert werden.',
         copied: 'Code in Zwischenablage kopiert.',
         copyFailed: 'Code konnte nicht kopiert werden.',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: 'Einladungscodes konnten nicht geladen werden.',
       },
       total: '{count} Code(s) insgesamt',
     },

@@ -42,7 +42,7 @@ export default {
     noResults: 'Tidak ada hasil ditemukan.',
     unknownError: 'Terjadi kesalahan yang tidak terduga.',
     role: {
-      superAdmin: 'Super Admin',
+      superAdmin: 'Admin Super',
       admin: 'Admin',
       member: 'Anggota',
       guest: 'Tamu',
@@ -188,7 +188,7 @@ export default {
       title: 'Postingan Terbaru',
       empty: 'Belum ada postingan. Jadilah yang pertama memulai diskusi!',
       comments: 'komentar',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: 'Gagal memuat postingan terbaru.',
     },
     notifications: {
       title: 'Anda memiliki',
@@ -269,10 +269,10 @@ export default {
       allPosts: 'Semua Postingan',
       trendingTitle: 'Trending (7h)',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: 'Gagal memuat kategori.',
+    fetchTrendingError: 'Gagal memuat postingan tren.',
+    fetchPostsError: 'Gagal memuat postingan.',
+    searchError: 'Pencarian gagal. Silakan coba lagi.',
   },
 
   // ── Post ──
@@ -358,8 +358,8 @@ export default {
       publish: 'Terbitkan',
       errorRequired: 'Judul dan konten wajib diisi.',
       errorFailed: 'Gagal membuat postingan.',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: 'Gagal memuat kategori.',
+      fetchSigsError: 'Gagal memuat daftar SIG.',
     },
   },
 
@@ -410,7 +410,7 @@ export default {
       emptyMessage: 'Belum ada SIG yang dibuat.',
       memberCount: 'anggota',
       totalCount: 'SIG total',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: 'Gagal memuat direktori SIG.',
     },
     detail: {
       backLink: 'Semua SIG',
@@ -449,7 +449,7 @@ export default {
       leaveError: 'Gagal keluar dari SIG.',
       joinSuccess: 'Anda telah bergabung dengan SIG.',
       joinError: 'Gagal bergabung dengan SIG.',
-      fetchError: 'Failed to load SIG details.',
+      fetchError: 'Gagal memuat detail SIG.',
     },
     create: {
       title: 'Buat SIG',
@@ -468,7 +468,7 @@ export default {
       emptyTitle: 'Belum ada postingan',
       emptyMessage: 'Mulai diskusi dengan membuat postingan pertama di SIG ini.',
       comments: 'komentar',
-      fetchError: 'Failed to load posts.',
+      fetchError: 'Gagal memuat postingan.',
     },
     members: {
       title: 'Anggota',
@@ -487,7 +487,7 @@ export default {
       removeError: 'Gagal menghapus anggota.',
       promoteSuccess: 'Anggota dipromosikan menjadi Sub-Admin.',
       promoteError: 'Gagal menetapkan Sub-Admin.',
-      fetchError: 'Failed to load members.',
+      fetchError: 'Gagal memuat anggota.',
     },
     forms: {
       title: 'Formulir',
@@ -687,8 +687,8 @@ export default {
     postsTitle: 'Postingan',
     postsEmptyTitle: 'Belum ada postingan',
     postsEmptyMessage: 'Pengguna ini belum memposting apa pun.',
-    fetchError: 'Failed to load user profile.',
-    fetchPostsError: 'Failed to load user posts.',
+    fetchError: 'Gagal memuat profil pengguna.',
+    fetchPostsError: 'Gagal memuat postingan pengguna.',
   },
 
   // ── Notifications ──
@@ -704,8 +704,8 @@ export default {
     emptyMessage: 'Belum ada notifikasi.',
     deleteSuccess: 'Semua notifikasi dihapus.',
     deleteError: 'Gagal menghapus notifikasi.',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: 'Gagal memuat notifikasi.',
+    markReadError: 'Gagal menandai notifikasi telah dibaca.',
   },
 
   // ── About ──
@@ -745,7 +745,7 @@ export default {
         reviewApplications: 'Tinjau Permohonan',
         viewReports: 'Lihat Laporan',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: 'Gagal memuat statistik dasbor.',
     },
     users: {
       title: 'Manajemen Pengguna',
@@ -842,8 +842,8 @@ export default {
       dismissBtn: 'Abaikan',
       reviewedBtn: 'Ditinjau',
       total: '{count} laporan total',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: 'Gagal memuat laporan.',
+      reviewError: 'Gagal memperbarui status laporan.',
     },
     categories: {
       title: 'Kategori',
@@ -924,7 +924,7 @@ export default {
         generateFailed: 'Gagal membuat kode.',
         copied: 'Kode disalin ke clipboard.',
         copyFailed: 'Gagal menyalin kode.',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: 'Gagal memuat kode undangan.',
       },
       total: '{count} kode total',
     },

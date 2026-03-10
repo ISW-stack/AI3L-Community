@@ -2,7 +2,7 @@ export default {
   // ── Branding ──
   branding: {
     title: 'AI3L Community',
-    tagline: 'AI in Language Learning and Literacy',
+    tagline: "L'IA dans l'apprentissage des langues",
     description:
       "Rejoignez des chercheurs et des éducateurs qui font avancer le futur de l'apprentissage des langues assisté par l'IA.",
   },
@@ -60,6 +60,14 @@ export default {
     },
     en: 'English',
     'zh-TW': '繁體中文',
+    vi: 'Tiếng Việt',
+    it: 'Italiano',
+    id: 'Bahasa Indonesia',
+    ko: '한국어',
+    hi: 'हिन्दी',
+    ru: 'Русский',
+    pt: 'Português',
+    ar: 'العربية',
     'zh-CN': '简体中文',
     ja: '日本語',
     fr: 'Français',
@@ -151,7 +159,7 @@ export default {
   // ── Footer ──
   footer: {
     copyright: '© 2025 AI3L Community. All rights reserved.',
-    tagline: 'AI in Language Learning and Literacy',
+    tagline: "L'IA dans l'apprentissage des langues",
   },
 
   // ── Home ──
@@ -180,7 +188,7 @@ export default {
       title: 'Publications récentes',
       empty: "Aucune publication pour l'instant. Soyez le premier à lancer une discussion !",
       comments: 'commentaires',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: 'Échec du chargement des publications récentes.',
     },
     notifications: {
       title: 'Vous avez',
@@ -264,10 +272,10 @@ export default {
       allPosts: 'Toutes les publications',
       trendingTitle: 'Tendances (7j)',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: 'Échec du chargement des catégories.',
+    fetchTrendingError: 'Échec du chargement des tendances.',
+    fetchPostsError: 'Échec du chargement des publications.',
+    searchError: 'La recherche a échoué. Veuillez réessayer.',
   },
 
   // ── Post ──
@@ -352,8 +360,8 @@ export default {
       publish: 'Publier',
       errorRequired: 'Le titre et le contenu sont obligatoires.',
       errorFailed: 'Échec de la création de la publication.',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: 'Échec du chargement des catégories.',
+      fetchSigsError: 'Échec du chargement de la liste des SIG.',
     },
   },
 
@@ -404,7 +412,7 @@ export default {
       emptyMessage: "Aucun GIS n'a encore été créé.",
       memberCount: 'membre(s)',
       totalCount: 'GIS au total',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: "Échec du chargement de l'annuaire des SIG.",
     },
     detail: {
       backLink: 'Tous les GIS',
@@ -443,6 +451,7 @@ export default {
       leaveError: 'Échec de la sortie du GIS.',
       joinSuccess: 'Vous avez rejoint le GIS.',
       joinError: "Échec de l'adhésion au GIS.",
+      fetchError: 'Échec du chargement des détails du SIG.',
     },
     create: {
       title: 'Créer un GIS',
@@ -461,7 +470,7 @@ export default {
       emptyTitle: 'Aucune publication',
       emptyMessage: 'Lancez une discussion en créant la première publication dans ce GIS.',
       comments: 'commentaires',
-      fetchError: 'Failed to load posts.',
+      fetchError: 'Échec du chargement des publications.',
     },
     members: {
       title: 'Membres',
@@ -480,6 +489,7 @@ export default {
       removeError: 'Échec du retrait du membre.',
       promoteSuccess: 'Membre promu sous-administrateur.',
       promoteError: "Échec de l'attribution du rôle de sous-administrateur.",
+      fetchError: 'Échec du chargement des membres du SIG.',
     },
     forms: {
       title: 'Formulaires',
@@ -680,6 +690,8 @@ export default {
     postsTitle: 'Publications',
     postsEmptyTitle: 'Aucune publication',
     postsEmptyMessage: "Cet utilisateur n'a rien publié.",
+    fetchError: 'Échec du chargement du profil utilisateur.',
+    fetchPostsError: "Échec du chargement des publications de l'utilisateur.",
   },
 
   // ── Notifications ──
@@ -695,8 +707,8 @@ export default {
     emptyMessage: "Aucune notification pour l'instant.",
     deleteSuccess: 'Toutes les notifications ont été effacées.',
     deleteError: 'Échec de la suppression des notifications.',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: 'Échec du chargement des notifications.',
+    markReadError: 'Échec du marquage de la notification comme lue.',
   },
 
   // ── About ──
@@ -736,7 +748,7 @@ export default {
         reviewApplications: 'Examiner les candidatures',
         viewReports: 'Voir les signalements',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: 'Échec du chargement des statistiques du tableau de bord.',
     },
     users: {
       title: 'Gestion des utilisateurs',
@@ -833,8 +845,8 @@ export default {
       dismissBtn: 'Rejeter',
       reviewedBtn: 'Examiné',
       total: '{count} signalement(s) au total',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: 'Échec du chargement des signalements.',
+      reviewError: 'Échec de la mise à jour du statut du signalement.',
     },
     categories: {
       title: 'Catégories',
@@ -915,7 +927,7 @@ export default {
         generateFailed: 'Échec de la génération du code.',
         copied: 'Code copié dans le presse-papiers.',
         copyFailed: 'Échec de la copie du code.',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: "Échec du chargement des codes d'invitation.",
       },
       total: '{count} code(s) au total',
     },

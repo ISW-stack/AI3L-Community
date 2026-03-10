@@ -281,9 +281,7 @@ describe('ForumView', () => {
     vm.sortBy = 'oldest'
     await flushPromises()
 
-    expect(mockSearchPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ sort: 'oldest' }),
-    )
+    expect(mockSearchPosts).toHaveBeenCalledWith(expect.objectContaining({ sort: 'oldest' }))
   })
 
   it('changing sort in search mode calls searchPosts not listPosts', async () => {
