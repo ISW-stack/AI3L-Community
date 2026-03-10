@@ -41,13 +41,8 @@ const editSaving = ref(false)
 const showDeleteConfirm = ref(false)
 const joining = ref(false)
 
-const confirmAction = ref<{ action: 'leave' } | null>(null)
-const showLeaveConfirm = computed({
-  get: () => !!confirmAction.value && confirmAction.value.action === 'leave',
-  set: (v: boolean) => {
-    if (!v) confirmAction.value = null
-  },
-})
+const showLeaveConfirm = ref(false)
+
 // Shared state for children
 provide('sig', sig)
 provide('userSigRole', userSigRole)
@@ -122,7 +117,7 @@ async function handleDeleteSig() {
 }
 
 function promptLeaveSig() {
-  confirmAction.value = { action: 'leave' }
+  showLeaveConfirm.value = true
 }
 
 async function executeLeaveSig() {
@@ -133,7 +128,7 @@ async function executeLeaveSig() {
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.detail.leaveError')), 'error')
   } finally {
-    confirmAction.value = null
+    showLeaveConfirm.value = false
   }
 }
 
@@ -303,18 +298,18 @@ const currentRouteName = computed(() => route.name)
         <!-- Leave confirmation -->
         <BaseModal
           v-model="showLeaveConfirm"
-          :title="t('sigs.detail.leaveConfirmTitle', 'Leave SIG')"
+          :title="t('sigs.detail.leaveConfirm.title')"
           size="sm"
         >
           <p class="text-sm text-muted mb-4 leading-relaxed">
-            {{ t('sigs.detail.leaveConfirmMessage', 'Are you sure you want to leave this SIG?') }}
+            {{ t('sigs.detail.leaveConfirm.message') }}
           </p>
           <template #footer>
             <BaseButton variant="secondary" @click="showLeaveConfirm = false">{{
-              t('common.cancel', 'Cancel')
+              t('common.cancel')
             }}</BaseButton>
             <BaseButton variant="danger" @click="executeLeaveSig">{{
-              t('sigs.detail.leaveConfirmBtn', 'Leave')
+              t('sigs.detail.leaveConfirm.confirmBtn')
             }}</BaseButton>
           </template>
         </BaseModal>

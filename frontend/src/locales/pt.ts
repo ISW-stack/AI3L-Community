@@ -404,6 +404,7 @@ export default {
       searchPlaceholder: 'Pesquisar SIGs...',
       emptyTitle: 'Nenhum SIG',
       emptyMessage: 'Nenhum SIG foi criado ainda.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'membro(s)',
       totalCount: 'SIG(s) no total',
       fetchError: 'Falha ao carregar o diretório do SIG.',
@@ -436,6 +437,12 @@ export default {
         message:
           'Isso irá excluir de forma suave este Grupo de Interesse Especial e todas as suas publicações. Esta ação não pode ser facilmente desfeita.',
         confirmBtn: 'Confirmar Exclusão',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'SIG atualizado com sucesso.',
       updateError: 'Falha ao atualizar SIG.',
@@ -479,6 +486,12 @@ export default {
       },
       promoteBtn: 'Promover',
       removeBtn: 'Remover',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'Membro removido.',
       removeError: 'Falha ao remover membro.',
       promoteSuccess: 'Membro promovido a Sub-Admin.',

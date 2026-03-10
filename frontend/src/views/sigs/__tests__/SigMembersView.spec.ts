@@ -122,6 +122,15 @@ async function mountComponent(
         BaseAvatar: { template: '<span class="base-avatar" />' },
         SkeletonLoader: { template: '<div class="skeleton-loader" />' },
         EmptyState: { template: '<div class="empty-state" />', props: ['title', 'message'] },
+        BaseModal: {
+          template:
+            '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
+          props: ['modelValue', 'title', 'size'],
+        },
+        BaseButton: {
+          template: '<button :class="$attrs.class" @click="$emit(\'click\')"><slot /></button>',
+          props: ['variant', 'size', 'loading'],
+        },
       },
     },
   })
@@ -253,5 +262,127 @@ describe('SigMembersView', () => {
 
     expect(wrapper.find('.empty-state').exists()).toBe(true)
     expect(wrapper.find('table').exists()).toBe(false)
+  })
+
+  it('shows confirmation modal when Remove is clicked instead of immediately removing', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-2',
+    })
+    await flushPromises()
+
+    // Modal should not be visible initially
+    expect(wrapper.find('.base-modal').exists()).toBe(false)
+
+    // Click Remove on a member in the desktop table
+    const table = wrapper.find('table')
+    const removeButtons = table.findAll('button').filter((b) => b.text().includes('Remove'))
+    expect(removeButtons.length).toBeGreaterThan(0)
+
+    await removeButtons[0].trigger('click')
+    await flushPromises()
+
+    // Modal should appear
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+
+    // removeMember API should NOT have been called
+    expect(mockRemoveMember).not.toHaveBeenCalled()
+  })
+
+  it('displays member name in removal confirmation dialog', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-2',
+    })
+    await flushPromises()
+
+    // Click Remove on the first removable member in the table (user-1 = Admin User)
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+
+    // Find the row for user-1 (Admin User) which should have a Remove button
+    const adminRow = tableRows[0]
+    const removeBtn = adminRow.findAll('button').find((b) => b.text().includes('Remove'))
+    expect(removeBtn).toBeTruthy()
+
+    await removeBtn!.trigger('click')
+    await flushPromises()
+
+    // Modal should contain the member's display name
+    const modal = wrapper.find('.base-modal')
+    expect(modal.exists()).toBe(true)
+    expect(modal.text()).toContain('Admin User')
+  })
+
+  it('calls removeMember API after confirming in modal', async () => {
+    mockRemoveMember.mockResolvedValue({})
+    mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-2',
+    })
+    await flushPromises()
+
+    // Click Remove on user-3 (Regular Member) in the table
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+    const memberRow = tableRows[2] // user-3 = Regular Member
+    const removeBtn = memberRow.findAll('button').find((b) => b.text().includes('Remove'))
+    expect(removeBtn).toBeTruthy()
+
+    await removeBtn!.trigger('click')
+    await flushPromises()
+
+    // Modal should be visible
+    const modal = wrapper.find('.base-modal')
+    expect(modal.exists()).toBe(true)
+
+    // Click the danger confirm button (the "Remove" button inside modal)
+    const modalButtons = modal.findAll('button')
+    const confirmBtn = modalButtons.find((b) => b.text().includes('Remove'))
+    expect(confirmBtn).toBeTruthy()
+
+    await confirmBtn!.trigger('click')
+    await flushPromises()
+
+    // removeMember should have been called with correct SIG id and user id
+    expect(mockRemoveMember).toHaveBeenCalledWith('sig-1', 'user-3')
+  })
+
+  it('closes modal without removing when cancel is clicked', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-2',
+    })
+    await flushPromises()
+
+    // Click Remove on a member
+    const table = wrapper.find('table')
+    const removeButtons = table.findAll('button').filter((b) => b.text().includes('Remove'))
+    await removeButtons[0].trigger('click')
+    await flushPromises()
+
+    // Modal should be visible
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+
+    // Click Cancel button inside the modal
+    const modal = wrapper.find('.base-modal')
+    const modalButtons = modal.findAll('button')
+    const cancelBtn = modalButtons.find((b) => b.text().includes('Cancel'))
+    expect(cancelBtn).toBeTruthy()
+
+    await cancelBtn!.trigger('click')
+    await flushPromises()
+
+    // Modal should close
+    expect(wrapper.find('.base-modal').exists()).toBe(false)
+
+    // removeMember should never have been called
+    expect(mockRemoveMember).not.toHaveBeenCalled()
   })
 })

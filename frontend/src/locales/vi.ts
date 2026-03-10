@@ -405,6 +405,7 @@ export default {
       searchPlaceholder: 'Tìm kiếm SIG...',
       emptyTitle: 'Không có SIG',
       emptyMessage: 'Chưa có SIG nào được tạo.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'thành viên',
       totalCount: 'SIG',
       fetchError: 'Không tải được thư mục SIG.',
@@ -437,6 +438,12 @@ export default {
         message:
           'Thao tác này sẽ xóa mềm Nhóm Quan tâm Đặc biệt này và tất cả bài viết của nó. Hành động này không dễ hoàn tác.',
         confirmBtn: 'Xác nhận xóa',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'SIG đã được cập nhật thành công.',
       updateError: 'Cập nhật SIG thất bại.',
@@ -480,6 +487,12 @@ export default {
       },
       promoteBtn: 'Thăng chức',
       removeBtn: 'Xóa',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'Đã xóa thành viên.',
       removeError: 'Xóa thành viên thất bại.',
       promoteSuccess: 'Thành viên đã được thăng lên Quản trị phụ.',

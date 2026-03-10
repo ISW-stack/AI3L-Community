@@ -406,6 +406,7 @@ export default {
       searchPlaceholder: 'Cerca SIG...',
       emptyTitle: 'Nessun SIG',
       emptyMessage: 'Non è ancora stato creato alcun SIG.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'membro/i',
       totalCount: 'SIG in totale',
       fetchError: 'Impossibile caricare la directory SIG.',
@@ -438,6 +439,12 @@ export default {
         message:
           'Questa operazione eliminerà temporaneamente questo gruppo di interesse speciale e tutti i suoi post. Non è facile annullare questa azione.',
         confirmBtn: 'Conferma eliminazione',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'SIG aggiornato con successo.',
       updateError: 'Aggiornamento del SIG non riuscito.',
@@ -481,6 +488,12 @@ export default {
       },
       promoteBtn: 'Promuovi',
       removeBtn: 'Rimuovi',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'Membro rimosso.',
       removeError: 'Rimozione del membro non riuscita.',
       promoteSuccess: 'Membro promosso a Sub-Admin.',

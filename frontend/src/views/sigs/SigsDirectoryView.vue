@@ -63,7 +63,7 @@ onMounted(fetchSigs)
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
     <EmptyState
       v-else-if="filteredSigs.length === 0"
-      :message="searchQuery ? 'No SIGs found' : t('sigs.directory.emptyMessage')"
+      :message="searchQuery ? t('sigs.directory.searchEmpty') : t('sigs.directory.emptyMessage')"
       :title="searchQuery ? t('common.noResults') : t('sigs.directory.emptyTitle')"
     />
 

@@ -243,25 +243,20 @@ onMounted(fetchMembers)
       </div>
     </div>
     <!-- Confirm Action Modal -->
-    <BaseModal
-      v-model="showConfirmModal"
-      :title="t('sigs.members.removeConfirmTitle', 'Remove Member')"
-      size="sm"
-    >
+    <BaseModal v-model="showConfirmModal" :title="t('sigs.members.removeConfirm.title')" size="sm">
       <p class="text-sm text-muted mb-4 leading-relaxed">
         {{
-          t(
-            'sigs.members.removeConfirmMessage',
-            'Are you sure you want to remove this member? This action cannot be undone.',
-          )
+          t('sigs.members.removeConfirm.message', {
+            name: confirmAction?.user.display_name ?? '',
+          })
         }}
       </p>
       <template #footer>
         <BaseButton variant="secondary" @click="showConfirmModal = false">
-          {{ t('common.cancel', 'Cancel') }}
+          {{ t('common.cancel') }}
         </BaseButton>
         <BaseButton variant="danger" @click="executeRemoveMember">
-          {{ t('sigs.members.removeConfirmBtn', 'Remove') }}
+          {{ t('sigs.members.removeConfirm.confirmBtn') }}
         </BaseButton>
       </template>
     </BaseModal>

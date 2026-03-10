@@ -403,6 +403,7 @@ export default {
       searchPlaceholder: 'ابحث في المجموعات...',
       emptyTitle: 'لا توجد مجموعات',
       emptyMessage: 'لم يتم إنشاء أي مجموعات بعد.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'عضو(أعضاء)',
       totalCount: 'مجموعة(مجموعات) إجمالاً',
       fetchError: 'فشل في تحميل دليل SIG.',
@@ -435,6 +436,12 @@ export default {
         message:
           'سيؤدي هذا إلى حذف مجموعة الاهتمام الخاصة وجميع مشاركاتها. لا يمكن التراجع عن هذا الإجراء بسهولة.',
         confirmBtn: 'تأكيد الحذف',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'تم تحديث المجموعة بنجاح.',
       updateError: 'فشل تحديث المجموعة.',
@@ -478,6 +485,12 @@ export default {
       },
       promoteBtn: 'ترقية',
       removeBtn: 'إزالة',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'تم إزالة العضو.',
       removeError: 'فشل إزالة العضو.',
       promoteSuccess: 'تمت ترقية العضو إلى مشرف فرعي.',
