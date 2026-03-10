@@ -408,7 +408,7 @@ export default {
       searchPlaceholder: 'Buscar GIEs...',
       emptyTitle: 'Sin GIEs',
       emptyMessage: 'Aún no se han creado GIEs.',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'Ningún SIG coincide con su búsqueda.',
       memberCount: 'miembro(s)',
       totalCount: 'GIE(s) en total',
       fetchError: 'Error al cargar el directorio de SIG.',
@@ -443,10 +443,10 @@ export default {
         confirmBtn: 'Confirmar eliminación',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: '¿Abandonar el SIG?',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          '¿Está seguro de que desea abandonar este SIG? Deberá volver a unirse para acceder al contenido del SIG.',
+        confirmBtn: 'Abandonar',
       },
       updateSuccess: 'GIE actualizado correctamente.',
       updateError: 'Error al actualizar el GIE.',
@@ -491,10 +491,10 @@ export default {
       promoteBtn: 'Ascender',
       removeBtn: 'Eliminar',
       removeConfirm: {
-        title: 'Remove Member',
+        title: 'Eliminar miembro',
         message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+          '¿Está seguro de que desea eliminar a {name} de este SIG? Esta acción no se puede deshacer.',
+        confirmBtn: 'Eliminar',
       },
       removeSuccess: 'Miembro eliminado.',
       removeError: 'Error al eliminar al miembro.',

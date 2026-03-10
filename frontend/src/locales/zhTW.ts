@@ -375,7 +375,7 @@ export default {
       searchPlaceholder: '搜尋 SIG...',
       emptyTitle: '沒有 SIG',
       emptyMessage: '尚未建立任何 SIG。',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: '沒有符合搜尋條件的 SIG。',
       memberCount: '位成員',
       totalCount: '個 SIG',
       fetchError: '載入 SIG 目錄失敗。',
@@ -409,10 +409,9 @@ export default {
         confirmBtn: '確認刪除',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
-        message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+        title: '離開 SIG？',
+        message: '確定要離開此 SIG 嗎？離開後需要重新加入才能存取 SIG 內容。',
+        confirmBtn: '離開',
       },
       updateSuccess: 'SIG 更新成功。',
       updateError: 'SIG 更新失敗。',
@@ -457,10 +456,9 @@ export default {
       promoteBtn: '晉升',
       removeBtn: '移除',
       removeConfirm: {
-        title: 'Remove Member',
-        message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+        title: '移除成員',
+        message: '確定要將 {name} 從此 SIG 中移除嗎？此操作無法撤銷。',
+        confirmBtn: '移除',
       },
       removeSuccess: '成員已移除。',
       removeError: '移除成員失敗。',

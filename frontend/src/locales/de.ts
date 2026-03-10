@@ -410,7 +410,7 @@ export default {
       searchPlaceholder: 'SIGs suchen...',
       emptyTitle: 'Keine SIGs',
       emptyMessage: 'Es wurden noch keine SIGs erstellt.',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'Keine SIGs entsprechen Ihrer Suche.',
       memberCount: 'Mitglied(er)',
       totalCount: 'SIG(s) insgesamt',
       fetchError: 'SIG-Verzeichnis konnte nicht geladen werden.',
@@ -445,10 +445,10 @@ export default {
         confirmBtn: 'Löschen bestätigen',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'SIG verlassen?',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'Sind Sie sicher, dass Sie diese SIG verlassen möchten? Sie müssen erneut beitreten, um auf die SIG-Inhalte zugreifen zu können.',
+        confirmBtn: 'Verlassen',
       },
       updateSuccess: 'SIG erfolgreich aktualisiert.',
       updateError: 'SIG konnte nicht aktualisiert werden.',
@@ -494,10 +494,10 @@ export default {
       promoteBtn: 'Befördern',
       removeBtn: 'Entfernen',
       removeConfirm: {
-        title: 'Remove Member',
+        title: 'Mitglied entfernen',
         message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+          'Sind Sie sicher, dass Sie {name} aus dieser SIG entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden.',
+        confirmBtn: 'Entfernen',
       },
       removeSuccess: 'Mitglied entfernt.',
       removeError: 'Mitglied konnte nicht entfernt werden.',

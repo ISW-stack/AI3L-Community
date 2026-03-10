@@ -403,7 +403,7 @@ export default {
       searchPlaceholder: 'ابحث في المجموعات...',
       emptyTitle: 'لا توجد مجموعات',
       emptyMessage: 'لم يتم إنشاء أي مجموعات بعد.',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'لا توجد مجموعات SIG تطابق بحثك.',
       memberCount: 'عضو(أعضاء)',
       totalCount: 'مجموعة(مجموعات) إجمالاً',
       fetchError: 'فشل في تحميل دليل SIG.',
@@ -438,10 +438,10 @@ export default {
         confirmBtn: 'تأكيد الحذف',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'مغادرة المجموعة؟',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'هل أنت متأكد من رغبتك في مغادرة هذه المجموعة؟ ستحتاج إلى الانضمام مجدداً للوصول إلى محتوى المجموعة.',
+        confirmBtn: 'مغادرة',
       },
       updateSuccess: 'تم تحديث المجموعة بنجاح.',
       updateError: 'فشل تحديث المجموعة.',
@@ -486,10 +486,10 @@ export default {
       promoteBtn: 'ترقية',
       removeBtn: 'إزالة',
       removeConfirm: {
-        title: 'Remove Member',
+        title: 'إزالة العضو',
         message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+          'هل أنت متأكد من رغبتك في إزالة {name} من هذه المجموعة؟ لا يمكن التراجع عن هذا الإجراء.',
+        confirmBtn: 'إزالة',
       },
       removeSuccess: 'تم إزالة العضو.',
       removeError: 'فشل إزالة العضو.',

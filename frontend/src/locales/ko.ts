@@ -403,7 +403,7 @@ export default {
       searchPlaceholder: 'SIG 검색...',
       emptyTitle: 'SIG 없음',
       emptyMessage: '아직 생성된 SIG가 없습니다.',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: '검색과 일치하는 SIG가 없습니다.',
       memberCount: '명',
       totalCount: '개의 SIG',
       fetchError: 'SIG 디렉토리를 불러오지 못했습니다.',
@@ -438,10 +438,9 @@ export default {
         confirmBtn: '삭제 확인',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
-        message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+        title: 'SIG를 떠나시겠습니까?',
+        message: '이 SIG를 떠나시겠습니까? SIG 콘텐츠에 접근하려면 다시 가입해야 합니다.',
+        confirmBtn: '떠나기',
       },
       updateSuccess: 'SIG가 성공적으로 업데이트되었습니다.',
       updateError: 'SIG 업데이트에 실패했습니다.',
@@ -486,10 +485,9 @@ export default {
       promoteBtn: '승격',
       removeBtn: '제거',
       removeConfirm: {
-        title: 'Remove Member',
-        message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+        title: '멤버 제거',
+        message: '{name}을(를) 이 SIG에서 제거하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+        confirmBtn: '제거',
       },
       removeSuccess: '회원이 제거되었습니다.',
       removeError: '회원 제거에 실패했습니다.',

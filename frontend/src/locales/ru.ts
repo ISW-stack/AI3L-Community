@@ -405,7 +405,7 @@ export default {
       searchPlaceholder: 'Поиск SIGs...',
       emptyTitle: 'Нет SIGs',
       emptyMessage: 'Группы по интересам ещё не созданы.',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'Ни один SIG не соответствует вашему запросу.',
       memberCount: 'участник(ов)',
       totalCount: 'SIG(ов) всего',
       fetchError: 'Не удалось загрузить каталог SIG.',
@@ -440,10 +440,10 @@ export default {
         confirmBtn: 'Подтвердить удаление',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'Покинуть SIG?',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'Вы уверены, что хотите покинуть этот SIG? Для доступа к материалам SIG вам потребуется снова вступить.',
+        confirmBtn: 'Покинуть',
       },
       updateSuccess: 'SIG успешно обновлён.',
       updateError: 'Не удалось обновить SIG.',
@@ -488,10 +488,10 @@ export default {
       promoteBtn: 'Повысить',
       removeBtn: 'Удалить',
       removeConfirm: {
-        title: 'Remove Member',
+        title: 'Удалить участника',
         message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+          'Вы уверены, что хотите удалить {name} из этого SIG? Это действие нельзя отменить.',
+        confirmBtn: 'Удалить',
       },
       removeSuccess: 'Участник удалён.',
       removeError: 'Не удалось удалить участника.',

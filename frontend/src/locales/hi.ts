@@ -404,7 +404,7 @@ export default {
       searchPlaceholder: 'SIGs खोजें...',
       emptyTitle: 'कोई SIG नहीं',
       emptyMessage: 'अभी तक कोई SIG नहीं बनाया गया।',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'कोई भी SIG आपकी खोज से मेल नहीं खाता।',
       memberCount: 'सदस्य',
       totalCount: 'कुल SIG',
       fetchError: 'SIG निर्देशिका लोड करने में विफल।',
@@ -439,10 +439,10 @@ export default {
         confirmBtn: 'हटाने की पुष्टि करें',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'SIG छोड़ें?',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'क्या आप इस SIG को छोड़ना चाहते हैं? SIG की सामग्री तक पहुँचने के लिए आपको फिर से जुड़ना होगा।',
+        confirmBtn: 'छोड़ें',
       },
       updateSuccess: 'SIG सफलतापूर्वक अद्यतन हुआ।',
       updateError: 'SIG अद्यतन करने में विफल।',
@@ -487,10 +487,9 @@ export default {
       promoteBtn: 'पदोन्नत करें',
       removeBtn: 'हटाएँ',
       removeConfirm: {
-        title: 'Remove Member',
-        message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+        title: 'सदस्य हटाएं',
+        message: 'क्या आप {name} को इस SIG से हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।',
+        confirmBtn: 'हटाएं',
       },
       removeSuccess: 'सदस्य हटा दिया गया।',
       removeError: 'सदस्य हटाने में विफल।',

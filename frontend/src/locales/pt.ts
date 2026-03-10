@@ -404,7 +404,7 @@ export default {
       searchPlaceholder: 'Pesquisar SIGs...',
       emptyTitle: 'Nenhum SIG',
       emptyMessage: 'Nenhum SIG foi criado ainda.',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'Nenhum SIG corresponde à sua pesquisa.',
       memberCount: 'membro(s)',
       totalCount: 'SIG(s) no total',
       fetchError: 'Falha ao carregar o diretório do SIG.',
@@ -439,10 +439,10 @@ export default {
         confirmBtn: 'Confirmar Exclusão',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'Sair do SIG?',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'Tem certeza de que deseja sair deste SIG? Você precisará reingressar para acessar o conteúdo do SIG.',
+        confirmBtn: 'Sair',
       },
       updateSuccess: 'SIG atualizado com sucesso.',
       updateError: 'Falha ao atualizar SIG.',
@@ -487,10 +487,10 @@ export default {
       promoteBtn: 'Promover',
       removeBtn: 'Remover',
       removeConfirm: {
-        title: 'Remove Member',
+        title: 'Remover membro',
         message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+          'Tem certeza de que deseja remover {name} deste SIG? Esta ação não pode ser desfeita.',
+        confirmBtn: 'Remover',
       },
       removeSuccess: 'Membro removido.',
       removeError: 'Falha ao remover membro.',

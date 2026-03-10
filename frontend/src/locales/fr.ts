@@ -410,7 +410,7 @@ export default {
       searchPlaceholder: 'Rechercher des GIS...',
       emptyTitle: 'Aucun GIS',
       emptyMessage: "Aucun GIS n'a encore été créé.",
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'Aucun SIG ne correspond à votre recherche.',
       memberCount: 'membre(s)',
       totalCount: 'GIS au total',
       fetchError: "Échec du chargement de l'annuaire des SIG.",
@@ -445,10 +445,10 @@ export default {
         confirmBtn: 'Confirmer la suppression',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'Quitter le SIG ?',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'Êtes-vous sûr de vouloir quitter ce SIG ? Vous devrez vous réinscrire pour accéder au contenu du SIG.',
+        confirmBtn: 'Quitter',
       },
       updateSuccess: 'GIS mis à jour avec succès.',
       updateError: 'Échec de la mise à jour du GIS.',
@@ -493,10 +493,10 @@ export default {
       promoteBtn: 'Promouvoir',
       removeBtn: 'Retirer',
       removeConfirm: {
-        title: 'Remove Member',
+        title: 'Supprimer le membre',
         message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+          'Êtes-vous sûr de vouloir supprimer {name} de ce SIG ? Cette action est irréversible.',
+        confirmBtn: 'Supprimer',
       },
       removeSuccess: 'Membre retiré.',
       removeError: 'Échec du retrait du membre.',

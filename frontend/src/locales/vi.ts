@@ -405,7 +405,7 @@ export default {
       searchPlaceholder: 'Tìm kiếm SIG...',
       emptyTitle: 'Không có SIG',
       emptyMessage: 'Chưa có SIG nào được tạo.',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: 'Không có SIG nào phù hợp với tìm kiếm của bạn.',
       memberCount: 'thành viên',
       totalCount: 'SIG',
       fetchError: 'Không tải được thư mục SIG.',
@@ -440,10 +440,10 @@ export default {
         confirmBtn: 'Xác nhận xóa',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'Rời khỏi SIG?',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'Bạn có chắc muốn rời khỏi SIG này không? Bạn sẽ cần tham gia lại để truy cập nội dung SIG.',
+        confirmBtn: 'Rời khỏi',
       },
       updateSuccess: 'SIG đã được cập nhật thành công.',
       updateError: 'Cập nhật SIG thất bại.',
@@ -488,10 +488,10 @@ export default {
       promoteBtn: 'Thăng chức',
       removeBtn: 'Xóa',
       removeConfirm: {
-        title: 'Remove Member',
+        title: 'Xóa thành viên',
         message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+          'Bạn có chắc muốn xóa {name} khỏi SIG này không? Hành động này không thể hoàn tác.',
+        confirmBtn: 'Xóa',
       },
       removeSuccess: 'Đã xóa thành viên.',
       removeError: 'Xóa thành viên thất bại.',

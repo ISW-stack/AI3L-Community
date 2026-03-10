@@ -403,7 +403,7 @@ export default {
       searchPlaceholder: 'SIG を検索...',
       emptyTitle: 'SIG がありません',
       emptyMessage: 'まだ SIG が作成されていません。',
-      searchEmpty: 'No SIGs match your search.',
+      searchEmpty: '検索に一致するSIGはありません。',
       memberCount: '名のメンバー',
       totalCount: '件の SIG',
       fetchError: 'SIGディレクトリの読み込みに失敗しました。',
@@ -438,10 +438,10 @@ export default {
         confirmBtn: '削除を確認',
       },
       leaveConfirm: {
-        title: 'Leave SIG?',
+        title: 'SIGを退出しますか？',
         message:
-          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
-        confirmBtn: 'Leave',
+          'このSIGを退出してもよろしいですか？SIGのコンテンツにアクセスするには、再度参加する必要があります。',
+        confirmBtn: '退出',
       },
       updateSuccess: 'SIG が正常に更新されました。',
       updateError: 'SIG の更新に失敗しました。',
@@ -486,10 +486,9 @@ export default {
       promoteBtn: '昇格',
       removeBtn: '削除',
       removeConfirm: {
-        title: 'Remove Member',
-        message:
-          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
-        confirmBtn: 'Remove',
+        title: 'メンバーを削除',
+        message: '{name}をこのSIGから削除してもよろしいですか？この操作は元に戻せません。',
+        confirmBtn: '削除',
       },
       removeSuccess: 'メンバーを削除しました。',
       removeError: 'メンバーの削除に失敗しました。',
