@@ -267,3 +267,88 @@ class TestDeleteInviteCode:
                 assert resp.status_code == 204
         finally:
             _clear_overrides()
+
+
+class TestRevokeInviteCode:
+    @pytest.mark.anyio
+    async def test_revoke_invite_code_success(self, client):
+        """PATCH /admin/invite-codes/{id}/revoke → 200 when code exists."""
+        code_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(
+                    f"{_INVITE_REPO}.revoke",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch("app.core.event_bus.emit", new_callable=AsyncMock),
+            ):
+                resp = await client.patch(
+                    f"/api/v1/admin/invite-codes/{code_id}/revoke",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert "revoked" in resp.json()["message"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_revoke_invite_code_not_found(self, client):
+        """PATCH /admin/invite-codes/{id}/revoke → 404 when code not found."""
+        code_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_INVITE_REPO}.revoke",
+                new_callable=AsyncMock,
+                return_value=False,
+            ):
+                resp = await client.patch(
+                    f"/api/v1/admin/invite-codes/{code_id}/revoke",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_revoke_invite_code_forbidden_for_member(self, client):
+        """PATCH /admin/invite-codes/{id}/revoke → 403 for MEMBER role."""
+        code_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_INVITE_REPO}.revoke", new_callable=AsyncMock):
+                resp = await client.patch(
+                    f"/api/v1/admin/invite-codes/{code_id}/revoke",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_revoke_invite_code_super_admin_allowed(self, client):
+        """PATCH /admin/invite-codes/{id}/revoke → 200 for SUPER_ADMIN role."""
+        code_id = uuid.uuid4()
+
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch(
+                    f"{_INVITE_REPO}.revoke",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch("app.core.event_bus.emit", new_callable=AsyncMock),
+            ):
+                resp = await client.patch(
+                    f"/api/v1/admin/invite-codes/{code_id}/revoke",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()

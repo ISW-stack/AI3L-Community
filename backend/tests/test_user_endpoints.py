@@ -277,3 +277,142 @@ class TestBulkChangeRole:
             assert resp.status_code == 403
         finally:
             _clear_overrides()
+
+
+class TestChangeRoleSelfDemotion:
+    @pytest.mark.anyio
+    async def test_change_role_self_demotion(self, client):
+        """PUT /users/{same_user_id}/role → 400 when changing own role."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("SUPER_ADMIN", user_id=user_id)
+            resp = await client.put(
+                f"/api/v1/users/{user_id}/role",
+                json={"role": "MEMBER"},
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 400
+            assert "Cannot change your own role" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+
+class TestChangeRoleNotFound:
+    @pytest.mark.anyio
+    async def test_change_role_not_found(self, client):
+        """PUT /users/{id}/role → 404 when user not found."""
+        target_user = uuid.uuid4()
+
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(f"{_EP}.update_user_role", new_callable=AsyncMock, return_value=None):
+                resp = await client.put(
+                    f"/api/v1/users/{target_user}/role",
+                    json={"role": "ADMIN"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+        finally:
+            _clear_overrides()
+
+
+class TestChangeRoleForbiddenAdmin:
+    @pytest.mark.anyio
+    async def test_change_role_forbidden_admin(self, client):
+        """PUT /users/{id}/role → 403 for ADMIN (not SUPER_ADMIN)."""
+        target_user = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            resp = await client.put(
+                f"/api/v1/users/{target_user}/role",
+                json={"role": "MEMBER"},
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestAdminCreateAccountRestrictions:
+    @pytest.mark.anyio
+    async def test_admin_create_admin_by_admin_forbidden(self, client):
+        """POST /users/admin/create-account with role=ADMIN by ADMIN → 403."""
+        try:
+            _override_auth("ADMIN")
+            resp = await client.post(
+                "/api/v1/users/admin/create-account",
+                json={
+                    "username": "newadmin",
+                    "password": "StrongPass1",
+                    "display_name": "New Admin",
+                    "role": "ADMIN",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+            assert "Super Admin" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_admin_create_duplicate_username(self, client):
+        """POST /users/admin/create-account with existing username → 409."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(
+                f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True
+            ):
+                resp = await client.post(
+                    "/api/v1/users/admin/create-account",
+                    json={
+                        "username": "existing",
+                        "password": "StrongPass1",
+                        "display_name": "Dup User",
+                        "role": "MEMBER",
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                assert "already exists" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_admin_create_weak_password(self, client):
+        """POST /users/admin/create-account with weak password → 400."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            resp = await client.post(
+                "/api/v1/users/admin/create-account",
+                json={
+                    "username": "weakuser",
+                    "password": "alllowercase1",
+                    "display_name": "Weak User",
+                    "role": "MEMBER",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 400
+        finally:
+            _clear_overrides()
+
+
+class TestBanUserNotFound:
+    @pytest.mark.anyio
+    async def test_ban_user_not_found(self, client):
+        """POST /users/{id}/ban → 404 when user not found."""
+        target_user = uuid.uuid4()
+
+        try:
+            _override_auth("SUPER_ADMIN")
+            with patch(f"{_EP}.ban_user", new_callable=AsyncMock, return_value=False):
+                resp = await client.post(
+                    f"/api/v1/users/{target_user}/ban",
+                    json={"reason": "spam"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+        finally:
+            _clear_overrides()

@@ -688,3 +688,439 @@ class TestDescriptionMaxLength:
             ],
         )
         assert len(req.description) == 5000
+
+
+# ──────────────────────────────────────────────────────────────────────
+# NEW TESTS: Feature coverage
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestFormSubmitDeadlineExpired:
+    @pytest.mark.anyio
+    async def test_submit_form_deadline_expired(self, client):
+        """POST /forms/{form_id}/submit → 400 when deadline has passed."""
+        from app.core.errors import AppError, ErrorCode
+
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=AppError(
+                        ErrorCode.FORM_001, 400, "This form has passed its deadline."
+                    ),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "deadline" in resp.json()["detail"]["message"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestFormSubmitMaxRespondents:
+    @pytest.mark.anyio
+    async def test_submit_form_max_respondents_reached(self, client):
+        """POST /forms/{form_id}/submit → 400 when max respondents reached."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError(
+                        "This form has reached its maximum number of responses."
+                    ),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "maximum" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestFormSubmitDuplicate:
+    @pytest.mark.anyio
+    async def test_submit_form_duplicate_via_value_error(self, client):
+        """POST /forms/{form_id}/submit → 409 when ValueError says already submitted."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError(
+                        "You have already submitted a response to this form."
+                    ),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                assert "already submitted" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_submit_form_duplicate_via_db_unique_violation(self, client):
+        """POST /forms/{form_id}/submit → 409 on DB unique constraint violation."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=Exception(
+                        "duplicate key value violates unique constraint (23505)"
+                    ),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                assert "already submitted" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestFormSubmitNonMember:
+    @pytest.mark.anyio
+    async def test_submit_form_non_member_forbidden(self, client):
+        """POST /forms/{form_id}/submit → 403 when non-member submits."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError("Only SIG members can submit this form."),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "SIG members" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+
+class TestFormDeletePermissions:
+    @pytest.mark.anyio
+    async def test_delete_form_not_found(self, client):
+        """DELETE /forms/{form_id} → 404 when form does not exist."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.soft_delete_form", new_callable=AsyncMock, return_value=False
+            ):
+                resp = await client.delete(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_form_forbidden(self, client):
+        """DELETE /forms/{form_id} → 403 when PermissionError raised."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        creator_id = str(uuid.uuid4())
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.soft_delete_form",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError(
+                        "Only the form creator or admin can delete this form."
+                    ),
+                ),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "creator or admin" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestFormUpdateLocked:
+    @pytest.mark.anyio
+    async def test_update_locked_form_drops_questions(self, client):
+        """PUT /forms/{form_id} → 200 even when questions provided on locked form."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form = _make_form(creator_id=user_id)
+        form["id"] = str(form_id)
+        form["is_schema_locked"] = True
+
+        updated_form = dict(form)
+        updated_form["title"] = "New Title"
+
+        try:
+            _override_auth("ADMIN", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form
+                ),
+            ):
+                resp = await client.put(
+                    f"/api/v1/forms/{form_id}",
+                    json={
+                        "title": "New Title",
+                        "questions": [
+                            {"id": "q1", "type": "text", "label": "Name", "required": True}
+                        ],
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["title"] == "New Title"
+        finally:
+            _clear_overrides()
+
+
+class TestFormListEmpty:
+    @pytest.mark.anyio
+    async def test_list_forms_empty(self, client):
+        """GET /sigs/{sig_id}/forms → 200 with empty list."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.list_forms_by_sig",
+                    new_callable=AsyncMock,
+                    return_value=([], 0),
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/sigs/{sig_id}/forms",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["forms"] == []
+                assert data["total"] == 0
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_forms_with_pagination(self, client):
+        """GET /sigs/{sig_id}/forms?page=2&page_size=5 → pagination params forwarded."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.list_forms_by_sig",
+                    new_callable=AsyncMock,
+                    return_value=([], 0),
+                ) as mock_list,
+            ):
+                resp = await client.get(
+                    f"/api/v1/sigs/{sig_id}/forms?page=2&page_size=5",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                mock_list.assert_called_once_with(sig_id, page=2, page_size=5)
+        finally:
+            _clear_overrides()
+
+
+class TestFormResponsesList:
+    @pytest.mark.anyio
+    async def test_list_responses_success(self, client):
+        """GET /forms/{form_id}/responses → 200 for SIG admin."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+
+        response_item = {
+            "id": str(uuid.uuid4()),
+            "form_id": str(form_id),
+            "user_id": str(uuid.uuid4()),
+            "display_name": "Test User",
+            "username": "testuser",
+            "answers": {"q1": "Answer"},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.list_form_responses",
+                    new_callable=AsyncMock,
+                    return_value=([response_item], 1),
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/responses",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["total"] == 1
+                assert len(data["responses"]) == 1
+                assert data["responses"][0]["display_name"] == "Test User"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_responses_forbidden_non_admin(self, client):
+        """GET /forms/{form_id}/responses → 403 for non-admin."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/responses",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "admin" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestFormExportPermissions:
+    @pytest.mark.anyio
+    async def test_export_form_rate_limited(self, client):
+        """POST /forms/{form_id}/export → 429 when rate limited."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/export",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+                assert "export" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestFormSchemaValidation:
+    """Pydantic schema validation tests for form creation and questions."""
+
+    def test_form_create_empty_title_rejected(self):
+        """FormCreateRequest rejects empty title."""
+        from app.schemas.form import FormCreateRequest, QuestionOption, QuestionSchema
+
+        with pytest.raises(Exception):
+            FormCreateRequest(
+                title="",
+                questions=[
+                    QuestionSchema(
+                        id="q1",
+                        type="dropdown",
+                        label="Q",
+                        options=[
+                            QuestionOption(id="o1", label="A"),
+                            QuestionOption(id="o2", label="B"),
+                        ],
+                    )
+                ],
+            )
+
+    def test_form_create_no_questions_rejected(self):
+        """FormCreateRequest rejects empty questions list."""
+        from app.schemas.form import FormCreateRequest
+
+        with pytest.raises(Exception):
+            FormCreateRequest(
+                title="Valid Title",
+                questions=[],
+            )
+
+    def test_form_question_choice_needs_min_2_options(self):
+        """QuestionSchema rejects choice question with fewer than 2 options."""
+        from app.schemas.form import QuestionOption, QuestionSchema
+
+        with pytest.raises(ValueError, match="requires at least 2 options"):
+            QuestionSchema(
+                id="q1",
+                type="single_choice",
+                label="Pick one",
+                options=[QuestionOption(id="o1", label="Only one")],
+            )
+
+    def test_form_question_rating_min_greater_than_max_rejected(self):
+        """Rating answer with value outside inverted min/max range is rejected."""
+        from app.services.form import _validate_answers
+
+        questions = [
+            {"id": "q1", "type": "rating", "label": "Rate", "min": 5, "max": 1}
+        ]
+        # Any integer should fail validation since min > max makes range impossible
+        with pytest.raises(ValueError, match="must be between"):
+            _validate_answers(questions, {"q1": 3})

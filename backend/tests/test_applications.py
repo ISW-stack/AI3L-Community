@@ -217,3 +217,122 @@ class TestApplicationInsertTransaction:
         assert len(non_none) == 1
         assert len(none_results) == 1
         assert mock_conn.transaction.call_count == 2
+
+
+class TestReviewReject:
+    @pytest.mark.anyio
+    async def test_review_reject(self, client):
+        """PUT /admin/applications/{id}/review action=REJECTED → 200."""
+        app_id = uuid.uuid4()
+        app_row = _make_application()
+        app_row["status"] = "REJECTED"
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.review_application", new_callable=AsyncMock, return_value=app_row):
+                resp = await client.put(
+                    f"/api/v1/admin/applications/{app_id}/review",
+                    json={"action": "REJECTED"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert "rejected" in resp.json()["message"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestReviewNotFound:
+    @pytest.mark.anyio
+    async def test_review_not_found(self, client):
+        """PUT /admin/applications/{id}/review → 404 when not found."""
+        app_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.review_application", new_callable=AsyncMock, return_value=None):
+                resp = await client.put(
+                    f"/api/v1/admin/applications/{app_id}/review",
+                    json={"action": "APPROVED"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+        finally:
+            _clear_overrides()
+
+
+class TestReviewForbiddenMember:
+    @pytest.mark.anyio
+    async def test_review_forbidden_member(self, client):
+        """PUT /admin/applications/{id}/review → 403 for MEMBER."""
+        app_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            resp = await client.put(
+                f"/api/v1/admin/applications/{app_id}/review",
+                json={"action": "APPROVED"},
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestApplyDuplicate:
+    @pytest.mark.anyio
+    async def test_apply_duplicate_pending(self, client):
+        """POST /users/apply-member with pending application → 409."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            with patch(
+                f"{_EP}.create_application",
+                new_callable=AsyncMock,
+                side_effect=ValueError("pending"),
+            ):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json={"description": "I'd like to join"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+        finally:
+            _clear_overrides()
+
+
+class TestListApplicationsFilter:
+    @pytest.mark.anyio
+    async def test_list_applications_with_status_filter(self, client):
+        """GET /admin/applications?status=APPROVED → passes filter."""
+        app_row = _make_application()
+        app_row["status"] = "APPROVED"
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.list_applications",
+                new_callable=AsyncMock,
+                return_value=([app_row], 1),
+            ) as m:
+                resp = await client.get(
+                    "/api/v1/admin/applications?status=APPROVED",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                m.assert_called_once_with(status_filter="APPROVED", offset=0, limit=50)
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_applications_forbidden_member(self, client):
+        """GET /admin/applications → 403 for MEMBER."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/admin/applications",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()

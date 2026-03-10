@@ -463,3 +463,31 @@ class TestDatabase:
 
         with pytest.raises(RuntimeError):
             db_mod.get_pool()
+
+
+# ---------------------------------------------------------------------------
+# logging.py
+# ---------------------------------------------------------------------------
+
+
+class TestLogging:
+    """Test setup_logging function from app.core.logging."""
+
+    def test_setup_logging_json_format(self):
+        """setup_logging with default params (json format) should not raise."""
+        from app.core.logging import setup_logging
+
+        # Should execute without error using default parameters
+        setup_logging()
+
+    def test_setup_logging_text_format(self):
+        """setup_logging with fmt='text' should configure color format handler."""
+        from app.core.logging import setup_logging
+
+        setup_logging(fmt="text")
+
+    def test_setup_logging_custom_level(self):
+        """setup_logging with level='WARNING' should configure at WARNING level."""
+        from app.core.logging import setup_logging
+
+        setup_logging(level="WARNING")

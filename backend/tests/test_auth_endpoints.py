@@ -435,3 +435,62 @@ class TestCSRFMiddleware:
         resp = await client.get("/api/v1/auth/invite-code/TEST")
         # Should be 404 (not found), not 403 (CSRF)
         assert resp.status_code == 404
+
+
+class TestInviteCodeLimits:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False)
+    async def test_generate_invite_code_rate_limited(self, mock_rl, client: AsyncClient):
+        """POST /auth/invite-code → 429 when rate limited."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post(
+                "/api/v1/auth/invite-code", headers={"Authorization": "Bearer fake"}
+            )
+            assert resp.status_code == 429
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+    @patch(
+        "app.repositories.invite_code_repo.count_active_by_user",
+        new_callable=AsyncMock,
+        return_value=5,
+    )
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
+    async def test_generate_invite_code_max_active_reached(
+        self, mock_rl, mock_count, client: AsyncClient
+    ):
+        """POST /auth/invite-code → 429 when max active codes reached."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post(
+                "/api/v1/auth/invite-code", headers={"Authorization": "Bearer fake"}
+            )
+            assert resp.status_code == 429
+            assert "maximum" in resp.json()["detail"].lower()
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+
+class TestGuestLoginInvalidCode:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
+    async def test_guest_login_invalid_code(self, mock_invite, mock_rl, client: AsyncClient):
+        """POST /auth/guest/{invite_code} → 404 when invite code is invalid."""
+        resp = await client.post(
+            "/api/v1/auth/guest/INVALID-CODE",
+            json={
+                "display_name": "Visitor",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
+        assert resp.status_code == 404
+        assert "invite code" in resp.json()["detail"].lower()

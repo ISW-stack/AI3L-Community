@@ -9,7 +9,7 @@ from unittest.mock import patch
 # Helpers
 # ---------------------------------------------------------------------------
 
-_NOW = datetime(2026, 3, 9, 12, 0, 0, tzinfo=timezone.utc)
+_NOW = datetime.now(timezone.utc).replace(microsecond=0)
 _YESTERDAY = _NOW - timedelta(days=1)
 _TOMORROW = _NOW + timedelta(days=1)
 
