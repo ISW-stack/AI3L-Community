@@ -1,6 +1,6 @@
 # AI3L Community Backend -- Contributor Task Guide
 
-> **Last Updated:** 2026-03-09
+> **Last Updated:** 2026-03-11
 > **Applies to:** Backend codebase (`backend/`)
 > **Audience:** Collaborators working on the FastAPI backend
 > **See also:** `FRONTEND_CONTRIBUTOR_GUIDE.md` for frontend tasks
@@ -54,7 +54,7 @@ backend/app/
 | 1.1 | VirusTotal silent error logging | ✅ Done |
 | 1.2 | WebSocket send failure logging | ⬜ Pending |
 | 2.1 | Schema field length constraints | ✅ Done |
-| 2.2 | Post update empty payload check | ⬜ Pending |
+| 2.2 | Post update empty payload check | ✅ Done |
 | 2.3 | Comment delete cross-validate post_id | ✅ Done |
 | 2.4 | Form update SIG ownership check | ⬜ Pending |
 | 3.1 | SIG deletion cascade to forms/posts | ✅ Done |
@@ -122,23 +122,13 @@ Fixed. All major fields now have `max_length` constraints:
 
 ---
 
-### 2.2 Post Update Accepts Empty Payload
+### 2.2 Post Update Accepts Empty Payload — ✅ DONE
 
-**Difficulty: Beginner**
 **File:** `app/api/v1/endpoints/posts.py`
 
-**Problem:**
-The post update endpoint does not validate that at least one field is
-being changed. A client can send an empty update with a valid version
-number, causing a wasted database transaction that increments the version
-without any actual change.
-
-**Fix:**
-Add a check in the endpoint or schema:
-```python
-if not any([req.title, req.content, req.category_id, req.keywords is not None]):
-    raise HTTPException(status_code=400, detail="At least one field must be provided.")
-```
+Fixed. The endpoint validates that at least one field is provided before
+processing. An empty payload receives HTTP 400 with "At least one field
+must be provided."
 
 ---
 
@@ -463,7 +453,7 @@ user receive HTTP 429.
 ### Running Tests
 
 ```bash
-# Unit tests (525 tests)
+# Unit tests (608 tests)
 cd backend && python -m pytest tests/ -v
 
 # Integration tests (requires Docker — PostgreSQL + Redis)

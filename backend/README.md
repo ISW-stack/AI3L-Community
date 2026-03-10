@@ -60,6 +60,7 @@ backend/
 │   ├── api/
 │   │   └── v1/
 │   │       ├── endpoints/       Route handlers (one file per domain)
+│   │       │   ├── about.py
 │   │       │   ├── auth.py
 │   │       │   ├── users.py
 │   │       │   ├── posts.py
@@ -154,6 +155,11 @@ backend/
 │   ├── test_phase9.py
 │   ├── test_privacy_consent.py
 │   ├── test_users.py
+│   ├── test_ws.py               WebSocket endpoint and ticket auth tests
+│   ├── test_event_bus.py        Event bus pub/sub and retry logic tests
+│   ├── test_converters.py       All converter layer unit tests
+│   ├── test_core_modules.py     Core module tests (config, security, rate limiting)
+│   ├── test_celery_tasks.py     Celery task unit tests
 │   └── integration/             Integration tests (require INTEGRATION_TEST=1 + Docker)
 ├── Dockerfile
 ├── alembic.ini

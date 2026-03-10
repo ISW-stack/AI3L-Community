@@ -1,6 +1,6 @@
 # AI3L Community Frontend -- Contributor Task Guide
 
-> **Last Updated:** 2026-03-09
+> **Last Updated:** 2026-03-11
 > **Applies to:** Frontend codebase (`frontend/src/`)
 > **Audience:** Collaborators who are new to the project or learning Vue/TypeScript
 
@@ -344,7 +344,7 @@ The site uses a fixed light theme (dark mode is not active).
 ### Running Tests
 
 ```bash
-# Frontend unit tests (1,112 tests across 84 files)
+# Frontend unit tests (1,163 tests across 86 files)
 cd frontend && npx vitest run
 
 # TypeScript type checking

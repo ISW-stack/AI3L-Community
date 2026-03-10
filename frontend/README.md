@@ -45,7 +45,8 @@ This document covers the frontend application architecture, design system, devel
 | HTML sanitization | DOMPurify                                        |
 | Icon library      | Lucide Vue Next                                  |
 | Font              | Inter Variable (`@fontsource-variable/inter`)    |
-| Unit tests        | Vitest 2                                         |
+| Internationalization | vue-i18n 11 (17 languages)                    |
+| Unit tests        | Vitest 4                                         |
 | End-to-end tests  | Playwright                                       |
 | Formatter         | Prettier 3                                       |
 | Linter            | ESLint 9 (flat config)                           |
@@ -91,8 +92,11 @@ frontend/src/
 │   ├── EmptyState.vue
 │   └── PrivacyConsentModal.vue
 ├── composables/
-│   ├── api.ts           Axios instance factory
-│   └── useWebSocket.ts  WebSocket connection composable
+│   ├── api.ts              Axios instance factory
+│   ├── useWebSocket.ts     WebSocket connection composable
+│   ├── usePagination.ts    Shared pagination state composable
+│   ├── usePostDetail.ts    Post detail business logic composable
+│   └── useLocale.ts        Language preference composable
 ├── constants.ts         Application-wide constants
 ├── main.ts              App entry point
 ├── App.vue              Root component (layout, transitions)
@@ -111,8 +115,28 @@ frontend/src/
 │   ├── form.ts
 │   ├── notification.ts
 │   └── common.ts
+├── locales/             vue-i18n translation files (one per language)
+│   ├── en.ts
+│   ├── zhCN.ts
+│   ├── zhTW.ts
+│   ├── ar.ts
+│   ├── de.ts
+│   ├── es.ts
+│   ├── fr.ts
+│   ├── hi.ts
+│   ├── id.ts
+│   ├── it.ts
+│   ├── ja.ts
+│   ├── ko.ts
+│   ├── pt.ts
+│   ├── ru.ts
+│   ├── tr.ts
+│   ├── vi.ts
+│   ├── nan.ts           Taiwanese Hokkien (Hàn-lô mixed script)
+│   └── index.ts         vue-i18n instance configuration
 ├── utils/
 │   ├── datetime.ts      Date formatting helpers
+│   ├── error.ts         getErrorMessage() — typed API error extraction
 │   └── html.ts          HTML sanitization helpers
 └── views/
     ├── HomeView.vue
@@ -122,13 +146,18 @@ frontend/src/
     ├── NotFoundView.vue
     ├── NotificationsView.vue
     ├── ProfileView.vue
+    ├── UserProfileView.vue
+    ├── AboutView.vue
     ├── forum/
     │   ├── ForumView.vue
     │   ├── PostDetailView.vue
     │   └── PostCreateView.vue
     ├── sigs/
     │   ├── SigsDirectoryView.vue
-    │   ├── SigDetailView.vue
+    │   ├── SigLayout.vue         Parent layout — provides sig + userSigRole via inject
+    │   ├── SigPostsView.vue      Nested route: SIG discussion feed
+    │   ├── SigMembersView.vue    Nested route: SIG member roster
+    │   ├── SigFormsView.vue      Nested route: SIG forms list
     │   └── SigCreateView.vue
     ├── forms/
     │   ├── FormView.vue
@@ -560,6 +589,18 @@ Manages the WebSocket connection to `/api/v1/ws`. Handles:
 - Dispatching incoming messages to the notification store
 - Handling `FORCE_LOGOUT` messages by clearing the session and redirecting
 
+#### `usePagination` (`composables/usePagination.ts`)
+
+Shared pagination state used across list views. Call with a `pageSize` argument; returns `{ page, total, totalPages, setPage, resetPage, updateFromResponse }`. `updateFromResponse` accepts a paginated API response and updates `total` and `totalPages` automatically.
+
+#### `usePostDetail` (`composables/usePostDetail.ts`)
+
+Extracts all business logic for the post detail page (fetching post, comments, reactions, edit/delete flows). Accepts `{ postId, auth, router }` options. The view component becomes a thin orchestrator + template with no business logic.
+
+#### `useLocale` (`composables/useLocale.ts`)
+
+Manages the active vue-i18n locale. Reads the user's `preferred_language` from the auth store on mount and persists changes to the backend via `PUT /users/me`.
+
 ### Types
 
 All TypeScript types are in `src/types/`. The `index.ts` file re-exports everything, so imports can use `@/types` without specifying individual files:
@@ -576,6 +617,8 @@ Add new types to the appropriate file (`user.ts`, `post.ts`, etc.) or create a n
 
 `src/utils/html.ts` wraps DOMPurify for sanitizing HTML before rendering with `v-html`.
 
+`src/utils/error.ts` exports `getErrorMessage(e, fallback)` — the standard way to extract a human-readable message from any caught API error. Use this in every `catch` block instead of accessing `e.response.data.message` directly.
+
 ---
 
 ## Views Reference
@@ -591,13 +634,18 @@ Add new types to the appropriate file (`user.ts`, `post.ts`, etc.) or create a n
 | `PostDetailView`     | `/forum/:id`             | Yes               | Post with comments and reactions         |
 | `PostCreateView`     | `/forum/create`          | Yes (Member+)     | Create a new post                        |
 | `SigsDirectoryView`  | `/sigs`                  | Yes               | List of all SIGs                         |
-| `SigDetailView`      | `/sigs/:id`              | Yes               | SIG with posts, members, and forms tabs  |
+| `SigLayout`          | `/sigs/:id`              | Yes               | SIG parent layout (provides `sig` + `userSigRole` via inject) |
+| `SigPostsView`       | `/sigs/:id` (default)    | Yes               | SIG discussion feed (nested route)       |
+| `SigMembersView`     | `/sigs/:id/members`      | Yes               | SIG member roster (nested route)         |
+| `SigFormsView`       | `/sigs/:id/forms`        | Yes               | SIG forms list (nested route)            |
 | `SigCreateView`      | `/sigs/create`           | Yes (Member+)     | Create a new SIG                         |
 | `FormView`           | `/forms/:formId`         | Yes               | View and submit a form                   |
 | `FormBuilderView`    | `/sigs/:sigId/forms/new` | Yes (SIG Admin)   | Create a form                            |
 | `FormBuilderView`    | `/forms/:formId/edit`    | Yes (SIG Admin)   | Edit a form                              |
 | `NotificationsView`  | `/notifications`         | Yes               | Full notification list                   |
-| `ProfileView`        | `/profile`               | Yes               | Edit profile and change password         |
+| `ProfileView`        | `/profile`               | Yes               | Edit own profile and change password     |
+| `UserProfileView`    | `/users/:id`             | Yes               | View another user's public profile       |
+| `AboutView`          | `/about`                 | Yes (Member+)     | Platform contributors (GitHub avatars proxied) |
 | `AdminDashboardView` | `/admin`                 | Yes (Admin+)      | Platform statistics                      |
 | `UsersView`          | `/admin/users`           | Yes (Admin+)      | User management                          |
 | `ApplicationsView`   | `/admin/applications`    | Yes (Admin+)      | Membership applications                  |

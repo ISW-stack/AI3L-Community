@@ -19,7 +19,7 @@ All SQL lives in `app/repositories/` and only there. Services hold business logi
 WebSocket connections authenticate with a one-time ticket (30-second TTL, consumed on connect) so session cookies never cross the WebSocket upgrade. Server-to-client push is backed by Redis Pub/Sub, fanning out across all Uvicorn workers without sticky sessions.
 
 **Test coverage that proves it works.**
-525 backend unit tests run with fully mocked asyncpg and Redis — no running database required, no flakiness. 15 integration tests cover the real database layer. 1,112 frontend Vitest tests across 84 files. All three suites run in CI on every pull request.
+542 backend unit tests run with fully mocked asyncpg and Redis — no running database required, no flakiness. 15 integration tests cover the real database layer. 1,123 frontend Vitest tests across 84 files. All three suites run in CI on every pull request.
 
 **Production-ready from day one.**
 Docker Compose orchestration, Nginx TLS termination, automatic Alembic migrations on startup, Celery workers with memory-leak guards, Redis with `allkeys-lru` eviction, automated PostgreSQL backup and certificate renewal scripts, GDPR-compliant account erasure, and optional Datadog/Sentry instrumentation.
@@ -66,7 +66,7 @@ Docker Compose orchestration, Nginx TLS termination, automatic Alembic migration
 - Redis Pub/Sub fan-out across multiple Uvicorn workers
 
 ### Internationalization
-- Interface available in 7 languages via vue-i18n
+- Interface available in 17 languages via vue-i18n
 - User language preference stored per account (`preferred_language` field)
 - Locale selector available in the user profile
 
@@ -154,7 +154,7 @@ app/core/event_bus.py    Async pub/sub · handlers run without blocking the resp
 | Rich text editor | TipTap 3 |
 | HTTP client | Axios (with CSRF interceptor) |
 | HTML sanitization | DOMPurify |
-| Internationalization | vue-i18n 11 (7 languages) |
+| Internationalization | vue-i18n 11 (17 languages) |
 
 ### Infrastructure
 
@@ -218,12 +218,12 @@ A super admin account is created automatically on first startup from `SUPER_ADMI
 # Backend — no running database required (asyncpg and Redis are fully mocked)
 cd backend
 pytest tests/ -v
-# 525 unit tests + 15 integration tests (set INTEGRATION_TEST=1 for integration)
+# 542 unit tests + 15 integration tests (set INTEGRATION_TEST=1 for integration)
 
 # Frontend
 cd frontend
 npx vitest run
-# 1,112 tests across 84 files
+# 1,123 tests across 84 files
 ```
 
 ---
