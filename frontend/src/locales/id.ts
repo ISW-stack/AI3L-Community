@@ -74,6 +74,7 @@ export default {
     it: 'Italiano',
     vi: 'Tiếng Việt',
     tr: 'Turki',
+    nan: 'Hokkien Taiwan',
   },
 
   // ── Auth ──

@@ -74,6 +74,7 @@ export default {
     it: 'Italiano',
     vi: 'Tiếng Việt',
     tr: 'तुर्की',
+    nan: 'ताइवानी होक्किएन',
   },
 
   // ── Auth ──

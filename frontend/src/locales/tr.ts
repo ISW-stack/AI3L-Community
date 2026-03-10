@@ -74,6 +74,7 @@ export default {
     it: 'İtalyanca',
     vi: 'Vietnamca',
     tr: 'Türkçe',
+    nan: 'Tayvan Hokkienci',
   },
 
   // ── Auth ──
@@ -204,7 +205,8 @@ export default {
     unauthenticated: {
       title: 'AI3L Community',
       subtitle: 'Dil Öğrenme ve Okuryazarlıkta Yapay Zeka — Akademik Değişim Platformu',
-      tagline: 'Yapay zeka destekli dil öğrenimini ilerletmek için araştırmacı ve eğitimcilere katılın.',
+      tagline:
+        'Yapay zeka destekli dil öğrenimini ilerletmek için araştırmacı ve eğitimcilere katılın.',
       getStartedBtn: 'Başlayın',
       browseGuestBtn: 'Misafir Olarak Gözat',
       stats: {
@@ -218,7 +220,8 @@ export default {
       features: {
         forum: {
           title: 'Akademik Forum',
-          description: 'Araştırma tartışın, makaleler paylaşın ve fikirlerinizi meslektaşlarınızla değiş tokuş edin',
+          description:
+            'Araştırma tartışın, makaleler paylaşın ve fikirlerinizi meslektaşlarınızla değiş tokuş edin',
         },
         sigs: {
           title: 'Özel İlgi Grupları',
@@ -436,7 +439,7 @@ export default {
       deleteConfirm: {
         title: 'SIG Silinsin mi?',
         message:
-          "Bu, Özel İlgi Grubunu ve tüm gönderilerini silecektir. Bu işlem kolayca geri alınamaz.",
+          'Bu, Özel İlgi Grubunu ve tüm gönderilerini silecektir. Bu işlem kolayca geri alınamaz.',
         confirmBtn: 'Silmeyi Onayla',
       },
       leaveConfirm: {
@@ -535,8 +538,9 @@ export default {
       deadlineLabel: 'Son Tarih',
       maxRespondentsLabel: 'Maksimum Yanıtlayan',
       maxRespondentsPlaceholder: 'Sınırsız',
-      allowNonMembers: "SIG üyesi olmayanların bu formu göndermesine izin ver",
-      allowNonMembersHint: 'Etkinleştirildiğinde, kimliği doğrulanmış herhangi bir kullanıcı bu formu doldurabilir.',
+      allowNonMembers: 'SIG üyesi olmayanların bu formu göndermesine izin ver',
+      allowNonMembersHint:
+        'Etkinleştirildiğinde, kimliği doğrulanmış herhangi bir kullanıcı bu formu doldurabilir.',
       questionsTitle: 'Sorular',
       addQuestionBtn: '+ Soru Ekle',
       schemaLockedWarning:
@@ -655,7 +659,8 @@ export default {
       },
       inviteCodes: {
         title: 'Davet Kodları',
-        description: 'Başkalarıyla paylaşmak için bir davet kodu oluşturun, böylece hesap oluşturabilirler.',
+        description:
+          'Başkalarıyla paylaşmak için bir davet kodu oluşturun, böylece hesap oluşturabilirler.',
         generateBtn: 'Davet Kodu Oluştur',
         copyBtn: 'Kopyala',
         copiedBtn: 'Kopyalandı!',
@@ -720,7 +725,7 @@ export default {
   about: {
     title: 'AI3L Community Hakkında',
     description:
-      "AI3L Community, Dil Öğrenme ve Okuryazarlıkta Yapay Zeka için küçük bir akademik değişim platformudur. NTNU (Ulusal Tayvan Normal Üniversitesi) bünyesinde Prof. Yu-Ju Lan tarafından organize edilmektedir. Bu topluluk odaklı proje, yapay zekanın dil eğitimi ve okuryazarlık gelişimini nasıl destekleyebileceğini araştırmaya ilgi duyan araştırmacı ve uygulayıcıları bir araya getirmeyi amaçlamaktadır.",
+      'AI3L Community, Dil Öğrenme ve Okuryazarlıkta Yapay Zeka için küçük bir akademik değişim platformudur. NTNU (Ulusal Tayvan Normal Üniversitesi) bünyesinde Prof. Yu-Ju Lan tarafından organize edilmektedir. Bu topluluk odaklı proje, yapay zekanın dil eğitimi ve okuryazarlık gelişimini nasıl destekleyebileceğini araştırmaya ilgi duyan araştırmacı ve uygulayıcıları bir araya getirmeyi amaçlamaktadır.',
     contributors: {
       title: 'Katkıda Bulunanlar',
       loading: 'Katkıda bulunanlar yükleniyor...',

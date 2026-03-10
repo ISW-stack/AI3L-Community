@@ -73,6 +73,7 @@ export default {
     it: 'Italiano',
     vi: 'Tiếng Việt',
     tr: '터키어',
+    nan: '대만 호키엔어',
   },
 
   // ── Auth ──
