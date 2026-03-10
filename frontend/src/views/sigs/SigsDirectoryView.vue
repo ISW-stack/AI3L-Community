@@ -63,8 +63,8 @@ onMounted(fetchSigs)
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
     <EmptyState
       v-else-if="filteredSigs.length === 0"
-      :message="t('sigs.directory.emptyMessage')"
-      :title="t('sigs.directory.emptyTitle')"
+      :message="searchQuery ? t('sigs.directory.searchEmpty') : t('sigs.directory.emptyMessage')"
+      :title="searchQuery ? t('common.noResults') : t('sigs.directory.emptyTitle')"
     />
 
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

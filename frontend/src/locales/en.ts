@@ -404,6 +404,7 @@ export default {
       searchPlaceholder: 'Search SIGs...',
       emptyTitle: 'No SIGs',
       emptyMessage: 'No SIGs have been created yet.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'member(s)',
       totalCount: 'SIG(s) total',
       fetchError: 'Failed to load SIG directory.',
@@ -436,6 +437,12 @@ export default {
         message:
           'This will soft-delete this Special Interest Group and all its posts. This action cannot be easily undone.',
         confirmBtn: 'Confirm Delete',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'SIG updated successfully.',
       updateError: 'Failed to update SIG.',
@@ -479,6 +486,12 @@ export default {
       },
       promoteBtn: 'Promote',
       removeBtn: 'Remove',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'Member removed.',
       removeError: 'Failed to remove member.',
       promoteSuccess: 'Member promoted to Sub-Admin.',

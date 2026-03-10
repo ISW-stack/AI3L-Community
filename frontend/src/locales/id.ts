@@ -408,6 +408,7 @@ export default {
       searchPlaceholder: 'Cari SIG...',
       emptyTitle: 'Tidak Ada SIG',
       emptyMessage: 'Belum ada SIG yang dibuat.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'anggota',
       totalCount: 'SIG total',
       fetchError: 'Gagal memuat direktori SIG.',
@@ -440,6 +441,12 @@ export default {
         message:
           'Ini akan menghapus sementara Kelompok Minat Khusus ini beserta semua postingannya. Tindakan ini tidak mudah dibatalkan.',
         confirmBtn: 'Konfirmasi Hapus',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'SIG berhasil diperbarui.',
       updateError: 'Gagal memperbarui SIG.',
@@ -483,6 +490,12 @@ export default {
       },
       promoteBtn: 'Promosikan',
       removeBtn: 'Hapus',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'Anggota dihapus.',
       removeError: 'Gagal menghapus anggota.',
       promoteSuccess: 'Anggota dipromosikan menjadi Sub-Admin.',

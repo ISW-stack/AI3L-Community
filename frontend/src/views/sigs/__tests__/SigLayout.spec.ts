@@ -444,4 +444,97 @@ describe('SigLayout', () => {
     expect(injectedEl.text()).toContain('Test SIG')
     expect(injectedEl.text()).toContain('MEMBER')
   })
+
+  it('shows leave confirmation modal when Leave SIG is clicked', async () => {
+    const { wrapper } = await mountLayout({
+      role: 'MEMBER',
+      sigData: fakeSig,
+      membersData: fakeMembersWithUser,
+    })
+
+    // Modal should not be visible initially
+    expect(wrapper.find('.base-modal').exists()).toBe(false)
+
+    // Click Leave SIG button
+    const buttons = wrapper.findAll('button')
+    const leaveBtn = buttons.find((b) => b.text().includes('Leave SIG'))
+    expect(leaveBtn).toBeTruthy()
+    await leaveBtn!.trigger('click')
+    await nextTick()
+
+    // Modal should now appear with confirmation message
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Are you sure you want to leave this SIG?')
+
+    // leaveSig API should NOT have been called yet
+    expect(mockLeaveSig).not.toHaveBeenCalled()
+  })
+
+  it('does not call leaveSig API until confirmed in modal', async () => {
+    mockLeaveSig.mockResolvedValueOnce({})
+    // Mock the refetch after leave
+    mockGetSig.mockResolvedValueOnce(fakeSig)
+    mockGetSigMembers.mockResolvedValueOnce(fakeMembersEmpty)
+
+    const { wrapper } = await mountLayout({
+      role: 'MEMBER',
+      sigData: fakeSig,
+      membersData: fakeMembersWithUser,
+    })
+
+    // Click Leave SIG button to open modal
+    const buttons = wrapper.findAll('button')
+    const leaveBtn = buttons.find((b) => b.text().includes('Leave SIG'))
+    await leaveBtn!.trigger('click')
+    await nextTick()
+
+    // API not called yet
+    expect(mockLeaveSig).not.toHaveBeenCalled()
+
+    // Find the danger confirm button inside the modal footer (the "Leave" button)
+    const modal = wrapper.find('.base-modal')
+    expect(modal.exists()).toBe(true)
+    const modalButtons = modal.findAll('button')
+    const confirmBtn = modalButtons.find((b) => b.text().includes('Leave'))
+    expect(confirmBtn).toBeTruthy()
+
+    await confirmBtn!.trigger('click')
+    await vi.dynamicImportSettled()
+    await nextTick()
+
+    // Now the API should have been called
+    expect(mockLeaveSig).toHaveBeenCalledWith('sig-1')
+  })
+
+  it('closes leave modal when cancel is clicked', async () => {
+    const { wrapper } = await mountLayout({
+      role: 'MEMBER',
+      sigData: fakeSig,
+      membersData: fakeMembersWithUser,
+    })
+
+    // Click Leave SIG button to open modal
+    const buttons = wrapper.findAll('button')
+    const leaveBtn = buttons.find((b) => b.text().includes('Leave SIG'))
+    await leaveBtn!.trigger('click')
+    await nextTick()
+
+    // Modal should be visible
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+
+    // Click the Cancel button inside the modal
+    const modal = wrapper.find('.base-modal')
+    const modalButtons = modal.findAll('button')
+    const cancelBtn = modalButtons.find((b) => b.text().includes('Cancel'))
+    expect(cancelBtn).toBeTruthy()
+
+    await cancelBtn!.trigger('click')
+    await nextTick()
+
+    // Modal should close
+    expect(wrapper.find('.base-modal').exists()).toBe(false)
+
+    // leaveSig should never have been called
+    expect(mockLeaveSig).not.toHaveBeenCalled()
+  })
 })

@@ -19,6 +19,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import SigShareCard from '@/components/SigShareCard.vue'
 import FormShareCard from '@/components/FormShareCard.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -267,9 +268,7 @@ const {
 
           <!-- Threaded comments -->
           <div class="space-y-4">
-            <div v-if="commentTree.length === 0" class="text-sm text-muted text-center py-4">
-              {{ t('post.detail.noComments') }}
-            </div>
+            <EmptyState v-if="commentTree.length === 0" :message="t('post.detail.noComments')" />
             <div
               v-for="node in commentTree"
               :key="node.root.id"

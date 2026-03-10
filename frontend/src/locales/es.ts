@@ -408,6 +408,7 @@ export default {
       searchPlaceholder: 'Buscar GIEs...',
       emptyTitle: 'Sin GIEs',
       emptyMessage: 'Aún no se han creado GIEs.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'miembro(s)',
       totalCount: 'GIE(s) en total',
       fetchError: 'Error al cargar el directorio de SIG.',
@@ -440,6 +441,12 @@ export default {
         message:
           'Esto eliminará de forma temporal este Grupo de interés especial y todas sus publicaciones. Esta acción no se puede deshacer fácilmente.',
         confirmBtn: 'Confirmar eliminación',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'GIE actualizado correctamente.',
       updateError: 'Error al actualizar el GIE.',
@@ -483,6 +490,12 @@ export default {
       },
       promoteBtn: 'Ascender',
       removeBtn: 'Eliminar',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'Miembro eliminado.',
       removeError: 'Error al eliminar al miembro.',
       promoteSuccess: 'Miembro ascendido a subadministrador.',

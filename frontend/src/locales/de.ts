@@ -410,6 +410,7 @@ export default {
       searchPlaceholder: 'SIGs suchen...',
       emptyTitle: 'Keine SIGs',
       emptyMessage: 'Es wurden noch keine SIGs erstellt.',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: 'Mitglied(er)',
       totalCount: 'SIG(s) insgesamt',
       fetchError: 'SIG-Verzeichnis konnte nicht geladen werden.',
@@ -442,6 +443,12 @@ export default {
         message:
           'Diese Arbeitsgruppe und alle zugehörigen Beiträge werden als gelöscht markiert. Diese Aktion kann nur schwer rückgängig gemacht werden.',
         confirmBtn: 'Löschen bestätigen',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'SIG erfolgreich aktualisiert.',
       updateError: 'SIG konnte nicht aktualisiert werden.',
@@ -486,6 +493,12 @@ export default {
       },
       promoteBtn: 'Befördern',
       removeBtn: 'Entfernen',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: 'Mitglied entfernt.',
       removeError: 'Mitglied konnte nicht entfernt werden.',
       promoteSuccess: 'Mitglied zum Unteradministrator befördert.',

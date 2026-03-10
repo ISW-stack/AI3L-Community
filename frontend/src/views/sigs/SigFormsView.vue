@@ -212,9 +212,7 @@ onMounted(fetchForms)
       <div v-if="responsesLoading" class="py-12 flex justify-center">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
       </div>
-      <div v-else-if="responses.length === 0" class="py-12 text-center text-muted italic">
-        {{ t('sigs.forms.noResponses') }}
-      </div>
+      <EmptyState v-else-if="responses.length === 0" :message="t('sigs.forms.noResponses')" />
       <div v-else class="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
         <div
           v-for="resp in responses"

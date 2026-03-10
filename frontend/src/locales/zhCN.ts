@@ -375,6 +375,7 @@ export default {
       searchPlaceholder: '搜索 SIG...',
       emptyTitle: '没有 SIG',
       emptyMessage: '尚未创建任何 SIG。',
+      searchEmpty: 'No SIGs match your search.',
       memberCount: '位成员',
       totalCount: '个 SIG',
       fetchError: '加载 SIG 目录失败。',
@@ -406,6 +407,12 @@ export default {
         title: '删除 SIG？',
         message: '此操作将软删除此特殊兴趣组及其所有文章。此操作不容易撤销。',
         confirmBtn: '确认删除',
+      },
+      leaveConfirm: {
+        title: 'Leave SIG?',
+        message:
+          'Are you sure you want to leave this SIG? You will need to rejoin to access SIG content.',
+        confirmBtn: 'Leave',
       },
       updateSuccess: 'SIG 更新成功。',
       updateError: 'SIG 更新失败。',
@@ -449,6 +456,12 @@ export default {
       },
       promoteBtn: '晋升',
       removeBtn: '移除',
+      removeConfirm: {
+        title: 'Remove Member',
+        message:
+          'Are you sure you want to remove {name} from this SIG? This action cannot be undone.',
+        confirmBtn: 'Remove',
+      },
       removeSuccess: '成员已移除。',
       removeError: '移除成员失败。',
       promoteSuccess: '成员已晋升为副管理员。',
