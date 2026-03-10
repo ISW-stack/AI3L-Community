@@ -3,7 +3,6 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import { useToastStore } from '@/stores/toast'
 import SigPostsView from '../SigPostsView.vue'
 
 // Standard mocks
