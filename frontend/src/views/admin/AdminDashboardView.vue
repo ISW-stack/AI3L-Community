@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToastStore } from '@/stores/toast'
 import { Users, FileText, UsersRound, ClipboardList, Flag, UserPlus } from 'lucide-vue-next'
+import { getErrorMessage } from '@/utils/error'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -10,6 +12,7 @@ import type { DashboardStats } from '@/types'
 import { getDashboard } from '@/api/admin'
 
 const { t } = useI18n()
+const toast = useToastStore()
 const stats = ref<DashboardStats | null>(null)
 const loading = ref(false)
 
@@ -17,8 +20,8 @@ async function fetchStats() {
   loading.value = true
   try {
     stats.value = await getDashboard()
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('admin.dashboard.fetchError')), 'error')
   } finally {
     loading.value = false
   }

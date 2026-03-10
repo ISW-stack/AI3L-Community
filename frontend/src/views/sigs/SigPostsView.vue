@@ -3,6 +3,8 @@ import { ref, onMounted, computed, inject, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getSigPosts } from '@/api/sigs'
+import { getErrorMessage } from '@/utils/error'
+import { useToastStore } from '@/stores/toast'
 import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
@@ -11,6 +13,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 
 const { t } = useI18n()
+const toast = useToastStore()
 const route = useRoute()
 const sigId = computed(() => route.params.id as string)
 const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
@@ -27,8 +30,8 @@ async function fetchPosts() {
     const data = await getSigPosts(sigId.value)
     posts.value = data.posts
     total.value = data.total
-  } catch (e) {
-    console.error('Failed to fetch posts:', e)
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('sigs.posts.fetchError')), 'error')
   } finally {
     loading.value = false
   }

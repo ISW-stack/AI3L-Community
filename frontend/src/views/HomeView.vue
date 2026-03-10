@@ -48,8 +48,8 @@ async function fetchRecentPosts() {
   try {
     const data = await listPosts({ page: 1, page_size: 5, sort: 'newest' })
     recentPosts.value = data.posts
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('home.recentPosts.fetchError')), 'error')
   } finally {
     loadingPosts.value = false
   }

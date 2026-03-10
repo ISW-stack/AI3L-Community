@@ -187,6 +187,7 @@ export default {
       title: 'Последние записи',
       empty: 'Записей пока нет. Начните первое обсуждение!',
       comments: 'комментарии',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: 'У вас',
@@ -267,6 +268,10 @@ export default {
       allPosts: 'Все записи',
       trendingTitle: 'Популярное (7д)',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
 
   // ── Post ──
@@ -350,6 +355,8 @@ export default {
       publish: 'Опубликовать',
       errorRequired: 'Заголовок и содержание обязательны.',
       errorFailed: 'Не удалось создать запись.',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
 
@@ -400,6 +407,7 @@ export default {
       emptyMessage: 'Группы по интересам ещё не созданы.',
       memberCount: 'участник(ов)',
       totalCount: 'SIG(ов) всего',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: 'Все SIGs',
@@ -438,6 +446,7 @@ export default {
       leaveError: 'Не удалось покинуть SIG.',
       joinSuccess: 'Вы вступили в SIG.',
       joinError: 'Не удалось вступить в SIG.',
+      fetchError: 'Failed to load SIG details.',
     },
     create: {
       title: 'Создать SIG',
@@ -456,6 +465,7 @@ export default {
       emptyTitle: 'Записей пока нет',
       emptyMessage: 'Начните обсуждение, создав первую запись в этом SIG.',
       comments: 'комментарии',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: 'Участники',
@@ -474,6 +484,7 @@ export default {
       removeError: 'Не удалось удалить участника.',
       promoteSuccess: 'Участник повышен до субадминистратора.',
       promoteError: 'Не удалось назначить субадминистратора.',
+      fetchError: 'Failed to load members.',
     },
     forms: {
       title: 'Формы',
@@ -673,6 +684,8 @@ export default {
     postsTitle: 'Записи',
     postsEmptyTitle: 'Записей пока нет',
     postsEmptyMessage: 'Этот пользователь ещё ничего не публиковал.',
+    fetchError: 'Failed to load user profile.',
+    fetchPostsError: 'Failed to load user posts.',
   },
 
   // ── Notifications ──
@@ -688,6 +701,8 @@ export default {
     emptyMessage: 'Уведомлений пока нет.',
     deleteSuccess: 'Все уведомления очищены.',
     deleteError: 'Не удалось очистить уведомления.',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
 
   // ── About ──
@@ -727,6 +742,7 @@ export default {
         reviewApplications: 'Рассмотреть заявки',
         viewReports: 'Просмотреть жалобы',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: 'Управление пользователями',
@@ -823,6 +839,8 @@ export default {
       dismissBtn: 'Отклонить',
       reviewedBtn: 'Рассмотрено',
       total: 'Всего жалоб: {count}',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: 'Категории',
@@ -903,6 +921,7 @@ export default {
         generateFailed: 'Не удалось создать код.',
         copied: 'Код скопирован в буфер обмена.',
         copyFailed: 'Не удалось скопировать код.',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: 'Всего кодов: {count}',
     },

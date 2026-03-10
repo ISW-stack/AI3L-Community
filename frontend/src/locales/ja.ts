@@ -178,6 +178,7 @@ export default {
       title: '最近の投稿',
       empty: 'まだ投稿がありません。最初のディスカッションを始めましょう！',
       comments: 'コメント',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: '未読通知が',
@@ -257,6 +258,10 @@ export default {
       allPosts: 'すべての投稿',
       trendingTitle: 'トレンド（7日間）',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
 
   // ── Post ──
@@ -340,6 +345,8 @@ export default {
       publish: '公開',
       errorRequired: 'タイトルと内容は必須です。',
       errorFailed: '投稿の作成に失敗しました。',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
 
@@ -390,6 +397,7 @@ export default {
       emptyMessage: 'まだ SIG が作成されていません。',
       memberCount: '名のメンバー',
       totalCount: '件の SIG',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: 'すべての SIG',
@@ -428,6 +436,7 @@ export default {
       leaveError: 'SIG の退会に失敗しました。',
       joinSuccess: 'SIG に参加しました。',
       joinError: 'SIG への参加に失敗しました。',
+      fetchError: 'Failed to load SIG details.',
     },
     create: {
       title: 'SIG を作成',
@@ -446,6 +455,7 @@ export default {
       emptyTitle: 'まだ投稿がありません',
       emptyMessage: 'この SIG に最初の投稿を作成してディスカッションを始めましょう。',
       comments: 'コメント',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: 'メンバー',
@@ -464,6 +474,7 @@ export default {
       removeError: 'メンバーの削除に失敗しました。',
       promoteSuccess: 'メンバーをサブ管理者に昇格しました。',
       promoteError: 'サブ管理者の割り当てに失敗しました。',
+      fetchError: 'Failed to load members.',
     },
     forms: {
       title: 'フォーム',
@@ -661,6 +672,8 @@ export default {
     postsTitle: '投稿',
     postsEmptyTitle: 'まだ投稿がありません',
     postsEmptyMessage: 'このユーザーはまだ何も投稿していません。',
+    fetchError: 'Failed to load user profile.',
+    fetchPostsError: 'Failed to load user posts.',
   },
 
   // ── Notifications ──
@@ -676,6 +689,8 @@ export default {
     emptyMessage: 'まだ通知はありません。',
     deleteSuccess: 'すべての通知がクリアされました。',
     deleteError: '通知のクリアに失敗しました。',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
 
   // ── About ──
@@ -715,6 +730,7 @@ export default {
         reviewApplications: '申請を審査',
         viewReports: 'レポートを表示',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: 'ユーザー管理',
@@ -811,6 +827,8 @@ export default {
       dismissBtn: '却下',
       reviewedBtn: '確認済み',
       total: '合計 {count} 件のレポート',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: 'カテゴリ',
@@ -891,6 +909,7 @@ export default {
         generateFailed: 'コードの生成に失敗しました。',
         copied: 'コードをクリップボードにコピーしました。',
         copyFailed: 'コードのコピーに失敗しました。',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: '合計 {count} 件のコード',
     },

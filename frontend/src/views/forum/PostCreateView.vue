@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useToastStore } from '@/stores/toast'
 import type { Category, Sig } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { createPost as apiCreatePost } from '@/api/posts'
@@ -16,6 +17,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const toast = useToastStore()
 
 const querySigId = (route.query.sig_id as string) || null
 const fromSig = computed(() => !!querySigId)
@@ -89,16 +91,16 @@ watch([title, content, categoryId, keywords, allowComments], debouncedSaveDraft,
 async function fetchCategories() {
   try {
     categories.value = await listCategories()
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('post.create.fetchCategoriesError')), 'error')
   }
 }
 
 async function fetchMySigs() {
   try {
     mySigs.value = await listMySigs()
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('post.create.fetchSigsError')), 'error')
   }
 }
 

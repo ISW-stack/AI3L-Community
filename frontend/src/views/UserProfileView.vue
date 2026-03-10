@@ -3,7 +3,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
+import { getErrorMessage } from '@/utils/error'
 import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
 import { listPosts } from '@/api/posts'
@@ -18,6 +20,7 @@ import EmptyState from '@/components/EmptyState.vue'
 const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const userId = computed(() => route.params.id as string)
 const user = ref<PublicUser | null>(null)
@@ -56,7 +59,8 @@ async function fetchUser() {
     const data = await getPublicProfile(userId.value)
     if (localId !== userFetchId) return
     user.value = data
-  } catch {
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('userProfile.fetchError')), 'error')
     if (localId === userFetchId) user.value = null
   } finally {
     if (localId === userFetchId) loading.value = false
@@ -75,8 +79,8 @@ async function fetchPosts() {
     if (localId !== postsFetchId) return
     posts.value = data.posts
     updateFromResponse(data.total, data.total_pages)
-  } catch (e) {
-    console.error(e)
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('userProfile.fetchPostsError')), 'error')
   } finally {
     if (localId === postsFetchId) postsLoading.value = false
   }

@@ -188,6 +188,7 @@ export default {
       title: 'Postingan Terbaru',
       empty: 'Belum ada postingan. Jadilah yang pertama memulai diskusi!',
       comments: 'komentar',
+      fetchError: 'Failed to load recent posts.',
     },
     notifications: {
       title: 'Anda memiliki',
@@ -268,6 +269,10 @@ export default {
       allPosts: 'Semua Postingan',
       trendingTitle: 'Trending (7h)',
     },
+    fetchCategoriesError: 'Failed to load categories.',
+    fetchTrendingError: 'Failed to load trending posts.',
+    fetchPostsError: 'Failed to load posts.',
+    searchError: 'Search failed. Please try again.',
   },
 
   // ── Post ──
@@ -353,6 +358,8 @@ export default {
       publish: 'Terbitkan',
       errorRequired: 'Judul dan konten wajib diisi.',
       errorFailed: 'Gagal membuat postingan.',
+      fetchCategoriesError: 'Failed to load categories.',
+      fetchSigsError: 'Failed to load SIG list.',
     },
   },
 
@@ -403,6 +410,7 @@ export default {
       emptyMessage: 'Belum ada SIG yang dibuat.',
       memberCount: 'anggota',
       totalCount: 'SIG total',
+      fetchError: 'Failed to load SIG directory.',
     },
     detail: {
       backLink: 'Semua SIG',
@@ -441,6 +449,7 @@ export default {
       leaveError: 'Gagal keluar dari SIG.',
       joinSuccess: 'Anda telah bergabung dengan SIG.',
       joinError: 'Gagal bergabung dengan SIG.',
+      fetchError: 'Failed to load SIG details.',
     },
     create: {
       title: 'Buat SIG',
@@ -459,6 +468,7 @@ export default {
       emptyTitle: 'Belum ada postingan',
       emptyMessage: 'Mulai diskusi dengan membuat postingan pertama di SIG ini.',
       comments: 'komentar',
+      fetchError: 'Failed to load posts.',
     },
     members: {
       title: 'Anggota',
@@ -477,6 +487,7 @@ export default {
       removeError: 'Gagal menghapus anggota.',
       promoteSuccess: 'Anggota dipromosikan menjadi Sub-Admin.',
       promoteError: 'Gagal menetapkan Sub-Admin.',
+      fetchError: 'Failed to load members.',
     },
     forms: {
       title: 'Formulir',
@@ -676,6 +687,8 @@ export default {
     postsTitle: 'Postingan',
     postsEmptyTitle: 'Belum ada postingan',
     postsEmptyMessage: 'Pengguna ini belum memposting apa pun.',
+    fetchError: 'Failed to load user profile.',
+    fetchPostsError: 'Failed to load user posts.',
   },
 
   // ── Notifications ──
@@ -691,6 +704,8 @@ export default {
     emptyMessage: 'Belum ada notifikasi.',
     deleteSuccess: 'Semua notifikasi dihapus.',
     deleteError: 'Gagal menghapus notifikasi.',
+    fetchError: 'Failed to load notifications.',
+    markReadError: 'Failed to mark notification as read.',
   },
 
   // ── About ──
@@ -730,6 +745,7 @@ export default {
         reviewApplications: 'Tinjau Permohonan',
         viewReports: 'Lihat Laporan',
       },
+      fetchError: 'Failed to load dashboard statistics.',
     },
     users: {
       title: 'Manajemen Pengguna',
@@ -826,6 +842,8 @@ export default {
       dismissBtn: 'Abaikan',
       reviewedBtn: 'Ditinjau',
       total: '{count} laporan total',
+      fetchError: 'Failed to load reports.',
+      reviewError: 'Failed to update report status.',
     },
     categories: {
       title: 'Kategori',
@@ -906,6 +924,7 @@ export default {
         generateFailed: 'Gagal membuat kode.',
         copied: 'Kode disalin ke clipboard.',
         copyFailed: 'Gagal menyalin kode.',
+        fetchFailed: 'Failed to load invite codes.',
       },
       total: '{count} kode total',
     },

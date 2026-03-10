@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SigPostsView from '../SigPostsView.vue'
 
@@ -20,6 +21,12 @@ const mockGetSigPosts = vi.fn()
 
 vi.mock('@/api/sigs', () => ({
   getSigPosts: (...args: unknown[]) => mockGetSigPosts(...args),
+}))
+
+vi.mock('@/stores/toast', () => ({
+  useToastStore: vi.fn(() => ({
+    show: vi.fn(),
+  })),
 }))
 
 const fakePosts = [
@@ -91,6 +98,8 @@ function createTestRouter() {
 
 async function mountComponent(options?: { userSigRole?: ReturnType<typeof ref> | undefined }) {
   const router = createTestRouter()
+  const pinia = createPinia()
+  setActivePinia(pinia)
   await router.push('/sigs/sig1/posts')
   await router.isReady()
 
@@ -101,7 +110,7 @@ async function mountComponent(options?: { userSigRole?: ReturnType<typeof ref> |
 
   const wrapper = mount(SigPostsView, {
     global: {
-      plugins: [router],
+      plugins: [pinia, router],
       provide,
       stubs: {
         BaseCard: {
@@ -136,7 +145,7 @@ describe('SigPostsView', () => {
 
   it('shows loading skeleton initially', async () => {
     // Never resolve so loading stays true
-    mockGetSigPosts.mockReturnValue(new Promise(() => {}))
+    mockGetSigPosts.mockReturnValue(new Promise(() => { }))
 
     const { wrapper } = await mountComponent({ userSigRole: ref(null) })
 

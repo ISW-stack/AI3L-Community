@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToastStore } from '@/stores/toast'
 import type { Report } from '@/types'
+import { getErrorMessage } from '@/utils/error'
 import { listReports, reviewReport as apiReviewReport } from '@/api/admin'
 import { usePagination } from '@/composables/usePagination'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -11,6 +13,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const { t } = useI18n()
+const toast = useToastStore()
 const reports = ref<Report[]>([])
 const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } =
   usePagination()
@@ -27,8 +30,8 @@ async function fetchReports() {
     })
     reports.value = data.reports
     updateFromResponse(data.total, data.total_pages)
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('admin.reports.fetchError')), 'error')
   } finally {
     loading.value = false
   }
@@ -38,8 +41,8 @@ async function reviewReport(reportId: string, status: string) {
   try {
     await apiReviewReport(reportId, status)
     await fetchReports()
-  } catch {
-    /* silent */
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('admin.reports.reviewError')), 'error')
   }
 }
 
