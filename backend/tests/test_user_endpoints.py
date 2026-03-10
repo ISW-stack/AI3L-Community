@@ -361,9 +361,7 @@ class TestAdminCreateAccountRestrictions:
         """POST /users/admin/create-account with existing username → 409."""
         try:
             _override_auth("SUPER_ADMIN")
-            with patch(
-                f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True
-            ):
+            with patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True):
                 resp = await client.post(
                     "/api/v1/users/admin/create-account",
                     json={

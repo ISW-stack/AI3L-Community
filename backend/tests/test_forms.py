@@ -768,9 +768,7 @@ class TestFormSubmitDuplicate:
                 patch(
                     f"{_EP}.submit_response",
                     new_callable=AsyncMock,
-                    side_effect=ValueError(
-                        "You have already submitted a response to this form."
-                    ),
+                    side_effect=ValueError("You have already submitted a response to this form."),
                 ),
             ):
                 resp = await client.post(
@@ -795,9 +793,7 @@ class TestFormSubmitDuplicate:
                 patch(
                     f"{_EP}.submit_response",
                     new_callable=AsyncMock,
-                    side_effect=Exception(
-                        "duplicate key value violates unique constraint (23505)"
-                    ),
+                    side_effect=Exception("duplicate key value violates unique constraint (23505)"),
                 ),
             ):
                 resp = await client.post(
@@ -846,9 +842,7 @@ class TestFormDeletePermissions:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.soft_delete_form", new_callable=AsyncMock, return_value=False
-            ):
+            with patch(f"{_EP}.soft_delete_form", new_callable=AsyncMock, return_value=False):
                 resp = await client.delete(
                     f"/api/v1/forms/{form_id}",
                     headers={"Authorization": "Bearer fake"},
@@ -908,9 +902,7 @@ class TestFormUpdateLocked:
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
                 patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
-                patch(
-                    f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form
-                ),
+                patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form),
             ):
                 resp = await client.put(
                     f"/api/v1/forms/{form_id}",
@@ -1118,9 +1110,7 @@ class TestFormSchemaValidation:
         """Rating answer with value outside inverted min/max range is rejected."""
         from app.services.form import _validate_answers
 
-        questions = [
-            {"id": "q1", "type": "rating", "label": "Rate", "min": 5, "max": 1}
-        ]
+        questions = [{"id": "q1", "type": "rating", "label": "Rate", "min": 5, "max": 1}]
         # Any integer should fail validation since min > max makes range impossible
         with pytest.raises(ValueError, match="must be between"):
             _validate_answers(questions, {"q1": 3})
