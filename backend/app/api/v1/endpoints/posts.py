@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
+from app.core.rate_limit import check_rate_limit
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
 from app.schemas.post import (
@@ -88,6 +89,7 @@ async def search_posts_endpoint(
         logic=req.logic,
         page=req.page,
         page_size=req.page_size,
+        sort=req.sort,
     )
     return PostListResponse(
         posts=posts,  # type: ignore[arg-type]
@@ -140,6 +142,11 @@ async def update_existing_post(
     req: PostUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
+    if not await check_rate_limit(f"edit_post:{current_user['sub']}", 30, 3600):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Edit rate limit exceeded. Please wait before editing again.",
+        )
     if not any(
         [
             req.title,

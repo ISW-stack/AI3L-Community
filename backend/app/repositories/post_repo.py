@@ -1,4 +1,5 @@
 import math
+import shlex
 import uuid
 from typing import Any
 
@@ -232,9 +233,11 @@ async def search(
     logic: str = "AND",
     page: int = 1,
     page_size: int = 20,
+    sort: str = "newest",
 ) -> tuple[list[dict], int, int]:
     pool = get_pool()
     offset = (page - 1) * page_size
+    order_by = _SORT_MAP.get(sort, _SORT_MAP["newest"])
 
     conditions = ["p.is_deleted = false"]
     params: list = []
@@ -243,8 +246,13 @@ async def search(
     if keyword:
         search_input = keyword.strip()
         if logic == "OR":
-            # websearch_to_tsquery defaults to AND; inject OR between words
-            terms = search_input.split()
+            # Split respecting quoted phrases, then rejoin with OR for websearch_to_tsquery
+            lex = shlex.shlex(search_input, posix=False)
+            lex.whitespace_split = True
+            try:
+                terms = list(lex)
+            except ValueError:
+                terms = search_input.split()
             search_input = " OR ".join(terms)
         conditions.append(f"p.search_vector @@ websearch_to_tsquery('english', ${idx})")
         params.append(search_input)
@@ -266,7 +274,8 @@ async def search(
         idx += 1
 
     if date_to:
-        conditions.append(f"p.created_at <= ${idx}::timestamptz")
+        # Cast to date then add 1 day so the entire end date is included
+        conditions.append(f"p.created_at < (${idx}::date + INTERVAL '1 day')")
         params.append(date_to)
         idx += 1
 
@@ -282,7 +291,7 @@ async def search(
     async with pool.acquire() as conn:
         params.extend([page_size, offset])
         rows = await conn.fetch(
-            f"{_select_count} {where} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
+            f"{_select_count} {where} ORDER BY {order_by} LIMIT ${idx} OFFSET ${idx + 1}",
             *params,
         )
         if rows:
