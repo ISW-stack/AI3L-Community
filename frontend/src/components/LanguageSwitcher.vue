@@ -4,7 +4,7 @@ import { Globe, ChevronDown, ChevronRight, Check } from 'lucide-vue-next'
 import { useLocale } from '@/composables/useLocale'
 import { LOCALE_GROUPS, LOCALE_OPTIONS, type SupportedLocale } from '@/locales'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     variant?: 'compact' | 'form'
   }>(),

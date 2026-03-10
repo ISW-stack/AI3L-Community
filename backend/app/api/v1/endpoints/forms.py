@@ -208,9 +208,7 @@ async def submit_form_response(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormSubmitResponse:
     user_id = current_user["sub"]
-    if not await check_rate_limit(
-        f"rl:form_submit:{user_id}:{form_id}", *RATE_LIMIT_FORM_SUBMIT
-    ):
+    if not await check_rate_limit(f"rl:form_submit:{user_id}:{form_id}", *RATE_LIMIT_FORM_SUBMIT):
         raise HTTPException(status_code=429, detail="Too many submissions. Try again later.")
     try:
         result = await submit_response(
@@ -259,9 +257,7 @@ async def export_form_csv(
             detail="Only SIG admins can export form data.",
         )
 
-    if not await check_rate_limit(
-        f"rl:form_export:{user_id}:{form_id}", *RATE_LIMIT_FORM_EXPORT
-    ):
+    if not await check_rate_limit(f"rl:form_export:{user_id}:{form_id}", *RATE_LIMIT_FORM_EXPORT):
         raise HTTPException(status_code=429, detail="Export already in progress. Try again later.")
 
     from app.tasks.form_export import export_form_csv as export_task

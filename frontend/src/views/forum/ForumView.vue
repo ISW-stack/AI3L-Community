@@ -241,7 +241,7 @@ onMounted(() => {
               type="text"
               :placeholder="t('forum.searchPlaceholder')"
               class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
-              @keyup.enter="doSearch"
+              @keyup.enter="() => doSearch()"
             />
             <BaseButton @click="doSearch">{{ t('common.search') }}</BaseButton>
             <button

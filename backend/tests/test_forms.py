@@ -499,7 +499,8 @@ class TestUniqueViolationHandling:
                     f"{_EP}.submit_response",
                     new_callable=AsyncMock,
                     side_effect=Exception(
-                        'duplicate key value violates unique constraint "uq_form_responses_form_user" (23505)'
+                        'duplicate key value violates unique constraint '
+                        '"uq_form_responses_form_user" (23505)'
                     ),
                 ),
             ):
@@ -687,4 +688,3 @@ class TestDescriptionMaxLength:
             ],
         )
         assert len(req.description) == 5000
-
