@@ -222,7 +222,8 @@ export default {
         },
         richContent: {
           title: 'Nội dung Phong phú',
-          description: 'Viết với bảng biểu, hình ảnh và văn bản định dạng bằng trình soạn thảo của chúng tôi',
+          description:
+            'Viết với bảng biểu, hình ảnh và văn bản định dạng bằng trình soạn thảo của chúng tôi',
         },
       },
     },
@@ -505,7 +506,8 @@ export default {
       maxRespondentsLabel: 'Số người trả lời tối đa',
       maxRespondentsPlaceholder: 'Không giới hạn',
       allowNonMembers: 'Cho phép người dùng không phải thành viên SIG gửi biểu mẫu này',
-      allowNonMembersHint: 'Khi được bật, bất kỳ người dùng đã xác thực nào cũng có thể điền biểu mẫu này.',
+      allowNonMembersHint:
+        'Khi được bật, bất kỳ người dùng đã xác thực nào cũng có thể điền biểu mẫu này.',
       questionsTitle: 'Câu hỏi',
       addQuestionBtn: '+ Thêm câu hỏi',
       schemaLockedWarning:

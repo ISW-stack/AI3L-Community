@@ -3,8 +3,7 @@ export default {
   branding: {
     title: 'AI3L Community',
     tagline: '언어 학습과 리터러시를 위한 AI',
-    description:
-      'AI 기반 언어 학습의 미래를 선도하는 연구자 및 교육자들과 교류하세요.',
+    description: 'AI 기반 언어 학습의 미래를 선도하는 연구자 및 교육자들과 교류하세요.',
   },
 
   // ── Common / Shared ──

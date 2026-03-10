@@ -171,7 +171,8 @@ export default {
     applyMembership: {
       title: 'Ajukan Keanggotaan',
       submitted: 'Permohonan Anda telah dikirim. Admin akan meninjauanya segera.',
-      description: 'Ceritakan sedikit tentang diri Anda dan mengapa Anda ingin bergabung dengan komunitas ini.',
+      description:
+        'Ceritakan sedikit tentang diri Anda dan mengapa Anda ingin bergabung dengan komunitas ini.',
       placeholder: 'Jelaskan latar belakang dan minat penelitian Anda...',
       submitBtn: 'Kirim Permohonan',
       success: 'Permohonan berhasil dikirim!',
@@ -196,7 +197,8 @@ export default {
     unauthenticated: {
       title: 'AI3L Community',
       subtitle: 'AI dalam Pembelajaran Bahasa dan Literasi — Platform Pertukaran Akademik',
-      tagline: 'Bergabunglah dengan peneliti dan pendidik yang memajukan pembelajaran bahasa berbasis AI.',
+      tagline:
+        'Bergabunglah dengan peneliti dan pendidik yang memajukan pembelajaran bahasa berbasis AI.',
       getStartedBtn: 'Mulai',
       browseGuestBtn: 'Jelajahi sebagai Tamu',
       stats: {
@@ -319,11 +321,13 @@ export default {
     },
     deleteDialog: {
       title: 'Hapus Postingan?',
-      message: 'Apakah Anda yakin ingin menghapus postingan ini? Tindakan ini tidak dapat dibatalkan.',
+      message:
+        'Apakah Anda yakin ingin menghapus postingan ini? Tindakan ini tidak dapat dibatalkan.',
     },
     deleteCommentDialog: {
       title: 'Hapus Komentar?',
-      message: 'Apakah Anda yakin ingin menghapus komentar ini? Tindakan ini tidak dapat dibatalkan.',
+      message:
+        'Apakah Anda yakin ingin menghapus komentar ini? Tindakan ini tidak dapat dibatalkan.',
     },
     create: {
       title: 'Buat Postingan',
@@ -505,7 +509,8 @@ export default {
       maxRespondentsLabel: 'Maks. Responden',
       maxRespondentsPlaceholder: 'Tidak terbatas',
       allowNonMembers: 'Izinkan non-anggota SIG untuk mengisi formulir ini',
-      allowNonMembersHint: 'Jika diaktifkan, semua pengguna yang terautentikasi dapat mengisi formulir ini.',
+      allowNonMembersHint:
+        'Jika diaktifkan, semua pengguna yang terautentikasi dapat mengisi formulir ini.',
       questionsTitle: 'Pertanyaan',
       addQuestionBtn: '+ Tambah Pertanyaan',
       schemaLockedWarning:
@@ -624,7 +629,8 @@ export default {
       },
       inviteCodes: {
         title: 'Kode Undangan',
-        description: 'Buat kode undangan untuk dibagikan kepada orang lain agar mereka dapat membuat akun.',
+        description:
+          'Buat kode undangan untuk dibagikan kepada orang lain agar mereka dapat membuat akun.',
         generateBtn: 'Buat Kode Undangan',
         copyBtn: 'Salin',
         copiedBtn: 'Disalin!',

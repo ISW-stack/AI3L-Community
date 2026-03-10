@@ -75,7 +75,7 @@ export default {
     registerTitle: 'Crea un account',
     guestTitle: 'Accesso come ospite',
     guestSubtitle:
-      "Gli ospiti possono sfogliare i contenuti pubblici. Le sessioni durano 45 minuti. Massimo 30 ospiti contemporanei.",
+      'Gli ospiti possono sfogliare i contenuti pubblici. Le sessioni durano 45 minuti. Massimo 30 ospiti contemporanei.',
     username: 'Nome utente',
     usernameHelper: '3-50 caratteri',
     displayName: 'Nome visualizzato',
@@ -113,7 +113,7 @@ export default {
     wantFullAccessLink: 'Registrati',
     loginFailed: 'Accesso non riuscito. Riprova.',
     registerFailed: 'Registrazione non riuscita. Riprova.',
-    guestLoginFailed: "Accesso ospite non riuscito. Riprova.",
+    guestLoginFailed: 'Accesso ospite non riuscito. Riprova.',
   },
 
   // ── Privacy Consent ──
@@ -170,14 +170,12 @@ export default {
     guestSignUpSuffix: 'per accesso completo.',
     applyMembership: {
       title: 'Richiedi iscrizione',
-      submitted:
-        'La tua candidatura è stata inviata. Un amministratore la esaminerà a breve.',
-      description:
-        'Raccontaci un po\' di te e perché vorresti unirti alla comunità.',
+      submitted: 'La tua candidatura è stata inviata. Un amministratore la esaminerà a breve.',
+      description: "Raccontaci un po' di te e perché vorresti unirti alla comunità.",
       placeholder: 'Descrivi il tuo background e i tuoi interessi di ricerca...',
       submitBtn: 'Invia candidatura',
       success: 'Candidatura inviata con successo!',
-      error: "Invio della candidatura non riuscito.",
+      error: 'Invio della candidatura non riuscito.',
     },
     recentPosts: {
       title: 'Post recenti',
@@ -213,8 +211,7 @@ export default {
       features: {
         forum: {
           title: 'Forum accademico',
-          description:
-            'Discuti ricerche, condividi articoli e scambia idee con i colleghi',
+          description: 'Discuti ricerche, condividi articoli e scambia idee con i colleghi',
         },
         sigs: {
           title: 'Gruppi di interesse speciale',
@@ -222,13 +219,11 @@ export default {
         },
         forms: {
           title: 'Moduli collaborativi',
-          description:
-            'Crea sondaggi e raccogli dati con gli strumenti per moduli integrati',
+          description: 'Crea sondaggi e raccogli dati con gli strumenti per moduli integrati',
         },
         richContent: {
           title: 'Contenuti avanzati',
-          description:
-            'Scrivi con tabelle, immagini e testo formattato usando il nostro editor',
+          description: 'Scrivi con tabelle, immagini e testo formattato usando il nostro editor',
         },
       },
     },
@@ -325,8 +320,7 @@ export default {
     },
     deleteDialog: {
       title: 'Eliminare il post?',
-      message:
-        'Sei sicuro di voler eliminare questo post? Questa azione non può essere annullata.',
+      message: 'Sei sicuro di voler eliminare questo post? Questa azione non può essere annullata.',
     },
     deleteCommentDialog: {
       title: 'Eliminare il commento?',
@@ -387,8 +381,7 @@ export default {
       unknown: 'Scansione inconcludente',
     },
     uploadFailed: "Caricamento dell'immagine non riuscito.",
-    maliciousFile:
-      'Il file caricato è stato segnalato come potenzialmente dannoso.',
+    maliciousFile: 'Il file caricato è stato segnalato come potenzialmente dannoso.',
     promptLinkUrl: 'Inserisci URL',
   },
 
@@ -439,7 +432,7 @@ export default {
       leaveSuccess: 'Hai lasciato il SIG.',
       leaveError: 'Impossibile lasciare il SIG.',
       joinSuccess: 'Ti sei iscritto al SIG.',
-      joinError: "Iscrizione al SIG non riuscita.",
+      joinError: 'Iscrizione al SIG non riuscita.',
     },
     create: {
       title: 'Crea SIG',
@@ -557,7 +550,7 @@ export default {
       validation: {
         titleRequired: 'Il titolo è obbligatorio.',
         questionRequired: 'È richiesta almeno una domanda.',
-        labelRequired: 'Tutte le domande devono avere un\'etichetta.',
+        labelRequired: "Tutte le domande devono avere un'etichetta.",
         optionsRequired: 'La domanda "{label}" richiede almeno 2 opzioni.',
         ratingError: 'Domanda "{label}": il minimo deve essere inferiore al massimo.',
       },
@@ -586,10 +579,10 @@ export default {
       allowedTypes: 'Consentiti:',
       fileUploadError: 'Caricamento del file non riuscito.',
       loadError: 'Caricamento del modulo non riuscito.',
-      submitError: "Invio della risposta non riuscito.",
+      submitError: 'Invio della risposta non riuscito.',
       exportError: "Avvio dell'esportazione non riuscito.",
       exportTimeout: "Timeout dell'esportazione.",
-      exportFailed: "Esportazione non riuscita.",
+      exportFailed: 'Esportazione non riuscita.',
       exportStarting: 'Avvio esportazione...',
       exportStatus: 'Stato:',
     },
@@ -674,7 +667,7 @@ export default {
     orcid: 'ORCID:',
     postsTitle: 'Post',
     postsEmptyTitle: 'Ancora nessun post',
-    postsEmptyMessage: "Questo utente non ha ancora pubblicato nulla.",
+    postsEmptyMessage: 'Questo utente non ha ancora pubblicato nulla.',
   },
 
   // ── Notifications ──
@@ -775,14 +768,14 @@ export default {
         loadFailed: "Caricamento dell'elenco utenti non riuscito.",
         roleUpdated: 'Ruolo aggiornato con successo.',
         accountCreated: 'Account creato con successo.',
-        roleFailed: "Aggiornamento del ruolo non riuscito.",
+        roleFailed: 'Aggiornamento del ruolo non riuscito.',
         createFailed: "Creazione dell'account non riuscita.",
         banned: '{username} è stato bannato.',
         unbanned: 'Il ban di {username} è stato rimosso.',
         banFailed: "Ban dell'utente non riuscito.",
-        unbanFailed: "Rimozione del ban non riuscita.",
+        unbanFailed: 'Rimozione del ban non riuscita.',
         bulkRoleUpdated: 'Ruolo aggiornato per {count} utente/i.',
-        bulkRoleFailed: "Aggiornamento del ruolo in blocco non riuscito.",
+        bulkRoleFailed: 'Aggiornamento del ruolo in blocco non riuscito.',
       },
     },
     applications: {
@@ -842,7 +835,7 @@ export default {
       deleteConfirm: {
         title: 'Elimina categoria',
         message:
-          "Sei sicuro di voler eliminare {name}? I post che utilizzano questa categoria diventeranno senza categoria.",
+          'Sei sicuro di voler eliminare {name}? I post che utilizzano questa categoria diventeranno senza categoria.',
       },
       message: {
         created: 'Categoria creata.',

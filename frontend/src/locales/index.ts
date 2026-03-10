@@ -16,8 +16,21 @@ import it from './it'
 import vi from './vi'
 
 export const SUPPORTED_LOCALES = [
-  'en', 'zh-TW', 'zh-CN', 'ja', 'fr', 'es', 'de', 'ar',
-  'pt', 'ru', 'hi', 'ko', 'id', 'it', 'vi',
+  'en',
+  'zh-TW',
+  'zh-CN',
+  'ja',
+  'fr',
+  'es',
+  'de',
+  'ar',
+  'pt',
+  'ru',
+  'hi',
+  'ko',
+  'id',
+  'it',
+  'vi',
 ] as const
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
