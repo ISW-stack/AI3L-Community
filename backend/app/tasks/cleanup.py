@@ -89,7 +89,7 @@ async def _delete_orphans(orphan_keys: list[str]) -> int:
 
 
 @celery.task(name="cleanup_orphan_files", bind=True, max_retries=1)
-def cleanup_orphan_files(self: Any) -> dict:
+def cleanup_orphan_files(self: Any) -> dict[str, Any]:
     """Weekly task: delete unreferenced editor files older than 7 days."""
 
     async def _run() -> dict:
@@ -117,6 +117,6 @@ def cleanup_orphan_files(self: Any) -> dict:
             "deleted": deleted,
         }
 
-    result = _run_async(_run())
+    result: dict[str, Any] = _run_async(_run())
     logger.info("Orphan file cleanup complete: %s", result)
     return result
