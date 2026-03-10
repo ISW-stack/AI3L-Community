@@ -187,7 +187,7 @@ export default {
       title: 'Bài viết gần đây',
       empty: 'Chưa có bài viết nào. Hãy là người đầu tiên bắt đầu thảo luận!',
       comments: 'bình luận',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: 'Không tải được bài đăng gần đây.',
     },
     notifications: {
       title: 'Bạn có',
@@ -268,10 +268,10 @@ export default {
       allPosts: 'Tất cả bài viết',
       trendingTitle: 'Xu hướng (7 ngày)',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: 'Không tải được danh mục.',
+    fetchTrendingError: 'Không tải được bài đăng thịnh hành.',
+    fetchPostsError: 'Không tải được bài đăng.',
+    searchError: 'Tìm kiếm thất bại. Vui lòng thử lại.',
   },
 
   // ── Post ──
@@ -355,8 +355,8 @@ export default {
       publish: 'Đăng bài',
       errorRequired: 'Tiêu đề và nội dung là bắt buộc.',
       errorFailed: 'Tạo bài viết thất bại.',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: 'Không tải được danh mục.',
+      fetchSigsError: 'Không tải được danh sách SIG.',
     },
   },
 
@@ -407,7 +407,7 @@ export default {
       emptyMessage: 'Chưa có SIG nào được tạo.',
       memberCount: 'thành viên',
       totalCount: 'SIG',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: 'Không tải được thư mục SIG.',
     },
     detail: {
       backLink: 'Tất cả SIG',
@@ -446,7 +446,7 @@ export default {
       leaveError: 'Rời SIG thất bại.',
       joinSuccess: 'Bạn đã tham gia SIG.',
       joinError: 'Tham gia SIG thất bại.',
-      fetchError: 'Failed to load SIG details.',
+      fetchError: 'Không tải được chi tiết SIG.',
     },
     create: {
       title: 'Tạo SIG',
@@ -465,7 +465,7 @@ export default {
       emptyTitle: 'Chưa có bài viết',
       emptyMessage: 'Bắt đầu thảo luận bằng cách tạo bài viết đầu tiên trong SIG này.',
       comments: 'bình luận',
-      fetchError: 'Failed to load posts.',
+      fetchError: 'Không tải được bài đăng.',
     },
     members: {
       title: 'Thành viên',
@@ -484,7 +484,7 @@ export default {
       removeError: 'Xóa thành viên thất bại.',
       promoteSuccess: 'Thành viên đã được thăng lên Quản trị phụ.',
       promoteError: 'Gán Quản trị phụ thất bại.',
-      fetchError: 'Failed to load members.',
+      fetchError: 'Không tải được thành viên.',
     },
     forms: {
       title: 'Biểu mẫu',
@@ -683,8 +683,8 @@ export default {
     postsTitle: 'Bài viết',
     postsEmptyTitle: 'Chưa có bài viết',
     postsEmptyMessage: 'Người dùng này chưa đăng bài nào.',
-    fetchError: 'Failed to load user profile.',
-    fetchPostsError: 'Failed to load user posts.',
+    fetchError: 'Không tải được hồ sơ người dùng.',
+    fetchPostsError: 'Không tải được bài đăng của người dùng.',
   },
 
   // ── Notifications ──
@@ -700,8 +700,8 @@ export default {
     emptyMessage: 'Chưa có thông báo nào.',
     deleteSuccess: 'Đã xóa tất cả thông báo.',
     deleteError: 'Xóa thông báo thất bại.',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: 'Không tải được thông báo.',
+    markReadError: 'Không đánh dấu được thông báo là đã đọc.',
   },
 
   // ── About ──
@@ -741,7 +741,7 @@ export default {
         reviewApplications: 'Xem xét đơn đăng ký',
         viewReports: 'Xem báo cáo',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: 'Không tải được thống kê bảng điều khiển.',
     },
     users: {
       title: 'Quản lý người dùng',
@@ -838,8 +838,8 @@ export default {
       dismissBtn: 'Bỏ qua',
       reviewedBtn: 'Đã xem xét',
       total: '{count} báo cáo',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: 'Không tải được báo cáo.',
+      reviewError: 'Không cập nhật được trạng thái báo cáo.',
     },
     categories: {
       title: 'Danh mục',
@@ -920,7 +920,7 @@ export default {
         generateFailed: 'Tạo mã thất bại.',
         copied: 'Mã đã được sao chép vào bộ nhớ tạm.',
         copyFailed: 'Sao chép mã thất bại.',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: 'Không tải được mã mời.',
       },
       total: '{count} mã',
     },

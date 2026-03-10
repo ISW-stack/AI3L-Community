@@ -132,7 +132,8 @@ function isFileObject(val: unknown): val is File {
 
 function getFileName(val: unknown): string {
   if (val instanceof File) return val.name
-  if (val && typeof val === 'object' && 'filename' in val) return (val as { filename: string }).filename
+  if (val && typeof val === 'object' && 'filename' in val)
+    return (val as { filename: string }).filename
   return ''
 }
 
@@ -368,7 +369,10 @@ onUnmounted(() => {
               @change="handleFileUpload(q.id, $event)"
               class="text-sm text-muted"
             />
-            <p v-if="isFileObject(answers[q.id]) || answers[q.id]?.filename" class="text-xs text-success-600 mt-1">
+            <p
+              v-if="isFileObject(answers[q.id]) || answers[q.id]?.filename"
+              class="text-xs text-success-600 mt-1"
+            >
               {{ t('forms.view.uploadedFile') }} {{ getFileName(answers[q.id]) }}
             </p>
             <p v-if="q.allowed_types && q.allowed_types.length" class="text-xs text-muted mt-1">

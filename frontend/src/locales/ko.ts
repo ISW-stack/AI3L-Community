@@ -186,7 +186,7 @@ export default {
       title: '최근 게시물',
       empty: '아직 게시물이 없습니다. 첫 번째 토론을 시작해 보세요!',
       comments: '댓글',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: '최근 게시물을 불러오지 못했습니다.',
     },
     notifications: {
       title: '알림이',
@@ -266,10 +266,10 @@ export default {
       allPosts: '전체 게시물',
       trendingTitle: '인기 (7일)',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: '카테고리를 불러오지 못했습니다.',
+    fetchTrendingError: '인기 게시물을 불러오지 못했습니다.',
+    fetchPostsError: '게시물을 불러오지 못했습니다.',
+    searchError: '검색에 실패했습니다. 다시 시도해 주세요.',
   },
 
   // ── Post ──
@@ -353,8 +353,8 @@ export default {
       publish: '게시',
       errorRequired: '제목과 내용은 필수입니다.',
       errorFailed: '게시물 작성에 실패했습니다.',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: '카테고리를 불러오지 못했습니다.',
+      fetchSigsError: 'SIG 목록을 불러오지 못했습니다.',
     },
   },
 
@@ -405,7 +405,7 @@ export default {
       emptyMessage: '아직 생성된 SIG가 없습니다.',
       memberCount: '명',
       totalCount: '개의 SIG',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: 'SIG 디렉토리를 불러오지 못했습니다.',
     },
     detail: {
       backLink: '모든 SIG',
@@ -444,7 +444,7 @@ export default {
       leaveError: 'SIG 탈퇴에 실패했습니다.',
       joinSuccess: 'SIG에 가입했습니다.',
       joinError: 'SIG 가입에 실패했습니다.',
-      fetchError: 'Failed to load SIG details.',
+      fetchError: 'SIG 세부 정보를 불러오지 못했습니다.',
     },
     create: {
       title: 'SIG 생성',
@@ -463,7 +463,7 @@ export default {
       emptyTitle: '아직 게시물이 없습니다',
       emptyMessage: '이 SIG에 첫 번째 게시물을 작성하여 토론을 시작하세요.',
       comments: '댓글',
-      fetchError: 'Failed to load posts.',
+      fetchError: '게시물을 불러오지 못했습니다.',
     },
     members: {
       title: '회원',
@@ -482,7 +482,7 @@ export default {
       removeError: '회원 제거에 실패했습니다.',
       promoteSuccess: '회원이 부관리자로 승격되었습니다.',
       promoteError: '부관리자 지정에 실패했습니다.',
-      fetchError: 'Failed to load members.',
+      fetchError: '멤버를 불러오지 못했습니다.',
     },
     forms: {
       title: '양식',
@@ -680,8 +680,8 @@ export default {
     postsTitle: '게시물',
     postsEmptyTitle: '아직 게시물이 없습니다',
     postsEmptyMessage: '이 사용자는 아직 게시물을 작성하지 않았습니다.',
-    fetchError: 'Failed to load user profile.',
-    fetchPostsError: 'Failed to load user posts.',
+    fetchError: '사용자 프로필을 불러오지 못했습니다.',
+    fetchPostsError: '사용자 게시물을 불러오지 못했습니다.',
   },
 
   // ── Notifications ──
@@ -697,8 +697,8 @@ export default {
     emptyMessage: '아직 알림이 없습니다.',
     deleteSuccess: '모든 알림이 삭제되었습니다.',
     deleteError: '알림 삭제에 실패했습니다.',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: '알림을 불러오지 못했습니다.',
+    markReadError: '알림을 읽음으로 표시하지 못했습니다.',
   },
 
   // ── About ──
@@ -738,7 +738,7 @@ export default {
         reviewApplications: '신청 검토',
         viewReports: '신고 보기',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: '대시보드 통계를 불러오지 못했습니다.',
     },
     users: {
       title: '사용자 관리',
@@ -835,8 +835,8 @@ export default {
       dismissBtn: '기각',
       reviewedBtn: '검토됨',
       total: '총 {count}개의 신고',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: '신고를 불러오지 못했습니다.',
+      reviewError: '신고 상태를 업데이트하지 못했습니다.',
     },
     categories: {
       title: '카테고리',
@@ -917,7 +917,7 @@ export default {
         generateFailed: '코드 생성에 실패했습니다.',
         copied: '코드가 클립보드에 복사되었습니다.',
         copyFailed: '코드 복사에 실패했습니다.',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: '초대 코드를 불러오지 못했습니다.',
       },
       total: '총 {count}개의 코드',
     },

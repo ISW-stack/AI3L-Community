@@ -68,7 +68,7 @@ class TestSanitizeHtml:
 
     def test_strips_script_tags(self):
         """script tags must always be stripped."""
-        html = '<p>safe</p><script>alert(1)</script>'
+        html = "<p>safe</p><script>alert(1)</script>"
         result = sanitize_html(html)
         assert "<script>" not in result
         assert "safe" in result

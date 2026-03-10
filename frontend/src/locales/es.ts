@@ -2,7 +2,7 @@ export default {
   // ── Branding ──
   branding: {
     title: 'AI3L Community',
-    tagline: 'AI in Language Learning and Literacy',
+    tagline: 'IA en el aprendizaje de idiomas y alfabetización',
     description:
       'Conéctese con investigadores y educadores que impulsan el futuro del aprendizaje de idiomas con IA.',
   },
@@ -60,6 +60,14 @@ export default {
     },
     en: 'English',
     'zh-TW': '繁體中文',
+    vi: 'Tiếng Việt',
+    it: 'Italiano',
+    id: 'Bahasa Indonesia',
+    ko: '한국어',
+    hi: 'हिन्दी',
+    ru: 'Русский',
+    pt: 'Português',
+    ar: 'العربية',
     'zh-CN': '简体中文',
     ja: '日本語',
     fr: 'Français',
@@ -151,7 +159,7 @@ export default {
   // ── Footer ──
   footer: {
     copyright: '© 2025 AI3L Community. All rights reserved.',
-    tagline: 'AI in Language Learning and Literacy',
+    tagline: 'IA en el aprendizaje de idiomas y alfabetización',
   },
 
   // ── Home ──
@@ -179,7 +187,7 @@ export default {
       title: 'Publicaciones recientes',
       empty: 'Aún no hay publicaciones. ¡Sea el primero en iniciar un debate!',
       comments: 'comentarios',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: 'Error al cargar las publicaciones recientes.',
     },
     notifications: {
       title: 'Tiene',
@@ -261,10 +269,10 @@ export default {
       allPosts: 'Todas las publicaciones',
       trendingTitle: 'Tendencias (7d)',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: 'Error al cargar las categorías.',
+    fetchTrendingError: 'Error al cargar las publicaciones en tendencia.',
+    fetchPostsError: 'Error al cargar las publicaciones.',
+    searchError: 'La búsqueda falló. Por favor, inténtalo de nuevo.',
   },
 
   // ── Post ──
@@ -350,8 +358,8 @@ export default {
       publish: 'Publicar',
       errorRequired: 'El título y el contenido son obligatorios.',
       errorFailed: 'Error al crear la publicación.',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: 'Error al cargar las categorías.',
+      fetchSigsError: 'Error al cargar la lista de SIG.',
     },
   },
 
@@ -402,7 +410,7 @@ export default {
       emptyMessage: 'Aún no se han creado GIEs.',
       memberCount: 'miembro(s)',
       totalCount: 'GIE(s) en total',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: 'Error al cargar el directorio de SIG.',
     },
     detail: {
       backLink: 'Todos los GIEs',
@@ -441,7 +449,7 @@ export default {
       leaveError: 'Error al salir del GIE.',
       joinSuccess: 'Se ha unido al GIE.',
       joinError: 'Error al unirse al GIE.',
-      fetchError: 'Failed to load SIG details.',
+      fetchError: 'Error al cargar los detalles de SIG.',
     },
     create: {
       title: 'Crear GIE',
@@ -460,7 +468,7 @@ export default {
       emptyTitle: 'Aún no hay publicaciones',
       emptyMessage: 'Inicie un debate creando la primera publicación en este GIE.',
       comments: 'comentarios',
-      fetchError: 'Failed to load posts.',
+      fetchError: 'Error al cargar las publicaciones.',
     },
     members: {
       title: 'Miembros',
@@ -479,7 +487,7 @@ export default {
       removeError: 'Error al eliminar al miembro.',
       promoteSuccess: 'Miembro ascendido a subadministrador.',
       promoteError: 'Error al asignar subadministrador.',
-      fetchError: 'Failed to load members.',
+      fetchError: 'Error al cargar los miembros.',
     },
     forms: {
       title: 'Formularios',
@@ -679,8 +687,8 @@ export default {
     postsTitle: 'Publicaciones',
     postsEmptyTitle: 'Aún no hay publicaciones',
     postsEmptyMessage: 'Este usuario no ha publicado nada.',
-    fetchError: 'Failed to load user profile.',
-    fetchPostsError: 'Failed to load user posts.',
+    fetchError: 'Error al cargar el perfil de usuario.',
+    fetchPostsError: 'Error al cargar las publicaciones del usuario.',
   },
 
   // ── Notifications ──
@@ -696,8 +704,8 @@ export default {
     emptyMessage: 'Aún no hay notificaciones.',
     deleteSuccess: 'Todas las notificaciones eliminadas.',
     deleteError: 'Error al eliminar las notificaciones.',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: 'Error al cargar las notificaciones.',
+    markReadError: 'Error al marcar la notificación como leída.',
   },
 
   // ── About ──
@@ -737,7 +745,7 @@ export default {
         reviewApplications: 'Revisar solicitudes',
         viewReports: 'Ver reportes',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: 'Error al cargar las estadísticas del panel.',
     },
     users: {
       title: 'Gestión de usuarios',
@@ -834,8 +842,8 @@ export default {
       dismissBtn: 'Descartar',
       reviewedBtn: 'Revisado',
       total: '{count} reporte(s) en total',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: 'Error al cargar los informes.',
+      reviewError: 'Error al actualizar el estado del informe.',
     },
     categories: {
       title: 'Categorías',
@@ -916,7 +924,7 @@ export default {
         generateFailed: 'Error al generar el código.',
         copied: 'Código copiado al portapapeles.',
         copyFailed: 'Error al copiar el código.',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: 'Error al cargar los códigos de invitación.',
       },
       total: '{count} código(s) en total',
     },

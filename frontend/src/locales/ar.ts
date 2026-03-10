@@ -59,6 +59,13 @@ export default {
     },
     en: 'English',
     'zh-TW': '繁體中文',
+    vi: 'Tiếng Việt',
+    it: 'Italiano',
+    id: 'Bahasa Indonesia',
+    ko: '한국어',
+    hi: 'हिन्दी',
+    ru: 'Русский',
+    pt: 'Português',
     'zh-CN': '简体中文',
     ja: '日本語',
     fr: 'Français',
@@ -179,7 +186,7 @@ export default {
       title: 'المشاركات الأخيرة',
       empty: 'لا توجد مشاركات بعد. كن أول من يبدأ نقاشاً!',
       comments: 'تعليقات',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: 'فشل في تحميل المنشورات الحديثة.',
     },
     notifications: {
       title: 'لديك',
@@ -259,10 +266,10 @@ export default {
       allPosts: 'جميع المشاركات',
       trendingTitle: 'الرائج (7 أيام)',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: 'فشل في تحميل الفئات.',
+    fetchTrendingError: 'فشل في تحميل المنشورات الشائعة.',
+    fetchPostsError: 'فشل في تحميل المنشورات.',
+    searchError: 'فشل البحث. يرجى المحاولة مرة أخرى.',
   },
 
   // ── Post ──
@@ -346,8 +353,8 @@ export default {
       publish: 'نشر',
       errorRequired: 'العنوان والمحتوى مطلوبان.',
       errorFailed: 'فشل إنشاء المشاركة.',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: 'فشل في تحميل الفئات.',
+      fetchSigsError: 'فشل في تحميل قائمة SIG.',
     },
   },
 
@@ -398,7 +405,7 @@ export default {
       emptyMessage: 'لم يتم إنشاء أي مجموعات بعد.',
       memberCount: 'عضو(أعضاء)',
       totalCount: 'مجموعة(مجموعات) إجمالاً',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: 'فشل في تحميل دليل SIG.',
     },
     detail: {
       backLink: 'جميع المجموعات',
@@ -437,7 +444,7 @@ export default {
       leaveError: 'فشل مغادرة المجموعة.',
       joinSuccess: 'لقد انضممت إلى المجموعة.',
       joinError: 'فشل الانضمام إلى المجموعة.',
-      fetchError: 'Failed to load SIG details.',
+      fetchError: 'فشل في تحميل تفاصيل SIG.',
     },
     create: {
       title: 'إنشاء مجموعة',
@@ -456,7 +463,7 @@ export default {
       emptyTitle: 'لا توجد مشاركات بعد',
       emptyMessage: 'ابدأ نقاشاً بإنشاء أول مشاركة في هذه المجموعة.',
       comments: 'تعليقات',
-      fetchError: 'Failed to load posts.',
+      fetchError: 'فشل في تحميل المنشورات.',
     },
     members: {
       title: 'الأعضاء',
@@ -475,7 +482,7 @@ export default {
       removeError: 'فشل إزالة العضو.',
       promoteSuccess: 'تمت ترقية العضو إلى مشرف فرعي.',
       promoteError: 'فشل تعيين مشرف فرعي.',
-      fetchError: 'Failed to load members.',
+      fetchError: 'فشل في تحميل الأعضاء.',
     },
     forms: {
       title: 'النماذج',
@@ -673,8 +680,8 @@ export default {
     postsTitle: 'المشاركات',
     postsEmptyTitle: 'لا توجد مشاركات بعد',
     postsEmptyMessage: 'لم ينشر هذا المستخدم أي شيء.',
-    fetchError: 'Failed to load user profile.',
-    fetchPostsError: 'Failed to load user posts.',
+    fetchError: 'فشل في تحميل الملف الشخصي للمستخدم.',
+    fetchPostsError: 'فشل في تحميل منشورات المستخدم.',
   },
 
   // ── Notifications ──
@@ -690,8 +697,8 @@ export default {
     emptyMessage: 'لا توجد إشعارات بعد.',
     deleteSuccess: 'تم مسح جميع الإشعارات.',
     deleteError: 'فشل مسح الإشعارات.',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: 'فشل في تحميل الإشعارات.',
+    markReadError: 'فشل في تحديد الإشعار كمقروء.',
   },
 
   // ── About ──
@@ -731,7 +738,7 @@ export default {
         reviewApplications: 'مراجعة الطلبات',
         viewReports: 'عرض التقارير',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: 'فشل في تحميل إحصائيات لوحة المعلومات.',
     },
     users: {
       title: 'إدارة المستخدمين',
@@ -828,8 +835,8 @@ export default {
       dismissBtn: 'رفض',
       reviewedBtn: 'تمت المراجعة',
       total: '{count} تقرير(ات) إجمالاً',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: 'فشل في تحميل التقارير.',
+      reviewError: 'فشل في تحديث حالة التقرير.',
     },
     categories: {
       title: 'الفئات',
@@ -909,7 +916,7 @@ export default {
         generateFailed: 'فشل إنشاء الرمز.',
         copied: 'تم نسخ الرمز إلى الحافظة.',
         copyFailed: 'فشل نسخ الرمز.',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: 'فشل في تحميل رموز الدعوة.',
       },
       total: '{count} رمز(رموز) إجمالاً',
     },

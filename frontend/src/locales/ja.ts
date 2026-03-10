@@ -59,6 +59,14 @@ export default {
     },
     en: 'English',
     'zh-TW': '繁體中文',
+    vi: 'Tiếng Việt',
+    it: 'Italiano',
+    id: 'Bahasa Indonesia',
+    ko: '한국어',
+    hi: 'हिन्दी',
+    ru: 'Русский',
+    pt: 'Português',
+    ar: 'العربية',
     'zh-CN': '简体中文',
     ja: '日本語',
     fr: 'Français',
@@ -178,7 +186,7 @@ export default {
       title: '最近の投稿',
       empty: 'まだ投稿がありません。最初のディスカッションを始めましょう！',
       comments: 'コメント',
-      fetchError: 'Failed to load recent posts.',
+      fetchError: '最近の投稿の読み込みに失敗しました。',
     },
     notifications: {
       title: '未読通知が',
@@ -258,10 +266,10 @@ export default {
       allPosts: 'すべての投稿',
       trendingTitle: 'トレンド（7日間）',
     },
-    fetchCategoriesError: 'Failed to load categories.',
-    fetchTrendingError: 'Failed to load trending posts.',
-    fetchPostsError: 'Failed to load posts.',
-    searchError: 'Search failed. Please try again.',
+    fetchCategoriesError: 'カテゴリーの読み込みに失敗しました。',
+    fetchTrendingError: 'トレンド投稿の読み込みに失敗しました。',
+    fetchPostsError: '投稿の読み込みに失敗しました。',
+    searchError: '検索に失敗しました。もう一度お試しください。',
   },
 
   // ── Post ──
@@ -345,8 +353,8 @@ export default {
       publish: '公開',
       errorRequired: 'タイトルと内容は必須です。',
       errorFailed: '投稿の作成に失敗しました。',
-      fetchCategoriesError: 'Failed to load categories.',
-      fetchSigsError: 'Failed to load SIG list.',
+      fetchCategoriesError: 'カテゴリーの読み込みに失敗しました。',
+      fetchSigsError: 'SIGリストの読み込みに失敗しました。',
     },
   },
 
@@ -397,7 +405,7 @@ export default {
       emptyMessage: 'まだ SIG が作成されていません。',
       memberCount: '名のメンバー',
       totalCount: '件の SIG',
-      fetchError: 'Failed to load SIG directory.',
+      fetchError: 'SIGディレクトリの読み込みに失敗しました。',
     },
     detail: {
       backLink: 'すべての SIG',
@@ -436,7 +444,7 @@ export default {
       leaveError: 'SIG の退会に失敗しました。',
       joinSuccess: 'SIG に参加しました。',
       joinError: 'SIG への参加に失敗しました。',
-      fetchError: 'Failed to load SIG details.',
+      fetchError: 'SIG詳細の読み込みに失敗しました。',
     },
     create: {
       title: 'SIG を作成',
@@ -455,7 +463,7 @@ export default {
       emptyTitle: 'まだ投稿がありません',
       emptyMessage: 'この SIG に最初の投稿を作成してディスカッションを始めましょう。',
       comments: 'コメント',
-      fetchError: 'Failed to load posts.',
+      fetchError: '投稿の読み込みに失敗しました。',
     },
     members: {
       title: 'メンバー',
@@ -474,7 +482,7 @@ export default {
       removeError: 'メンバーの削除に失敗しました。',
       promoteSuccess: 'メンバーをサブ管理者に昇格しました。',
       promoteError: 'サブ管理者の割り当てに失敗しました。',
-      fetchError: 'Failed to load members.',
+      fetchError: 'メンバーの読み込みに失敗しました。',
     },
     forms: {
       title: 'フォーム',
@@ -672,8 +680,8 @@ export default {
     postsTitle: '投稿',
     postsEmptyTitle: 'まだ投稿がありません',
     postsEmptyMessage: 'このユーザーはまだ何も投稿していません。',
-    fetchError: 'Failed to load user profile.',
-    fetchPostsError: 'Failed to load user posts.',
+    fetchError: 'ユーザープロフィールの読み込みに失敗しました。',
+    fetchPostsError: 'ユーザーの投稿の読み込みに失敗しました。',
   },
 
   // ── Notifications ──
@@ -689,8 +697,8 @@ export default {
     emptyMessage: 'まだ通知はありません。',
     deleteSuccess: 'すべての通知がクリアされました。',
     deleteError: '通知のクリアに失敗しました。',
-    fetchError: 'Failed to load notifications.',
-    markReadError: 'Failed to mark notification as read.',
+    fetchError: '通知の読み込みに失敗しました。',
+    markReadError: '通知を既読にするのに失敗しました。',
   },
 
   // ── About ──
@@ -730,7 +738,7 @@ export default {
         reviewApplications: '申請を審査',
         viewReports: 'レポートを表示',
       },
-      fetchError: 'Failed to load dashboard statistics.',
+      fetchError: 'ダッシュボードの統計情報の読み込みに失敗しました。',
     },
     users: {
       title: 'ユーザー管理',
@@ -827,8 +835,8 @@ export default {
       dismissBtn: '却下',
       reviewedBtn: '確認済み',
       total: '合計 {count} 件のレポート',
-      fetchError: 'Failed to load reports.',
-      reviewError: 'Failed to update report status.',
+      fetchError: 'レポートの読み込みに失敗しました。',
+      reviewError: 'レポートのステータス更新に失敗しました。',
     },
     categories: {
       title: 'カテゴリ',
@@ -909,7 +917,7 @@ export default {
         generateFailed: 'コードの生成に失敗しました。',
         copied: 'コードをクリップボードにコピーしました。',
         copyFailed: 'コードのコピーに失敗しました。',
-        fetchFailed: 'Failed to load invite codes.',
+        fetchFailed: '招待コードの読み込みに失敗しました。',
       },
       total: '合計 {count} 件のコード',
     },

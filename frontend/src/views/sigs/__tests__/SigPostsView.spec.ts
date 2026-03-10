@@ -145,7 +145,7 @@ describe('SigPostsView', () => {
 
   it('shows loading skeleton initially', async () => {
     // Never resolve so loading stays true
-    mockGetSigPosts.mockReturnValue(new Promise(() => { }))
+    mockGetSigPosts.mockReturnValue(new Promise(() => {}))
 
     const { wrapper } = await mountComponent({ userSigRole: ref(null) })
 
