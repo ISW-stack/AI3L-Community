@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { usePagination } from '@/composables/usePagination'
 import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
 import { listPosts } from '@/api/posts'
@@ -13,18 +15,26 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 
 const userId = computed(() => route.params.id as string)
 const user = ref<PublicUser | null>(null)
 const posts = ref<Post[]>([])
-const postsTotal = ref(0)
-const postsPage = ref(1)
-const postsTotalPages = ref(1)
-const postsPageSize = 20
+const {
+  page: postsPage,
+  total: postsTotal,
+  totalPages: postsTotalPages,
+  pageSize: postsPageSize,
+  setPage,
+  resetPage,
+  updateFromResponse,
+} = usePagination()
 const loading = ref(true)
 const postsLoading = ref(false)
+let userFetchId = 0
+let postsFetchId = 0
 
 const isOwnProfile = computed(() => auth.user && auth.user.id === userId.value)
 
@@ -40,17 +50,21 @@ const roleBadgeVariant = computed(() => {
 })
 
 async function fetchUser() {
+  const localId = ++userFetchId
   loading.value = true
   try {
-    user.value = await getPublicProfile(userId.value)
+    const data = await getPublicProfile(userId.value)
+    if (localId !== userFetchId) return
+    user.value = data
   } catch {
-    user.value = null
+    if (localId === userFetchId) user.value = null
   } finally {
-    loading.value = false
+    if (localId === userFetchId) loading.value = false
   }
 }
 
 async function fetchPosts() {
+  const localId = ++postsFetchId
   postsLoading.value = true
   try {
     const data = await listPosts({
@@ -58,18 +72,18 @@ async function fetchPosts() {
       page: postsPage.value,
       page_size: postsPageSize,
     })
+    if (localId !== postsFetchId) return
     posts.value = data.posts
-    postsTotal.value = data.total
-    postsTotalPages.value = data.total_pages
+    updateFromResponse(data.total, data.total_pages)
   } catch (e) {
     console.error(e)
   } finally {
-    postsLoading.value = false
+    if (localId === postsFetchId) postsLoading.value = false
   }
 }
 
 function goToPage(page: number) {
-  postsPage.value = page
+  setPage(page)
   fetchPosts()
 }
 
@@ -78,7 +92,7 @@ function toLocaleTime(dateStr: string): string {
 }
 
 watch(userId, () => {
-  postsPage.value = 1
+  resetPage()
   fetchUser()
   fetchPosts()
 })
@@ -90,76 +104,94 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto">
-    <SkeletonLoader v-if="loading" :lines="2" variant="card" />
+  <div class="w-full lg:px-layout px-4 py-6 sm:py-8 min-h-screen">
+    <div class="max-w-4xl mx-auto">
+      <div class="mb-4 text-left">
+        <router-link
+          to="/forum"
+          class="text-sm text-brand-600 hover:underline flex items-center gap-1"
+        >
+          <span>&larr;</span> {{ t('userProfile.backBtn') }}
+        </router-link>
+      </div>
 
-    <div v-else-if="!user" class="text-center py-12">
-      <p class="text-muted mb-4">User not found.</p>
-      <router-link to="/forum" class="text-brand-600 hover:underline">Back to Forum</router-link>
-    </div>
+      <SkeletonLoader v-if="loading" :lines="2" variant="card" />
 
-    <template v-else>
-      <!-- Profile Header -->
-      <BaseCard padding="lg" class="mb-6">
-        <div class="flex items-start gap-4">
-          <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="lg" />
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <h1 class="text-2xl font-bold text-foreground">{{ user.display_name }}</h1>
-              <BaseBadge :variant="roleBadgeVariant as any">{{ user.role }}</BaseBadge>
+      <div v-else-if="!user" class="text-center py-12">
+        <p class="text-muted mb-4">{{ t('userProfile.notFound') }}</p>
+        <router-link to="/forum" class="text-brand-600 hover:underline">{{
+          t('userProfile.backToForum')
+        }}</router-link>
+      </div>
+
+      <template v-else>
+        <!-- Profile Header -->
+        <BaseCard padding="lg" class="mb-6">
+          <div class="flex items-start gap-4">
+            <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="lg" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <h1 class="text-2xl font-bold text-foreground">{{ user.display_name }}</h1>
+                <BaseBadge :variant="roleBadgeVariant as any">{{ user.role }}</BaseBadge>
+              </div>
+              <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
+              <p class="text-xs text-muted">
+                {{ t('userProfile.joined') }} {{ new Date(user.created_at).toLocaleDateString() }}
+              </p>
             </div>
-            <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
-            <p class="text-xs text-muted">
-              Joined {{ new Date(user.created_at).toLocaleDateString() }}
-            </p>
+            <router-link
+              v-if="isOwnProfile"
+              to="/profile"
+              class="text-sm text-brand-600 hover:underline shrink-0"
+            >
+              {{ t('userProfile.editProfileBtn') }}
+            </router-link>
           </div>
-          <router-link
-            v-if="isOwnProfile"
-            to="/profile"
-            class="text-sm text-brand-600 hover:underline shrink-0"
-          >
-            Edit Profile
-          </router-link>
-        </div>
 
-        <!-- Info Cards -->
-        <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
-          <div v-if="user.bio" class="text-sm text-foreground/80">
-            <span class="font-medium text-foreground">Bio:</span> {{ user.bio }}
+          <!-- Info Cards -->
+          <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
+            <div v-if="user.bio" class="text-sm text-foreground/80">
+              <span class="font-medium text-foreground">{{ t('userProfile.bio') }}</span>
+              {{ user.bio }}
+            </div>
+            <div v-if="user.affiliation" class="text-sm text-foreground/80">
+              <span class="font-medium text-foreground">{{ t('userProfile.affiliation') }}</span>
+              {{ user.affiliation }}
+            </div>
+            <div v-if="user.orcid" class="text-sm text-foreground/80">
+              <span class="font-medium text-foreground">{{ t('userProfile.orcid') }}</span>
+              {{ user.orcid }}
+            </div>
           </div>
-          <div v-if="user.affiliation" class="text-sm text-foreground/80">
-            <span class="font-medium text-foreground">Affiliation:</span> {{ user.affiliation }}
-          </div>
-          <div v-if="user.orcid" class="text-sm text-foreground/80">
-            <span class="font-medium text-foreground">ORCID:</span> {{ user.orcid }}
-          </div>
-        </div>
-      </BaseCard>
+        </BaseCard>
 
-      <!-- Posts Feed -->
-      <h2 class="text-lg font-semibold text-foreground mb-4">Posts ({{ postsTotal }})</h2>
+        <!-- Posts Feed -->
+        <h2 class="text-lg font-semibold text-foreground mb-4">
+          {{ t('userProfile.postsTitle') }} ({{ postsTotal }})
+        </h2>
 
-      <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
-      <EmptyState
-        v-else-if="posts.length === 0"
-        title="No posts yet"
-        message="This user hasn't posted anything."
-      />
-
-      <div v-else class="space-y-4">
-        <div v-for="p in posts" :key="p.id">
-          <PostCard :post="p" :format-time="toLocaleTime" :content-clamp="3" />
-        </div>
-      </div>
-
-      <div class="mt-6">
-        <BasePagination
-          v-if="postsTotalPages > 1"
-          :current-page="postsPage"
-          :total-pages="postsTotalPages"
-          @update:current-page="goToPage"
+        <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
+        <EmptyState
+          v-else-if="posts.length === 0"
+          :title="t('userProfile.postsEmptyTitle')"
+          :message="t('userProfile.postsEmptyMessage')"
         />
-      </div>
-    </template>
+
+        <div v-else class="space-y-4">
+          <div v-for="p in posts" :key="p.id">
+            <PostCard :post="p" :format-time="toLocaleTime" :content-clamp="3" />
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <BasePagination
+            v-if="postsTotalPages > 1"
+            :current-page="postsPage"
+            :total-pages="postsTotalPages"
+            @update:current-page="goToPage"
+          />
+        </div>
+      </template>
+    </div>
   </div>
 </template>

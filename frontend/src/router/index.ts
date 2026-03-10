@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AdminLayout from '@/components/AdminLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,6 +14,7 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: () => import('@/views/AboutView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
     },
     {
       path: '/login',
@@ -36,13 +38,13 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/ProfileView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
     },
     {
       path: '/users/:id',
       name: 'user-profile',
       component: () => import('@/views/UserProfileView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
     },
     {
       path: '/notifications',
@@ -69,34 +71,53 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/admin/users',
-      name: 'admin-users',
-      component: () => import('@/views/admin/UsersView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/applications',
-      name: 'admin-applications',
-      component: () => import('@/views/admin/ApplicationsView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/reports',
-      name: 'admin-reports',
-      component: () => import('@/views/admin/ReportsView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/categories',
-      name: 'admin-categories',
-      component: () => import('@/views/admin/CategoriesView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/audit-logs',
-      name: 'admin-audit-logs',
-      component: () => import('@/views/admin/AuditLogsView.vue'),
-      meta: { requiresAuth: true, requiresSuperAdmin: true },
+      path: '/admin',
+      component: AdminLayout,
+      meta: { requiresAuth: true, requiresAdmin: true, fullWidth: true },
+      children: [
+        {
+          path: '',
+          name: 'admin-dashboard',
+          component: () => import('@/views/admin/AdminDashboardView.vue'),
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/UsersView.vue'),
+        },
+        {
+          path: 'applications',
+          name: 'admin-applications',
+          component: () => import('@/views/admin/ApplicationsView.vue'),
+        },
+        {
+          path: 'reports',
+          name: 'admin-reports',
+          component: () => import('@/views/admin/ReportsView.vue'),
+        },
+        {
+          path: 'categories',
+          name: 'admin-categories',
+          component: () => import('@/views/admin/CategoriesView.vue'),
+        },
+        {
+          path: 'invite-codes',
+          name: 'admin-invite-codes',
+          component: () => import('@/views/admin/InviteCodesView.vue'),
+        },
+        {
+          path: 'contributors',
+          name: 'admin-contributors',
+          component: () => import('@/views/admin/ContributorsView.vue'),
+          meta: { requiresSuperAdmin: true },
+        },
+        {
+          path: 'audit-logs',
+          name: 'admin-audit-logs',
+          component: () => import('@/views/admin/AuditLogsView.vue'),
+          meta: { requiresSuperAdmin: true },
+        },
+      ],
     },
     {
       path: '/sigs',
@@ -112,9 +133,26 @@ const router = createRouter({
     },
     {
       path: '/sigs/:id',
-      name: 'sig-detail',
-      component: () => import('@/views/sigs/SigDetailView.vue'),
-      meta: { requiresAuth: true },
+      component: () => import('@/views/sigs/SigLayout.vue'),
+      meta: { requiresAuth: true, fullWidth: true },
+      children: [
+        { path: '', redirect: { name: 'sig-posts' } },
+        {
+          path: 'posts',
+          name: 'sig-posts',
+          component: () => import('@/views/sigs/SigPostsView.vue'),
+        },
+        {
+          path: 'members',
+          name: 'sig-members',
+          component: () => import('@/views/sigs/SigMembersView.vue'),
+        },
+        {
+          path: 'forms',
+          name: 'sig-forms',
+          component: () => import('@/views/sigs/SigFormsView.vue'),
+        },
+      ],
     },
     {
       path: '/sigs/:sigId/forms/new',
@@ -135,18 +173,6 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/admin',
-      name: 'admin-dashboard',
-      component: () => import('@/views/admin/AdminDashboardView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
-      path: '/admin/invite-codes',
-      name: 'admin-invite-codes',
-      component: () => import('@/views/admin/InviteCodesView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-    },
-    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),
@@ -165,6 +191,11 @@ router.beforeEach((to) => {
   // Redirect unauthenticated users to login
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  // Block guest users from member-only pages
+  if (to.meta.requiresMember && auth.isGuest) {
+    return { name: 'home' }
   }
 
   // Check admin access

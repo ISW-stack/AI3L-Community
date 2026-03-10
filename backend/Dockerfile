@@ -1,10 +1,10 @@
-FROM python:3.11-slim AS base
+FROM python:3.12-slim AS base
 
 WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc libpq-dev && \
+    apt-get install -y --no-install-recommends gcc libpq-dev qpdf libqpdf-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies

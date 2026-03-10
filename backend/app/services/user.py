@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.event_bus import emit
 from app.core.file_validation import validate_avatar
 from app.core.redis import get_redis
-from app.core.security import hash_password, validate_password_policy, verify_password
+from app.core.security import async_hash_password, async_verify_password, validate_password_policy
 from app.core.storage import generate_avatar_key
 from app.models.user import UserRole
 from app.repositories import user_repo
@@ -30,7 +30,7 @@ async def create_user(
     display_name: str = "",
 ) -> dict:
     user_id = uuid.uuid4()
-    pw_hash = hash_password(password)
+    pw_hash = await async_hash_password(password)
     if not display_name:
         display_name = username
 
@@ -46,6 +46,7 @@ async def update_user_profile(
     affiliation: str | None = None,
     orcid: str | None = None,
     avatar_url: str | None = None,
+    preferred_language: str | None = None,
 ) -> dict | None:
     return await user_repo.update_profile(
         user_id,
@@ -54,6 +55,7 @@ async def update_user_profile(
         affiliation=affiliation,
         orcid=orcid,
         avatar_url=avatar_url,
+        preferred_language=preferred_language,
     )
 
 
@@ -160,18 +162,33 @@ async def change_password(user_id: uuid.UUID, old_password: str, new_password: s
     if not pw_hash:
         raise ValueError("User not found.")
 
-    if not verify_password(old_password, pw_hash):
+    if not await async_verify_password(old_password, pw_hash):
         raise ValueError("Current password is incorrect.")
 
     error = validate_password_policy(new_password)
     if error:
         raise ValueError(error)
 
-    new_hash = hash_password(new_password)
+    new_hash = await async_hash_password(new_password)
     await user_repo.update_password_hash(user_id, new_hash)
     logger.info("Password changed", extra={"user_id": str(user_id)})
     return True
 
 
-async def list_users(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:
-    return await user_repo.list_all(offset, limit)
+async def list_users(
+    page: int = 1,
+    page_size: int = 50,
+    search: str | None = None,
+) -> tuple[list[dict], int]:
+    return await user_repo.list_all(page=page, page_size=page_size, search=search)
+
+
+async def bulk_change_role(user_ids: list[uuid.UUID], role: str) -> int:
+    """Change role for multiple users in a single transaction."""
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            count = await user_repo.bulk_update_role(user_ids, role, conn)
+    return count

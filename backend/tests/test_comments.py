@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -46,6 +46,169 @@ def _make_comment(post_id=None, user_id=None, comment_id=None):
     }
 
 
+class TestCommentNotificationUsesPostId:
+    """Verify comment.created event emits post_id (not comment_id) as entity_id."""
+
+    @pytest.mark.anyio
+    async def test_mention_notification_uses_post_id(self):
+        """Mention targets should contain post_id, not comment_id."""
+
+        post_id = uuid.uuid4()
+        comment_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        mentioned_user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+
+        mock_row = {
+            "id": comment_id,
+            "post_id": post_id,
+            "user_id": uuid.UUID(user_id),
+            "parent_id": None,
+            "content": "Hello @bob",
+            "mentions": ["bob"],
+            "reactions": {},
+            "created_at": now,
+            "updated_at": now,
+            "author_id": uuid.UUID(user_id),
+            "author_username": "alice",
+            "author_display_name": "Alice",
+            "author_avatar_url": None,
+        }
+
+        mock_post = {"id": post_id, "allow_comments": True, "comment_count": 0}
+
+        conn = AsyncMock()
+        conn.fetchrow = AsyncMock(side_effect=[mock_post, mock_row])
+        conn.execute = AsyncMock()
+        conn.fetch = AsyncMock(
+            return_value=[{"id": uuid.UUID(mentioned_user_id), "username": "bob"}]
+        )
+
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        conn.transaction = MagicMock(return_value=tx)
+
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool_obj = MagicMock()
+        mock_pool_obj.acquire.return_value = cm
+
+        emit_calls = []
+
+        async def mock_emit(event, **kwargs):
+            emit_calls.append((event, kwargs))
+
+        with (
+            patch("app.services.comment.get_pool", return_value=mock_pool_obj),
+            patch("app.services.comment.emit", side_effect=mock_emit),
+            patch("app.converters.comment_converter.resolve_avatar_url", return_value=None),
+        ):
+            from app.services.comment import create_comment
+
+            await create_comment(
+                post_id=post_id,
+                user_id=user_id,
+                content="Hello @bob",
+                mentions=["bob"],
+            )
+
+        assert len(emit_calls) == 1
+        event, kwargs = emit_calls[0]
+        assert event == "comment.created"
+        # mention_targets should contain post_id, NOT comment_id
+        assert len(kwargs["mention_targets"]) == 1
+        target_uid, entity_id = kwargs["mention_targets"][0]
+        assert target_uid == mentioned_user_id
+        assert entity_id == str(post_id)
+        assert entity_id != str(comment_id)
+
+    @pytest.mark.anyio
+    async def test_reply_notification_uses_post_id(self):
+        """Reply target should contain post_id, not comment_id."""
+
+        post_id = uuid.uuid4()
+        comment_id = uuid.uuid4()
+        parent_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        parent_user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+
+        mock_row = {
+            "id": comment_id,
+            "post_id": post_id,
+            "user_id": uuid.UUID(user_id),
+            "parent_id": parent_id,
+            "content": "Reply here",
+            "mentions": None,
+            "reactions": {},
+            "created_at": now,
+            "updated_at": now,
+            "author_id": uuid.UUID(user_id),
+            "author_username": "alice",
+            "author_display_name": "Alice",
+            "author_avatar_url": None,
+        }
+
+        mock_post = {"id": post_id, "allow_comments": True, "comment_count": 0}
+        mock_parent = {"id": parent_id}
+
+        conn = AsyncMock()
+        conn.fetchrow = AsyncMock(side_effect=[mock_post, mock_parent, mock_row])
+        conn.execute = AsyncMock()
+
+        # find_parent_user_id
+        parent_user_row = AsyncMock()
+        parent_user_row.fetchrow = AsyncMock(return_value={"user_id": uuid.UUID(parent_user_id)})
+
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        conn.transaction = MagicMock(return_value=tx)
+
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool_obj = MagicMock()
+        mock_pool_obj.acquire.return_value = cm
+
+        emit_calls = []
+
+        async def mock_emit(event, **kwargs):
+            emit_calls.append((event, kwargs))
+
+        with (
+            patch("app.services.comment.get_pool", return_value=mock_pool_obj),
+            patch("app.services.comment.emit", side_effect=mock_emit),
+            patch("app.converters.comment_converter.resolve_avatar_url", return_value=None),
+            patch(
+                "app.repositories.comment_repo.find_parent_user_id",
+                new_callable=AsyncMock,
+                return_value=parent_user_id,
+            ),
+        ):
+            from app.services.comment import create_comment
+
+            await create_comment(
+                post_id=post_id,
+                user_id=user_id,
+                content="Reply here",
+                parent_id=str(parent_id),
+            )
+
+        assert len(emit_calls) == 1
+        event, kwargs = emit_calls[0]
+        assert event == "comment.created"
+        # reply_target should contain post_id, NOT comment_id
+        reply_uid, entity_id = kwargs["reply_target"]
+        assert reply_uid == parent_user_id
+        assert entity_id == str(post_id)
+        assert entity_id != str(comment_id)
+
+
 class TestGetComments:
     @pytest.mark.anyio
     async def test_get_comments(self, client):
@@ -69,6 +232,32 @@ class TestGetComments:
                 data = resp.json()
                 assert data["total"] == 1
                 assert len(data["comments"]) == 1
+        finally:
+            _clear_overrides()
+
+
+class TestGetCommentsPagination:
+    @pytest.mark.anyio
+    async def test_get_comments_with_page_params(self, client):
+        """GET /posts/{pid}/comments accepts page/page_size (not offset/limit)."""
+        post_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(
+                    f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value={"id": post_id}
+                ),
+                patch(
+                    f"{_EP}.list_comments", new_callable=AsyncMock, return_value=([], 0)
+                ) as mock_list,
+            ):
+                resp = await client.get(
+                    f"/api/v1/posts/{post_id}/comments?page=2&page_size=10",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                mock_list.assert_called_once_with(post_id, page=2, page_size=10)
         finally:
             _clear_overrides()
 
@@ -138,3 +327,119 @@ class TestToggleReaction:
                 assert "LIKE" in resp.json()["reactions"]
         finally:
             _clear_overrides()
+
+
+class TestSigMemberBatchNotification:
+    """Verify _on_post_created_in_sig paginates through all SIG members in batches."""
+
+    @pytest.mark.anyio
+    async def test_find_members_called_multiple_batches(self):
+        """When total > BATCH_SIZE, find_members is called in multiple rounds."""
+        from app.event_handlers import _SIG_MEMBER_BATCH_SIZE, _on_post_created_in_sig
+
+        sig_id = str(uuid.uuid4())
+        post_id = str(uuid.uuid4())
+        author_id = str(uuid.uuid4())
+        member_id_1 = str(uuid.uuid4())
+        member_id_2 = str(uuid.uuid4())
+
+        # Simulate two pages: first returns 1 member with total=2, second returns 1 with total=2
+        page1_members = [{"user_id": uuid.UUID(member_id_1)}]
+        page2_members = [{"user_id": uuid.UUID(member_id_2)}]
+
+        # total must be > _SIG_MEMBER_BATCH_SIZE (200) so the loop continues after
+        # the first call (offset becomes 200, and 200 < 201 → second call fires).
+        find_members_mock = AsyncMock(
+            side_effect=[
+                (page1_members, 201),  # first batch: 1 member, total=201
+                (page2_members, 201),  # second batch: 1 member, total=201
+                ([], 201),  # third call: empty → loop ends
+            ]
+        )
+
+        with (
+            patch(
+                "app.repositories.sig_repo.find_members",
+                new=find_members_mock,
+            ),
+            patch(
+                "app.services.user.get_user_by_id",
+                new_callable=AsyncMock,
+                return_value={"display_name": "Author"},
+            ),
+            patch(
+                "app.services.notification.create_notification",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.event_handlers._check_idempotent",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await _on_post_created_in_sig(
+                sig_id=sig_id,
+                post_id=post_id,
+                author_id=author_id,
+                post_title="Test Post",
+            )
+
+        # find_members must have been called with increasing offsets
+        calls = find_members_mock.call_args_list
+        assert len(calls) >= 2
+        first_call_kwargs = calls[0]
+        second_call_kwargs = calls[1]
+        # Verify offset incremented by BATCH_SIZE between calls
+        first_offset = first_call_kwargs[1].get(
+            "offset", first_call_kwargs[0][1] if len(first_call_kwargs[0]) > 1 else None
+        )
+        second_offset = second_call_kwargs[1].get(
+            "offset", second_call_kwargs[0][1] if len(second_call_kwargs[0]) > 1 else None
+        )
+        assert second_offset == first_offset + _SIG_MEMBER_BATCH_SIZE
+
+    @pytest.mark.anyio
+    async def test_find_members_single_batch_when_small(self):
+        """When total <= BATCH_SIZE, find_members is called exactly once (offset >= total)."""
+        from app.event_handlers import _on_post_created_in_sig
+
+        sig_id = str(uuid.uuid4())
+        post_id = str(uuid.uuid4())
+        author_id = str(uuid.uuid4())
+        member_id = str(uuid.uuid4())
+
+        find_members_mock = AsyncMock(
+            side_effect=[
+                ([{"user_id": uuid.UUID(member_id)}], 1),  # first batch: 1 member, total=1
+            ]
+        )
+
+        with (
+            patch(
+                "app.repositories.sig_repo.find_members",
+                new=find_members_mock,
+            ),
+            patch(
+                "app.services.user.get_user_by_id",
+                new_callable=AsyncMock,
+                return_value={"display_name": "Author"},
+            ),
+            patch(
+                "app.services.notification.create_notification",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.event_handlers._check_idempotent",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            await _on_post_created_in_sig(
+                sig_id=sig_id,
+                post_id=post_id,
+                author_id=author_id,
+                post_title="Test Post",
+            )
+
+        # Only one call needed: offset=0, total=1, offset+BATCH_SIZE >= total so loop ends
+        assert find_members_mock.call_count == 1

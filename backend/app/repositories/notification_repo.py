@@ -122,7 +122,7 @@ async def mark_all_read(user_id: uuid.UUID) -> int:
             "UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false",
             user_id,
         )
-        count = int(result.split(" ")[1]) if result else 0
+        count = int(result.split()[-1]) if result else 0
         return count
 
 
@@ -153,7 +153,7 @@ async def bulk_delete(user_id: uuid.UUID, notification_ids: list[uuid.UUID] | No
                 "DELETE FROM notifications WHERE user_id = $1",
                 user_id,
             )
-        return int(result.split(" ")[1]) if result else 0
+        return int(result.split()[-1]) if result else 0
 
 
 async def count_unread(user_id: uuid.UUID) -> int:

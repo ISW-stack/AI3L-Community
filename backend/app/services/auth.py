@@ -7,14 +7,13 @@ from loguru import logger
 
 from app.core.constants import MAX_GUESTS
 from app.core.redis import get_redis
-from app.core.security import ROLE_TTL_MAP, create_access_token, verify_password
+from app.core.security import ROLE_TTL_MAP, async_verify_password, create_access_token
 from app.models.user import UserRole
 from app.repositories import auth_repo
 from app.services.user import get_user_by_username
 
 SESSION_KEY_TEMPLATE = "session:{role}:{user_id}"
 BLACKLIST_KEY_TEMPLATE = "jwt:blacklist:{jti}"
-GUEST_ONLINE_KEY = "online_count:guest"
 
 
 async def authenticate_user(username: str, password: str) -> dict | None:
@@ -24,7 +23,7 @@ async def authenticate_user(username: str, password: str) -> dict | None:
         return None
     if user.get("is_deleted"):
         return None
-    if not verify_password(password, user["password_hash"]):
+    if not await async_verify_password(password, user["password_hash"]):
         return None
     return user
 
@@ -52,9 +51,6 @@ async def destroy_session(user_id: str, role: str, jti: str) -> None:
 
     blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=jti)
     await redis.set(blacklist_key, "1", ex=28800)  # 8 hours max
-
-    if role == "GUEST":
-        await redis.decr(GUEST_ONLINE_KEY)
 
     logger.info("Session destroyed", extra={"user_id": user_id})
 
@@ -86,25 +82,39 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
     return bool(stored_jti == jti)
 
 
+_GUEST_COUNT_KEY = "meta:active_guest_count"
+_GUEST_COUNT_TTL = 60  # seconds
+
+
+async def _count_active_guests() -> int:
+    """Count active guest sessions by scanning Redis keys. Result cached for 60s."""
+    redis = get_redis()
+    cached = await redis.get(_GUEST_COUNT_KEY)
+    if cached is not None:
+        return int(cached)
+    count = 0
+    async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
+        count += 1
+    await redis.setex(_GUEST_COUNT_KEY, _GUEST_COUNT_TTL, count)
+    return count
+
+
 async def guest_login(display_name: str) -> tuple[str, int] | None:
     """Create guest session. Returns (token, expires_in) or None if limit reached."""
-    redis = get_redis()
-
-    count = await redis.incr(GUEST_ONLINE_KEY)
-    if count > MAX_GUESTS:
-        await redis.decr(GUEST_ONLINE_KEY)
+    count = await _count_active_guests()
+    if count >= MAX_GUESTS:
         return None
 
     guest_id = str(uuid.uuid4())
-    try:
-        token, ttl_seconds = await create_session(guest_id, "GUEST")
-    except Exception:
-        await redis.decr(GUEST_ONLINE_KEY)
-        raise
+    token, ttl_seconds = await create_session(guest_id, "GUEST")
+
+    # Invalidate cached guest count so the next check reflects the new session
+    redis = get_redis()
+    await redis.delete(_GUEST_COUNT_KEY)
 
     logger.info(
         "Guest login",
-        extra={"guest_id": guest_id, "display_name": display_name, "online_guests": count},
+        extra={"guest_id": guest_id, "display_name": display_name, "online_guests": count + 1},
     )
     return token, ttl_seconds
 
@@ -169,10 +179,10 @@ async def register_new_user(
     Returns the created user dict.
     """
     from app.core.database import get_pool
-    from app.core.security import hash_password
+    from app.core.security import async_hash_password
 
     user_id = uuid.uuid4()
-    pw_hash = hash_password(password)
+    pw_hash = await async_hash_password(password)
     if not display_name:
         display_name = username
 

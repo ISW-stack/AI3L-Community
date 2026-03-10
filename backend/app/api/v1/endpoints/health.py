@@ -2,6 +2,7 @@ import time
 
 from fastapi import APIRouter
 
+from app.core.config import settings
 from app.core.database import get_pool
 from app.core.redis import get_redis
 from app.schemas.health import DependencyStatus, HealthResponse
@@ -24,9 +25,11 @@ async def health_check() -> HealthResponse:
         dependencies.append(
             DependencyStatus(name="postgresql", status="healthy", latency_ms=round(latency, 2))
         )
-    except Exception as e:
+    except Exception:
         overall_healthy = False
-        dependencies.append(DependencyStatus(name="postgresql", status="unhealthy", error=str(e)))
+        dependencies.append(
+            DependencyStatus(name="postgresql", status="unhealthy", error="connection failed")
+        )
 
     # Check Redis
     try:
@@ -37,9 +40,28 @@ async def health_check() -> HealthResponse:
         dependencies.append(
             DependencyStatus(name="redis", status="healthy", latency_ms=round(latency, 2))
         )
-    except Exception as e:
+    except Exception:
         overall_healthy = False
-        dependencies.append(DependencyStatus(name="redis", status="unhealthy", error=str(e)))
+        dependencies.append(
+            DependencyStatus(name="redis", status="unhealthy", error="connection failed")
+        )
+
+    # Check MinIO/Storage
+    try:
+        from app.core.storage import get_storage
+
+        start = time.perf_counter()
+        client = get_storage()
+        client.head_bucket(Bucket=settings.MINIO_BUCKET_NAME)
+        latency = (time.perf_counter() - start) * 1000
+        dependencies.append(
+            DependencyStatus(name="minio", status="healthy", latency_ms=round(latency, 2))
+        )
+    except Exception:
+        overall_healthy = False
+        dependencies.append(
+            DependencyStatus(name="minio", status="unhealthy", error="connection failed")
+        )
 
     return HealthResponse(
         status="healthy" if overall_healthy else "unhealthy",

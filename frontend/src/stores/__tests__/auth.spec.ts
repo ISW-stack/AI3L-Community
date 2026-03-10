@@ -17,6 +17,28 @@ vi.mock('@/constants', () => ({
   HEARTBEAT_INTERVAL_MS: 30000,
 }))
 
+// Mock notification store
+const mockNotifReset = vi.fn()
+vi.mock('@/stores/notifications', () => ({
+  useNotificationStore: () => ({
+    $reset: mockNotifReset,
+  }),
+}))
+
+// Mock toast store
+const mockToastClearAll = vi.fn()
+vi.mock('@/stores/toast', () => ({
+  useToastStore: () => ({
+    clearAll: mockToastClearAll,
+  }),
+}))
+
+// Mock useLocale composable — syncLocaleFromProfile is a standalone export
+const mockSyncLocaleFromProfile = vi.fn()
+vi.mock('@/composables/useLocale', () => ({
+  syncLocaleFromProfile: (...args: unknown[]) => mockSyncLocaleFromProfile(...args),
+}))
+
 describe('useAuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -24,6 +46,9 @@ describe('useAuthStore', () => {
     vi.useFakeTimers()
     mockPost.mockReset()
     mockGet.mockReset()
+    mockNotifReset.mockReset()
+    mockToastClearAll.mockReset()
+    mockSyncLocaleFromProfile.mockReset()
   })
 
   afterEach(() => {
@@ -93,6 +118,22 @@ describe('useAuthStore', () => {
       // Advance past heartbeat interval; heartbeat should NOT fire
       vi.advanceTimersByTime(60000)
       expect(mockPost).not.toHaveBeenCalledWith('/auth/heartbeat')
+    })
+
+    it('clearSession resets notification store', () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      auth.clearSession()
+
+      expect(mockNotifReset).toHaveBeenCalledOnce()
+    })
+
+    it('clearSession resets toast store', () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      auth.clearSession()
+
+      expect(mockToastClearAll).toHaveBeenCalledOnce()
     })
   })
 
@@ -312,6 +353,41 @@ describe('useAuthStore', () => {
 
       await expect(auth.fetchProfile()).resolves.toBeUndefined()
       expect(auth.user).toBeNull()
+    })
+
+    it('should call syncLocaleFromProfile when preferred_language is set', async () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      mockGet.mockResolvedValueOnce({
+        data: {
+          id: '1',
+          username: 'alice',
+          display_name: 'Alice',
+          role: 'MEMBER',
+          preferred_language: 'zh-TW',
+        },
+      })
+
+      await auth.fetchProfile()
+
+      expect(mockSyncLocaleFromProfile).toHaveBeenCalledWith('zh-TW')
+    })
+
+    it('should not call syncLocaleFromProfile when preferred_language is not set', async () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      mockGet.mockResolvedValueOnce({
+        data: {
+          id: '1',
+          username: 'bob',
+          display_name: 'Bob',
+          role: 'MEMBER',
+        },
+      })
+
+      await auth.fetchProfile()
+
+      expect(mockSyncLocaleFromProfile).not.toHaveBeenCalled()
     })
   })
 

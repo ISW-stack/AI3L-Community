@@ -2,6 +2,7 @@ import uuid
 
 from loguru import logger
 
+from app.core.database import get_pool
 from app.repositories import category_repo
 
 
@@ -17,7 +18,7 @@ async def list_categories() -> list[dict]:
 
 
 async def get_category_by_id(category_id: uuid.UUID) -> dict | None:
-    return await category_repo.find_by_id(category_id)
+    return await category_repo.find_by_id_with_post_count(category_id)
 
 
 async def update_category(
@@ -25,17 +26,26 @@ async def update_category(
     name: str | None = None,
     description: str | None = None,
 ) -> dict | None:
-    current = await category_repo.find_by_id(category_id)
-    if not current:
-        return None
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            current = await conn.fetchrow("SELECT * FROM categories WHERE id = $1", category_id)
+            if not current:
+                return None
 
-    new_name = name if name is not None else current["name"]
-    new_desc = description if description is not None else current["description"]
+            new_name = name if name is not None else current["name"]
+            new_desc = description if description is not None else current["description"]
 
-    result = await category_repo.update(category_id, new_name, new_desc)
-    if result:
-        logger.info("Category updated", extra={"category_id": str(category_id)})
-    return result
+            row = await conn.fetchrow(
+                "UPDATE categories SET name = $1, description = $2 WHERE id = $3 RETURNING *",
+                new_name,
+                new_desc,
+                category_id,
+            )
+            result = dict(row) if row else None
+            if result:
+                logger.info("Category updated", extra={"category_id": str(category_id)})
+            return result
 
 
 async def delete_category(category_id: uuid.UUID) -> bool:

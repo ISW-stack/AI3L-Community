@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { i18n } from '@/locales'
 import router from '@/router'
 
 function getCookie(name: string): string | null {
@@ -38,11 +39,13 @@ api.interceptors.response.use(
     const message: string =
       typeof detail === 'object' ? detail?.message : typeof detail === 'string' ? detail : ''
 
+    const t = i18n.global.t
+
     // AUTH_004 — account banned
     if (code === 'AUTH_004') {
       const auth = useAuthStore()
       auth.clearSession()
-      useToastStore().show(message || 'Your account has been banned.', 'error')
+      useToastStore().show(t('errors.AUTH_004'), 'error')
       router.push({ name: 'login' })
       return Promise.reject(error)
     }
@@ -57,7 +60,7 @@ api.interceptors.response.use(
 
     // AUTH_003 — guest capacity reached
     if (code === 'AUTH_003') {
-      useToastStore().show(message || 'Guest capacity reached. Please try again later.', 'warning')
+      useToastStore().show(t('errors.AUTH_003'), 'warning')
       return Promise.reject(error)
     }
 
@@ -65,15 +68,20 @@ api.interceptors.response.use(
     if (status === 429) {
       const retryAfter = error.response.headers['retry-after']
       const msg = retryAfter
-        ? `Too many requests. Please retry after ${retryAfter} seconds.`
-        : message || 'Too many requests. Please try again later.'
+        ? t('errors.RATE_LIMIT_RETRY', { seconds: retryAfter })
+        : t('errors.RATE_LIMIT')
       useToastStore().show(msg, 'warning')
       return Promise.reject(error)
     }
 
-    // Generic structured error — show toast with message if available
-    if (code && message) {
-      useToastStore().show(message, 'error')
+    // Generic structured error — show toast with translated message if error code exists
+    if (code) {
+      const errorKey = `errors.${code}`
+      const translated = t(errorKey)
+      useToastStore().show(
+        translated !== errorKey ? translated : message || t('errors.unknown'),
+        'error',
+      )
     }
 
     return Promise.reject(error)

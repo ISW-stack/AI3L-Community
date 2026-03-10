@@ -41,6 +41,14 @@ def get_storage() -> Any:
     return _s3_client
 
 
+def close_storage() -> None:
+    """Close the boto3 S3 client and release its resources."""
+    global _s3_client
+    if _s3_client is not None:
+        _s3_client.close()
+        _s3_client = None
+
+
 def upload_file(data: bytes, key: str, content_type: str) -> str:
     """Upload file to MinIO. Returns the storage key."""
     client = get_storage()
@@ -70,8 +78,17 @@ def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
         )
     )
     if settings.MINIO_PUBLIC_URL:
-        internal = f"{'https' if settings.MINIO_USE_SSL else 'http'}://{settings.MINIO_ENDPOINT}"
-        url = url.replace(internal, settings.MINIO_PUBLIC_URL.rstrip("/"), 1)
+        from urllib.parse import urlparse, urlunparse
+
+        parsed = urlparse(url)
+        public_parsed = urlparse(settings.MINIO_PUBLIC_URL.rstrip("/"))
+        safe_url = urlunparse(
+            parsed._replace(
+                scheme=public_parsed.scheme,
+                netloc=public_parsed.netloc,
+            )
+        )
+        url = safe_url
     return url
 
 

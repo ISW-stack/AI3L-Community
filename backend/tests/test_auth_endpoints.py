@@ -104,9 +104,15 @@ class TestGuestLoginEndpoint:
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("gtok", 2700))
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
+    @patch("app.core.redis.get_redis")
     async def test_guest_login_success(
-        self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
+        self, mock_redis, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
     ):
+        mock_redis_inst = AsyncMock()
+        mock_redis_inst.get = AsyncMock(return_value=None)
+        mock_redis_inst.incr = AsyncMock()
+        mock_redis_inst.expire = AsyncMock()
+        mock_redis.return_value = mock_redis_inst
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
         resp = await client.post(
@@ -130,9 +136,13 @@ class TestGuestLoginEndpoint:
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=None)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
+    @patch("app.core.redis.get_redis")
     async def test_guest_login_capacity_reached(
-        self, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
+        self, mock_redis, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
     ):
+        mock_redis_inst = AsyncMock()
+        mock_redis_inst.get = AsyncMock(return_value=None)
+        mock_redis.return_value = mock_redis_inst
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
         resp = await client.post(
@@ -313,8 +323,16 @@ class TestGetCaptcha:
 
 
 class TestGenerateInviteCode:
+    @patch(
+        "app.repositories.invite_code_repo.count_active_by_user",
+        new_callable=AsyncMock,
+        return_value=0,
+    )
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.create_invite_code", new_callable=AsyncMock)
-    async def test_generate_invite_code(self, mock_create, client: AsyncClient):
+    async def test_generate_invite_code(
+        self, mock_create, mock_rl, mock_count, client: AsyncClient
+    ):
         """POST /auth/invite-code → 200 for member."""
         from datetime import datetime, timezone
 
@@ -337,16 +355,18 @@ class TestGenerateInviteCode:
 
 
 class TestVerifyInviteCode:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
-    async def test_verify_valid(self, mock_get, client: AsyncClient):
+    async def test_verify_valid(self, mock_get, mock_rl, client: AsyncClient):
         """GET /auth/invite-code/{code} → 200 for valid code."""
         mock_get.return_value = {"code": "INV-VALID", "id": uuid.uuid4()}
         resp = await client.get("/api/v1/auth/invite-code/INV-VALID")
         assert resp.status_code == 200
         assert "valid" in resp.json()["message"].lower()
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
-    async def test_verify_invalid(self, mock_get, client: AsyncClient):
+    async def test_verify_invalid(self, mock_get, mock_rl, client: AsyncClient):
         """GET /auth/invite-code/{code} → 404 for invalid code."""
         resp = await client.get("/api/v1/auth/invite-code/BAD-CODE")
         assert resp.status_code == 404
@@ -408,8 +428,9 @@ class TestCSRFMiddleware:
         # Should be 400 (bad captcha), not 403 (CSRF)
         assert resp.status_code == 400
 
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
-    async def test_csrf_allows_get(self, mock_get, client: AsyncClient):
+    async def test_csrf_allows_get(self, mock_get, mock_rl, client: AsyncClient):
         """GET requests should not require CSRF token."""
         resp = await client.get("/api/v1/auth/invite-code/TEST")
         # Should be 404 (not found), not 403 (CSRF)

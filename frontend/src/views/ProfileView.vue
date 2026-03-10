@@ -17,9 +17,16 @@ import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
+import { getErrorMessage } from '@/utils/error'
+import { useLocale } from '@/composables/useLocale'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 
+const { t } = useLocale()
 const auth = useAuthStore()
 const router = useRouter()
+
+const activeTab = ref<'general' | 'security' | 'danger'>('general')
 
 const displayName = ref('')
 const bio = ref('')
@@ -43,20 +50,50 @@ const generatedCode = ref('')
 const generatingCode = ref(false)
 const codeCopied = ref(false)
 
+function roleBadgeVariant(
+  role: string | null | undefined,
+): 'brand' | 'success' | 'warning' | 'purple' | 'neutral' {
+  switch (role) {
+    case 'SUPER_ADMIN':
+      return 'purple'
+    case 'ADMIN':
+      return 'warning'
+    case 'MEMBER':
+      return 'brand'
+    case 'GUEST':
+      return 'neutral'
+    default:
+      return 'neutral'
+  }
+}
+
+function roleBadgeLabel(role: string | null | undefined): string {
+  switch (role) {
+    case 'SUPER_ADMIN':
+      return t('common.role.superAdmin')
+    case 'ADMIN':
+      return t('common.role.admin')
+    case 'MEMBER':
+      return t('common.role.member')
+    case 'GUEST':
+      return t('common.role.guest')
+    default:
+      return role || 'Unknown'
+  }
+}
+
+function switchTab(tab: 'general' | 'security' | 'danger') {
+  activeTab.value = tab
+}
+
 async function generateInviteCode() {
   generatingCode.value = true
   try {
     const data = await createInviteCode()
     generatedCode.value = data.invite_code
-    toast.show('Invite code generated successfully.', 'success')
-  } catch (e: any) {
-    const detail = e.response?.data?.detail
-    toast.show(
-      typeof detail === 'object' && detail?.message
-        ? detail.message
-        : detail || 'Failed to generate invite code.',
-      'error',
-    )
+    toast.show(t('profile.security.inviteCodes.success'), 'success')
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('profile.security.inviteCodes.generateError')), 'error')
   } finally {
     generatingCode.value = false
   }
@@ -66,12 +103,12 @@ async function copyInviteCode() {
   try {
     await navigator.clipboard.writeText(generatedCode.value)
     codeCopied.value = true
-    toast.show('Invite code copied to clipboard.', 'success')
+    toast.show(t('profile.security.inviteCodes.copySuccess'), 'success')
     setTimeout(() => {
       codeCopied.value = false
     }, 2000)
   } catch {
-    toast.show('Failed to copy invite code.', 'error')
+    toast.show(t('profile.security.inviteCodes.copyError'), 'error')
   }
 }
 
@@ -95,9 +132,9 @@ async function saveProfile() {
       orcid: orcid.value || undefined,
     })
     auth.user = data
-    message.value = 'Profile updated successfully.'
-  } catch (e: any) {
-    message.value = e.response?.data?.detail || 'Failed to update profile.'
+    message.value = t('profile.saveSuccess')
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, t('profile.saveError'))
   } finally {
     saving.value = false
   }
@@ -106,12 +143,13 @@ async function saveProfile() {
 async function uploadAvatar(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  message.value = ''
   try {
     const data = await apiUploadAvatar(file)
     auth.user = data
-    message.value = 'Avatar updated successfully.'
-  } catch (e: any) {
-    message.value = e.response?.data?.detail || 'Failed to upload avatar.'
+    message.value = t('profile.avatarSuccess')
+  } catch (e: unknown) {
+    message.value = getErrorMessage(e, t('profile.avatarError'))
   }
 }
 
@@ -120,7 +158,7 @@ async function changePassword() {
   passwordError.value = false
 
   if (newPassword.value !== confirmPassword.value) {
-    passwordMessage.value = 'New passwords do not match.'
+    passwordMessage.value = t('profile.security.changePassword.mismatch')
     passwordError.value = true
     return
   }
@@ -131,7 +169,7 @@ async function changePassword() {
       current_password: currentPassword.value,
       new_password: newPassword.value,
     })
-    passwordMessage.value = 'Password changed successfully. Redirecting to login...'
+    passwordMessage.value = t('profile.security.changePassword.success')
     passwordError.value = false
     currentPassword.value = ''
     newPassword.value = ''
@@ -140,8 +178,8 @@ async function changePassword() {
       await auth.logout()
       router.push({ name: 'login' })
     }, 1500)
-  } catch (e: any) {
-    passwordMessage.value = e.response?.data?.detail || 'Failed to change password.'
+  } catch (e: unknown) {
+    passwordMessage.value = getErrorMessage(e, t('profile.security.changePassword.error'))
     passwordError.value = true
   } finally {
     changingPassword.value = false
@@ -152,6 +190,14 @@ const showDeleteConfirm = ref(false)
 const deleteConfirmText = ref('')
 const deletingAccount = ref(false)
 
+function openDeleteConfirm() {
+  showDeleteConfirm.value = true
+}
+
+function closeDeleteConfirm() {
+  showDeleteConfirm.value = false
+}
+
 async function handleDeleteAccount() {
   deletingAccount.value = true
   try {
@@ -159,190 +205,317 @@ async function handleDeleteAccount() {
     auth.clearSession()
     router.push({ name: 'login' })
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    message.value = err.response?.data?.detail || 'Failed to delete account.'
+    message.value = getErrorMessage(e, t('common.unknownError'))
   } finally {
     deletingAccount.value = false
     showDeleteConfirm.value = false
   }
 }
+
+function toggleCurrentPassword() {
+  showCurrentPassword.value = !showCurrentPassword.value
+}
+
+function toggleNewPassword() {
+  showNewPassword.value = !showNewPassword.value
+}
+
+function toggleConfirmPassword() {
+  showConfirmPassword.value = !showConfirmPassword.value
+}
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold text-foreground mb-6">Profile</h1>
-
-    <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
-
-    <!-- Avatar -->
-    <div class="flex items-center gap-4 mb-6">
-      <div
-        class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
-      >
-        <img
-          v-if="auth.user?.avatar_url"
-          :src="auth.user.avatar_url"
-          class="w-full h-full object-cover"
-          alt="Avatar"
-        />
-        <span v-else class="text-2xl text-muted">{{ (auth.user?.display_name || '?')[0] }}</span>
+  <div class="w-full lg:px-layout px-4 py-6 sm:py-8 min-h-screen">
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-4 text-left">
+        <router-link
+          to="/forum"
+          class="text-sm text-brand-600 hover:underline flex items-center gap-1"
+        >
+          <span>&larr;</span> {{ t('profile.backBtn') }}
+        </router-link>
       </div>
-      <label class="text-sm text-brand-600 hover:underline cursor-pointer">
-        Change Avatar
-        <input type="file" accept="image/png,image/jpeg" class="hidden" @change="uploadAvatar" />
-      </label>
-    </div>
+      <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('profile.title') }}</h1>
 
-    <BaseCard padding="lg" class="mb-8">
-      <form @submit.prevent="saveProfile" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-1">Username</label>
-          <input
-            :value="auth.user?.username"
-            disabled
-            class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
-          />
+      <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
+
+      <!-- Tab Navigation -->
+      <div class="flex gap-1 mb-6 border-b border-border">
+        <button
+          class="px-4 py-2 text-sm font-medium border-b-2 transition"
+          :class="
+            activeTab === 'general'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-muted hover:text-foreground'
+          "
+          @click="switchTab('general')"
+        >
+          {{ t('profile.tabs.general') }}
+        </button>
+        <button
+          v-if="!auth.isGuest"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition"
+          :class="
+            activeTab === 'security'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-muted hover:text-foreground'
+          "
+          @click="switchTab('security')"
+        >
+          {{ t('profile.tabs.security') }}
+        </button>
+        <button
+          v-if="!auth.isGuest"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition"
+          :class="
+            activeTab === 'danger'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-muted hover:text-foreground'
+          "
+          @click="switchTab('danger')"
+        >
+          {{ t('profile.tabs.dangerZone') }}
+        </button>
+      </div>
+
+      <!-- General Tab -->
+      <div v-if="activeTab === 'general'">
+        <!-- Avatar -->
+        <div class="flex items-center gap-4 mb-6">
+          <div
+            class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+          >
+            <img
+              v-if="auth.user?.avatar_url"
+              :src="auth.user.avatar_url"
+              class="w-full h-full object-cover"
+              alt="Avatar"
+            />
+            <span v-else class="text-2xl text-muted">{{
+              (auth.user?.display_name || '?')[0]
+            }}</span>
+          </div>
+          <label class="text-sm text-brand-600 hover:underline cursor-pointer">
+            {{ t('profile.changeAvatar') }}
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              class="hidden"
+              @change="uploadAvatar"
+            />
+          </label>
         </div>
 
-        <BaseInput v-model="displayName" label="Display Name" :maxlength="100" />
-        <BaseTextarea v-model="bio" label="Bio" :rows="3" :maxlength="500" />
-        <BaseInput v-model="affiliation" label="Affiliation" :maxlength="200" />
-        <BaseInput
-          v-model="orcid"
-          label="ORCID"
-          :maxlength="50"
-          placeholder="0000-0000-0000-0000"
-        />
-
-        <BaseButton type="submit" :loading="saving">Save</BaseButton>
-      </form>
-    </BaseCard>
-
-    <!-- Change Password -->
-    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
-      <h2 class="text-xl font-bold text-foreground mb-4">Change Password</h2>
-
-      <BaseAlert v-if="passwordMessage" :type="passwordError ? 'error' : 'success'" class="mb-4">{{
-        passwordMessage
-      }}</BaseAlert>
-
-      <BaseCard padding="lg">
-        <form @submit.prevent="changePassword" class="space-y-4">
-          <div class="relative">
-            <BaseInput
-              v-model="currentPassword"
-              label="Current Password"
-              :type="showCurrentPassword ? 'text' : 'password'"
-            />
-            <button
-              type="button"
-              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-              @click="showCurrentPassword = !showCurrentPassword"
-              :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
-            >
-              <component :is="showCurrentPassword ? EyeOff : Eye" class="w-4 h-4" />
-            </button>
+        <!-- Member Info -->
+        <BaseCard padding="lg" class="mb-6">
+          <h2 class="text-sm font-medium text-muted mb-3">{{ t('profile.memberInfo') }}</h2>
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-foreground font-medium">{{
+              auth.user?.username || '---'
+            }}</span>
+            <BaseBadge :variant="roleBadgeVariant(auth.role)">{{
+              roleBadgeLabel(auth.role)
+            }}</BaseBadge>
           </div>
-          <div>
+        </BaseCard>
+
+        <!-- Profile Form -->
+        <BaseCard padding="lg" class="mb-8">
+          <form @submit.prevent="saveProfile" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">{{
+                t('profile.form.usernameLabel')
+              }}</label>
+              <input
+                :value="auth.user?.username"
+                disabled
+                class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
+              />
+            </div>
+
+            <BaseInput
+              v-model="displayName"
+              :label="t('profile.form.displayNameLabel')"
+              :maxlength="100"
+            />
+            <BaseTextarea
+              v-model="bio"
+              :label="t('profile.form.bioLabel')"
+              :rows="3"
+              :maxlength="500"
+            />
+            <BaseInput
+              v-model="affiliation"
+              :label="t('profile.form.affiliationLabel')"
+              :maxlength="200"
+            />
+            <BaseInput
+              v-model="orcid"
+              :label="t('profile.form.orcidLabel')"
+              :maxlength="50"
+              :placeholder="t('profile.form.orcidPlaceholder')"
+            />
+
+            <!-- Language selector -->
+            <div>
+              <label class="block text-sm font-medium text-foreground mb-1">{{
+                t('profile.form.languageLabel')
+              }}</label>
+              <LanguageSwitcher variant="form" />
+            </div>
+
+            <BaseButton type="submit" :loading="saving">{{ t('profile.form.saveBtn') }}</BaseButton>
+          </form>
+        </BaseCard>
+      </div>
+
+      <!-- Security Tab -->
+      <div v-if="activeTab === 'security' && !auth.isGuest">
+        <!-- Change Password -->
+        <h2 class="text-xl font-bold text-foreground mb-4">
+          {{ t('profile.security.changePassword.title') }}
+        </h2>
+
+        <BaseAlert
+          v-if="passwordMessage"
+          :type="passwordError ? 'error' : 'success'"
+          class="mb-4"
+          >{{ passwordMessage }}</BaseAlert
+        >
+
+        <BaseCard padding="lg" class="mb-8">
+          <form @submit.prevent="changePassword" class="space-y-4">
             <div class="relative">
               <BaseInput
-                v-model="newPassword"
-                label="New Password"
-                :type="showNewPassword ? 'text' : 'password'"
+                v-model="currentPassword"
+                :label="t('profile.security.changePassword.currentLabel')"
+                :type="showCurrentPassword ? 'text' : 'password'"
               />
               <button
                 type="button"
                 class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-                @click="showNewPassword = !showNewPassword"
-                :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+                @click="toggleCurrentPassword"
+                :aria-label="showCurrentPassword ? t('auth.hidePassword') : t('auth.showPassword')"
               >
-                <component :is="showNewPassword ? EyeOff : Eye" class="w-4 h-4" />
+                <component :is="showCurrentPassword ? EyeOff : Eye" class="w-4 h-4" />
               </button>
             </div>
-            <p class="text-xs text-muted mt-1">
-              At least 8 characters, with uppercase, lowercase, and a digit.
-            </p>
-          </div>
-          <div class="relative">
-            <BaseInput
-              v-model="confirmPassword"
-              label="Confirm New Password"
-              :type="showConfirmPassword ? 'text' : 'password'"
-            />
-            <button
-              type="button"
-              class="absolute right-3 top-[34px] text-muted hover:text-foreground"
-              @click="showConfirmPassword = !showConfirmPassword"
-              :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+            <div>
+              <div class="relative">
+                <BaseInput
+                  v-model="newPassword"
+                  :label="t('profile.security.changePassword.newLabel')"
+                  :type="showNewPassword ? 'text' : 'password'"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+                  @click="toggleNewPassword"
+                  :aria-label="showNewPassword ? t('auth.hidePassword') : t('auth.showPassword')"
+                >
+                  <component :is="showNewPassword ? EyeOff : Eye" class="w-4 h-4" />
+                </button>
+              </div>
+              <p class="text-xs text-muted mt-1">
+                {{ t('profile.security.changePassword.newHint') }}
+              </p>
+            </div>
+            <div class="relative">
+              <BaseInput
+                v-model="confirmPassword"
+                :label="t('profile.security.changePassword.confirmLabel')"
+                :type="showConfirmPassword ? 'text' : 'password'"
+              />
+              <button
+                type="button"
+                class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+                @click="toggleConfirmPassword"
+                :aria-label="showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')"
+              >
+                <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
+              </button>
+            </div>
+
+            <BaseButton
+              type="submit"
+              :loading="changingPassword"
+              :disabled="!currentPassword || !newPassword || !confirmPassword"
             >
-              <component :is="showConfirmPassword ? EyeOff : Eye" class="w-4 h-4" />
-            </button>
-          </div>
-
-          <BaseButton
-            type="submit"
-            :loading="changingPassword"
-            :disabled="!currentPassword || !newPassword || !confirmPassword"
-          >
-            Change Password
-          </BaseButton>
-        </form>
-      </BaseCard>
-    </div>
-
-    <!-- Invite Codes -->
-    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
-      <h2 class="text-xl font-bold text-foreground mb-4">Invite Codes</h2>
-      <BaseCard padding="lg">
-        <p class="text-sm text-muted mb-4">
-          Generate an invite code to share with others so they can create an account.
-        </p>
-        <div class="flex flex-col gap-3">
-          <BaseButton :loading="generatingCode" @click="generateInviteCode">
-            Generate Invite Code
-          </BaseButton>
-          <div v-if="generatedCode" class="flex items-center gap-2">
-            <BaseInput :model-value="generatedCode" disabled class="flex-1" />
-            <BaseButton variant="secondary" size="sm" @click="copyInviteCode">
-              <component :is="codeCopied ? Check : Copy" class="w-4 h-4 mr-1" />
-              {{ codeCopied ? 'Copied!' : 'Copy' }}
+              {{ t('profile.security.changePassword.btn') }}
             </BaseButton>
+          </form>
+        </BaseCard>
+
+        <!-- Invite Codes -->
+        <h2 class="text-xl font-bold text-foreground mb-4">
+          {{ t('profile.security.inviteCodes.title') }}
+        </h2>
+        <BaseCard padding="lg">
+          <p class="text-sm text-muted mb-4">
+            {{ t('profile.security.inviteCodes.description') }}
+          </p>
+          <div class="flex flex-col gap-3">
+            <BaseButton :loading="generatingCode" @click="generateInviteCode">
+              {{ t('profile.security.inviteCodes.generateBtn') }}
+            </BaseButton>
+            <div v-if="generatedCode" class="flex items-center gap-2">
+              <BaseInput :model-value="generatedCode" disabled class="flex-1" />
+              <BaseButton variant="secondary" size="sm" @click="copyInviteCode">
+                <component :is="codeCopied ? Check : Copy" class="w-4 h-4 mr-1" />
+                {{
+                  codeCopied
+                    ? t('profile.security.inviteCodes.copiedBtn')
+                    : t('profile.security.inviteCodes.copyBtn')
+                }}
+              </BaseButton>
+            </div>
           </div>
-        </div>
-      </BaseCard>
-    </div>
+        </BaseCard>
+      </div>
 
-    <!-- Danger Zone -->
-    <div v-if="!auth.isGuest" class="pt-8 border-t border-border">
-      <h2 class="text-xl font-bold text-danger-600 mb-4">Danger Zone</h2>
-      <BaseCard padding="lg">
+      <!-- Danger Zone Tab -->
+      <div v-if="activeTab === 'danger' && !auth.isGuest">
+        <BaseAlert type="warning" class="mb-4">{{ t('profile.dangerZone.warning') }}</BaseAlert>
+
+        <h2 class="text-xl font-bold text-danger-600 mb-4">{{ t('profile.dangerZone.title') }}</h2>
+        <BaseCard padding="lg">
+          <p class="text-sm text-muted mb-4">
+            {{ t('profile.dangerZone.deleteDescription') }}
+          </p>
+          <BaseButton variant="danger" @click="openDeleteConfirm">
+            {{ t('profile.dangerZone.deleteBtn') }}
+          </BaseButton>
+        </BaseCard>
+      </div>
+
+      <!-- Delete Account Confirmation Modal -->
+      <BaseModal
+        v-model="showDeleteConfirm"
+        :title="t('profile.dangerZone.deleteConfirm.title')"
+        size="sm"
+      >
         <p class="text-sm text-muted mb-4">
-          Permanently delete your account and anonymize all personal data. This action cannot be
-          undone.
+          {{ t('profile.dangerZone.deleteConfirm.message') }}
         </p>
-        <BaseButton variant="danger" @click="showDeleteConfirm = true">
-          Delete My Account
-        </BaseButton>
-      </BaseCard>
+        <BaseInput
+          v-model="deleteConfirmText"
+          :label="t('profile.dangerZone.deleteConfirm.typeLabel')"
+          :placeholder="t('profile.dangerZone.deleteConfirm.placeholder')"
+        />
+        <template #footer>
+          <BaseButton variant="secondary" @click="closeDeleteConfirm">{{
+            t('common.cancel')
+          }}</BaseButton>
+          <BaseButton
+            variant="danger"
+            :disabled="deleteConfirmText !== 'DELETE'"
+            :loading="deletingAccount"
+            @click="handleDeleteAccount"
+            >{{ t('profile.dangerZone.deleteConfirm.confirmBtn') }}</BaseButton
+          >
+        </template>
+      </BaseModal>
     </div>
-
-    <!-- Delete Account Confirmation Modal -->
-    <BaseModal v-model="showDeleteConfirm" title="Delete Account?" size="sm">
-      <p class="text-sm text-muted mb-4">
-        This will permanently anonymize your profile, remove all personal information, and log you
-        out. Your posts will remain but be attributed to a deleted user.
-      </p>
-      <BaseInput v-model="deleteConfirmText" label="Type DELETE to confirm" placeholder="DELETE" />
-      <template #footer>
-        <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
-        <BaseButton
-          variant="danger"
-          :disabled="deleteConfirmText !== 'DELETE'"
-          :loading="deletingAccount"
-          @click="handleDeleteAccount"
-          >Delete Account</BaseButton
-        >
-      </template>
-    </BaseModal>
   </div>
 </template>

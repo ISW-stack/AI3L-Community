@@ -6,7 +6,7 @@ from tests.conftest import make_user_dict
 
 
 class TestAuthenticateUser:
-    @patch("app.services.auth.verify_password", return_value=True)
+    @patch("app.services.auth.async_verify_password", new_callable=AsyncMock, return_value=True)
     @patch("app.services.auth.get_user_by_username")
     async def test_authenticate_user_success(self, mock_get_user, mock_verify):
         from app.services.auth import authenticate_user
@@ -19,7 +19,7 @@ class TestAuthenticateUser:
         assert result["username"] == "alice"
         mock_verify.assert_called_once_with("Password1", user["password_hash"])
 
-    @patch("app.services.auth.verify_password", return_value=False)
+    @patch("app.services.auth.async_verify_password", new_callable=AsyncMock, return_value=False)
     @patch("app.services.auth.get_user_by_username")
     async def test_authenticate_user_wrong_password(self, mock_get_user, mock_verify):
         from app.services.auth import authenticate_user
@@ -74,14 +74,15 @@ class TestDestroySession:
         redis.set.assert_called_once()  # blacklist
 
     @patch("app.services.auth.get_redis")
-    async def test_destroy_session_guest_decrements_counter(self, mock_get_redis):
+    async def test_destroy_session_guest_no_counter(self, mock_get_redis):
         from app.services.auth import destroy_session
 
         redis = AsyncMock()
         mock_get_redis.return_value = redis
 
         await destroy_session("guest-id", "GUEST", "jti-abc")
-        redis.decr.assert_called_once()
+        redis.delete.assert_called_once()
+        redis.decr.assert_not_called()
 
 
 class TestValidateSession:
@@ -127,8 +128,16 @@ class TestGuestLogin:
     async def test_guest_login_success(self, mock_get_redis, mock_create_session):
         from app.services.auth import guest_login
 
+        async def _few_guests(*args, **kwargs):
+            for key in [f"session:GUEST:{i}" for i in range(5)]:
+                yield key
+
         redis = AsyncMock()
-        redis.incr = AsyncMock(return_value=5)  # < 30
+        # No cached count — forces scan
+        redis.get = AsyncMock(return_value=None)
+        redis.scan_iter = _few_guests
+        redis.setex = AsyncMock()
+        redis.delete = AsyncMock()
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("token-guest", 2700)
 
@@ -137,15 +146,51 @@ class TestGuestLogin:
         token, ttl = result
         assert token == "token-guest"
         assert ttl == 2700
+        # Cache invalidated after guest session created
+        redis.delete.assert_called()
 
     @patch("app.services.auth.get_redis")
     async def test_guest_login_limit_reached(self, mock_get_redis):
         from app.services.auth import guest_login
 
+        async def _full_guests(*args, **kwargs):
+            for key in [f"session:GUEST:{i}" for i in range(30)]:
+                yield key
+
         redis = AsyncMock()
-        redis.incr = AsyncMock(return_value=31)  # > MAX_GUESTS
+        # No cached count — forces scan
+        redis.get = AsyncMock(return_value=None)
+        redis.scan_iter = _full_guests
+        redis.setex = AsyncMock()
         mock_get_redis.return_value = redis
 
         result = await guest_login("Guest User")
         assert result is None
-        redis.decr.assert_called_once()
+
+    @patch("app.services.auth.get_redis")
+    async def test_guest_count_uses_cache_on_second_call(self, mock_get_redis):
+        """_count_active_guests returns cached value without scan_iter on second call."""
+        from app.services.auth import _count_active_guests
+
+        scan_calls = 0
+
+        async def _counting_scan(*args, **kwargs):
+            nonlocal scan_calls
+            scan_calls += 1
+            for key in [f"session:GUEST:{i}" for i in range(3)]:
+                yield key
+
+        redis = AsyncMock()
+        # First call: cache miss → scan; second call: cache hit
+        redis.get = AsyncMock(side_effect=[None, b"3"])
+        redis.scan_iter = _counting_scan
+        redis.setex = AsyncMock()
+        mock_get_redis.return_value = redis
+
+        count1 = await _count_active_guests()
+        count2 = await _count_active_guests()
+
+        assert count1 == 3
+        assert count2 == 3
+        # scan_iter was only called once (second call used cache)
+        assert scan_calls == 1

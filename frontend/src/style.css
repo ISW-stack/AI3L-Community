@@ -47,6 +47,9 @@
   --color-info-600: #2563eb;
   --color-info-700: #1d4ed8;
 
+  /* Layout */
+  --spacing-layout: 8rem;
+
   /* Surface & Neutral (light defaults) */
   --color-surface: #ffffff;
   --color-surface-alt: #f9fafb;
@@ -55,12 +58,17 @@
   --color-foreground: #111827;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* TipTap table styles */
 .tiptap table {
   border-collapse: collapse;
   width: 100%;
   margin: 1em 0;
 }
+
 .tiptap th,
 .tiptap td {
   border: 1px solid var(--color-border);
@@ -68,10 +76,12 @@
   min-width: 80px;
   vertical-align: top;
 }
+
 .tiptap th {
   background-color: var(--color-surface-alt);
   font-weight: 600;
 }
+
 .tiptap .selectedCell {
   background-color: var(--color-brand-50);
 }
@@ -81,6 +91,7 @@
 .page-leave-active {
   transition: opacity 0.15s ease;
 }
+
 .page-enter-from,
 .page-leave-to {
   opacity: 0;

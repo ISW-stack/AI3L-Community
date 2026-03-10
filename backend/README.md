@@ -44,7 +44,7 @@ This document covers the backend application architecture, development workflow,
 | Password hashing | argon2-cffi via passlib |
 | Token signing | PyJWT |
 | HTML sanitization | nh3 |
-| PDF sanitization | pypdf |
+| PDF sanitization | pikepdf (C++ qpdf engine) |
 | CAPTCHA generation | captcha + Pillow |
 | Structured logging | Loguru |
 | Error tracking | Sentry SDK |
@@ -397,7 +397,21 @@ When a session is created (login or guest access), the server generates a CSRF t
 
 ## Rate Limiting
 
-The application-level rate limiter (`app/core/rate_limit.py`) uses a Redis counter with a fixed TTL window. It is used to enforce per-user daily post limits (50 posts per user per day). Exceeding the limit raises `AppError` with code `SYS_429` and HTTP status 429.
+The application-level rate limiter (`app/core/rate_limit.py`) uses a Redis counter with a fixed TTL window. Limits are defined in `app/core/constants.py` and applied inline at each endpoint. Key limits:
+
+| Endpoint | Limit | Key |
+|---|---|---|
+| `POST /auth/login` | 10 / min | per IP |
+| `POST /auth/register` | 5 / min | per IP |
+| `POST /auth/guest/{code}` | 10 / min | per IP |
+| `POST /auth/invite-code` | 5 / hour | per user |
+| `GET /auth/invite-code/{code}` | 30 / min | per IP |
+| `POST /files/upload/editor` | 10 / min | per user |
+| `POST /forms/{id}/submit` | 5 / min | per user |
+| `GET /notifications` | 60 / min | per user |
+| `DELETE /notifications` | 30 / min | per user |
+
+Post creation is additionally limited to 50 posts per user per day (error code `SYS_429`).
 
 Nginx enforces a separate, coarser IP-level rate limit (20 req/s global, 5 writes/min).
 
@@ -416,7 +430,7 @@ Accepted types:
 | `.pdf` | `application/pdf` | `%PDF` |
 | `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `PK\x03\x04` |
 
-PDF files undergo additional sanitization via pypdf to strip embedded JavaScript and potentially dangerous objects.
+PDF files undergo additional sanitization via pikepdf (backed by the C++ qpdf engine) to strip embedded JavaScript (`/JS`, `/JavaScript`), auto-actions (`/AA`, `/OpenAction`), and other potentially dangerous objects. Corrupted or invalid PDFs are rejected with a `ValueError` before reaching storage.
 
 ---
 

@@ -47,33 +47,31 @@ _PDF_DANGEROUS_KEYS = {"/JS", "/JavaScript", "/AA", "/OpenAction"}
 
 
 def sanitize_pdf(data: bytes) -> bytes:
-    """Remove JavaScript, auto-actions, and macros from a PDF."""
-    from pypdf import PdfReader, PdfWriter
+    """Remove JavaScript, auto-actions, and macros from a PDF.
 
-    reader = PdfReader(BytesIO(data))
-    writer = PdfWriter()
+    Uses pikepdf (C++ qpdf engine) for fast, robust PDF manipulation.
+    """
+    import pikepdf
 
-    for page in reader.pages:
-        writer.add_page(page)
+    try:
+        pdf = pikepdf.open(BytesIO(data))
+    except pikepdf.PdfError as exc:
+        raise ValueError(f"Invalid or corrupted PDF: {exc}") from exc
 
-    # Copy metadata
-    if reader.metadata:
-        writer.add_metadata(reader.metadata)
-
-    # Strip dangerous keys from the root object
-    if hasattr(writer, "_root_object"):
-        for key in _PDF_DANGEROUS_KEYS:
-            if key in writer._root_object:
-                del writer._root_object[key]
+    # Strip dangerous keys from the document root catalog
+    for key in _PDF_DANGEROUS_KEYS:
+        if key in pdf.Root:
+            del pdf.Root[key]
 
     # Strip dangerous keys from each page
-    for page in writer.pages:
+    for page in pdf.pages:
+        page_obj = page.obj
         for key in _PDF_DANGEROUS_KEYS:
-            if key in page:
-                del page[key]
+            if key in page_obj:
+                del page_obj[key]
 
     buf = BytesIO()
-    writer.write(buf)
+    pdf.save(buf)
     return buf.getvalue()
 
 
@@ -177,9 +175,12 @@ def sanitize_html(html_content: str) -> str:
         "img": {"src", "alt", "width", "height"},
         "td": {"colspan", "rowspan"},
         "th": {"colspan", "rowspan"},
+        "code": {"class"},
+        "pre": {"class"},
     }
     return nh3.clean(
         html_content,
         tags=allowed_tags,
         attributes=allowed_attrs,
+        link_rel="noopener noreferrer",
     )

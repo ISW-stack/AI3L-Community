@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { listSigs } from '@/api/sigs'
 import type { Sig } from '@/types'
@@ -9,6 +10,7 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 
 const sigs = ref<Sig[]>([])
@@ -45,21 +47,21 @@ onMounted(fetchSigs)
 <template>
   <div>
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Special Interest Groups</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('sigs.directory.title') }}</h1>
       <router-link v-if="auth.isAdmin" to="/sigs/create">
-        <BaseButton>Create SIG</BaseButton>
+        <BaseButton>{{ t('sigs.directory.createBtn') }}</BaseButton>
       </router-link>
     </div>
 
     <div class="mb-4">
-      <BaseInput v-model="searchQuery" placeholder="Search SIGs..." />
+      <BaseInput v-model="searchQuery" :placeholder="t('sigs.directory.searchPlaceholder')" />
     </div>
 
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
     <EmptyState
       v-else-if="filteredSigs.length === 0"
-      message="No SIGs have been created yet."
-      title="No SIGs"
+      :message="t('sigs.directory.emptyMessage')"
+      :title="t('sigs.directory.emptyTitle')"
     />
 
     <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -70,13 +72,13 @@ onMounted(fetchSigs)
             {{ sig.description }}
           </p>
           <div class="flex items-center justify-between text-xs text-muted">
-            <span>{{ sig.member_count }} member(s)</span>
+            <span>{{ sig.member_count }} {{ t('sigs.directory.memberCount') }}</span>
             <span>{{ new Date(sig.created_at).toLocaleDateString() }}</span>
           </div>
         </BaseCard>
       </router-link>
     </div>
 
-    <p class="mt-4 text-xs text-muted">{{ total }} SIG(s) total</p>
+    <p class="mt-4 text-xs text-muted">{{ total }} {{ t('sigs.directory.totalCount') }}</p>
   </div>
 </template>

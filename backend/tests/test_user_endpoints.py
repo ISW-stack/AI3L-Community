@@ -137,6 +137,57 @@ class TestListUsersAdmin:
         finally:
             _clear_overrides()
 
+    @pytest.mark.anyio
+    async def test_list_users_with_search(self, client):
+        """GET /users?search=alice → 200 with filtered results."""
+        user = make_user_dict(username="alice")
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.list_users", new_callable=AsyncMock, return_value=([user], 1)) as m:
+                resp = await client.get(
+                    "/api/v1/users?search=alice&page=1&page_size=20",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["total"] == 1
+                m.assert_called_once_with(page=1, page_size=20, search="alice")
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_users_with_page_params(self, client):
+        """GET /users?page=2&page_size=10 → passes correct params."""
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.list_users", new_callable=AsyncMock, return_value=([], 0)) as m:
+                resp = await client.get(
+                    "/api/v1/users?page=2&page_size=10",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                m.assert_called_once_with(page=2, page_size=10, search=None)
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_users_search_empty_result(self, client):
+        """GET /users?search=nonexistent → 200 with empty list."""
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.list_users", new_callable=AsyncMock, return_value=([], 0)):
+                resp = await client.get(
+                    "/api/v1/users?search=nonexistent",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["total"] == 0
+                assert data["users"] == []
+        finally:
+            _clear_overrides()
+
 
 class TestAdminCreateAccount:
     @pytest.mark.anyio
@@ -184,5 +235,45 @@ class TestChangeRole:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+
+class TestBulkChangeRole:
+    @pytest.mark.anyio
+    async def test_bulk_change_role_super_admin(self, client):
+        """PUT /users/bulk-role by SUPER_ADMIN → 200."""
+        user_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch(
+                    "app.services.user.bulk_change_role",
+                    new_callable=AsyncMock,
+                    return_value=2,
+                ),
+                patch("app.services.audit.log_action", new_callable=AsyncMock),
+            ):
+                resp = await client.put(
+                    "/api/v1/users/bulk-role",
+                    json={"user_ids": user_ids, "role": "ADMIN"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["updated_count"] == 2
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_bulk_change_role_forbidden_admin(self, client):
+        """PUT /users/bulk-role by ADMIN (not SUPER_ADMIN) → 403."""
+        try:
+            _override_auth("ADMIN")
+            resp = await client.put(
+                "/api/v1/users/bulk-role",
+                json={"user_ids": [str(uuid.uuid4())], "role": "MEMBER"},
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
         finally:
             _clear_overrides()

@@ -1,66 +1,99 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import api from '@/composables/api'
+
 interface Contributor {
-  name: string
+  id: number
+  display_name: string
   role: string
-  github?: string
+  avatar_url: string
 }
 
-const contributors: Contributor[] = [
-  { name: 'Isaries', role: 'Project Lead & Full-Stack Developer', github: 'Isaries' },
-  { name: 'SW9526', role: 'Frontend Contributor', github: 'SW9526' },
-]
+const { t } = useI18n()
+const contributors = ref<Contributor[]>([])
+const loading = ref(true)
 
-function getGitHubUrl(username: string): string {
-  return `https://github.com/${username}`
+function getInitial(name: string): string {
+  return name.charAt(0).toUpperCase()
 }
+
+function handleAvatarError(event: Event) {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
+  const parent = img.parentElement
+  if (parent) {
+    const fallback = parent.querySelector('.avatar-fallback') as HTMLElement | null
+    if (fallback) {
+      fallback.style.display = 'flex'
+    }
+  }
+}
+
+async function fetchContributors() {
+  try {
+    const response = await api.get('/about/contributors')
+    contributors.value = response.data.contributors
+  } catch {
+    contributors.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchContributors()
+})
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
+  <div class="max-w-4xl mx-auto px-4 py-8">
     <!-- Header Section -->
-    <div class="mb-12">
-      <h1 class="text-4xl font-bold text-foreground mb-4">Platform Contributors</h1>
-      <p class="text-lg text-muted max-w-2xl">
-        The AI3L Community platform was designed and built by a talented team of developers,
-        designers, and advocates committed to fostering collaborative learning and research. This
-        project represents our shared vision of creating an inclusive space for knowledge exchange
-        and community engagement.
+    <div class="mb-10">
+      <h1 class="text-3xl font-bold text-foreground mb-4">{{ t('about.title') }}</h1>
+      <p class="text-base text-muted leading-relaxed max-w-2xl">
+        {{ t('about.description') }}
       </p>
     </div>
 
-    <!-- Contributors Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
-        v-for="contributor in contributors"
-        :key="contributor.name"
-        class="bg-surface border border-border rounded-lg p-6 hover:shadow-lg transition-shadow"
-      >
-        <h3 class="text-lg font-semibold text-foreground mb-2">{{ contributor.name }}</h3>
-        <p class="text-sm text-muted mb-4">{{ contributor.role }}</p>
-        <a
-          v-if="contributor.github"
-          :href="getGitHubUrl(contributor.github)"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center text-sm text-brand-600 hover:text-brand-700 font-medium transition"
-        >
-          @{{ contributor.github }}
-          <span class="ml-1">↗</span>
-        </a>
+    <!-- Contributors Section -->
+    <div>
+      <h2 class="text-2xl font-semibold text-foreground mb-6">
+        {{ t('about.contributors.title') }}
+      </h2>
+
+      <div v-if="loading" class="text-muted">{{ t('about.contributors.loading') }}</div>
+
+      <div v-else-if="contributors.length === 0" class="text-muted">
+        {{ t('about.contributors.empty') }}
       </div>
-    </div>
 
-    <!-- Additional Info Section -->
-    <div class="mt-16 pt-8 border-t border-border">
-      <h2 class="text-2xl font-semibold text-foreground mb-4">About this Project</h2>
-      <p class="text-muted mb-4">
-        AI3L Community is built on modern technologies including Vue 3, FastAPI, and PostgreSQL.
-        We are committed to maintaining high code quality, security, and accessibility standards.
-      </p>
-      <p class="text-muted">
-        If you're interested in contributing to this project, please refer to our contributor
-        guidelines in the repository.
-      </p>
+      <div v-else class="flex flex-wrap gap-8">
+        <div
+          v-for="contributor in contributors"
+          :key="contributor.id"
+          class="flex flex-col items-center text-center w-28"
+        >
+          <div class="relative w-16 h-16 mb-2">
+            <img
+              :src="contributor.avatar_url"
+              :alt="contributor.display_name"
+              class="w-16 h-16 rounded-full object-cover border border-border"
+              @error="handleAvatarError"
+            />
+            <div
+              class="avatar-fallback w-16 h-16 rounded-full bg-surface border border-border items-center justify-center text-xl font-semibold text-muted absolute inset-0"
+              style="display: none"
+            >
+              {{ getInitial(contributor.display_name) }}
+            </div>
+          </div>
+          <span class="text-sm font-medium text-foreground leading-tight">{{
+            contributor.display_name
+          }}</span>
+          <span class="text-xs text-muted leading-tight mt-0.5">{{ contributor.role }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>

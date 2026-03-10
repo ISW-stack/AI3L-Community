@@ -8,6 +8,7 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import { ref, watch, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { uploadEditorFile, getFileScanStatus } from '@/api/files'
 import { useToastStore } from '@/stores/toast'
 import {
@@ -29,6 +30,8 @@ import {
   ShieldAlert,
   Loader2,
 } from 'lucide-vue-next'
+
+const { t } = useI18n()
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
@@ -94,7 +97,7 @@ async function pollScanStatus() {
 
     // Terminal state reached — stop polling
     if (data.status === 'malicious') {
-      toastStore.show('Uploaded file was flagged as potentially malicious.', 'error')
+      toastStore.show(t('editor.maliciousFile'), 'error')
     } else if (data.status === 'clean') {
       // Auto-dismiss clean status after 10 seconds
       scanDismissTimer = setTimeout(() => {
@@ -112,7 +115,7 @@ onUnmounted(() => {
 })
 
 function setLink() {
-  const url = prompt('Enter URL')
+  const url = prompt(t('editor.promptLinkUrl'))
   if (!url || !editor.value) return
   editor.value.chain().focus().setLink({ href: url }).run()
 }
@@ -141,7 +144,7 @@ async function handleImageUpload(event: Event) {
       scanPollTimer = setTimeout(pollScanStatus, 5000)
     }
   } catch {
-    toastStore.show('Failed to upload image.', 'error')
+    toastStore.show(t('editor.uploadFailed'), 'error')
   } finally {
     uploading.value = false
     if (fileInputRef.value) fileInputRef.value.value = ''
@@ -167,7 +170,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleBold().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('bold') }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Bold"
+        :aria-label="t('editor.toolbar.bold')"
       >
         <Bold class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -176,7 +179,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleItalic().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('italic') }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Italic"
+        :aria-label="t('editor.toolbar.italic')"
       >
         <Italic class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -188,7 +191,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('heading', { level: 1 }) }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Heading 1"
+        :aria-label="t('editor.toolbar.heading1')"
       >
         <Heading1 class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -197,7 +200,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('heading', { level: 2 }) }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Heading 2"
+        :aria-label="t('editor.toolbar.heading2')"
       >
         <Heading2 class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -206,7 +209,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('heading', { level: 3 }) }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Heading 3"
+        :aria-label="t('editor.toolbar.heading3')"
       >
         <Heading3 class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -218,7 +221,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleBulletList().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('bulletList') }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Bullet list"
+        :aria-label="t('editor.toolbar.bulletList')"
       >
         <List class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -227,7 +230,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleOrderedList().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('orderedList') }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Ordered list"
+        :aria-label="t('editor.toolbar.orderedList')"
       >
         <ListOrdered class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -236,7 +239,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleBlockquote().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('blockquote') }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Blockquote"
+        :aria-label="t('editor.toolbar.blockquote')"
       >
         <Quote class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -245,7 +248,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().toggleCodeBlock().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('codeBlock') }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Code block"
+        :aria-label="t('editor.toolbar.codeBlock')"
       >
         <Code class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -257,7 +260,7 @@ async function handleImageUpload(event: Event) {
         @click="setLink"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('link') }"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Insert link"
+        :aria-label="t('editor.toolbar.insertLink')"
       >
         <LinkIcon class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -267,7 +270,7 @@ async function handleImageUpload(event: Event) {
         class="p-1.5 rounded hover:bg-gray-200 transition"
         :class="{ 'opacity-50 cursor-wait': uploading }"
         :disabled="uploading"
-        aria-label="Insert image"
+        :aria-label="t('editor.toolbar.insertImage')"
       >
         <ImagePlus class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -275,7 +278,7 @@ async function handleImageUpload(event: Event) {
         type="button"
         @click="insertTable"
         class="p-1.5 rounded hover:bg-gray-200 transition"
-        aria-label="Insert table"
+        :aria-label="t('editor.toolbar.insertTable')"
       >
         <TableIcon class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -287,7 +290,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().undo().run()"
         :disabled="!editor.can().undo()"
         class="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition"
-        aria-label="Undo"
+        :aria-label="t('editor.toolbar.undo')"
       >
         <Undo2 class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -296,7 +299,7 @@ async function handleImageUpload(event: Event) {
         @click="editor.chain().focus().redo().run()"
         :disabled="!editor.can().redo()"
         class="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition"
-        aria-label="Redo"
+        :aria-label="t('editor.toolbar.redo')"
       >
         <Redo2 class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -320,10 +323,10 @@ async function handleImageUpload(event: Event) {
       />
       <ShieldCheck v-else-if="scanStatus === 'clean'" class="w-3.5 h-3.5" aria-hidden="true" />
       <ShieldAlert v-else-if="scanStatus === 'malicious'" class="w-3.5 h-3.5" aria-hidden="true" />
-      <span v-if="scanStatus === 'pending'">Scanning...</span>
-      <span v-else-if="scanStatus === 'clean'">Clean</span>
-      <span v-else-if="scanStatus === 'malicious'">Flagged as malicious</span>
-      <span v-else-if="scanStatus === 'unknown'">Scan inconclusive</span>
+      <span v-if="scanStatus === 'pending'">{{ t('editor.scan.pending') }}</span>
+      <span v-else-if="scanStatus === 'clean'">{{ t('editor.scan.clean') }}</span>
+      <span v-else-if="scanStatus === 'malicious'">{{ t('editor.scan.malicious') }}</span>
+      <span v-else-if="scanStatus === 'unknown'">{{ t('editor.scan.unknown') }}</span>
     </div>
 
     <!-- Editor content -->

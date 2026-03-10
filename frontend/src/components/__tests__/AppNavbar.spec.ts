@@ -56,6 +56,7 @@ function mountNavbar() {
         Menu: { template: '<span class="icon-menu" />' },
         X: { template: '<span class="icon-x" />' },
         ChevronDown: { template: '<span class="icon-chevron" />' },
+        GraduationCap: { template: '<span class="icon-graduation-cap" />' },
       },
     },
   })
@@ -246,9 +247,19 @@ describe('AppNavbar', () => {
   // ---------- AI3L Community brand ----------
 
   describe('branding', () => {
-    it('should display AI3L Community text', () => {
+    it('should display AI3L text', () => {
       const { wrapper } = mountNavbar()
-      expect(wrapper.text()).toContain('AI3L Community')
+      expect(wrapper.text()).toContain('AI3L')
+    })
+
+    it('should render logo icon and AI3L text', () => {
+      const { wrapper } = mountNavbar()
+      // The logo area should contain an SVG icon (GraduationCap from lucide)
+      const logoLink = wrapper.find('a[href="/"]')
+      expect(logoLink.exists()).toBe(true)
+      expect(logoLink.find('svg').exists()).toBe(true)
+      // The logo text should be AI3L
+      expect(logoLink.find('.text-brand-700').text()).toBe('AI3L')
     })
   })
 })

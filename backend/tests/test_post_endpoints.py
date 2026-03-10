@@ -91,6 +91,48 @@ class TestSearchPosts:
             _clear_overrides()
 
 
+class TestSearchPostsSpecialChars:
+    @pytest.mark.anyio
+    async def test_search_with_special_chars(self, client):
+        """POST /posts/search with special tsquery chars → 200 (no crash)."""
+        post = _make_post()
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.search_posts",
+                new_callable=AsyncMock,
+                return_value=([post], 1, 1),
+            ):
+                resp = await client.post(
+                    "/api/v1/posts/search",
+                    json={"keyword": "hello & world | foo (bar)"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_search_with_or_logic(self, client):
+        """POST /posts/search with logic=OR → 200."""
+        post = _make_post()
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.search_posts",
+                new_callable=AsyncMock,
+                return_value=([post], 1, 1),
+            ):
+                resp = await client.post(
+                    "/api/v1/posts/search",
+                    json={"keyword": "AI learning", "logic": "OR"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+
 class TestGetPost:
     @pytest.mark.anyio
     async def test_get_post(self, client):
@@ -139,7 +181,10 @@ class TestUpdatePost:
 
         try:
             _override_auth("MEMBER", user_id=user_id)
-            with patch(f"{_EP}.update_post", new_callable=AsyncMock, return_value=post):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.update_post", new_callable=AsyncMock, return_value=post),
+            ):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}",
                     json={"title": "Updated Title", "content": "<p>Body</p>", "version": 1},
@@ -181,5 +226,134 @@ class TestPostHistory:
                 assert resp.status_code == 200
                 data = resp.json()
                 assert data["total"] == 1
+        finally:
+            _clear_overrides()
+
+
+class TestUpdatePostRateLimit:
+    @pytest.mark.anyio
+    async def test_update_post_rate_limited(self, client):
+        """PUT /posts/{id} → 429 when edit rate limit exceeded."""
+        post_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.check_rate_limit",
+                new_callable=AsyncMock,
+                return_value=False,
+            ):
+                resp = await client.put(
+                    f"/api/v1/posts/{post_id}",
+                    json={"title": "Updated", "content": "<p>Body</p>", "version": 1},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+
+class TestSearchPostsSort:
+    @pytest.mark.anyio
+    async def test_search_posts_with_sort(self, client):
+        """POST /posts/search with sort param → 200, sort forwarded to service."""
+        post = _make_post()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.search_posts",
+                new_callable=AsyncMock,
+                return_value=([post], 1, 1),
+            ) as mock_search:
+                resp = await client.post(
+                    "/api/v1/posts/search",
+                    json={"keyword": "test", "sort": "oldest"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                call_kwargs = mock_search.call_args.kwargs
+                assert call_kwargs.get("sort") == "oldest"
+        finally:
+            _clear_overrides()
+
+
+class TestCreatePostFKViolation:
+    @pytest.mark.anyio
+    async def test_create_post_invalid_category_returns_400(self, client):
+        """POST /posts with deleted category → 400."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.create_post",
+                new_callable=AsyncMock,
+                side_effect=ValueError("Category not found or has been deleted."),
+            ):
+                resp = await client.post(
+                    "/api/v1/posts",
+                    json={
+                        "title": "Test",
+                        "content": "<p>Body</p>",
+                        "category_id": str(uuid.uuid4()),
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "Category" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+
+class TestBulkDeletePosts:
+    @pytest.mark.anyio
+    async def test_bulk_delete_posts_admin(self, client):
+        """DELETE /posts/bulk by ADMIN → 200."""
+        import json as _json
+
+        post_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(
+                    "app.services.post.bulk_soft_delete",
+                    new_callable=AsyncMock,
+                    return_value=2,
+                ),
+                patch("app.services.audit.log_action", new_callable=AsyncMock),
+            ):
+                resp = await client.request(
+                    "DELETE",
+                    "/api/v1/posts/bulk",
+                    content=_json.dumps({"post_ids": post_ids}),
+                    headers={
+                        "Authorization": "Bearer fake",
+                        "Content-Type": "application/json",
+                    },
+                )
+                assert resp.status_code == 200
+                assert resp.json()["deleted_count"] == 2
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_bulk_delete_posts_forbidden_member(self, client):
+        """DELETE /posts/bulk by MEMBER → 403."""
+        import json as _json
+
+        try:
+            _override_auth("MEMBER")
+            resp = await client.request(
+                "DELETE",
+                "/api/v1/posts/bulk",
+                content=_json.dumps({"post_ids": [str(uuid.uuid4())]}),
+                headers={
+                    "Authorization": "Bearer fake",
+                    "Content-Type": "application/json",
+                },
+            )
+            assert resp.status_code == 403
         finally:
             _clear_overrides()

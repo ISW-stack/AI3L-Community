@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Copy, Check } from 'lucide-vue-next'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -10,6 +11,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 
+const { t } = useI18n()
 const toastStore = useToastStore()
 const codes = ref<InviteCode[]>([])
 const total = ref(0)
@@ -39,13 +41,16 @@ async function generateCode() {
     const data = await createInviteCode()
     try {
       await navigator.clipboard.writeText(data.invite_code)
-      toastStore.show(`Code generated and copied: ${data.invite_code}`, 'success')
+      toastStore.show(
+        t('admin.inviteCodes.message.generated', { code: data.invite_code }),
+        'success',
+      )
     } catch {
-      message.value = `Generated: ${data.invite_code}`
+      message.value = t('admin.inviteCodes.message.generatedOnly', { code: data.invite_code })
     }
     await fetchCodes()
   } catch {
-    toastStore.show('Failed to generate code.', 'error')
+    toastStore.show(t('admin.inviteCodes.message.generateFailed'), 'error')
   } finally {
     generating.value = false
   }
@@ -55,12 +60,12 @@ async function copyCode(code: string, codeId: string) {
   try {
     await navigator.clipboard.writeText(code)
     copiedId.value = codeId
-    toastStore.show('Code copied to clipboard.', 'success')
+    toastStore.show(t('admin.inviteCodes.message.copied'), 'success')
     setTimeout(() => {
       if (copiedId.value === codeId) copiedId.value = null
     }, 2000)
   } catch {
-    toastStore.show('Failed to copy code.', 'error')
+    toastStore.show(t('admin.inviteCodes.message.copyFailed'), 'error')
   }
 }
 
@@ -70,14 +75,24 @@ const statusBadge: Record<string, 'success' | 'neutral' | 'danger'> = {
   expired: 'danger',
 }
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 onMounted(fetchCodes)
 </script>
 
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Invite Codes</h1>
-      <BaseButton :loading="generating" @click="generateCode">Generate Code</BaseButton>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('admin.inviteCodes.title') }}</h1>
+      <BaseButton :loading="generating" @click="generateCode">{{
+        t('admin.inviteCodes.generateBtn')
+      }}</BaseButton>
     </div>
 
     <BaseAlert v-if="message" type="success" class="mb-4">{{ message }}</BaseAlert>
@@ -89,66 +104,87 @@ onMounted(fetchCodes)
         @change="fetchCodes"
         class="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
-        <option :value="null">All Statuses</option>
-        <option value="active">Active</option>
-        <option value="consumed">Consumed</option>
-        <option value="expired">Expired</option>
+        <option :value="null">{{ t('admin.inviteCodes.filter.all') }}</option>
+        <option value="active">{{ t('admin.inviteCodes.filter.active') }}</option>
+        <option value="consumed">{{ t('admin.inviteCodes.filter.consumed') }}</option>
+        <option value="expired">{{ t('admin.inviteCodes.filter.expired') }}</option>
       </select>
     </div>
 
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
-    <EmptyState v-else-if="codes.length === 0" message="No invite codes found." title="No Codes" />
+    <EmptyState
+      v-else-if="codes.length === 0"
+      :message="t('admin.inviteCodes.emptyMessage')"
+      :title="t('admin.inviteCodes.emptyTitle')"
+    />
 
-    <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
-      <table class="w-full text-sm min-w-[650px]">
-        <thead class="bg-surface-alt text-left border-b border-border">
-          <tr>
-            <th class="px-4 py-3 font-medium text-muted">Code</th>
-            <th class="px-4 py-3 font-medium text-muted">Status</th>
-            <th class="px-4 py-3 font-medium text-muted">Created By</th>
-            <th class="px-4 py-3 font-medium text-muted">Used By</th>
-            <th class="px-4 py-3 font-medium text-muted">Created</th>
-            <th class="px-4 py-3 font-medium text-muted">Expires</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border">
-          <tr v-for="code in codes" :key="code.id" class="hover:bg-surface-alt transition">
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-2">
-                <code class="font-mono text-xs text-foreground">{{ code.code }}</code>
-                <button
-                  @click="copyCode(code.code, code.id)"
-                  class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition"
-                  :aria-label="`Copy invite code ${code.code}`"
-                >
-                  <Check
-                    v-if="copiedId === code.id"
-                    class="w-3.5 h-3.5 text-success-600"
-                    aria-hidden="true"
-                  />
-                  <Copy v-else class="w-3.5 h-3.5" aria-hidden="true" />
-                </button>
-              </div>
-            </td>
-            <td class="px-4 py-3">
-              <BaseBadge :variant="statusBadge[code.status] || 'neutral'">{{
-                code.status
-              }}</BaseBadge>
-            </td>
-            <td class="px-4 py-3 text-muted">{{ code.creator_username || '—' }}</td>
-            <td class="px-4 py-3 text-muted">{{ code.consumed_by_username || '—' }}</td>
-            <td class="px-4 py-3 text-muted text-xs">
-              {{ new Date(code.created_at).toLocaleDateString() }}
-            </td>
-            <td class="px-4 py-3 text-muted text-xs">
-              {{ code.expires_at ? new Date(code.expires_at).toLocaleDateString() : '—' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else class="relative">
+      <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+        <table class="w-full text-sm min-w-[650px]">
+          <thead class="bg-surface-alt text-left border-b border-border">
+            <tr>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.code') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.status') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.createdBy') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.usedBy') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.created') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.expires') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <tr v-for="code in codes" :key="code.id" class="hover:bg-surface-alt transition">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <code class="font-mono text-xs text-foreground">{{ code.code }}</code>
+                  <button
+                    @click="copyCode(code.code, code.id)"
+                    class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition"
+                    :aria-label="t('admin.inviteCodes.copyAriaLabel')"
+                  >
+                    <Check
+                      v-if="copiedId === code.id"
+                      class="w-3.5 h-3.5 text-success-600"
+                      aria-hidden="true"
+                    />
+                    <Copy v-else class="w-3.5 h-3.5" aria-hidden="true" />
+                  </button>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <BaseBadge :variant="statusBadge[code.status] || 'neutral'">{{
+                  code.status
+                }}</BaseBadge>
+              </td>
+              <td class="px-4 py-3 text-muted">{{ code.creator_username || '—' }}</td>
+              <td class="px-4 py-3 text-muted">{{ code.consumed_by_username || '—' }}</td>
+              <td class="px-4 py-3 text-muted text-xs">
+                {{ formatDate(code.created_at) }}
+              </td>
+              <td class="px-4 py-3 text-muted text-xs">
+                {{ code.expires_at ? formatDate(code.expires_at) : '—' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div
+        class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none lg:hidden"
+      ></div>
     </div>
 
-    <p class="mt-4 text-xs text-muted">{{ total }} code(s) total</p>
+    <p class="mt-4 text-xs text-muted">{{ t('admin.inviteCodes.total', { count: total }) }}</p>
   </div>
 </template>

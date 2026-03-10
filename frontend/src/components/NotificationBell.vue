@@ -3,12 +3,24 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Notification } from '@/types'
 import { useNotificationStore } from '@/stores/notifications'
+import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
 import { relativeTime } from '@/utils/datetime'
 import { Bell, Settings, User } from 'lucide-vue-next'
 
 const router = useRouter()
 const notifStore = useNotificationStore()
 const dropdownOpen = ref(false)
+
+const { handleDropdownKeydown } = useDropdownKeyNav({
+  isOpen: dropdownOpen,
+  onOpen: () => {
+    dropdownOpen.value = true
+    notifStore.fetchRecent()
+  },
+  onClose: () => (dropdownOpen.value = false),
+  wrapperClass: 'notification-bell-wrapper',
+  triggerSelector: 'button[aria-label="Notifications"]',
+})
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value
@@ -31,7 +43,7 @@ async function markRead(notif: Notification) {
 
 function navigateToEntity(notif: Notification) {
   if (notif.entity_type === 'comment' && notif.entity_id) {
-    router.push('/notifications')
+    router.push(`/forum/${notif.entity_id}`)
   } else if (notif.entity_type === 'post' && notif.entity_id) {
     router.push(`/forum/${notif.entity_id}`)
   } else {
@@ -39,25 +51,31 @@ function navigateToEntity(notif: Notification) {
   }
 }
 
-function handleClickOutside(e: MouseEvent) {
-  const el = (e.target as HTMLElement).closest('.notification-bell-wrapper')
-  if (!el) {
-    closeDropdown()
-  }
-}
+// Store the registered handler reference so addEventListener and
+// removeEventListener receive the exact same function object.
+let _clickHandler: ((e: MouseEvent) => void) | null = null
 
 onMounted(() => {
   notifStore.fetchUnreadCount()
-  document.addEventListener('click', handleClickOutside)
+  _clickHandler = (e: MouseEvent) => {
+    const el = (e.target as HTMLElement).closest('.notification-bell-wrapper')
+    if (!el) {
+      closeDropdown()
+    }
+  }
+  document.addEventListener('click', _clickHandler)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  if (_clickHandler) {
+    document.removeEventListener('click', _clickHandler)
+    _clickHandler = null
+  }
 })
 </script>
 
 <template>
-  <div class="relative notification-bell-wrapper">
+  <div class="relative notification-bell-wrapper" @keydown="handleDropdownKeydown">
     <button
       @click="toggleDropdown"
       class="relative p-1 text-muted hover:text-foreground focus:outline-none transition"
@@ -82,8 +100,9 @@ onUnmounted(() => {
         <span class="text-sm font-semibold text-foreground">Notifications</span>
         <button
           v-if="notifStore.unreadCount > 0"
-          @click="notifStore.markAllRead"
+          @click="notifStore.markAllRead()"
           class="text-xs text-brand-600 hover:text-brand-700 transition"
+          tabindex="-1"
         >
           Mark all as read
         </button>
@@ -107,6 +126,7 @@ onUnmounted(() => {
           @click="markRead(notif)"
           class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-alt border-b border-surface-alt last:border-0 transition"
           :class="{ 'bg-brand-50/50': !notif.is_read }"
+          tabindex="-1"
         >
           <div
             class="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
@@ -137,6 +157,7 @@ onUnmounted(() => {
           to="/notifications"
           @click="closeDropdown"
           class="block text-center text-sm text-brand-600 hover:text-brand-700 py-2 transition"
+          tabindex="-1"
         >
           View All
         </router-link>

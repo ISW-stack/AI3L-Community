@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{
@@ -44,7 +47,7 @@ const pages = computed(() => {
       class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
       @click="emit('update:currentPage', currentPage - 1)"
     >
-      Prev
+      {{ t('common.prev') }}
     </button>
     <button
       v-for="page in pages"
@@ -64,7 +67,7 @@ const pages = computed(() => {
       class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
       @click="emit('update:currentPage', currentPage + 1)"
     >
-      Next
+      {{ t('common.next') }}
     </button>
   </div>
 </template>

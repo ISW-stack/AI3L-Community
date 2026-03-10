@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.constants import RATE_LIMIT_FORM_SUBMIT
+from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_SUBMIT
 from app.core.deps import get_current_user, require_role
 from app.core.rate_limit import check_rate_limit
 from app.repositories import sig_repo
@@ -153,6 +153,16 @@ async def delete_form(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> None:
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+
+    # If not a platform admin, check if user is a SIG admin for the form's SIG
+    if not is_admin:
+        form = await get_form_by_id(form_id)
+        if form is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        is_admin = await _check_sig_admin(
+            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+        )
+
     try:
         deleted = await soft_delete_form(form_id, current_user["sub"], is_admin)
     except PermissionError as e:
@@ -198,7 +208,9 @@ async def submit_form_response(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormSubmitResponse:
     user_id = current_user["sub"]
-    if not await check_rate_limit(f"rl:form_submit:{user_id}", *RATE_LIMIT_FORM_SUBMIT):
+    if not await check_rate_limit(
+        f"rl:form_submit:{user_id}:{form_id}", *RATE_LIMIT_FORM_SUBMIT
+    ):
         raise HTTPException(status_code=429, detail="Too many submissions. Try again later.")
     try:
         result = await submit_response(
@@ -213,6 +225,15 @@ async def submit_form_response(
         if "already submitted" in detail.lower():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+    except Exception as e:
+        # Catch DB unique-violation (concurrent duplicate submit) gracefully
+        err_str = str(e).lower()
+        if "unique" in err_str or "duplicate" in err_str or "23505" in err_str:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You have already submitted a response to this form.",
+            )
+        raise
     return FormSubmitResponse(**result)
 
 
@@ -224,6 +245,7 @@ async def export_form_csv(
     form_id: uuid.UUID,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
+    user_id = current_user["sub"]
     form = await get_form_by_id(form_id)
     if form is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
@@ -236,6 +258,11 @@ async def export_form_csv(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only SIG admins can export form data.",
         )
+
+    if not await check_rate_limit(
+        f"rl:form_export:{user_id}:{form_id}", *RATE_LIMIT_FORM_EXPORT
+    ):
+        raise HTTPException(status_code=429, detail="Export already in progress. Try again later.")
 
     from app.tasks.form_export import export_form_csv as export_task
 

@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.core.deps import require_role
 from app.repositories import invite_code_repo
@@ -31,9 +31,36 @@ async def get_invite_codes(
     return {"codes": codes, "total": total}
 
 
+@router.patch("/invite-codes/{code_id}/revoke", status_code=status.HTTP_200_OK)
+async def revoke_invite_code(
+    code_id: uuid.UUID,
+    request: Request,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+) -> dict:
+    revoked = await invite_code_repo.revoke(code_id)
+    if not revoked:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invite code not found or already consumed/expired.",
+        )
+    # Audit log
+    from app.core.event_bus import emit
+
+    ip = request.client.host if request.client else None
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="INVITE_CODE_REVOKE",
+        ip_address=ip,
+        detail=str(code_id),
+    )
+    return {"message": "Invite code revoked."}
+
+
 @router.delete("/invite-codes/{code_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_invite_code(
     code_id: uuid.UUID,
+    request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> Response:
     deleted = await invite_code_repo.delete(code_id)
@@ -42,4 +69,15 @@ async def delete_invite_code(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Invite code not found.",
         )
+    # Audit log
+    from app.core.event_bus import emit
+
+    ip = request.client.host if request.client else None
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="INVITE_CODE_DELETE",
+        ip_address=ip,
+        detail=str(code_id),
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

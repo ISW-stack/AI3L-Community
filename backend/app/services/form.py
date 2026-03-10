@@ -63,53 +63,55 @@ async def update_form(
 ) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
-        current = await form_repo.find_for_update(form_id, conn)
-        if not current:
-            return None
+        async with conn.transaction():
+            current = await form_repo.find_for_update(form_id, conn)
+            if not current:
+                return None
 
-        if not is_admin and str(current["created_by"]) != user_id:
-            raise PermissionError("Only the form creator or admin can update this form.")
+            if not is_admin and str(current["created_by"]) != user_id:
+                raise PermissionError("Only the form creator or admin can update this form.")
 
-        if questions is not None and current["is_schema_locked"]:
-            raise ValueError("Cannot modify questions after responses have been submitted.")
+            # Silently drop questions if schema is locked (defense-in-depth)
+            if current["is_schema_locked"]:
+                questions = None
 
-        fields = []
-        values = []
-        idx = 1
+            fields = []
+            values = []
+            idx = 1
 
-        for field_name, value in [
-            ("title", title),
-            ("description", description),
-            ("banner_url", banner_url),
-            ("deadline", deadline),
-            ("max_respondents", max_respondents),
-            ("allow_non_members", allow_non_members),
-        ]:
-            if value is not None:
-                fields.append(f"{field_name} = ${idx}")
-                values.append(value)
+            for field_name, value in [
+                ("title", title),
+                ("description", description),
+                ("banner_url", banner_url),
+                ("deadline", deadline),
+                ("max_respondents", max_respondents),
+                ("allow_non_members", allow_non_members),
+            ]:
+                if value is not None:
+                    fields.append(f"{field_name} = ${idx}")
+                    values.append(value)
+                    idx += 1
+
+            if questions is not None:
+                fields.append(f"questions = ${idx}::jsonb")
+                values.append(json.dumps(questions))
                 idx += 1
 
-        if questions is not None:
-            fields.append(f"questions = ${idx}::jsonb")
-            values.append(json.dumps(questions))
-            idx += 1
+            if not fields:
+                creator = await conn.fetchrow(
+                    "SELECT display_name FROM users WHERE id = $1",
+                    current["created_by"],
+                )
+                result = dict(current)
+                result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
+                response_count = await form_repo.count_responses(form_id, conn)
+                return row_to_form(result, response_count)
 
-        if not fields:
-            creator = await conn.fetchrow(
-                "SELECT display_name FROM users WHERE id = $1",
-                current["created_by"],
-            )
-            result = dict(current)
-            result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
-            response_count = await form_repo.count_responses(form_id, conn)
-            return row_to_form(result, response_count)
-
-        update_result = await form_repo.update(form_id, fields, values, conn)
-        if update_result is None:
-            return None
-        row, response_count = update_result
-        return row_to_form(row, response_count)
+            update_result = await form_repo.update(form_id, fields, values, conn)
+            if update_result is None:
+                return None
+            row, response_count = update_result
+            return row_to_form(row, response_count)
 
 
 async def list_forms_by_sig(

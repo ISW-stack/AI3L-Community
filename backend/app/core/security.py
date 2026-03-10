@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
+from fastapi.concurrency import run_in_threadpool
 from jwt import InvalidTokenError as JWTError
 from passlib.context import CryptContext
 
@@ -21,6 +22,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bool(pwd_context.verify(plain_password, hashed_password))
 
 
+async def async_hash_password(password: str) -> str:
+    """Non-blocking hash_password — runs Argon2id in a thread."""
+    return await run_in_threadpool(hash_password, password)
+
+
+async def async_verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Non-blocking verify_password — runs Argon2id in a thread."""
+    return await run_in_threadpool(verify_password, plain_password, hashed_password)
+
+
 def validate_password_policy(password: str) -> str | None:
     """Return error message if password doesn't meet policy, None if valid."""
     if len(password) < 8:
@@ -37,10 +48,10 @@ def validate_password_policy(password: str) -> str | None:
 # --- JWT ---
 
 ROLE_TTL_MAP: dict[str, timedelta] = {
-    "GUEST": timedelta(minutes=45),
-    "MEMBER": timedelta(hours=3),
-    "ADMIN": timedelta(hours=5),
-    "SUPER_ADMIN": timedelta(hours=8),
+    "GUEST": timedelta(minutes=settings.JWT_GUEST_EXPIRE_MINUTES),
+    "MEMBER": timedelta(minutes=settings.JWT_MEMBER_EXPIRE_MINUTES),
+    "ADMIN": timedelta(minutes=settings.JWT_ADMIN_EXPIRE_MINUTES),
+    "SUPER_ADMIN": timedelta(minutes=settings.JWT_SUPER_ADMIN_EXPIRE_MINUTES),
 }
 
 

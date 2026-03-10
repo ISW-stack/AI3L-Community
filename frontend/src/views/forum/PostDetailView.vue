@@ -1,26 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, onUnmounted, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
-import type { Post, HistoryItem, Comment } from '@/types'
-import {
-  getPost,
-  updatePost,
-  deletePost as apiDeletePost,
-  getPostHistory,
-  togglePinPost,
-} from '@/api/posts'
-import {
-  listComments,
-  createComment,
-  deleteComment as apiDeleteComment,
-  updateComment as apiUpdateComment,
-  toggleReaction as apiToggleReaction,
-} from '@/api/comments'
-import { createReport } from '@/api/reports'
-import { getFileScanStatus } from '@/api/files'
 import DOMPurify from 'dompurify'
 import { renderMentions } from '@/utils/html'
+import { usePostDetail } from '@/composables/usePostDetail'
 import TiptapEditor from '@/components/TiptapEditor.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -33,465 +18,69 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import SigShareCard from '@/components/SigShareCard.vue'
 import FormShareCard from '@/components/FormShareCard.vue'
+import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-
-const post = ref<Post | null>(null)
-const comments = ref<Comment[]>([])
-const commentsTotal = ref(0)
-const commentPage = ref(1)
-const commentPageSize = 20
-const commentTotalPages = ref(1)
-const history = ref<HistoryItem[]>([])
-const loading = ref(true)
-const showHistory = ref(false)
-
-const editing = ref(false)
-const editTitle = ref('')
-const editContent = ref('')
-const editSaving = ref(false)
-const editMessage = ref('')
-
-const newComment = ref('')
-const commentSaving = ref(false)
-const commentMessage = ref('')
-
-const inlineReplyTo = ref<string | null>(null)
-const inlineReplyContent = ref('')
-
-interface CommentNode {
-  root: Comment
-  replies: Comment[]
-}
-
-const commentTree = computed<CommentNode[]>(() => {
-  const roots: Comment[] = []
-  const replyMap: Record<string, Comment[]> = {}
-  for (const c of comments.value) {
-    if (!c.parent_id) {
-      roots.push(c)
-    } else {
-      if (!replyMap[c.parent_id]) replyMap[c.parent_id] = []
-      replyMap[c.parent_id].push(c)
-    }
-  }
-  return roots.map((root) => ({
-    root,
-    replies: replyMap[root.id] || [],
-  }))
-})
-
 const postId = computed(() => route.params.id as string)
-const isAuthor = computed(() => post.value && auth.user && post.value.author.id === auth.user.id)
-const canModify = computed(() => isAuthor.value || auth.isAdmin)
 
-interface ContentSegment {
-  type: 'html' | 'sig-card' | 'form-card'
-  content: string
-}
-
-const UUID_RE = /\/(sigs|forms)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
-
-const contentSegments = computed<ContentSegment[]>(() => {
-  if (!post.value) return []
-  const sanitized = DOMPurify.sanitize(post.value.content)
-
-  // Parse sanitized HTML as DOM to safely identify <a> tags that link to SIG/form pages.
-  // This avoids the previous indexOf + slice approach which could cut inside HTML attributes.
-  const doc = new DOMParser().parseFromString(`<div>${sanitized}</div>`, 'text/html')
-  const wrapper = doc.body.firstElementChild!
-
-  let markerIndex = 0
-  const cardMap = new Map<string, { type: 'sig-card' | 'form-card'; id: string }>()
-
-  wrapper.querySelectorAll('a[href]').forEach((a) => {
-    const href = a.getAttribute('href') || ''
-    let path = href
-    try {
-      path = new URL(href, 'http://x').pathname
-    } catch {
-      /* href is already a relative path */
-    }
-    // Skip form edit/export sub-routes
-    if (/\/(edit|export)$/.test(path)) return
-    const m = UUID_RE.exec(path)
-    if (!m) return
-
-    const marker = `\x00CARD${markerIndex}\x00`
-    const entityType = m[1].toLowerCase() === 'sigs' ? 'sig-card' : 'form-card'
-    cardMap.set(marker, { type: entityType as 'sig-card' | 'form-card', id: m[2].toLowerCase() })
-    a.replaceWith(doc.createTextNode(marker))
-    markerIndex++
-  })
-
-  if (cardMap.size === 0) {
-    return [{ type: 'html', content: sanitized }]
-  }
-
-  // Serialize back to HTML and split on the placeholder markers
-  const html = wrapper.innerHTML
-  const parts = html.split(/(\x00CARD\d+\x00)/)
-  const segments: ContentSegment[] = []
-  for (const part of parts) {
-    if (!part) continue
-    const card = cardMap.get(part)
-    if (card) {
-      segments.push({ type: card.type, content: card.id })
-    } else {
-      segments.push({ type: 'html', content: part })
-    }
-  }
-  return segments
-})
-
-async function fetchPost() {
-  loading.value = true
-  try {
-    post.value = await getPost(postId.value)
-  } catch {
-    post.value = null
-  } finally {
-    loading.value = false
-  }
-}
-
-async function fetchComments() {
-  try {
-    const data = await listComments(postId.value, {
-      page: commentPage.value,
-      page_size: commentPageSize,
-    })
-    comments.value = data.comments
-    commentsTotal.value = data.total
-    commentTotalPages.value = Math.max(1, Math.ceil(data.total / commentPageSize))
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-function goToCommentPage(p: number) {
-  commentPage.value = p
-  fetchComments()
-}
-
-async function fetchHistory() {
-  try {
-    history.value = await getPostHistory(postId.value)
-    showHistory.value = true
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-function startEdit() {
-  if (!post.value) return
-  editTitle.value = post.value.title
-  editContent.value = post.value.content
-  editMessage.value = ''
-  editing.value = true
-}
-
-async function saveEdit() {
-  if (!post.value) return
-  editSaving.value = true
-  editMessage.value = ''
-  try {
-    post.value = await updatePost(postId.value, {
-      title: editTitle.value,
-      content: editContent.value,
-      version: post.value.version,
-    })
-    editing.value = false
-  } catch (err: unknown) {
-    const apiError = err as {
-      response?: { status?: number; data?: { detail?: string | { code?: string } } }
-    }
-    const detail = apiError.response?.data?.detail
-    const code = typeof detail === 'object' ? detail?.code : undefined
-    if (code === 'SYS_409' || apiError.response?.status === 409) {
-      editMessage.value =
-        'This post was edited by someone else. Please reload to see the latest version.'
-    } else {
-      editMessage.value = typeof detail === 'string' ? detail : 'Failed to save changes.'
-    }
-  } finally {
-    editSaving.value = false
-  }
-}
-
-const showDeletePostConfirm = ref(false)
-const showDeleteCommentConfirm = ref(false)
-const deleteTargetCommentId = ref<string | null>(null)
-
-async function deletePostHandler() {
-  try {
-    await apiDeletePost(postId.value)
-    router.push('/forum')
-  } catch (e) {
-    console.error(e)
-  } finally {
-    showDeletePostConfirm.value = false
-  }
-}
-
-async function submitComment() {
-  if (!newComment.value.trim()) return
-  commentSaving.value = true
-  commentMessage.value = ''
-  try {
-    await createComment(postId.value, { content: newComment.value })
-    newComment.value = ''
-    await fetchComments()
-    if (post.value) post.value.comment_count++
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    commentMessage.value = err.response?.data?.detail || 'Failed to post comment.'
-  } finally {
-    commentSaving.value = false
-  }
-}
-
-async function submitInlineReply() {
-  if (!inlineReplyTo.value || !inlineReplyContent.value.trim()) return
-  commentSaving.value = true
-  commentMessage.value = ''
-  try {
-    await createComment(postId.value, {
-      content: inlineReplyContent.value,
-      parent_id: inlineReplyTo.value,
-    })
-    inlineReplyTo.value = null
-    inlineReplyContent.value = ''
-    await fetchComments()
-    if (post.value) post.value.comment_count++
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    commentMessage.value = err.response?.data?.detail || 'Failed to post reply.'
-  } finally {
-    commentSaving.value = false
-  }
-}
-
-function confirmDeleteComment(commentId: string) {
-  deleteTargetCommentId.value = commentId
-  showDeleteCommentConfirm.value = true
-}
-
-async function deleteCommentHandler() {
-  if (!deleteTargetCommentId.value) return
-  try {
-    await apiDeleteComment(postId.value, deleteTargetCommentId.value)
-    await fetchComments()
-    if (post.value && post.value.comment_count > 0) post.value.comment_count--
-  } catch (e) {
-    console.error(e)
-  } finally {
-    showDeleteCommentConfirm.value = false
-    deleteTargetCommentId.value = null
-  }
-}
-
-function canDeleteComment(comment: Comment): boolean {
-  if (auth.isAdmin) return true
-  return !!(auth.user && comment.author.id === auth.user.id)
-}
-
-const showReportModal = ref(false)
-const reportReason = ref('')
-const reportSaving = ref(false)
-const reportMessage = ref('')
-
-async function submitReport() {
-  if (!reportReason.value.trim()) return
-  reportSaving.value = true
-  reportMessage.value = ''
-  try {
-    await createReport(postId.value, reportReason.value)
-    showReportModal.value = false
-    reportReason.value = ''
-    reportMessage.value = ''
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    reportMessage.value = err.response?.data?.detail || 'Failed to submit report.'
-  } finally {
-    reportSaving.value = false
-  }
-}
-
-const canReport = computed(() => {
-  if (!auth.isAuthenticated || auth.isGuest) return false
-  if (!post.value || !auth.user) return false
-  return post.value.author.id !== auth.user.id
-})
-
-const pinSaving = ref(false)
-
-async function handleTogglePin() {
-  if (!post.value) return
-  pinSaving.value = true
-  try {
-    const result = await togglePinPost(post.value.id, !post.value.is_pinned)
-    post.value.is_pinned = result.is_pinned
-  } catch (e) {
-    console.error(e)
-  } finally {
-    pinSaving.value = false
-  }
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const now = Date.now()
-  const diff = now - new Date(dateStr).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return 'just now'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString()
-}
-
-async function toggleReactionHandler(commentId: string, reaction: string) {
-  try {
-    await apiToggleReaction(postId.value, commentId, reaction)
-    await fetchComments()
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-function getReactionCount(comment: Comment, reaction: string): number {
-  return comment.reactions?.[reaction]?.length || 0
-}
-function hasReacted(comment: Comment, reaction: string): boolean {
-  if (!auth.user) return false
-  return comment.reactions?.[reaction]?.includes(auth.user.id) || false
-}
-
-// Comment editing
-const editingComment = ref<string | null>(null)
-const editCommentContent = ref('')
-const editCommentSaving = ref(false)
-
-function canEditComment(comment: Comment): boolean {
-  return !!(auth.user && comment.author.id === auth.user.id)
-}
-
-function startEditComment(comment: Comment) {
-  editingComment.value = comment.id
-  editCommentContent.value = comment.content
-}
-
-function cancelEditComment() {
-  editingComment.value = null
-  editCommentContent.value = ''
-}
-
-async function saveEditComment(commentId: string) {
-  if (!editCommentContent.value.trim()) return
-  editCommentSaving.value = true
-  try {
-    await apiUpdateComment(postId.value, commentId, { content: editCommentContent.value })
-    editingComment.value = null
-    editCommentContent.value = ''
-    await fetchComments()
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    commentMessage.value = err.response?.data?.detail || 'Failed to update comment.'
-  } finally {
-    editCommentSaving.value = false
-  }
-}
-
-function handleReply(commentId: string) {
-  inlineReplyTo.value = inlineReplyTo.value === commentId ? null : commentId
-  inlineReplyContent.value = ''
-}
-
-// VirusTotal scan status for images in post content
-const FILE_CONTENT_RE = /\/api\/v1\/files\/content\/(.+)/
-const imageScanStatuses = ref<Record<string, 'pending' | 'clean' | 'malicious' | 'unknown'>>({})
-const postContentRef = ref<HTMLElement | null>(null)
-let scanPollTimers: ReturnType<typeof setTimeout>[] = []
-
-function extractFileKeys(): string[] {
-  if (!postContentRef.value) return []
-  const imgs = postContentRef.value.querySelectorAll('img[src]')
-  const keys: string[] = []
-  imgs.forEach((img) => {
-    const src = img.getAttribute('src') || ''
-    const m = FILE_CONTENT_RE.exec(src)
-    if (m) keys.push(m[1])
-  })
-  return [...new Set(keys)]
-}
-
-async function pollImageScanStatus(fileKey: string) {
-  try {
-    const data = await getFileScanStatus(fileKey)
-    imageScanStatuses.value[fileKey] = data.status
-    if (data.status === 'pending') {
-      const timer = setTimeout(() => pollImageScanStatus(fileKey), 5000)
-      scanPollTimers.push(timer)
-    }
-  } catch {
-    // Endpoint not available or file not scanned — ignore
-  }
-}
-
-async function scanPostImages() {
-  await nextTick()
-  const keys = extractFileKeys()
-  for (const key of keys) {
-    pollImageScanStatus(key)
-  }
-}
-
-function applyMaliciousOverlays() {
-  if (!postContentRef.value) return
-  const imgs = postContentRef.value.querySelectorAll('img[src]')
-  imgs.forEach((img) => {
-    const src = img.getAttribute('src') || ''
-    const m = FILE_CONTENT_RE.exec(src)
-    if (!m) return
-    const status = imageScanStatuses.value[m[1]]
-    const wrapper = img.parentElement
-    if (!wrapper) return
-
-    // Remove any existing overlay
-    const existing = wrapper.querySelector('.vt-scan-overlay')
-    if (existing) existing.remove()
-
-    if (status === 'malicious') {
-      // Ensure wrapper is positioned for overlay
-      if (getComputedStyle(wrapper).position === 'static') {
-        ;(wrapper as HTMLElement).style.position = 'relative'
-      }
-      const overlay = document.createElement('div')
-      overlay.className = 'vt-scan-overlay'
-      overlay.style.cssText =
-        'position:absolute;top:4px;left:4px;background:rgba(220,38,38,0.85);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;pointer-events:none;z-index:10;'
-      overlay.textContent = 'Flagged as malicious'
-      wrapper.appendChild(overlay)
-    }
-  })
-}
-
-watch(imageScanStatuses, () => applyMaliciousOverlays(), { deep: true })
-
-onMounted(() => {
-  fetchPost().then(() => scanPostImages())
-  fetchComments()
-})
-
-onUnmounted(() => {
-  scanPollTimers.forEach(clearTimeout)
-  scanPollTimers = []
-})
+const {
+  post,
+  loading,
+  editing,
+  editTitle,
+  editContent,
+  editSaving,
+  editMessage,
+  commentTree,
+  commentPage,
+  commentTotalPages,
+  commentsTotal,
+  newComment,
+  commentSaving,
+  commentMessage,
+  inlineReplyTo,
+  inlineReplyContent,
+  editingComment,
+  editCommentContent,
+  editCommentSaving,
+  history,
+  showHistory,
+  showDeletePostConfirm,
+  showDeleteCommentConfirm,
+  showReportModal,
+  reportReason,
+  reportSaving,
+  reportMessage,
+  canReport,
+  pinSaving,
+  canModify,
+  contentSegments,
+  postContentRef,
+  goToCommentPage,
+  fetchHistory,
+  startEdit,
+  saveEdit,
+  deletePostHandler,
+  submitComment,
+  submitInlineReply,
+  confirmDeleteComment,
+  deleteCommentHandler,
+  canDeleteComment,
+  submitReport,
+  handleTogglePin,
+  formatRelativeTime,
+  toggleReactionHandler,
+  getReactionCount,
+  hasReacted,
+  canEditComment,
+  startEditComment,
+  cancelEditComment,
+  saveEditComment,
+  handleReply,
+} = usePostDetail({ postId, auth, router })
 </script>
 
 <template>
@@ -499,20 +88,26 @@ onUnmounted(() => {
     <SkeletonLoader v-if="loading" :lines="1" variant="card" />
 
     <div v-else-if="!post" class="text-center py-12">
-      <p class="text-muted mb-4">Post not found.</p>
-      <router-link to="/forum" class="text-brand-600 hover:underline">Back to Forum</router-link>
+      <p class="text-muted mb-4">{{ t('post.detail.notFound') }}</p>
+      <router-link to="/forum" class="text-brand-600 hover:underline">{{
+        t('post.detail.backToForum')
+      }}</router-link>
     </div>
 
     <template v-else>
       <!-- Editing mode -->
       <div v-if="editing" class="space-y-4">
-        <h2 class="text-xl font-bold text-foreground mb-4">Edit Post</h2>
+        <h2 class="text-xl font-bold text-foreground mb-4">{{ t('post.detail.editTitle') }}</h2>
         <BaseAlert v-if="editMessage" type="error">{{ editMessage }}</BaseAlert>
-        <BaseInput v-model="editTitle" placeholder="Post title" />
+        <BaseInput v-model="editTitle" :placeholder="t('post.create.titlePlaceholder')" />
         <TiptapEditor v-model="editContent" />
         <div class="flex gap-3">
-          <BaseButton :loading="editSaving" @click="saveEdit">Save Changes</BaseButton>
-          <BaseButton variant="secondary" @click="editing = false">Cancel</BaseButton>
+          <BaseButton :loading="editSaving" @click="saveEdit">{{
+            t('post.detail.saveChanges')
+          }}</BaseButton>
+          <BaseButton variant="secondary" @click="editing = false">{{
+            t('common.cancel')
+          }}</BaseButton>
         </div>
       </div>
 
@@ -520,7 +115,7 @@ onUnmounted(() => {
       <div v-else>
         <div class="mb-6">
           <router-link to="/forum" class="text-sm text-brand-600 hover:underline"
-            >&larr; Back to Forum</router-link
+            >&larr; {{ t('post.detail.backToForum') }}</router-link
           >
         </div>
 
@@ -563,9 +158,11 @@ onUnmounted(() => {
                       d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"
                     />
                   </svg>
-                  Pinned
+                  {{ t('post.detail.pinned') }}
                 </span>
-                <span v-if="post.version > 1" class="text-xs text-muted">v{{ post.version }}</span>
+                <span v-if="post.version > 1" class="text-xs text-muted">{{
+                  t('post.detail.version', { version: post.version })
+                }}</span>
               </div>
             </div>
             <div class="flex gap-2 shrink-0">
@@ -575,28 +172,28 @@ onUnmounted(() => {
                 class="text-sm text-amber-600 hover:underline disabled:opacity-50"
                 @click="handleTogglePin"
               >
-                {{ post.is_pinned ? 'Unpin' : 'Pin' }}
+                {{ post.is_pinned ? t('post.detail.unpin') : t('post.detail.pin') }}
               </button>
               <button
                 v-if="canModify"
                 class="text-sm text-brand-600 hover:underline"
                 @click="startEdit"
               >
-                Edit
+                {{ t('post.detail.edit') }}
               </button>
               <button
                 v-if="canModify"
                 class="text-sm text-danger-600 hover:underline"
                 @click="showDeletePostConfirm = true"
               >
-                Delete
+                {{ t('post.detail.delete') }}
               </button>
               <button
                 v-if="canReport"
                 class="text-sm text-orange-600 hover:underline"
                 @click="showReportModal = true"
               >
-                Report
+                {{ t('post.detail.report') }}
               </button>
             </div>
           </div>
@@ -642,10 +239,10 @@ onUnmounted(() => {
                   />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                {{ post.view_count }} views
+                {{ t('post.detail.viewCount', { count: post.view_count }) }}
               </span>
               <span v-if="post.last_comment_at" class="text-xs text-muted">
-                Last reply {{ formatRelativeTime(post.last_comment_at) }}
+                {{ t('post.detail.lastReply', { time: formatRelativeTime(post.last_comment_at) }) }}
               </span>
             </div>
             <button
@@ -653,23 +250,25 @@ onUnmounted(() => {
               class="text-xs text-brand-600 hover:underline"
               @click="fetchHistory"
             >
-              View edit history
+              {{ t('post.detail.viewEditHistory') }}
             </button>
           </div>
         </BaseCard>
 
         <!-- Comments Section -->
         <BaseCard padding="lg">
-          <h3 class="text-lg font-semibold text-foreground mb-4">Comments ({{ commentsTotal }})</h3>
+          <h3 class="text-lg font-semibold text-foreground mb-4">
+            {{ t('post.detail.commentsTitle', { count: commentsTotal }) }}
+          </h3>
 
           <div v-if="!post.allow_comments" class="text-sm text-muted mb-4">
-            Comments are disabled for this post.
+            {{ t('post.detail.commentsDisabled') }}
           </div>
 
           <!-- Threaded comments -->
           <div class="space-y-4">
             <div v-if="commentTree.length === 0" class="text-sm text-muted text-center py-4">
-              No comments yet.
+              {{ t('post.detail.noComments') }}
             </div>
             <div
               v-for="node in commentTree"
@@ -709,11 +308,11 @@ onUnmounted(() => {
                         :loading="editCommentSaving"
                         @click="saveEditComment(node.root.id)"
                       >
-                        Save
+                        {{ t('post.comment.save') }}
                       </BaseButton>
-                      <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
-                        >Cancel</BaseButton
-                      >
+                      <BaseButton size="sm" variant="secondary" @click="cancelEditComment">{{
+                        t('post.comment.cancel')
+                      }}</BaseButton>
                     </div>
                   </template>
                   <template v-else>
@@ -743,21 +342,21 @@ onUnmounted(() => {
                         @click="handleReply(node.root.id)"
                         class="text-xs text-muted hover:text-brand-600"
                       >
-                        Reply
+                        {{ t('post.comment.reply') }}
                       </button>
                       <button
                         v-if="canEditComment(node.root)"
                         @click="startEditComment(node.root)"
                         class="text-xs text-muted hover:text-brand-600"
                       >
-                        Edit
+                        {{ t('post.comment.edit') }}
                       </button>
                       <button
                         v-if="canDeleteComment(node.root)"
                         @click="confirmDeleteComment(node.root.id)"
                         class="text-xs text-danger-500 hover:text-danger-600"
                       >
-                        Delete
+                        {{ t('post.comment.delete') }}
                       </button>
                     </div>
                   </template>
@@ -767,7 +366,7 @@ onUnmounted(() => {
                     <textarea
                       v-model="inlineReplyContent"
                       rows="2"
-                      placeholder="Write a reply..."
+                      :placeholder="t('post.comment.writeReply')"
                       class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
                     ></textarea>
                     <div class="flex gap-2">
@@ -777,10 +376,10 @@ onUnmounted(() => {
                         :disabled="!inlineReplyContent.trim()"
                         @click="submitInlineReply"
                       >
-                        Reply
+                        {{ t('post.comment.replyButton') }}
                       </BaseButton>
                       <BaseButton size="sm" variant="secondary" @click="inlineReplyTo = null">
-                        Cancel
+                        {{ t('post.comment.cancel') }}
                       </BaseButton>
                     </div>
                   </div>
@@ -825,11 +424,11 @@ onUnmounted(() => {
                           :loading="editCommentSaving"
                           @click="saveEditComment(reply.id)"
                         >
-                          Save
+                          {{ t('post.comment.save') }}
                         </BaseButton>
-                        <BaseButton size="sm" variant="secondary" @click="cancelEditComment"
-                          >Cancel</BaseButton
-                        >
+                        <BaseButton size="sm" variant="secondary" @click="cancelEditComment">{{
+                          t('post.comment.cancel')
+                        }}</BaseButton>
                       </div>
                     </template>
                     <template v-else>
@@ -859,14 +458,14 @@ onUnmounted(() => {
                           @click="startEditComment(reply)"
                           class="text-xs text-muted hover:text-brand-600"
                         >
-                          Edit
+                          {{ t('post.comment.edit') }}
                         </button>
                         <button
                           v-if="canDeleteComment(reply)"
                           @click="confirmDeleteComment(reply.id)"
                           class="text-xs text-danger-500 hover:text-danger-600"
                         >
-                          Delete
+                          {{ t('post.comment.delete') }}
                         </button>
                       </div>
                     </template>
@@ -895,7 +494,7 @@ onUnmounted(() => {
             <textarea
               v-model="newComment"
               rows="3"
-              placeholder="Write a comment..."
+              :placeholder="t('post.comment.writeComment')"
               class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
             ></textarea>
             <BaseButton
@@ -903,7 +502,7 @@ onUnmounted(() => {
               :loading="commentSaving"
               :disabled="!newComment.trim()"
               @click="submitComment"
-              >Post Comment</BaseButton
+              >{{ t('post.comment.postComment') }}</BaseButton
             >
           </div>
         </BaseCard>
@@ -911,13 +510,15 @@ onUnmounted(() => {
     </template>
 
     <!-- History Modal -->
-    <BaseModal v-model="showHistory" title="Edit History" size="xl">
+    <BaseModal v-model="showHistory" :title="t('post.history.title')" size="xl">
       <div v-if="history.length === 0" class="text-muted text-sm text-center py-4">
-        No edit history.
+        {{ t('post.history.empty') }}
       </div>
       <div v-for="item in history" :key="item.id" class="border-b border-border last:border-0 py-4">
         <div class="flex justify-between items-center mb-2">
-          <span class="text-sm font-medium text-foreground/80">Version {{ item.version }}</span>
+          <span class="text-sm font-medium text-foreground/80">{{
+            t('post.history.version', { version: item.version })
+          }}</span>
           <span class="text-xs text-muted">{{ new Date(item.edited_at).toLocaleString() }}</span>
         </div>
         <h4 class="text-sm font-semibold text-foreground mb-1">{{ item.title }}</h4>
@@ -929,48 +530,62 @@ onUnmounted(() => {
     </BaseModal>
 
     <!-- Report Modal -->
-    <BaseModal v-model="showReportModal" title="Report Post">
+    <BaseModal v-model="showReportModal" :title="t('post.reportDialog.title')">
       <BaseAlert v-if="reportMessage" type="error" class="mb-3">{{ reportMessage }}</BaseAlert>
       <textarea
         v-model="reportReason"
         rows="4"
-        placeholder="Describe why you are reporting this post..."
+        :placeholder="t('post.reportDialog.placeholder')"
         class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground mb-3"
       ></textarea>
       <template #footer>
-        <BaseButton variant="secondary" @click="showReportModal = false">Cancel</BaseButton>
+        <BaseButton variant="secondary" @click="showReportModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
         <BaseButton
           class="bg-orange-600 hover:bg-orange-700 text-white"
           :loading="reportSaving"
           :disabled="!reportReason.trim()"
           @click="submitReport"
-          >Submit Report</BaseButton
+          >{{ t('post.reportDialog.submit') }}</BaseButton
         >
       </template>
     </BaseModal>
 
     <!-- Delete Post Confirmation -->
-    <BaseModal v-model="showDeletePostConfirm" title="Delete Post?" size="sm">
+    <BaseModal v-model="showDeletePostConfirm" :title="t('post.deleteDialog.title')" size="sm">
       <p class="text-sm text-muted">
-        Are you sure you want to delete this post? This action cannot be undone.
+        {{ t('post.deleteDialog.message') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeletePostConfirm = false">Cancel</BaseButton>
-        <BaseButton variant="danger" @click="deletePostHandler">Delete</BaseButton>
+        <BaseButton variant="secondary" @click="showDeletePostConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="deletePostHandler">{{
+          t('common.delete')
+        }}</BaseButton>
       </template>
     </BaseModal>
 
     <!-- Delete Comment Confirmation -->
-    <BaseModal v-model="showDeleteCommentConfirm" title="Delete Comment?" size="sm">
+    <BaseModal
+      v-model="showDeleteCommentConfirm"
+      :title="t('post.deleteCommentDialog.title')"
+      size="sm"
+    >
       <p class="text-sm text-muted">
-        Are you sure you want to delete this comment? This action cannot be undone.
+        {{ t('post.deleteCommentDialog.message') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false"
-          >Cancel</BaseButton
-        >
-        <BaseButton variant="danger" @click="deleteCommentHandler">Delete</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteCommentConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="deleteCommentHandler">{{
+          t('common.delete')
+        }}</BaseButton>
       </template>
     </BaseModal>
+
+    <FloatingCreateButton to="/forum/create" />
   </div>
 </template>

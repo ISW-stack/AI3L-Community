@@ -11,6 +11,7 @@ export async function updateProfile(payload: {
   bio?: string
   affiliation?: string
   orcid?: string
+  preferred_language?: string
 }) {
   const { data } = await api.put('/users/me', payload)
   return data as UserProfile

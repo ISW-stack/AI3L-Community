@@ -2,15 +2,33 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
+import { useLocale } from '@/composables/useLocale'
 import NotificationBell from '@/components/NotificationBell.vue'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
-import { Menu, X, ChevronDown } from 'lucide-vue-next'
+import { Menu, X, ChevronDown, GraduationCap } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t } = useLocale()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
+
+const { handleDropdownKeydown: handleAdminKeydown } = useDropdownKeyNav({
+  isOpen: adminDropdownOpen,
+  onOpen: () => (adminDropdownOpen.value = true),
+  onClose: () => (adminDropdownOpen.value = false),
+  wrapperClass: 'admin-dropdown-wrapper',
+})
+
+const { handleDropdownKeydown: handleUserKeydown } = useDropdownKeyNav({
+  isOpen: userDropdownOpen,
+  onOpen: () => (userDropdownOpen.value = true),
+  onClose: () => (userDropdownOpen.value = false),
+  wrapperClass: 'user-dropdown-wrapper',
+})
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -43,31 +61,6 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-function handleDropdownKeydown(e: KeyboardEvent, wrapperClass: string) {
-  const wrapper = (e.currentTarget as HTMLElement).closest(`.${wrapperClass}`)
-  if (!wrapper) return
-
-  if (e.key === 'Escape') {
-    e.preventDefault()
-    if (wrapperClass === 'admin-dropdown-wrapper') adminDropdownOpen.value = false
-    else userDropdownOpen.value = false
-    ;(wrapper.querySelector('button') as HTMLElement)?.focus()
-    return
-  }
-
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault()
-    const items = Array.from(wrapper.querySelectorAll<HTMLElement>('a, button'))
-    const current = document.activeElement as HTMLElement
-    const idx = items.indexOf(current)
-    const next =
-      e.key === 'ArrowDown'
-        ? items[(idx + 1) % items.length]
-        : items[(idx - 1 + items.length) % items.length]
-    next?.focus()
-  }
-}
-
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
@@ -80,13 +73,14 @@ onUnmounted(() => {
 <template>
   <nav
     class="sticky top-0 z-50 backdrop-blur-md bg-surface/80 border-b border-border"
-    aria-label="Main navigation"
+    :aria-label="t('nav.ariaLabel')"
   >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-14 items-center">
+      <div class="flex justify-between h-16 items-center">
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
-          <span class="text-lg font-bold text-brand-700">AI3L Community</span>
+          <GraduationCap class="w-6 h-6 text-brand-600" aria-hidden="true" />
+          <span class="text-lg font-bold text-brand-700">AI3L</span>
         </router-link>
 
         <!-- Desktop nav links -->
@@ -94,12 +88,17 @@ onUnmounted(() => {
           <router-link
             to="/forum"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >Forum</router-link
+            >{{ t('nav.forum') }}</router-link
           >
           <router-link
             to="/sigs"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >SIGs</router-link
+            >{{ t('nav.sigs') }}</router-link
+          >
+          <router-link
+            to="/about"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.about') }}</router-link
           >
           <router-link
             to="/about"
@@ -112,14 +111,14 @@ onUnmounted(() => {
             <div
               v-if="auth.isAdmin"
               class="relative admin-dropdown-wrapper"
-              @keydown="handleDropdownKeydown($event, 'admin-dropdown-wrapper')"
+              @keydown="handleAdminKeydown"
             >
               <button
                 @click="adminDropdownOpen = !adminDropdownOpen"
                 class="flex items-center gap-1 text-sm text-muted hover:text-foreground transition"
                 :aria-expanded="adminDropdownOpen"
               >
-                Admin
+                {{ t('nav.admin') }}
                 <ChevronDown
                   class="w-4 h-4 transition-transform"
                   :class="{ 'rotate-180': adminDropdownOpen }"
@@ -136,63 +135,69 @@ onUnmounted(() => {
                     to="/admin"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
-                    Dashboard
+                    {{ t('nav.dashboard') }}
                   </router-link>
                   <router-link
                     to="/admin/users"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
-                    Users
+                    {{ t('nav.users') }}
                   </router-link>
                   <router-link
                     to="/admin/applications"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
-                    Applications
+                    {{ t('nav.applications') }}
                   </router-link>
                   <router-link
                     to="/admin/reports"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
-                    Reports
+                    {{ t('nav.reports') }}
                   </router-link>
                   <router-link
                     to="/admin/categories"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
-                    Categories
+                    {{ t('nav.categories') }}
                   </router-link>
                   <router-link
                     to="/admin/invite-codes"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
-                    Invite Codes
+                    {{ t('nav.inviteCodes') }}
                   </router-link>
                   <router-link
                     v-if="auth.isSuperAdmin"
                     to="/admin/audit-logs"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition border-t border-border"
                     @click="adminDropdownOpen = false"
+                    tabindex="-1"
                   >
-                    Audit Logs
+                    {{ t('nav.auditLogs') }}
                   </router-link>
                 </div>
               </Transition>
             </div>
 
+            <LanguageSwitcher />
+
             <NotificationBell />
 
             <!-- User dropdown -->
-            <div
-              class="relative user-dropdown-wrapper"
-              @keydown="handleDropdownKeydown($event, 'user-dropdown-wrapper')"
-            >
+            <div class="relative user-dropdown-wrapper" @keydown="handleUserKeydown">
               <button
                 @click="userDropdownOpen = !userDropdownOpen"
                 class="flex items-center gap-2 text-sm text-foreground hover:text-foreground/80 transition"
@@ -214,23 +219,27 @@ onUnmounted(() => {
                   to="/profile"
                   class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
                   @click="userDropdownOpen = false"
+                  tabindex="-1"
                 >
-                  Profile
+                  {{ t('nav.profile') }}
                 </router-link>
                 <button
                   @click="handleLogout"
                   class="block w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-surface-alt transition"
+                  tabindex="-1"
                 >
-                  Log Out
+                  {{ t('nav.logOut') }}
                 </button>
               </div>
             </div>
           </template>
 
           <template v-else>
-            <router-link to="/login" class="text-sm text-muted hover:text-foreground transition"
-              >Log In</router-link
-            >
+            <LanguageSwitcher />
+
+            <router-link to="/login" class="text-sm text-muted hover:text-foreground transition">{{
+              t('nav.logIn')
+            }}</router-link>
             <router-link
               to="/register"
               class="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 transition"
@@ -247,7 +256,7 @@ onUnmounted(() => {
             @click="mobileMenuOpen = !mobileMenuOpen"
             class="p-1 text-muted hover:text-foreground transition"
             :aria-expanded="mobileMenuOpen"
-            aria-label="Toggle menu"
+            :aria-label="t('nav.toggleMenu')"
           >
             <Menu v-if="!mobileMenuOpen" class="w-6 h-6" aria-hidden="true" />
             <X v-else class="w-6 h-6" aria-hidden="true" />
@@ -268,14 +277,22 @@ onUnmounted(() => {
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
-            Forum
+            {{ t('nav.forum') }}
           </router-link>
           <router-link
             to="/sigs"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
-            SIGs
+            {{ t('nav.sigs') }}
+          </router-link>
+
+          <router-link
+            to="/about"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.about') }}
           </router-link>
 
           <router-link
@@ -289,43 +306,43 @@ onUnmounted(() => {
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
               <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
-                Admin
+                {{ t('nav.sectionAdmin') }}
               </div>
               <router-link
                 to="/admin"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Dashboard</router-link
+                >{{ t('nav.dashboard') }}</router-link
               >
               <router-link
                 to="/admin/users"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Users</router-link
+                >{{ t('nav.users') }}</router-link
               >
               <router-link
                 to="/admin/applications"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Applications</router-link
+                >{{ t('nav.applications') }}</router-link
               >
               <router-link
                 to="/admin/reports"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Reports</router-link
+                >{{ t('nav.reports') }}</router-link
               >
               <router-link
                 to="/admin/categories"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Categories</router-link
+                >{{ t('nav.categories') }}</router-link
               >
               <router-link
                 to="/admin/invite-codes"
                 class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
-                >Invite Codes</router-link
+                >{{ t('nav.inviteCodes') }}</router-link
               >
             </template>
             <router-link
@@ -333,11 +350,11 @@ onUnmounted(() => {
               to="/admin/audit-logs"
               class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
               @click="mobileMenuOpen = false"
-              >Audit Logs</router-link
+              >{{ t('nav.auditLogs') }}</router-link
             >
 
             <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
-              Account
+              {{ t('nav.sectionAccount') }}
             </div>
             <div class="flex items-center gap-2 px-3 py-2">
               <span class="text-sm text-foreground">{{
@@ -347,30 +364,36 @@ onUnmounted(() => {
                 {{ roleLabels[auth.role || ''] || auth.role }}
               </BaseBadge>
             </div>
+            <div class="px-3 py-2">
+              <LanguageSwitcher variant="form" />
+            </div>
             <router-link
               v-if="!auth.isGuest"
               to="/profile"
               class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
               @click="mobileMenuOpen = false"
             >
-              Profile
+              {{ t('nav.profile') }}
             </router-link>
             <button
               @click="handleLogout"
               class="block w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-surface-alt rounded-lg transition"
             >
-              Log Out
+              {{ t('nav.logOut') }}
             </button>
           </template>
 
           <template v-else>
             <div class="pt-3 space-y-2">
+              <div class="px-3 py-2">
+                <LanguageSwitcher variant="form" />
+              </div>
               <router-link
                 to="/login"
                 class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
                 @click="mobileMenuOpen = false"
               >
-                Log In
+                {{ t('nav.logIn') }}
               </router-link>
               <router-link
                 to="/register"

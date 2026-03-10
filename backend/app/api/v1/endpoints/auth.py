@@ -3,7 +3,14 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.core.config import settings
-from app.core.constants import RATE_LIMIT_GUEST, RATE_LIMIT_LOGIN, RATE_LIMIT_REGISTER
+from app.core.constants import (
+    MAX_ACTIVE_INVITE_CODES_PER_USER,
+    RATE_LIMIT_GUEST,
+    RATE_LIMIT_INVITE_GEN,
+    RATE_LIMIT_INVITE_VERIFY,
+    RATE_LIMIT_LOGIN,
+    RATE_LIMIT_REGISTER,
+)
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
@@ -136,11 +143,27 @@ async def login_as_guest(
             detail="Invalid or expired captcha.",
         )
 
+    # Per-IP guest session limit
+    from app.core.constants import MAX_GUESTS_PER_IP
+    from app.core.redis import get_redis
+
+    redis = get_redis()
+    ip_guest_key = f"guest:ip:{ip}"
+    ip_guest_count = int(await redis.get(ip_guest_key) or 0)
+    if ip_guest_count >= MAX_GUESTS_PER_IP:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many guest sessions from this IP.",
+        )
+
     result = await guest_login(req.display_name)
     if result is None:
         raise AppError(ErrorCode.AUTH_003, 429, "Guest capacity reached. Please try again later.")
 
     token, expires_in = result
+
+    await redis.incr(ip_guest_key)
+    await redis.expire(ip_guest_key, 3600)  # 1 hour window
 
     # Set cookies
     csrf_token = secrets.token_urlsafe(32)
@@ -244,8 +267,21 @@ async def get_ws_ticket(current_user: dict = Depends(get_current_user)) -> WsTic
 
 @router.post("/invite-code", response_model=InviteCodeResponse)
 async def generate_invite_code(
+    request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> InviteCodeResponse:
+    if not await check_rate_limit(f"rl:invite:{current_user['sub']}", *RATE_LIMIT_INVITE_GEN):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+
+    from app.repositories import invite_code_repo
+
+    active_count = await invite_code_repo.count_active_by_user(current_user["sub"])
+    if active_count >= MAX_ACTIVE_INVITE_CODES_PER_USER:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Maximum active invite codes reached. Wait for existing codes to expire or be consumed.",  # noqa: E501
+        )
+
     code, expires_at = await create_invite_code(current_user["sub"])
     return InviteCodeResponse(
         invite_code=code,
@@ -257,7 +293,10 @@ async def generate_invite_code(
     "/invite-code/{code}",
     response_model=MessageResponse,
 )
-async def verify_invite_code(code: str) -> MessageResponse:
+async def verify_invite_code(code: str, request: Request) -> MessageResponse:
+    ip = request.client.host if request.client else "unknown"
+    if not await check_rate_limit(f"rl:invite_verify:{ip}", *RATE_LIMIT_INVITE_VERIFY):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     result = await get_invite_code(code)
     if result is None:
         raise HTTPException(

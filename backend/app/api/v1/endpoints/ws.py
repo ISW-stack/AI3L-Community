@@ -11,8 +11,14 @@ from app.core.redis import get_redis
 
 router = APIRouter()
 
+# WebSocket security limits
+WS_MAX_MESSAGE_SIZE = 64 * 1024  # 64 KB max message size
+WS_MSG_RATE_LIMIT = 60  # max messages per window
+WS_MSG_RATE_WINDOW = 60  # window in seconds
+
 # In-memory connection registry: user_id -> set of WebSocket connections
 _connections: dict[str, set[WebSocket]] = defaultdict(set)
+_connections_lock = asyncio.Lock()
 
 
 async def _authenticate_ws(ticket: str) -> dict | None:
@@ -43,10 +49,12 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     role = payload["role"]
 
     await ws.accept()
-    _connections[user_id].add(ws)
+    async with _connections_lock:
+        _connections[user_id].add(ws)
     logger.info("WebSocket connected", extra={"user_id": user_id, "role": role})
 
     guest_timeout_task = None
+    ping_task = None
     last_activity = time.time()
     try:
         last_pong = asyncio.get_event_loop().time()
@@ -86,10 +94,29 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
         ping_task = asyncio.create_task(ping_loop())
 
+        msg_count = 0
+        msg_window_start = time.time()
+
         while True:
             data = await ws.receive_text()
+
+            # Message size limit
+            if len(data) > WS_MAX_MESSAGE_SIZE:
+                await ws.close(code=4004, reason="Message too large")
+                return
+
+            # Message rate limiting
+            now = time.time()
+            if now - msg_window_start > WS_MSG_RATE_WINDOW:
+                msg_count = 0
+                msg_window_start = now
+            msg_count += 1
+            if msg_count > WS_MSG_RATE_LIMIT:
+                await ws.close(code=4005, reason="Rate limit exceeded")
+                return
+
             msg = json.loads(data)
-            last_activity = time.time()
+            last_activity = now
 
             if msg.get("type") == "PONG":
                 last_pong = asyncio.get_event_loop().time()
@@ -99,12 +126,14 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     except Exception as e:
         logger.error("WebSocket error", extra={"user_id": user_id, "error": str(e)})
     finally:
-        ping_task.cancel()
+        if ping_task:
+            ping_task.cancel()
         if guest_timeout_task:
             guest_timeout_task.cancel()
-        _connections[user_id].discard(ws)
-        if not _connections[user_id]:
-            del _connections[user_id]
+        async with _connections_lock:
+            _connections[user_id].discard(ws)
+            if not _connections[user_id]:
+                del _connections[user_id]
 
 
 async def send_to_user(user_id: str, message: dict) -> None:
@@ -131,7 +160,9 @@ async def force_logout(user_id: str) -> None:
 
 async def _local_send(user_id: str, message: dict) -> None:
     """Send a message to all local WebSocket connections for a user."""
-    for ws in list(_connections.get(user_id, [])):
+    async with _connections_lock:
+        sockets = list(_connections.get(user_id, []))
+    for ws in sockets:
         try:
             await ws.send_json(message)
         except Exception:
@@ -139,12 +170,15 @@ async def _local_send(user_id: str, message: dict) -> None:
                 "Failed to send WS message to user, discarding connection",
                 extra={"user_id": user_id},
             )
-            _connections[user_id].discard(ws)
+            async with _connections_lock:
+                _connections[user_id].discard(ws)
 
 
 async def _local_force_logout(user_id: str) -> None:
     """Send FORCE_LOGOUT message and close all local connections for a user."""
-    for ws in list(_connections.get(user_id, [])):
+    async with _connections_lock:
+        sockets = list(_connections.get(user_id, []))
+    for ws in sockets:
         try:
             await ws.send_json({"type": "FORCE_LOGOUT"})
             await ws.close(code=4003, reason="Session expired")
@@ -152,7 +186,8 @@ async def _local_force_logout(user_id: str) -> None:
             logger.warning(
                 "Failed to send force logout to user", extra={"user_id": user_id}, exc_info=True
             )
-    _connections.pop(user_id, None)
+    async with _connections_lock:
+        _connections.pop(user_id, None)
 
 
 # --- Redis Pub/Sub subscriber (started in lifespan) ---

@@ -96,7 +96,10 @@ async def find_many(
             total = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
-            total = 0
+            total = await conn.fetchval(
+                "SELECT COUNT(*) FROM comments WHERE post_id = $1 AND is_deleted = false",
+                post_id,
+            )
             result = []
         return result, total
 

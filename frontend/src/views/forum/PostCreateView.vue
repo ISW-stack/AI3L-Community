@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { Category, Sig } from '@/types'
+import { getErrorMessage } from '@/utils/error'
 import { createPost as apiCreatePost } from '@/api/posts'
 import { listCategories } from '@/api/categories'
 import { listMySigs } from '@/api/sigs'
@@ -11,6 +13,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -30,7 +33,7 @@ const saving = ref(false)
 const message = ref('')
 const draftRestored = ref(false)
 
-const DRAFT_KEY = 'ai3l_post_draft'
+const DRAFT_KEY = `ai3l_post_draft_${querySigId || 'general'}`
 
 function saveDraft() {
   const draft = {
@@ -111,9 +114,13 @@ function removeKeyword(index: number) {
   keywords.value.splice(index, 1)
 }
 
+function isContentEmpty(html: string): boolean {
+  return !html || html === '<p></p>' || !html.replace(/<[^>]*>/g, '').trim()
+}
+
 async function createPost() {
-  if (!title.value.trim() || !content.value.trim()) {
-    message.value = 'Title and content are required.'
+  if (!title.value.trim() || isContentEmpty(content.value)) {
+    message.value = t('post.create.errorRequired')
     return
   }
   saving.value = true
@@ -131,8 +138,7 @@ async function createPost() {
     clearDraft()
     router.push(`/forum/${data.id}`)
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    message.value = err.response?.data?.detail || 'Failed to create post.'
+    message.value = getErrorMessage(e, t('post.create.errorFailed'))
   } finally {
     saving.value = false
   }
@@ -150,57 +156,79 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto">
-    <h1 class="text-2xl font-bold text-foreground mb-6">Create Post</h1>
+  <div class="max-w-3xl mx-auto py-6">
+    <div class="mb-4">
+      <router-link
+        :to="fromSig ? `/sigs/${sigId}` : '/forum'"
+        class="text-sm text-brand-600 hover:underline flex items-center gap-1"
+      >
+        <span>&larr;</span> {{ t('post.create.back') }}
+      </router-link>
+    </div>
+
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('post.create.title') }}</h1>
 
     <BaseAlert v-if="draftRestored" type="info" class="mb-4">
-      Draft restored from your previous session.
-      <button @click="discardDraft" class="ml-2 underline text-brand-600">Discard draft</button>
+      {{ t('post.create.draftRestored') }}
+      <button @click="discardDraft" class="ml-2 underline text-brand-600">
+        {{ t('post.create.discardDraft') }}
+      </button>
     </BaseAlert>
 
     <BaseAlert v-if="message" type="error" class="mb-4">{{ message }}</BaseAlert>
 
     <form @submit.prevent="createPost" class="space-y-4">
-      <BaseInput v-model="title" label="Title" placeholder="Post title" required />
+      <BaseInput
+        v-model="title"
+        :label="t('post.create.titleLabel')"
+        :placeholder="t('post.create.titlePlaceholder')"
+        required
+      />
 
       <div v-if="!fromSig">
-        <label class="block text-sm font-medium text-foreground mb-1">Category</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.categoryLabel')
+        }}</label>
         <select
           v-model="categoryId"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
         >
-          <option :value="null">None</option>
+          <option :value="null">{{ t('common.none') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
         </select>
       </div>
 
       <div v-if="!fromSig && mySigs.length > 0">
-        <label class="block text-sm font-medium text-foreground mb-1">SIG (optional)</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.sigLabel')
+        }}</label>
         <select
           v-model="sigId"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
         >
-          <option :value="null">None</option>
+          <option :value="null">{{ t('common.none') }}</option>
           <option v-for="s in mySigs" :key="s.id" :value="s.id">{{ s.name }}</option>
         </select>
       </div>
 
       <div v-if="fromSig" class="text-sm text-muted">
-        Posting to SIG:
+        {{ t('post.create.sigPostingTo') }}
         <span class="font-medium text-foreground">{{
-          mySigs.find((s) => s.id === sigId)?.name || 'Loading...'
+          mySigs.find((s) => s.id === sigId)?.name || t('common.loading')
         }}</span>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">Content</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.contentLabel')
+        }}</label>
         <TiptapEditor v-model="content" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1"
-          >Keywords ({{ keywords.length }}/15)</label
-        >
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('post.create.keywordsLabel', { current: keywords.length, max: 15 })
+        }}</label>
         <div class="flex gap-2 mb-2 flex-wrap">
           <BaseBadge v-for="(kw, i) in keywords" :key="i" class="gap-1">
             {{ kw }}
@@ -219,10 +247,12 @@ onUnmounted(() => {
             type="text"
             maxlength="50"
             class="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
-            placeholder="Add a keyword and press Enter"
+            :placeholder="t('post.create.keywordsPlaceholder')"
             @keydown.enter.prevent="addKeyword"
           />
-          <BaseButton type="button" variant="secondary" @click="addKeyword">Add</BaseButton>
+          <BaseButton type="button" variant="secondary" @click="addKeyword">{{
+            t('post.create.keywordsAdd')
+          }}</BaseButton>
         </div>
       </div>
 
@@ -233,13 +263,19 @@ onUnmounted(() => {
           type="checkbox"
           class="rounded border-border"
         />
-        <label for="allow-comments" class="text-sm text-foreground">Allow comments</label>
+        <label for="allow-comments" class="text-sm text-foreground">{{
+          t('post.create.allowComments')
+        }}</label>
       </div>
 
       <div class="flex gap-3 pt-2">
-        <BaseButton type="submit" size="lg" :loading="saving">Publish</BaseButton>
+        <BaseButton type="submit" size="lg" :loading="saving">{{
+          t('post.create.publish')
+        }}</BaseButton>
         <router-link :to="fromSig ? `/sigs/${sigId}` : '/forum'"
-          ><BaseButton type="button" variant="secondary" size="lg">Cancel</BaseButton></router-link
+          ><BaseButton type="button" variant="secondary" size="lg">{{
+            t('common.cancel')
+          }}</BaseButton></router-link
         >
       </div>
     </form>

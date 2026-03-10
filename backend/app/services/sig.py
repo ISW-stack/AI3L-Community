@@ -38,18 +38,43 @@ async def get_sig_by_id(sig_id: uuid.UUID) -> dict | None:
 async def update_sig(
     sig_id: uuid.UUID, name: str | None = None, description: str | None = None
 ) -> dict | None:
-    # Need current values for merge
-    current = await sig_repo.find_by_id(sig_id)
-    if not current:
-        return None
-    new_name = name if name is not None else current["name"]
-    new_desc = description if description is not None else current["description"]
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Read current values inside the transaction to prevent TOCTOU race
+            current = await conn.fetchrow(
+                """
+                SELECT s.*, u.display_name AS creator_display_name
+                FROM sigs s
+                LEFT JOIN users u ON s.created_by = u.id
+                WHERE s.id = $1 AND s.is_deleted = false
+                """,
+                sig_id,
+            )
+            if not current:
+                return None
+            new_name = name if name is not None else current["name"]
+            new_desc = description if description is not None else current["description"]
 
-    row = await sig_repo.update(sig_id, new_name, new_desc)
-    if not row:
-        return None
-    logger.info("SIG updated", extra={"sig_id": str(sig_id)})
-    return row_to_sig(row, row.get("creator_display_name"))
+            row = await conn.fetchrow(
+                """
+                WITH updated AS (
+                    UPDATE sigs SET name = $1, description = $2, updated_at = NOW()
+                    WHERE id = $3 AND is_deleted = false
+                    RETURNING *
+                )
+                SELECT u.*, usr.display_name AS creator_display_name
+                FROM updated u
+                LEFT JOIN users usr ON usr.id = u.created_by
+                """,
+                new_name,
+                new_desc,
+                sig_id,
+            )
+            if not row:
+                return None
+            logger.info("SIG updated", extra={"sig_id": str(sig_id)})
+            return row_to_sig(dict(row), dict(row).get("creator_display_name"))
 
 
 async def soft_delete_sig(sig_id: uuid.UUID) -> bool:
@@ -92,13 +117,12 @@ async def join_sig(sig_id: uuid.UUID, user_id: str) -> dict:
     pool = get_pool()
     user_uuid = uuid.UUID(user_id)
 
-    # Check not already a member
-    existing_role = await sig_repo.get_member_role(sig_id, user_uuid)
-    if existing_role:
-        raise ValueError("Already a member of this SIG.")
-
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # Check inside transaction to prevent TOCTOU race
+            existing_role = await sig_repo.get_member_role_in_conn(sig_id, user_uuid, conn)
+            if existing_role:
+                raise ValueError("Already a member of this SIG.")
             row = await sig_repo.join_member(sig_id, user_uuid, conn)
             if row is None:
                 raise ValueError("SIG not found.")

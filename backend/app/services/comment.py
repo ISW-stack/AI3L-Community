@@ -57,21 +57,24 @@ async def create_comment(
                 for mrow in mentioned_rows:
                     target_uid = str(mrow["id"])
                     if target_uid != user_id:
-                        mention_targets.append((target_uid, str(comment_id)))
+                        mention_targets.append((target_uid, str(post_id)))
 
             if parent_uuid:
                 parent_user_id = await comment_repo.find_parent_user_id(parent_uuid, conn)
                 if parent_user_id and parent_user_id != user_id:
-                    reply_target = (parent_user_id, str(comment_id))
+                    reply_target = (parent_user_id, str(post_id))
 
-    # Fire notifications via event bus (outside the transaction)
-    await emit(
-        "comment.created",
-        user_id=user_id,
-        commenter_name=commenter_name,
-        mention_targets=mention_targets,
-        reply_target=reply_target,
-    )
+    # Fire notifications via event bus (outside the transaction so handlers see committed data)
+    try:
+        await emit(
+            "comment.created",
+            user_id=user_id,
+            commenter_name=commenter_name,
+            mention_targets=mention_targets,
+            reply_target=reply_target,
+        )
+    except Exception:
+        logger.error("Failed to emit comment.created event", exc_info=True)
 
     logger.info("Comment created", extra={"comment_id": str(comment_id), "post_id": str(post_id)})
     return comment_dict
@@ -92,10 +95,11 @@ async def update_comment(
 
 async def list_comments(
     post_id: uuid.UUID,
-    offset: int = 0,
-    limit: int = 50,
+    page: int = 1,
+    page_size: int = 50,
 ) -> tuple[list[dict], int]:
-    rows, total = await comment_repo.find_many(post_id, offset, limit)
+    offset = (page - 1) * page_size
+    rows, total = await comment_repo.find_many(post_id, offset, page_size)
     return [row_to_comment(r) for r in rows], total
 
 

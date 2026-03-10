@@ -1,32 +1,43 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
+import { Pin, Eye, MessageCircle } from 'lucide-vue-next'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{
     post: Post
     formatTime?: (dateStr: string) => string
-    contentClamp?: 3 | 6
+    contentClamp?: 3 | 8
   }>(),
   {
     formatTime: undefined,
-    contentClamp: 6,
+    contentClamp: 8,
   },
 )
+
+/** Extract the first <img src="..."> from HTML content */
+const thumbnailUrl = computed(() => {
+  const match = props.post.content.match(/<img[^>]+src=["']([^"']+)["']/)
+  return match ? match[1] : null
+})
 
 function defaultFormatTime(dateStr: string): string {
   const now = Date.now()
   const diff = now - new Date(dateStr).getTime()
   const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return 'just now'
+  if (seconds < 60) return t('post.card.timeFormat.justNow')
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 60) return t('post.card.timeFormat.minutesAgo', { count: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return t('post.card.timeFormat.hoursAgo', { count: hours })
   const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
+  if (days < 7) return t('post.card.timeFormat.daysAgo', { count: days })
   return new Date(dateStr).toLocaleDateString()
 }
 
@@ -43,8 +54,18 @@ function stripHtml(html: string): string {
 
 <template>
   <BaseCard hoverable class="!p-0">
+    <!-- SIG context — shown above header when post belongs to a SIG -->
+    <div v-if="post.sig_name" class="px-4 pt-3 pb-1">
+      <router-link
+        :to="`/sigs/${post.sig_id}`"
+        class="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
+      >
+        {{ post.sig_name }}
+      </router-link>
+    </div>
+
     <!-- Post Header — avatar + name link to profile -->
-    <div class="flex items-center gap-3 px-4 pt-4 pb-2">
+    <div class="flex items-center gap-3 px-4 pb-2" :class="post.sig_name ? 'pt-1' : 'pt-4'">
       <router-link :to="`/users/${post.author.id}`">
         <BaseAvatar :src="post.author.avatar_url" :name="post.author.display_name" size="sm" />
       </router-link>
@@ -60,21 +81,8 @@ function stripHtml(html: string): string {
             v-if="post.is_pinned"
             class="inline-flex items-center gap-1 text-xs font-medium text-amber-600"
           >
-            <svg
-              class="w-3 h-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M12 17v5" />
-              <path
-                d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"
-              />
-            </svg>
-            Pinned
+            <Pin class="w-3 h-3" />
+            {{ t('post.card.pinned') }}
           </span>
         </div>
         <div class="flex items-center gap-2 text-xs text-muted">
@@ -88,10 +96,23 @@ function stripHtml(html: string): string {
 
     <!-- Post Title & Content — link to post -->
     <router-link :to="`/forum/${post.id}`" class="block px-4 pb-3">
-      <h2 class="text-base font-bold text-foreground mb-1">{{ post.title }}</h2>
-      <p class="text-sm text-muted" :class="contentClamp === 3 ? 'line-clamp-3' : 'line-clamp-6'">
-        {{ stripHtml(post.content) }}
-      </p>
+      <h2 class="text-base font-bold text-foreground mb-1.5">{{ post.title }}</h2>
+
+      <!-- Content area: text + optional thumbnail -->
+      <div class="flex gap-4">
+        <p
+          class="flex-1 text-sm text-muted leading-relaxed content-preview"
+          :class="contentClamp === 3 ? 'line-clamp-3' : 'line-clamp-8'"
+        >
+          {{ stripHtml(post.content) }}
+        </p>
+        <img
+          v-if="thumbnailUrl"
+          :src="thumbnailUrl"
+          alt=""
+          class="w-28 h-28 sm:w-36 sm:h-28 object-cover rounded-lg shrink-0 bg-surface-alt"
+        />
+      </div>
     </router-link>
 
     <!-- Keywords -->
@@ -103,29 +124,33 @@ function stripHtml(html: string): string {
 
     <!-- Action Bar -->
     <div class="border-t border-border px-4 py-2.5 flex items-center gap-4">
-      <span class="text-sm text-muted">
-        {{ post.comment_count }} comment{{ post.comment_count !== 1 ? 's' : '' }}
+      <span class="text-sm text-muted flex items-center gap-1">
+        <MessageCircle class="w-3.5 h-3.5" />
+        {{ post.comment_count }}
       </span>
       <span class="text-sm text-muted flex items-center gap-1">
-        <svg
-          class="w-3.5 h-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path
-            d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
-          />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
+        <Eye class="w-3.5 h-3.5" />
         {{ post.view_count }}
       </span>
       <span v-if="post.last_comment_at" class="text-xs text-muted ml-auto">
-        Last reply {{ displayTime(post.last_comment_at) }}
+        {{ t('post.card.lastReply', { time: displayTime(post.last_comment_at) }) }}
       </span>
     </div>
   </BaseCard>
 </template>
+
+<style scoped>
+.content-preview {
+  position: relative;
+  overflow: hidden;
+}
+.content-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2rem;
+  background: linear-gradient(transparent, var(--color-surface));
+}
+</style>

@@ -36,6 +36,9 @@ async def _on_comment_created(
 ) -> None:
     from app.services.notification import create_notification
 
+    succeeded = 0
+    failed = 0
+
     for target_uid, cid in mention_targets:
         if not await _check_idempotent(target_uid, "comment", cid, "MENTION"):
             continue
@@ -48,23 +51,34 @@ async def _on_comment_created(
                 entity_id=cid,
                 message=f"{commenter_name} mentioned you in a comment",
             )
+            succeeded += 1
         except Exception:
-            logger.warning("Failed to send mention notification", exc_info=True)
+            failed += 1
+            logger.error("Failed to send mention notification", exc_info=True)
 
     if reply_target:
         if not await _check_idempotent(reply_target[0], "comment", reply_target[1], "REPLY"):
-            return
-        try:
-            await create_notification(
-                user_id=reply_target[0],
-                trigger_user_id=user_id,
-                action_type="REPLY",
-                entity_type="comment",
-                entity_id=reply_target[1],
-                message=f"{commenter_name} replied to your comment",
-            )
-        except Exception:
-            logger.warning("Failed to send reply notification", exc_info=True)
+            pass
+        else:
+            try:
+                await create_notification(
+                    user_id=reply_target[0],
+                    trigger_user_id=user_id,
+                    action_type="REPLY",
+                    entity_type="comment",
+                    entity_id=reply_target[1],
+                    message=f"{commenter_name} replied to your comment",
+                )
+                succeeded += 1
+            except Exception:
+                failed += 1
+                logger.error("Failed to send reply notification", exc_info=True)
+
+    if failed:
+        logger.error(
+            "comment.created notifications summary",
+            extra={"succeeded": succeeded, "failed": failed},
+        )
 
 
 async def _on_post_deleted(
@@ -87,7 +101,7 @@ async def _on_post_deleted(
             message="Your post was removed by an administrator",
         )
     except Exception:
-        logger.warning("Failed to send post deletion notification", exc_info=True)
+        logger.error("Failed to send post deletion notification", exc_info=True)
 
 
 async def _on_application_reviewed(
@@ -115,7 +129,7 @@ async def _on_application_reviewed(
             message=msg,
         )
     except Exception:
-        logger.warning("Failed to send application review notification", exc_info=True)
+        logger.error("Failed to send application review notification", exc_info=True)
 
 
 async def _on_user_banned(user_id: str, **_kwargs: Any) -> None:
@@ -124,7 +138,7 @@ async def _on_user_banned(user_id: str, **_kwargs: Any) -> None:
 
         await force_logout(user_id)
     except Exception:
-        logger.warning("Failed to force logout banned user", exc_info=True)
+        logger.error("Failed to force logout banned user", exc_info=True)
 
 
 async def _on_notification_created(user_id: str, notification: dict, **_kwargs: Any) -> None:
@@ -139,7 +153,10 @@ async def _on_notification_created(user_id: str, notification: dict, **_kwargs: 
             },
         )
     except Exception:
-        logger.warning("Failed to push notification via WebSocket", exc_info=True)
+        logger.error("Failed to push notification via WebSocket", exc_info=True)
+
+
+_SIG_MEMBER_BATCH_SIZE = 200
 
 
 async def _on_post_created_in_sig(
@@ -157,25 +174,43 @@ async def _on_post_created_in_sig(
     author = await get_user_by_id(uuid.UUID(author_id))
     author_name = author["display_name"] if author else "Someone"
 
-    # Fetch all SIG members
-    members, _ = await sig_repo.find_members(uuid.UUID(sig_id), offset=0, limit=9999)
-    for m in members:
-        target_uid = str(m["user_id"])
-        if target_uid == author_id:
-            continue
-        if not await _check_idempotent(target_uid, "post", post_id, "SIG_NEW_POST"):
-            continue
-        try:
-            await create_notification(
-                user_id=target_uid,
-                trigger_user_id=author_id,
-                action_type="SIG_NEW_POST",
-                entity_type="post",
-                entity_id=post_id,
-                message=f'{author_name} posted "{post_title[:50]}" in your SIG',
-            )
-        except Exception:
-            logger.warning("Failed to send SIG new post notification", exc_info=True)
+    succeeded = 0
+    failed = 0
+    offset = 0
+    while True:
+        members, total = await sig_repo.find_members(
+            uuid.UUID(sig_id), offset=offset, limit=_SIG_MEMBER_BATCH_SIZE
+        )
+        if not members:
+            break
+        for m in members:
+            target_uid = str(m["user_id"])
+            if target_uid == author_id:
+                continue
+            if not await _check_idempotent(target_uid, "post", post_id, "SIG_NEW_POST"):
+                continue
+            try:
+                await create_notification(
+                    user_id=target_uid,
+                    trigger_user_id=author_id,
+                    action_type="SIG_NEW_POST",
+                    entity_type="post",
+                    entity_id=post_id,
+                    message=f'{author_name} posted "{post_title[:50]}" in your SIG',
+                )
+                succeeded += 1
+            except Exception:
+                failed += 1
+                logger.error("Failed to send SIG new post notification", exc_info=True)
+        offset += _SIG_MEMBER_BATCH_SIZE
+        if offset >= total:
+            break
+
+    if failed:
+        logger.error(
+            "post.created_in_sig notifications summary",
+            extra={"succeeded": succeeded, "failed": failed},
+        )
 
 
 async def _on_audit_action(

@@ -32,24 +32,24 @@ This document covers the frontend application architecture, design system, devel
 
 ## Technology Stack
 
-| Purpose | Technology |
-|---|---|
-| Framework | Vue 3 (Composition API with `<script setup>`) |
-| Language | TypeScript 5.7 |
-| Build tool | Vite 6 |
-| CSS framework | Tailwind CSS v4 (via `@tailwindcss/vite` plugin) |
-| State management | Pinia 2 |
-| Routing | Vue Router 4 |
-| HTTP client | Axios |
-| Rich text editor | TipTap 3 |
-| HTML sanitization | DOMPurify |
-| Icon library | Lucide Vue Next |
-| Font | Inter Variable (`@fontsource-variable/inter`) |
-| Unit tests | Vitest 2 |
-| End-to-end tests | Playwright |
-| Formatter | Prettier 3 |
-| Linter | ESLint 9 (flat config) |
-| Type checker | vue-tsc |
+| Purpose           | Technology                                       |
+| ----------------- | ------------------------------------------------ |
+| Framework         | Vue 3 (Composition API with `<script setup>`)    |
+| Language          | TypeScript 5.7                                   |
+| Build tool        | Vite 6                                           |
+| CSS framework     | Tailwind CSS v4 (via `@tailwindcss/vite` plugin) |
+| State management  | Pinia 2                                          |
+| Routing           | Vue Router 4                                     |
+| HTTP client       | Axios                                            |
+| Rich text editor  | TipTap 3                                         |
+| HTML sanitization | DOMPurify                                        |
+| Icon library      | Lucide Vue Next                                  |
+| Font              | Inter Variable (`@fontsource-variable/inter`)    |
+| Unit tests        | Vitest 2                                         |
+| End-to-end tests  | Playwright                                       |
+| Formatter         | Prettier 3                                       |
+| Linter            | ESLint 9 (flat config)                           |
+| Type checker      | vue-tsc                                          |
 
 ---
 
@@ -148,7 +148,7 @@ frontend/src/
 
 ### Prerequisites
 
-- Node.js 20 or later
+- Node.js 22 or later
 - npm 10 or later
 
 ### Install dependencies
@@ -186,18 +186,18 @@ npm run dev   # accessible at http://localhost:15173
 
 ## Available Scripts
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start Vite development server with HMR on port 15173 (host-only; normally handled by Docker) |
-| `npm run build` | Type-check and produce a production build in `dist/` |
-| `npm run preview` | Serve the `dist/` build locally |
-| `npm run test:unit` | Run Vitest unit tests |
-| `npm run test:e2e` | Run Playwright end-to-end tests |
-| `npm run lint` | Run ESLint with auto-fix |
-| `npm run format` | Run Prettier with auto-fix on `src/` |
-| `npx vue-tsc --noEmit` | Type-check without emitting output |
-| `npx prettier --check src/` | Check Prettier formatting without writing |
-| `npx eslint .` | Run ESLint without auto-fix |
+| Command                     | Description                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| `npm run dev`               | Start Vite development server with HMR on port 15173 (host-only; normally handled by Docker) |
+| `npm run build`             | Type-check and produce a production build in `dist/`                                         |
+| `npm run preview`           | Serve the `dist/` build locally                                                              |
+| `npm run test:unit`         | Run Vitest unit tests                                                                        |
+| `npm run test:e2e`          | Run Playwright end-to-end tests                                                              |
+| `npm run lint`              | Run ESLint with auto-fix                                                                     |
+| `npm run format`            | Run Prettier with auto-fix on `src/`                                                         |
+| `npx vue-tsc --noEmit`      | Type-check without emitting output                                                           |
+| `npx prettier --check src/` | Check Prettier formatting without writing                                                    |
+| `npx eslint .`              | Run ESLint without auto-fix                                                                  |
 
 ---
 
@@ -211,36 +211,36 @@ All colors are defined as semantic tokens. Never use raw Tailwind color utilitie
 
 #### Brand (Oxford Blue)
 
-| Token | Value | Usage |
-|---|---|---|
-| `brand-50` | `#e6eef8` | Light backgrounds, hover states |
-| `brand-100` | `#ccddf1` | Active states, badges |
-| `brand-200` | `#99bbe3` | Borders, secondary accents |
-| `brand-300` through `brand-500` | — | Intermediate shades |
-| `brand-600` | `#004a8c` | Primary interactive elements, links |
-| `brand-700` | `#003d75` | Hover on primary elements |
-| `brand-900` | `#002147` | Hero backgrounds, brand identity |
+| Token                           | Value     | Usage                               |
+| ------------------------------- | --------- | ----------------------------------- |
+| `brand-50`                      | `#e6eef8` | Light backgrounds, hover states     |
+| `brand-100`                     | `#ccddf1` | Active states, badges               |
+| `brand-200`                     | `#99bbe3` | Borders, secondary accents          |
+| `brand-300` through `brand-500` | —         | Intermediate shades                 |
+| `brand-600`                     | `#004a8c` | Primary interactive elements, links |
+| `brand-700`                     | `#003d75` | Hover on primary elements           |
+| `brand-900`                     | `#002147` | Hero backgrounds, brand identity    |
 
 #### Semantic Status Colors
 
-| Prefix | Use case |
-|---|---|
-| `success-*` | Positive outcomes, approvals |
+| Prefix      | Use case                      |
+| ----------- | ----------------------------- |
+| `success-*` | Positive outcomes, approvals  |
 | `warning-*` | Caution states, pending items |
-| `danger-*` | Errors, destructive actions |
-| `info-*` | Neutral information |
+| `danger-*`  | Errors, destructive actions   |
+| `info-*`    | Neutral information           |
 
 Each status color has a `50` (light background) and `600` (text/icon) variant.
 
 #### Surface and Text Tokens
 
-| Token | Description |
-|---|---|
-| `surface` | Card and panel backgrounds (`#ffffff`) |
-| `surface-alt` | Page backgrounds, table headers (`#f9fafb`) |
-| `border` | All borders and dividers (`#e5e7eb`) |
-| `muted` | Subdued text, labels, placeholders (`#6b7280`) |
-| `foreground` | Primary body text (`#111827`) |
+| Token         | Description                                    |
+| ------------- | ---------------------------------------------- |
+| `surface`     | Card and panel backgrounds (`#ffffff`)         |
+| `surface-alt` | Page backgrounds, table headers (`#f9fafb`)    |
+| `border`      | All borders and dividers (`#e5e7eb`)           |
+| `muted`       | Subdued text, labels, placeholders (`#6b7280`) |
+| `foreground`  | Primary body text (`#111827`)                  |
 
 #### Usage examples
 
@@ -287,13 +287,13 @@ Ten reusable base components are defined in `src/components/base/`. All applicat
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `variant` | `'primary' \| 'secondary' \| 'danger' \| 'success' \| 'ghost' \| 'soft-danger' \| 'soft-success'` | `'primary'` | Visual style |
-| `size` | `'sm' \| 'md' \| 'lg' \| 'full'` | `'md'` | Button size |
-| `loading` | `boolean` | `false` | Shows spinner and disables button |
-| `disabled` | `boolean` | `false` | Disables button |
-| `type` | `'button' \| 'submit' \| 'reset'` | `'button'` | HTML button type |
+| Prop       | Type                                                                                              | Default     | Description                       |
+| ---------- | ------------------------------------------------------------------------------------------------- | ----------- | --------------------------------- |
+| `variant`  | `'primary' \| 'secondary' \| 'danger' \| 'success' \| 'ghost' \| 'soft-danger' \| 'soft-success'` | `'primary'` | Visual style                      |
+| `size`     | `'sm' \| 'md' \| 'lg' \| 'full'`                                                                  | `'md'`      | Button size                       |
+| `loading`  | `boolean`                                                                                         | `false`     | Shows spinner and disables button |
+| `disabled` | `boolean`                                                                                         | `false`     | Disables button                   |
+| `type`     | `'button' \| 'submit' \| 'reset'`                                                                 | `'button'`  | HTML button type                  |
 
 ```html
 <BaseButton variant="primary" @click="save">Save</BaseButton>
@@ -307,14 +307,14 @@ Ten reusable base components are defined in `src/components/base/`. All applicat
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `modelValue` | `string` | — | `v-model` binding |
-| `label` | `string` | — | Field label |
-| `type` | `string` | `'text'` | Input type |
-| `placeholder` | `string` | — | Placeholder text |
-| `error` | `string` | — | Validation error message |
-| `disabled` | `boolean` | `false` | Disables the input |
+| Prop          | Type      | Default  | Description              |
+| ------------- | --------- | -------- | ------------------------ |
+| `modelValue`  | `string`  | —        | `v-model` binding        |
+| `label`       | `string`  | —        | Field label              |
+| `type`        | `string`  | `'text'` | Input type               |
+| `placeholder` | `string`  | —        | Placeholder text         |
+| `error`       | `string`  | —        | Validation error message |
+| `disabled`    | `boolean` | `false`  | Disables the input       |
 
 ```html
 <BaseInput v-model="username" label="Username" placeholder="your_username" />
@@ -327,13 +327,13 @@ Ten reusable base components are defined in `src/components/base/`. All applicat
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `modelValue` | `string` | — | `v-model` binding |
-| `label` | `string` | — | Field label |
-| `rows` | `number` | `4` | Number of visible rows |
-| `placeholder` | `string` | — | Placeholder text |
-| `error` | `string` | — | Validation error message |
+| Prop          | Type     | Default | Description              |
+| ------------- | -------- | ------- | ------------------------ |
+| `modelValue`  | `string` | —       | `v-model` binding        |
+| `label`       | `string` | —       | Field label              |
+| `rows`        | `number` | `4`     | Number of visible rows   |
+| `placeholder` | `string` | —       | Placeholder text         |
+| `error`       | `string` | —       | Validation error message |
 
 ---
 
@@ -341,12 +341,12 @@ Ten reusable base components are defined in `src/components/base/`. All applicat
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `modelValue` | `string \| number \| null` | — | `v-model` binding |
-| `label` | `string` | — | Field label |
-| `options` | `Array<{ value: string \| number, label: string }>` | `[]` | Select options |
-| `placeholder` | `string` | — | Placeholder option text |
+| Prop          | Type                                                | Default | Description             |
+| ------------- | --------------------------------------------------- | ------- | ----------------------- |
+| `modelValue`  | `string \| number \| null`                          | —       | `v-model` binding       |
+| `label`       | `string`                                            | —       | Field label             |
+| `options`     | `Array<{ value: string \| number, label: string }>` | `[]`    | Select options          |
+| `placeholder` | `string`                                            | —       | Placeholder option text |
 
 ---
 
@@ -354,10 +354,10 @@ Ten reusable base components are defined in `src/components/base/`. All applicat
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `padding` | `'none' \| 'sm' \| 'md' \| 'lg'` | `'md'` | Internal padding size |
-| `hoverable` | `boolean` | `false` | Adds hover shadow and scale effect |
+| Prop        | Type                             | Default | Description                        |
+| ----------- | -------------------------------- | ------- | ---------------------------------- |
+| `padding`   | `'none' \| 'sm' \| 'md' \| 'lg'` | `'md'`  | Internal padding size              |
+| `hoverable` | `boolean`                        | `false` | Adds hover shadow and scale effect |
 
 ```html
 <BaseCard padding="lg">
@@ -376,10 +376,10 @@ Ten reusable base components are defined in `src/components/base/`. All applicat
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `type` | `'error' \| 'success' \| 'warning' \| 'info'` | `'info'` | Alert severity |
-| `dismissible` | `boolean` | `false` | Shows a dismiss button |
+| Prop          | Type                                          | Default  | Description            |
+| ------------- | --------------------------------------------- | -------- | ---------------------- |
+| `type`        | `'error' \| 'success' \| 'warning' \| 'info'` | `'info'` | Alert severity         |
+| `dismissible` | `boolean`                                     | `false`  | Shows a dismiss button |
 
 Renders with `role="alert"` for screen reader accessibility.
 
@@ -394,10 +394,10 @@ Renders with `role="alert"` for screen reader accessibility.
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
+| Prop      | Type                                                                                 | Default   | Description   |
+| --------- | ------------------------------------------------------------------------------------ | --------- | ------------- |
 | `variant` | `'brand' \| 'success' \| 'warning' \| 'danger' \| 'neutral' \| 'orange' \| 'purple'` | `'brand'` | Color variant |
-| `size` | `'sm' \| 'md'` | `'sm'` | Badge size |
+| `size`    | `'sm' \| 'md'`                                                                       | `'sm'`    | Badge size    |
 
 ```html
 <BaseBadge variant="success">Active</BaseBadge>
@@ -411,12 +411,12 @@ Renders with `role="alert"` for screen reader accessibility.
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `modelValue` | `boolean` | — | `v-model` open/closed state |
-| `title` | `string` | — | Modal header title |
-| `size` | `'sm' \| 'md' \| 'lg' \| 'xl'` | `'md'` | Modal width |
-| `persistent` | `boolean` | `false` | Prevents closing by clicking the backdrop |
+| Prop         | Type                           | Default | Description                               |
+| ------------ | ------------------------------ | ------- | ----------------------------------------- |
+| `modelValue` | `boolean`                      | —       | `v-model` open/closed state               |
+| `title`      | `string`                       | —       | Modal header title                        |
+| `size`       | `'sm' \| 'md' \| 'lg' \| 'xl'` | `'md'`  | Modal width                               |
+| `persistent` | `boolean`                      | `false` | Prevents closing by clicking the backdrop |
 
 **Slots:** `default` (body content), `footer` (action buttons)
 
@@ -438,11 +438,11 @@ Uses `<Teleport to="body">`. Includes focus trapping, Escape key close, and body
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `columns` | `Array<{ key: string, label: string }>` | — | Column definitions |
-| `rows` | `Array<Record<string, unknown>>` | — | Row data |
-| `loading` | `boolean` | `false` | Shows loading state |
+| Prop      | Type                                    | Default | Description         |
+| --------- | --------------------------------------- | ------- | ------------------- |
+| `columns` | `Array<{ key: string, label: string }>` | —       | Column definitions  |
+| `rows`    | `Array<Record<string, unknown>>`        | —       | Row data            |
+| `loading` | `boolean`                               | `false` | Shows loading state |
 
 Wraps in `overflow-x-auto` with `min-w-[600px]` on the table for mobile compatibility. Supports scoped slot `#[key]="{ row }"` for custom cell rendering.
 
@@ -452,11 +452,11 @@ Wraps in `overflow-x-auto` with `min-w-[600px]` on the table for mobile compatib
 
 **Props:**
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `currentPage` | `number` | — | Active page number (1-based) |
-| `totalPages` | `number` | — | Total number of pages |
-| `maxVisible` | `number` | `7` | Maximum number of page buttons to show |
+| Prop          | Type     | Default | Description                            |
+| ------------- | -------- | ------- | -------------------------------------- |
+| `currentPage` | `number` | —       | Active page number (1-based)           |
+| `totalPages`  | `number` | —       | Total number of pages                  |
+| `maxVisible`  | `number` | `7`     | Maximum number of page buttons to show |
 
 **Emits:** `update:currentPage` (number)
 
@@ -486,13 +486,13 @@ Pinia stores are in `src/stores/`. There are three stores.
 
 Manages authentication state for the current session.
 
-| State | Type | Description |
-|---|---|---|
-| `user` | `User \| null` | Current user profile |
-| `isAuthenticated` | `boolean` | Derived: user is non-null |
-| `isGuest` | `boolean` | Derived: user role is GUEST |
-| `isAdmin` | `boolean` | Derived: role is ADMIN or SUPER_ADMIN |
-| `isSuperAdmin` | `boolean` | Derived: role is SUPER_ADMIN |
+| State             | Type           | Description                           |
+| ----------------- | -------------- | ------------------------------------- |
+| `user`            | `User \| null` | Current user profile                  |
+| `isAuthenticated` | `boolean`      | Derived: user is non-null             |
+| `isGuest`         | `boolean`      | Derived: user role is GUEST           |
+| `isAdmin`         | `boolean`      | Derived: role is ADMIN or SUPER_ADMIN |
+| `isSuperAdmin`    | `boolean`      | Derived: role is SUPER_ADMIN          |
 
 The JWT itself is stored in an HttpOnly cookie set by the server and is not accessible from JavaScript. The store does not hold a token string.
 
@@ -506,8 +506,8 @@ Manages the notification count badge on the navbar.
 
 Manages the toast notification queue.
 
-| Action | Parameters | Description |
-|---|---|---|
+| Action | Parameters                                                              | Description                                      |
+| ------ | ----------------------------------------------------------------------- | ------------------------------------------------ |
 | `show` | `(message: string, type?: 'success' \| 'error' \| 'info' \| 'warning')` | Adds a toast that auto-dismisses after 4 seconds |
 
 ```typescript
@@ -521,6 +521,7 @@ toast.show('Failed to load data.', 'error')
 All API calls are in `src/api/`. Each file exports typed async functions that wrap Axios. No component or store should call Axios directly.
 
 `src/api/index.ts` exports the configured Axios instance with:
+
 - `baseURL: '/api/v1'`
 - `withCredentials: true` — the browser automatically sends the HttpOnly `access_token` cookie on all same-origin requests
 - Request interceptor: reads the readable `csrf_token` cookie and attaches its value as the `X-CSRF-Token` header on all mutating requests
@@ -538,7 +539,10 @@ export async function createPost(payload: PostCreate): Promise<Post> {
   return data
 }
 
-export async function listPosts(params: { page?: number; category_id?: string }): Promise<PaginatedPosts> {
+export async function listPosts(params: {
+  page?: number
+  category_id?: string
+}): Promise<PaginatedPosts> {
   const { data } = await api.get<PaginatedPosts>('/posts', { params })
   return data
 }
@@ -549,6 +553,7 @@ export async function listPosts(params: { page?: number; category_id?: string })
 #### `useWebSocket` (`composables/useWebSocket.ts`)
 
 Manages the WebSocket connection to `/api/v1/ws`. Handles:
+
 - Connection lifecycle (connect on mount, disconnect on unmount)
 - Automatic reconnection with exponential backoff
 - PING/PONG heartbeat protocol
@@ -575,30 +580,30 @@ Add new types to the appropriate file (`user.ts`, `post.ts`, etc.) or create a n
 
 ## Views Reference
 
-| View | Route | Auth Required | Description |
-|---|---|---|---|
-| `HomeView` | `/` | No | Landing page with hero and feature cards |
-| `LoginView` | `/login` | No | Username/password login form |
-| `RegisterView` | `/register` | No | New account registration |
-| `GuestLoginView` | `/guest` | No | Guest session with invite code |
-| `NotFoundView` | `/:pathMatch(.*)` | No | 404 page |
-| `ForumView` | `/forum` | Yes | Post list with search and pagination |
-| `PostDetailView` | `/forum/:id` | Yes | Post with comments and reactions |
-| `PostCreateView` | `/forum/create` | Yes (Member+) | Create a new post |
-| `SigsDirectoryView` | `/sigs` | Yes | List of all SIGs |
-| `SigDetailView` | `/sigs/:id` | Yes | SIG with posts, members, and forms tabs |
-| `SigCreateView` | `/sigs/create` | Yes (Member+) | Create a new SIG |
-| `FormView` | `/forms/:formId` | Yes | View and submit a form |
-| `FormBuilderView` | `/sigs/:sigId/forms/new` | Yes (SIG Admin) | Create a form |
-| `FormBuilderView` | `/forms/:formId/edit` | Yes (SIG Admin) | Edit a form |
-| `NotificationsView` | `/notifications` | Yes | Full notification list |
-| `ProfileView` | `/profile` | Yes | Edit profile and change password |
-| `AdminDashboardView` | `/admin` | Yes (Admin+) | Platform statistics |
-| `UsersView` | `/admin/users` | Yes (Admin+) | User management |
-| `ApplicationsView` | `/admin/applications` | Yes (Admin+) | Membership applications |
-| `ReportsView` | `/admin/reports` | Yes (Admin+) | Post reports |
-| `AuditLogsView` | `/admin/audit-logs` | Yes (Super Admin) | Audit log |
-| `InviteCodesView` | `/admin/invite-codes` | Yes (Admin+) | Invite code management |
+| View                 | Route                    | Auth Required     | Description                              |
+| -------------------- | ------------------------ | ----------------- | ---------------------------------------- |
+| `HomeView`           | `/`                      | No                | Landing page with hero and feature cards |
+| `LoginView`          | `/login`                 | No                | Username/password login form             |
+| `RegisterView`       | `/register`              | No                | New account registration                 |
+| `GuestLoginView`     | `/guest`                 | No                | Guest session with invite code           |
+| `NotFoundView`       | `/:pathMatch(.*)`        | No                | 404 page                                 |
+| `ForumView`          | `/forum`                 | Yes               | Post list with search and pagination     |
+| `PostDetailView`     | `/forum/:id`             | Yes               | Post with comments and reactions         |
+| `PostCreateView`     | `/forum/create`          | Yes (Member+)     | Create a new post                        |
+| `SigsDirectoryView`  | `/sigs`                  | Yes               | List of all SIGs                         |
+| `SigDetailView`      | `/sigs/:id`              | Yes               | SIG with posts, members, and forms tabs  |
+| `SigCreateView`      | `/sigs/create`           | Yes (Member+)     | Create a new SIG                         |
+| `FormView`           | `/forms/:formId`         | Yes               | View and submit a form                   |
+| `FormBuilderView`    | `/sigs/:sigId/forms/new` | Yes (SIG Admin)   | Create a form                            |
+| `FormBuilderView`    | `/forms/:formId/edit`    | Yes (SIG Admin)   | Edit a form                              |
+| `NotificationsView`  | `/notifications`         | Yes               | Full notification list                   |
+| `ProfileView`        | `/profile`               | Yes               | Edit profile and change password         |
+| `AdminDashboardView` | `/admin`                 | Yes (Admin+)      | Platform statistics                      |
+| `UsersView`          | `/admin/users`           | Yes (Admin+)      | User management                          |
+| `ApplicationsView`   | `/admin/applications`    | Yes (Admin+)      | Membership applications                  |
+| `ReportsView`        | `/admin/reports`         | Yes (Admin+)      | Post reports                             |
+| `AuditLogsView`      | `/admin/audit-logs`      | Yes (Super Admin) | Audit log                                |
+| `InviteCodesView`    | `/admin/invite-codes`    | Yes (Admin+)      | Invite code management                   |
 
 ---
 
@@ -642,6 +647,7 @@ npm run format
 ### Linter
 
 ESLint uses the flat config format (`eslint.config.js`). Rules extend:
+
 - `eslint-plugin-vue` (flat/essential)
 - `@vue/eslint-config-typescript`
 - `@vue/eslint-config-prettier/skip-formatting` (formatting deferred to Prettier)

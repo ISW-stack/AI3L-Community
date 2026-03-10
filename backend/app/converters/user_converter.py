@@ -43,6 +43,7 @@ def user_to_response(user: dict) -> UserResponse:
         orcid=user.get("orcid"),
         affiliation=user.get("affiliation"),
         bio=user.get("bio"),
+        preferred_language=user.get("preferred_language", "en"),
         is_banned=user.get("is_banned", False),
         ban_reason=user.get("ban_reason"),
     )

@@ -1,4 +1,5 @@
 import math
+import shlex
 import uuid
 from typing import Any
 
@@ -154,12 +155,13 @@ async def find_owner_id(post_id: uuid.UUID) -> str | None:
         return str(row["user_id"]) if row else None
 
 
-async def find_history(post_id: uuid.UUID) -> list[dict]:
+async def find_history(post_id: uuid.UUID, limit: int = 50) -> list[dict]:
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT * FROM post_history WHERE post_id = $1 ORDER BY version DESC",
+            "SELECT * FROM post_history WHERE post_id = $1 ORDER BY version DESC LIMIT $2",
             post_id,
+            limit,
         )
         return [dict(r) for r in rows]
 
@@ -231,20 +233,29 @@ async def search(
     logic: str = "AND",
     page: int = 1,
     page_size: int = 20,
+    sort: str = "newest",
 ) -> tuple[list[dict], int, int]:
     pool = get_pool()
     offset = (page - 1) * page_size
+    order_by = _SORT_MAP.get(sort, _SORT_MAP["newest"])
 
     conditions = ["p.is_deleted = false"]
     params: list = []
     idx = 1
 
     if keyword:
-        ts_query_op = " & " if logic == "AND" else " | "
-        terms = keyword.strip().split()
-        ts_query = ts_query_op.join(terms)
-        conditions.append(f"p.search_vector @@ to_tsquery('english', ${idx})")
-        params.append(ts_query)
+        search_input = keyword.strip()
+        if logic == "OR":
+            # Split respecting quoted phrases, then rejoin with OR for websearch_to_tsquery
+            lex = shlex.shlex(search_input, posix=False)
+            lex.whitespace_split = True
+            try:
+                terms = list(lex)
+            except ValueError:
+                terms = search_input.split()
+            search_input = " OR ".join(terms)
+        conditions.append(f"p.search_vector @@ websearch_to_tsquery('english', ${idx})")
+        params.append(search_input)
         idx += 1
 
     if category_id:
@@ -263,7 +274,8 @@ async def search(
         idx += 1
 
     if date_to:
-        conditions.append(f"p.created_at <= ${idx}::timestamptz")
+        # Cast to date then add 1 day so the entire end date is included
+        conditions.append(f"p.created_at < (${idx}::date + INTERVAL '1 day')")
         params.append(date_to)
         idx += 1
 
@@ -279,7 +291,7 @@ async def search(
     async with pool.acquire() as conn:
         params.extend([page_size, offset])
         rows = await conn.fetch(
-            f"{_select_count} {where} ORDER BY p.is_pinned DESC, p.created_at DESC LIMIT ${idx} OFFSET ${idx + 1}",  # noqa: E501
+            f"{_select_count} {where} ORDER BY {order_by} LIMIT ${idx} OFFSET ${idx + 1}",
             *params,
         )
         if rows:

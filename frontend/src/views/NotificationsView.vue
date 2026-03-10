@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { usePagination } from '@/composables/usePagination'
 import { User, Settings, Trash2 } from 'lucide-vue-next'
 import type { Notification } from '@/types'
 import {
@@ -18,29 +20,41 @@ import EmptyState from '@/components/EmptyState.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const toast = useToastStore()
 const notificationStore = useNotificationStore()
 const notifications = ref<Notification[]>([])
-const total = ref(0)
+const { page, totalPages, pageSize, setPage, updateFromResponse } = usePagination()
 const unreadCount = ref(0)
-const page = ref(1)
-const pageSize = 20
 const loading = ref(false)
-const totalPages = ref(1)
+const filter = ref<'all' | 'unread'>('all')
+let fetchId = 0
+
+const filteredNotifications = computed(() => {
+  if (filter.value === 'unread') return notifications.value.filter((n) => !n.is_read)
+  return notifications.value
+})
+
+function changeFilter(f: 'all' | 'unread') {
+  filter.value = f
+}
 
 async function fetchNotifications() {
+  const localFetchId = ++fetchId
   loading.value = true
   try {
     const data = await listNotifications({ page: page.value, page_size: pageSize })
+    if (localFetchId !== fetchId) return
     notifications.value = data.notifications
-    total.value = data.total
+    updateFromResponse(data.total)
     unreadCount.value = data.unread_count
-    totalPages.value = Math.max(1, Math.ceil(data.total / pageSize))
   } catch {
     // silent
   } finally {
-    loading.value = false
+    if (localFetchId === fetchId) {
+      loading.value = false
+    }
   }
 }
 
@@ -84,7 +98,7 @@ async function handleDeleteNotification(id: string) {
     notifications.value = notifications.value.filter((n) => n.id !== id)
     notificationStore.fetchUnreadCount()
   } catch {
-    toast.show('Failed to delete notification.', 'error')
+    toast.show(t('notifications.deleteError'), 'error')
   }
 }
 
@@ -93,14 +107,14 @@ async function handleClearAll() {
     await bulkDeleteNotifications()
     notifications.value = []
     notificationStore.fetchUnreadCount()
-    toast.show('All notifications cleared.', 'success')
+    toast.show(t('notifications.deleteSuccess'), 'success')
   } catch {
-    toast.show('Failed to clear notifications.', 'error')
+    toast.show(t('notifications.deleteError'), 'error')
   }
 }
 
 function goToPage(p: number) {
-  page.value = p
+  setPage(p)
   fetchNotifications()
 }
 
@@ -110,14 +124,14 @@ onMounted(fetchNotifications)
 <template>
   <div class="max-w-3xl mx-auto">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Notifications</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('notifications.title') }}</h1>
       <div class="flex items-center gap-3">
         <button
           v-if="unreadCount > 0"
           @click="markAllRead"
           class="text-sm text-brand-600 hover:text-brand-800 hover:underline"
         >
-          Mark all as read ({{ unreadCount }})
+          {{ t('notifications.markAllRead') }} ({{ unreadCount }})
         </button>
         <BaseButton
           v-if="notifications.length > 0"
@@ -125,22 +139,53 @@ onMounted(fetchNotifications)
           size="sm"
           @click="handleClearAll"
         >
-          Clear All
+          {{ t('notifications.clearAllBtn') }}
         </BaseButton>
       </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex gap-1 mb-4 border-b border-border">
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition"
+        :class="
+          filter === 'all'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-muted hover:text-foreground'
+        "
+        @click="changeFilter('all')"
+      >
+        {{ t('notifications.filter.all') }}
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition"
+        :class="
+          filter === 'unread'
+            ? 'border-brand-600 text-brand-600'
+            : 'border-transparent text-muted hover:text-foreground'
+        "
+        @click="changeFilter('unread')"
+      >
+        {{ t('notifications.filter.unread') }}
+        <span
+          v-if="unreadCount > 0"
+          class="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5"
+          >{{ unreadCount }}</span
+        >
+      </button>
     </div>
 
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
     <EmptyState
-      v-else-if="notifications.length === 0"
-      message="No notifications yet."
-      title="All Caught Up"
+      v-else-if="filteredNotifications.length === 0"
+      :message="t('notifications.emptyMessage')"
+      :title="t('notifications.emptyTitle')"
     />
 
     <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
       <button
-        v-for="notif in notifications"
+        v-for="notif in filteredNotifications"
         :key="notif.id"
         @click="markRead(notif)"
         class="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-surface-alt transition"
@@ -179,7 +224,7 @@ onMounted(fetchNotifications)
         <button
           @click.stop="handleDeleteNotification(notif.id)"
           class="flex-shrink-0 p-1 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
-          title="Delete notification"
+          :title="t('common.delete')"
         >
           <Trash2 :size="16" />
         </button>

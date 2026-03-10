@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.core.deps import get_current_user
+from app.core.deps import require_role
 from app.schemas.form import TaskStatusResponse
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -9,7 +9,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 @router.get("/{task_id}/status", response_model=TaskStatusResponse)
 async def get_task_status(
     task_id: str,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> TaskStatusResponse:
     from celery.result import AsyncResult
 

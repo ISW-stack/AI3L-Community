@@ -4,12 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFil
 
 from app.converters.user_converter import user_to_public_response, user_to_response
 from app.core.constants import MAX_AVATAR_SIZE
-from app.core.database import get_pool
 from app.core.deps import get_current_user, require_role
 from app.core.event_bus import emit
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
-from app.repositories import user_repo
 from app.schemas.auth import MessageResponse
 from app.schemas.user import (
     AdminCreateAccountRequest,
@@ -64,6 +62,7 @@ async def update_my_profile(
         bio=req.bio,
         affiliation=req.affiliation,
         orcid=req.orcid,
+        preferred_language=req.preferred_language,
     )
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
@@ -93,6 +92,7 @@ async def upload_avatar(
 
 @router.put("/me/password", response_model=MessageResponse)
 async def change_my_password(
+    request: Request,
     req: ChangePasswordRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
@@ -105,6 +105,10 @@ async def change_my_password(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
+    await emit("audit.action", user_id=current_user["sub"], action="PASSWORD_CHANGE", ip_address=ip)
 
     # Revoke ALL sessions (all devices) so user must re-login everywhere
     await revoke_user_sessions(current_user["sub"])
@@ -157,6 +161,24 @@ async def delete_my_account(
     return MessageResponse(message="Account deleted and anonymized.")
 
 
+@router.put("/bulk-role", status_code=status.HTTP_200_OK)
+async def bulk_change_role(
+    req: BulkRoleChangeRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> dict:
+    from app.services.audit import log_action
+    from app.services.user import bulk_change_role as bulk_change_role_svc
+
+    count = await bulk_change_role_svc(req.user_ids, req.role)
+    await log_action(
+        user_id=current_user["sub"],
+        action="BULK_ROLE_CHANGE",
+        target_type="user",
+        target_id=f"role={req.role},count={count}",
+    )
+    return {"updated_count": count}
+
+
 @router.get("/{user_id}", response_model=PublicUserResponse)
 async def get_public_profile(
     user_id: uuid.UUID,
@@ -176,11 +198,12 @@ async def get_public_profile(
     response_model=UserListResponse,
 )
 async def get_all_users(
-    offset: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    search: str | None = Query(None),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> UserListResponse:
-    users, total = await list_users(offset=offset, limit=limit)
+    users, total = await list_users(page=page, page_size=page_size, search=search)
     return UserListResponse(users=[_user_to_response(u) for u in users], total=total)
 
 
@@ -342,23 +365,3 @@ async def get_audit_logs(
         date_to=date_to,
     )
     return {"logs": logs, "total": total, "page": page, "page_size": page_size}
-
-
-@router.put("/bulk-role", status_code=status.HTTP_200_OK)
-async def bulk_change_role(
-    req: BulkRoleChangeRequest,
-    current_user: dict = Depends(require_role("SUPER_ADMIN")),
-) -> dict:
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            count = await user_repo.bulk_update_role(req.user_ids, req.role, conn)
-    from app.services.audit import log_action
-
-    await log_action(
-        user_id=current_user["sub"],
-        action="BULK_ROLE_CHANGE",
-        target_type="user",
-        target_id=f"role={req.role},count={count}",
-    )
-    return {"updated_count": count}
