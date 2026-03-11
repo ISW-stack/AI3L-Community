@@ -49,6 +49,30 @@ async def _update_scan(
     await file_scan_repo.update_status(storage_key, status, scan_id, positives, total)
 
 
+async def _decrement_owner_storage(storage_key: str, file_size: int) -> None:
+    """Parse user_id from storage key and decrement their storage counter."""
+    import uuid
+
+    await _ensure_pool()
+    from app.repositories import user_repo
+
+    # Key pattern: editor/{user_id}/{filename}
+    parts = storage_key.split("/")
+    if len(parts) >= 2:
+        try:
+            owner_uuid = uuid.UUID(parts[1])
+            await user_repo.increment_storage_used(owner_uuid, -file_size)
+            logger.info(
+                "Decremented storage for user after malicious file deletion",
+                extra={"user_id": parts[1], "key": storage_key, "size": file_size},
+            )
+        except (ValueError, Exception) as e:
+            logger.warning(
+                "Failed to decrement storage after malicious file deletion",
+                extra={"key": storage_key, "error": str(e)},
+            )
+
+
 @celery.task(bind=True, max_retries=2, default_retry_delay=60)
 def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
     """Query VirusTotal for a file SHA-256 hash; delete if malicious."""
@@ -131,12 +155,22 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
         except Exception:
             logger.error("Failed to update scan record to malicious", exc_info=True)
 
-        # Delete the file from storage
+        # Delete the file from storage and decrement owner's storage quota
         try:
-            from app.core.storage import delete_file
+            from app.core.storage import delete_file, get_file_size
 
+            file_size = get_file_size(storage_key)
             delete_file(storage_key)
             logger.info("Deleted malicious file from storage", extra={"key": storage_key})
+            if file_size > 0:
+                try:
+                    _run_async(_decrement_owner_storage(storage_key, file_size))
+                except Exception:
+                    logger.error(
+                        "Failed to decrement storage after malicious deletion",
+                        extra={"key": storage_key},
+                        exc_info=True,
+                    )
         except Exception as e:
             logger.error(
                 "Failed to delete malicious file", extra={"key": storage_key, "error": str(e)}

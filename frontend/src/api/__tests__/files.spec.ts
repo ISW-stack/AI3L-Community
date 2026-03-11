@@ -167,26 +167,22 @@ describe('files API', () => {
   })
 
   describe('getPresignedUrl', () => {
-    it('calls GET /files/presigned-url with key param and returns url', async () => {
+    it('calls GET /files/presigned/:key as path param and returns url', async () => {
       const mockData = { url: 'https://minio.example.com/signed-url?token=abc' }
       mockGet.mockResolvedValue({ data: mockData })
 
       const result = await getPresignedUrl('uploads/file.pdf')
 
-      expect(mockGet).toHaveBeenCalledWith('/files/presigned-url', {
-        params: { key: 'uploads/file.pdf' },
-      })
+      expect(mockGet).toHaveBeenCalledWith('/files/presigned/uploads/file.pdf')
       expect(result).toEqual(mockData)
     })
 
-    it('passes the key as a query parameter', async () => {
+    it('passes the key as a path parameter (supports slashes)', async () => {
       mockGet.mockResolvedValue({ data: { url: 'https://example.com/url' } })
 
       await getPresignedUrl('my/file/key.txt')
 
-      expect(mockGet).toHaveBeenCalledWith('/files/presigned-url', {
-        params: { key: 'my/file/key.txt' },
-      })
+      expect(mockGet).toHaveBeenCalledWith('/files/presigned/my/file/key.txt')
     })
 
     it('returns object with url string', async () => {

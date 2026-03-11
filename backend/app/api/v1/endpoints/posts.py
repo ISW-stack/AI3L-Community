@@ -51,6 +51,8 @@ async def create_new_post(
         )
     except RateLimitError as e:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -268,6 +270,15 @@ async def get_post_edit_history(
     post = await get_post_by_id(post_id)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+    # Only post owner or admins can view edit history
+    if str(post["author"]["id"]) != current_user["sub"] and current_user["role"] not in (
+        "SUPER_ADMIN",
+        "ADMIN",
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view edit history.",
+        )
 
     history = await get_post_history(post_id)
     return PostHistoryResponse(history=history, total=len(history))  # type: ignore[arg-type]

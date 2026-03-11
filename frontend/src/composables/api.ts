@@ -18,13 +18,13 @@ const api = axios.create({
 
 // Request: inject CSRF token header (read from csrf_token cookie)
 api.interceptors.request.use((config) => {
-  const csrfToken = getCookie('csrf_token')
-  if (
-    csrfToken &&
-    config.method &&
-    !['get', 'head', 'options'].includes(config.method.toLowerCase())
-  ) {
-    config.headers['X-CSRF-Token'] = csrfToken
+  if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+    const csrfToken = getCookie('csrf_token')
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken
+    } else {
+      console.warn('[CSRF] Token cookie missing for mutating request:', config.url)
+    }
   }
   return config
 })

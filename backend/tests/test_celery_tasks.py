@@ -781,12 +781,14 @@ class TestVirusTotal:
         }
 
         mock_delete = MagicMock()
+        mock_get_size = MagicMock(return_value=0)
 
         with (
             patch("app.tasks.virustotal._run_async") as mock_run,
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
             patch("app.core.storage.delete_file", mock_delete),
+            patch("app.core.storage.get_file_size", mock_get_size),
         ):
             mock_settings.VT_API_KEY = "test-key"
             mock_requests.get.return_value = mock_response
@@ -801,6 +803,75 @@ class TestVirusTotal:
         assert result["malicious"] == 5
         assert result["suspicious"] == 2
         mock_delete.assert_called_once_with("uploads/malware.exe")
+
+    def test_check_malicious_file_decrements_storage(self):
+        """check_virustotal should decrement owner storage after deleting malicious file."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+
+        user_id = str(uuid.uuid4())
+        storage_key = f"editor/{user_id}/malware.exe"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "data": {
+                "id": "scan-bad",
+                "attributes": {
+                    "last_analysis_stats": {
+                        "malicious": 5,
+                        "suspicious": 2,
+                        "undetected": 60,
+                        "harmless": 3,
+                    }
+                },
+            }
+        }
+
+        mock_delete = MagicMock()
+        mock_get_size = MagicMock(return_value=1024)
+        mock_decrement = AsyncMock()
+
+        with (
+            patch("app.tasks.virustotal._run_async") as mock_run,
+            patch("app.tasks.virustotal.settings") as mock_settings,
+            patch("app.tasks.virustotal.requests") as mock_requests,
+            patch("app.core.storage.delete_file", mock_delete),
+            patch("app.core.storage.get_file_size", mock_get_size),
+            patch("app.repositories.user_repo.increment_storage_used", mock_decrement),
+            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+        ):
+            mock_settings.VT_API_KEY = "test-key"
+            mock_requests.get.return_value = mock_response
+            mock_requests.RequestException = Exception
+
+            # _run_async is called for DB ops; let it actually run the coro for decrement
+            call_count = [0]
+
+            def run_async_side_effect(coro):
+                call_count[0] += 1
+                # The first calls are for _insert_pending and _update_scan (return None)
+                # The last call is for _decrement_owner_storage
+                import asyncio
+
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                return loop.run_until_complete(coro)
+
+            mock_run.side_effect = run_async_side_effect
+
+            from app.tasks.virustotal import check_virustotal
+
+            result = check_virustotal(mock_self, "abc123hash", storage_key)
+
+        assert result["status"] == "malicious"
+        mock_delete.assert_called_once_with(storage_key)
+        mock_get_size.assert_called_once_with(storage_key)
+        mock_decrement.assert_awaited_once_with(uuid.UUID(user_id), -1024)
 
     def test_check_not_found_in_vt(self):
         """check_virustotal should return 'not_found' for 404 responses."""

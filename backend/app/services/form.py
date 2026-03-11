@@ -261,11 +261,36 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
 
 
 async def soft_delete_form(form_id: uuid.UUID, user_id: str, is_admin: bool) -> bool:
-    # Check permission before deleting
+    # Check permission before deleting — also capture banner_url for cleanup
     row, _ = await form_repo.find_by_id(form_id)
     if not row:
         return False
     if not is_admin and str(row["created_by"]) != user_id:
         raise PermissionError("Only the form creator or admin can delete this form.")
+
+    banner_url = row.get("banner_url")
+
     deleted, _ = await form_repo.soft_delete(form_id)
+
+    # Best-effort cleanup of form banner from storage
+    if deleted and banner_url:
+        try:
+            from app.core.async_storage import delete_file as async_delete_file
+
+            # banner_url is a storage key like "forms/banners/{form_id}/..."
+            # or a proxy URL like "/api/v1/files/content/forms/banners/..."
+            key = banner_url
+            if key.startswith("/api/v1/files/content/"):
+                key = key[len("/api/v1/files/content/") :]
+            await async_delete_file(key)
+            logger.info(
+                "Deleted form banner from storage",
+                extra={"form_id": str(form_id), "key": key},
+            )
+        except Exception:
+            logger.warning(
+                "Form banner cleanup failed",
+                extra={"form_id": str(form_id)},
+            )
+
     return deleted

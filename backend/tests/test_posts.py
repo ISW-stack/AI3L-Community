@@ -98,19 +98,50 @@ class TestCreatePost:
     )
     @patch("app.services.post.emit", new_callable=AsyncMock, side_effect=RuntimeError("Redis down"))
     @patch("app.repositories.post_repo.get_pool")
+    @patch("app.repositories.sig_repo.get_pool")
     async def test_create_post_emit_failure_does_not_propagate(
-        self, mock_get_pool, mock_emit, mock_atomic_limit, mock_pool, mock_conn
+        self, mock_sig_pool, mock_get_pool, mock_emit, mock_atomic_limit, mock_pool, mock_conn
     ):
         """If emit raises, create_post still returns the post (fire-and-forget)."""
         from app.services.post import create_post
 
         user_id = str(uuid.uuid4())
-        mock_conn.fetchrow.return_value = _make_post_row(user_id=user_id)
+        post_row = _make_post_row(user_id=user_id)
+        # First fetchrow: sig_repo.get_member_role returns role; second: post insert
+        mock_conn.fetchrow = AsyncMock(side_effect=[{"role": "MEMBER"}, post_row])
         mock_get_pool.return_value = mock_pool
+        mock_sig_pool.return_value = mock_pool
 
         # sig_id triggers emit; should not raise even though emit fails
         result = await create_post(user_id, "Title", "Content", sig_id=str(uuid.uuid4()))
         assert result["title"] == "Test Post"
+
+
+class TestCreatePostSigMembership:
+    """Bug #3: Non-SIG-member should not be able to post in a SIG."""
+
+    @patch(
+        "app.services.post._atomic_check_and_increment_post_limit",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
+    @patch("app.services.post._rollback_daily_post_count", new_callable=AsyncMock)
+    @patch("app.repositories.sig_repo.get_pool")
+    async def test_create_post_non_sig_member_raises(
+        self, mock_sig_pool, mock_rollback, mock_atomic_limit, mock_pool, mock_conn
+    ):
+        from app.services.post import create_post
+
+        user_id = str(uuid.uuid4())
+        sig_id = str(uuid.uuid4())
+
+        # sig_repo.get_member_role uses fetchrow; returns None → not a member
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+        mock_sig_pool.return_value = mock_pool
+
+        with pytest.raises(PermissionError, match="must be a member"):
+            await create_post(user_id, "Title", "Content", sig_id=sig_id)
+        mock_rollback.assert_called_once()
 
 
 class TestPostCreateSchema:

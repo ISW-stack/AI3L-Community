@@ -51,6 +51,12 @@ const hasInvalidRating = computed(() =>
   questions.value.some((q) => q.type === 'rating' && (q.min ?? 1) >= (q.max ?? 5)),
 )
 
+const minDeadline = computed(() => {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  return now.toISOString().slice(0, 16)
+})
+
 function createQuestion(): Question {
   return {
     id: crypto.randomUUID(),
@@ -173,6 +179,10 @@ async function saveForm() {
     error.value = t('forms.builder.validation.titleRequired')
     return
   }
+  if (deadline.value && new Date(deadline.value) <= new Date()) {
+    error.value = 'Deadline must be in the future.'
+    return
+  }
   if (questions.value.length === 0) {
     error.value = t('forms.builder.validation.questionRequired')
     return
@@ -292,6 +302,7 @@ onMounted(() => {
             <input
               v-model="deadline"
               type="datetime-local"
+              :min="minDeadline"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
             />
           </div>

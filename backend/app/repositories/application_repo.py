@@ -8,24 +8,21 @@ async def insert(app_id: uuid.UUID, user_id: uuid.UUID, description: str) -> dic
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            existing = await conn.fetchval(
-                "SELECT COUNT(*) FROM membership_applications WHERE user_id = $1 AND status = 'PENDING'",  # noqa: E501
-                user_id,
-            )
-            if existing > 0:
-                return None  # duplicate pending
-
             row = await conn.fetchrow(
                 """
-                INSERT INTO membership_applications (id, user_id, description)
-                VALUES ($1, $2, $3)
+                INSERT INTO membership_applications (id, user_id, description, status, created_at)
+                SELECT $1, $2, $3, 'PENDING', NOW()
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM membership_applications
+                    WHERE user_id = $2 AND status = 'PENDING'
+                )
                 RETURNING *
                 """,
                 app_id,
                 user_id,
                 description,
             )
-            return dict(row)
+            return dict(row) if row else None
 
 
 async def find_many(

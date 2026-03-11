@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
@@ -30,12 +30,12 @@ const { handleDropdownKeydown: handleUserKeydown } = useDropdownKeyNav({
   wrapperClass: 'user-dropdown-wrapper',
 })
 
-const roleLabels: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ADMIN: 'Admin',
-  MEMBER: 'Member',
-  GUEST: 'Guest',
-}
+const roleLabels = computed<Record<string, string>>(() => ({
+  SUPER_ADMIN: t('common.role.superAdmin'),
+  ADMIN: t('common.role.admin'),
+  MEMBER: t('common.role.member'),
+  GUEST: t('common.role.guest'),
+}))
 
 const roleBadgeVariant: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'> = {
   SUPER_ADMIN: 'danger',

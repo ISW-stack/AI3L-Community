@@ -221,6 +221,21 @@ async def increment_storage_used(
         )
 
 
+async def decrement_storage_used(user_id: uuid.UUID, delta_bytes: int) -> None:
+    """Atomically decrease storage_used_bytes. Clamps at 0 to prevent negative values."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            UPDATE users
+            SET storage_used_bytes = GREATEST(0, storage_used_bytes - $1)
+            WHERE id = $2
+            """,
+            delta_bytes,
+            user_id,
+        )
+
+
 async def get_storage_used(user_id: uuid.UUID) -> int:
     """Return the DB-tracked storage_used_bytes for a user."""
     pool = get_pool()

@@ -193,6 +193,14 @@ async def find_owner_id(post_id: uuid.UUID) -> str | None:
         return str(row["user_id"]) if row else None
 
 
+async def find_content_by_id(post_id: uuid.UUID) -> str | None:
+    """Return the raw HTML content of a post (even if soft-deleted)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT content FROM posts WHERE id = $1", post_id)
+        return row["content"] if row else None
+
+
 async def find_history(post_id: uuid.UUID, limit: int = 50) -> list[dict]:
     pool = get_pool()
     async with pool.acquire() as conn:

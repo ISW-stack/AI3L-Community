@@ -175,6 +175,7 @@ onMounted(fetchForms)
               {{ t('sigs.forms.responsesBtn') }}
             </button>
             <button
+              v-if="f.created_by === auth.user?.id || auth.isAdmin"
               @click="confirmDeleteForm(f.id)"
               class="text-xs text-danger-600 hover:text-danger-700 font-medium hover:underline ml-auto"
             >

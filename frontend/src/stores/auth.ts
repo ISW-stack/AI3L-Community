@@ -12,6 +12,7 @@ import { HEARTBEAT_INTERVAL_MS } from '@/constants'
 import type { UserProfile } from '@/types/user'
 import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
+import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
   // Role is non-sensitive — kept in localStorage for UI state across page reloads
@@ -152,7 +153,10 @@ export const useAuthStore = defineStore('auth', () => {
         // For network errors and 5xx, clear session after consecutive failures.
         heartbeatFailures++
         if (heartbeatFailures >= MAX_HEARTBEAT_FAILURES) {
+          const toast = useToastStore()
+          toast.show('Your session has expired. Please log in again.', 'warning')
           clearSession()
+          router.push({ name: 'login' })
         }
       }
     }, HEARTBEAT_INTERVAL_MS)

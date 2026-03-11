@@ -113,7 +113,17 @@ async function submitForm() {
     submitted.value = true
     message.value = t('forms.view.successMessage')
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, t('forms.view.submitError'))
+    if (
+      e != null &&
+      typeof e === 'object' &&
+      'response' in e &&
+      (e as { response?: { status?: number } }).response?.status === 409
+    ) {
+      submitted.value = true
+      message.value = 'You have already submitted a response to this form.'
+    } else {
+      error.value = getErrorMessage(e, t('forms.view.submitError'))
+    }
   } finally {
     submitting.value = false
   }

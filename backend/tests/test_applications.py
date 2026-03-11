@@ -144,8 +144,7 @@ class TestApplicationInsertTransaction:
             "created_at": now,
         }
 
-        # fetchval returns 0 (no existing pending), fetchrow returns the new row
-        mock_conn.fetchval = AsyncMock(return_value=0)
+        # Atomic INSERT ... WHERE NOT EXISTS returns the row when no duplicate
         mock_conn.fetchrow = AsyncMock(return_value=new_row)
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -163,20 +162,18 @@ class TestApplicationInsertTransaction:
         app_id = uuid.uuid4()
         user_id = uuid.uuid4()
 
-        # fetchval returns 1 (existing pending application)
-        mock_conn.fetchval = AsyncMock(return_value=1)
+        # Atomic INSERT ... WHERE NOT EXISTS returns None when duplicate exists
+        mock_conn.fetchrow = AsyncMock(return_value=None)
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             result = await insert(app_id, user_id, "Duplicate request")
 
         assert result is None
-        # INSERT should NOT have been called
-        mock_conn.fetchrow.assert_not_called()
         mock_conn.transaction.assert_called_once()
 
     @pytest.mark.anyio
     async def test_insert_concurrent_only_one_succeeds(self, mock_pool, mock_conn):
-        """Simulate concurrent inserts: second call sees pending and returns None."""
+        """Simulate concurrent inserts: second call returns None (atomic WHERE NOT EXISTS)."""
         import asyncio
 
         from app.repositories.application_repo import insert
@@ -185,12 +182,6 @@ class TestApplicationInsertTransaction:
         now = datetime.now(timezone.utc)
 
         call_count = 0
-
-        async def fetchval_side_effect(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            # First call: no pending; second call: sees the first one as pending
-            return 0 if call_count == 1 else 1
 
         new_row = {
             "id": uuid.uuid4(),
@@ -202,8 +193,13 @@ class TestApplicationInsertTransaction:
             "created_at": now,
         }
 
-        mock_conn.fetchval = AsyncMock(side_effect=fetchval_side_effect)
-        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+        async def fetchrow_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            # First call: INSERT succeeds; second call: WHERE NOT EXISTS blocks → None
+            return new_row if call_count == 1 else None
+
+        mock_conn.fetchrow = AsyncMock(side_effect=fetchrow_side_effect)
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             results = await asyncio.gather(
@@ -217,6 +213,57 @@ class TestApplicationInsertTransaction:
         assert len(non_none) == 1
         assert len(none_results) == 1
         assert mock_conn.transaction.call_count == 2
+
+
+class TestApplicationAtomicInsert:
+    """Bug #5: INSERT ... WHERE NOT EXISTS prevents race condition duplicates."""
+
+    @pytest.mark.anyio
+    async def test_insert_uses_atomic_sql(self, mock_pool, mock_conn):
+        """insert() should use INSERT ... WHERE NOT EXISTS (single atomic statement)."""
+        from app.repositories.application_repo import insert
+
+        app_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        # fetchrow returns None → duplicate blocked by WHERE NOT EXISTS
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert(app_id, user_id, "Join request")
+
+        assert result is None
+        # Verify the SQL uses WHERE NOT EXISTS pattern (single fetchrow, no fetchval)
+        mock_conn.fetchrow.assert_called_once()
+        sql = mock_conn.fetchrow.call_args[0][0]
+        assert "WHERE NOT EXISTS" in sql
+        assert "INSERT INTO membership_applications" in sql
+
+    @pytest.mark.anyio
+    async def test_insert_atomic_success(self, mock_pool, mock_conn):
+        """insert() returns row when no pending exists (atomic INSERT succeeds)."""
+        from app.repositories.application_repo import insert
+
+        app_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        new_row = {
+            "id": app_id,
+            "user_id": user_id,
+            "description": "Join",
+            "status": "PENDING",
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "created_at": now,
+        }
+
+        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert(app_id, user_id, "Join")
+
+        assert result is not None
+        assert result["id"] == app_id
 
 
 class TestReviewReject:

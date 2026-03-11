@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Copy, Check } from 'lucide-vue-next'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -11,6 +11,7 @@ import { useToastStore } from '@/stores/toast'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
 
 const { t } = useI18n()
 const toastStore = useToastStore()
@@ -21,11 +22,19 @@ const statusFilter = ref<string | null>(null)
 const generating = ref(false)
 const message = ref('')
 const copiedId = ref<string | null>(null)
+const page = ref(1)
+const pageSize = 50
+const totalPages = computed(() => Math.ceil(total.value / pageSize) || 1)
 
 async function fetchCodes() {
   loading.value = true
   try {
-    const data = await listInviteCodes({ status: statusFilter.value || undefined })
+    const offset = (page.value - 1) * pageSize
+    const data = await listInviteCodes({
+      status: statusFilter.value || undefined,
+      offset,
+      limit: pageSize,
+    })
     codes.value = data.codes
     total.value = data.total
   } catch (e: unknown) {
@@ -33,6 +42,16 @@ async function fetchCodes() {
   } finally {
     loading.value = false
   }
+}
+
+function goToPage(p: number) {
+  page.value = p
+  fetchCodes()
+}
+
+function handleFilterChange() {
+  page.value = 1
+  fetchCodes()
 }
 
 async function generateCode() {
@@ -102,7 +121,7 @@ onMounted(fetchCodes)
     <div class="mb-4">
       <select
         v-model="statusFilter"
-        @change="fetchCodes"
+        @change="handleFilterChange"
         class="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option :value="null">{{ t('admin.inviteCodes.filter.all') }}</option>
@@ -234,6 +253,14 @@ onMounted(fetchCodes)
       ></div>
     </div>
 
-    <p class="mt-4 text-xs text-muted">{{ t('admin.inviteCodes.total', { count: total }) }}</p>
+    <div class="mt-4 flex items-center justify-between">
+      <p class="text-xs text-muted">{{ t('admin.inviteCodes.total', { count: total }) }}</p>
+      <BasePagination
+        v-if="totalPages > 1"
+        :current-page="page"
+        :total-pages="totalPages"
+        @update:current-page="goToPage"
+      />
+    </div>
   </div>
 </template>

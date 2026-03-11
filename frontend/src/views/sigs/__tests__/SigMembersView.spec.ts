@@ -237,7 +237,7 @@ describe('SigMembersView', () => {
     expect(promoteButtons.length).toBe(0)
   })
 
-  it('shows Remove button for SIG admin but not for own user', async () => {
+  it('shows Remove button for SIG admin but not for own user or other ADMIN members', async () => {
     const { wrapper } = await mountComponent({
       role: 'MEMBER',
       userSigRole: 'ADMIN',
@@ -253,8 +253,9 @@ describe('SigMembersView', () => {
     const selfRow = tableRows[1] // user-2 is SUB_ADMIN at index 1
     expect(selfRow.text()).not.toContain('Remove')
 
-    // Other rows should have Remove
-    expect(tableRows[0].text()).toContain('Remove')
+    // Row 0 = ADMIN member — SIG admin (non-platform-admin) should NOT see Remove for ADMIN
+    expect(tableRows[0].text()).not.toContain('Remove')
+    // Row 2 = MEMBER — SIG admin should see Remove for MEMBER
     expect(tableRows[2].text()).toContain('Remove')
   })
 
@@ -300,13 +301,12 @@ describe('SigMembersView', () => {
     })
     await flushPromises()
 
-    // Click Remove on the first removable member in the table (user-1 = Admin User)
+    // Click Remove on user-3 (Regular Member) — SIG admin can remove MEMBER but not ADMIN
     const table = wrapper.find('table')
     const tableRows = table.findAll('tbody tr')
 
-    // Find the row for user-1 (Admin User) which should have a Remove button
-    const adminRow = tableRows[0]
-    const removeBtn = adminRow.findAll('button').find((b) => b.text().includes('Remove'))
+    const memberRow = tableRows[2] // user-3 = Regular Member
+    const removeBtn = memberRow.findAll('button').find((b) => b.text().includes('Remove'))
     expect(removeBtn).toBeTruthy()
 
     await removeBtn!.trigger('click')
@@ -315,7 +315,7 @@ describe('SigMembersView', () => {
     // Modal should contain the member's display name
     const modal = wrapper.find('.base-modal')
     expect(modal.exists()).toBe(true)
-    expect(modal.text()).toContain('Admin User')
+    expect(modal.text()).toContain('Regular Member')
   })
 
   it('calls removeMember API after confirming in modal', async () => {
@@ -539,5 +539,42 @@ describe('SigMembersView', () => {
     const toast = useToastStore()
     expect(toast.toasts.length).toBeGreaterThan(0)
     expect(toast.toasts[0].type).toBe('error')
+  })
+
+  it('SUB_ADMIN cannot see Remove button for ADMIN members', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'SUB_ADMIN',
+      currentUserId: 'user-2', // current user is the SUB_ADMIN
+    })
+    await flushPromises()
+
+    // Scope to desktop table view
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+
+    // Row 0 = user-1 (ADMIN role) — SUB_ADMIN should NOT see Remove for ADMIN
+    const adminRow = tableRows[0]
+    expect(adminRow.text()).not.toContain('Remove')
+
+    // Row 2 = user-3 (MEMBER role) — SUB_ADMIN should see Remove for MEMBER
+    const memberRow = tableRows[2]
+    expect(memberRow.text()).toContain('Remove')
+  })
+
+  it('platform admin can see Remove button for ADMIN members', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'ADMIN', // platform admin
+      currentUserId: 'current-user',
+    })
+    await flushPromises()
+
+    // Scope to desktop table view
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+
+    // Row 0 = user-1 (ADMIN role) — platform admin should see Remove
+    const adminRow = tableRows[0]
+    expect(adminRow.text()).toContain('Remove')
   })
 })

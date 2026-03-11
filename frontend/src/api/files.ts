@@ -38,7 +38,7 @@ export async function getFileScanStatus(fileKey: string) {
 }
 
 export async function getPresignedUrl(key: string) {
-  const { data } = await api.get('/files/presigned-url', { params: { key } })
+  const { data } = await api.get(`/files/presigned/${key}`)
   return data as { url: string }
 }
 

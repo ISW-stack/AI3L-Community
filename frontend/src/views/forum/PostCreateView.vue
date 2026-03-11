@@ -168,7 +168,7 @@ onUnmounted(() => {
   <div class="max-w-3xl mx-auto py-6">
     <div class="mb-4">
       <router-link
-        :to="fromSig ? `/sigs/${sigId}` : '/forum'"
+        :to="sigId ? `/sigs/${sigId}` : '/forum'"
         class="text-sm text-brand-600 hover:underline flex items-center gap-1"
       >
         <span>&larr;</span> {{ t('post.create.back') }}
@@ -281,7 +281,7 @@ onUnmounted(() => {
         <BaseButton type="submit" size="lg" :loading="saving">{{
           t('post.create.publish')
         }}</BaseButton>
-        <router-link :to="fromSig ? `/sigs/${sigId}` : '/forum'"
+        <router-link :to="sigId ? `/sigs/${sigId}` : '/forum'"
           ><BaseButton type="button" variant="secondary" size="lg">{{
             t('common.cancel')
           }}</BaseButton></router-link

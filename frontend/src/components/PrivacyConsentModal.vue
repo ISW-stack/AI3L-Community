@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { acceptConsent as apiAcceptConsent } from '@/api/users'
@@ -12,6 +12,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const submitting = ref(false)
 const error = ref('')
+const modalRef = ref<HTMLElement | null>(null)
 
 async function handleAcceptConsent() {
   submitting.value = true
@@ -30,6 +31,46 @@ async function handleLogout() {
   await auth.logout()
   router.push('/login')
 }
+
+function trapFocus(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    return
+  }
+  if (e.key === 'Tab' && modalRef.value) {
+    const focusable = modalRef.value.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    )
+    if (focusable.length === 0) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', trapFocus)
+  nextTick(() => {
+    if (modalRef.value) {
+      const firstBtn = modalRef.value.querySelector<HTMLElement>('button')
+      firstBtn?.focus()
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', trapFocus)
+})
 </script>
 
 <template>
@@ -40,7 +81,7 @@ async function handleLogout() {
     aria-labelledby="consent-title"
     aria-describedby="consent-desc"
   >
-    <div class="bg-surface rounded-lg shadow-xl p-6 w-full max-w-lg">
+    <div ref="modalRef" class="bg-surface rounded-lg shadow-xl p-6 w-full max-w-lg">
       <h2 id="consent-title" class="text-lg font-bold text-foreground mb-4">
         {{ t('privacy.title') }}
       </h2>

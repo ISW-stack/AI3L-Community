@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime, timezone
 
@@ -50,6 +51,14 @@ async def create_post(
     post_id = uuid.uuid4()
     cat_uuid = uuid.UUID(category_id) if category_id else None
     sig_uuid = uuid.UUID(sig_id) if sig_id else None
+
+    if sig_uuid:
+        from app.repositories import sig_repo
+
+        member_role = await sig_repo.get_member_role(sig_uuid, uuid.UUID(user_id))
+        if not member_role:
+            await _rollback_daily_post_count(user_id)
+            raise PermissionError("You must be a member of this SIG to post in it.")
 
     try:
         row = await post_repo.insert(
@@ -147,6 +156,35 @@ async def update_post(
             return row_to_post(row)
 
 
+async def _cleanup_post_files(post_id: uuid.UUID, user_id: str) -> None:
+    """Best-effort cleanup of editor files embedded in a deleted post."""
+    try:
+        from app.core.async_storage import delete_file, get_file_size
+        from app.repositories import user_repo
+
+        post_content = await post_repo.find_content_by_id(post_id)
+        if not post_content:
+            return
+        # Extract editor file keys from content HTML
+        pattern = r'/api/v1/files/content/(editor/[^"\'<>\s]+)'
+        keys = re.findall(pattern, post_content)
+        if not keys:
+            return
+        total_freed = 0
+        for key in keys:
+            try:
+                size = await get_file_size(key)
+                if size and size > 0:
+                    await delete_file(key)
+                    total_freed += size
+            except Exception:
+                logger.warning("Failed to delete file during post cleanup", extra={"key": key})
+        if total_freed > 0:
+            await user_repo.decrement_storage_used(uuid.UUID(user_id), total_freed)
+    except Exception:
+        logger.warning("Post file cleanup failed", extra={"post_id": str(post_id)})
+
+
 async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = False) -> bool:
     post_owner_id: str | None = None
     if is_admin:
@@ -157,6 +195,12 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
 
     if deleted:
         logger.info("Post deleted", extra={"post_id": str(post_id)})
+        # Best-effort cleanup of embedded files
+        actual_user = post_owner_id if is_admin and post_owner_id else user_id
+        try:
+            await _cleanup_post_files(post_id, actual_user)
+        except Exception:
+            logger.warning("Post file cleanup failed", extra={"post_id": str(post_id)})
 
     # Notify post owner when admin deletes their post
     if deleted and is_admin and post_owner_id and post_owner_id != user_id:

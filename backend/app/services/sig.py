@@ -176,6 +176,10 @@ async def assign_sub_admin(sig_id: uuid.UUID, user_id: str) -> dict:
         async with conn.transaction():
             # Check if target user is currently an ADMIN — prevent orphaning SIG
             current_role = await sig_repo.get_member_role_in_conn(sig_id, user_uuid, conn)
+            if not current_role:
+                raise ValueError(
+                    "User must be a member of this SIG before being assigned as sub-admin."
+                )
             if current_role == "ADMIN":
                 admin_count = await sig_repo.count_admins(sig_id, conn)
                 if admin_count <= 1:

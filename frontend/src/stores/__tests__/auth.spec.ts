@@ -27,10 +27,18 @@ vi.mock('@/stores/notifications', () => ({
 
 // Mock toast store
 const mockToastClearAll = vi.fn()
+const mockToastShow = vi.fn()
 vi.mock('@/stores/toast', () => ({
   useToastStore: () => ({
     clearAll: mockToastClearAll,
+    show: mockToastShow,
   }),
+}))
+
+// Mock router
+const mockRouterPush = vi.fn()
+vi.mock('@/router', () => ({
+  default: { push: (...args: unknown[]) => mockRouterPush(...args) },
 }))
 
 // Mock useLocale composable — syncLocaleFromProfile is a standalone export
@@ -48,6 +56,8 @@ describe('useAuthStore', () => {
     mockGet.mockReset()
     mockNotifReset.mockReset()
     mockToastClearAll.mockReset()
+    mockToastShow.mockReset()
+    mockRouterPush.mockReset()
     mockSyncLocaleFromProfile.mockReset()
   })
 
@@ -394,6 +404,26 @@ describe('useAuthStore', () => {
   // ---------- heartbeat ----------
 
   describe('heartbeat', () => {
+    it('should show toast and redirect on heartbeat failure after MAX_HEARTBEAT_FAILURES', async () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      mockPost.mockRejectedValue(new Error('Network error'))
+
+      // Trigger 3 heartbeat failures (MAX_HEARTBEAT_FAILURES = 3)
+      for (let i = 0; i < 3; i++) {
+        vi.advanceTimersByTime(30000)
+        await vi.runAllTimersAsync().catch(() => {})
+        await Promise.resolve()
+      }
+
+      expect(mockToastShow).toHaveBeenCalledWith(
+        'Your session has expired. Please log in again.',
+        'warning',
+      )
+      expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
+      expect(auth.role).toBeNull()
+    })
+
     it('should clear session if not authenticated when heartbeat fires', () => {
       vi.setSystemTime(new Date('2025-06-01T00:00:00Z'))
       const auth = useAuthStore()

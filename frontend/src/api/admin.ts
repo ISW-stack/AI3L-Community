@@ -113,7 +113,11 @@ export interface InviteCodesResponse {
   total: number
 }
 
-export async function listInviteCodes(params?: { status?: string }) {
+export async function listInviteCodes(params?: {
+  status?: string
+  offset?: number
+  limit?: number
+}) {
   const { data } = await api.get('/admin/invite-codes', { params })
   return data as InviteCodesResponse
 }

@@ -359,20 +359,24 @@ const {
                       "
                     ></p>
                     <div class="flex items-center gap-3">
-                      <button
-                        v-for="r in ['LIKE', 'SMILE', 'CRY']"
-                        :key="r"
-                        @click="toggleReactionHandler(node.root.id, r)"
-                        class="text-xs px-2 py-0.5 rounded-full transition"
-                        :class="
-                          hasReacted(node.root, r)
-                            ? 'bg-brand-100 text-brand-700'
-                            : 'bg-surface-alt text-muted hover:bg-gray-100'
-                        "
-                      >
-                        {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
-                        {{ getReactionCount(node.root, r) || '' }}
-                      </button>
+                      <template v-if="auth.isAuthenticated && !auth.isGuest">
+                        <button
+                          v-for="r in ['LIKE', 'SMILE', 'CRY']"
+                          :key="r"
+                          @click="toggleReactionHandler(node.root.id, r)"
+                          class="text-xs px-2 py-0.5 rounded-full transition"
+                          :class="
+                            hasReacted(node.root, r)
+                              ? 'bg-brand-100 text-brand-700'
+                              : 'bg-surface-alt text-muted hover:bg-gray-100'
+                          "
+                        >
+                          {{
+                            r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
+                          }}
+                          {{ getReactionCount(node.root, r) || '' }}
+                        </button>
+                      </template>
                       <button
                         v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest"
                         @click="handleReply(node.root.id)"
@@ -473,22 +477,24 @@ const {
                         v-html="renderMentions(DOMPurify.sanitize(reply.content), reply.mentions)"
                       ></p>
                       <div class="flex items-center gap-3">
-                        <button
-                          v-for="r in ['LIKE', 'SMILE', 'CRY']"
-                          :key="r"
-                          @click="toggleReactionHandler(reply.id, r)"
-                          class="text-xs px-2 py-0.5 rounded-full transition"
-                          :class="
-                            hasReacted(reply, r)
-                              ? 'bg-brand-100 text-brand-700'
-                              : 'bg-surface-alt text-muted hover:bg-gray-100'
-                          "
-                        >
-                          {{
-                            r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
-                          }}
-                          {{ getReactionCount(reply, r) || '' }}
-                        </button>
+                        <template v-if="auth.isAuthenticated && !auth.isGuest">
+                          <button
+                            v-for="r in ['LIKE', 'SMILE', 'CRY']"
+                            :key="r"
+                            @click="toggleReactionHandler(reply.id, r)"
+                            class="text-xs px-2 py-0.5 rounded-full transition"
+                            :class="
+                              hasReacted(reply, r)
+                                ? 'bg-brand-100 text-brand-700'
+                                : 'bg-surface-alt text-muted hover:bg-gray-100'
+                            "
+                          >
+                            {{
+                              r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
+                            }}
+                            {{ getReactionCount(reply, r) || '' }}
+                          </button>
+                        </template>
                         <button
                           v-if="canEditComment(reply)"
                           @click="startEditComment(reply)"

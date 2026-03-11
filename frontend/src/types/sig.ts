@@ -29,6 +29,7 @@ export interface SigForm {
   response_count: number
   allow_non_members: boolean
   is_active: boolean
+  created_by: string
   created_by_name: string
   created_at: string
   user_is_sig_admin: boolean

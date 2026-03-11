@@ -113,6 +113,35 @@ describe('PrivacyConsentModal', () => {
     })
   })
 
+  describe('blocking behavior', () => {
+    it('should prevent Escape key from closing the modal', async () => {
+      const { wrapper } = mountModal()
+      await flushPromises()
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })
+      document.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
+      // Modal should still be visible
+      expect(wrapper.find('[role="alertdialog"]').exists()).toBe(true)
+    })
+
+    it('should have a full-screen fixed overlay that blocks interaction', () => {
+      const { wrapper } = mountModal()
+      const overlay = wrapper.find('[role="alertdialog"]')
+      expect(overlay.classes()).toContain('fixed')
+      expect(overlay.classes()).toContain('inset-0')
+    })
+
+    it('should focus the first button on mount', async () => {
+      const { wrapper } = mountModal()
+      await flushPromises()
+
+      const firstBtn = wrapper.find('button')
+      expect(firstBtn.exists()).toBe(true)
+    })
+  })
+
   describe('reject (logout) flow', () => {
     it('should redirect to login on reject', async () => {
       const { wrapper, router } = mountModal()

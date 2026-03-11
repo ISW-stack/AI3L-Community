@@ -30,4 +30,26 @@ async def review_report(report_id: uuid.UUID, reviewer_id: str, new_status: str)
     if not row:
         return None
     logger.info("Report reviewed", extra={"report_id": str(report_id), "status": new_status})
+
+    # Notify the reporter about the outcome
+    reporter_id = row.get("user_id")
+    if reporter_id:
+        try:
+            from app.services.notification import create_notification
+
+            status_text = "resolved" if new_status == "RESOLVED" else "dismissed"
+            await create_notification(
+                user_id=str(reporter_id),
+                trigger_user_id=reviewer_id,
+                action_type="report_reviewed",
+                entity_type="report",
+                entity_id=str(report_id),
+                message=f"Your report has been {status_text} by a moderator.",
+            )
+        except Exception:
+            logger.warning(
+                "Failed to notify reporter",
+                extra={"report_id": str(report_id)},
+            )
+
     return row_to_report(row)

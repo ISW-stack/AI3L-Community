@@ -66,6 +66,10 @@ async function fetchMembers() {
 
 function canRemoveMember(m: SigMember) {
   if (m.user_id === auth.user?.id) return false
+  // SUB_ADMIN cannot remove ADMIN
+  if (m.role === 'ADMIN') {
+    return auth.isAdmin // Only platform admin can remove SIG admin
+  }
   return auth.isAdmin || isSigAdmin.value
 }
 

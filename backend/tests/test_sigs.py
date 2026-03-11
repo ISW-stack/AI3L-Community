@@ -334,6 +334,25 @@ class TestDemoteSubAdmin:
             _clear_overrides()
 
 
+class TestAssignSubAdminNonMember:
+    """Bug #1: Non-member should not be assignable as sub-admin."""
+
+    @pytest.mark.anyio
+    async def test_assign_sub_admin_non_member_raises(self, mock_pool, mock_conn):
+        """assign_sub_admin raises ValueError when user is not a SIG member."""
+        from app.services.sig import assign_sub_admin
+
+        sig_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        # get_member_role_in_conn returns None → not a member
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with pytest.raises(ValueError, match="must be a member"):
+                await assign_sub_admin(sig_id, user_id)
+
+
 class TestListMembers:
     @pytest.mark.anyio
     async def test_list_members(self, client):

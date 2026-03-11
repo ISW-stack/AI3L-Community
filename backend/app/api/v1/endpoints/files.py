@@ -75,11 +75,23 @@ async def upload_editor_file(
         try:
             await user_repo.increment_storage_used(user_uuid, len(data))
         except Exception:
-            logger.warning(
-                "Failed to increment storage counter for user=%s key=%s",
+            logger.error(
+                "Storage counter increment failed, rolling back upload for user=%s key=%s",
                 current_user["sub"],
                 key,
                 exc_info=True,
+            )
+            try:
+                await async_delete_file(key)
+            except Exception:
+                logger.error(
+                    "Failed to rollback uploaded file after increment failure",
+                    extra={"key": key},
+                    exc_info=True,
+                )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Upload failed. Please try again.",
             )
     finally:
         await redis.delete(lock_key)

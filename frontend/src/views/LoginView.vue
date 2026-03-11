@@ -44,7 +44,9 @@ async function handleLogin() {
   try {
     await auth.login(username.value, password.value, captchaId.value, captchaCode.value)
     const redirect = (route.query.redirect as string) || '/'
-    router.push(redirect)
+    // Validate redirect is an internal path (starts with / and not //)
+    const safeRedirect = redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/'
+    router.push(safeRedirect)
   } catch (e: unknown) {
     error.value = getErrorMessage(e, t('auth.loginFailed'))
     await loadCaptcha()

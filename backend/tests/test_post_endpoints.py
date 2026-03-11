@@ -199,9 +199,10 @@ class TestUpdatePost:
 class TestPostHistory:
     @pytest.mark.anyio
     async def test_post_history(self, client):
-        """GET /posts/{id}/history → 200."""
+        """GET /posts/{id}/history → 200 for post owner."""
         post_id = uuid.uuid4()
-        post = _make_post(post_id=post_id)
+        owner_id = str(uuid.uuid4())
+        post = _make_post(post_id=post_id, user_id=owner_id)
         now = datetime.now(timezone.utc).isoformat()
         history = [
             {
@@ -214,7 +215,7 @@ class TestPostHistory:
         ]
 
         try:
-            _override_auth("MEMBER")
+            _override_auth("MEMBER", user_id=owner_id)
             with (
                 patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
                 patch(f"{_EP}.get_post_history", new_callable=AsyncMock, return_value=history),
@@ -720,6 +721,60 @@ class TestUpdatePostVersionConflict:
                 )
                 assert resp.status_code == 400
                 assert "At least one field" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+
+class TestPostHistoryForbiddenNonOwner:
+    @pytest.mark.anyio
+    async def test_post_history_forbidden_for_non_owner(self, client):
+        """GET /posts/{id}/history → 403 when user is not the post owner and not admin."""
+        post_id = uuid.uuid4()
+        owner_id = str(uuid.uuid4())
+        viewer_id = str(uuid.uuid4())
+        post = _make_post(post_id=post_id, user_id=owner_id)
+
+        try:
+            _override_auth("MEMBER", user_id=viewer_id)
+            with patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post):
+                resp = await client.get(
+                    f"/api/v1/posts/{post_id}/history",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "Not authorized" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_post_history_allowed_for_admin(self, client):
+        """GET /posts/{id}/history → 200 for ADMIN even if not the owner."""
+        post_id = uuid.uuid4()
+        owner_id = str(uuid.uuid4())
+        admin_id = str(uuid.uuid4())
+        post = _make_post(post_id=post_id, user_id=owner_id)
+        now = datetime.now(timezone.utc).isoformat()
+        history = [
+            {
+                "id": str(uuid.uuid4()),
+                "version": 1,
+                "title": "Original",
+                "content": "body",
+                "edited_at": now,
+            },
+        ]
+
+        try:
+            _override_auth("ADMIN", user_id=admin_id)
+            with (
+                patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
+                patch(f"{_EP}.get_post_history", new_callable=AsyncMock, return_value=history),
+            ):
+                resp = await client.get(
+                    f"/api/v1/posts/{post_id}/history",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
         finally:
             _clear_overrides()
 

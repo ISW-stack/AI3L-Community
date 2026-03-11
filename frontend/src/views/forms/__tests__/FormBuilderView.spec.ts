@@ -275,6 +275,46 @@ describe('FormBuilderView', () => {
     })
   })
 
+  describe('Deadline validation', () => {
+    it('rejects a deadline set in the past', async () => {
+      const { wrapper } = await mountBuilder()
+      const vm = wrapper.vm as any
+      vm.title = 'Survey With Past Deadline'
+      vm.questions[0].label = 'Q1'
+
+      // Set deadline to 1 hour in the past
+      const pastDate = new Date(Date.now() - 60 * 60 * 1000)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      vm.deadline = `${pastDate.getFullYear()}-${pad(pastDate.getMonth() + 1)}-${pad(pastDate.getDate())}T${pad(pastDate.getHours())}:${pad(pastDate.getMinutes())}`
+
+      const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))
+      await saveBtn!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Deadline must be in the future')
+      expect(mockCreateForm).not.toHaveBeenCalled()
+    })
+
+    it('accepts a deadline set in the future', async () => {
+      const { wrapper } = await mountBuilder()
+      const vm = wrapper.vm as any
+      vm.title = 'Survey With Future Deadline'
+      vm.questions[0].label = 'Q1'
+
+      // Set deadline to 1 day in the future
+      const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      vm.deadline = `${futureDate.getFullYear()}-${pad(futureDate.getMonth() + 1)}-${pad(futureDate.getDate())}T${pad(futureDate.getHours())}:${pad(futureDate.getMinutes())}`
+
+      const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))
+      await saveBtn!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('Deadline must be in the future')
+      expect(mockCreateForm).toHaveBeenCalled()
+    })
+  })
+
   describe('Edit mode', () => {
     it('fetches existing form data', async () => {
       await mountBuilder({ isEdit: true })

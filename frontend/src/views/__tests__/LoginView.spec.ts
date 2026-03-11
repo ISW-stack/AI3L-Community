@@ -246,6 +246,45 @@ describe('LoginView', () => {
 
       expect(router.currentRoute.value.path).toBe('/dashboard')
     })
+
+    it('sanitizes absolute URL redirect to / (open redirect prevention)', async () => {
+      const { wrapper, router } = await mountLogin('/login?redirect=https://evil.com')
+
+      await wrapper.find('#input-username').setValue('user1')
+      await wrapper.find('input[type="password"]').setValue('pass')
+      await wrapper.find('input[maxlength="4"]').setValue('1234')
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/')
+    })
+
+    it('sanitizes protocol-relative URL redirect to / (open redirect prevention)', async () => {
+      const { wrapper, router } = await mountLogin('/login?redirect=//evil.com')
+
+      await wrapper.find('#input-username').setValue('user1')
+      await wrapper.find('input[type="password"]').setValue('pass')
+      await wrapper.find('input[maxlength="4"]').setValue('1234')
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/')
+    })
+
+    it('allows valid internal redirect path', async () => {
+      const { wrapper, router } = await mountLogin('/login?redirect=/dashboard')
+
+      await wrapper.find('#input-username').setValue('user1')
+      await wrapper.find('input[type="password"]').setValue('pass')
+      await wrapper.find('input[maxlength="4"]').setValue('1234')
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/dashboard')
+    })
   })
 
   // ── Login Error ──

@@ -37,5 +37,6 @@ export async function updateComment(
 }
 
 export async function toggleReaction(postId: string, commentId: string, reaction: string) {
-  await api.post(`/posts/${postId}/comments/${commentId}/reactions`, { reaction })
+  const { data } = await api.post(`/posts/${postId}/comments/${commentId}/reactions`, { reaction })
+  return data as Comment
 }
