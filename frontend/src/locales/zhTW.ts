@@ -252,6 +252,7 @@ export default {
     emptyMessage: '找不到文章',
     createPostAction: '發表文章',
     postsTotal: '共 {count} 篇文章',
+    noMorePosts: '沒有更多文章了',
     sidebar: {
       aboutTitle: '關於',
       aboutDescription: '一個為探索 AI 語言學習與識讀的研究者和教育者打造的社群。',

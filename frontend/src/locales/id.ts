@@ -274,6 +274,7 @@ export default {
     emptyMessage: 'Tidak ada postingan ditemukan',
     createPostAction: 'Buat Postingan',
     postsTotal: '{count} postingan total',
+    noMorePosts: 'Tidak ada lagi postingan untuk dimuat',
     sidebar: {
       aboutTitle: 'Tentang',
       aboutDescription:

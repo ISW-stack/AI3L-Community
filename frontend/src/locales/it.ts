@@ -273,6 +273,7 @@ export default {
     emptyMessage: 'Nessun post trovato',
     createPostAction: 'Crea post',
     postsTotal: '{count} post in totale',
+    noMorePosts: 'Non ci sono altri post da caricare',
     sidebar: {
       aboutTitle: 'Informazioni',
       aboutDescription:

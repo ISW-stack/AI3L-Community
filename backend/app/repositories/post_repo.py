@@ -1,6 +1,8 @@
+import base64
 import math
 import shlex
 import uuid
+from datetime import datetime
 from typing import Any
 
 from app.core.database import get_pool
@@ -21,7 +23,41 @@ _SORT_MAP = {
     "newest": "p.is_pinned DESC, p.created_at DESC",
     "oldest": "p.is_pinned DESC, p.created_at ASC",
     "most_comments": "p.is_pinned DESC, p.comment_count DESC, p.created_at DESC",
+    "popular": "p.is_pinned DESC, p.like_count DESC, p.created_at DESC",
 }
+
+# Sorts that support cursor pagination and the comparison direction they use
+# "popular" maps to like_count; otherwise created_at is the primary key
+_CURSOR_SORT_ASC = {"oldest"}  # use > comparison
+_CURSOR_SORT_DESC = {"newest", "popular"}  # use < comparison
+
+
+def _encode_cursor(primary_val: str, row_id: uuid.UUID, sort: str) -> str:
+    """Encode a pagination cursor as URL-safe base64.
+
+    Format of the raw string: ``"<sort>|<primary_val>|<id>"``.
+    ``primary_val`` is an ISO-format datetime string for time-based sorts,
+    or a stringified integer for ``popular`` (like_count).
+    """
+    raw = f"{sort}|{primary_val}|{row_id}"
+    return base64.urlsafe_b64encode(raw.encode()).decode()
+
+
+def _decode_cursor(cursor: str) -> tuple[str, str, uuid.UUID]:
+    """Decode a cursor produced by ``_encode_cursor``.
+
+    Returns ``(sort, primary_val, id)``.
+    Raises ``ValueError`` on malformed input.
+    """
+    try:
+        raw = base64.urlsafe_b64decode(cursor.encode()).decode()
+        parts = raw.split("|", 2)
+        if len(parts) != 3:
+            raise ValueError("bad cursor format")
+        sort, primary_val, id_str = parts
+        return sort, primary_val, uuid.UUID(id_str)
+    except Exception as exc:
+        raise ValueError(f"Invalid cursor: {exc}") from exc
 
 
 async def insert(
@@ -175,9 +211,18 @@ async def find_many(
     sig_id: uuid.UUID | None = None,
     author_id: uuid.UUID | None = None,
     sort: str = "newest",
-) -> tuple[list[dict], int, int]:
+    cursor: str | None = None,
+) -> dict:
+    """Fetch posts with either OFFSET pagination (cursor=None) or keyset pagination.
+
+    Returns a dict with keys:
+      posts        – list of post dicts
+      total        – int or None (OFFSET mode only)
+      total_pages  – int or None (OFFSET mode only)
+      next_cursor  – str or None (cursor mode only)
+      has_more     – bool or None (cursor mode only)
+    """
     pool = get_pool()
-    offset = (page - 1) * page_size
     order_by = _SORT_MAP.get(sort, _SORT_MAP["newest"])
 
     where = "WHERE p.is_deleted = false"
@@ -199,6 +244,69 @@ async def find_many(
         params.append(author_id)
         idx += 1
 
+    # ------------------------------------------------------------------ cursor mode
+    if cursor is not None:
+        cursor_sort, primary_val, cursor_id = _decode_cursor(cursor)
+
+        # Use the sort embedded in the cursor as the canonical sort.  This prevents
+        # a mismatch between the ORDER BY direction and the keyset WHERE comparison
+        # when the caller passes a different `sort` query-param alongside a cursor.
+        cursor_order_by = _SORT_MAP.get(cursor_sort, _SORT_MAP["newest"])
+
+        use_asc = cursor_sort in _CURSOR_SORT_ASC
+        cmp = ">" if use_asc else "<"
+
+        if cursor_sort == "popular":
+            # primary key is like_count (integer)
+            like_count_val = int(primary_val)
+            where += f" AND (p.like_count, p.id::text) {cmp} (${idx}, ${idx + 1})"
+            params.extend([like_count_val, str(cursor_id)])
+        else:
+            # primary key is created_at (timestamptz)
+            created_at_val = datetime.fromisoformat(primary_val)
+            where += f" AND (p.created_at, p.id::text) {cmp} (${idx}, ${idx + 1})"
+            params.extend([created_at_val, str(cursor_id)])
+        idx += 2
+
+        fetch_limit = page_size + 1
+        params.append(fetch_limit)
+
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                f"{_POST_SELECT} {where} ORDER BY {cursor_order_by} LIMIT ${idx}",
+                *params,
+            )
+
+        rows_list = [dict(r) for r in rows]
+        has_more = len(rows_list) > page_size
+        if has_more:
+            rows_list = rows_list[:page_size]
+
+        next_cursor: str | None = None
+        if has_more and rows_list:
+            last = rows_list[-1]
+            if cursor_sort == "popular":
+                like_count_raw = last.get("like_count")
+                next_cursor = _encode_cursor(
+                    str(like_count_raw if like_count_raw is not None else 0),
+                    last["id"],
+                    cursor_sort,
+                )
+            else:
+                created_at: datetime = last["created_at"]
+                next_cursor = _encode_cursor(created_at.isoformat(), last["id"], cursor_sort)
+
+        return {
+            "posts": rows_list,
+            "next_cursor": next_cursor,
+            "has_more": has_more,
+            "total": None,
+            "total_pages": None,
+        }
+
+    # ------------------------------------------------------------------ OFFSET mode
+    offset = (page - 1) * page_size
+
     _select_count = _POST_SELECT.replace(
         "FROM posts p", ", COUNT(*) OVER() AS _total\n    FROM posts p", 1
     )
@@ -213,7 +321,7 @@ async def find_many(
             *params,
         )
         if rows:
-            total = rows[0]["_total"]
+            total: int = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
             # Page may be out of range — do a separate count to get real total
@@ -223,7 +331,13 @@ async def find_many(
             )
             result = []
         total_pages = max(1, math.ceil(total / page_size))
-        return result, total, total_pages
+        return {
+            "posts": result,
+            "total": total,
+            "total_pages": total_pages,
+            "next_cursor": None,
+            "has_more": None,
+        }
 
 
 async def search(

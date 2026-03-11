@@ -274,6 +274,7 @@ export default {
     emptyMessage: 'No se encontraron publicaciones',
     createPostAction: 'Crear publicación',
     postsTotal: '{count} publicaciones en total',
+    noMorePosts: 'No hay más publicaciones para cargar',
     sidebar: {
       aboutTitle: 'Acerca de',
       aboutDescription:

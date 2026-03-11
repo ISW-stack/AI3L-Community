@@ -7,35 +7,36 @@ import { listPosts, searchPosts, getTrendingPosts } from '@/api/posts'
 import { listCategories } from '@/api/categories'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
-import { usePagination } from '@/composables/usePagination'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
-import BasePagination from '@/components/base/BasePagination.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
+
+const PAGE_SIZE = 20
 
 const { t } = useI18n()
 const toast = useToastStore()
 const route = useRoute()
 const router = useRouter()
 
+// Accumulated posts list (infinite scroll appends here)
 const posts = ref<Post[]>([])
 const categories = ref<Category[]>([])
 const trendingPosts = ref<Post[]>([])
-const {
-  page: currentPage,
-  total,
-  totalPages,
-  pageSize,
-  setPage,
-  resetPage,
-  updateFromResponse,
-} = usePagination()
-currentPage.value = parseInt(route.query.page as string) || 1
-const loading = ref(false)
-const categoryFilter = ref<string | null>((route.query.category as string) || null)
 
+// Cursor pagination state
+const nextCursor = ref<string | null>(null)
+const hasMore = ref(true)
+
+// Loading states
+const loading = ref(false)
+const isLoadingMore = ref(false)
+
+// Filters (restored from URL query params)
+const categoryFilter = ref<string | null>((route.query.category as string) || null)
 const searchKeyword = ref((route.query.q as string) || '')
 const searchDateFrom = ref((route.query.from as string) || '')
 const searchDateTo = ref((route.query.to as string) || '')
@@ -43,6 +44,9 @@ const searchLogic = ref((route.query.logic as string) || 'AND')
 const sortBy = ref((route.query.sort as string) || 'newest')
 const isSearching = ref(false)
 const showAdvanced = ref(false)
+
+// Sentinel element for IntersectionObserver
+const sentinelRef = ref<HTMLElement | null>(null)
 
 const dateRangeInvalid = computed(
   () => !!searchDateFrom.value && !!searchDateTo.value && searchDateFrom.value > searchDateTo.value,
@@ -72,7 +76,6 @@ async function fetchTrending() {
 
 function syncQueryParams() {
   const query: Record<string, string> = {}
-  if (currentPage.value > 1) query.page = String(currentPage.value)
   if (categoryFilter.value) query.category = categoryFilter.value
   if (searchKeyword.value) query.q = searchKeyword.value
   if (searchDateFrom.value) query.from = searchDateFrom.value
@@ -82,18 +85,30 @@ function syncQueryParams() {
   router.replace({ query })
 }
 
+function resetScrollState() {
+  posts.value = []
+  nextCursor.value = null
+  hasMore.value = true
+}
+
+// Initial fetch or filter-reset fetch (no cursor, replaces posts)
 async function fetchPosts() {
   loading.value = true
   try {
-    const params: { page?: number; page_size?: number; category_id?: string; sort?: string } = {
-      page: currentPage.value,
-      page_size: pageSize,
+    const params: {
+      cursor?: string
+      page_size?: number
+      category_id?: string
+      sort?: string
+    } = {
+      page_size: PAGE_SIZE,
       sort: sortBy.value,
     }
     if (categoryFilter.value) params.category_id = categoryFilter.value
     const data = await listPosts(params)
     posts.value = data.posts
-    updateFromResponse(data.total, data.total_pages)
+    nextCursor.value = data.next_cursor ?? null
+    hasMore.value = data.has_more ?? false
     isSearching.value = false
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('forum.fetchPostsError')), 'error')
@@ -103,10 +118,36 @@ async function fetchPosts() {
   syncQueryParams()
 }
 
-async function doSearch({
-  resetPageBeforeSearch = true,
-}: { resetPageBeforeSearch?: boolean } = {}) {
-  if (resetPageBeforeSearch) resetPage()
+// Append next page via cursor
+async function fetchMorePosts() {
+  if (isLoadingMore.value || !hasMore.value || !nextCursor.value) return
+  isLoadingMore.value = true
+  try {
+    const params: {
+      cursor?: string
+      page_size?: number
+      category_id?: string
+      sort?: string
+    } = {
+      cursor: nextCursor.value,
+      page_size: PAGE_SIZE,
+      sort: sortBy.value,
+    }
+    if (categoryFilter.value) params.category_id = categoryFilter.value
+    const data = await listPosts(params)
+    posts.value = [...posts.value, ...data.posts]
+    nextCursor.value = data.next_cursor ?? null
+    hasMore.value = data.has_more ?? false
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('forum.fetchPostsError')), 'error')
+  } finally {
+    isLoadingMore.value = false
+  }
+}
+
+// Initial search or filter-reset search (no cursor, replaces posts)
+async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: boolean } = {}) {
+  if (resetBeforeSearch) resetScrollState()
   if (
     !searchKeyword.value &&
     !categoryFilter.value &&
@@ -119,9 +160,8 @@ async function doSearch({
   loading.value = true
   isSearching.value = true
   try {
-    const body: Record<string, unknown> = {
-      page: currentPage.value,
-      page_size: pageSize,
+    const body: Parameters<typeof searchPosts>[0] = {
+      page_size: PAGE_SIZE,
       logic: searchLogic.value,
       sort: sortBy.value,
     }
@@ -129,9 +169,10 @@ async function doSearch({
     if (categoryFilter.value) body.category_id = categoryFilter.value
     if (searchDateFrom.value) body.date_from = searchDateFrom.value
     if (searchDateTo.value) body.date_to = searchDateTo.value
-    const data = await searchPosts(body as Parameters<typeof searchPosts>[0])
+    const data = await searchPosts(body)
     posts.value = data.posts
-    updateFromResponse(data.total, data.total_pages)
+    nextCursor.value = data.next_cursor ?? null
+    hasMore.value = data.has_more ?? false
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('forum.searchError')), 'error')
   } finally {
@@ -140,23 +181,51 @@ async function doSearch({
   syncQueryParams()
 }
 
+// Append next page of search results via cursor
+async function fetchMoreSearchResults() {
+  if (isLoadingMore.value || !hasMore.value || !nextCursor.value) return
+  isLoadingMore.value = true
+  try {
+    const body: Parameters<typeof searchPosts>[0] = {
+      cursor: nextCursor.value,
+      page_size: PAGE_SIZE,
+      logic: searchLogic.value,
+      sort: sortBy.value,
+    }
+    if (searchKeyword.value) body.keyword = searchKeyword.value
+    if (categoryFilter.value) body.category_id = categoryFilter.value
+    if (searchDateFrom.value) body.date_from = searchDateFrom.value
+    if (searchDateTo.value) body.date_to = searchDateTo.value
+    const data = await searchPosts(body)
+    posts.value = [...posts.value, ...data.posts]
+    nextCursor.value = data.next_cursor ?? null
+    hasMore.value = data.has_more ?? false
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('forum.searchError')), 'error')
+  } finally {
+    isLoadingMore.value = false
+  }
+}
+
+// Called by IntersectionObserver when sentinel enters viewport
+function loadMore() {
+  if (loading.value || isLoadingMore.value || !hasMore.value) return
+  if (isSearching.value) {
+    fetchMoreSearchResults()
+  } else {
+    fetchMorePosts()
+  }
+}
+
 function clearSearch() {
   searchKeyword.value = ''
   searchDateFrom.value = ''
   searchDateTo.value = ''
   categoryFilter.value = null
-  resetPage()
   sortBy.value = 'newest'
+  isSearching.value = false
+  resetScrollState()
   fetchPosts()
-}
-
-function goToPage(page: number) {
-  setPage(page)
-  if (isSearching.value) {
-    doSearch({ resetPageBeforeSearch: false })
-  } else {
-    fetchPosts()
-  }
 }
 
 function selectCategory(catId: string | null) {
@@ -172,17 +241,26 @@ function toggleAdvanced() {
 }
 
 watch(categoryFilter, () => {
-  resetPage()
-  if (!isSearching.value) fetchPosts()
+  resetScrollState()
+  if (!isSearching.value) {
+    fetchPosts()
+  } else {
+    doSearch({ resetBeforeSearch: false })
+  }
 })
+
 watch(sortBy, () => {
-  resetPage()
+  resetScrollState()
   if (isSearching.value) {
-    doSearch({ resetPageBeforeSearch: false })
+    doSearch({ resetBeforeSearch: false })
   } else {
     fetchPosts()
   }
 })
+
+// Wire up IntersectionObserver on the sentinel element
+useInfiniteScroll(sentinelRef, loadMore)
+
 onMounted(() => {
   fetchCategories()
   fetchTrending()
@@ -346,15 +424,38 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="mt-6">
-          <BasePagination
-            :current-page="currentPage"
-            :total-pages="totalPages"
-            @update:current-page="goToPage"
-          />
+        <!-- Infinite Scroll Sentinel -->
+        <div ref="sentinelRef" class="h-4"></div>
+
+        <!-- Loading More Spinner -->
+        <div v-if="isLoadingMore" class="flex justify-center py-6">
+          <svg
+            class="animate-spin h-6 w-6 text-brand-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            role="status"
+            aria-label="Loading more posts"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            ></path>
+          </svg>
         </div>
-        <p class="mt-4 text-sm text-muted text-center">
-          {{ t('forum.postsTotal', { count: total }) }}
+
+        <!-- No More Posts -->
+        <p v-if="!hasMore && posts.length > 0" class="mt-4 text-sm text-muted text-center py-4">
+          {{ t('forum.noMorePosts') }}
         </p>
       </div>
 

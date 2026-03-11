@@ -271,6 +271,7 @@ export default {
     emptyMessage: 'لم يتم العثور على مشاركات',
     createPostAction: 'إنشاء مشاركة',
     postsTotal: '{count} مشاركة إجمالاً',
+    noMorePosts: 'لا توجد مشاركات أخرى للتحميل',
     sidebar: {
       aboutTitle: 'حول',
       aboutDescription:

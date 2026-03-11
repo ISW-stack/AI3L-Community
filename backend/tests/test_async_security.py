@@ -1,5 +1,6 @@
 """Tests for async password hashing — verifies run_in_threadpool usage."""
 
+import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -122,7 +123,13 @@ class TestFileUploadUsesThreadpool:
     @patch("app.api.v1.endpoints.files.file_scan_repo")
     @patch("app.api.v1.endpoints.files.async_upload_file", new_callable=AsyncMock)
     @patch(
-        "app.api.v1.endpoints.files.get_user_storage_used", new_callable=AsyncMock, return_value=0
+        "app.api.v1.endpoints.files.user_repo.increment_storage_used",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "app.api.v1.endpoints.files.user_repo.get_storage_used",
+        new_callable=AsyncMock,
+        return_value=0,
     )
     @patch("app.api.v1.endpoints.files.get_redis")
     @patch("app.api.v1.endpoints.files.check_rate_limit", new_callable=AsyncMock, return_value=True)
@@ -133,6 +140,7 @@ class TestFileUploadUsesThreadpool:
         mock_rate_limit,
         mock_get_redis,
         mock_storage_used,
+        mock_increment,
         mock_upload,
         mock_scan_repo,
         client,
@@ -150,7 +158,7 @@ class TestFileUploadUsesThreadpool:
         mock_get_redis.return_value = redis
         mock_scan_repo.insert = AsyncMock()
 
-        payload = {"sub": "user-1", "role": "MEMBER", "jti": "test"}
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "test"}
         app.dependency_overrides[get_current_user] = lambda: payload
 
         try:

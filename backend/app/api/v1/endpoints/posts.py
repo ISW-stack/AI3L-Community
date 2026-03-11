@@ -62,18 +62,36 @@ async def get_posts_list(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     category_id: str | None = None,
+    sig_id: str | None = None,
     author_id: str | None = None,
-    sort: str = Query("newest", pattern="^(newest|oldest|most_comments)$"),
+    sort: str = Query("newest", pattern="^(newest|oldest|most_comments|popular)$"),
+    cursor: str | None = Query(None, description="Opaque cursor for keyset pagination"),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
-    posts, total, total_pages = await list_posts(
-        page=page, page_size=page_size, category_id=category_id, author_id=author_id, sort=sort
-    )
+    try:
+        result = await list_posts(
+            page=page,
+            page_size=page_size,
+            category_id=category_id,
+            sig_id=sig_id,
+            author_id=author_id,
+            sort=sort,
+            cursor=cursor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    if cursor is not None:
+        return PostListResponse(
+            posts=result["posts"],  # type: ignore[arg-type]
+            next_cursor=result["next_cursor"],
+            has_more=result["has_more"],
+        )
     return PostListResponse(
-        posts=posts,  # type: ignore[arg-type]
-        total=total,
+        posts=result["posts"],  # type: ignore[arg-type]
+        total=result["total"],
         current_page=page,
-        total_pages=total_pages,
+        total_pages=result["total_pages"],
     )
 
 

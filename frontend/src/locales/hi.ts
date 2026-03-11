@@ -272,6 +272,7 @@ export default {
     emptyMessage: 'कोई पोस्ट नहीं मिली',
     createPostAction: 'पोस्ट बनाएँ',
     postsTotal: 'कुल {count} पोस्ट',
+    noMorePosts: 'लोड करने के लिए और कोई पोस्ट नहीं',
     sidebar: {
       aboutTitle: 'परिचय',
       aboutDescription:

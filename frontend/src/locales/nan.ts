@@ -269,6 +269,7 @@ export default {
     emptyMessage: '搵無貼文',
     createPostAction: '建立貼文',
     postsTotal: '共 {count} 篇貼文',
+    noMorePosts: '無閣再有貼文通載入',
     sidebar: {
       aboutTitle: '關於',
       aboutDescription: '一个探索 AI 語言學習 kah 素養ê研究者 kah 教育工作者社群。',

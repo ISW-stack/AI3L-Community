@@ -201,3 +201,29 @@ async def bulk_update_role(user_ids: list[uuid.UUID], role: str, conn: Any) -> i
         user_ids,
     )
     return int(result.split()[-1])
+
+
+async def increment_storage_used(
+    user_id: uuid.UUID,
+    delta_bytes: int,  # positive for upload, negative for delete
+) -> None:
+    """Atomically update storage_used_bytes. Clamps at 0 to prevent negative values."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            UPDATE users
+            SET storage_used_bytes = GREATEST(0, storage_used_bytes + $1)
+            WHERE id = $2
+            """,
+            delta_bytes,
+            user_id,
+        )
+
+
+async def get_storage_used(user_id: uuid.UUID) -> int:
+    """Return the DB-tracked storage_used_bytes for a user."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT storage_used_bytes FROM users WHERE id = $1", user_id)
+    return int(row["storage_used_bytes"]) if row else 0

@@ -272,6 +272,7 @@ export default {
     emptyMessage: 'No posts found',
     createPostAction: 'Create Post',
     postsTotal: '{count} posts total',
+    noMorePosts: 'No more posts to load',
     sidebar: {
       aboutTitle: 'About',
       aboutDescription:

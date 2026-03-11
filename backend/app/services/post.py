@@ -182,15 +182,21 @@ async def list_posts(
     sig_id: str | None = None,
     author_id: str | None = None,
     sort: str = "newest",
-) -> tuple[list[dict], int, int]:
-    """Returns (posts, total, total_pages)."""
+    cursor: str | None = None,
+) -> dict:
+    """Returns a dict with posts and pagination metadata.
+
+    OFFSET mode (cursor=None): keys ``posts``, ``total``, ``total_pages``.
+    Cursor mode: keys ``posts``, ``next_cursor``, ``has_more``.
+    """
     cat_uuid = uuid.UUID(category_id) if category_id else None
     sig_uuid = uuid.UUID(sig_id) if sig_id else None
     author_uuid = uuid.UUID(author_id) if author_id else None
-    rows, total, total_pages = await post_repo.find_many(
-        page, page_size, cat_uuid, sig_uuid, author_uuid, sort
+    result = await post_repo.find_many(
+        page, page_size, cat_uuid, sig_uuid, author_uuid, sort, cursor
     )
-    return [row_to_post(r) for r in rows], total, total_pages
+    result["posts"] = [row_to_post(r) for r in result["posts"]]
+    return result
 
 
 async def search_posts(

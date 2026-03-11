@@ -273,6 +273,7 @@ export default {
     emptyMessage: 'Записи не найдены',
     createPostAction: 'Создать запись',
     postsTotal: 'Всего записей: {count}',
+    noMorePosts: 'Больше записей для загрузки нет',
     sidebar: {
       aboutTitle: 'О форуме',
       aboutDescription:

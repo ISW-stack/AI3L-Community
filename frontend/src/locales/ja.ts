@@ -271,6 +271,7 @@ export default {
     emptyMessage: '投稿が見つかりません',
     createPostAction: '投稿を作成',
     postsTotal: '合計 {count} 件の投稿',
+    noMorePosts: 'これ以上の投稿はありません',
     sidebar: {
       aboutTitle: 'について',
       aboutDescription:

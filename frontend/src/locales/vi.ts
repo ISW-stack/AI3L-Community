@@ -273,6 +273,7 @@ export default {
     emptyMessage: 'Không tìm thấy bài viết nào',
     createPostAction: 'Tạo bài viết',
     postsTotal: '{count} bài viết',
+    noMorePosts: 'Không còn bài viết nào để tải',
     sidebar: {
       aboutTitle: 'Giới thiệu',
       aboutDescription:

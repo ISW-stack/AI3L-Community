@@ -23,8 +23,13 @@ export interface Post {
 
 export interface PostListResponse {
   posts: Post[]
-  total: number
-  total_pages: number
+  // Page-based (legacy):
+  total?: number
+  total_pages?: number
+  page?: number
+  // Cursor-based:
+  next_cursor?: string | null
+  has_more?: boolean
 }
 
 export interface HistoryItem {

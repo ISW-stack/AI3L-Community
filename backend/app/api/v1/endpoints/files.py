@@ -10,7 +10,6 @@ from loguru import logger
 
 from app.core.async_storage import download_file as async_download_file
 from app.core.async_storage import generate_presigned_url as async_presigned_url
-from app.core.async_storage import get_user_storage_used
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.constants import MAX_EDITOR_FILE_SIZE, RATE_LIMIT_FILE_UPLOAD
@@ -18,7 +17,7 @@ from app.core.deps import require_role
 from app.core.file_validation import validate_editor_file
 from app.core.rate_limit import check_rate_limit
 from app.core.redis import get_redis
-from app.repositories import file_scan_repo
+from app.repositories import file_scan_repo, user_repo
 from app.schemas.file import FileUploadResponse
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -58,8 +57,9 @@ async def upload_editor_file(
         )
 
     try:
-        # Storage quota check (safe under lock)
-        used = await get_user_storage_used(current_user["sub"])
+        # Storage quota check — read from DB (O(1)) instead of S3 LIST
+        user_uuid = uuid.UUID(current_user["sub"])
+        used = await user_repo.get_storage_used(user_uuid)
         if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -69,6 +69,19 @@ async def upload_editor_file(
         ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
         key = f"editor/{current_user['sub']}/{uuid.uuid4().hex}{ext}"
         await async_upload_file(data, key, expected_type)
+        # Increment DB-tracked storage counter after successful upload.
+        # Wrapped separately so a DB failure here does not surface as a 500 —
+        # the file is already in storage and the client needs the URL.
+        # TODO: implement decrement in the delete endpoint when file deletion is added.
+        try:
+            await user_repo.increment_storage_used(user_uuid, len(data))
+        except Exception:
+            logger.warning(
+                "Failed to increment storage counter for user=%s key=%s",
+                current_user["sub"],
+                key,
+                exc_info=True,
+            )
     finally:
         await redis.delete(lock_key)
 
@@ -163,8 +176,8 @@ async def serve_file(
 async def get_storage_usage(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict[str, int]:
-    """Return the current user's storage usage and quota in bytes."""
-    used = await get_user_storage_used(current_user["sub"])
+    """Return the current user's storage usage and quota in bytes (DB-tracked)."""
+    used = await user_repo.get_storage_used(uuid.UUID(current_user["sub"]))
     return {
         "used_bytes": used,
         "quota_bytes": settings.MAX_USER_STORAGE_BYTES,

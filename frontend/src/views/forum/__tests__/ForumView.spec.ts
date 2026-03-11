@@ -28,6 +28,25 @@ vi.mock('@/constants', () => ({
   HEARTBEAT_INTERVAL_MS: 30000,
 }))
 
+// ---------------------------------------------------------------------------
+// Stub IntersectionObserver (not available in jsdom)
+// ---------------------------------------------------------------------------
+const mockIOObserve = vi.fn()
+const mockIODisconnect = vi.fn()
+
+class MockIntersectionObserver {
+  observe = mockIOObserve
+  disconnect = mockIODisconnect
+  unobserve = vi.fn()
+  constructor() {}
+}
+
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
 const fakeCategories = [
   { id: 'cat1', name: 'AI Research', post_count: 10 },
   { id: 'cat2', name: 'Language Learning', post_count: 5 },
@@ -70,6 +89,36 @@ const fakeTrending = [
   },
 ]
 
+// Cursor-based page-1 response
+const fakePageOneResponse = {
+  posts: fakePosts,
+  next_cursor: 'cursor-abc',
+  has_more: true,
+}
+
+// Cursor-based page-2 response (end of feed)
+const fakePageTwoResponse = {
+  posts: [
+    {
+      id: 'p3',
+      title: 'Test Post 3',
+      content: '<p>More</p>',
+      created_at: '2026-01-03T00:00:00Z',
+      comment_count: 0,
+      view_count: 1,
+      is_pinned: false,
+      author: { id: 'u3', display_name: 'Carol', avatar_url: null },
+      category_name: null,
+    },
+  ],
+  next_cursor: null,
+  has_more: false,
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function createTestRouter() {
   return createRouter({
     history: createMemoryHistory(),
@@ -87,10 +136,6 @@ function createStubs() {
     BaseButton: {
       template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
       props: ['loading', 'variant', 'size'],
-    },
-    BasePagination: {
-      template: '<div class="base-pagination" />',
-      props: ['currentPage', 'totalPages'],
     },
     SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
     EmptyState: {
@@ -121,13 +166,19 @@ async function mountForum(query?: Record<string, string>) {
   return { wrapper, router }
 }
 
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe('ForumView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockListPosts.mockResolvedValue({ posts: fakePosts, total: 2, total_pages: 1 })
+    mockListPosts.mockResolvedValue(fakePageOneResponse)
     mockListCategories.mockResolvedValue(fakeCategories)
     mockGetTrendingPosts.mockResolvedValue(fakeTrending)
-    mockSearchPosts.mockResolvedValue({ posts: [], total: 0, total_pages: 0 })
+    mockSearchPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
+    mockIOObserve.mockClear()
+    mockIODisconnect.mockClear()
   })
 
   it('renders forum title', async () => {
@@ -142,7 +193,7 @@ describe('ForumView', () => {
     expect(mockGetTrendingPosts).toHaveBeenCalled()
   })
 
-  it('renders post cards', async () => {
+  it('initial load renders post cards', async () => {
     const { wrapper } = await mountForum()
     const postCards = wrapper.findAll('.post-card')
     expect(postCards.length).toBe(2)
@@ -168,11 +219,6 @@ describe('ForumView', () => {
     expect(wrapper.text()).toContain('Most Discussed')
   })
 
-  it('shows total posts count', async () => {
-    const { wrapper } = await mountForum()
-    expect(wrapper.text()).toContain('2')
-  })
-
   it('shows search input', async () => {
     const { wrapper } = await mountForum()
     const searchInput = wrapper.find('input[type="text"]')
@@ -185,7 +231,6 @@ describe('ForumView', () => {
     await searchInput.setValue('machine learning')
     await searchInput.trigger('keyup.enter')
     await flushPromises()
-    // With a keyword, should call searchPosts
     expect(mockSearchPosts).toHaveBeenCalledWith(
       expect.objectContaining({ keyword: 'machine learning' }),
     )
@@ -193,23 +238,21 @@ describe('ForumView', () => {
 
   it('toggles advanced search panel', async () => {
     const { wrapper } = await mountForum()
-    // Find the advanced toggle button
     const advancedBtn = wrapper.findAll('button').find((b) => b.text().includes('Advanced'))
     expect(advancedBtn).toBeTruthy()
     await advancedBtn!.trigger('click')
     await nextTick()
-    // Date inputs should be visible
     const dateInputs = wrapper.findAll('input[type="date"]')
     expect(dateInputs.length).toBe(2)
   })
 
-  it('shows empty state when no posts', async () => {
-    mockListPosts.mockResolvedValue({ posts: [], total: 0, total_pages: 0 })
+  it('shows empty state when no posts returned', async () => {
+    mockListPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
     const { wrapper } = await mountForum()
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
-  it('shows loading skeleton initially', async () => {
+  it('shows loading skeleton while fetch is pending', async () => {
     mockListPosts.mockReturnValue(new Promise(() => {}))
     mockListCategories.mockResolvedValue([])
     mockGetTrendingPosts.mockResolvedValue([])
@@ -234,50 +277,150 @@ describe('ForumView', () => {
     expect(wrapper.find('.fab').exists()).toBe(true)
   })
 
-  it('selects category filter', async () => {
+  it('selects category filter and resets + refetches', async () => {
     const { wrapper } = await mountForum()
-    // Find category button (in sidebar)
+    vi.clearAllMocks()
+    mockListPosts.mockResolvedValue(fakePageOneResponse)
+
     const catButtons = wrapper.findAll('button').filter((b) => b.text().includes('AI Research'))
     expect(catButtons.length).toBeGreaterThan(0)
     await catButtons[0].trigger('click')
     await flushPromises()
-    // Should refetch with category filter
-    expect(mockListPosts).toHaveBeenCalledTimes(2) // initial + filter change
+    expect(mockListPosts).toHaveBeenCalledTimes(1)
+    expect(mockListPosts).toHaveBeenCalledWith(expect.objectContaining({ category_id: 'cat1' }))
   })
 
-  it('restores search query from URL', async () => {
-    mockSearchPosts.mockResolvedValue({ posts: fakePosts, total: 2, total_pages: 1 })
+  it('restores search query from URL and calls searchPosts', async () => {
+    mockSearchPosts.mockResolvedValue({ posts: fakePosts, next_cursor: null, has_more: false })
     await mountForum({ q: 'AI' })
     expect(mockSearchPosts).toHaveBeenCalledWith(expect.objectContaining({ keyword: 'AI' }))
   })
 
-  it('search pagination: goToPage in search mode passes page to searchPosts (not reset to 1)', async () => {
-    mockSearchPosts.mockResolvedValue({
-      posts: fakePosts,
-      total: 40,
-      total_pages: 2,
-    })
+  it('does NOT include page in query params (infinite scroll)', async () => {
+    const { router } = await mountForum()
+    expect(router.currentRoute.value.query).not.toHaveProperty('page')
+  })
 
-    const { wrapper } = await mountForum({ q: 'AI' })
-    vi.clearAllMocks()
-    mockSearchPosts.mockResolvedValue({ posts: [], total: 40, total_pages: 2 })
+  it('appends posts when loadMore is called (cursor-based)', async () => {
+    const { wrapper } = await mountForum()
+    // Initial load: 2 posts
+    expect(wrapper.findAll('.post-card').length).toBe(2)
 
-    // Simulate pagination to page 2
-    const vm = wrapper.vm as any
-    vm.goToPage(2)
+    // Simulate loadMore (next cursor page)
+    mockListPosts.mockResolvedValue(fakePageTwoResponse)
+    const vm = wrapper.vm as {
+      loadMore: () => void
+      isLoadingMore: { value: boolean }
+      hasMore: { value: boolean }
+    }
+    vm.loadMore()
     await flushPromises()
 
-    const lastCall = mockSearchPosts.mock.calls[mockSearchPosts.mock.calls.length - 1][0]
-    expect(lastCall.page).toBe(2)
+    // Should now have 3 posts total (2 + 1 appended)
+    expect(wrapper.findAll('.post-card').length).toBe(3)
+    expect(wrapper.text()).toContain('Test Post 3')
+  })
+
+  it('shows "no more posts" text when has_more is false and posts exist', async () => {
+    mockListPosts.mockResolvedValue({ posts: fakePosts, next_cursor: null, has_more: false })
+    const { wrapper } = await mountForum()
+    expect(wrapper.text()).toContain('No more posts')
+  })
+
+  it('does NOT show "no more posts" when there are no posts', async () => {
+    mockListPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
+    const { wrapper } = await mountForum()
+    expect(wrapper.text()).not.toContain('No more posts')
+  })
+
+  it('shows loading spinner while isLoadingMore is true', async () => {
+    const { wrapper } = await mountForum()
+
+    // Start a slow loadMore
+    let resolveLoad!: (v: unknown) => void
+    const slowPromise = new Promise((res) => {
+      resolveLoad = res
+    })
+    mockListPosts.mockReturnValue(slowPromise)
+
+    const vm = wrapper.vm as {
+      loadMore: () => void
+    }
+    vm.loadMore()
+    await nextTick()
+
+    // Spinner should be visible
+    expect(wrapper.find('svg.animate-spin').exists()).toBe(true)
+
+    // Resolve the load
+    resolveLoad({ posts: [], next_cursor: null, has_more: false })
+    await flushPromises()
+    expect(wrapper.find('svg.animate-spin').exists()).toBe(false)
+  })
+
+  it('loadMore guard: does not call API when isLoadingMore is true', async () => {
+    const { wrapper } = await mountForum()
+    vi.clearAllMocks()
+
+    // Force a loading state with a never-resolving promise
+    mockListPosts.mockReturnValue(new Promise(() => {}))
+    const vm = wrapper.vm as {
+      loadMore: () => void
+      isLoadingMore: { value: boolean }
+    }
+
+    // First call sets isLoadingMore = true
+    vm.loadMore()
+    await nextTick()
+
+    // Second call should be guarded
+    vm.loadMore()
+    await nextTick()
+
+    // API should have been called only once
+    expect(mockListPosts).toHaveBeenCalledTimes(1)
+  })
+
+  it('loadMore guard: does not call API when hasMore is false', async () => {
+    mockListPosts.mockResolvedValue({ posts: fakePosts, next_cursor: null, has_more: false })
+    const { wrapper } = await mountForum()
+    vi.clearAllMocks()
+
+    const vm = wrapper.vm as { loadMore: () => void }
+    vm.loadMore()
+    await flushPromises()
+
+    expect(mockListPosts).not.toHaveBeenCalled()
+  })
+
+  it('filter change resets posts list to fresh data', async () => {
+    const { wrapper } = await mountForum()
+    // Initial: 2 posts
+    expect(wrapper.findAll('.post-card').length).toBe(2)
+
+    // Change sort — should reset posts and fetch fresh
+    const freshResponse = {
+      posts: [fakePosts[0]],
+      next_cursor: null,
+      has_more: false,
+    }
+    mockListPosts.mockResolvedValue(freshResponse)
+
+    const vm = wrapper.vm as { sortBy: string }
+    vm.sortBy = 'oldest'
+    await flushPromises()
+
+    // After reset + fresh fetch, posts replaced (not appended)
+    expect(wrapper.findAll('.post-card').length).toBe(1)
   })
 
   it('sort param is included in search API call', async () => {
+    mockSearchPosts.mockResolvedValue({ posts: fakePosts, next_cursor: null, has_more: false })
     const { wrapper } = await mountForum({ q: 'AI' })
     vi.clearAllMocks()
-    mockSearchPosts.mockResolvedValue({ posts: [], total: 0, total_pages: 0 })
+    mockSearchPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
 
-    // Trigger sort change while in search mode
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as { sortBy: string }
     vm.sortBy = 'oldest'
     await flushPromises()
 
@@ -285,16 +428,165 @@ describe('ForumView', () => {
   })
 
   it('changing sort in search mode calls searchPosts not listPosts', async () => {
-    mockSearchPosts.mockResolvedValue({ posts: fakePosts, total: 2, total_pages: 1 })
+    mockSearchPosts.mockResolvedValue({ posts: fakePosts, next_cursor: null, has_more: false })
     const { wrapper } = await mountForum({ q: 'AI' })
     vi.clearAllMocks()
-    mockSearchPosts.mockResolvedValue({ posts: [], total: 0, total_pages: 0 })
+    mockSearchPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as { sortBy: string }
     vm.sortBy = 'most_comments'
     await flushPromises()
 
     expect(mockSearchPosts).toHaveBeenCalled()
     expect(mockListPosts).not.toHaveBeenCalled()
+  })
+
+  it('IntersectionObserver is observed on the sentinel element', async () => {
+    await mountForum()
+    expect(mockIOObserve).toHaveBeenCalledTimes(1)
+  })
+
+  it('BasePagination is not rendered (removed)', async () => {
+    const { wrapper } = await mountForum()
+    expect(wrapper.find('.base-pagination').exists()).toBe(false)
+  })
+
+  it('listPosts is called without page param on initial load', async () => {
+    await mountForum()
+    const callArgs = mockListPosts.mock.calls[0][0] as Record<string, unknown>
+    expect(callArgs).not.toHaveProperty('page')
+  })
+
+  it('listPosts is called with cursor on loadMore', async () => {
+    const { wrapper } = await mountForum()
+    vi.clearAllMocks()
+    mockListPosts.mockResolvedValue(fakePageTwoResponse)
+
+    const vm = wrapper.vm as { loadMore: () => void }
+    vm.loadMore()
+    await flushPromises()
+
+    expect(mockListPosts).toHaveBeenCalledWith(expect.objectContaining({ cursor: 'cursor-abc' }))
+  })
+
+  it('isLoadingMore is reset to false after fetchMorePosts error', async () => {
+    const { wrapper } = await mountForum()
+    // Initial load has nextCursor set
+    vi.clearAllMocks()
+    mockListPosts.mockRejectedValue(new Error('Network error'))
+
+    const vm = wrapper.vm as {
+      loadMore: () => void
+      isLoadingMore: boolean
+    }
+    vm.loadMore()
+    await flushPromises()
+
+    // isLoadingMore must be false after the error (finally block)
+    expect(vm.isLoadingMore).toBe(false)
+  })
+
+  it('isLoadingMore is reset to false after fetchMoreSearchResults error', async () => {
+    mockSearchPosts.mockResolvedValue({
+      posts: fakePosts,
+      next_cursor: 'cursor-s1',
+      has_more: true,
+    })
+    const { wrapper } = await mountForum({ q: 'AI' })
+    vi.clearAllMocks()
+    mockSearchPosts.mockRejectedValue(new Error('Search error'))
+
+    const vm = wrapper.vm as {
+      loadMore: () => void
+      isLoadingMore: boolean
+    }
+    vm.loadMore()
+    await flushPromises()
+
+    expect(vm.isLoadingMore).toBe(false)
+  })
+
+  it('loadMore is blocked while initial fetch (loading) is in progress', async () => {
+    // Mount with a never-resolving initial fetch
+    let resolveInitial!: (v: unknown) => void
+    mockListPosts.mockReturnValue(
+      new Promise((res) => {
+        resolveInitial = res
+      }),
+    )
+    mockListCategories.mockResolvedValue([])
+    mockGetTrendingPosts.mockResolvedValue([])
+
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createTestRouter()
+    await router.push('/forum')
+    await router.isReady()
+
+    const wrapper = mount(ForumView, {
+      global: { plugins: [pinia, router], stubs: createStubs() },
+    })
+    await nextTick()
+
+    const vm = wrapper.vm as { loadMore: () => void }
+    const callsBefore = mockListPosts.mock.calls.length
+
+    // loadMore during initial load should be blocked
+    vm.loadMore()
+    await nextTick()
+
+    // No extra API call should have been made
+    expect(mockListPosts.mock.calls.length).toBe(callsBefore)
+
+    // Clean up
+    resolveInitial({ posts: [], next_cursor: null, has_more: false })
+    await flushPromises()
+    wrapper.unmount()
+  })
+
+  it('cursor is reset to null before filter-change fetch', async () => {
+    const { wrapper } = await mountForum()
+    // After initial load, nextCursor should be 'cursor-abc'
+    const vmBefore = wrapper.vm as { nextCursor: string | null }
+    expect(vmBefore.nextCursor).toBe('cursor-abc')
+
+    // Set up new fetch that returns no more pages
+    mockListPosts.mockResolvedValue({ posts: [fakePosts[0]], next_cursor: null, has_more: false })
+
+    const vm = wrapper.vm as { sortBy: string; nextCursor: string | null }
+    vm.sortBy = 'oldest'
+    // After the watch triggers resetScrollState, cursor should be null
+    await nextTick()
+    expect(vm.nextCursor).toBeNull()
+
+    await flushPromises()
+    // After fresh fetch, cursor is still null (no more pages)
+    expect(vm.nextCursor).toBeNull()
+  })
+
+  it('clearSearch resets isSearching before fetching', async () => {
+    mockSearchPosts.mockResolvedValue({ posts: fakePosts, next_cursor: null, has_more: false })
+    const { wrapper } = await mountForum({ q: 'AI' })
+    // After mount, isSearching should be true
+    const vm = wrapper.vm as {
+      clearSearch: () => void
+      isSearching: boolean
+      loadMore: () => void
+    }
+    expect(vm.isSearching).toBe(true)
+
+    vi.clearAllMocks()
+    mockListPosts.mockReturnValue(new Promise(() => {}))
+
+    vm.clearSearch()
+    await nextTick()
+
+    // isSearching must be false immediately so loadMore uses the posts branch
+    expect(vm.isSearching).toBe(false)
+
+    // loadMore during this pending fetch should not call searchPosts
+    vm.loadMore()
+    await nextTick()
+    expect(mockSearchPosts).not.toHaveBeenCalled()
   })
 })

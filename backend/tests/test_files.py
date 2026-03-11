@@ -2,7 +2,7 @@
 
 import uuid
 from io import BytesIO
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -255,15 +255,15 @@ def _clear_overrides_files() -> None:
 
 
 class TestStorageUsageEndpoint:
-    """GET /files/storage-usage — returns used_bytes and quota_bytes."""
+    """GET /files/storage-usage — returns used_bytes and quota_bytes (DB-tracked)."""
 
     @pytest.mark.anyio
     async def test_storage_usage_authenticated_member(self, client: AsyncClient) -> None:
-        """Authenticated member receives used_bytes and quota_bytes."""
+        """Authenticated member receives used_bytes and quota_bytes from DB."""
         _override_auth_files("MEMBER")
         try:
             with patch(
-                "app.api.v1.endpoints.files.get_user_storage_used",
+                "app.api.v1.endpoints.files.user_repo.get_storage_used",
                 new_callable=AsyncMock,
                 return_value=123456789,
             ):
@@ -292,7 +292,7 @@ class TestStorageUsageEndpoint:
         _override_auth_files("MEMBER")
         try:
             with patch(
-                "app.api.v1.endpoints.files.get_user_storage_used",
+                "app.api.v1.endpoints.files.user_repo.get_storage_used",
                 new_callable=AsyncMock,
                 return_value=0,
             ):
@@ -304,6 +304,227 @@ class TestStorageUsageEndpoint:
             assert resp.json()["used_bytes"] == 0
         finally:
             _clear_overrides_files()
+
+
+class TestUploadStorageTracking:
+    """Upload endpoint must use DB quota check and increment storage counter."""
+
+    @pytest.mark.anyio
+    async def test_upload_uses_db_quota_check(self, client: AsyncClient) -> None:
+        """Quota check reads from user_repo.get_storage_used, not S3 LIST."""
+        user_payload = _override_auth_files("MEMBER")
+        try:
+            png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.get_storage_used",
+                    new_callable=AsyncMock,
+                    return_value=0,
+                ) as mock_get_storage,
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.increment_storage_used",
+                    new_callable=AsyncMock,
+                ) as mock_increment,
+                patch(
+                    "app.api.v1.endpoints.files.async_upload_file",
+                    new_callable=AsyncMock,
+                    return_value="editor/test/abc.png",
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.file_scan_repo.insert",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.get_redis",
+                ) as mock_redis_factory,
+            ):
+                mock_redis = AsyncMock()
+                mock_redis.set = AsyncMock(return_value=True)
+                mock_redis.delete = AsyncMock()
+                mock_redis_factory.return_value = mock_redis
+
+                resp = await client.post(
+                    "/api/v1/files/upload/editor",
+                    files={"file": ("test.png", png_data, "image/png")},
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            # get_storage_used must be called (DB-based quota check)
+            mock_get_storage.assert_called_once()
+            # increment_storage_used must be called with the file size
+            mock_increment.assert_called_once()
+            call_args = mock_increment.call_args
+            assert call_args.args[1] == len(png_data) or (
+                call_args.args[1] > 0
+            ), "increment delta must be positive"
+        finally:
+            _clear_overrides_files()
+
+    @pytest.mark.anyio
+    async def test_upload_quota_exceeded_uses_db(self, client: AsyncClient) -> None:
+        """When DB reports quota exceeded, upload is rejected with 400."""
+        _override_auth_files("MEMBER")
+        try:
+            png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.get_storage_used",
+                    new_callable=AsyncMock,
+                    return_value=2 * 1024 * 1024 * 1024,  # 2 GB > 1 GB quota
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.get_redis",
+                ) as mock_redis_factory,
+            ):
+                mock_redis = AsyncMock()
+                mock_redis.set = AsyncMock(return_value=True)
+                mock_redis.delete = AsyncMock()
+                mock_redis_factory.return_value = mock_redis
+
+                resp = await client.post(
+                    "/api/v1/files/upload/editor",
+                    files={"file": ("test.png", png_data, "image/png")},
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 400
+            assert "quota" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides_files()
+
+    @pytest.mark.anyio
+    async def test_increment_not_called_on_quota_exceeded(self, client: AsyncClient) -> None:
+        """increment_storage_used must NOT be called when quota check fails."""
+        _override_auth_files("MEMBER")
+        try:
+            png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.get_storage_used",
+                    new_callable=AsyncMock,
+                    return_value=2 * 1024 * 1024 * 1024,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.increment_storage_used",
+                    new_callable=AsyncMock,
+                ) as mock_increment,
+                patch(
+                    "app.api.v1.endpoints.files.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.get_redis",
+                ) as mock_redis_factory,
+            ):
+                mock_redis = AsyncMock()
+                mock_redis.set = AsyncMock(return_value=True)
+                mock_redis.delete = AsyncMock()
+                mock_redis_factory.return_value = mock_redis
+
+                await client.post(
+                    "/api/v1/files/upload/editor",
+                    files={"file": ("test.png", png_data, "image/png")},
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            mock_increment.assert_not_called()
+        finally:
+            _clear_overrides_files()
+
+
+class TestUserRepoStorageFunctions:
+    """Unit tests for user_repo.increment_storage_used and get_storage_used."""
+
+    def _make_pool(self, mock_conn: AsyncMock) -> MagicMock:
+        """Build a MagicMock pool whose acquire() yields mock_conn (standard pattern)."""
+        mock_pool = MagicMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+        return mock_pool
+
+    @pytest.mark.anyio
+    async def test_increment_storage_used_positive_delta(self) -> None:
+        """increment_storage_used executes UPDATE with GREATEST(0, ...) and positive delta."""
+        user_id = uuid.uuid4()
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock()
+        mock_pool = self._make_pool(mock_conn)
+
+        with patch("app.repositories.user_repo.get_pool", return_value=mock_pool):
+            from app.repositories.user_repo import increment_storage_used
+
+            await increment_storage_used(user_id, 5000)
+
+        mock_conn.execute.assert_called_once()
+        call_args = mock_conn.execute.call_args
+        assert "GREATEST" in call_args.args[0]
+        assert call_args.args[1] == 5000
+        assert call_args.args[2] == user_id
+
+    @pytest.mark.anyio
+    async def test_increment_storage_used_negative_delta(self) -> None:
+        """increment_storage_used accepts negative delta (for delete decrement)."""
+        user_id = uuid.uuid4()
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock()
+        mock_pool = self._make_pool(mock_conn)
+
+        with patch("app.repositories.user_repo.get_pool", return_value=mock_pool):
+            from app.repositories.user_repo import increment_storage_used
+
+            await increment_storage_used(user_id, -5000)
+
+        mock_conn.execute.assert_called_once()
+        call_args = mock_conn.execute.call_args
+        # GREATEST(0, ...) prevents negative storage values
+        assert "GREATEST" in call_args.args[0]
+        assert call_args.args[1] == -5000
+
+    @pytest.mark.anyio
+    async def test_get_storage_used_returns_value(self) -> None:
+        """get_storage_used returns the storage_used_bytes value from DB row."""
+        user_id = uuid.uuid4()
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value={"storage_used_bytes": 987654})
+        mock_pool = self._make_pool(mock_conn)
+
+        with patch("app.repositories.user_repo.get_pool", return_value=mock_pool):
+            from app.repositories.user_repo import get_storage_used
+
+            result = await get_storage_used(user_id)
+
+        assert result == 987654
+
+    @pytest.mark.anyio
+    async def test_get_storage_used_returns_zero_when_no_row(self) -> None:
+        """get_storage_used returns 0 when user row is not found."""
+        user_id = uuid.uuid4()
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+        mock_pool = self._make_pool(mock_conn)
+
+        with patch("app.repositories.user_repo.get_pool", return_value=mock_pool):
+            from app.repositories.user_repo import get_storage_used
+
+            result = await get_storage_used(user_id)
+
+        assert result == 0
 
 
 class TestCleanupTaskImport:

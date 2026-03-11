@@ -277,6 +277,7 @@ export default {
     emptyMessage: 'Aucune publication trouvée',
     createPostAction: 'Créer une publication',
     postsTotal: '{count} publication(s) au total',
+    noMorePosts: 'Plus de publications à charger',
     sidebar: {
       aboutTitle: 'À propos',
       aboutDescription:

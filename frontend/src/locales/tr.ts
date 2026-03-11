@@ -274,6 +274,7 @@ export default {
     emptyMessage: 'Gönderi bulunamadı',
     createPostAction: 'Gönderi Oluştur',
     postsTotal: 'Toplam {count} gönderi',
+    noMorePosts: 'Yüklenecek daha fazla gönderi yok',
     sidebar: {
       aboutTitle: 'Hakkında',
       aboutDescription:

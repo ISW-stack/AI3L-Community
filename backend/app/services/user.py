@@ -2,7 +2,6 @@ import uuid
 
 from loguru import logger
 
-from app.core.async_storage import get_user_storage_used
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.errors import (
@@ -87,15 +86,27 @@ async def upload_user_avatar(
     if not acquired:
         raise RateLimitError("Another upload is in progress. Please wait.")
 
+    user_uuid = uuid.UUID(user_id)
     try:
-        # Storage quota check (safe under lock)
-        used = await get_user_storage_used(user_id)
+        # Storage quota check — read from DB (O(1)) instead of S3 LIST
+        used = await user_repo.get_storage_used(user_uuid)
         if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
             raise StorageQuotaError("Storage quota exceeded (1 GB limit).")
 
         ext = ".png" if content_type == "image/png" else ".jpg"
         key = generate_avatar_key(user_id, ext)
         await async_upload_file(data, key, content_type)
+        # Increment DB-tracked storage counter after successful upload.
+        # TODO: implement decrement when avatar replacement/deletion is added.
+        try:
+            await user_repo.increment_storage_used(user_uuid, len(data))
+        except Exception:
+            logger.warning(
+                "Failed to increment storage counter for user=%s key=%s",
+                user_id,
+                key,
+                exc_info=True,
+            )
     finally:
         await redis.delete(lock_key)
 

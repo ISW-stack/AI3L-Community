@@ -276,6 +276,7 @@ export default {
     emptyMessage: 'Keine Beiträge gefunden',
     createPostAction: 'Beitrag erstellen',
     postsTotal: '{count} Beiträge insgesamt',
+    noMorePosts: 'Keine weiteren Beiträge zum Laden',
     sidebar: {
       aboutTitle: 'Über uns',
       aboutDescription:

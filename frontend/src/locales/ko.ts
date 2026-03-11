@@ -271,6 +271,7 @@ export default {
     emptyMessage: '게시물을 찾을 수 없습니다',
     createPostAction: '게시물 작성',
     postsTotal: '총 {count}개의 게시물',
+    noMorePosts: '더 이상 불러올 게시물이 없습니다',
     sidebar: {
       aboutTitle: '소개',
       aboutDescription:

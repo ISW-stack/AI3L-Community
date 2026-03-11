@@ -2,6 +2,7 @@ import api from '@/composables/api'
 import type { Post, PostListResponse, HistoryItem } from '@/types'
 
 export async function listPosts(params: {
+  cursor?: string
   page?: number
   page_size?: number
   category_id?: string
@@ -56,7 +57,7 @@ export async function searchPosts(payload: {
   date_to?: string
   logic?: string
   sort?: string
-  page?: number
+  cursor?: string
   page_size?: number
 }) {
   const { data } = await api.post('/posts/search', payload)
