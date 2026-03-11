@@ -369,7 +369,13 @@ class TestGetPostsList:
             with patch(
                 f"{_EP}.list_posts",
                 new_callable=AsyncMock,
-                return_value=([post], 1, 1),
+                return_value={
+                    "posts": [post],
+                    "total": 1,
+                    "total_pages": 1,
+                    "next_cursor": None,
+                    "has_more": None,
+                },
             ):
                 resp = await client.get(
                     "/api/v1/posts",
@@ -392,7 +398,13 @@ class TestGetPostsList:
             with patch(
                 f"{_EP}.list_posts",
                 new_callable=AsyncMock,
-                return_value=([post], 1, 1),
+                return_value={
+                    "posts": [post],
+                    "total": 1,
+                    "total_pages": 1,
+                    "next_cursor": None,
+                    "has_more": None,
+                },
             ) as mock_list:
                 resp = await client.get(
                     f"/api/v1/posts?category_id={cat_id}&sort=oldest",
