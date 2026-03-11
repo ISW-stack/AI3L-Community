@@ -96,7 +96,7 @@ function mountCardWithAuth(
   const pinia = createPinia()
   setActivePinia(pinia)
 
-  const auth = useAuthStore()
+  useAuthStore()
   // Set role in localStorage before mounting so computed properties work
   if (authOverrides.role) {
     localStorage.setItem('role', authOverrides.role)
