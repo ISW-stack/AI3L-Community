@@ -312,7 +312,7 @@ class TestUploadStorageTracking:
     @pytest.mark.anyio
     async def test_upload_uses_db_quota_check(self, client: AsyncClient) -> None:
         """Quota check reads from user_repo.get_storage_used, not S3 LIST."""
-        user_payload = _override_auth_files("MEMBER")
+        _override_auth_files("MEMBER")
         try:
             png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
 
@@ -349,7 +349,7 @@ class TestUploadStorageTracking:
                 mock_redis.delete = AsyncMock()
                 mock_redis_factory.return_value = mock_redis
 
-                resp = await client.post(
+                await client.post(
                     "/api/v1/files/upload/editor",
                     files={"file": ("test.png", png_data, "image/png")},
                     headers={"Authorization": "Bearer fake"},
