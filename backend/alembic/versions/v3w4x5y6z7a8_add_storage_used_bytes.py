@@ -18,9 +18,7 @@ depends_on = None
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column(
-            "storage_used_bytes", sa.BigInteger(), nullable=False, server_default="0"
-        ),
+        sa.Column("storage_used_bytes", sa.BigInteger(), nullable=False, server_default="0"),
     )
 
 

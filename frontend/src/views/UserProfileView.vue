@@ -80,7 +80,7 @@ async function fetchPosts() {
     })
     if (localId !== postsFetchId) return
     posts.value = data.posts
-    updateFromResponse(data.total, data.total_pages)
+    updateFromResponse(data.total ?? 0, data.total_pages ?? 1)
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('userProfile.fetchPostsError')), 'error')
   } finally {
