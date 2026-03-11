@@ -518,6 +518,31 @@ class TestLocalSend:
         assert ws_broken not in conns[uid]
 
     @pytest.mark.asyncio
+    async def test_logs_warning_on_send_failure(self):
+        """Send failure logs a warning with exc_info."""
+        uid = str(uuid.uuid4())
+        ws_broken = AsyncMock()
+        ws_broken.send_json = AsyncMock(side_effect=Exception("connection reset"))
+        msg = {"type": "TEST"}
+
+        conns = defaultdict(set)
+        conns[uid] = {ws_broken}
+
+        with (
+            patch(f"{_EP}._connections", conns),
+            patch(f"{_EP}._connections_lock", asyncio.Lock()),
+            patch(f"{_EP}.logger") as mock_logger,
+        ):
+            from app.api.v1.endpoints.ws import _local_send
+
+            await _local_send(uid, msg)
+
+        mock_logger.warning.assert_called_once()
+        call_kwargs = mock_logger.warning.call_args
+        assert "Failed to send WS message" in call_kwargs.args[0]
+        assert call_kwargs.kwargs.get("exc_info") is True
+
+    @pytest.mark.asyncio
     async def test_no_connections_does_nothing(self):
         uid = str(uuid.uuid4())
         conns = defaultdict(set)

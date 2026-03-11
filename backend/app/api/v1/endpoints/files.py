@@ -8,8 +8,10 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from loguru import logger
 
+from app.core.async_storage import delete_file as async_delete_file
 from app.core.async_storage import download_file as async_download_file
 from app.core.async_storage import generate_presigned_url as async_presigned_url
+from app.core.async_storage import get_file_size as async_get_file_size
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.constants import MAX_EDITOR_FILE_SIZE, RATE_LIMIT_FILE_UPLOAD
@@ -70,9 +72,6 @@ async def upload_editor_file(
         key = f"editor/{current_user['sub']}/{uuid.uuid4().hex}{ext}"
         await async_upload_file(data, key, expected_type)
         # Increment DB-tracked storage counter after successful upload.
-        # Wrapped separately so a DB failure here does not surface as a 500 —
-        # the file is already in storage and the client needs the URL.
-        # TODO: implement decrement in the delete endpoint when file deletion is added.
         try:
             await user_repo.increment_storage_used(user_uuid, len(data))
         except Exception:
@@ -115,6 +114,84 @@ async def upload_editor_file(
         size=len(data),
         scan_task_id=scan_task_id,
     )
+
+
+@router.delete("/content/{key:path}", status_code=status.HTTP_200_OK)
+async def delete_editor_file(
+    key: str,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> dict:
+    """Delete an editor file from storage and decrement the user's storage counter."""
+    if ".." in key or not _SAFE_KEY_RE.match(key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file key.",
+        )
+
+    # Only allow deletion of editor files owned by the user (or by admins)
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    owns_file = key.startswith(f"editor/{current_user['sub']}/")
+    if not is_admin and not owns_file:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this file.",
+        )
+
+    # Get file size before deletion for storage decrement
+    file_size = await async_get_file_size(key)
+    if file_size == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found.",
+        )
+
+    # Validate that the key is an editor file before parsing owner from path
+    if not key.startswith("editor/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only editor files can be deleted via this endpoint.",
+        )
+
+    # Determine the owner user ID from the key path (editor/{user_id}/...)
+    parts = key.split("/")
+    if len(parts) >= 2:
+        owner_user_id = parts[1]
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file key format.",
+        )
+
+    # Delete the file from storage
+    try:
+        await async_delete_file(key)
+    except Exception:
+        logger.error("Failed to delete file from storage key=%s", key, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete file from storage.",
+        )
+
+    # Decrement the owner's storage counter
+    try:
+        owner_uuid = uuid.UUID(owner_user_id)
+        await user_repo.increment_storage_used(owner_uuid, -file_size)
+    except Exception:
+        logger.warning(
+            "Failed to decrement storage counter for user=%s key=%s size=%d",
+            owner_user_id,
+            key,
+            file_size,
+            exc_info=True,
+        )
+
+    # Remove scan record if it exists
+    try:
+        await file_scan_repo.delete_by_key(key)
+    except Exception:
+        logger.warning("Failed to delete scan record for key=%s", key, exc_info=True)
+
+    return {"detail": "File deleted.", "key": key, "freed_bytes": file_size}
 
 
 @router.get("/content/{key:path}")

@@ -145,6 +145,29 @@ async def get_member_role(sig_id: uuid.UUID, user_id: str) -> str | None:
     return await sig_repo.get_member_role(sig_id, uuid.UUID(user_id))
 
 
+async def demote_sub_admin(sig_id: uuid.UUID, user_id: str) -> dict:
+    """Demote a SUB_ADMIN back to MEMBER. Only SIG owners or platform admins may call this."""
+    pool = get_pool()
+    user_uuid = uuid.UUID(user_id)
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            current_role = await sig_repo.get_member_role_in_conn(sig_id, user_uuid, conn)
+            if not current_role:
+                raise ValueError("User is not a member of this SIG.")
+            if current_role == "ADMIN":
+                raise ValueError("Cannot demote the SIG owner/creator.")
+            if current_role != "SUB_ADMIN":
+                raise ValueError("User is not a sub-admin.")
+
+            row = await sig_repo.update_member_role_in_conn(sig_id, user_uuid, "MEMBER", conn)
+            if row is None:
+                raise ValueError("SIG not found.")
+
+    logger.info("Sub-admin demoted", extra={"sig_id": str(sig_id), "user_id": user_id})
+    return row_to_member(row)
+
+
 async def assign_sub_admin(sig_id: uuid.UUID, user_id: str) -> dict:
     pool = get_pool()
     user_uuid = uuid.UUID(user_id)

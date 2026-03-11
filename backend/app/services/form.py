@@ -165,10 +165,6 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             if form["deadline"] and form["deadline"] < now:
                 raise AppError(ErrorCode.FORM_001, 400, "This form has passed its deadline.")
 
-            response_count = await form_repo.count_responses(form_id, conn)
-            if form["max_respondents"] is not None and response_count >= form["max_respondents"]:
-                raise ValueError("This form has reached its maximum number of responses.")
-
             if await form_repo.check_duplicate_response(form_id, uuid.UUID(user_id), conn):
                 raise ValueError("You have already submitted a response to this form.")
 
@@ -180,7 +176,16 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             _validate_answers(questions, answers)
 
             response_id = uuid.uuid4()
-            await form_repo.insert_response(response_id, form_id, uuid.UUID(user_id), answers, conn)
+            inserted = await form_repo.insert_response(
+                response_id,
+                form_id,
+                uuid.UUID(user_id),
+                answers,
+                conn,
+                max_respondents=form["max_respondents"],
+            )
+            if not inserted:
+                raise ValueError("This form has reached its maximum number of responses.")
 
             if not form["is_schema_locked"]:
                 await form_repo.lock_schema(form_id, conn)

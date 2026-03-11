@@ -260,4 +260,68 @@ describe('SigFormsView', () => {
     expect(wrapper.find('.empty-state').exists()).toBe(true)
     expect(wrapper.text()).toContain('No forms yet')
   })
+
+  it('shows toast error when fetchForms fails', async () => {
+    mockGetSigForms.mockRejectedValue(new Error('Network error'))
+    await mountComponent({ userSigRole: 'MEMBER' })
+    await nextTick()
+    await nextTick()
+
+    const { useToastStore } = await import('@/stores/toast')
+    const toast = useToastStore()
+    expect(toast.toasts.length).toBeGreaterThan(0)
+    expect(toast.toasts[0].type).toBe('error')
+  })
+
+  it('shows toast error when fetchResponses fails', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockListFormResponses.mockRejectedValue({ response: { data: { detail: 'Fetch failed' } } })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    // Click the Responses button for the first form (user_is_sig_admin: true)
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    expect(responsesBtn).toBeTruthy()
+
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    const { useToastStore } = await import('@/stores/toast')
+    const toast = useToastStore()
+    const errorToasts = toast.toasts.filter((t) => t.type === 'error')
+    expect(errorToasts.length).toBeGreaterThan(0)
+  })
+
+  it('opens responses modal and shows response data', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Test User',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { Question1: 'Answer1' },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    expect(responsesBtn).toBeTruthy()
+
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Test User')
+    expect(wrapper.text()).toContain('Answer1')
+  })
 })

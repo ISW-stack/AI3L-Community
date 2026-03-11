@@ -231,6 +231,48 @@ class TestGuestLogin:
         await decrement_guest_counter()
         redis.set.assert_called_once_with(_GUEST_COUNTER_KEY, 0)
 
+    @patch("app.services.auth.get_redis")
+    async def test_decrement_guest_ip_counter(self, mock_get_redis):
+        """decrement_guest_ip_counter decrements the per-IP key."""
+        from app.services.auth import decrement_guest_ip_counter
+
+        redis = AsyncMock()
+        redis.decr = AsyncMock(return_value=2)
+        mock_get_redis.return_value = redis
+
+        await decrement_guest_ip_counter("192.168.1.1")
+        redis.decr.assert_called_once_with("guest:ip:192.168.1.1")
+        # Positive value — no clamping needed
+        redis.set.assert_not_called()
+
+    @patch("app.services.auth.get_redis")
+    async def test_decrement_guest_ip_counter_clamps_to_zero(self, mock_get_redis):
+        """If per-IP counter goes negative after DECR, it is clamped to 0."""
+        from app.services.auth import decrement_guest_ip_counter
+
+        redis = AsyncMock()
+        redis.decr = AsyncMock(return_value=-1)
+        redis.set = AsyncMock()
+        mock_get_redis.return_value = redis
+
+        await decrement_guest_ip_counter("10.0.0.1")
+        redis.decr.assert_called_once_with("guest:ip:10.0.0.1")
+        redis.set.assert_called_once_with("guest:ip:10.0.0.1", 0)
+
+    @patch("app.services.auth.get_redis")
+    async def test_decrement_guest_ip_counter_restores_ttl_when_clamped(self, mock_get_redis):
+        """When clamping to zero, redis.expire must be called to restore the 1-hour TTL."""
+        from app.services.auth import decrement_guest_ip_counter
+
+        redis = AsyncMock()
+        redis.decr = AsyncMock(return_value=-1)
+        redis.set = AsyncMock()
+        redis.expire = AsyncMock()
+        mock_get_redis.return_value = redis
+
+        await decrement_guest_ip_counter("192.0.2.1")
+        redis.expire.assert_called_once_with("guest:ip:192.0.2.1", 3600)
+
     @patch("app.services.auth.create_session")
     @patch("app.services.auth.get_redis")
     async def test_guest_login_atomic_incr_prevents_race(self, mock_get_redis, mock_create_session):

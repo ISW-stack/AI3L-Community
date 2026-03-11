@@ -269,6 +269,50 @@ class TestLogoutEndpoint:
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 
+    @patch(f"{_EP}.decrement_guest_ip_counter", new_callable=AsyncMock)
+    @patch(f"{_EP}.decrement_guest_counter", new_callable=AsyncMock)
+    @patch(f"{_EP}.destroy_session", new_callable=AsyncMock)
+    async def test_guest_logout_decrements_ip_counter(
+        self, mock_destroy, mock_dec_global, mock_dec_ip, client: AsyncClient
+    ):
+        """Guest logout should decrement both global and per-IP guest counters."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        payload = {"sub": str(uuid.uuid4()), "role": "GUEST", "jti": "jti-g1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post(
+                "/api/v1/auth/logout", headers={"Authorization": "Bearer fake"}
+            )
+            assert resp.status_code == 200
+            mock_dec_global.assert_called_once()
+            mock_dec_ip.assert_called_once()
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+    @patch(f"{_EP}.decrement_guest_ip_counter", new_callable=AsyncMock)
+    @patch(f"{_EP}.decrement_guest_counter", new_callable=AsyncMock)
+    @patch(f"{_EP}.destroy_session", new_callable=AsyncMock)
+    async def test_non_guest_logout_does_not_decrement_ip_counter(
+        self, mock_destroy, mock_dec_global, mock_dec_ip, client: AsyncClient
+    ):
+        """Non-guest logout should not touch guest counters."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-m1"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post(
+                "/api/v1/auth/logout", headers={"Authorization": "Bearer fake"}
+            )
+            assert resp.status_code == 200
+            mock_dec_global.assert_not_called()
+            mock_dec_ip.assert_not_called()
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
 
 class TestHeartbeatEndpoint:
     @patch(f"{_EP}.refresh_session_ttl", new_callable=AsyncMock, return_value=True)

@@ -19,12 +19,22 @@ vi.mock('vue', async () => {
   }
 })
 
+// Mock vue-router navigation guard to avoid "no active router" errors
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual<typeof import('vue-router')>('vue-router')
+  return {
+    ...actual,
+    onBeforeRouteLeave: vi.fn(),
+  }
+})
+
 vi.mock('@/api/posts', () => ({
   getPost: vi.fn(),
   updatePost: vi.fn(),
   deletePost: vi.fn(),
   getPostHistory: vi.fn(),
   togglePinPost: vi.fn(),
+  togglePostReaction: vi.fn(),
 }))
 
 vi.mock('@/api/comments', () => ({
@@ -47,6 +57,15 @@ vi.mock('dompurify', () => ({
   default: { sanitize: (html: string) => html },
 }))
 
+vi.mock('@/stores/toast', () => ({
+  useToastStore: () => ({
+    addToast: vi.fn(),
+    removeToast: vi.fn(),
+    show: vi.fn(),
+    toasts: [],
+  }),
+}))
+
 import { usePostDetail } from '../usePostDetail'
 import { getPost } from '@/api/posts'
 import { listComments } from '@/api/comments'
@@ -61,7 +80,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     id: 'post1',
     title: 'Test Post',
     content: '<p>Hello</p>',
-    author: { id: 'user1', display_name: 'Alice', avatar_url: null },
+    author: { id: 'user1', username: 'alice', display_name: 'Alice', avatar_url: null },
     category_id: null,
     category_name: null,
     sig_id: null,
@@ -164,7 +183,7 @@ describe('usePostDetail — Unmount guard', () => {
         id: 'c1',
         post_id: 'post1',
         content: 'Stale comment',
-        author: { id: 'user2', display_name: 'Bob', avatar_url: null },
+        author: { id: 'user2', username: 'bob', display_name: 'Bob', avatar_url: null },
         parent_id: null,
         mentions: null,
         reactions: null,

@@ -32,6 +32,7 @@ from app.services.auth import (
     create_session,
     create_ws_ticket,
     decrement_guest_counter,
+    decrement_guest_ip_counter,
     destroy_session,
     get_invite_code,
     guest_login,
@@ -178,20 +179,23 @@ async def login_as_guest(
 async def logout(
     request: Request, response: Response, current_user: dict = Depends(get_current_user)
 ) -> MessageResponse:
+    ip = request.client.host if request.client else None
+
     await destroy_session(
         user_id=current_user["sub"],
         role=current_user["role"],
         jti=current_user["jti"],
     )
 
-    # Decrement atomic guest counter on guest logout
+    # Decrement atomic guest counter and per-IP counter on guest logout
     if current_user["role"] == "GUEST":
         await decrement_guest_counter()
+        if ip:
+            await decrement_guest_ip_counter(ip)
 
     _clear_auth_cookies(response)
 
     # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
     await emit("audit.action", user_id=current_user["sub"], action="LOGOUT", ip_address=ip)
 
     return MessageResponse(message="Logged out successfully.")

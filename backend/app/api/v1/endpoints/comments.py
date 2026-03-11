@@ -55,11 +55,18 @@ async def create_new_comment(
     if not await check_rate_limit(f"rl:comment:{current_user['sub']}", *RATE_LIMIT_COMMENT):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
 
+    sanitized_content = sanitize_html(req.content)
+    if not sanitized_content or not sanitized_content.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Comment content cannot be empty.",
+        )
+
     try:
         comment = await create_comment(
             post_id=post_id,
             user_id=current_user["sub"],
-            content=sanitize_html(req.content),
+            content=sanitized_content,
             parent_id=req.parent_id,
             mentions=req.mentions,
         )
@@ -76,10 +83,16 @@ async def edit_comment(
     req: CommentUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CommentResponse:
+    sanitized_content = sanitize_html(req.content)
+    if not sanitized_content or not sanitized_content.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Comment content cannot be empty.",
+        )
     comment = await update_comment(
         comment_id=comment_id,
         user_id=current_user["sub"],
-        content=sanitize_html(req.content),
+        content=sanitized_content,
     )
     if comment is None:
         raise HTTPException(

@@ -4,6 +4,7 @@ from typing import Any
 
 import boto3
 from botocore.config import Config as BotoConfig
+from botocore.exceptions import ClientError
 from loguru import logger
 
 from app.core.config import settings
@@ -106,6 +107,18 @@ def delete_file(key: str) -> None:
     client = get_storage()
     client.delete_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
     logger.info("File deleted", extra={"key": key})
+
+
+def get_file_size(key: str) -> int:
+    """Return the size in bytes of an object in MinIO. Returns 0 if not found."""
+    client = get_storage()
+    try:
+        resp = client.head_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
+        return int(resp.get("ContentLength", 0))
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return 0
+        raise
 
 
 def generate_avatar_key(user_id: str, extension: str) -> str:

@@ -2,6 +2,8 @@ import uuid
 
 from loguru import logger
 
+from app.core.async_storage import delete_file as async_delete_file
+from app.core.async_storage import get_file_size as async_get_file_size
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.errors import (
@@ -72,6 +74,7 @@ async def upload_user_avatar(
     """Validate, upload, and persist a user avatar.
 
     Performs quota check, file validation, storage upload, and DB update.
+    Decrements storage for the old avatar before incrementing for the new one.
     Returns the updated user dict.
     Raises ServiceValidationError, StorageQuotaError, RateLimitError, or ServiceNotFoundError.
     """
@@ -88,21 +91,41 @@ async def upload_user_avatar(
 
     user_uuid = uuid.UUID(user_id)
     try:
+        # Get old avatar key and size for storage decrement
+        old_avatar_size = 0
+        existing_user = await user_repo.find_by_id(user_uuid)
+        if existing_user:
+            old_avatar_key = existing_user.get("avatar_url") or ""
+            # Only attempt size lookup for MinIO keys (not http URLs)
+            if old_avatar_key and not old_avatar_key.startswith(("http://", "https://")):
+                try:
+                    old_avatar_size = await async_get_file_size(old_avatar_key)
+                except Exception:
+                    logger.warning(
+                        "Failed to get old avatar size for user=%s key=%s",
+                        user_id,
+                        old_avatar_key,
+                        exc_info=True,
+                    )
+
         # Storage quota check — read from DB (O(1)) instead of S3 LIST
         used = await user_repo.get_storage_used(user_uuid)
-        if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
+        # Account for the old avatar being replaced when checking quota
+        effective_used = max(0, used - old_avatar_size)
+        if effective_used + len(data) > settings.MAX_USER_STORAGE_BYTES:
             raise StorageQuotaError("Storage quota exceeded (1 GB limit).")
 
         ext = ".png" if content_type == "image/png" else ".jpg"
         key = generate_avatar_key(user_id, ext)
         await async_upload_file(data, key, content_type)
-        # Increment DB-tracked storage counter after successful upload.
-        # TODO: implement decrement when avatar replacement/deletion is added.
+        # Update DB-tracked storage counter: net delta = new_size - old_size.
+        # GREATEST(0, ...) in SQL prevents negative totals.
+        net_delta = len(data) - old_avatar_size
         try:
-            await user_repo.increment_storage_used(user_uuid, len(data))
+            await user_repo.increment_storage_used(user_uuid, net_delta)
         except Exception:
             logger.warning(
-                "Failed to increment storage counter for user=%s key=%s",
+                "Failed to update storage counter for user=%s key=%s",
                 user_id,
                 key,
                 exc_info=True,
@@ -117,6 +140,21 @@ async def upload_user_avatar(
     )
     if user is None:
         raise ServiceNotFoundError("User not found.")
+
+    # Delete old avatar file from MinIO after successful replacement
+    if existing_user:
+        old_avatar_key = existing_user.get("avatar_url") or ""
+        if old_avatar_key and not old_avatar_key.startswith(("http://", "https://")):
+            try:
+                await async_delete_file(old_avatar_key)
+            except Exception:
+                logger.warning(
+                    "Failed to delete old avatar for user=%s key=%s",
+                    user_id,
+                    old_avatar_key,
+                    exc_info=True,
+                )
+
     return user
 
 
@@ -129,6 +167,16 @@ async def update_user_role(user_id: uuid.UUID, new_role: str) -> dict | None:
     if result:
         logger.info("User role updated", extra={"user_id": str(user_id), "new_role": new_role})
     return result
+
+
+async def check_sole_admin_sigs(user_id: uuid.UUID) -> list[dict]:
+    """Return list of SIGs where the user is the sole admin.
+
+    Used to block account deletion when it would orphan a SIG.
+    """
+    from app.repositories import sig_repo
+
+    return await sig_repo.find_sole_admin_sigs(user_id)
 
 
 async def anonymize_user(user_id: uuid.UUID) -> bool:

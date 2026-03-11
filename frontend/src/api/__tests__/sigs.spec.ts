@@ -25,6 +25,7 @@ import {
   leaveSig,
   removeMember,
   assignSubAdmin,
+  demoteSubAdmin,
   createSig,
   listMySigs,
   joinSig,
@@ -171,6 +172,29 @@ describe('sigs API', () => {
 
       expect(mockPost).toHaveBeenCalledWith(`/sigs/${sigId}/sub-admin`, { user_id: userId })
       expect(result).toEqual(mockData)
+    })
+  })
+
+  describe('demoteSubAdmin', () => {
+    it('calls POST /sigs/{sigId}/sub-admin/demote with user_id payload', async () => {
+      const sigId = 'sig-sa'
+      const userId = 'user-sa'
+      const mockData = { id: userId, sig_role: 'MEMBER' }
+      mockPost.mockResolvedValue({ data: mockData })
+
+      const result = await demoteSubAdmin(sigId, userId)
+
+      expect(mockPost).toHaveBeenCalledWith(`/sigs/${sigId}/sub-admin/demote`, { user_id: userId })
+      expect(result).toEqual(mockData)
+    })
+
+    it('does not use DELETE or PUT for demotion', async () => {
+      mockPost.mockResolvedValue({ data: {} })
+
+      await demoteSubAdmin('sig-1', 'user-1')
+
+      expect(mockDelete).not.toHaveBeenCalled()
+      expect(mockPut).not.toHaveBeenCalled()
     })
   })
 

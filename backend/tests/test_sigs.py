@@ -1,7 +1,7 @@
 """Tests for SIGs endpoints.
 
-list, create, get, not-found, remove member, assign sub-admin, list members, list posts.
-Also covers update_sig transaction safety.
+list, create, get, not-found, remove member, assign sub-admin, demote sub-admin,
+list members, list posts. Also covers update_sig transaction safety.
 """
 
 import uuid
@@ -199,6 +199,141 @@ class TestAssignSubAdmin:
             _clear_overrides()
 
 
+class TestDemoteSubAdmin:
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_success(self, client):
+        """POST /sigs/{id}/sub-admin/demote → 200 for admin."""
+        sig_id = uuid.uuid4()
+        target_user = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        member = {
+            "id": str(uuid.uuid4()),
+            "sig_id": str(sig_id),
+            "user_id": target_user,
+            "role": "MEMBER",
+            "display_name": "User1",
+            "username": "user1",
+            "created_at": now,
+        }
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.demote_sub_admin", new_callable=AsyncMock, return_value=member):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/sub-admin/demote",
+                    json={"user_id": target_user},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["role"] == "MEMBER"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_forbidden_for_regular_member(self, client):
+        """POST /sigs/{id}/sub-admin/demote → 403 for non-admin SIG member."""
+        sig_id = uuid.uuid4()
+        target_user = str(uuid.uuid4())
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.get_member_role", new_callable=AsyncMock, return_value="MEMBER"):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/sub-admin/demote",
+                    json={"user_id": target_user},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_not_sub_admin(self, client):
+        """POST /sigs/{id}/sub-admin/demote → 400 when target is not a sub-admin."""
+        sig_id = uuid.uuid4()
+        target_user = str(uuid.uuid4())
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.demote_sub_admin",
+                new_callable=AsyncMock,
+                side_effect=ValueError("User is not a sub-admin."),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/sub-admin/demote",
+                    json={"user_id": target_user},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_cannot_demote_owner(self, client):
+        """POST /sigs/{id}/sub-admin/demote → 400 when target is the SIG owner."""
+        sig_id = uuid.uuid4()
+        target_user = str(uuid.uuid4())
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.demote_sub_admin",
+                new_callable=AsyncMock,
+                side_effect=ValueError("Cannot demote the SIG owner/creator."),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/sub-admin/demote",
+                    json={"user_id": target_user},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "owner" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_sig_admin_allowed(self, client):
+        """POST /sigs/{id}/sub-admin/demote → 200 for SIG ADMIN (owner)."""
+        sig_id = uuid.uuid4()
+        target_user = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        member = {
+            "id": str(uuid.uuid4()),
+            "sig_id": str(sig_id),
+            "user_id": target_user,
+            "role": "MEMBER",
+            "display_name": "User1",
+            "username": "user1",
+            "created_at": now,
+        }
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(
+                    f"{_EP}.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="ADMIN",
+                ),
+                patch(
+                    f"{_EP}.demote_sub_admin",
+                    new_callable=AsyncMock,
+                    return_value=member,
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/sub-admin/demote",
+                    json={"user_id": target_user},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["role"] == "MEMBER"
+        finally:
+            _clear_overrides()
+
+
 class TestListMembers:
     @pytest.mark.anyio
     async def test_list_members(self, client):
@@ -239,7 +374,11 @@ class TestListSigPosts:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_EP}.list_posts", new_callable=AsyncMock, return_value=([], 0, 0)):
+            with patch(
+                f"{_EP}.list_posts",
+                new_callable=AsyncMock,
+                return_value={"posts": [], "total": 0, "total_pages": 0},
+            ):
                 resp = await client.get(
                     f"/api/v1/sigs/{sig_id}/posts",
                     headers={"Authorization": "Bearer fake"},

@@ -295,6 +295,32 @@ async def find_by_user(user_id: uuid.UUID) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+async def find_sole_admin_sigs(user_id: uuid.UUID) -> list[dict]:
+    """Return SIGs where the given user is the only admin (non-deleted SIG)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT s.id, s.name
+            FROM sig_members sm
+            JOIN sigs s ON sm.sig_id = s.id
+            WHERE sm.user_id = $1
+              AND sm.role = 'ADMIN'
+              AND s.is_deleted = false
+              AND (
+                  SELECT COUNT(*)
+                  FROM sig_members sm2
+                  JOIN users u ON sm2.user_id = u.id
+                  WHERE sm2.sig_id = sm.sig_id
+                    AND sm2.role = 'ADMIN'
+                    AND u.is_deleted = false
+              ) = 1
+            """,
+            user_id,
+        )
+        return [dict(r) for r in rows]
+
+
 async def find_members(
     sig_id: uuid.UUID,
     offset: int = 0,

@@ -167,9 +167,10 @@ async def _local_send(user_id: str, message: dict) -> None:
         try:
             await ws.send_json(message)
         except Exception:
-            logger.debug(
+            logger.warning(
                 "Failed to send WS message to user, discarding connection",
                 extra={"user_id": user_id},
+                exc_info=True,
             )
             async with _connections_lock:
                 _connections[user_id].discard(ws)

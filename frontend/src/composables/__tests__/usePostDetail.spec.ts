@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import type { Post, Comment } from '@/types'
 
 // Mock Vue lifecycle hooks to prevent them from firing during tests
@@ -31,6 +32,7 @@ vi.mock('@/api/posts', () => ({
   deletePost: vi.fn(),
   getPostHistory: vi.fn(),
   togglePinPost: vi.fn(),
+  togglePostReaction: vi.fn(),
 }))
 
 vi.mock('@/api/comments', () => ({
@@ -54,15 +56,20 @@ vi.mock('dompurify', () => ({
 }))
 
 import { usePostDetail } from '../usePostDetail'
-import { getPost, updatePost, deletePost } from '@/api/posts'
-import { listComments, createComment } from '@/api/comments'
+import { useToastStore } from '@/stores/toast'
+import { getPost, updatePost, deletePost, getPostHistory, togglePinPost } from '@/api/posts'
+import { listComments, createComment, deleteComment, toggleReaction } from '@/api/comments'
 import { createReport } from '@/api/reports'
 
 const mockGetPost = getPost as ReturnType<typeof vi.fn>
 const mockUpdatePost = updatePost as ReturnType<typeof vi.fn>
 const mockDeletePost = deletePost as ReturnType<typeof vi.fn>
+const mockGetPostHistory = getPostHistory as ReturnType<typeof vi.fn>
+const mockTogglePinPost = togglePinPost as ReturnType<typeof vi.fn>
 const mockListComments = listComments as ReturnType<typeof vi.fn>
 const mockCreateComment = createComment as ReturnType<typeof vi.fn>
+const mockDeleteComment = deleteComment as ReturnType<typeof vi.fn>
+const mockToggleReaction = toggleReaction as ReturnType<typeof vi.fn>
 const mockCreateReport = createReport as ReturnType<typeof vi.fn>
 
 function makePost(overrides: Partial<Post> = {}): Post {
@@ -70,7 +77,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     id: 'post1',
     title: 'Test Post',
     content: '<p>Hello</p>',
-    author: { id: 'user1', display_name: 'Alice', avatar_url: null },
+    author: { id: 'user1', username: 'alice', display_name: 'Alice', avatar_url: null },
     category_id: null,
     category_name: null,
     sig_id: null,
@@ -93,7 +100,7 @@ function makeComment(overrides: Partial<Comment> = {}): Comment {
     id: 'c1',
     post_id: 'post1',
     content: 'A comment',
-    author: { id: 'user2', display_name: 'Bob', avatar_url: null },
+    author: { id: 'user2', username: 'bob', display_name: 'Bob', avatar_url: null },
     parent_id: null,
     mentions: null,
     reactions: null,
@@ -129,6 +136,7 @@ describe('usePostDetail', () => {
     vi.clearAllMocks()
     onMountedCallbacks.length = 0
     localStorage.clear()
+    setActivePinia(createPinia())
     mockGetPost.mockResolvedValue(makePost())
     mockListComments.mockResolvedValue({ comments: [], total: 0 })
   })
@@ -223,7 +231,9 @@ describe('usePostDetail', () => {
 
   // 8. canModify
   it('canModify is true for author', async () => {
-    const testPost = makePost({ author: { id: 'user1', display_name: 'Me', avatar_url: null } })
+    const testPost = makePost({
+      author: { id: 'user1', username: 'user1', display_name: 'Me', avatar_url: null },
+    })
     mockGetPost.mockResolvedValue(testPost)
 
     const { canModify, fetchPost } = createHarness({ user: { id: 'user1' } })
@@ -233,7 +243,9 @@ describe('usePostDetail', () => {
   })
 
   it('canModify is true for admin even if not author', async () => {
-    const testPost = makePost({ author: { id: 'other', display_name: 'Other', avatar_url: null } })
+    const testPost = makePost({
+      author: { id: 'other', username: 'other', display_name: 'Other', avatar_url: null },
+    })
     mockGetPost.mockResolvedValue(testPost)
 
     const { canModify, fetchPost } = createHarness({ user: { id: 'user1' }, isAdmin: true })
@@ -243,7 +255,9 @@ describe('usePostDetail', () => {
   })
 
   it('canModify is false for non-author non-admin', async () => {
-    const testPost = makePost({ author: { id: 'other', display_name: 'Other', avatar_url: null } })
+    const testPost = makePost({
+      author: { id: 'other', username: 'other', display_name: 'Other', avatar_url: null },
+    })
     mockGetPost.mockResolvedValue(testPost)
 
     const { canModify, fetchPost } = createHarness({ user: { id: 'user1' }, isAdmin: false })
@@ -254,7 +268,9 @@ describe('usePostDetail', () => {
 
   // 9. canReport
   it('canReport is false for guest', async () => {
-    const testPost = makePost({ author: { id: 'other', display_name: 'Other', avatar_url: null } })
+    const testPost = makePost({
+      author: { id: 'other', username: 'other', display_name: 'Other', avatar_url: null },
+    })
     mockGetPost.mockResolvedValue(testPost)
 
     const { canReport, fetchPost } = createHarness({
@@ -268,7 +284,9 @@ describe('usePostDetail', () => {
   })
 
   it('canReport is false for own post', async () => {
-    const testPost = makePost({ author: { id: 'user1', display_name: 'Me', avatar_url: null } })
+    const testPost = makePost({
+      author: { id: 'user1', username: 'user1', display_name: 'Me', avatar_url: null },
+    })
     mockGetPost.mockResolvedValue(testPost)
 
     const { canReport, fetchPost } = createHarness({ user: { id: 'user1' } })
@@ -279,7 +297,7 @@ describe('usePostDetail', () => {
 
   it('canReport is true for authenticated non-guest on other user post', async () => {
     const testPost = makePost({
-      author: { id: 'other', display_name: 'Other', avatar_url: null },
+      author: { id: 'other', username: 'other', display_name: 'Other', avatar_url: null },
     })
     mockGetPost.mockResolvedValue(testPost)
 
@@ -510,19 +528,116 @@ describe('usePostDetail', () => {
   // Additional: canDeleteComment
   it('canDeleteComment returns true for admin', () => {
     const { canDeleteComment } = createHarness({ isAdmin: true })
-    const comment = makeComment({ author: { id: 'other', display_name: 'O', avatar_url: null } })
+    const comment = makeComment({
+      author: { id: 'other', username: 'other', display_name: 'O', avatar_url: null },
+    })
     expect(canDeleteComment(comment)).toBe(true)
   })
 
   it('canDeleteComment returns true for comment author', () => {
     const { canDeleteComment } = createHarness({ user: { id: 'user2' } })
-    const comment = makeComment({ author: { id: 'user2', display_name: 'Bob', avatar_url: null } })
+    const comment = makeComment({
+      author: { id: 'user2', username: 'bob', display_name: 'Bob', avatar_url: null },
+    })
     expect(canDeleteComment(comment)).toBe(true)
   })
 
   it('canDeleteComment returns false for non-author non-admin', () => {
     const { canDeleteComment } = createHarness({ user: { id: 'user1' }, isAdmin: false })
-    const comment = makeComment({ author: { id: 'other', display_name: 'O', avatar_url: null } })
+    const comment = makeComment({
+      author: { id: 'other', username: 'other', display_name: 'O', avatar_url: null },
+    })
     expect(canDeleteComment(comment)).toBe(false)
+  })
+
+  // --- Error handling: toast notifications ---
+  it('fetchPost failure shows toast error', async () => {
+    mockGetPost.mockRejectedValue({ response: { data: { detail: 'Not found' } } })
+
+    const { fetchPost } = createHarness()
+    await fetchPost()
+
+    const toast = useToastStore()
+    expect(toast.toasts.length).toBe(1)
+    expect(toast.toasts[0].message).toBe('Not found')
+    expect(toast.toasts[0].type).toBe('error')
+  })
+
+  it('fetchComments failure shows toast error', async () => {
+    mockListComments.mockRejectedValue(new Error('Network error'))
+
+    const { fetchComments } = createHarness()
+    await fetchComments()
+
+    const toast = useToastStore()
+    expect(toast.toasts.length).toBe(1)
+    expect(toast.toasts[0].message).toBe('Failed to load comments.')
+    expect(toast.toasts[0].type).toBe('error')
+  })
+
+  it('fetchHistory failure shows toast error', async () => {
+    mockGetPostHistory.mockRejectedValue(new Error('Server error'))
+
+    const { fetchHistory } = createHarness()
+    await fetchHistory()
+
+    const toast = useToastStore()
+    expect(toast.toasts.length).toBe(1)
+    expect(toast.toasts[0].message).toBe('Failed to load edit history.')
+    expect(toast.toasts[0].type).toBe('error')
+  })
+
+  it('deletePostHandler failure shows toast error', async () => {
+    mockDeletePost.mockRejectedValue({ response: { data: { detail: 'Forbidden' } } })
+
+    const { deletePostHandler, showDeletePostConfirm } = createHarness()
+    showDeletePostConfirm.value = true
+    await deletePostHandler()
+
+    const toast = useToastStore()
+    expect(toast.toasts.length).toBe(1)
+    expect(toast.toasts[0].message).toBe('Forbidden')
+    expect(toast.toasts[0].type).toBe('error')
+    expect(showDeletePostConfirm.value).toBe(false)
+  })
+
+  it('deleteCommentHandler failure shows toast error', async () => {
+    const harness = createHarness()
+    harness.showDeleteCommentConfirm.value = true
+    harness.confirmDeleteComment('c1')
+    mockDeleteComment.mockRejectedValue(new Error('Delete failed'))
+    await harness.deleteCommentHandler()
+
+    const toast = useToastStore()
+    expect(
+      toast.toasts.some((t: { message: string }) => t.message === 'Failed to delete comment.'),
+    ).toBe(true)
+  })
+
+  it('handleTogglePin failure shows toast error', async () => {
+    const testPost = makePost({ is_pinned: false })
+    mockGetPost.mockResolvedValue(testPost)
+    mockTogglePinPost.mockRejectedValue(new Error('Pin failed'))
+
+    const { fetchPost, handleTogglePin } = createHarness({ isAdmin: true })
+    await fetchPost()
+    await handleTogglePin()
+
+    const toast = useToastStore()
+    expect(toast.toasts.length).toBe(1)
+    expect(toast.toasts[0].message).toBe('Failed to toggle pin.')
+    expect(toast.toasts[0].type).toBe('error')
+  })
+
+  it('toggleReactionHandler failure shows toast error', async () => {
+    mockToggleReaction.mockRejectedValue(new Error('Reaction failed'))
+
+    const { toggleReactionHandler } = createHarness()
+    await toggleReactionHandler('c1', 'LIKE')
+
+    const toast = useToastStore()
+    expect(
+      toast.toasts.some((t: { message: string }) => t.message === 'Failed to toggle reaction.'),
+    ).toBe(true)
   })
 })

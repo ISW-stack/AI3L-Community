@@ -205,17 +205,39 @@ async def insert_response(
     user_id: uuid.UUID,
     answers: dict[str, Any],
     conn: Any,
-) -> None:
-    await conn.execute(
-        """
-        INSERT INTO form_responses (id, form_id, user_id, answers)
-        VALUES ($1, $2, $3, $4::jsonb)
-        """,
-        response_id,
-        form_id,
-        user_id,
-        json.dumps(answers),
-    )
+    max_respondents: int | None = None,
+) -> bool:
+    """Atomically insert a form response, enforcing max_respondents if set.
+
+    Returns True if the row was inserted, False if the limit was reached.
+    Uses a single INSERT ... SELECT to prevent race conditions.
+    """
+    if max_respondents is not None:
+        result = await conn.execute(
+            """
+            INSERT INTO form_responses (id, form_id, user_id, answers)
+            SELECT $1, $2, $3, $4::jsonb
+            WHERE (SELECT COUNT(*) FROM form_responses WHERE form_id = $2) < $5
+            """,
+            response_id,
+            form_id,
+            user_id,
+            json.dumps(answers),
+            max_respondents,
+        )
+        return bool(result == "INSERT 0 1")
+    else:
+        await conn.execute(
+            """
+            INSERT INTO form_responses (id, form_id, user_id, answers)
+            VALUES ($1, $2, $3, $4::jsonb)
+            """,
+            response_id,
+            form_id,
+            user_id,
+            json.dumps(answers),
+        )
+        return True
 
 
 async def count_responses(form_id: uuid.UUID, conn: Any) -> int:

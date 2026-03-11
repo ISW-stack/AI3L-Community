@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -232,6 +232,13 @@ function openDeleteConfirm() {
 function closeDeleteConfirm() {
   showDeleteConfirm.value = false
 }
+
+// Clear delete confirmation text when modal is closed
+watch(showDeleteConfirm, (open) => {
+  if (!open) {
+    deleteConfirmText.value = ''
+  }
+})
 
 async function handleDeleteAccount() {
   deletingAccount.value = true

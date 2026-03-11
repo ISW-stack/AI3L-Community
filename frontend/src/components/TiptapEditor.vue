@@ -129,9 +129,17 @@ function addImage() {
   fileInputRef.value?.click()
 }
 
+const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20 MB
+
 async function handleFileUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file || !editor.value) return
+
+  if (file.size > MAX_FILE_SIZE) {
+    toastStore.show(t('editor.fileTooLarge'), 'error')
+    if (fileInputRef.value) fileInputRef.value.value = ''
+    return
+  }
 
   uploading.value = true
   try {

@@ -117,6 +117,11 @@ class TestGetForm:
             with (
                 patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
             ):
                 resp = await client.get(
                     f"/api/v1/forms/{form_id}",
@@ -1257,5 +1262,104 @@ class TestFormDescriptionSanitization:
                 )
                 assert resp.status_code == 200
                 mock_sanitize.assert_not_called()
+        finally:
+            _clear_overrides()
+
+
+class TestGetFormAccessControl:
+    """GET /forms/{form_id} respects allow_non_members flag."""
+
+    @pytest.mark.anyio
+    async def test_non_member_blocked_when_allow_non_members_false(self, client):
+        """Non-SIG-member gets 403 when form has allow_non_members=False."""
+        form_id = uuid.uuid4()
+        form = _make_form(allow_non_members=False)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value=None,
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "SIG members" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_sig_member_allowed_when_allow_non_members_false(self, client):
+        """SIG member can view form even when allow_non_members=False."""
+        form_id = uuid.uuid4()
+        form = _make_form(allow_non_members=False)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_admin_always_allowed(self, client):
+        """Platform admin can view form regardless of allow_non_members."""
+        form_id = uuid.uuid4()
+        form = _make_form(allow_non_members=False)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_anyone_allowed_when_allow_non_members_true(self, client):
+        """Any logged-in user can view form when allow_non_members=True."""
+        form_id = uuid.uuid4()
+        form = _make_form(allow_non_members=True)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
         finally:
             _clear_overrides()

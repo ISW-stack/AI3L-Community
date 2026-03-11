@@ -21,11 +21,13 @@ vi.mock('@/constants', () => ({
 const mockGetSigMembers = vi.fn()
 const mockRemoveMember = vi.fn()
 const mockAssignSubAdmin = vi.fn()
+const mockDemoteSubAdmin = vi.fn()
 
 vi.mock('@/api/sigs', () => ({
   getSigMembers: (...args: unknown[]) => mockGetSigMembers(...args),
   removeMember: (...args: unknown[]) => mockRemoveMember(...args),
   assignSubAdmin: (...args: unknown[]) => mockAssignSubAdmin(...args),
+  demoteSubAdmin: (...args: unknown[]) => mockDemoteSubAdmin(...args),
 }))
 
 function makeMember(overrides: Partial<SigMember> = {}): SigMember {
@@ -384,5 +386,158 @@ describe('SigMembersView', () => {
 
     // removeMember should never have been called
     expect(mockRemoveMember).not.toHaveBeenCalled()
+  })
+
+  it('shows Demote button for platform admin when member is SUB_ADMIN', async () => {
+    const { wrapper } = await mountComponent({ role: 'ADMIN' })
+    await flushPromises()
+
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+
+    // Row 1 = SUB_ADMIN — should have Demote
+    expect(tableRows[1].text()).toContain('Demote')
+
+    // Row 0 = ADMIN, Row 2 = MEMBER — should NOT have Demote
+    expect(tableRows[0].text()).not.toContain('Demote')
+    expect(tableRows[2].text()).not.toContain('Demote')
+  })
+
+  it('shows Demote button for SIG owner (ADMIN role) on SUB_ADMIN members', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-1',
+    })
+    await flushPromises()
+
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+
+    // Row 1 = SUB_ADMIN — should have Demote
+    expect(tableRows[1].text()).toContain('Demote')
+  })
+
+  it('hides Demote button for SUB_ADMIN users (only owners can demote)', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'SUB_ADMIN',
+      currentUserId: 'user-2',
+    })
+    await flushPromises()
+
+    const buttons = wrapper.findAll('button')
+    const demoteButtons = buttons.filter((b) => b.text().includes('Demote'))
+    expect(demoteButtons.length).toBe(0)
+  })
+
+  it('shows demote confirmation modal with correct member name', async () => {
+    const { wrapper } = await mountComponent({ role: 'ADMIN', currentUserId: 'user-1' })
+    await flushPromises()
+
+    // Click Demote on user-2 (SUB_ADMIN) in the table
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+    const subAdminRow = tableRows[1]
+    const demoteBtn = subAdminRow.findAll('button').find((b) => b.text().includes('Demote'))
+    expect(demoteBtn).toBeTruthy()
+
+    await demoteBtn!.trigger('click')
+    await flushPromises()
+
+    // Modal should show the sub-admin's display name
+    const modal = wrapper.find('.base-modal')
+    expect(modal.exists()).toBe(true)
+    expect(modal.text()).toContain('Sub Admin')
+
+    // demoteSubAdmin API should NOT have been called yet
+    expect(mockDemoteSubAdmin).not.toHaveBeenCalled()
+  })
+
+  it('calls demoteSubAdmin API after confirming demotion in modal', async () => {
+    mockDemoteSubAdmin.mockResolvedValue({})
+    mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+    const { wrapper } = await mountComponent({
+      role: 'ADMIN',
+      currentUserId: 'user-1',
+    })
+    await flushPromises()
+
+    // Click Demote on user-2 (SUB_ADMIN) in the table
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+    const subAdminRow = tableRows[1]
+    const demoteBtn = subAdminRow.findAll('button').find((b) => b.text().includes('Demote'))
+    expect(demoteBtn).toBeTruthy()
+
+    await demoteBtn!.trigger('click')
+    await flushPromises()
+
+    // Modal should be visible with demote title
+    const modal = wrapper.find('.base-modal')
+    expect(modal.exists()).toBe(true)
+    expect(modal.text()).toContain('Sub Admin')
+
+    // Click the confirm button inside modal
+    const modalButtons = modal.findAll('button')
+    const confirmBtn = modalButtons.find((b) => b.text().includes('Demote'))
+    expect(confirmBtn).toBeTruthy()
+
+    await confirmBtn!.trigger('click')
+    await flushPromises()
+
+    expect(mockDemoteSubAdmin).toHaveBeenCalledWith('sig-1', 'user-2')
+  })
+
+  it('closes demote modal without calling API when cancel is clicked', async () => {
+    const { wrapper } = await mountComponent({ role: 'ADMIN', currentUserId: 'user-1' })
+    await flushPromises()
+
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+    const subAdminRow = tableRows[1]
+    const demoteBtn = subAdminRow.findAll('button').find((b) => b.text().includes('Demote'))
+    expect(demoteBtn).toBeTruthy()
+
+    await demoteBtn!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+
+    const modal = wrapper.find('.base-modal')
+    const cancelBtn = modal.findAll('button').find((b) => b.text().includes('Cancel'))
+    expect(cancelBtn).toBeTruthy()
+
+    await cancelBtn!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.base-modal').exists()).toBe(false)
+    expect(mockDemoteSubAdmin).not.toHaveBeenCalled()
+  })
+
+  it('shows error toast when demoteSubAdmin API fails', async () => {
+    mockDemoteSubAdmin.mockRejectedValue({ response: { data: { detail: 'Demote failed' } } })
+    mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+    const { wrapper } = await mountComponent({ role: 'ADMIN', currentUserId: 'user-1' })
+    await flushPromises()
+
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+    const subAdminRow = tableRows[1]
+    const demoteBtn = subAdminRow.findAll('button').find((b) => b.text().includes('Demote'))
+    await demoteBtn!.trigger('click')
+    await flushPromises()
+
+    const modal = wrapper.find('.base-modal')
+    const confirmBtn = modal.findAll('button').find((b) => b.text().includes('Demote'))
+    await confirmBtn!.trigger('click')
+    await flushPromises()
+
+    const { useToastStore } = await import('@/stores/toast')
+    const toast = useToastStore()
+    expect(toast.toasts.length).toBeGreaterThan(0)
+    expect(toast.toasts[0].type).toBe('error')
   })
 })

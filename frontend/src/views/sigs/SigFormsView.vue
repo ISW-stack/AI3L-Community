@@ -40,8 +40,8 @@ async function fetchForms() {
     const data = await getSigForms(sigId.value)
     forms.value = data.forms
     total.value = data.total
-  } catch (e) {
-    console.error('Failed to fetch forms:', e)
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('sigs.forms.fetchError')), 'error')
   } finally {
     loading.value = false
   }
@@ -90,8 +90,8 @@ async function fetchResponses(formId: string, title: string, page = 1) {
     responses.value = data.responses || []
     const totalResp = data.total || 0
     responsesTotalPages.value = Math.ceil(totalResp / 20) || 1
-  } catch {
-    toastStore.show(t('sigs.forms.deleteError'), 'error')
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('sigs.forms.fetchResponsesError')), 'error')
   } finally {
     responsesLoading.value = false
   }

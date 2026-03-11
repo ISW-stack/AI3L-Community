@@ -286,6 +286,93 @@ class TestCreateComment:
         finally:
             _clear_overrides()
 
+    @pytest.mark.anyio
+    async def test_create_comment_empty_after_sanitize(self, client):
+        """POST /posts/{pid}/comments → 400 when sanitized content is empty (script-only)."""
+        post_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.sanitize_html", return_value=""),
+            ):
+                resp = await client.post(
+                    f"/api/v1/posts/{post_id}/comments",
+                    json={"content": "<script>alert(1)</script>"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "empty" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestEditComment:
+    @pytest.mark.anyio
+    async def test_edit_comment_empty_after_sanitize(self, client):
+        """PUT /posts/{pid}/comments/{cid} → 400 when sanitized content is empty."""
+        post_id = uuid.uuid4()
+        comment_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.sanitize_html", return_value=""):
+                resp = await client.put(
+                    f"/api/v1/posts/{post_id}/comments/{comment_id}",
+                    json={"content": "<script>alert(1)</script>"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "empty" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_edit_comment_whitespace_after_sanitize(self, client):
+        """PUT /posts/{pid}/comments/{cid} → 400 when sanitized content is whitespace."""
+        post_id = uuid.uuid4()
+        comment_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.sanitize_html", return_value="   "):
+                resp = await client.put(
+                    f"/api/v1/posts/{post_id}/comments/{comment_id}",
+                    json={"content": "   "},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "empty" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_edit_comment_valid_content(self, client):
+        """PUT /posts/{pid}/comments/{cid} → 200 with valid sanitized content."""
+        post_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        comment_id = uuid.uuid4()
+        comment = _make_comment(post_id=post_id, user_id=user_id, comment_id=comment_id)
+        comment["content"] = "Updated comment"
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.sanitize_html", return_value="Updated comment"),
+                patch(f"{_EP}.update_comment", new_callable=AsyncMock, return_value=comment),
+            ):
+                resp = await client.put(
+                    f"/api/v1/posts/{post_id}/comments/{comment_id}",
+                    json={"content": "Updated comment"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["content"] == "Updated comment"
+        finally:
+            _clear_overrides()
+
 
 class TestDeleteComment:
     @pytest.mark.anyio

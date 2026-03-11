@@ -30,6 +30,7 @@ import { getFileScanStatus } from '@/api/files'
 import DOMPurify from 'dompurify'
 import { extractMentions } from '@/utils/html'
 import { getErrorMessage } from '@/utils/error'
+import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
 
 export interface CommentNode {
@@ -60,6 +61,7 @@ export interface UsePostDetailOptions {
 
 export function usePostDetail(options: UsePostDetailOptions) {
   const { postId, auth, router } = options
+  const toastStore = useToastStore()
 
   // --- Post state ---
   const post = ref<Post | null>(null)
@@ -204,8 +206,11 @@ export function usePostDetail(options: UsePostDetailOptions) {
       const data = await getPost(postId.value)
       if (isUnmounted) return
       post.value = data
-    } catch {
-      if (!isUnmounted) post.value = null
+    } catch (e: unknown) {
+      if (!isUnmounted) {
+        post.value = null
+        toastStore.show(getErrorMessage(e, 'Failed to load post.'), 'error')
+      }
     } finally {
       if (!isUnmounted) loading.value = false
     }
@@ -220,8 +225,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
       if (isUnmounted) return
       comments.value = data.comments
       updateCommentPagination(data.total)
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      toastStore.show(getErrorMessage(e, 'Failed to load comments.'), 'error')
     }
   }
 
@@ -234,8 +239,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       history.value = await getPostHistory(postId.value)
       showHistory.value = true
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      toastStore.show(getErrorMessage(e, 'Failed to load edit history.'), 'error')
     }
   }
 
@@ -334,8 +339,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       await apiDeletePost(postId.value)
       router.push('/forum')
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      toastStore.show(getErrorMessage(e, 'Failed to delete post.'), 'error')
     } finally {
       showDeletePostConfirm.value = false
     }
@@ -394,8 +399,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
       await apiDeleteComment(postId.value, deleteTargetCommentId.value)
       await fetchComments()
       if (post.value && post.value.comment_count > 0) post.value.comment_count--
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      toastStore.show(getErrorMessage(e, 'Failed to delete comment.'), 'error')
     } finally {
       showDeleteCommentConfirm.value = false
       deleteTargetCommentId.value = null
@@ -429,8 +434,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       const result = await togglePinPost(post.value.id, !post.value.is_pinned)
       post.value.is_pinned = result.is_pinned
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      toastStore.show(getErrorMessage(e, 'Failed to toggle pin.'), 'error')
     } finally {
       pinSaving.value = false
     }
@@ -454,8 +459,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       await apiToggleReaction(postId.value, commentId, reaction)
       await fetchComments()
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      toastStore.show(getErrorMessage(e, 'Failed to toggle reaction.'), 'error')
     }
   }
 
@@ -464,8 +469,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       const updated = await apiTogglePostReaction(post.value.id, reaction)
       post.value = updated
-    } catch (e) {
-      console.error(e)
+    } catch (e: unknown) {
+      toastStore.show(getErrorMessage(e, 'Failed to toggle reaction.'), 'error')
     }
   }
 

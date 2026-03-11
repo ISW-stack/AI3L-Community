@@ -241,6 +241,60 @@ describe('ProfileView', () => {
     expect(wrapper.find('[aria-haspopup="true"]').exists()).toBe(true)
   })
 
+  describe('delete account modal', () => {
+    it('clears deleteConfirmText when modal is closed', async () => {
+      const { wrapper } = await mountProfile()
+
+      // Switch to danger zone tab
+      const tabs = wrapper.findAll('button')
+      const dangerTab = tabs.find((b) => b.text() === 'Danger Zone')
+      await dangerTab!.trigger('click')
+      await nextTick()
+
+      // Open the delete modal
+      const deleteBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Delete My Account'))
+      expect(deleteBtn).toBeTruthy()
+      await deleteBtn!.trigger('click')
+      await nextTick()
+
+      // Type "DELETE" in the confirmation input
+      const vm = wrapper.vm as any
+      vm.deleteConfirmText = 'DELETE'
+      await nextTick()
+
+      // Close the modal via cancel
+      const cancelBtn = wrapper.findAll('button').find((b) => b.text().includes('Cancel'))
+      expect(cancelBtn).toBeTruthy()
+      await cancelBtn!.trigger('click')
+      await nextTick()
+
+      // deleteConfirmText should be cleared
+      expect(vm.deleteConfirmText).toBe('')
+    })
+
+    it('clears deleteConfirmText when modal is closed programmatically', async () => {
+      const { wrapper } = await mountProfile()
+      const vm = wrapper.vm as any
+
+      // Open the delete modal
+      vm.showDeleteConfirm = true
+      await nextTick()
+
+      // Type "DELETE"
+      vm.deleteConfirmText = 'DELETE'
+      await nextTick()
+
+      // Close the modal
+      vm.showDeleteConfirm = false
+      await nextTick()
+
+      // deleteConfirmText should be cleared by the watcher
+      expect(vm.deleteConfirmText).toBe('')
+    })
+  })
+
   describe('storage usage card', () => {
     it('calls getStorageUsage on mount for non-guest users', async () => {
       await mountProfile({ role: 'MEMBER' })

@@ -145,6 +145,19 @@ async def decrement_guest_counter() -> None:
         await redis.set(_GUEST_COUNTER_KEY, 0)
 
 
+async def decrement_guest_ip_counter(ip: str) -> None:
+    """Decrement the per-IP guest counter (call on guest logout).
+
+    Clamps to zero to prevent negative values from stale or duplicate decrements.
+    """
+    redis = get_redis()
+    ip_guest_key = f"guest:ip:{ip}"
+    val = await redis.decr(ip_guest_key)
+    if val < 0:
+        await redis.set(ip_guest_key, 0)
+        await redis.expire(ip_guest_key, 3600)
+
+
 async def get_invite_code(invite_code: str) -> dict | None:
     """Verify invite code exists, is not expired, and has not been consumed."""
     return await auth_repo.find_invite_code(invite_code)

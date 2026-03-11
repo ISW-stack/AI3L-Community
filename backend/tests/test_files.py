@@ -527,6 +527,610 @@ class TestUserRepoStorageFunctions:
         assert result == 0
 
 
+class TestDeleteFileStorageDecrement:
+    """DELETE /files/content/{key} must decrement storage and delete file."""
+
+    @pytest.mark.anyio
+    async def test_delete_file_decrements_storage(self, client: AsyncClient) -> None:
+        """Deleting a file decrements the owner's storage_used_bytes by the file size."""
+        user_id = str(uuid.uuid4())
+        _override_auth_files("MEMBER", user_id=user_id)
+        file_key = f"editor/{user_id}/abc123.png"
+        file_size = 5000
+
+        try:
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.async_get_file_size",
+                    new_callable=AsyncMock,
+                    return_value=file_size,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.async_delete_file",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.increment_storage_used",
+                    new_callable=AsyncMock,
+                ) as mock_decrement,
+                patch(
+                    "app.api.v1.endpoints.files.file_scan_repo.delete_by_key",
+                    new_callable=AsyncMock,
+                ),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/files/content/{file_key}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["freed_bytes"] == file_size
+            # Must decrement with negative delta
+            mock_decrement.assert_called_once()
+            call_args = mock_decrement.call_args
+            assert call_args.args[1] == -file_size
+        finally:
+            _clear_overrides_files()
+
+    @pytest.mark.anyio
+    async def test_delete_file_not_found_returns_404(self, client: AsyncClient) -> None:
+        """Deleting a file that doesn't exist returns 404."""
+        user_id = str(uuid.uuid4())
+        _override_auth_files("MEMBER", user_id=user_id)
+        file_key = f"editor/{user_id}/nonexistent.png"
+
+        try:
+            with patch(
+                "app.api.v1.endpoints.files.async_get_file_size",
+                new_callable=AsyncMock,
+                return_value=0,  # file not found
+            ):
+                resp = await client.delete(
+                    f"/api/v1/files/content/{file_key}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 404
+        finally:
+            _clear_overrides_files()
+
+    @pytest.mark.anyio
+    async def test_delete_file_forbidden_for_non_owner(self, client: AsyncClient) -> None:
+        """Non-owner, non-admin user cannot delete another user's file."""
+        user_id = str(uuid.uuid4())
+        other_user_id = str(uuid.uuid4())
+        _override_auth_files("MEMBER", user_id=user_id)
+        file_key = f"editor/{other_user_id}/abc123.png"
+
+        try:
+            resp = await client.delete(
+                f"/api/v1/files/content/{file_key}",
+                headers={"Authorization": "Bearer fake"},
+            )
+
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides_files()
+
+    @pytest.mark.anyio
+    async def test_delete_file_admin_can_delete_any(self, client: AsyncClient) -> None:
+        """Admin user can delete any user's file."""
+        admin_id = str(uuid.uuid4())
+        owner_id = str(uuid.uuid4())
+        _override_auth_files("ADMIN", user_id=admin_id)
+        file_key = f"editor/{owner_id}/abc123.png"
+        file_size = 8000
+
+        try:
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.async_get_file_size",
+                    new_callable=AsyncMock,
+                    return_value=file_size,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.async_delete_file",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.increment_storage_used",
+                    new_callable=AsyncMock,
+                ) as mock_decrement,
+                patch(
+                    "app.api.v1.endpoints.files.file_scan_repo.delete_by_key",
+                    new_callable=AsyncMock,
+                ),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/files/content/{file_key}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 200
+            # Storage decrement targets the file owner, not the admin
+            mock_decrement.assert_called_once()
+            call_args = mock_decrement.call_args
+            assert call_args.args[0] == uuid.UUID(owner_id)
+            assert call_args.args[1] == -file_size
+        finally:
+            _clear_overrides_files()
+
+    @pytest.mark.anyio
+    async def test_delete_file_rejects_path_traversal(self, client: AsyncClient) -> None:
+        """DELETE endpoint rejects path traversal attempts."""
+        _override_auth_files("MEMBER")
+        try:
+            resp = await client.delete(
+                "/api/v1/files/content/..%2F..%2Fetc%2Fpasswd",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 400
+        finally:
+            _clear_overrides_files()
+
+
+class TestAvatarStorageDecrement:
+    """Avatar replacement must decrement storage for the old avatar."""
+
+    @pytest.mark.anyio
+    async def test_avatar_replacement_uses_net_delta(self) -> None:
+        """Replacing an avatar uses net delta (new_size - old_size) for storage update."""
+        from app.services.user import upload_user_avatar
+
+        user_id = str(uuid.uuid4())
+        user_uuid = uuid.UUID(user_id)
+        old_avatar_key = f"avatars/{user_id}/old.jpg"
+        old_avatar_size = 3000
+        new_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 200  # ~208 bytes
+        new_size = len(new_data)
+
+        existing_user = {
+            "id": user_uuid,
+            "avatar_url": old_avatar_key,
+            "username": "testuser",
+        }
+        updated_user = {
+            "id": user_uuid,
+            "avatar_url": f"avatars/{user_id}/new.png",
+            "username": "testuser",
+            "display_name": "testuser",
+            "role": "MEMBER",
+            "orcid": None,
+            "affiliation": None,
+            "bio": None,
+            "is_deleted": False,
+            "is_banned": False,
+            "ban_reason": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_redis.delete = AsyncMock()
+
+        with (
+            patch("app.services.user.get_redis", return_value=mock_redis),
+            patch(
+                "app.services.user.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=existing_user,
+            ),
+            patch(
+                "app.services.user.async_get_file_size",
+                new_callable=AsyncMock,
+                return_value=old_avatar_size,
+            ),
+            patch(
+                "app.services.user.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=5000,
+            ),
+            patch("app.services.user.validate_avatar"),
+            patch(
+                "app.services.user.async_upload_file",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.services.user.user_repo.increment_storage_used",
+                new_callable=AsyncMock,
+            ) as mock_increment,
+            patch(
+                "app.services.user.user_repo.update_profile",
+                new_callable=AsyncMock,
+                return_value=updated_user,
+            ),
+        ):
+            await upload_user_avatar(
+                user_id=user_id,
+                data=new_data,
+                content_type="image/png",
+                filename="avatar.png",
+            )
+
+        # Net delta = new_size - old_avatar_size
+        mock_increment.assert_called_once()
+        call_args = mock_increment.call_args
+        expected_net_delta = new_size - old_avatar_size
+        assert call_args.args[0] == user_uuid
+        assert call_args.args[1] == expected_net_delta
+
+    @pytest.mark.anyio
+    async def test_avatar_first_upload_no_old_avatar(self) -> None:
+        """First avatar upload (no old avatar) increments by full new size."""
+        from app.services.user import upload_user_avatar
+
+        user_id = str(uuid.uuid4())
+        user_uuid = uuid.UUID(user_id)
+        new_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 200
+        new_size = len(new_data)
+
+        existing_user = {
+            "id": user_uuid,
+            "avatar_url": None,  # no previous avatar
+            "username": "testuser",
+        }
+        updated_user = {
+            "id": user_uuid,
+            "avatar_url": f"avatars/{user_id}/new.png",
+            "username": "testuser",
+            "display_name": "testuser",
+            "role": "MEMBER",
+            "orcid": None,
+            "affiliation": None,
+            "bio": None,
+            "is_deleted": False,
+            "is_banned": False,
+            "ban_reason": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_redis.delete = AsyncMock()
+
+        with (
+            patch("app.services.user.get_redis", return_value=mock_redis),
+            patch(
+                "app.services.user.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=existing_user,
+            ),
+            patch(
+                "app.services.user.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch("app.services.user.validate_avatar"),
+            patch(
+                "app.services.user.async_upload_file",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.services.user.user_repo.increment_storage_used",
+                new_callable=AsyncMock,
+            ) as mock_increment,
+            patch(
+                "app.services.user.user_repo.update_profile",
+                new_callable=AsyncMock,
+                return_value=updated_user,
+            ),
+        ):
+            await upload_user_avatar(
+                user_id=user_id,
+                data=new_data,
+                content_type="image/png",
+                filename="avatar.png",
+            )
+
+        # No old avatar, so net delta = full new size
+        mock_increment.assert_called_once()
+        call_args = mock_increment.call_args
+        assert call_args.args[1] == new_size
+
+    @pytest.mark.anyio
+    async def test_avatar_replacement_quota_accounts_for_old_size(self) -> None:
+        """Quota check accounts for old avatar size being freed."""
+        from app.services.user import upload_user_avatar
+
+        user_id = str(uuid.uuid4())
+        user_uuid = uuid.UUID(user_id)
+        old_avatar_key = f"avatars/{user_id}/old.jpg"
+        old_avatar_size = 500_000  # 500 KB
+        new_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 200
+
+        existing_user = {
+            "id": user_uuid,
+            "avatar_url": old_avatar_key,
+            "username": "testuser",
+        }
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_redis.delete = AsyncMock()
+
+        # used = quota - 100 bytes (nearly full), but old avatar is 500KB
+        # so effective_used = used - old_avatar_size, which should be well under quota
+        from app.core.config import settings
+
+        used = settings.MAX_USER_STORAGE_BYTES - 100
+
+        updated_user = {
+            "id": user_uuid,
+            "avatar_url": f"avatars/{user_id}/new.png",
+            "username": "testuser",
+            "display_name": "testuser",
+            "role": "MEMBER",
+            "orcid": None,
+            "affiliation": None,
+            "bio": None,
+            "is_deleted": False,
+            "is_banned": False,
+            "ban_reason": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+
+        with (
+            patch("app.services.user.get_redis", return_value=mock_redis),
+            patch(
+                "app.services.user.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=existing_user,
+            ),
+            patch(
+                "app.services.user.async_get_file_size",
+                new_callable=AsyncMock,
+                return_value=old_avatar_size,
+            ),
+            patch(
+                "app.services.user.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=used,
+            ),
+            patch("app.services.user.validate_avatar"),
+            patch(
+                "app.services.user.async_upload_file",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.services.user.user_repo.increment_storage_used",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.services.user.user_repo.update_profile",
+                new_callable=AsyncMock,
+                return_value=updated_user,
+            ),
+        ):
+            # Should NOT raise StorageQuotaError because old avatar frees space
+            result = await upload_user_avatar(
+                user_id=user_id,
+                data=new_data,
+                content_type="image/png",
+                filename="avatar.png",
+            )
+            assert result is not None
+
+    @pytest.mark.anyio
+    async def test_avatar_http_url_skips_size_lookup(self) -> None:
+        """Old avatar with http:// URL skips S3 size lookup (external URL)."""
+        from app.services.user import upload_user_avatar
+
+        user_id = str(uuid.uuid4())
+        user_uuid = uuid.UUID(user_id)
+        new_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 200
+        new_size = len(new_data)
+
+        existing_user = {
+            "id": user_uuid,
+            "avatar_url": "https://example.com/avatar.jpg",  # external URL
+            "username": "testuser",
+        }
+        updated_user = {
+            "id": user_uuid,
+            "avatar_url": f"avatars/{user_id}/new.png",
+            "username": "testuser",
+            "display_name": "testuser",
+            "role": "MEMBER",
+            "orcid": None,
+            "affiliation": None,
+            "bio": None,
+            "is_deleted": False,
+            "is_banned": False,
+            "ban_reason": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_redis.delete = AsyncMock()
+
+        with (
+            patch("app.services.user.get_redis", return_value=mock_redis),
+            patch(
+                "app.services.user.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=existing_user,
+            ),
+            patch(
+                "app.services.user.async_get_file_size",
+                new_callable=AsyncMock,
+            ) as mock_get_size,
+            patch(
+                "app.services.user.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch("app.services.user.validate_avatar"),
+            patch(
+                "app.services.user.async_upload_file",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.services.user.user_repo.increment_storage_used",
+                new_callable=AsyncMock,
+            ) as mock_increment,
+            patch(
+                "app.services.user.user_repo.update_profile",
+                new_callable=AsyncMock,
+                return_value=updated_user,
+            ),
+        ):
+            await upload_user_avatar(
+                user_id=user_id,
+                data=new_data,
+                content_type="image/png",
+                filename="avatar.png",
+            )
+
+        # async_get_file_size should NOT be called for http URLs
+        mock_get_size.assert_not_called()
+        # Full new size since old avatar size is unknown/external
+        mock_increment.assert_called_once()
+        assert mock_increment.call_args.args[1] == new_size
+
+
+class TestAvatarOldFileDeletion:
+    """Avatar replacement must delete the old MinIO file after successful upload."""
+
+    @pytest.mark.anyio
+    async def test_avatar_replacement_deletes_old_file(self) -> None:
+        """async_delete_file is called with the old avatar key when replacing an existing avatar."""
+        from app.services.user import upload_user_avatar
+
+        user_id = str(uuid.uuid4())
+        user_uuid = uuid.UUID(user_id)
+        old_avatar_key = f"avatars/{user_id}/old.jpg"
+        new_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 200
+
+        existing_user = {
+            "id": user_uuid,
+            "avatar_url": old_avatar_key,
+            "username": "testuser",
+        }
+        updated_user = {
+            "id": user_uuid,
+            "avatar_url": f"avatars/{user_id}/new.png",
+            "username": "testuser",
+            "display_name": "testuser",
+            "role": "MEMBER",
+            "orcid": None,
+            "affiliation": None,
+            "bio": None,
+            "is_deleted": False,
+            "is_banned": False,
+            "ban_reason": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_redis.delete = AsyncMock()
+
+        with (
+            patch("app.services.user.get_redis", return_value=mock_redis),
+            patch(
+                "app.services.user.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=existing_user,
+            ),
+            patch(
+                "app.services.user.async_get_file_size",
+                new_callable=AsyncMock,
+                return_value=3000,
+            ),
+            patch(
+                "app.services.user.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=5000,
+            ),
+            patch("app.services.user.validate_avatar"),
+            patch(
+                "app.services.user.async_upload_file",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.services.user.user_repo.increment_storage_used",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "app.services.user.async_delete_file",
+                new_callable=AsyncMock,
+            ) as mock_delete_file,
+            patch(
+                "app.services.user.user_repo.update_profile",
+                new_callable=AsyncMock,
+                return_value=updated_user,
+            ),
+        ):
+            await upload_user_avatar(
+                user_id=user_id,
+                data=new_data,
+                content_type="image/png",
+                filename="avatar.png",
+            )
+
+        # Old avatar file must be deleted from MinIO
+        mock_delete_file.assert_called_once_with(old_avatar_key)
+
+
+class TestGetFileSizeNon404ClientError:
+    """storage.get_file_size must re-raise ClientError when code is not 404."""
+
+    def test_get_file_size_reraises_non_404_client_error(self) -> None:
+        """A 403 Forbidden ClientError from head_object must propagate out of get_file_size."""
+        from botocore.exceptions import ClientError
+
+        from app.core.storage import get_file_size
+
+        error_response = {"Error": {"Code": "403", "Message": "Forbidden"}}
+        forbidden_error = ClientError(error_response, "HeadObject")
+
+        mock_client = MagicMock()
+        mock_client.head_object = MagicMock(side_effect=forbidden_error)
+
+        with patch("app.core.storage.get_storage", return_value=mock_client):
+            with pytest.raises(ClientError) as exc_info:
+                get_file_size("some/key.png")
+
+        assert exc_info.value.response["Error"]["Code"] == "403"
+
+
+class TestDeleteEditorFileValidatesPrefix:
+    """DELETE /files/content/{key} must reject keys not starting with 'editor/'."""
+
+    @pytest.mark.anyio
+    async def test_delete_non_editor_key_returns_400(self, client: AsyncClient) -> None:
+        """Admin deleting an avatars/ key via the delete endpoint returns 400 (not editor/)."""
+        admin_id = str(uuid.uuid4())
+        owner_id = str(uuid.uuid4())
+        # Use ADMIN role so ownership check passes (admins can delete any key),
+        # but the key does not start with 'editor/' so the prefix validation fires.
+        _override_auth_files("ADMIN", user_id=admin_id)
+        avatars_key = f"avatars/{owner_id}/avatar.png"
+
+        try:
+            with patch(
+                "app.api.v1.endpoints.files.async_get_file_size",
+                new_callable=AsyncMock,
+                return_value=5000,  # non-zero so 404 is not triggered first
+            ):
+                resp = await client.delete(
+                    f"/api/v1/files/content/{avatars_key}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 400
+            assert "editor" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides_files()
+
+
 class TestCleanupTaskImport:
     """Verify the cleanup task module can be imported without errors."""
 

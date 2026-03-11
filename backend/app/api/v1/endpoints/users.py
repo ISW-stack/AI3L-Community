@@ -33,6 +33,7 @@ from app.services.user import (
     anonymize_user,
     ban_user,
     change_password,
+    check_sole_admin_sigs,
     create_user,
     get_user_by_id,
     list_users,
@@ -155,6 +156,19 @@ async def delete_my_account(
 ) -> MessageResponse:
     """GDPR anonymization: overwrite PII and invalidate session."""
     user_id = uuid.UUID(current_user["sub"])
+
+    # Block deletion if the user is the sole admin of any SIG
+    sole_admin_sigs = await check_sole_admin_sigs(user_id)
+    if sole_admin_sigs:
+        sig_names = ", ".join(s["name"] for s in sole_admin_sigs)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Cannot delete account: you are the sole admin of the following SIG(s): "
+                f"{sig_names}. Please assign another admin before deleting your account."
+            ),
+        )
+
     deleted = await anonymize_user(user_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")

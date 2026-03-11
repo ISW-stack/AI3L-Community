@@ -87,12 +87,13 @@ class TestUploadAvatarInvalid:
 class TestDeleteAccount:
     @pytest.mark.anyio
     async def test_delete_account(self, client):
-        """DELETE /users/me → 200."""
+        """DELETE /users/me → 200 when user is not sole admin of any SIG."""
         user_id = str(uuid.uuid4())
 
         try:
             payload, uid = _override_auth("MEMBER", user_id=user_id)
             with (
+                patch(f"{_EP}.check_sole_admin_sigs", new_callable=AsyncMock, return_value=[]),
                 patch(f"{_EP}.anonymize_user", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.revoke_user_sessions", new_callable=AsyncMock),
             ):
@@ -101,6 +102,56 @@ class TestDeleteAccount:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_account_blocked_sole_admin(self, client):
+        """DELETE /users/me → 409 when user is the sole admin of a SIG."""
+        user_id = str(uuid.uuid4())
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.check_sole_admin_sigs",
+                new_callable=AsyncMock,
+                return_value=[{"id": sig_id, "name": "ML Research"}],
+            ):
+                resp = await client.delete(
+                    "/api/v1/users/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                detail = resp.json()["detail"]
+                assert "sole admin" in detail.lower()
+                assert "ML Research" in detail
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_account_blocked_multiple_sole_admin_sigs(self, client):
+        """DELETE /users/me → 409 listing multiple SIG names."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.check_sole_admin_sigs",
+                new_callable=AsyncMock,
+                return_value=[
+                    {"id": uuid.uuid4(), "name": "SIG Alpha"},
+                    {"id": uuid.uuid4(), "name": "SIG Beta"},
+                ],
+            ):
+                resp = await client.delete(
+                    "/api/v1/users/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                detail = resp.json()["detail"]
+                assert "SIG Alpha" in detail
+                assert "SIG Beta" in detail
         finally:
             _clear_overrides()
 

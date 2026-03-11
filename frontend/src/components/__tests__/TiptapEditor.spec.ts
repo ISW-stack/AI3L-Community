@@ -295,6 +295,50 @@ describe('TiptapEditor', () => {
       expect(vm.scanStatus).toBe('pending')
     })
 
+    it('rejects files larger than 20 MB and shows error toast', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      // Create a file object with size > 20 MB
+      const largeFile = new File(['x'], 'huge.pdf', { type: 'application/pdf' })
+      Object.defineProperty(largeFile, 'size', { value: 21 * 1024 * 1024 })
+
+      const fakeEvent = { target: { files: [largeFile], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      // uploadEditorFile should NOT have been called
+      expect(vi.mocked(uploadEditorFile)).not.toHaveBeenCalled()
+      // Editor should not have inserted anything
+      expect(mockChain.setImage).not.toHaveBeenCalled()
+      expect(mockChain.insertContent).not.toHaveBeenCalled()
+    })
+
+    it('accepts files at exactly 20 MB', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/exact.pdf',
+        key: 'editor/x/exact.pdf',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      // Create a file exactly at the limit (20 MB)
+      const exactFile = new File(['x'], 'exact.pdf', { type: 'application/pdf' })
+      Object.defineProperty(exactFile, 'size', { value: 20 * 1024 * 1024 })
+
+      const fakeEvent = { target: { files: [exactFile], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      // uploadEditorFile SHOULD have been called (exactly at limit is allowed)
+      expect(vi.mocked(uploadEditorFile)).toHaveBeenCalled()
+    })
+
     it('does not set scan status to pending when scan_task_id is absent', async () => {
       const { uploadEditorFile } = await import('@/api/files')
       vi.mocked(uploadEditorFile).mockResolvedValue({

@@ -225,13 +225,22 @@ async def delete_post(
             status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not authorized."
         )
 
-    # Audit log for admin delete (best-effort, via event bus)
+    # Audit log (best-effort, via event bus)
+    ip = request.client.host if request.client else None
     if is_admin:
-        ip = request.client.host if request.client else None
         await emit(
             "audit.action",
             user_id=current_user["sub"],
             action="ADMIN_DELETE_POST",
+            target_type="post",
+            target_id=str(post_id),
+            ip_address=ip,
+        )
+    else:
+        await emit(
+            "audit.action",
+            user_id=current_user["sub"],
+            action="USER_DELETE_POST",
             target_type="post",
             target_id=str(post_id),
             ip_address=ip,

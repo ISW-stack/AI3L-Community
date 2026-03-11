@@ -135,8 +135,8 @@ class TestTaskStatus:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_task_status_forbidden_for_member(self, client, _mock_celery):
-        """GET /tasks/{id}/status -> 403 for non-admin users."""
+    async def test_task_status_allowed_for_member(self, client, _mock_celery):
+        """GET /tasks/{id}/status -> 200 for MEMBER users (needed for CSV export polling)."""
         mock_result = MagicMock()
         mock_result.state = "PENDING"
         mock_result.result = None
@@ -147,6 +147,28 @@ class TestTaskStatus:
             _override_auth("MEMBER")
             resp = await client.get(
                 "/api/v1/tasks/task-789/status",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["status"] == "PENDING"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_task_status_requires_authentication(self, client, _mock_celery):
+        """GET /tasks/{id}/status -> 401 for unauthenticated requests."""
+        _clear_overrides()
+        resp = await client.get("/api/v1/tasks/task-000/status")
+        assert resp.status_code == 401
+
+    @pytest.mark.anyio
+    async def test_task_status_forbidden_for_guest(self, client, _mock_celery):
+        """GET /tasks/{id}/status -> 403 for GUEST users (requires MEMBER or above)."""
+        try:
+            _override_auth("GUEST")
+            resp = await client.get(
+                "/api/v1/tasks/task-guest-001/status",
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 403

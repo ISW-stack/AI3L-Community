@@ -100,6 +100,16 @@ async def get_form(
     is_sig_admin = await _check_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
+    # If form restricts access to SIG members only, verify membership
+    if not form.get("allow_non_members", False) and not is_sig_admin:
+        member_role = await sig_repo.get_member_role(
+            uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
+        )
+        if member_role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only SIG members can view this form.",
+            )
     form["user_is_sig_admin"] = is_sig_admin
     return FormResponseSchema(**form)
 

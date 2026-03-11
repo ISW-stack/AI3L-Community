@@ -74,6 +74,11 @@ export async function assignSubAdmin(sigId: string, userId: string) {
   return data as SigMember
 }
 
+export async function demoteSubAdmin(sigId: string, userId: string) {
+  const { data } = await api.post(`/sigs/${sigId}/sub-admin/demote`, { user_id: userId })
+  return data as SigMember
+}
+
 export async function createSig(payload: { name: string; description: string | null }) {
   const { data } = await api.post('/sigs', payload)
   return data as Sig

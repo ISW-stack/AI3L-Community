@@ -5,6 +5,7 @@ import asyncio
 from app.core.storage import delete_file as _sync_delete
 from app.core.storage import download_file as _sync_download
 from app.core.storage import generate_presigned_url as _sync_presigned
+from app.core.storage import get_file_size as _sync_get_file_size
 from app.core.storage import get_storage
 from app.core.storage import upload_file as _sync_upload
 
@@ -46,4 +47,10 @@ async def generate_presigned_url(key: str, expires_in: int) -> str:
 
 async def delete_file(key: str) -> None:
     loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, _sync_delete, key)
+    await loop.run_in_executor(None, _sync_delete, key)
+
+
+async def get_file_size(key: str) -> int:
+    """Return the size in bytes of an object in MinIO. Returns 0 if not found."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _sync_get_file_size, key)

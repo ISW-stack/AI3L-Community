@@ -450,16 +450,76 @@ class TestDeletePost:
         user_id = str(uuid.uuid4())
         try:
             _override_auth("MEMBER", user_id=user_id)
-            with patch(
-                f"{_EP}.soft_delete_post",
-                new_callable=AsyncMock,
-                return_value=True,
+            with (
+                patch(
+                    f"{_EP}.soft_delete_post",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(f"{_EP}.emit", new_callable=AsyncMock),
             ):
                 resp = await client.delete(
                     f"/api/v1/posts/{post_id}",
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 204
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_post_owner_emits_user_audit(self, client):
+        """DELETE /posts/{id} by MEMBER → emits USER_DELETE_POST audit event."""
+        post_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(
+                    f"{_EP}.soft_delete_post",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(f"{_EP}.emit", new_callable=AsyncMock) as mock_emit,
+            ):
+                resp = await client.delete(
+                    f"/api/v1/posts/{post_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 204
+                mock_emit.assert_called_once()
+                call_kwargs = mock_emit.call_args
+                assert call_kwargs[0][0] == "audit.action"
+                assert call_kwargs[1]["action"] == "USER_DELETE_POST"
+                assert call_kwargs[1]["target_id"] == str(post_id)
+                assert call_kwargs[1]["user_id"] == user_id
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_post_admin_emits_admin_audit(self, client):
+        """DELETE /posts/{id} by ADMIN → emits ADMIN_DELETE_POST audit event."""
+        post_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        try:
+            _override_auth("ADMIN", user_id=user_id)
+            with (
+                patch(
+                    f"{_EP}.soft_delete_post",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(f"{_EP}.emit", new_callable=AsyncMock) as mock_emit,
+            ):
+                resp = await client.delete(
+                    f"/api/v1/posts/{post_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 204
+                mock_emit.assert_called_once()
+                call_kwargs = mock_emit.call_args
+                assert call_kwargs[0][0] == "audit.action"
+                assert call_kwargs[1]["action"] == "ADMIN_DELETE_POST"
+                assert call_kwargs[1]["target_id"] == str(post_id)
         finally:
             _clear_overrides()
 

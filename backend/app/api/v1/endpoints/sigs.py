@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.core.deps import get_current_user, require_role
 from app.schemas.auth import MessageResponse
-from app.schemas.post import PostListResponse, PostResponse
+from app.schemas.post import PostListResponse
 from app.schemas.sig import (
     MySigListResponse,
     MySigResponse,
@@ -20,6 +20,7 @@ from app.services.post import list_posts
 from app.services.sig import (
     assign_sub_admin,
     create_sig,
+    demote_sub_admin,
     get_member_role,
     get_sig_by_id,
     join_sig,
@@ -188,6 +189,27 @@ async def assign_sig_sub_admin(
     return SigMemberResponse(**member)
 
 
+@router.post("/{sig_id}/sub-admin/demote", response_model=SigMemberResponse)
+async def demote_sig_sub_admin(
+    sig_id: uuid.UUID,
+    req: SubAdminAssignRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> SigMemberResponse:
+    """Demote a sub-admin back to regular member."""
+    # Allow global admins OR the SIG's own ADMIN (owner)
+    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    if not is_global_admin:
+        sig_role = await get_member_role(sig_id, current_user["sub"])
+        if sig_role != "ADMIN":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+
+    try:
+        member = await demote_sub_admin(sig_id, req.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return SigMemberResponse(**member)
+
+
 @router.get("/{sig_id}/members", response_model=SigMemberListResponse)
 async def get_sig_members(
     sig_id: uuid.UUID,
@@ -209,10 +231,10 @@ async def get_sig_posts(
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
-    posts, total, total_pages = await list_posts(page=page, page_size=page_size, sig_id=str(sig_id))
+    result = await list_posts(page=page, page_size=page_size, sig_id=str(sig_id))
     return PostListResponse(
-        posts=[PostResponse(**p) for p in posts],
-        total=total,
+        posts=result["posts"],  # type: ignore[arg-type]
+        total=result["total"],
         current_page=page,
-        total_pages=total_pages,
+        total_pages=result["total_pages"],
     )
