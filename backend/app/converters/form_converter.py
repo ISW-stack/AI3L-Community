@@ -1,5 +1,6 @@
-import json
 from datetime import datetime, timezone
+
+from app.converters.shared import safe_json_parse
 
 
 def row_to_form(row: dict, response_count: int = 0) -> dict:
@@ -18,9 +19,7 @@ def row_to_form(row: dict, response_count: int = 0) -> dict:
         "banner_url": row.get("banner_url"),
         "deadline": row["deadline"].isoformat() if row.get("deadline") else None,
         "max_respondents": row.get("max_respondents"),
-        "questions": (
-            json.loads(row["questions"]) if isinstance(row["questions"], str) else row["questions"]
-        ),
+        "questions": safe_json_parse(row.get("questions")),
         "is_schema_locked": row.get("is_schema_locked", False),
         "allow_non_members": row.get("allow_non_members", False),
         "response_count": response_count,

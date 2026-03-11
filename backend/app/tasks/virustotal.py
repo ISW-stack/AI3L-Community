@@ -3,7 +3,7 @@
 import asyncio
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import IO, Any, Union
 
 import requests  # type: ignore[import-untyped]
 from loguru import logger
@@ -154,6 +154,28 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
     return {"status": "clean"}
 
 
-def compute_sha256(data: bytes) -> str:
-    """Compute SHA-256 hash of file data."""
-    return hashlib.sha256(data).hexdigest()
+def compute_sha256(source: Union[bytes, IO[bytes]]) -> str:
+    """Compute SHA-256 hash of file data.
+
+    Accepts raw bytes or a file-like object.  When a file-like object is
+    provided the content is read in 8 KiB chunks to avoid holding the
+    entire payload in a single hashlib buffer, and the file position is
+    reset to the beginning afterwards so the caller can still read it.
+    """
+    _CHUNK_SIZE = 8192
+    h = hashlib.sha256()
+
+    if isinstance(source, bytes):
+        # Stream via memoryview to avoid copying the full buffer
+        mv = memoryview(source)
+        for offset in range(0, len(mv), _CHUNK_SIZE):
+            h.update(mv[offset : offset + _CHUNK_SIZE])
+    else:
+        while True:
+            chunk = source.read(_CHUNK_SIZE)
+            if not chunk:
+                break
+            h.update(chunk)
+        source.seek(0)
+
+    return h.hexdigest()

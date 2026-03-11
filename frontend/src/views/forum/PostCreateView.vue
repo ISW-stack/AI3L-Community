@@ -128,7 +128,14 @@ async function createPost() {
   saving.value = true
   message.value = ''
   try {
-    const payload: any = {
+    const payload: {
+      title: string
+      content: string
+      allow_comments: boolean
+      category_id?: string
+      sig_id?: string
+      keywords?: string[]
+    } = {
       title: title.value,
       content: content.value,
       allow_comments: allowComments.value,

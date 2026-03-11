@@ -619,6 +619,30 @@ class TestVirusTotal:
         result = compute_sha256(b"")
         assert result == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
+    def test_compute_sha256_file_like(self):
+        """compute_sha256 should work with file-like objects and reset position."""
+        import io
+
+        from app.tasks.virustotal import compute_sha256
+
+        buf = io.BytesIO(b"hello world")
+        result = compute_sha256(buf)
+        assert result == "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+        # File position must be reset to 0 after hashing
+        assert buf.tell() == 0
+        assert buf.read() == b"hello world"
+
+    def test_compute_sha256_file_like_empty(self):
+        """compute_sha256 of empty file-like object should match known hash."""
+        import io
+
+        from app.tasks.virustotal import compute_sha256
+
+        buf = io.BytesIO(b"")
+        result = compute_sha256(buf)
+        assert result == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        assert buf.tell() == 0
+
     @pytest.mark.anyio
     async def test_insert_pending_calls_repo(self):
         """_insert_pending should call file_scan_repo.insert."""
@@ -877,3 +901,114 @@ class TestVirusTotal:
 
         assert result["status"] == "error"
         assert result["reason"] == "invalid_json"
+
+
+# =========================================================================
+# Tests for cleanup_old_file_scans task
+# =========================================================================
+
+
+class TestCleanupOldFileScans:
+    """Tests for the cleanup_old_file_scans Celery task."""
+
+    @pytest.mark.anyio
+    async def test_delete_old_completed_returns_count(self):
+        """delete_old_completed should parse the DELETE count from asyncpg result."""
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock(return_value="DELETE 5")
+
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire = MagicMock(return_value=mock_cm)
+
+        with patch("app.repositories.file_scan_repo.get_pool", return_value=mock_pool):
+            from app.repositories.file_scan_repo import delete_old_completed
+
+            result = await delete_old_completed(days=30)
+
+        assert result == 5
+        mock_conn.execute.assert_awaited_once()
+        # Verify the SQL uses the correct interval
+        sql_arg = mock_conn.execute.call_args[0][0]
+        assert "make_interval" in sql_arg
+        assert mock_conn.execute.call_args[0][1] == 30
+
+    @pytest.mark.anyio
+    async def test_delete_old_completed_zero_rows(self):
+        """Should return 0 when no rows match."""
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock(return_value="DELETE 0")
+
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire = MagicMock(return_value=mock_cm)
+
+        with patch("app.repositories.file_scan_repo.get_pool", return_value=mock_pool):
+            from app.repositories.file_scan_repo import delete_old_completed
+
+            result = await delete_old_completed(days=7)
+
+        assert result == 0
+
+    @pytest.mark.anyio
+    async def test_delete_old_completed_custom_days(self):
+        """Should pass the custom days parameter to the query."""
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock(return_value="DELETE 3")
+
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire = MagicMock(return_value=mock_cm)
+
+        with patch("app.repositories.file_scan_repo.get_pool", return_value=mock_pool):
+            from app.repositories.file_scan_repo import delete_old_completed
+
+            await delete_old_completed(days=90)
+
+        assert mock_conn.execute.call_args[0][1] == 90
+
+    def test_cleanup_task_calls_repo(self):
+        """cleanup_old_file_scans task should call delete_old_completed via _run_async."""
+        mock_delete = AsyncMock(return_value=12)
+
+        with (
+            patch("app.tasks.cleanup._run_async") as mock_run,
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch(
+                "app.repositories.file_scan_repo.delete_old_completed",
+                mock_delete,
+            ),
+        ):
+            # _run_async executes the coroutine; simulate by running it
+            async def run_coro(coro):
+                return await coro
+
+            import asyncio
+
+            mock_run.side_effect = lambda coro: asyncio.get_event_loop().run_until_complete(coro)
+
+            from app.tasks.cleanup import cleanup_old_file_scans
+
+            mock_self = MagicMock()
+            result = cleanup_old_file_scans(mock_self, days=30)
+
+        assert result["deleted"] == 12
+        assert result["retention_days"] == 30
+
+    def test_cleanup_task_module_has_new_task(self):
+        """cleanup module should export cleanup_old_file_scans."""
+        import importlib
+
+        import app.tasks.cleanup as cleanup_mod
+
+        importlib.reload(cleanup_mod)
+        assert hasattr(cleanup_mod, "cleanup_old_file_scans")

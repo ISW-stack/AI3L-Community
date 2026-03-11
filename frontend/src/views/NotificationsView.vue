@@ -124,7 +124,7 @@ onMounted(fetchNotifications)
 
 <template>
   <div class="max-w-3xl mx-auto">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('notifications.title') }}</h1>
       <div class="flex items-center gap-3">
         <button

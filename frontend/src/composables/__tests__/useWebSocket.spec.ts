@@ -121,7 +121,7 @@ class MockWebSocket {
 // Import under test (after all mocks)
 // ---------------------------------------------------------------------------
 
-import { useWebSocket } from '../useWebSocket'
+import { useWebSocket, _resetVisibilityState } from '../useWebSocket'
 
 // ---------------------------------------------------------------------------
 // Test suite
@@ -129,10 +129,11 @@ import { useWebSocket } from '../useWebSocket'
 
 describe('useWebSocket', () => {
   beforeEach(() => {
+    _resetVisibilityState()
+    onUnmountedCallbacks.length = 0
     vi.clearAllMocks()
     vi.useFakeTimers()
     MockWebSocket.instances = []
-    onUnmountedCallbacks.length = 0
     mockIsAuthenticatedRef.value = true
 
     // Default: ticket request succeeds
@@ -585,14 +586,23 @@ describe('useWebSocket', () => {
       addSpy.mockRestore()
     })
 
-    it('removes visibilitychange listener on unmount', () => {
+    it('removes visibilitychange listener only when last consumer unmounts', () => {
       const removeSpy = vi.spyOn(document, 'removeEventListener')
+
+      // Two consumers share the same listener
+      useWebSocket()
       useWebSocket()
 
-      const unmountCb = onUnmountedCallbacks[onUnmountedCallbacks.length - 1]
-      unmountCb()
+      // First unmount: listener should NOT be removed (still 1 consumer)
+      const firstUnmount = onUnmountedCallbacks[0]
+      firstUnmount()
+      expect(removeSpy).not.toHaveBeenCalledWith('visibilitychange', expect.any(Function))
 
+      // Second unmount: listener should be removed (0 consumers)
+      const secondUnmount = onUnmountedCallbacks[1]
+      secondUnmount()
       expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function))
+
       removeSpy.mockRestore()
     })
   })

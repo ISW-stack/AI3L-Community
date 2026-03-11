@@ -189,7 +189,7 @@ describe('BaseButton', () => {
       })
 
       expect(wrapper.classes()).toContain('px-3')
-      expect(wrapper.classes()).toContain('py-1.5')
+      expect(wrapper.classes()).toContain('py-2')
       expect(wrapper.classes()).toContain('text-xs')
       expect(wrapper.classes()).toContain('rounded-md')
     })

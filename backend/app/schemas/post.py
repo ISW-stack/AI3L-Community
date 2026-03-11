@@ -3,6 +3,15 @@ import uuid
 from pydantic import BaseModel, Field, field_validator
 
 
+def _validate_keyword_length(v: list[str] | None) -> list[str] | None:
+    """Shared keyword validator: each keyword must be 50 chars or fewer."""
+    if v:
+        for kw in v:
+            if len(kw) > 50:
+                raise ValueError("Each keyword must be 50 characters or fewer.")
+    return v
+
+
 class PostCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
     content: str = Field(..., min_length=1)
@@ -14,11 +23,7 @@ class PostCreateRequest(BaseModel):
     @field_validator("keywords")
     @classmethod
     def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
-        if v:
-            for kw in v:
-                if len(kw) > 50:
-                    raise ValueError("Each keyword must be 50 characters or fewer.")
-        return v
+        return _validate_keyword_length(v)
 
 
 class PostUpdateRequest(BaseModel):
@@ -32,11 +37,7 @@ class PostUpdateRequest(BaseModel):
     @field_validator("keywords")
     @classmethod
     def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
-        if v:
-            for kw in v:
-                if len(kw) > 50:
-                    raise ValueError("Each keyword must be 50 characters or fewer.")
-        return v
+        return _validate_keyword_length(v)
 
 
 class PostAuthorResponse(BaseModel):
@@ -53,12 +54,15 @@ class PostResponse(BaseModel):
     author: PostAuthorResponse
     category_id: str | None = None
     category_name: str | None = None
+    sig_id: str | None = None
+    sig_name: str | None = None
     keywords: list[str] | None = None
     allow_comments: bool = True
     version: int
     comment_count: int
     is_pinned: bool = False
     view_count: int = 0
+    reactions: dict[str, list[str]] | None = None
     last_comment_at: str | None = None
     created_at: str
     updated_at: str

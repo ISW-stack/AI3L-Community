@@ -104,7 +104,7 @@ class TestCommentNotificationUsesPostId:
         with (
             patch("app.services.comment.get_pool", return_value=mock_pool_obj),
             patch("app.services.comment.emit", side_effect=mock_emit),
-            patch("app.converters.comment_converter.resolve_avatar_url", return_value=None),
+            patch("app.converters.shared.resolve_avatar_url", return_value=None),
         ):
             from app.services.comment import create_comment
 
@@ -183,7 +183,7 @@ class TestCommentNotificationUsesPostId:
         with (
             patch("app.services.comment.get_pool", return_value=mock_pool_obj),
             patch("app.services.comment.emit", side_effect=mock_emit),
-            patch("app.converters.comment_converter.resolve_avatar_url", return_value=None),
+            patch("app.converters.shared.resolve_avatar_url", return_value=None),
             patch(
                 "app.repositories.comment_repo.find_parent_user_id",
                 new_callable=AsyncMock,

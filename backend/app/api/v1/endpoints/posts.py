@@ -7,6 +7,7 @@ from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
+from app.schemas.comment import ReactionRequest
 from app.schemas.post import (
     BulkDeletePostsRequest,
     PinPostRequest,
@@ -26,6 +27,7 @@ from app.services.post import (
     pin_post,
     search_posts,
     soft_delete_post,
+    toggle_post_reaction,
     update_post,
 )
 
@@ -123,6 +125,18 @@ async def bulk_delete_posts(
         target_id=",".join(str(pid) for pid in req.post_ids),
     )
     return {"deleted_count": count}
+
+
+@router.post("/{post_id}/reactions", response_model=PostResponse)
+async def toggle_post_reaction_endpoint(
+    post_id: uuid.UUID,
+    req: ReactionRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> PostResponse:
+    result = await toggle_post_reaction(post_id, current_user["sub"], req.reaction)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+    return PostResponse(**result)
 
 
 @router.get("/{post_id}", response_model=PostResponse)

@@ -7,12 +7,23 @@ import HomeView from '../HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const mockListPosts = vi.fn()
+const mockGetTrendingPosts = vi.fn()
+const mockGetPublicStats = vi.fn()
 const mockApplyForMembership = vi.fn()
+const mockListMySigs = vi.fn()
+const mockListSigs = vi.fn()
 
 vi.mock('@/api/posts', () => ({
   listPosts: (...args: unknown[]) => mockListPosts(...args),
   searchPosts: vi.fn(),
-  getTrendingPosts: vi.fn(),
+  getTrendingPosts: (...args: unknown[]) => mockGetTrendingPosts(...args),
+  getPublicStats: (...args: unknown[]) => mockGetPublicStats(...args),
+}))
+
+vi.mock('@/api/sigs', () => ({
+  listMySigs: (...args: unknown[]) => mockListMySigs(...args),
+  listSigs: (...args: unknown[]) => mockListSigs(...args),
+  getSig: vi.fn(),
 }))
 
 vi.mock('@/api/users', () => ({
@@ -90,10 +101,15 @@ function createStubs() {
       props: ['modelValue', 'placeholder', 'rows'],
     },
     SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
+    PostCard: {
+      template: '<div class="post-card">{{ post?.title }}</div>',
+      props: ['post', 'contentClamp'],
+    },
     MessageSquare: { template: '<span />' },
     Users: { template: '<span />' },
     FileText: { template: '<span />' },
     BookOpen: { template: '<span />' },
+    TrendingUp: { template: '<span />' },
   }
 }
 
@@ -134,6 +150,15 @@ describe('HomeView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockListPosts.mockResolvedValue({ posts: fakePosts, total: 2, total_pages: 1 })
+    mockGetTrendingPosts.mockResolvedValue(fakePosts)
+    mockGetPublicStats.mockResolvedValue({ member_count: 10, post_count: 20, sig_count: 3 })
+    mockListMySigs.mockResolvedValue([
+      { id: 's1', name: 'NLP SIG', member_count: 5, description: null },
+    ])
+    mockListSigs.mockResolvedValue({
+      sigs: [{ id: 's1', name: 'NLP SIG', member_count: 5, description: 'NLP research' }],
+      total: 1,
+    })
     mockApplyForMembership.mockResolvedValue({})
   })
 
@@ -196,10 +221,11 @@ describe('HomeView', () => {
       expect(wrapper.text()).toContain('Second Post')
     })
 
-    it('renders post author names', async () => {
+    it('renders post cards for recent posts', async () => {
       const { wrapper } = await mountHome()
-      expect(wrapper.text()).toContain('Alice')
-      expect(wrapper.text()).toContain('Bob')
+      const postCards = wrapper.findAll('.post-card')
+      // Recent posts (5) + trending posts (up to 3 from same fakePosts) = multiple cards
+      expect(postCards.length).toBeGreaterThanOrEqual(2)
     })
 
     it('shows empty message when no posts', async () => {

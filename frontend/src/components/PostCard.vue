@@ -1,13 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Post } from '@/types'
+import { useAuthStore } from '@/stores/auth'
+import { togglePostReaction } from '@/api/posts'
+import { REACTIONS } from '@/constants'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import { Pin, Eye, MessageCircle } from 'lucide-vue-next'
 
 const { t } = useI18n()
+const auth = useAuthStore()
+
+const EMOJI_MAP: Record<string, string> = {
+  LIKE: '\uD83D\uDC4D',
+  SMILE: '\uD83D\uDE0A',
+  CRY: '\uD83D\uDE22',
+}
 
 const props = withDefaults(
   defineProps<{
@@ -20,6 +30,52 @@ const props = withDefaults(
     contentClamp: 8,
   },
 )
+
+const emit = defineEmits<{
+  (e: 'reactionToggled', post: Post): void
+}>()
+
+// Local optimistic reactions state
+const localReactions = ref<Record<string, string[]> | null>(null)
+const reactionsData = computed(() => localReactions.value ?? props.post.reactions)
+
+function getReactionCount(reaction: string): number {
+  return reactionsData.value?.[reaction]?.length ?? 0
+}
+
+function hasReacted(reaction: string): boolean {
+  if (!auth.user?.id) return false
+  return reactionsData.value?.[reaction]?.includes(auth.user.id) ?? false
+}
+
+async function handleReaction(reaction: string) {
+  if (!auth.user?.id || auth.isGuest) return
+
+  // Optimistic update
+  const current = { ...(reactionsData.value ?? {}) }
+  const list = [...(current[reaction] ?? [])]
+  const idx = list.indexOf(auth.user.id)
+  if (idx >= 0) {
+    list.splice(idx, 1)
+  } else {
+    list.push(auth.user.id)
+  }
+  if (list.length === 0) {
+    delete current[reaction]
+  } else {
+    current[reaction] = list
+  }
+  localReactions.value = Object.keys(current).length > 0 ? current : null
+
+  try {
+    const updated = await togglePostReaction(props.post.id, reaction)
+    localReactions.value = updated.reactions
+    emit('reactionToggled', updated)
+  } catch {
+    // Rollback on error
+    localReactions.value = null
+  }
+}
 
 /** Extract the first <img src="..."> from HTML content */
 const thumbnailUrl = computed(() => {
@@ -55,7 +111,7 @@ function stripHtml(html: string): string {
 <template>
   <BaseCard hoverable class="!p-0">
     <!-- SIG context — shown above header when post belongs to a SIG -->
-    <div v-if="post.sig_name" class="px-4 pt-3 pb-1">
+    <div v-if="post.sig_id && post.sig_name" class="px-4 pt-3 pb-1">
       <router-link
         :to="`/sigs/${post.sig_id}`"
         class="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
@@ -111,7 +167,7 @@ function stripHtml(html: string): string {
           :src="thumbnailUrl"
           alt=""
           loading="lazy"
-          class="w-28 h-28 sm:w-36 sm:h-28 object-cover rounded-lg shrink-0 bg-surface-alt"
+          class="hidden sm:block w-28 h-28 sm:w-36 sm:h-28 object-cover rounded-lg shrink-0 bg-surface-alt"
         />
       </div>
     </router-link>
@@ -121,6 +177,37 @@ function stripHtml(html: string): string {
       <BaseBadge v-for="kw in post.keywords.slice(0, 5)" :key="kw" variant="neutral">{{
         kw
       }}</BaseBadge>
+    </div>
+
+    <!-- Reactions -->
+    <div v-if="auth.isAuthenticated && !auth.isGuest" class="px-4 pb-2 flex items-center gap-1.5">
+      <button
+        v-for="r in REACTIONS"
+        :key="r"
+        type="button"
+        :aria-label="`React with ${r}`"
+        :aria-pressed="hasReacted(r)"
+        class="text-xs px-2 py-1 rounded-full transition-colors inline-flex items-center gap-1"
+        :class="hasReacted(r) ? 'bg-brand-100 text-brand-700' : 'hover:bg-surface-alt text-muted'"
+        @click.stop.prevent="handleReaction(r)"
+      >
+        {{ EMOJI_MAP[r] }}
+        <span v-if="getReactionCount(r)">{{ getReactionCount(r) }}</span>
+      </button>
+    </div>
+    <!-- Read-only reactions for guests / unauthenticated -->
+    <div
+      v-else-if="reactionsData && Object.keys(reactionsData).length"
+      class="px-4 pb-2 flex items-center gap-1.5"
+    >
+      <span
+        v-for="r in REACTIONS"
+        :key="r"
+        class="text-xs px-2 py-1 rounded-full bg-surface-alt text-muted inline-flex items-center gap-1"
+        :class="{ hidden: !getReactionCount(r) }"
+      >
+        {{ EMOJI_MAP[r] }} {{ getReactionCount(r) }}
+      </span>
     </div>
 
     <!-- Action Bar -->

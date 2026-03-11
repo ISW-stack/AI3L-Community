@@ -100,11 +100,6 @@ onUnmounted(() => {
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.about') }}</router-link
           >
-          <router-link
-            to="/about"
-            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >About</router-link
-          >
 
           <template v-if="auth.isAuthenticated">
             <!-- Admin dropdown -->
@@ -129,7 +124,7 @@ onUnmounted(() => {
               <Transition name="dropdown">
                 <div
                   v-if="adminDropdownOpen"
-                  class="absolute left-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-1"
+                  class="absolute right-0 sm:left-0 sm:right-auto mt-2 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
                 >
                   <router-link
                     to="/admin"
@@ -212,7 +207,7 @@ onUnmounted(() => {
 
               <div
                 v-if="userDropdownOpen"
-                class="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-lg shadow-lg py-1"
+                class="absolute right-0 mt-2 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
               >
                 <router-link
                   v-if="!auth.isGuest"
@@ -293,14 +288,6 @@ onUnmounted(() => {
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.about') }}
-          </router-link>
-
-          <router-link
-            to="/about"
-            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-            @click="mobileMenuOpen = false"
-          >
-            About
           </router-link>
 
           <template v-if="auth.isAuthenticated">

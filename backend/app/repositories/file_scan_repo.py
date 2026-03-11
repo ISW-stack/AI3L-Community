@@ -67,3 +67,20 @@ async def delete_by_key(file_key: str) -> None:
             "DELETE FROM file_scans WHERE file_key = $1",
             file_key,
         )
+
+
+async def delete_old_completed(days: int = 30) -> int:
+    """Delete completed scan records older than *days*. Returns count deleted."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM file_scans "
+            "WHERE status IN ('clean', 'malicious') "
+            "AND updated_at < NOW() - make_interval(days => $1)",
+            days,
+        )
+        # asyncpg returns "DELETE <n>"
+        try:
+            return int(result.split()[-1])
+        except (ValueError, IndexError):
+            return 0

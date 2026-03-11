@@ -5,6 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFil
 from app.converters.user_converter import user_to_public_response, user_to_response
 from app.core.constants import MAX_AVATAR_SIZE
 from app.core.deps import get_current_user, require_role
+from app.core.errors import (
+    RateLimitError,
+    ServiceNotFoundError,
+    ServiceValidationError,
+    StorageQuotaError,
+)
 from app.core.event_bus import emit
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
@@ -81,12 +87,21 @@ async def upload_avatar(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File size exceeds 2MB limit.",
         )
-    user = await upload_user_avatar(
-        user_id=current_user["sub"],
-        data=data,
-        content_type=file.content_type or "",
-        filename=file.filename or "",
-    )
+    try:
+        user = await upload_user_avatar(
+            user_id=current_user["sub"],
+            data=data,
+            content_type=file.content_type or "",
+            filename=file.filename or "",
+        )
+    except ServiceValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except StorageQuotaError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RateLimitError as e:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+    except ServiceNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return _user_to_response(user)
 
 

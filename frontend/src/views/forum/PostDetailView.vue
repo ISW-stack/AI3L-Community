@@ -74,6 +74,9 @@ const {
   handleTogglePin,
   formatRelativeTime,
   toggleReactionHandler,
+  togglePostReactionHandler,
+  getPostReactionCount,
+  hasPostReacted,
   getReactionCount,
   hasReacted,
   canEditComment,
@@ -219,6 +222,40 @@ const {
             <BaseBadge v-for="kw in post.keywords" :key="kw" variant="neutral">{{ kw }}</BaseBadge>
           </div>
 
+          <!-- Post Reactions -->
+          <div v-if="auth.isAuthenticated && !auth.isGuest" class="flex items-center gap-1.5 mb-3">
+            <button
+              v-for="r in ['LIKE', 'SMILE', 'CRY']"
+              :key="r"
+              type="button"
+              :aria-label="`React with ${r}`"
+              class="text-xs px-2 py-1 rounded-full transition-colors inline-flex items-center gap-1"
+              :class="
+                hasPostReacted(r)
+                  ? 'bg-brand-100 text-brand-700'
+                  : 'bg-surface-alt text-muted hover:bg-gray-100'
+              "
+              @click="togglePostReactionHandler(r)"
+            >
+              {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
+              {{ getPostReactionCount(r) || '' }}
+            </button>
+          </div>
+          <div
+            v-else-if="post.reactions && Object.keys(post.reactions).length"
+            class="flex items-center gap-1.5 mb-3"
+          >
+            <span
+              v-for="r in ['LIKE', 'SMILE', 'CRY']"
+              :key="r"
+              class="text-xs px-2 py-1 rounded-full bg-surface-alt text-muted inline-flex items-center gap-1"
+              :class="{ hidden: !getPostReactionCount(r) }"
+            >
+              {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
+              {{ getPostReactionCount(r) }}
+            </span>
+          </div>
+
           <!-- Action Bar -->
           <div class="flex items-center justify-between border-t border-border pt-3">
             <div class="flex items-center gap-4">
@@ -299,7 +336,7 @@ const {
                     <textarea
                       v-model="editCommentContent"
                       rows="3"
-                      class="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                      class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                     ></textarea>
                     <div class="flex gap-2">
                       <BaseButton
@@ -366,7 +403,7 @@ const {
                       v-model="inlineReplyContent"
                       rows="2"
                       :placeholder="t('post.comment.writeReply')"
-                      class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
+                      class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
                     ></textarea>
                     <div class="flex gap-2">
                       <BaseButton
@@ -415,7 +452,7 @@ const {
                       <textarea
                         v-model="editCommentContent"
                         rows="3"
-                        class="w-full px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                        class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                       ></textarea>
                       <div class="flex gap-2">
                         <BaseButton
@@ -494,7 +531,7 @@ const {
               v-model="newComment"
               rows="3"
               :placeholder="t('post.comment.writeComment')"
-              class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
+              class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
             ></textarea>
             <BaseButton
               size="sm"

@@ -11,7 +11,7 @@ import asyncio
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Iterator
 
 from loguru import logger
 
@@ -42,34 +42,63 @@ async def _get_referenced_keys() -> set[str]:
     """Return all editor file keys referenced in active posts or form descriptions."""
     await _ensure_pool()
     pool = get_pool()
-    async with pool.acquire() as conn:
-        rows = await conn.fetch("""
-            SELECT content AS html FROM posts
-            WHERE is_deleted = FALSE AND content IS NOT NULL AND content <> ''
-            UNION ALL
-            SELECT description AS html FROM forms
-            WHERE is_deleted = FALSE AND description IS NOT NULL AND description <> ''
-            """)
     keys: set[str] = set()
-    for row in rows:
-        html = row["html"] or ""
-        for match in _FILE_KEY_RE.finditer(html):
-            keys.add(match.group(1))
+    _BATCH_SIZE = 500
+
+    async with pool.acquire() as conn:
+        # Process posts in batches
+        offset = 0
+        while True:
+            rows = await conn.fetch(
+                "SELECT content AS html FROM posts "
+                "WHERE is_deleted = FALSE AND content IS NOT NULL AND content <> '' "
+                "ORDER BY id LIMIT $1 OFFSET $2",
+                _BATCH_SIZE,
+                offset,
+            )
+            if not rows:
+                break
+            for row in rows:
+                html = row["html"] or ""
+                for match in _FILE_KEY_RE.finditer(html):
+                    keys.add(match.group(1))
+            if len(rows) < _BATCH_SIZE:
+                break
+            offset += _BATCH_SIZE
+
+        # Process forms in batches
+        offset = 0
+        while True:
+            rows = await conn.fetch(
+                "SELECT description AS html FROM forms "
+                "WHERE is_deleted = FALSE AND description IS NOT NULL AND description <> '' "
+                "ORDER BY id LIMIT $1 OFFSET $2",
+                _BATCH_SIZE,
+                offset,
+            )
+            if not rows:
+                break
+            for row in rows:
+                html = row["html"] or ""
+                for match in _FILE_KEY_RE.finditer(html):
+                    keys.add(match.group(1))
+            if len(rows) < _BATCH_SIZE:
+                break
+            offset += _BATCH_SIZE
+
     return keys
 
 
-def _list_editor_files() -> list[tuple[str, datetime]]:
-    """List all objects under the editor/ prefix. Returns [(key, last_modified)]."""
+def _iter_editor_files() -> Iterator[tuple[str, Any]]:
+    """Yield (key, last_modified) for objects under editor/ prefix without buffering all."""
     from app.core.storage import get_storage
 
     client = get_storage()
     bucket = settings.MINIO_BUCKET_NAME
-    files: list[tuple[str, datetime]] = []
     paginator = client.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=bucket, Prefix="editor/"):
         for obj in page.get("Contents", []):
-            files.append((obj["Key"], obj["LastModified"]))
-    return files
+            yield (obj["Key"], obj["LastModified"])
 
 
 async def _delete_orphans(orphan_keys: list[str]) -> int:
@@ -88,6 +117,22 @@ async def _delete_orphans(orphan_keys: list[str]) -> int:
     return deleted
 
 
+@celery.task(name="cleanup_old_file_scans", bind=True, max_retries=1)
+def cleanup_old_file_scans(self: Any, days: int = 30) -> dict[str, Any]:
+    """Daily task: remove completed file_scans records older than *days*."""
+
+    async def _run() -> dict:
+        await _ensure_pool()
+        from app.repositories import file_scan_repo
+
+        deleted = await file_scan_repo.delete_old_completed(days)
+        return {"deleted": deleted, "retention_days": days}
+
+    result: dict[str, Any] = _run_async(_run())
+    logger.info("Old file scans cleanup complete: %s", result)
+    return result
+
+
 @celery.task(name="cleanup_orphan_files", bind=True, max_retries=1)
 def cleanup_orphan_files(self: Any) -> dict[str, Any]:
     """Weekly task: delete unreferenced editor files older than 7 days."""
@@ -97,7 +142,7 @@ def cleanup_orphan_files(self: Any) -> dict[str, Any]:
         logger.info("Orphan cleanup: %d referenced file keys found", len(referenced))
 
         loop = asyncio.get_running_loop()
-        all_files = await loop.run_in_executor(None, _list_editor_files)
+        all_files = await loop.run_in_executor(None, list, _iter_editor_files())
 
         cutoff = datetime.now(timezone.utc) - timedelta(days=_ORPHAN_MAX_AGE_DAYS)
         orphans = [

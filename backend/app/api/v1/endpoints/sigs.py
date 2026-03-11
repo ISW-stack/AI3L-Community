@@ -57,7 +57,7 @@ async def create_new_sig(
 ) -> SigResponse:
     try:
         sig = await create_sig(req.name, req.description, current_user["sub"])
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     return SigResponse(**sig)
 
@@ -120,11 +120,9 @@ async def join_sig_endpoint(
     try:
         member = await join_sig(sig_id, current_user["sub"])
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return SigMemberResponse(**member)
 
 

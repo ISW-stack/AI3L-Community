@@ -128,16 +128,10 @@ class TestGuestLogin:
     async def test_guest_login_success(self, mock_get_redis, mock_create_session):
         from app.services.auth import guest_login
 
-        async def _few_guests(*args, **kwargs):
-            for key in [f"session:GUEST:{i}" for i in range(5)]:
-                yield key
-
         redis = AsyncMock()
-        # No cached count — forces scan
-        redis.get = AsyncMock(return_value=None)
-        redis.scan_iter = _few_guests
-        redis.setex = AsyncMock()
-        redis.delete = AsyncMock()
+        # Counter exists, INCR returns 6 (under limit of 30)
+        redis.exists = AsyncMock(return_value=True)
+        redis.incr = AsyncMock(return_value=6)
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("token-guest", 2700)
 
@@ -146,51 +140,132 @@ class TestGuestLogin:
         token, ttl = result
         assert token == "token-guest"
         assert ttl == 2700
-        # Cache invalidated after guest session created
-        redis.delete.assert_called()
+        # INCR was called atomically
+        redis.incr.assert_called_once()
 
     @patch("app.services.auth.get_redis")
     async def test_guest_login_limit_reached(self, mock_get_redis):
         from app.services.auth import guest_login
 
-        async def _full_guests(*args, **kwargs):
-            for key in [f"session:GUEST:{i}" for i in range(30)]:
-                yield key
-
         redis = AsyncMock()
-        # No cached count — forces scan
-        redis.get = AsyncMock(return_value=None)
-        redis.scan_iter = _full_guests
-        redis.setex = AsyncMock()
+        # Counter exists, INCR returns 31 (over limit of 30)
+        redis.exists = AsyncMock(return_value=True)
+        redis.incr = AsyncMock(return_value=31)
+        redis.decr = AsyncMock()
         mock_get_redis.return_value = redis
 
         result = await guest_login("Guest User")
         assert result is None
+        # Over limit → DECR to undo the INCR
+        redis.decr.assert_called_once()
 
     @patch("app.services.auth.get_redis")
-    async def test_guest_count_uses_cache_on_second_call(self, mock_get_redis):
-        """_count_active_guests returns cached value without scan_iter on second call."""
-        from app.services.auth import _count_active_guests
+    async def test_guest_login_initialises_counter_when_missing(self, mock_get_redis):
+        """When the counter key doesn't exist, guest_login syncs from session keys."""
+        from app.services.auth import guest_login
 
-        scan_calls = 0
-
-        async def _counting_scan(*args, **kwargs):
-            nonlocal scan_calls
-            scan_calls += 1
+        async def _scan_sessions(*args, **kwargs):
             for key in [f"session:GUEST:{i}" for i in range(3)]:
                 yield key
 
         redis = AsyncMock()
-        # First call: cache miss → scan; second call: cache hit
-        redis.get = AsyncMock(side_effect=[None, b"3"])
-        redis.scan_iter = _counting_scan
-        redis.setex = AsyncMock()
+        redis.exists = AsyncMock(return_value=False)
+        redis.scan_iter = _scan_sessions
+        redis.set = AsyncMock()
+        # After sync sets counter to 3, INCR returns 4
+        redis.incr = AsyncMock(return_value=4)
         mock_get_redis.return_value = redis
 
-        count1 = await _count_active_guests()
-        count2 = await _count_active_guests()
+        with patch("app.services.auth.create_session", new_callable=AsyncMock) as mock_cs:
+            mock_cs.return_value = ("tok", 2700)
+            result = await guest_login("Guest")
 
-        assert count1 == 3
-        assert count2 == 3
-        # scan_iter was only called once (second call used cache)
-        assert scan_calls == 1
+        assert result is not None
+        # Counter was synced (set called with scan result)
+        redis.set.assert_called()
+
+    @patch("app.services.auth.get_redis")
+    async def test_guest_counter_sync(self, mock_get_redis):
+        """_sync_guest_counter counts session keys and sets the counter."""
+        from app.services.auth import _sync_guest_counter
+
+        async def _scan_sessions(*args, **kwargs):
+            for key in [f"session:GUEST:{i}" for i in range(7)]:
+                yield key
+
+        redis = AsyncMock()
+        redis.scan_iter = _scan_sessions
+        redis.set = AsyncMock()
+        mock_get_redis.return_value = redis
+
+        await _sync_guest_counter()
+
+        from app.services.auth import _GUEST_COUNTER_KEY
+
+        redis.set.assert_called_once_with(_GUEST_COUNTER_KEY, 7)
+
+    @patch("app.services.auth.get_redis")
+    async def test_decrement_guest_counter(self, mock_get_redis):
+        """decrement_guest_counter decrements and clamps to zero."""
+        from app.services.auth import decrement_guest_counter
+
+        redis = AsyncMock()
+        redis.decr = AsyncMock(return_value=4)
+        mock_get_redis.return_value = redis
+
+        await decrement_guest_counter()
+        redis.decr.assert_called_once()
+        # Positive value — no clamping needed
+        redis.set.assert_not_called()
+
+    @patch("app.services.auth.get_redis")
+    async def test_decrement_guest_counter_clamps_to_zero(self, mock_get_redis):
+        """If counter goes negative after DECR, it is clamped to 0."""
+        from app.services.auth import _GUEST_COUNTER_KEY, decrement_guest_counter
+
+        redis = AsyncMock()
+        redis.decr = AsyncMock(return_value=-1)
+        redis.set = AsyncMock()
+        mock_get_redis.return_value = redis
+
+        await decrement_guest_counter()
+        redis.set.assert_called_once_with(_GUEST_COUNTER_KEY, 0)
+
+    @patch("app.services.auth.create_session")
+    @patch("app.services.auth.get_redis")
+    async def test_guest_login_atomic_incr_prevents_race(self, mock_get_redis, mock_create_session):
+        """Simulate TOCTOU race: two concurrent requests both try to take the last slot.
+
+        With atomic INCR, only one succeeds (gets 30), the other gets 31 and is rejected.
+        """
+        import asyncio
+
+        from app.services.auth import guest_login
+
+        incr_counter = {"value": 29}
+
+        async def _atomic_incr(key):
+            """Simulate Redis INCR: atomically increment and return new value."""
+            incr_counter["value"] += 1
+            return incr_counter["value"]
+
+        redis = AsyncMock()
+        redis.exists = AsyncMock(return_value=True)
+        redis.incr = AsyncMock(side_effect=_atomic_incr)
+        redis.decr = AsyncMock()
+        mock_get_redis.return_value = redis
+        mock_create_session.return_value = ("tok", 2700)
+
+        # Two concurrent guest_login calls — only one should succeed
+        results = await asyncio.gather(
+            guest_login("Guest A"),
+            guest_login("Guest B"),
+        )
+
+        successes = [r for r in results if r is not None]
+        failures = [r for r in results if r is None]
+
+        assert len(successes) == 1, "Exactly one request should get the last slot"
+        assert len(failures) == 1, "The other request should be rejected"
+        # The rejected request should have called DECR to undo its INCR
+        redis.decr.assert_called_once()

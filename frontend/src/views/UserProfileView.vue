@@ -41,9 +41,11 @@ let postsFetchId = 0
 
 const isOwnProfile = computed(() => auth.user && auth.user.id === userId.value)
 
-const roleBadgeVariant = computed(() => {
+type BadgeVariant = 'brand' | 'success' | 'warning' | 'danger' | 'neutral' | 'orange' | 'purple'
+
+const roleBadgeVariant = computed((): BadgeVariant => {
   if (!user.value) return 'brand'
-  const map: Record<string, string> = {
+  const map: Record<string, BadgeVariant> = {
     SUPER_ADMIN: 'danger',
     ADMIN: 'orange',
     MEMBER: 'brand',
@@ -136,7 +138,7 @@ onMounted(() => {
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
                 <h1 class="text-2xl font-bold text-foreground">{{ user.display_name }}</h1>
-                <BaseBadge :variant="roleBadgeVariant as any">{{ user.role }}</BaseBadge>
+                <BaseBadge :variant="roleBadgeVariant">{{ user.role }}</BaseBadge>
               </div>
               <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
               <p class="text-xs text-muted">

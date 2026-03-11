@@ -16,6 +16,7 @@ import {
   deletePost as apiDeletePost,
   getPostHistory,
   togglePinPost,
+  togglePostReaction as apiTogglePostReaction,
 } from '@/api/posts'
 import {
   listComments,
@@ -458,6 +459,25 @@ export function usePostDetail(options: UsePostDetailOptions) {
     }
   }
 
+  async function togglePostReactionHandler(reaction: string) {
+    if (!post.value) return
+    try {
+      const updated = await apiTogglePostReaction(post.value.id, reaction)
+      post.value = updated
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  function getPostReactionCount(reaction: string): number {
+    return post.value?.reactions?.[reaction]?.length || 0
+  }
+
+  function hasPostReacted(reaction: string): boolean {
+    if (!auth.user) return false
+    return post.value?.reactions?.[reaction]?.includes(auth.user.id) || false
+  }
+
   function getReactionCount(comment: Comment, reaction: string): number {
     return comment.reactions?.[reaction]?.length || 0
   }
@@ -668,6 +688,9 @@ export function usePostDetail(options: UsePostDetailOptions) {
     handleTogglePin,
     formatRelativeTime,
     toggleReactionHandler,
+    togglePostReactionHandler,
+    getPostReactionCount,
+    hasPostReacted,
     getReactionCount,
     hasReacted,
     canEditComment,

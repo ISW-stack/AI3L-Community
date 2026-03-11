@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import PostCard from '../PostCard.vue'
+import { useAuthStore } from '../../stores/auth'
 import type { Post } from '../../types'
 
 vi.mock('@/components/base/BaseCard.vue', () => ({
@@ -27,6 +28,10 @@ vi.mock('lucide-vue-next', () => ({
   Pin: { name: 'Pin', template: '<svg data-testid="pin-icon" />' },
   Eye: { name: 'Eye', template: '<svg data-testid="eye-icon" />' },
   MessageCircle: { name: 'MessageCircle', template: '<svg data-testid="message-icon" />' },
+}))
+
+vi.mock('@/api/posts', () => ({
+  togglePostReaction: vi.fn(),
 }))
 
 function createTestRouter() {
@@ -59,6 +64,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     allow_comments: true,
     version: 1,
     last_comment_at: null,
+    reactions: null,
     author: {
       id: 'user-1',
       username: 'alice',
@@ -82,9 +88,53 @@ function mountCard(post: Post, extra: Record<string, unknown> = {}) {
   })
 }
 
+function mountCardWithAuth(
+  post: Post,
+  authOverrides: { role?: string; userId?: string; isGuest?: boolean } = {},
+) {
+  const router = createTestRouter()
+  const pinia = createPinia()
+  setActivePinia(pinia)
+
+  const auth = useAuthStore()
+  // Set role in localStorage before mounting so computed properties work
+  if (authOverrides.role) {
+    localStorage.setItem('role', authOverrides.role)
+    localStorage.setItem('expiresAt', String(Date.now() + 3600_000))
+  }
+  // Re-create pinia to pick up localStorage
+  const pinia2 = createPinia()
+  setActivePinia(pinia2)
+  const auth2 = useAuthStore()
+  if (authOverrides.userId) {
+    auth2.user = {
+      id: authOverrides.userId,
+      username: 'testuser',
+      display_name: 'Test User',
+      role: authOverrides.role ?? 'MEMBER',
+      bio: null,
+      affiliation: null,
+      orcid: null,
+      avatar_url: null,
+      preferred_language: 'en',
+      is_banned: false,
+      ban_reason: null,
+      created_at: new Date().toISOString(),
+    }
+  }
+
+  return mount(PostCard, {
+    props: { post },
+    global: {
+      plugins: [pinia2, router],
+    },
+  })
+}
+
 describe('PostCard', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    localStorage.clear()
   })
 
   describe('post title', () => {
@@ -294,6 +344,87 @@ describe('PostCard', () => {
       const imgs = wrapper.findAll('img')
       const contentImgs = imgs.filter((img) => img.attributes('alt') !== 'Alice')
       expect(contentImgs.length).toBe(0)
+    })
+  })
+
+  describe('reactions', () => {
+    it('shows reaction buttons for authenticated non-guest users', () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-2'] } }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const buttons = wrapper.findAll('button[aria-label]')
+      expect(buttons.length).toBe(3) // LIKE, SMILE, CRY
+    })
+
+    it('shows reaction count when reactions exist', () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-2', 'user-3'] } }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const likeButton = wrapper.find('button[aria-label="React with LIKE"]')
+      expect(likeButton.exists()).toBe(true)
+      expect(likeButton.text()).toContain('2')
+    })
+
+    it('highlights reaction button when user has reacted', () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-1'] } }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const likeButton = wrapper.find('button[aria-label="React with LIKE"]')
+      expect(likeButton.classes()).toContain('bg-brand-100')
+      expect(likeButton.attributes('aria-pressed')).toBe('true')
+    })
+
+    it('does not highlight reaction button when user has not reacted', () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-2'] } }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const likeButton = wrapper.find('button[aria-label="React with LIKE"]')
+      expect(likeButton.classes()).not.toContain('bg-brand-100')
+      expect(likeButton.attributes('aria-pressed')).toBe('false')
+    })
+
+    it('calls togglePostReaction when reaction button is clicked', async () => {
+      const { togglePostReaction } = await import('@/api/posts')
+      const mockedToggle = vi.mocked(togglePostReaction)
+      const postData = makePost({ reactions: null })
+      mockedToggle.mockResolvedValue({ ...postData, reactions: { LIKE: ['user-1'] } })
+
+      const wrapper = mountCardWithAuth(postData, { role: 'MEMBER', userId: 'user-1' })
+
+      const likeButton = wrapper.find('button[aria-label="React with LIKE"]')
+      await likeButton.trigger('click')
+
+      expect(mockedToggle).toHaveBeenCalledWith('post-1', 'LIKE')
+    })
+
+    it('shows read-only reactions for guests when reactions exist', () => {
+      const wrapper = mountCard(makePost({ reactions: { LIKE: ['user-2'], SMILE: ['user-3'] } }))
+      // No interactive buttons (no aria-label buttons)
+      const buttons = wrapper.findAll('button[aria-label]')
+      expect(buttons.length).toBe(0)
+      // Should show reaction counts as spans
+      const reactionSpans = wrapper.findAll('span.rounded-full')
+      expect(reactionSpans.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('does not show read-only reactions section when no reactions exist', () => {
+      const wrapper = mountCard(makePost({ reactions: null }))
+      const buttons = wrapper.findAll('button[aria-label]')
+      expect(buttons.length).toBe(0)
+    })
+
+    it('does not show reaction buttons for guest users', () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-2'] } }), {
+        role: 'GUEST',
+        userId: 'guest-1',
+      })
+      // Guest should not see interactive buttons
+      const buttons = wrapper.findAll('button[aria-label]')
+      expect(buttons.length).toBe(0)
     })
   })
 })

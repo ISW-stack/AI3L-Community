@@ -88,71 +88,109 @@ onMounted(fetchReports)
 
     <EmptyState v-else-if="reports.length === 0" :message="t('admin.reports.emptyMessage')" />
 
-    <div v-else class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
-      <table class="w-full text-sm min-w-[700px]">
-        <thead class="bg-surface-alt border-b border-border">
-          <tr>
-            <th class="text-left px-4 py-3 font-medium text-muted">
-              {{ t('admin.reports.table.post') }}
-            </th>
-            <th class="text-left px-4 py-3 font-medium text-muted">
-              {{ t('admin.reports.table.reason') }}
-            </th>
-            <th class="text-left px-4 py-3 font-medium text-muted">
-              {{ t('admin.reports.table.status') }}
-            </th>
-            <th class="text-left px-4 py-3 font-medium text-muted">
-              {{ t('admin.reports.table.reported') }}
-            </th>
-            <th class="text-left px-4 py-3 font-medium text-muted">
-              {{ t('admin.reports.table.actions') }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="report in reports"
-            :key="report.id"
-            class="border-b border-border last:border-0 hover:bg-surface-alt transition"
-          >
-            <td class="px-4 py-3 max-w-xs truncate">
-              <router-link
-                :to="`/forum/${report.post_id}`"
-                class="text-brand-600 hover:underline text-sm"
-              >
-                {{ report.post_title || report.post_id.slice(0, 8) + '...' }}
-              </router-link>
-            </td>
-            <td class="px-4 py-3 max-w-xs truncate text-foreground">{{ report.reason }}</td>
-            <td class="px-4 py-3">
-              <BaseBadge :variant="statusBadge[report.status] || 'neutral'">{{
-                report.status
-              }}</BaseBadge>
-            </td>
-            <td class="px-4 py-3 text-muted text-xs">
-              {{ new Date(report.created_at).toLocaleString() }}
-            </td>
-            <td class="px-4 py-3">
-              <div v-if="report.status === 'PENDING'" class="flex gap-2">
-                <BaseButton
-                  size="sm"
-                  variant="success"
-                  @click="reviewReport(report.id, 'RESOLVED')"
-                  >{{ t('admin.reports.resolveBtn') }}</BaseButton
+    <template v-else>
+      <!-- Mobile card layout -->
+      <div class="space-y-3 md:hidden">
+        <div
+          v-for="report in reports"
+          :key="'mobile-' + report.id"
+          class="bg-surface rounded-lg shadow border border-border p-4 space-y-2"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <router-link
+              :to="`/forum/${report.post_id}`"
+              class="text-brand-600 hover:underline text-sm font-medium truncate"
+            >
+              {{ report.post_title || report.post_id.slice(0, 8) + '...' }}
+            </router-link>
+            <BaseBadge :variant="statusBadge[report.status] || 'neutral'" class="shrink-0">{{
+              report.status
+            }}</BaseBadge>
+          </div>
+          <p class="text-sm text-foreground line-clamp-2">{{ report.reason }}</p>
+          <p class="text-xs text-muted">{{ new Date(report.created_at).toLocaleString() }}</p>
+          <div v-if="report.status === 'PENDING'" class="flex gap-2 pt-1">
+            <BaseButton size="sm" variant="success" @click="reviewReport(report.id, 'RESOLVED')">{{
+              t('admin.reports.resolveBtn')
+            }}</BaseButton>
+            <BaseButton
+              size="sm"
+              variant="secondary"
+              @click="reviewReport(report.id, 'DISMISSED')"
+              >{{ t('admin.reports.dismissBtn') }}</BaseButton
+            >
+          </div>
+          <span v-else class="text-xs text-muted">{{ t('admin.reports.reviewedBtn') }}</span>
+        </div>
+      </div>
+
+      <!-- Desktop table layout -->
+      <div class="hidden md:block bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+        <table class="w-full text-sm min-w-[700px]">
+          <thead class="bg-surface-alt border-b border-border">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.reports.table.post') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.reports.table.reason') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.reports.table.status') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.reports.table.reported') }}
+              </th>
+              <th class="text-left px-4 py-3 font-medium text-muted">
+                {{ t('admin.reports.table.actions') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="report in reports"
+              :key="report.id"
+              class="border-b border-border last:border-0 hover:bg-surface-alt transition"
+            >
+              <td class="px-4 py-3 max-w-xs truncate">
+                <router-link
+                  :to="`/forum/${report.post_id}`"
+                  class="text-brand-600 hover:underline text-sm"
                 >
-                <BaseButton
-                  size="sm"
-                  variant="secondary"
-                  @click="reviewReport(report.id, 'DISMISSED')"
-                  >{{ t('admin.reports.dismissBtn') }}</BaseButton
-                >
-              </div>
-              <span v-else class="text-xs text-muted">{{ t('admin.reports.reviewedBtn') }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+                  {{ report.post_title || report.post_id.slice(0, 8) + '...' }}
+                </router-link>
+              </td>
+              <td class="px-4 py-3 max-w-xs truncate text-foreground">{{ report.reason }}</td>
+              <td class="px-4 py-3">
+                <BaseBadge :variant="statusBadge[report.status] || 'neutral'">{{
+                  report.status
+                }}</BaseBadge>
+              </td>
+              <td class="px-4 py-3 text-muted text-xs">
+                {{ new Date(report.created_at).toLocaleString() }}
+              </td>
+              <td class="px-4 py-3">
+                <div v-if="report.status === 'PENDING'" class="flex gap-2">
+                  <BaseButton
+                    size="sm"
+                    variant="success"
+                    @click="reviewReport(report.id, 'RESOLVED')"
+                    >{{ t('admin.reports.resolveBtn') }}</BaseButton
+                  >
+                  <BaseButton
+                    size="sm"
+                    variant="secondary"
+                    @click="reviewReport(report.id, 'DISMISSED')"
+                    >{{ t('admin.reports.dismissBtn') }}</BaseButton
+                  >
+                </div>
+                <span v-else class="text-xs text-muted">{{ t('admin.reports.reviewedBtn') }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
 
     <BasePagination
       v-if="totalPages > 1"

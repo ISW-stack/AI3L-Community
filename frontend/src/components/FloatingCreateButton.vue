@@ -27,8 +27,8 @@ const auth = useAuthStore()
 <style scoped>
 .fab {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  right: max(1.5rem, env(safe-area-inset-right, 0px));
   z-index: 40;
   display: inline-flex;
   align-items: center;

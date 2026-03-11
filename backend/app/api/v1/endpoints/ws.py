@@ -55,7 +55,8 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
     guest_timeout_task = None
     ping_task = None
-    last_activity = time.time()
+    # Use mutable container so closures share the same reference
+    activity = {"last": time.time()}
     try:
         last_pong = asyncio.get_event_loop().time()
 
@@ -64,7 +65,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
             async def _guest_timeout() -> None:
                 while True:
-                    elapsed = time.time() - last_activity
+                    elapsed = time.time() - activity["last"]
                     remaining = GUEST_SESSION_TIMEOUT - elapsed
                     if remaining <= 0:
                         logger.info(
@@ -116,7 +117,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                 return
 
             msg = json.loads(data)
-            last_activity = now
+            activity["last"] = now
 
             if msg.get("type") == "PONG":
                 last_pong = asyncio.get_event_loop().time()

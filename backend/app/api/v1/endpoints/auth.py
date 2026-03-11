@@ -31,6 +31,7 @@ from app.services.auth import (
     create_invite_code,
     create_session,
     create_ws_ticket,
+    decrement_guest_counter,
     destroy_session,
     get_invite_code,
     guest_login,
@@ -163,7 +164,7 @@ async def login_as_guest(
     token, expires_in = result
 
     await redis.incr(ip_guest_key)
-    await redis.expire(ip_guest_key, 3600)  # 1 hour window
+    await redis.expire(ip_guest_key, 3600, nx=True)  # fixed window: only set TTL if not already set
 
     # Set cookies
     csrf_token = secrets.token_urlsafe(32)
@@ -182,6 +183,10 @@ async def logout(
         role=current_user["role"],
         jti=current_user["jti"],
     )
+
+    # Decrement atomic guest counter on guest logout
+    if current_user["role"] == "GUEST":
+        await decrement_guest_counter()
 
     _clear_auth_cookies(response)
 

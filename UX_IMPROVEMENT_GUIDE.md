@@ -1,7 +1,7 @@
 # AI3L Community — UX Improvement Contributor Guide
 
 > **Created:** 2026-03-06
-> **Last Updated:** 2026-03-08
+> **Last Updated:** 2026-03-11
 > **Audience:** Frontend + Backend contributors
 > **Language:** English throughout
 
@@ -14,12 +14,11 @@ This guide catalogues confirmed UX issues and improvement opportunities in the A
 **Completed:**
 - ~~[1. Admin Sidebar Layout Shift](#1-admin-sidebar-layout-shift--done)~~ — Done
 - ~~[2. SIG Detail Page Redesign](#2-sig-detail-page-redesign--done)~~ — Done
-
-**Open — Original Tasks:**
-- [3. Forum Post Card — Richer Preview](#3-forum-post-card--richer-preview)
-- [4. Home Page Enhancement](#4-home-page-enhancement)
-- [5. Post-Level Reactions](#5-post-level-reactions)
-- [6. Internationalization (i18n) and Language Switcher](#6-internationalization-i18n-and-language-switcher)
+- ~~[3. Forum Post Card — Richer Preview](#3-forum-post-card--richer-preview--done)~~ — Done
+- ~~[4. Home Page Enhancement](#4-home-page-enhancement--done)~~ — Done
+- ~~[5. Post-Level Reactions](#5-post-level-reactions--done)~~ — Done
+- ~~[6. Internationalization (i18n) and Language Switcher](#6-internationalization-i18n-and-language-switcher--done)~~ — Done
+- ~~[17. Public Stats API Endpoint (Backend)](#17-public-stats-api-endpoint-backend--done)~~ — Done
 
 **Open — New Tasks (from codebase audit 2026-03-08):**
 - [7. Silent Error Handling — Toast Notifications](#7-silent-error-handling--toast-notifications)
@@ -55,7 +54,9 @@ No further action needed.
 
 ---
 
-## 3. Forum Post Card — Richer Preview
+## 3. Forum Post Card — Richer Preview — DONE
+
+> **Status:** Completed. PostCard now shows post-level reactions (interactive for members, read-only for guests), thumbnail extraction, and optimistic UI updates. PostDetailView also shows post-level reactions. 14 new PostCard tests added.
 
 **Problem:** The `PostCard.vue` component (126 lines) shows minimal information before clicking into a post. Content is stripped of HTML and clamped to 6 lines with a gradient fade. There are no images, no post-level reactions, and no engagement metrics beyond comment count and view count.
 
@@ -132,7 +133,9 @@ Think Facebook post card:
 
 ---
 
-## 4. Home Page Enhancement
+## 4. Home Page Enhancement — DONE
+
+> **Status:** Completed. Home page now shows trending posts (PostCard with contentClamp=3), recent posts (PostCard), community stats widget (real numbers from `/public/stats`), user's SIGs sidebar, featured SIGs sidebar, and responsive `md:grid-cols-3` layout. Unauthenticated landing shows real stats. All locale files updated.
 
 **Problem:** After logging in, clicking the top-left AI3L icon leads to a page that only shows a welcome card, 5 recent posts, an unread notification badge, and a few quick links. It feels static and uninviting.
 
@@ -197,7 +200,9 @@ Start with 4.2 (trending — endpoint exists) and 4.3 (my SIGs — endpoint exis
 
 ---
 
-## 5. Post-Level Reactions
+## 5. Post-Level Reactions — DONE
+
+> **Status:** Completed. Full-stack implementation: Alembic migration (reactions JSONB on posts), shared `reaction_helpers.py` (refactored comment_repo to use it too), `POST /posts/{post_id}/reactions` endpoint, PostResponse schema + converter updated, toggle API in frontend, optimistic UI in PostCard + PostDetailView. 16 new backend tests + 14 new frontend tests.
 
 **Problem:** Users must click into a post to leave a reaction. Reactions (LIKE, SMILE, CRY) only exist on comments, not on posts themselves. This creates friction for quick engagement.
 
@@ -313,7 +318,9 @@ Use `@click.stop` to prevent card click (navigation) from firing.
 
 ---
 
-## 6. Internationalization (i18n) and Language Switcher
+## 6. Internationalization (i18n) and Language Switcher — DONE
+
+> **Status:** Completed (prior to this guide). vue-i18n 11.x with 18 languages, `LanguageSwitcher.vue` in AppNavbar, `useLocale.ts` composable, `preferred_language` column in users table, RTL support for Arabic. All views use `t()` calls.
 
 **Problem:** All UI text is hardcoded in English across ~54 Vue files (~500-700 strings). There is no i18n infrastructure, no translation files, and no language switcher.
 
@@ -650,7 +657,9 @@ Add `md:` breakpoint variants where only `lg:` exists. Example for HomeView:
 
 ---
 
-## 17. Public Stats API Endpoint (Backend)
+## 17. Public Stats API Endpoint (Backend) — DONE
+
+> **Status:** Completed. `GET /public/stats` returns `{ member_count, post_count, sig_count }` with 5-minute in-memory cache, no auth required. 3 backend tests added.
 
 **Problem:** The admin dashboard has stats (user/post/SIG counts) but they're admin-only. The home page needs public-accessible community stats for both authenticated and unauthenticated users.
 

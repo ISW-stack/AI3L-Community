@@ -221,6 +221,14 @@ async def get_trending_posts(limit: int = 5, days: int = 7) -> list[dict]:
     return [row_to_post(r) for r in rows]
 
 
+async def toggle_post_reaction(post_id: uuid.UUID, user_id: str, reaction: str) -> dict | None:
+    """Toggle a reaction on a post. Returns updated post dict or None."""
+    row = await post_repo.toggle_reaction(post_id, user_id, reaction)
+    if not row:
+        return None
+    return row_to_post(row)
+
+
 async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
     """Soft-delete multiple posts in a single transaction."""
     pool = get_pool()

@@ -37,6 +37,11 @@ celery.conf.beat_schedule = {
         "schedule": 604800.0,  # every 7 days
         "options": {"soft_time_limit": 3500, "time_limit": 3600},
     },
+    "cleanup-old-file-scans": {
+        "task": "cleanup_old_file_scans",
+        "schedule": 86400.0,  # every 24 hours
+        "options": {"soft_time_limit": 60, "time_limit": 120},
+    },
 }
 
 celery.autodiscover_tasks(["app.tasks"])

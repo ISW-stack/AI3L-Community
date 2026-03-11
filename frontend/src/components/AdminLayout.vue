@@ -85,7 +85,7 @@ function toggleSidebar() {
     <Transition name="sidebar-panel">
       <aside
         v-if="sidebarOpen"
-        class="fixed inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col z-50 lg:hidden"
+        class="mobile-sidebar fixed inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col z-50 lg:hidden"
       >
         <div class="flex items-center justify-between px-4 py-6 border-b border-border">
           <h2 class="text-sm font-semibold uppercase tracking-wider">
@@ -144,6 +144,12 @@ function toggleSidebar() {
 </template>
 
 <style scoped>
+/* Safe area inset for mobile sidebar (notch / dynamic island devices) */
+.mobile-sidebar {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .sidebar-link.router-link-active {
   background-color: var(--color-brand-50);
   color: var(--color-brand-700);

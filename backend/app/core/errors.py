@@ -51,6 +51,36 @@ class RateLimitError(ValueError):
         super().__init__(detail)
 
 
+class ServiceValidationError(ValueError):
+    """Domain-level validation error raised by service layer.
+
+    Endpoints should catch and map to 400.
+    """
+
+    def __init__(self, detail: str):
+        super().__init__(detail)
+
+
+class ServiceNotFoundError(ValueError):
+    """Domain-level not-found error raised by service layer.
+
+    Endpoints should catch and map to 404.
+    """
+
+    def __init__(self, detail: str = "Resource not found."):
+        super().__init__(detail)
+
+
+class StorageQuotaError(ValueError):
+    """Domain-level storage quota exceeded error.
+
+    Endpoints should catch and map to 400.
+    """
+
+    def __init__(self, detail: str = "Storage quota exceeded."):
+        super().__init__(detail)
+
+
 class ValidationError(AppError):
     def __init__(self, detail: str):
         super().__init__(ErrorCode.SYS_422, 422, detail)

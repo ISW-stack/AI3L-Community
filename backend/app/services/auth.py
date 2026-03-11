@@ -82,41 +82,67 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
     return bool(stored_jti == jti)
 
 
-_GUEST_COUNT_KEY = "meta:active_guest_count"
-_GUEST_COUNT_TTL = 60  # seconds
+_GUEST_COUNTER_KEY = "meta:guest_counter"
 
 
-async def _count_active_guests() -> int:
-    """Count active guest sessions by scanning Redis keys. Result cached for 60s."""
+async def _sync_guest_counter() -> None:
+    """Sync the atomic guest counter with actual session count in Redis.
+
+    Called on startup or when counter may be stale.
+    """
     redis = get_redis()
-    cached = await redis.get(_GUEST_COUNT_KEY)
-    if cached is not None:
-        return int(cached)
     count = 0
     async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
         count += 1
-    await redis.setex(_GUEST_COUNT_KEY, _GUEST_COUNT_TTL, count)
-    return count
+    await redis.set(_GUEST_COUNTER_KEY, count)
+
+
+async def _get_guest_count() -> int:
+    """Read current guest count from the atomic counter."""
+    redis = get_redis()
+    val = await redis.get(_GUEST_COUNTER_KEY)
+    if val is None:
+        # Counter not initialised yet — sync from session keys
+        await _sync_guest_counter()
+        val = await redis.get(_GUEST_COUNTER_KEY)
+    return int(val) if val is not None else 0
 
 
 async def guest_login(display_name: str) -> tuple[str, int] | None:
-    """Create guest session. Returns (token, expires_in) or None if limit reached."""
-    count = await _count_active_guests()
-    if count >= MAX_GUESTS:
+    """Create guest session. Returns (token, expires_in) or None if limit reached.
+
+    Uses Redis INCR for atomic counting to prevent TOCTOU race conditions.
+    """
+    redis = get_redis()
+
+    # Ensure counter exists before INCR (initialise from session scan if needed)
+    exists = await redis.exists(_GUEST_COUNTER_KEY)
+    if not exists:
+        await _sync_guest_counter()
+
+    # Atomically increment — if over limit, decrement and reject
+    new_count = await redis.incr(_GUEST_COUNTER_KEY)
+    if new_count > MAX_GUESTS:
+        await redis.decr(_GUEST_COUNTER_KEY)
         return None
 
     guest_id = str(uuid.uuid4())
     token, ttl_seconds = await create_session(guest_id, "GUEST")
 
-    # Invalidate cached guest count so the next check reflects the new session
-    redis = get_redis()
-    await redis.delete(_GUEST_COUNT_KEY)
-
     logger.info(
         "Guest login",
-        extra={"guest_id": guest_id, "display_name": display_name, "online_guests": count + 1},
+        extra={"guest_id": guest_id, "display_name": display_name, "online_guests": new_count},
     )
     return token, ttl_seconds
+
+
+async def decrement_guest_counter() -> None:
+    """Decrement the atomic guest counter (call on guest session expiry/logout)."""
+    redis = get_redis()
+    val = await redis.decr(_GUEST_COUNTER_KEY)
+    # Prevent counter from going negative
+    if val < 0:
+        await redis.set(_GUEST_COUNTER_KEY, 0)
 
 
 async def get_invite_code(invite_code: str) -> dict | None:

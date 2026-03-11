@@ -19,6 +19,7 @@ vi.mock('@/composables/api', () => ({
 
 vi.mock('@/constants', () => ({
   HEARTBEAT_INTERVAL_MS: 30000,
+  REACTIONS: ['LIKE', 'SMILE', 'CRY'] as const,
 }))
 
 vi.mock('dompurify', () => ({
@@ -126,6 +127,9 @@ function buildMockPostDetail(overrides?: Record<string, any>) {
     cancelEditComment: vi.fn(),
     saveEditComment: vi.fn(),
     handleReply: vi.fn(),
+    togglePostReactionHandler: vi.fn(),
+    getPostReactionCount: vi.fn(() => 0),
+    hasPostReacted: vi.fn(() => false),
   }
 }
 

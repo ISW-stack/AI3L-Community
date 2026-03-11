@@ -57,19 +57,7 @@ async def _async_export(form_id: str, task_id: str) -> dict:
             else form["questions"]
         )
 
-        # Fetch all responses with user info
-        rows = await conn.fetch(
-            """
-            SELECT fr.id, fr.answers, fr.created_at, u.username, u.display_name
-            FROM form_responses fr
-            JOIN users u ON u.id = fr.user_id
-            WHERE fr.form_id = $1
-            ORDER BY fr.created_at ASC
-            """,
-            uuid.UUID(form_id),
-        )
-
-    # Build CSV
+    # Build CSV in chunks to avoid loading all responses into memory
     output = io.StringIO()
     question_labels = [q["label"] for q in questions]
     question_ids = [q["id"] for q in questions]
@@ -80,26 +68,56 @@ async def _async_export(form_id: str, task_id: str) -> dict:
         + [_sanitize_csv_value(label) for label in question_labels]
     )
 
-    for row in rows:
-        answers = json.loads(row["answers"]) if isinstance(row["answers"], str) else row["answers"]
-        answer_values = []
-        for qid in question_ids:
-            val = answers.get(qid, "")
-            if isinstance(val, list):
-                val = "; ".join(str(v) for v in val)
-            elif isinstance(val, dict):
-                val = val.get("filename", str(val))
-            answer_values.append(str(val) if val is not None else "")
+    _BATCH_SIZE = 1000
+    total_rows = 0
+    async with pool.acquire() as conn:
+        offset = 0
+        while True:
+            rows = await conn.fetch(
+                """
+                SELECT fr.id, fr.answers, fr.created_at, u.username, u.display_name
+                FROM form_responses fr
+                JOIN users u ON u.id = fr.user_id
+                WHERE fr.form_id = $1
+                ORDER BY fr.created_at ASC
+                LIMIT $2 OFFSET $3
+                """,
+                uuid.UUID(form_id),
+                _BATCH_SIZE,
+                offset,
+            )
+            if not rows:
+                break
 
-        writer.writerow(
-            [
-                str(row["id"]),
-                _sanitize_csv_value(row["username"]),
-                _sanitize_csv_value(row["display_name"]),
-                row["created_at"].isoformat(),
-            ]
-            + [_sanitize_csv_value(v) for v in answer_values]
-        )
+            for row in rows:
+                answers = (
+                    json.loads(row["answers"])
+                    if isinstance(row["answers"], str)
+                    else row["answers"]
+                )
+                answer_values = []
+                for qid in question_ids:
+                    val = answers.get(qid, "")
+                    if isinstance(val, list):
+                        val = "; ".join(str(v) for v in val)
+                    elif isinstance(val, dict):
+                        val = val.get("filename", str(val))
+                    answer_values.append(str(val) if val is not None else "")
+
+                writer.writerow(
+                    [
+                        str(row["id"]),
+                        _sanitize_csv_value(row["username"]),
+                        _sanitize_csv_value(row["display_name"]),
+                        row["created_at"].isoformat(),
+                    ]
+                    + [_sanitize_csv_value(v) for v in answer_values]
+                )
+
+            total_rows += len(rows)
+            if len(rows) < _BATCH_SIZE:
+                break
+            offset += _BATCH_SIZE
 
     # Upload CSV to MinIO
     csv_bytes = output.getvalue().encode("utf-8-sig")
@@ -109,7 +127,7 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     # Generate presigned URL (24h expiry)
     download_url = generate_presigned_url(storage_key, expires_in=86400)
 
-    logger.info("Form CSV export completed", extra={"form_id": form_id, "rows": len(rows)})
+    logger.info("Form CSV export completed", extra={"form_id": form_id, "rows": total_rows})
     return {"download_url": download_url}
 
 

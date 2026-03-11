@@ -6,7 +6,15 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.core import event_bus
-from app.core.event_bus import MAX_RETRIES, _persist_failed_event, clear, emit, on
+from app.core.event_bus import (
+    MAX_RETRIES,
+    EmitResult,
+    HandlerFailure,
+    _persist_failed_event,
+    clear,
+    emit,
+    on,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -74,12 +82,15 @@ class TestRegistration:
 
 class TestEmitHappyPath:
     @pytest.mark.asyncio
-    async def test_emit_calls_handler_with_kwargs(self):
+    async def test_emit_returns_emit_result(self):
         handler = AsyncMock()
         on("user.created", handler)
 
-        await emit("user.created", user_id="abc", role="MEMBER")
+        result = await emit("user.created", user_id="abc", role="MEMBER")
 
+        assert isinstance(result, EmitResult)
+        assert result.ok is True
+        assert len(result.failures) == 0
         handler.assert_awaited_once_with(user_id="abc", role="MEMBER")
 
     @pytest.mark.asyncio
@@ -162,7 +173,7 @@ class TestRetryBehaviour:
 
     @pytest.mark.asyncio
     async def test_all_retries_exhausted_persists_to_redis(self):
-        """When all attempts fail, the event is persisted to Redis."""
+        """When all retries are exhausted, failure is persisted to Redis and reported."""
         handler = AsyncMock(side_effect=Exception("always fails"))
         on("evt", handler)
 
@@ -170,7 +181,7 @@ class TestRetryBehaviour:
             with patch(
                 "app.core.event_bus._persist_failed_event", new_callable=AsyncMock
             ) as mock_persist:
-                await emit("evt", x=42)
+                result = await emit("evt", x=42)
 
         # 1 initial + MAX_RETRIES retries = MAX_RETRIES + 1 total
         assert handler.await_count == MAX_RETRIES + 1
@@ -178,6 +189,15 @@ class TestRetryBehaviour:
         call_args = mock_persist.call_args
         assert call_args[0][0] == "evt"  # event name
         assert call_args[1] == {"retry_count": 0}
+
+        # EmitResult should report the failure
+        assert result.ok is False
+        assert len(result.failures) == 1
+        failure = result.failures[0]
+        assert isinstance(failure, HandlerFailure)
+        assert failure.event == "evt"
+        assert failure.attempts == MAX_RETRIES + 1
+        assert str(failure.exception) == "always fails"
 
     @pytest.mark.asyncio
     async def test_retry_delay_uses_configured_value(self):

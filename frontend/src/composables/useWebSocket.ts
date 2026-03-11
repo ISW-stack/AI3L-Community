@@ -7,9 +7,20 @@ import api from '@/composables/api'
 
 import { WS_INITIAL_BACKOFF_MS, WS_MAX_BACKOFF_MS } from '@/constants'
 
-// Module-level guard: prevents registering the visibilitychange listener more
-// than once when useWebSocket() is called from multiple component instances.
-let _visibilityListenerRegistered = false
+// Reference-counting guard: tracks how many component instances are using
+// the shared visibilitychange listener. The listener is only removed when
+// the last consumer unmounts.
+let _visibilityConsumers = 0
+let _currentHandleVisibility: (() => void) | null = null
+
+/** Reset module-level state (test-only). */
+export function _resetVisibilityState(): void {
+  if (_currentHandleVisibility) {
+    document.removeEventListener('visibilitychange', _currentHandleVisibility)
+    _currentHandleVisibility = null
+  }
+  _visibilityConsumers = 0
+}
 
 export function useWebSocket() {
   const auth = useAuthStore()
@@ -112,15 +123,24 @@ export function useWebSocket() {
     }
   }
 
-  if (!_visibilityListenerRegistered) {
-    document.addEventListener('visibilitychange', handleVisibility)
-    _visibilityListenerRegistered = true
+  _visibilityConsumers++
+  if (_visibilityConsumers === 1) {
+    _currentHandleVisibility = handleVisibility
+    document.addEventListener('visibilitychange', _currentHandleVisibility)
   }
 
   onUnmounted(() => {
-    document.removeEventListener('visibilitychange', handleVisibility)
-    _visibilityListenerRegistered = false
-    cleanup()
+    try {
+      _visibilityConsumers = Math.max(0, _visibilityConsumers - 1)
+      if (_visibilityConsumers === 0 && _currentHandleVisibility) {
+        document.removeEventListener('visibilitychange', _currentHandleVisibility)
+        _currentHandleVisibility = null
+      }
+      cleanup()
+    } catch {
+      // Ensure cleanup runs even if listener removal fails
+      cleanup()
+    }
   })
 
   return { connected, connect, cleanup }

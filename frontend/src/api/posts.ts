@@ -77,3 +77,13 @@ export async function togglePinPost(postId: string, isPinned: boolean) {
   const { data } = await api.patch(`/posts/${postId}/pin`, { is_pinned: isPinned })
   return data as { is_pinned: boolean }
 }
+
+export async function getPublicStats() {
+  const { data } = await api.get('/public/stats')
+  return data as { member_count: number; post_count: number; sig_count: number }
+}
+
+export async function togglePostReaction(postId: string, reactionType: string) {
+  const { data } = await api.post(`/posts/${postId}/reactions`, { reaction: reactionType })
+  return data as Post
+}

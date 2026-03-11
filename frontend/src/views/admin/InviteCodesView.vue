@@ -121,7 +121,55 @@ onMounted(fetchCodes)
     />
 
     <div v-else class="relative">
-      <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+      <!-- Mobile card layout -->
+      <div class="space-y-3 md:hidden">
+        <div
+          v-for="code in codes"
+          :key="'mobile-' + code.id"
+          class="bg-surface rounded-lg shadow border border-border p-4 space-y-2"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <code class="font-mono text-xs text-foreground truncate">{{ code.code }}</code>
+              <button
+                @click="copyCode(code.code, code.id)"
+                class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition shrink-0"
+                :aria-label="t('admin.inviteCodes.copyAriaLabel')"
+              >
+                <Check
+                  v-if="copiedId === code.id"
+                  class="w-3.5 h-3.5 text-success-600"
+                  aria-hidden="true"
+                />
+                <Copy v-else class="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            </div>
+            <BaseBadge :variant="statusBadge[code.status] || 'neutral'" class="shrink-0">{{
+              code.status
+            }}</BaseBadge>
+          </div>
+          <div class="grid grid-cols-2 gap-1 text-xs text-muted">
+            <span
+              >{{ t('admin.inviteCodes.table.createdBy') }}:
+              {{ code.creator_username || '—' }}</span
+            >
+            <span
+              >{{ t('admin.inviteCodes.table.usedBy') }}:
+              {{ code.consumed_by_username || '—' }}</span
+            >
+            <span
+              >{{ t('admin.inviteCodes.table.created') }}: {{ formatDate(code.created_at) }}</span
+            >
+            <span
+              >{{ t('admin.inviteCodes.table.expires') }}:
+              {{ code.expires_at ? formatDate(code.expires_at) : '—' }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop table layout -->
+      <div class="hidden md:block bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
         <table class="w-full text-sm min-w-[650px]">
           <thead class="bg-surface-alt text-left border-b border-border">
             <tr>
@@ -182,7 +230,7 @@ onMounted(fetchCodes)
         </table>
       </div>
       <div
-        class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none lg:hidden"
+        class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none hidden md:block lg:hidden"
       ></div>
     </div>
 

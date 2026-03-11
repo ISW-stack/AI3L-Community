@@ -94,7 +94,7 @@ onUnmounted(() => {
     <!-- Dropdown -->
     <div
       v-if="dropdownOpen"
-      class="absolute right-0 mt-2 w-80 bg-surface border border-border rounded-lg shadow-lg z-50"
+      class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg z-50"
     >
       <div class="flex items-center justify-between px-4 py-2 border-b border-border">
         <span class="text-sm font-semibold text-foreground">Notifications</span>

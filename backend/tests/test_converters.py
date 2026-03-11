@@ -519,6 +519,8 @@ class TestPostConverter:
             "author_avatar_url": None,
             "category_id": _uid(),
             "category_name": "General",
+            "sig_id": None,
+            "sig_name": None,
             "keywords": ["python", "fastapi"],
             "allow_comments": True,
             "version": 1,
@@ -555,6 +557,14 @@ class TestPostConverter:
         assert result["created_at"] == _NOW.isoformat()
         assert result["updated_at"] == _NOW.isoformat()
 
+    def test_sig_fields(self):
+        sig_id = _uid()
+        row = self._make_row(sig_id=sig_id, sig_name="AI Research")
+        result = self._conv(row)
+
+        assert result["sig_id"] == str(sig_id)
+        assert result["sig_name"] == "AI Research"
+
     def test_null_optional_fields(self):
         row = self._make_row(
             category_id=None,
@@ -566,6 +576,8 @@ class TestPostConverter:
 
         assert result["category_id"] is None
         assert result["category_name"] is None
+        assert result["sig_id"] is None
+        assert result["sig_name"] is None
         assert result["keywords"] is None
         assert result["last_comment_at"] is None
 
@@ -1063,3 +1075,52 @@ class TestUserToResponse:
         user = self._make_user(role="MEMBER")
         result = self._conv(user)
         assert result.role == "MEMBER"
+
+
+# =========================================================================
+# shared converter helpers
+# =========================================================================
+
+
+class TestSharedHelpers:
+    """Tests for build_author and safe_json_parse from shared module."""
+
+    def test_build_author(self):
+        from app.converters.shared import build_author
+
+        row = {
+            "author_id": _uid(),
+            "author_username": "user1",
+            "author_display_name": "User One",
+            "author_avatar_url": None,
+        }
+        result = build_author(row)
+        assert result["id"] == str(row["author_id"])
+        assert result["username"] == "user1"
+        assert result["display_name"] == "User One"
+        assert result["avatar_url"] is None
+
+    def test_safe_json_parse_string(self):
+        from app.converters.shared import safe_json_parse
+
+        result = safe_json_parse('{"a": 1}')
+        assert result == {"a": 1}
+
+    def test_safe_json_parse_dict(self):
+        from app.converters.shared import safe_json_parse
+
+        original = {"key": "value"}
+        result = safe_json_parse(original)
+        assert result is original
+
+    def test_safe_json_parse_none(self):
+        from app.converters.shared import safe_json_parse
+
+        result = safe_json_parse(None)
+        assert result is None
+
+    def test_safe_json_parse_list_string(self):
+        from app.converters.shared import safe_json_parse
+
+        result = safe_json_parse("[1, 2, 3]")
+        assert result == [1, 2, 3]

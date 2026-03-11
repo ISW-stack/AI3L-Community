@@ -118,19 +118,19 @@ async function fetchForm() {
     maxRespondents.value = data.max_respondents
     isSchemaLocked.value = data.is_schema_locked
     allowNonMembers.value = data.allow_non_members ?? false
-    questions.value = data.questions.map((q: any) => ({
+    questions.value = data.questions.map((q: Question) => ({
       id: q.id,
       type: q.type,
       label: q.label || '',
       required: q.required ?? true,
       placeholder: q.placeholder || '',
-      max_length: q.max_length ?? null,
+      max_length: q.max_length ?? undefined,
       options: q.options || [],
       min: q.min ?? 1,
       max: q.max ?? 5,
-      labels: q.labels ?? null,
+      labels: q.labels ?? undefined,
       allowed_types: q.allowed_types || [],
-      max_size_mb: q.max_size_mb ?? null,
+      max_size_mb: q.max_size_mb ?? undefined,
     }))
   } catch {
     error.value = t('forms.builder.loadError')
@@ -140,7 +140,12 @@ async function fetchForm() {
 }
 
 function serializeQuestion(q: Question) {
-  const base: any = { id: q.id, type: q.type, label: q.label.trim(), required: q.required }
+  const base: Record<string, unknown> = {
+    id: q.id,
+    type: q.type,
+    label: q.label.trim(),
+    required: q.required,
+  }
   if (q.type === 'text' || q.type === 'textarea') {
     if (q.placeholder) base.placeholder = q.placeholder
     if (q.max_length) base.max_length = q.max_length
@@ -191,7 +196,15 @@ async function saveForm() {
   }
   saving.value = true
   try {
-    const payload: any = {
+    const payload: {
+      title: string
+      description: string | null
+      banner_url: string | null
+      deadline: string | null
+      max_respondents: number | null
+      allow_non_members: boolean
+      questions?: unknown[]
+    } = {
       title: title.value.trim(),
       description: description.value.trim() || null,
       banner_url: bannerUrl.value.trim() || null,
@@ -204,8 +217,8 @@ async function saveForm() {
       await updateForm(formId.value, payload)
       message.value = t('forms.builder.updateSuccess')
     } else {
-      payload.questions = questions.value.map(serializeQuestion)
-      const data = await createForm(sigId.value, payload)
+      const serialized = questions.value.map(serializeQuestion)
+      const data = await createForm(sigId.value, { ...payload, questions: serialized })
       message.value = t('forms.builder.successMessage')
       router.replace(`/forms/${data.id}`)
     }

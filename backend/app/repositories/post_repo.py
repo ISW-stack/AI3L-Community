@@ -9,10 +9,12 @@ _POST_SELECT = """
     SELECT p.*,
            u.id AS author_id, u.username AS author_username,
            u.display_name AS author_display_name, u.avatar_url AS author_avatar_url,
-           c.name AS category_name
+           c.name AS category_name,
+           s.name AS sig_name
     FROM posts p
     JOIN users u ON p.user_id = u.id
     LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN sigs s ON p.sig_id = s.id
 """
 
 _SORT_MAP = {
@@ -346,7 +348,7 @@ async def increment_view_count(post_id: uuid.UUID) -> None:
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
-            "UPDATE posts SET view_count = view_count + 1 WHERE id = $1",
+            "UPDATE posts SET view_count = view_count + 1 WHERE id = $1 AND is_deleted = FALSE",
             post_id,
         )
 
@@ -374,3 +376,26 @@ async def find_trending(limit: int = 5, days: int = 7) -> list[dict]:
             limit,
         )
         return [dict(r) for r in rows]
+
+
+async def toggle_reaction(post_id: uuid.UUID, user_id: str, reaction: str) -> dict | None:
+    """Toggle a reaction on a post. Returns updated post row."""
+    from app.repositories.reaction_helpers import toggle_reaction_jsonb
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            check = await conn.fetchrow(
+                "SELECT id FROM posts WHERE id = $1 AND is_deleted = false",
+                post_id,
+            )
+            if not check:
+                return None
+
+            await toggle_reaction_jsonb(conn, "posts", str(post_id), user_id, reaction)
+
+            row = await conn.fetchrow(
+                f"{_POST_SELECT} WHERE p.id = $1",
+                post_id,
+            )
+            return dict(row) if row else None

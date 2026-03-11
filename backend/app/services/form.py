@@ -226,7 +226,7 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
                     raise ValueError(f"Invalid option for question '{q['label']}'.")
 
         elif qtype == "rating":
-            if not isinstance(value, int):
+            if isinstance(value, bool) or not isinstance(value, int):
                 raise ValueError(f"Question '{q['label']}' expects an integer rating.")
             min_val = q.get("min", 1)
             max_val = q.get("max", 5)

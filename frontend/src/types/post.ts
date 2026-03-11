@@ -15,6 +15,7 @@ export interface Post {
   comment_count: number
   is_pinned: boolean
   view_count: number
+  reactions: Record<string, string[]> | null
   last_comment_at: string | null
   created_at: string
   updated_at: string

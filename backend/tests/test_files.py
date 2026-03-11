@@ -317,7 +317,8 @@ class TestCleanupTaskImport:
 
         importlib.reload(cleanup_mod)
         assert hasattr(cleanup_mod, "cleanup_orphan_files")
+        assert hasattr(cleanup_mod, "cleanup_old_file_scans")
         assert hasattr(cleanup_mod, "_run_async")
         assert hasattr(cleanup_mod, "_get_referenced_keys")
-        assert hasattr(cleanup_mod, "_list_editor_files")
+        assert hasattr(cleanup_mod, "_iter_editor_files")
         assert hasattr(cleanup_mod, "_delete_orphans")

@@ -4,16 +4,18 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
-import { listPosts } from '@/api/posts'
+import { listPosts, getTrendingPosts, getPublicStats } from '@/api/posts'
+import { listMySigs, listSigs } from '@/api/sigs'
 import { applyForMembership } from '@/api/users'
-import type { Post } from '@/types'
+import type { Post, Sig } from '@/types'
+import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import { getErrorMessage } from '@/utils/error'
-import { MessageSquare, Users, FileText, BookOpen } from 'lucide-vue-next'
+import { MessageSquare, Users, FileText, BookOpen, TrendingUp } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -21,7 +23,17 @@ const notifStore = useNotificationStore()
 const toast = useToastStore()
 
 const recentPosts = ref<Post[]>([])
+const trendingPosts = ref<Post[]>([])
+const mySigs = ref<Sig[]>([])
+const featuredSigs = ref<Sig[]>([])
+const publicStats = ref<{ member_count: number; post_count: number; sig_count: number } | null>(
+  null,
+)
 const loadingPosts = ref(false)
+const loadingTrending = ref(false)
+const loadingMySigs = ref(false)
+const loadingStats = ref(false)
+const loadingFeaturedSigs = ref(false)
 
 // Guest membership application
 const applicationDesc = ref('')
@@ -43,7 +55,6 @@ async function submitApplication() {
 }
 
 async function fetchRecentPosts() {
-  if (!auth.isAuthenticated) return
   loadingPosts.value = true
   try {
     const data = await listPosts({ page: 1, page_size: 5, sort: 'newest' })
@@ -55,21 +66,74 @@ async function fetchRecentPosts() {
   }
 }
 
+async function fetchTrendingPosts() {
+  loadingTrending.value = true
+  try {
+    trendingPosts.value = await getTrendingPosts()
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('home.trending.fetchError')), 'error')
+  } finally {
+    loadingTrending.value = false
+  }
+}
+
+async function fetchMySigs() {
+  loadingMySigs.value = true
+  try {
+    mySigs.value = await listMySigs()
+  } catch {
+    // Silent — non-critical
+  } finally {
+    loadingMySigs.value = false
+  }
+}
+
+async function fetchPublicStats() {
+  loadingStats.value = true
+  try {
+    publicStats.value = await getPublicStats()
+  } catch {
+    // Silent — non-critical
+  } finally {
+    loadingStats.value = false
+  }
+}
+
+async function fetchFeaturedSigs() {
+  loadingFeaturedSigs.value = true
+  try {
+    const data = await listSigs()
+    // Show up to 3 SIGs as featured
+    featuredSigs.value = data.sigs.slice(0, 3)
+  } catch {
+    // Silent — non-critical
+  } finally {
+    loadingFeaturedSigs.value = false
+  }
+}
+
 onMounted(() => {
+  fetchPublicStats()
   if (auth.isAuthenticated) {
     fetchRecentPosts()
+    fetchTrendingPosts()
     notifStore.fetchUnreadCount()
+    if (!auth.isGuest) {
+      fetchMySigs()
+    }
+    fetchFeaturedSigs()
   }
 })
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-5xl mx-auto">
     <!-- Authenticated view -->
     <div v-if="auth.isAuthenticated">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left column -->
-        <div class="lg:col-span-2 space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Main column -->
+        <div class="md:col-span-2 space-y-6">
+          <!-- Welcome card -->
           <BaseCard padding="lg">
             <h2 class="text-xl font-semibold text-foreground mb-2">
               {{
@@ -125,8 +189,30 @@ onMounted(() => {
             </div>
           </BaseCard>
 
+          <!-- Trending Posts -->
+          <div v-if="!auth.isGuest">
+            <div class="flex items-center gap-2 mb-3">
+              <TrendingUp class="w-5 h-5 text-brand-600" />
+              <h3 class="text-lg font-semibold text-foreground">
+                {{ t('home.trending.title') }}
+              </h3>
+            </div>
+            <SkeletonLoader v-if="loadingTrending" :lines="3" variant="list" />
+            <div v-else-if="trendingPosts.length === 0" class="text-sm text-muted">
+              {{ t('home.trending.empty') }}
+            </div>
+            <div v-else class="space-y-4">
+              <PostCard
+                v-for="p in trendingPosts.slice(0, 3)"
+                :key="p.id"
+                :post="p"
+                :content-clamp="3"
+              />
+            </div>
+          </div>
+
           <!-- Recent posts -->
-          <BaseCard padding="lg">
+          <div>
             <h3 class="text-lg font-semibold text-foreground mb-3">
               {{ t('home.recentPosts.title') }}
             </h3>
@@ -134,25 +220,13 @@ onMounted(() => {
             <div v-else-if="recentPosts.length === 0" class="text-sm text-muted">
               {{ t('home.recentPosts.empty') }}
             </div>
-            <div v-else class="divide-y divide-border">
-              <router-link
-                v-for="p in recentPosts"
-                :key="p.id"
-                :to="`/forum/${p.id}`"
-                class="block py-3 hover:bg-surface-alt -mx-4 px-4 rounded transition"
-              >
-                <p class="text-sm font-medium text-foreground">{{ p.title }}</p>
-                <div class="flex items-center gap-3 text-xs text-muted mt-1">
-                  <span>{{ p.author.display_name }}</span>
-                  <span>{{ new Date(p.created_at).toLocaleDateString() }}</span>
-                  <span>{{ p.comment_count }} {{ t('home.recentPosts.comments') }}</span>
-                </div>
-              </router-link>
+            <div v-else class="space-y-4">
+              <PostCard v-for="p in recentPosts" :key="p.id" :post="p" :content-clamp="3" />
             </div>
-          </BaseCard>
+          </div>
         </div>
 
-        <!-- Right column -->
+        <!-- Right sidebar -->
         <div class="space-y-6">
           <!-- Unread notifications summary -->
           <BaseCard
@@ -171,6 +245,74 @@ onMounted(() => {
                 }}</BaseButton>
               </router-link>
             </div>
+          </BaseCard>
+
+          <!-- Community Stats -->
+          <BaseCard v-if="publicStats" padding="md">
+            <h3 class="text-sm font-semibold text-foreground mb-3">
+              {{ t('home.stats.title') }}
+            </h3>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p class="text-xl font-bold text-brand-600">{{ publicStats.member_count }}</p>
+                <p class="text-xs text-muted">{{ t('home.stats.members') }}</p>
+              </div>
+              <div>
+                <p class="text-xl font-bold text-brand-600">{{ publicStats.post_count }}</p>
+                <p class="text-xs text-muted">{{ t('home.stats.posts') }}</p>
+              </div>
+              <div>
+                <p class="text-xl font-bold text-brand-600">{{ publicStats.sig_count }}</p>
+                <p class="text-xs text-muted">{{ t('home.stats.sigs') }}</p>
+              </div>
+            </div>
+          </BaseCard>
+
+          <!-- Your SIGs -->
+          <BaseCard v-if="!auth.isGuest && mySigs.length > 0" padding="md">
+            <h3 class="text-sm font-semibold text-foreground mb-3">
+              {{ t('home.yourSigs.title') }}
+            </h3>
+            <ul class="space-y-2">
+              <li v-for="sig in mySigs.slice(0, 5)" :key="sig.id">
+                <router-link
+                  :to="`/sigs/${sig.id}`"
+                  class="flex items-center justify-between text-sm hover:bg-surface-alt -mx-2 px-2 py-1.5 rounded transition"
+                >
+                  <span class="text-foreground font-medium truncate">{{ sig.name }}</span>
+                  <span class="text-xs text-muted shrink-0 ml-2">
+                    {{ sig.member_count }} {{ t('home.yourSigs.members') }}
+                  </span>
+                </router-link>
+              </li>
+            </ul>
+            <router-link
+              v-if="mySigs.length > 5"
+              to="/sigs"
+              class="block text-xs text-brand-600 hover:underline mt-2"
+            >
+              {{ t('home.yourSigs.viewAll') }}
+            </router-link>
+          </BaseCard>
+
+          <!-- Featured SIGs -->
+          <BaseCard v-if="featuredSigs.length > 0" padding="md">
+            <h3 class="text-sm font-semibold text-foreground mb-3">
+              {{ t('home.featuredSigs.title') }}
+            </h3>
+            <ul class="space-y-2">
+              <li v-for="sig in featuredSigs" :key="sig.id">
+                <router-link
+                  :to="`/sigs/${sig.id}`"
+                  class="block hover:bg-surface-alt -mx-2 px-2 py-1.5 rounded transition"
+                >
+                  <p class="text-sm font-medium text-foreground">{{ sig.name }}</p>
+                  <p v-if="sig.description" class="text-xs text-muted line-clamp-2">
+                    {{ sig.description }}
+                  </p>
+                </router-link>
+              </li>
+            </ul>
           </BaseCard>
 
           <!-- Quick Links -->
@@ -231,25 +373,25 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Community stats section -->
-      <div class="grid grid-cols-3 gap-4 mb-8">
+      <!-- Community stats section — real numbers from API -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-8">
         <div class="text-center">
           <p class="text-2xl font-bold text-foreground">
-            {{ t('home.unauthenticated.stats.community') }}
+            {{ publicStats ? publicStats.member_count : '—' }}
           </p>
-          <p class="text-sm text-muted">{{ t('home.unauthenticated.stats.communitySubtitle') }}</p>
+          <p class="text-sm text-muted">{{ t('home.stats.members') }}</p>
         </div>
         <div class="text-center">
           <p class="text-2xl font-bold text-foreground">
-            {{ t('home.unauthenticated.stats.focus') }}
+            {{ publicStats ? publicStats.post_count : '—' }}
           </p>
-          <p class="text-sm text-muted">{{ t('home.unauthenticated.stats.focusSubtitle') }}</p>
+          <p class="text-sm text-muted">{{ t('home.stats.posts') }}</p>
         </div>
         <div class="text-center">
           <p class="text-2xl font-bold text-foreground">
-            {{ t('home.unauthenticated.stats.network') }}
+            {{ publicStats ? publicStats.sig_count : '—' }}
           </p>
-          <p class="text-sm text-muted">{{ t('home.unauthenticated.stats.networkSubtitle') }}</p>
+          <p class="text-sm text-muted">{{ t('home.stats.sigs') }}</p>
         </div>
       </div>
 

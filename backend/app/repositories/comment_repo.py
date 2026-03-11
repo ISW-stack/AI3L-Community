@@ -1,4 +1,3 @@
-import json
 import uuid
 from typing import Any
 
@@ -176,41 +175,20 @@ async def find_by_id(comment_id: uuid.UUID) -> dict | None:
 
 async def update_reactions(comment_id: uuid.UUID, user_id: str, reaction: str) -> dict | None:
     """Toggle a reaction on a comment. Returns updated comment row."""
+    from app.repositories.reaction_helpers import toggle_reaction_jsonb
+
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            row = await conn.fetchrow(
-                "SELECT * FROM comments WHERE id = $1 AND is_deleted = false FOR UPDATE",
+            # Check comment exists and is not deleted
+            check = await conn.fetchrow(
+                "SELECT id FROM comments WHERE id = $1 AND is_deleted = false",
                 comment_id,
             )
-            if not row:
+            if not check:
                 return None
 
-            raw_reactions = row["reactions"]
-            if isinstance(raw_reactions, str):
-                reactions = json.loads(raw_reactions)
-            elif raw_reactions:
-                reactions = dict(raw_reactions)
-            else:
-                reactions = {}
-
-            if reaction not in reactions:
-                reactions[reaction] = []
-
-            user_list = reactions[reaction]
-            if user_id in user_list:
-                user_list.remove(user_id)
-            else:
-                user_list.append(user_id)
-
-            if not user_list:
-                del reactions[reaction]
-
-            await conn.execute(
-                "UPDATE comments SET reactions = $1::jsonb, updated_at = NOW() WHERE id = $2",
-                json.dumps(reactions),
-                comment_id,
-            )
+            await toggle_reaction_jsonb(conn, "comments", str(comment_id), user_id, reaction)
 
             result = await conn.fetchrow(
                 f"{_COMMENT_SELECT} WHERE cm.id = $1",

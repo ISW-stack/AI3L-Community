@@ -1,3 +1,4 @@
+import io
 import re
 import uuid
 
@@ -85,7 +86,7 @@ async def upload_editor_file(
     try:
         from app.tasks.virustotal import check_virustotal, compute_sha256
 
-        file_hash = await run_in_threadpool(compute_sha256, data)
+        file_hash = await run_in_threadpool(compute_sha256, io.BytesIO(data))
         result = check_virustotal.delay(file_hash, key)
         scan_task_id = result.id
     except ImportError:

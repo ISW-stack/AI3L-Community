@@ -29,6 +29,7 @@ _CACHE_TTL_SECONDS: int = 3600  # 1 hour
 _MAX_CACHE_ENTRIES: int = 50
 _MAX_CACHE_BYTES: int = 10 * 1024 * 1024  # 10 MB total
 _cache_total_bytes: int = 0
+_cache_lock = asyncio.Lock()
 
 
 def _build_avatar_url(contributor_id: str) -> str:
@@ -68,14 +69,15 @@ async def get_contributor_avatar(
     if contributor is None:
         return Response(status_code=404, content=b"Contributor not found")
 
-    # Check cache
+    # Check cache (under lock for thread safety)
     now = time.time()
-    cached = _avatar_cache.get(contributor_id)
-    if cached is not None:
-        data, content_type, cached_at = cached
-        if now - cached_at < _CACHE_TTL_SECONDS:
-            _avatar_cache.move_to_end(contributor_id)
-            return Response(content=data, media_type=content_type)
+    async with _cache_lock:
+        cached = _avatar_cache.get(contributor_id)
+        if cached is not None:
+            data, content_type, cached_at = cached
+            if now - cached_at < _CACHE_TTL_SECONDS:
+                _avatar_cache.move_to_end(contributor_id)
+                return Response(content=data, media_type=content_type)
 
     # Fetch from GitHub
     github_url = f"https://github.com/{contributor['github_username']}.png"
@@ -111,17 +113,18 @@ async def get_contributor_avatar(
 
         global _cache_total_bytes
         new_size = len(data)
-        # Evict oldest entries until there is room (byte limit)
-        while _avatar_cache and _cache_total_bytes + new_size > _MAX_CACHE_BYTES:
-            _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)
-            _cache_total_bytes -= len(_oldest_val[0])
-        # Evict oldest entry if count limit reached
-        if len(_avatar_cache) >= _MAX_CACHE_ENTRIES:
-            _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)
-            _cache_total_bytes -= len(_oldest_val[0])
-        _avatar_cache[contributor_id] = (data, content_type, now)
-        _avatar_cache.move_to_end(contributor_id)
-        _cache_total_bytes += new_size
+        async with _cache_lock:
+            # Evict oldest entries until there is room (byte limit)
+            while _avatar_cache and _cache_total_bytes + new_size > _MAX_CACHE_BYTES:
+                _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)
+                _cache_total_bytes -= len(_oldest_val[0])
+            # Evict oldest entry if count limit reached
+            if len(_avatar_cache) >= _MAX_CACHE_ENTRIES:
+                _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)
+                _cache_total_bytes -= len(_oldest_val[0])
+            _avatar_cache[contributor_id] = (data, content_type, now)
+            _avatar_cache.move_to_end(contributor_id)
+            _cache_total_bytes += new_size
 
         return Response(content=data, media_type=content_type)
     except _requests.RequestException:
@@ -204,9 +207,10 @@ async def admin_update_contributor(
     # Clear avatar cache if github_username changed
     global _cache_total_bytes
     cid_str = str(contributor_id)
-    if body.github_username is not None and cid_str in _avatar_cache:
-        _cache_total_bytes -= len(_avatar_cache[cid_str][0])
-        del _avatar_cache[cid_str]
+    async with _cache_lock:
+        if body.github_username is not None and cid_str in _avatar_cache:
+            _cache_total_bytes -= len(_avatar_cache[cid_str][0])
+            del _avatar_cache[cid_str]
 
     return ContributorAdminResponse(
         id=str(row["id"]),
@@ -231,8 +235,9 @@ async def admin_delete_contributor(
 
     global _cache_total_bytes
     cid_str = str(contributor_id)
-    if cid_str in _avatar_cache:
-        _cache_total_bytes -= len(_avatar_cache[cid_str][0])
-        del _avatar_cache[cid_str]
+    async with _cache_lock:
+        if cid_str in _avatar_cache:
+            _cache_total_bytes -= len(_avatar_cache[cid_str][0])
+            del _avatar_cache[cid_str]
 
     return Response(status_code=204)
