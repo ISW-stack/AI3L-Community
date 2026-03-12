@@ -333,6 +333,10 @@ function toggleConfirmPassword() {
               :src="auth.user.avatar_url"
               class="w-full h-full object-cover"
               alt="Avatar"
+              loading="lazy"
+              width="80"
+              height="80"
+              @error="(e: Event) => ((e.target as HTMLImageElement).src = '/fallback-avatar.svg')"
             />
             <span v-else class="text-2xl text-muted">{{
               (auth.user?.display_name || '?')[0]

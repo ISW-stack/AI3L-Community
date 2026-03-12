@@ -244,6 +244,9 @@ onUnmounted(() => {
           alt="Form banner"
           loading="lazy"
           class="w-full h-48 object-cover rounded-lg"
+          width="768"
+          height="192"
+          @error="(e: Event) => ((e.target as HTMLImageElement).src = '/fallback-image.svg')"
         />
       </div>
 

@@ -79,6 +79,9 @@ onMounted(() => {
               :src="contributor.avatar_url"
               :alt="contributor.display_name"
               class="w-16 h-16 rounded-full object-cover border border-border"
+              loading="lazy"
+              width="64"
+              height="64"
               @error="handleAvatarError"
             />
             <div
