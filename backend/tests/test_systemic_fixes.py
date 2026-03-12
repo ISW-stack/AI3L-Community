@@ -518,21 +518,22 @@ class TestVirusTotalInvalidJSON:
 
 
 class TestStorageURLRewriting:
-    """generate_presigned_url should rewrite internal Docker URLs to public URL."""
+    """generate_presigned_url uses _s3_presign_client when MINIO_PUBLIC_URL is set."""
 
     def test_url_rewrite_with_public_url(self):
         from app.core.storage import generate_presigned_url
 
-        mock_client = MagicMock()
-        internal_url = "http://minio:9000/bucket/key?X-Amz-Signature=abc123"
-        mock_client.generate_presigned_url.return_value = internal_url
+        # When _s3_presign_client is set (MINIO_PUBLIC_URL was configured at startup),
+        # generate_presigned_url uses it — the URL is already signed against the public host.
+        mock_presign_client = MagicMock()
+        public_url = "http://localhost:19000/bucket/key?X-Amz-Signature=abc123"
+        mock_presign_client.generate_presigned_url.return_value = public_url
 
         with (
-            patch("app.core.storage.get_storage", return_value=mock_client),
+            patch("app.core.storage._s3_presign_client", mock_presign_client),
             patch("app.core.storage.settings") as mock_settings,
         ):
             mock_settings.MINIO_BUCKET_NAME = "test-bucket"
-            mock_settings.MINIO_PUBLIC_URL = "http://localhost:19000"
 
             result = generate_presigned_url("test-key")
 
@@ -561,22 +562,21 @@ class TestStorageURLRewriting:
         assert result == internal_url
 
     def test_url_rewrite_preserves_path_and_query(self):
-        """URL rewrite should preserve path, query params, and fragment."""
+        """Presign client signed against public URL preserves path and query params."""
         from app.core.storage import generate_presigned_url
 
-        mock_client = MagicMock()
-        internal_url = (
-            "http://minio:9000/mybucket/avatars/user1/img.png"
+        mock_presign_client = MagicMock()
+        public_url = (
+            "https://cdn.example.com/mybucket/avatars/user1/img.png"
             "?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=deadbeef"
         )
-        mock_client.generate_presigned_url.return_value = internal_url
+        mock_presign_client.generate_presigned_url.return_value = public_url
 
         with (
-            patch("app.core.storage.get_storage", return_value=mock_client),
+            patch("app.core.storage._s3_presign_client", mock_presign_client),
             patch("app.core.storage.settings") as mock_settings,
         ):
             mock_settings.MINIO_BUCKET_NAME = "mybucket"
-            mock_settings.MINIO_PUBLIC_URL = "https://cdn.example.com"
 
             result = generate_presigned_url("avatars/user1/img.png")
 
