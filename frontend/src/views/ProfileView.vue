@@ -333,6 +333,9 @@ function toggleConfirmPassword() {
               :src="auth.user.avatar_url"
               class="w-full h-full object-cover"
               alt="Avatar"
+              loading="lazy"
+              width="80"
+              height="80"
             />
             <span v-else class="text-2xl text-muted">{{
               (auth.user?.display_name || '?')[0]

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -8,6 +8,14 @@ const props = withDefaults(
     size?: 'sm' | 'md' | 'lg'
   }>(),
   { src: null, size: 'sm' },
+)
+
+const imgFailed = ref(false)
+watch(
+  () => props.src,
+  () => {
+    imgFailed.value = false
+  },
 )
 
 const sizeClass = computed(() => {
@@ -23,6 +31,11 @@ const sizeClass = computed(() => {
   }
 })
 
+const sizePx = computed(() => {
+  const map: Record<string, number> = { sm: 32, md: 40, lg: 80 }
+  return map[props.size ?? 'sm'] ?? 32
+})
+
 const initial = computed(() => (props.name ? props.name.charAt(0).toUpperCase() : '?'))
 </script>
 
@@ -33,7 +46,16 @@ const initial = computed(() => (props.name ? props.name.charAt(0).toUpperCase() 
       'rounded-full bg-brand-100 text-brand-700 flex items-center justify-center overflow-hidden shrink-0 font-semibold',
     ]"
   >
-    <img v-if="src" :src="src" :alt="name" loading="lazy" class="w-full h-full object-cover" />
+    <img
+      v-if="src && !imgFailed"
+      :src="src"
+      :alt="name"
+      loading="lazy"
+      :width="sizePx"
+      :height="sizePx"
+      class="w-full h-full object-cover"
+      @error="imgFailed = true"
+    />
     <span v-else>{{ initial }}</span>
   </div>
 </template>

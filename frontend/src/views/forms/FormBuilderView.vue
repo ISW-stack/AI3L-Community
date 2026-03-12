@@ -274,6 +274,8 @@ onMounted(() => {
               alt="Banner"
               loading="lazy"
               class="w-full h-40 object-cover rounded-lg"
+              width="768"
+              height="160"
             />
           </div>
           <input
@@ -537,7 +539,14 @@ onMounted(() => {
           {{ t('forms.builder.previewMode') }}
         </BaseAlert>
         <div v-if="bannerUrl" class="rounded-lg overflow-hidden">
-          <img :src="bannerUrl" alt="Banner" loading="lazy" class="w-full h-32 object-cover" />
+          <img
+            :src="bannerUrl"
+            alt="Banner"
+            loading="lazy"
+            class="w-full h-32 object-cover"
+            width="768"
+            height="128"
+          />
         </div>
         <div
           v-if="description"

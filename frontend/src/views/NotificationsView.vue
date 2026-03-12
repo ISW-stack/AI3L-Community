@@ -201,6 +201,9 @@ onMounted(fetchNotifications)
             :src="notif.trigger_user.avatar_url"
             class="w-10 h-10 rounded-full object-cover"
             alt=""
+            loading="lazy"
+            width="40"
+            height="40"
           />
           <component
             :is="notif.action_type === 'SYSTEM' ? Settings : User"
