@@ -119,7 +119,7 @@ function toggleSidebar() {
 
     <!-- Main Content -->
     <div
-      class="flex-1 lg:pl-[calc(var(--spacing-layout)+20rem)] pr-layout py-4 [scrollbar-gutter:stable] min-w-0"
+      class="flex-1 lg:pl-[calc(var(--spacing-layout)+20rem)] lg:pr-layout py-4 [scrollbar-gutter:stable] min-w-0"
     >
       <!-- Mobile header -->
       <div class="lg:hidden sticky top-0 z-20 bg-surface border-b border-border px-4 py-3">
@@ -134,7 +134,7 @@ function toggleSidebar() {
       </div>
 
       <!-- Page -->
-      <main class="py-4">
+      <main class="px-4 lg:px-0 py-4">
         <div class="w-full">
           <router-view />
         </div>

@@ -171,4 +171,20 @@ describe('AdminLayout', () => {
       expect(wrapper.find('.flex-1.min-w-0').exists()).toBe(true)
     })
   })
+
+  describe('mobile content padding', () => {
+    it('should have symmetric mobile padding on the main element', async () => {
+      const { wrapper } = await mountLayout('ADMIN')
+
+      const mainEl = wrapper.find('main')
+      expect(mainEl.classes()).toContain('px-4')
+    })
+
+    it('should not have horizontal padding on the outer content wrapper so the mobile header stays full-width', async () => {
+      const { wrapper } = await mountLayout('ADMIN')
+
+      const contentWrapper = wrapper.find('.flex-1.min-w-0')
+      expect(contentWrapper.classes()).not.toContain('px-4')
+    })
+  })
 })
