@@ -240,6 +240,60 @@ async def insert_response(
         return True
 
 
+async def find_user_response(form_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:
+    """Find a specific user's response to a form."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT id, form_id, user_id, answers, created_at
+            FROM form_responses
+            WHERE form_id = $1 AND user_id = $2
+            """,
+            form_id,
+            user_id,
+        )
+        if not row:
+            return None
+        d = dict(row)
+        if isinstance(d.get("answers"), str):
+            d["answers"] = json.loads(d["answers"])
+        return d
+
+
+async def has_user_responded(form_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    """Check if a user has submitted a response to a form (read-only, no conn needed)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        existing = await conn.fetchval(
+            "SELECT id FROM form_responses WHERE form_id = $1 AND user_id = $2",
+            form_id,
+            user_id,
+        )
+        return existing is not None
+
+
+async def find_all_responses(form_id: uuid.UUID) -> list[dict]:
+    """Fetch all responses for a form (for stats computation)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, form_id, user_id, answers, created_at
+            FROM form_responses
+            WHERE form_id = $1
+            """,
+            form_id,
+        )
+        results = []
+        for r in rows:
+            d = dict(r)
+            if isinstance(d.get("answers"), str):
+                d["answers"] = json.loads(d["answers"])
+            results.append(d)
+        return results
+
+
 async def count_responses(form_id: uuid.UUID, conn: Any) -> int:
     return int(
         await conn.fetchval("SELECT COUNT(*) FROM form_responses WHERE form_id = $1", form_id)

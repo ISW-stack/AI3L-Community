@@ -78,6 +78,7 @@ class FormResponseSchema(BaseModel):
     is_schema_locked: bool
     allow_non_members: bool = False
     response_count: int
+    has_responded: bool = False
     is_active: bool
     created_by: str
     created_by_name: str
@@ -113,6 +114,27 @@ class FormSubmitRequest(BaseModel):
 class FormSubmitResponse(BaseModel):
     id: str
     message: str
+
+
+class FormUserResponseSchema(BaseModel):
+    id: str
+    form_id: str
+    user_id: str
+    answers: dict[str, Any]
+    created_at: str
+
+
+class QuestionStatsSchema(BaseModel):
+    question_id: str
+    question_type: str
+    question_label: str
+    stats: dict[str, Any]
+
+
+class FormStatsResponse(BaseModel):
+    form_id: str
+    total_responses: int
+    question_stats: list[QuestionStatsSchema]
 
 
 class TaskStatusResponse(BaseModel):

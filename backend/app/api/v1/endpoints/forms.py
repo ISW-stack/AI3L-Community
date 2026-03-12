@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_SUBMIT
+from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_STATS, RATE_LIMIT_FORM_SUBMIT
 from app.core.deps import get_current_user, require_role
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
@@ -13,13 +13,17 @@ from app.schemas.form import (
     FormResponseItem,
     FormResponseListResponse,
     FormResponseSchema,
+    FormStatsResponse,
     FormSubmitRequest,
     FormSubmitResponse,
     FormUpdateRequest,
+    FormUserResponseSchema,
 )
 from app.services.form import (
     create_form,
     get_form_by_id,
+    get_form_stats,
+    get_user_response,
     list_form_responses,
     list_forms_by_sig,
     soft_delete_form,
@@ -89,12 +93,71 @@ async def get_sig_forms(
     )
 
 
+@router.get("/forms/{form_id}/my-response", response_model=FormUserResponseSchema)
+async def get_my_response(
+    form_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+) -> FormUserResponseSchema:
+    form = await get_form_by_id(form_id)
+    if form is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+    # If form restricts access to SIG members only, verify membership
+    if not form.get("allow_non_members", False):
+        is_sig_admin = await _check_sig_admin(
+            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+        )
+        if not is_sig_admin:
+            member_role = await sig_repo.get_member_role(
+                uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
+            )
+            if member_role is None:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only SIG members can view this form.",
+                )
+    response = await get_user_response(form_id, current_user["sub"])
+    if response is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No response found."
+        )
+    return FormUserResponseSchema(**response)
+
+
+@router.get("/forms/{form_id}/stats", response_model=FormStatsResponse)
+async def get_form_statistics(
+    form_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> FormStatsResponse:
+    user_id = current_user["sub"]
+    if not await check_rate_limit(
+        f"rl:form_stats:{user_id}:{form_id}", *RATE_LIMIT_FORM_STATS
+    ):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    form = await get_form_by_id(form_id)
+    if form is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+    is_sig_admin = await _check_sig_admin(
+        uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+    )
+    is_creator = form["created_by"] == current_user["sub"]
+    if not is_sig_admin and not is_creator:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the form creator or admins can view form statistics.",
+        )
+    try:
+        stats = await get_form_stats(form_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return FormStatsResponse(**stats)
+
+
 @router.get("/forms/{form_id}", response_model=FormResponseSchema)
 async def get_form(
     form_id: uuid.UUID,
     current_user: dict = Depends(get_current_user),
 ) -> FormResponseSchema:
-    form = await get_form_by_id(form_id)
+    form = await get_form_by_id(form_id, user_id=current_user["sub"])
     if form is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
     is_sig_admin = await _check_sig_admin(
