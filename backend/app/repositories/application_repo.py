@@ -89,7 +89,8 @@ async def update_status(
                 )
                 if result != "UPDATE 1":
                     raise ValueError(
-                        "User role was not updated: user may have been deleted or is no longer a guest."
+                        "User role was not updated: user may have been deleted "
+                        "or is no longer a guest."
                     )
 
             return dict(row)
