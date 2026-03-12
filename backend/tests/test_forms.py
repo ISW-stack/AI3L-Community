@@ -1515,7 +1515,8 @@ class TestGetMyResponse:
 
     @pytest.mark.anyio
     async def test_my_response_non_member_gets_403(self, client) -> None:
-        """GET /forms/{form_id}/my-response → 403 when allow_non_members=False and user is not a SIG member."""
+        """GET /forms/{form_id}/my-response → 403 when allow_non_members=False
+        and user is not a SIG member."""
         form_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
         # Form restricts to SIG members only

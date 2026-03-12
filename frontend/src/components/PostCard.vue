@@ -5,7 +5,6 @@ import DOMPurify from 'dompurify'
 import type { Post } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { togglePostReaction } from '@/api/posts'
-import { REACTIONS } from '@/constants'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
@@ -14,12 +13,6 @@ import ReactionPicker from '@/components/ReactionPicker.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
-
-const EMOJI_MAP: Record<string, string> = {
-  LIKE: '\uD83D\uDC4D',
-  SMILE: '\uD83D\uDE0A',
-  CRY: '\uD83D\uDE22',
-}
 
 const PREVIEW_ALLOWED_TAGS = [
   'p',
@@ -97,15 +90,6 @@ const sanitizedPreviewHtml = computed(() => {
 // Local optimistic reactions state
 const localReactions = ref<Record<string, string[]> | null>(null)
 const reactionsData = computed(() => localReactions.value ?? props.post.reactions)
-
-function getReactionCount(reaction: string): number {
-  return reactionsData.value?.[reaction]?.length ?? 0
-}
-
-function hasReacted(reaction: string): boolean {
-  if (!auth.user?.id) return false
-  return reactionsData.value?.[reaction]?.includes(auth.user.id) ?? false
-}
 
 async function handleReaction(reaction: string) {
   if (!auth.user?.id || auth.isGuest) return
