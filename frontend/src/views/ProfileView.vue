@@ -320,7 +320,7 @@ function toggleConfirmPassword() {
       <!-- General Tab -->
       <div v-if="activeTab === 'general'">
         <!-- Avatar -->
-        <div class="flex items-center gap-4 mb-6">
+        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-6">
           <div
             class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
           >

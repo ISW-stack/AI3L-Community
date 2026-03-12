@@ -82,7 +82,7 @@ onMounted(fetchApplications)
     />
     <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('admin.applications.title') }}</h1>
 
-    <div class="flex gap-2 mb-4">
+    <div class="flex flex-wrap gap-2 mb-4">
       <button
         v-for="s in ['PENDING', 'APPROVED', 'REJECTED']"
         :key="s"

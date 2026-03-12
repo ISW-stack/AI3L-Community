@@ -240,7 +240,7 @@ onMounted(fetchUsers)
     <!-- Bulk action bar -->
     <div
       v-if="auth.isSuperAdmin && selectedIds.size > 0"
-      class="mb-4 flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-3"
+      class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-3"
     >
       <span class="text-sm text-foreground font-medium">{{
         t('admin.users.selectedCount', { count: selectedIds.size })
@@ -268,11 +268,70 @@ onMounted(fetchUsers)
     />
 
     <div v-else class="relative">
-      <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+      <!-- Mobile card view -->
+      <div class="grid gap-3 md:hidden">
+        <div
+          v-for="user in users"
+          :key="'mobile-' + user.id"
+          class="bg-surface rounded-lg shadow border border-border p-4"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <input
+                  v-if="auth.isSuperAdmin && user.id !== auth.user?.id"
+                  type="checkbox"
+                  :checked="selectedIds.has(user.id)"
+                  @change="toggleSelect(user.id)"
+                  class="rounded shrink-0"
+                />
+                <span class="font-medium text-foreground truncate">{{ user.display_name }}</span>
+              </div>
+              <div class="text-xs text-muted mt-0.5">@{{ user.username }}</div>
+            </div>
+            <BaseBadge :variant="roleBadge[user.role] || 'neutral'" class="shrink-0">
+              {{ t(roleKeyMap[user.role] || 'common.role.guest') }}
+            </BaseBadge>
+          </div>
+          <div class="mt-3 pt-3 border-t border-border flex items-center justify-between gap-2">
+            <div>
+              <BaseBadge v-if="user.is_banned" variant="danger" :title="user.ban_reason || ''">
+                {{ t('admin.users.table.banned') }}
+              </BaseBadge>
+              <span v-else class="text-xs text-muted">{{ t('admin.users.table.active') }}</span>
+            </div>
+            <div
+              v-if="auth.isSuperAdmin && user.id !== auth.user?.id"
+              class="flex items-center gap-2"
+            >
+              <select
+                :value="user.role"
+                @change="changeRole(user.id, ($event.target as HTMLSelectElement).value)"
+                class="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option v-for="r in roles" :key="r" :value="r">{{ t(roleKeyMap[r]) }}</option>
+              </select>
+              <BaseButton
+                v-if="!user.is_banned"
+                size="sm"
+                variant="soft-danger"
+                @click="openBanModal(user)"
+                >{{ t('admin.users.banBtn') }}</BaseButton
+              >
+              <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)">
+                {{ t('admin.users.unbanBtn') }}
+              </BaseButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop table view -->
+      <div class="hidden md:block bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
         <table class="w-full text-sm min-w-[700px]">
           <thead class="bg-surface-alt border-b border-border">
             <tr>
-              <th v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
+              <th v-if="auth.isSuperAdmin" class="px-4 py-3 w-10 sticky left-0 z-10 bg-surface-alt">
                 <input
                   type="checkbox"
                   :checked="allSelected"
@@ -280,7 +339,10 @@ onMounted(fetchUsers)
                   class="rounded"
                 />
               </th>
-              <th class="text-left px-4 py-3 font-medium text-muted">
+              <th
+                class="text-left px-4 py-3 font-medium text-muted sticky z-10 bg-surface-alt shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]"
+                :class="auth.isSuperAdmin ? 'left-10' : 'left-0'"
+              >
                 {{ t('admin.users.table.username') }}
               </th>
               <th class="text-left px-4 py-3 font-medium text-muted">
@@ -301,9 +363,12 @@ onMounted(fetchUsers)
             <tr
               v-for="user in users"
               :key="user.id"
-              class="border-b border-border last:border-0 hover:bg-surface-alt transition"
+              class="group border-b border-border last:border-0 hover:bg-surface-alt transition"
             >
-              <td v-if="auth.isSuperAdmin" class="px-4 py-3 w-10">
+              <td
+                v-if="auth.isSuperAdmin"
+                class="px-4 py-3 w-10 sticky left-0 z-10 bg-surface group-hover:bg-surface-alt transition"
+              >
                 <input
                   v-if="user.id !== auth.user?.id"
                   type="checkbox"
@@ -312,7 +377,12 @@ onMounted(fetchUsers)
                   class="rounded"
                 />
               </td>
-              <td class="px-4 py-3 text-foreground">{{ user.username }}</td>
+              <td
+                class="px-4 py-3 text-foreground sticky z-10 bg-surface group-hover:bg-surface-alt transition shadow-[2px_0_4px_-1px_rgba(0,0,0,0.08)]"
+                :class="auth.isSuperAdmin ? 'left-10' : 'left-0'"
+              >
+                {{ user.username }}
+              </td>
               <td class="px-4 py-3 text-foreground">{{ user.display_name }}</td>
               <td class="px-4 py-3">
                 <BaseBadge :variant="roleBadge[user.role] || 'neutral'">{{

@@ -590,6 +590,36 @@ describe('UsersView', () => {
     }
   })
 
+  describe('mobile card view', () => {
+    it('should have md:hidden card container', async () => {
+      const { wrapper } = await mountUsers()
+      const mobileCards = wrapper.find('.md\\:hidden')
+      expect(mobileCards.exists()).toBe(true)
+    })
+
+    it('should render a card for each user on mobile', async () => {
+      const { wrapper } = await mountUsers()
+      const mobileContainer = wrapper.find('.grid.md\\:hidden')
+      // Direct child divs with p-4 are the user cards
+      const cards = mobileContainer.findAll(':scope > div')
+      expect(cards.length).toBe(fakeUsers.length)
+    })
+
+    it('should show display names in mobile cards', async () => {
+      const { wrapper } = await mountUsers()
+      const mobileContainer = wrapper.find('.md\\:hidden')
+      expect(mobileContainer.text()).toContain('Alice')
+      expect(mobileContainer.text()).toContain('Bob')
+      expect(mobileContainer.text()).toContain('Charlie')
+    })
+
+    it('should hide table on mobile with hidden md:block', async () => {
+      const { wrapper } = await mountUsers()
+      const tableWrapper = wrapper.find('.hidden.md\\:block')
+      expect(tableWrapper.exists()).toBe(true)
+    })
+  })
+
   it('shows message after successful create', async () => {
     mockCreateAccount.mockResolvedValue({ id: 'new-user' })
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })

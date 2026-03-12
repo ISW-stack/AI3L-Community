@@ -255,7 +255,7 @@ onUnmounted(() => {
           <NotificationBell v-if="auth.isAuthenticated" />
           <button
             @click="mobileMenuOpen = !mobileMenuOpen"
-            class="p-1 text-muted hover:text-foreground transition"
+            class="p-2 text-muted hover:text-foreground transition"
             :aria-expanded="mobileMenuOpen"
             :aria-label="t('nav.toggleMenu')"
           >

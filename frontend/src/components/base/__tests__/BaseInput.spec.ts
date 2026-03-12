@@ -141,4 +141,11 @@ describe('BaseInput', () => {
       expect(wrapper.find('input').classes()).toContain('border-border')
     })
   })
+
+  describe('iOS zoom prevention', () => {
+    it('should have text-base class to prevent iOS auto-zoom', () => {
+      const wrapper = mount(BaseInput)
+      expect(wrapper.find('input').classes()).toContain('text-base')
+    })
+  })
 })

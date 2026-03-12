@@ -78,7 +78,7 @@ onUnmounted(() => {
   <div class="relative notification-bell-wrapper" @keydown="handleDropdownKeydown">
     <button
       @click="toggleDropdown"
-      class="relative p-1 text-muted hover:text-foreground focus:outline-none transition"
+      class="relative p-2 text-muted hover:text-foreground focus:outline-none transition"
       aria-label="Notifications"
       :aria-expanded="dropdownOpen"
     >

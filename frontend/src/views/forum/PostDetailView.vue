@@ -409,7 +409,7 @@ const breadcrumbItems = computed(() => {
               <div
                 v-for="reply in node.replies"
                 :key="reply.id"
-                class="pl-8 border-l-2 border-brand-100 mt-3"
+                class="pl-4 sm:pl-8 border-l-2 border-brand-100 mt-3"
               >
                 <div class="flex items-start gap-2 mb-1">
                   <router-link :to="`/users/${reply.author.id}`">

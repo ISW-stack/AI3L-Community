@@ -145,7 +145,7 @@ onMounted(fetchLogs)
             v-model="filterUserId"
             type="text"
             :placeholder="t('admin.auditLogs.filter.userIdPlaceholder')"
-            class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none w-48"
+            class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none w-full sm:w-48"
           />
         </div>
       </div>

@@ -328,7 +328,7 @@ const currentRouteName = computed(() => route.name)
       </div>
 
       <!-- Main Layout Grid -->
-      <div class="flex flex-col lg:flex-row gap-16 flex-1 min-h-0">
+      <div class="flex flex-col lg:flex-row gap-6 lg:gap-16 flex-1 min-h-0">
         <!-- Sidebar Navigation / Tabs -->
         <aside class="w-full lg:w-48 xl:w-64 shrink-0 flex flex-col">
           <!-- Desktop Sidebar (Underline style on the left) -->
@@ -351,23 +351,28 @@ const currentRouteName = computed(() => route.name)
           </nav>
 
           <!-- Mobile Tabs (Horizontal Underline style) -->
-          <nav
-            class="lg:hidden flex items-center border-b border-border overflow-x-auto no-scrollbar scroll-smooth"
-          >
-            <router-link
-              v-for="item in navItems"
-              :key="item.key"
-              :to="{ name: item.route }"
-              class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200"
-              :class="
-                currentRouteName === item.route
-                  ? 'border-brand-600 text-brand-600'
-                  : 'border-transparent text-muted hover:text-foreground'
-              "
+          <div class="lg:hidden relative">
+            <nav
+              class="flex items-center border-b border-border overflow-x-auto no-scrollbar scroll-smooth"
             >
-              {{ t(item.key) }}
-            </router-link>
-          </nav>
+              <router-link
+                v-for="item in navItems"
+                :key="item.key"
+                :to="{ name: item.route }"
+                class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200"
+                :class="
+                  currentRouteName === item.route
+                    ? 'border-brand-600 text-brand-600'
+                    : 'border-transparent text-muted hover:text-foreground'
+                "
+              >
+                {{ t(item.key) }}
+              </router-link>
+            </nav>
+            <div
+              class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none"
+            ></div>
+          </div>
         </aside>
 
         <!-- Dynamic Content Panel -->
@@ -392,13 +397,5 @@ const currentRouteName = computed(() => route.name)
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 </style>

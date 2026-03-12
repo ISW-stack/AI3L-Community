@@ -183,7 +183,10 @@ async function handleFileUpload(event: Event) {
     />
 
     <!-- Toolbar -->
-    <div v-if="editor" class="flex flex-wrap gap-1 p-2 border-b border-border bg-surface-alt">
+    <div
+      v-if="editor"
+      class="flex gap-1 p-2 border-b border-border bg-surface-alt overflow-x-auto no-scrollbar"
+    >
       <button
         type="button"
         @click="editor.chain().focus().toggleBold().run()"

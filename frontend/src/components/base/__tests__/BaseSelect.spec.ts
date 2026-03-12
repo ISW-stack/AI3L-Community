@@ -140,6 +140,15 @@ describe('BaseSelect', () => {
     })
   })
 
+  describe('iOS zoom prevention', () => {
+    it('should have text-base class to prevent iOS auto-zoom', () => {
+      const wrapper = mount(BaseSelect, {
+        props: { options: defaultOptions },
+      })
+      expect(wrapper.find('select').classes()).toContain('text-base')
+    })
+  })
+
   describe('slot override', () => {
     it('should allow custom options via default slot', () => {
       const wrapper = mount(BaseSelect, {

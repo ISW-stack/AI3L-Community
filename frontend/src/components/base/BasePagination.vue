@@ -70,7 +70,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
     >
       <button
         :disabled="currentPage <= 1"
-        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
         @click="emit('update:currentPage', currentPage - 1)"
       >
         {{ t('common.prev') }}
@@ -80,7 +80,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
         :key="page"
         :aria-current="page === currentPage ? 'page' : undefined"
         :class="[
-          'px-3 py-1 text-sm rounded-lg border transition',
+          'px-3 py-2 sm:py-1 text-sm rounded-lg border transition',
           page === currentPage
             ? 'bg-brand-600 text-white border-brand-600'
             : 'bg-surface text-muted border-border hover:bg-surface-alt',
@@ -91,7 +91,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
       </button>
       <button
         :disabled="currentPage >= totalPages"
-        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
         @click="emit('update:currentPage', currentPage + 1)"
       >
         {{ t('common.next') }}
@@ -102,7 +102,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
     <div class="flex sm:hidden items-center justify-center gap-3" data-testid="mobile-pagination">
       <button
         :disabled="currentPage <= 1"
-        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
         @click="emit('update:currentPage', currentPage - 1)"
       >
         {{ t('common.prev') }}
@@ -112,7 +112,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
       </span>
       <button
         :disabled="currentPage >= totalPages"
-        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
         @click="emit('update:currentPage', currentPage + 1)"
       >
         {{ t('common.next') }}

@@ -159,7 +159,7 @@ onMounted(fetchCodes)
               <code class="font-mono text-xs text-foreground truncate">{{ code.code }}</code>
               <button
                 @click="copyCode(code.code, code.id)"
-                class="p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition shrink-0"
+                class="p-2 sm:p-1 rounded hover:bg-surface-alt text-muted hover:text-foreground transition shrink-0"
                 :aria-label="t('admin.inviteCodes.copyAriaLabel')"
               >
                 <Check

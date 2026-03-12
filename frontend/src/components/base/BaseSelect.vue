@@ -32,7 +32,7 @@ const selectId = computed(
       :value="modelValue"
       :disabled="disabled"
       :class="[
-        'w-full px-3 py-2 border rounded-lg outline-none transition text-foreground',
+        'w-full px-3 py-2 border rounded-lg outline-none transition text-foreground text-base sm:text-sm',
         error
           ? 'border-danger-500 focus:ring-2 focus:ring-danger-500 focus:border-transparent'
           : 'border-border focus:ring-2 focus:ring-brand-500 focus:border-transparent',

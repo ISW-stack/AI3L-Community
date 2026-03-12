@@ -143,7 +143,7 @@ onMounted(() => {
               }}
             </h2>
             <p class="text-muted">{{ t('home.tagline') }}</p>
-            <div class="mt-4 flex flex-wrap gap-3">
+            <div class="mt-4 flex flex-col sm:flex-row gap-3">
               <router-link to="/forum">
                 <BaseButton>{{ t('home.browseForumBtn') }}</BaseButton>
               </router-link>

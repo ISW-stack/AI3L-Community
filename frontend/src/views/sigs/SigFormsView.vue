@@ -719,7 +719,7 @@ onUnmounted(() => {
                 </button>
                 <div
                   v-if="isTextExpanded(stat.questionId)"
-                  class="mt-2 space-y-2 max-h-48 overflow-y-auto"
+                  class="mt-2 space-y-2 max-h-32 sm:max-h-48 overflow-y-auto"
                 >
                   <div
                     v-for="(answer, idx) in stat.answers"

@@ -38,8 +38,8 @@ const variantClass = computed(() => {
 
 const sizeClass = computed(() => {
   const map: Record<string, string> = {
-    sm: 'px-3 py-2 text-xs rounded-md',
-    md: 'px-4 py-2 text-sm rounded-lg',
+    sm: 'px-3 py-2.5 text-xs rounded-md',
+    md: 'px-4 py-2.5 text-sm rounded-lg',
     lg: 'px-6 py-2.5 text-sm rounded-lg',
     full: 'w-full py-2.5 text-sm rounded-lg font-medium',
   }

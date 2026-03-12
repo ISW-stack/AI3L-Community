@@ -162,4 +162,17 @@ describe('BaseModal', () => {
       expect(getDialog()?.getAttribute('aria-modal')).toBe('true')
     })
   })
+
+  describe('mobile padding', () => {
+    it('should have p-4 class for compact mobile padding', () => {
+      mountModal()
+      expect(getPanel()?.classList.contains('p-4')).toBe(true)
+    })
+
+    it('should have close button with p-1 touch target padding', () => {
+      mountModal({ title: 'Test' })
+      const closeBtn = getPanel()?.querySelector('button[aria-label="Close"]')
+      expect(closeBtn?.classList.contains('p-1')).toBe(true)
+    })
+  })
 })

@@ -12,7 +12,10 @@ const typeClasses: Record<string, string> = {
 </script>
 
 <template>
-  <div class="fixed top-4 right-4 z-[100] space-y-2" aria-live="assertive">
+  <div
+    class="fixed bottom-4 sm:top-4 sm:bottom-auto right-4 left-4 sm:left-auto z-[100] space-y-2"
+    aria-live="assertive"
+  >
     <transition-group name="toast">
       <div
         v-for="toast in toastStore.toasts"

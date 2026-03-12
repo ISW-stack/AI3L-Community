@@ -113,7 +113,7 @@ onUnmounted(() => {
       >
         <div
           ref="modalRef"
-          :class="['bg-surface rounded-lg shadow-xl p-6 w-full', sizeClass]"
+          :class="['bg-surface rounded-lg shadow-xl p-4 sm:p-6 w-full', sizeClass]"
           tabindex="-1"
         >
           <div v-if="title || !persistent" class="flex items-center justify-between mb-4">
@@ -122,7 +122,7 @@ onUnmounted(() => {
             </h3>
             <button
               v-if="!persistent"
-              class="text-muted hover:text-foreground text-xl leading-none transition ml-auto"
+              class="p-1 -m-1 text-muted hover:text-foreground text-xl leading-none transition ml-auto"
               aria-label="Close"
               @click="close"
             >

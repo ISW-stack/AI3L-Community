@@ -172,6 +172,24 @@ describe('TiptapEditor', () => {
     })
   })
 
+  describe('toolbar mobile scrolling', () => {
+    it('should have overflow-x-auto for horizontal scrolling on mobile', () => {
+      const wrapper = mount(TiptapEditor, {
+        props: { modelValue: '' },
+      })
+      const toolbar = wrapper.find('.border-b.border-border.bg-surface-alt')
+      expect(toolbar.classes()).toContain('overflow-x-auto')
+    })
+
+    it('should not have flex-wrap class on toolbar', () => {
+      const wrapper = mount(TiptapEditor, {
+        props: { modelValue: '' },
+      })
+      const toolbar = wrapper.find('.border-b.border-border.bg-surface-alt')
+      expect(toolbar.classes()).not.toContain('flex-wrap')
+    })
+  })
+
   describe('scan status indicator', () => {
     it('should not show scan status by default', () => {
       const wrapper = mount(TiptapEditor, {

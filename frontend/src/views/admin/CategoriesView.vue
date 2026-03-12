@@ -137,14 +137,14 @@ onMounted(fetchCategories)
         <div class="flex items-center gap-2">
           <button
             @click="openEdit(cat)"
-            class="p-1.5 rounded text-muted hover:text-brand-600 hover:bg-brand-50 transition"
+            class="p-2.5 sm:p-1.5 rounded text-muted hover:text-brand-600 hover:bg-brand-50 transition"
             :title="t('common.edit')"
           >
             <Pencil :size="16" />
           </button>
           <button
             @click="confirmDelete = cat"
-            class="p-1.5 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
+            class="p-2.5 sm:p-1.5 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
             :title="t('common.delete')"
           >
             <Trash2 :size="16" />

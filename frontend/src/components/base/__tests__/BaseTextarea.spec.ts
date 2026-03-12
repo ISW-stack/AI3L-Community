@@ -141,4 +141,11 @@ describe('BaseTextarea', () => {
       expect(wrapper.find('textarea').classes()).toContain('border-border')
     })
   })
+
+  describe('iOS zoom prevention', () => {
+    it('should have text-base class to prevent iOS auto-zoom', () => {
+      const wrapper = mount(BaseTextarea)
+      expect(wrapper.find('textarea').classes()).toContain('text-base')
+    })
+  })
 })

@@ -279,6 +279,26 @@ describe('BasePagination', () => {
     })
   })
 
+  describe('touch targets', () => {
+    it('should have py-2 class on desktop pagination buttons', () => {
+      const wrapper = mount(BasePagination, {
+        props: { currentPage: 2, totalPages: 5 },
+      })
+      const desktopPag = wrapper.find('[data-testid="desktop-pagination"]')
+      const prevBtn = desktopPag.findAll('button')[0]
+      expect(prevBtn.classes()).toContain('py-2')
+    })
+
+    it('should have py-2 class on mobile pagination buttons', () => {
+      const wrapper = mount(BasePagination, {
+        props: { currentPage: 2, totalPages: 5 },
+      })
+      const mobilePag = wrapper.find('[data-testid="mobile-pagination"]')
+      const prevBtn = mobilePag.findAll('button')[0]
+      expect(prevBtn.classes()).toContain('py-2')
+    })
+  })
+
   describe('single page edge case', () => {
     it('should not render at all when only one page exists', () => {
       const wrapper = mount(BasePagination, {

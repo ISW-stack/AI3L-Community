@@ -81,6 +81,14 @@ describe('ToastNotification', () => {
     })
   })
 
+  describe('mobile positioning', () => {
+    it('should have bottom-4 class for mobile positioning', () => {
+      const wrapper = mountToast()
+      const container = wrapper.find('[aria-live="assertive"]')
+      expect(container.classes()).toContain('bottom-4')
+    })
+  })
+
   describe('dismiss', () => {
     it('should render dismiss button for each toast', () => {
       const store = useToastStore()

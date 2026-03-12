@@ -96,3 +96,12 @@ html {
 .page-leave-to {
   opacity: 0;
 }
+
+/* Hidden scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -308,33 +308,38 @@ onUnmounted(() => {
       </div>
 
       <!-- Mobile Category Pills -->
-      <div class="lg:hidden mb-4 overflow-x-auto">
-        <div class="flex gap-2 pb-2">
-          <button
-            class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
-            :class="
-              !categoryFilter
-                ? 'bg-brand-600 text-white'
-                : 'bg-surface-alt text-muted hover:bg-surface-alt'
-            "
-            @click="selectCategory(null)"
-          >
-            {{ t('common.all') }}
-          </button>
-          <button
-            v-for="cat in categories"
-            :key="cat.id"
-            class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
-            :class="
-              categoryFilter === cat.id
-                ? 'bg-brand-600 text-white'
-                : 'bg-surface-alt text-muted hover:bg-surface-alt'
-            "
-            @click="selectCategory(cat.id)"
-          >
-            {{ cat.name }} ({{ cat.post_count }})
-          </button>
+      <div class="lg:hidden mb-4 relative">
+        <div class="overflow-x-auto no-scrollbar">
+          <div class="flex gap-2 pb-2">
+            <button
+              class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
+              :class="
+                !categoryFilter
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-surface-alt text-muted hover:bg-surface-alt'
+              "
+              @click="selectCategory(null)"
+            >
+              {{ t('common.all') }}
+            </button>
+            <button
+              v-for="cat in categories"
+              :key="cat.id"
+              class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
+              :class="
+                categoryFilter === cat.id
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-surface-alt text-muted hover:bg-surface-alt'
+              "
+              @click="selectCategory(cat.id)"
+            >
+              {{ cat.name }} ({{ cat.post_count }})
+            </button>
+          </div>
         </div>
+        <div
+          class="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none"
+        ></div>
       </div>
 
       <!-- 3-column layout -->
