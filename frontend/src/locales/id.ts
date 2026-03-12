@@ -371,6 +371,8 @@ export default {
       allowComments: 'Izinkan komentar',
       publish: 'Terbitkan',
       errorRequired: 'Judul dan konten wajib diisi.',
+      errorTitleRequired: 'Judul wajib diisi.',
+      errorContentRequired: 'Konten wajib diisi.',
       errorFailed: 'Gagal membuat postingan.',
       fetchCategoriesError: 'Gagal memuat kategori.',
       fetchSigsError: 'Gagal memuat daftar SIG.',

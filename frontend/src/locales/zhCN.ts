@@ -344,6 +344,8 @@ export default {
       allowComments: '允许评论',
       publish: '发布',
       errorRequired: '标题和内容为必填。',
+      errorTitleRequired: '标题为必填。',
+      errorContentRequired: '内容为必填。',
       errorFailed: '文章创建失败。',
       fetchCategoriesError: '加载分类失败。',
       fetchSigsError: '加载 SIG 列表失败。',

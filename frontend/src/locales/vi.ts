@@ -368,6 +368,8 @@ export default {
       allowComments: 'Cho phép bình luận',
       publish: 'Đăng bài',
       errorRequired: 'Tiêu đề và nội dung là bắt buộc.',
+      errorTitleRequired: 'Tiêu đề là bắt buộc.',
+      errorContentRequired: 'Nội dung là bắt buộc.',
       errorFailed: 'Tạo bài viết thất bại.',
       fetchCategoriesError: 'Không tải được danh mục.',
       fetchSigsError: 'Không tải được danh sách SIG.',

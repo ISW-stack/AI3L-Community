@@ -273,7 +273,111 @@ describe('PostCreateView', () => {
     await flushPromises()
 
     expect(mockCreatePost).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Title and content are required')
+    expect(wrapper.text()).toContain('Content is required')
+  })
+
+  it('shows title-specific error when only title is empty', async () => {
+    const { wrapper } = await mountPostCreate()
+
+    const vm = wrapper.vm as any
+    vm.title = ''
+    vm.content = '<p>Some content here</p>'
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Title is required')
+  })
+
+  it('shows content-specific error when only content is empty', async () => {
+    const { wrapper } = await mountPostCreate()
+
+    const vm = wrapper.vm as any
+    vm.title = 'My Title'
+    vm.content = ''
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Content is required')
+  })
+
+  it('accepts content with only an image tag', async () => {
+    const { wrapper, router } = await mountPostCreate()
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const vm = wrapper.vm as any
+    vm.title = 'Image Post'
+    vm.content = '<p><img src="https://example.com/img.png" alt="test"></p>'
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Image Post' }),
+    )
+    expect(pushSpy).toHaveBeenCalledWith('/forum/new-post-1')
+  })
+
+  it('accepts content with only an iframe tag', async () => {
+    const { wrapper } = await mountPostCreate()
+
+    const vm = wrapper.vm as any
+    vm.title = 'Video Embed'
+    vm.content = '<iframe src="https://youtube.com/embed/abc"></iframe>'
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).toHaveBeenCalled()
+  })
+
+  it('accepts content with only a video tag', async () => {
+    const { wrapper } = await mountPostCreate()
+
+    const vm = wrapper.vm as any
+    vm.title = 'Video Post'
+    vm.content = '<video src="https://example.com/vid.mp4"></video>'
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).toHaveBeenCalled()
+  })
+
+  it('accepts content with a table tag', async () => {
+    const { wrapper } = await mountPostCreate()
+
+    const vm = wrapper.vm as any
+    vm.title = 'Table Post'
+    vm.content = '<table><tr><td>data</td></tr></table>'
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).toHaveBeenCalled()
+  })
+
+  it('rejects content with only whitespace text', async () => {
+    const { wrapper } = await mountPostCreate()
+
+    const vm = wrapper.vm as any
+    vm.title = 'Title'
+    vm.content = '<p>   </p>'
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockCreatePost).not.toHaveBeenCalled()
   })
 
   it('shows back link to forum', async () => {

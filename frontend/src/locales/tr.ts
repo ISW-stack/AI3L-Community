@@ -369,6 +369,8 @@ export default {
       allowComments: 'Yorumlara izin ver',
       publish: 'Yayınla',
       errorRequired: 'Başlık ve içerik zorunludur.',
+      errorTitleRequired: 'Başlık zorunludur.',
+      errorContentRequired: 'İçerik zorunludur.',
       errorFailed: 'Gönderi oluşturulamadı.',
       fetchCategoriesError: 'Kategoriler yüklenemedi.',
       fetchSigsError: 'SIG listesi yüklenemedi.',

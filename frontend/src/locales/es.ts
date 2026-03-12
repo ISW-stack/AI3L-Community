@@ -371,6 +371,8 @@ export default {
       allowComments: 'Permitir comentarios',
       publish: 'Publicar',
       errorRequired: 'El título y el contenido son obligatorios.',
+      errorTitleRequired: 'El título es obligatorio.',
+      errorContentRequired: 'El contenido es obligatorio.',
       errorFailed: 'Error al crear la publicación.',
       fetchCategoriesError: 'Error al cargar las categorías.',
       fetchSigsError: 'Error al cargar la lista de SIG.',

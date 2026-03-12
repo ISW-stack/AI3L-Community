@@ -366,6 +366,8 @@ export default {
       allowComments: '댓글 허용',
       publish: '게시',
       errorRequired: '제목과 내용은 필수입니다.',
+      errorTitleRequired: '제목은 필수입니다。',
+      errorContentRequired: '내용은 필수입니다。',
       errorFailed: '게시물 작성에 실패했습니다.',
       fetchCategoriesError: '카테고리를 불러오지 못했습니다.',
       fetchSigsError: 'SIG 목록을 불러오지 못했습니다.',

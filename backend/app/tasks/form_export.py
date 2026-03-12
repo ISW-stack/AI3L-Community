@@ -57,6 +57,12 @@ async def _async_export(form_id: str, task_id: str) -> dict:
             else form["questions"]
         )
 
+    # Build option lookup for resolving UUIDs to labels
+    option_label_map: dict[str, str] = {}
+    for q in questions:
+        for opt in q.get("options", []):
+            option_label_map[opt["id"]] = opt.get("label", opt["id"])
+
     # Build CSV in chunks to avoid loading all responses into memory
     output = io.StringIO()
     question_labels = [q["label"] for q in questions]
@@ -99,7 +105,11 @@ async def _async_export(form_id: str, task_id: str) -> dict:
                 for qid in question_ids:
                     val = answers.get(qid, "")
                     if isinstance(val, list):
-                        val = "; ".join(str(v) for v in val)
+                        val = "; ".join(
+                            option_label_map.get(str(v), str(v)) for v in val
+                        )
+                    elif isinstance(val, str) and val in option_label_map:
+                        val = option_label_map[val]
                     elif isinstance(val, dict):
                         val = val.get("filename", str(val))
                     answer_values.append(str(val) if val is not None else "")

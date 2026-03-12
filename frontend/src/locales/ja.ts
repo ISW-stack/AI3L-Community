@@ -366,6 +366,8 @@ export default {
       allowComments: 'コメントを許可',
       publish: '公開',
       errorRequired: 'タイトルと内容は必須です。',
+      errorTitleRequired: 'タイトルは必須です。',
+      errorContentRequired: '内容は必須です。',
       errorFailed: '投稿の作成に失敗しました。',
       fetchCategoriesError: 'カテゴリーの読み込みに失敗しました。',
       fetchSigsError: 'SIGリストの読み込みに失敗しました。',

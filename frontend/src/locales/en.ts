@@ -367,6 +367,8 @@ export default {
       allowComments: 'Allow comments',
       publish: 'Publish',
       errorRequired: 'Title and content are required.',
+      errorTitleRequired: 'Title is required.',
+      errorContentRequired: 'Content is required.',
       errorFailed: 'Failed to create post.',
       fetchCategoriesError: 'Failed to load categories.',
       fetchSigsError: 'Failed to load SIG list.',

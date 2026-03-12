@@ -363,6 +363,8 @@ export default {
       allowComments: '允許回覆',
       publish: '發佈',
       errorRequired: '標題 kah 內容是必填ê。',
+      errorTitleRequired: '標題是必填ê。',
+      errorContentRequired: '內容是必填ê。',
       errorFailed: '建立貼文失敗。',
       fetchCategoriesError: '載入分類失敗。',
       fetchSigsError: '載入 SIG 清單失敗。',

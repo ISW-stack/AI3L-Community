@@ -117,12 +117,24 @@ function removeKeyword(index: number) {
 }
 
 function isContentEmpty(html: string): boolean {
-  return !html || html === '<p></p>' || !html.replace(/<[^>]*>/g, '').trim()
+  if (!html || html === '<p></p>') return true
+  if (/<(img|iframe|video|audio|embed|object|source|table)\b/i.test(html)) return false
+  return !html.replace(/<[^>]*>/g, '').trim()
 }
 
 async function createPost() {
-  if (!title.value.trim() || isContentEmpty(content.value)) {
+  const titleEmpty = !title.value.trim()
+  const contentEmpty = isContentEmpty(content.value)
+  if (titleEmpty && contentEmpty) {
     message.value = t('post.create.errorRequired')
+    return
+  }
+  if (titleEmpty) {
+    message.value = t('post.create.errorTitleRequired')
+    return
+  }
+  if (contentEmpty) {
+    message.value = t('post.create.errorContentRequired')
     return
   }
   saving.value = true

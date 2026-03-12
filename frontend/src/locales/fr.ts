@@ -373,6 +373,8 @@ export default {
       allowComments: 'Autoriser les commentaires',
       publish: 'Publier',
       errorRequired: 'Le titre et le contenu sont obligatoires.',
+      errorTitleRequired: 'Le titre est obligatoire.',
+      errorContentRequired: 'Le contenu est obligatoire.',
       errorFailed: 'Échec de la création de la publication.',
       fetchCategoriesError: 'Échec du chargement des catégories.',
       fetchSigsError: 'Échec du chargement de la liste des SIG.',

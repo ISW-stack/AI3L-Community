@@ -24,9 +24,11 @@ vi.mock('@/api/sigs', () => ({
 
 const mockDeleteForm = vi.fn()
 const mockListFormResponses = vi.fn()
+const mockGetForm = vi.fn()
 vi.mock('@/api/forms', () => ({
   deleteForm: (...args: unknown[]) => mockDeleteForm(...args),
   listFormResponses: (...args: unknown[]) => mockListFormResponses(...args),
+  getForm: (...args: unknown[]) => mockGetForm(...args),
 }))
 
 const sampleForms = [
@@ -297,13 +299,17 @@ describe('SigFormsView', () => {
 
   it('opens responses modal and shows response data', async () => {
     mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Question1', type: 'short_text' }],
+    })
     mockListFormResponses.mockResolvedValue({
       responses: [
         {
           id: 'resp-1',
           display_name: 'Test User',
           created_at: '2026-01-01T00:00:00Z',
-          answers: { Question1: 'Answer1' },
+          answers: { q1: 'Answer1' },
         },
       ],
       total: 1,
@@ -322,6 +328,155 @@ describe('SigFormsView', () => {
 
     expect(wrapper.find('.base-modal').exists()).toBe(true)
     expect(wrapper.text()).toContain('Test User')
+    expect(wrapper.text()).toContain('Question1')
     expect(wrapper.text()).toContain('Answer1')
+  })
+
+  it('resolves multi-choice option UUIDs to labels', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [
+        {
+          id: 'q1',
+          label: 'Favorite Colors',
+          type: 'multiple_choice',
+          options: [
+            { id: 'opt-a', label: 'Red' },
+            { id: 'opt-b', label: 'Blue' },
+            { id: 'opt-c', label: 'Green' },
+          ],
+        },
+      ],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Test User',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: ['opt-a', 'opt-c'] },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Favorite Colors')
+    expect(wrapper.text()).toContain('Red, Green')
+    expect(wrapper.text()).not.toContain('opt-a')
+    expect(wrapper.text()).not.toContain('opt-c')
+  })
+
+  it('resolves single-choice option UUID to label', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [
+        {
+          id: 'q1',
+          label: 'Level',
+          type: 'single_choice',
+          options: [
+            { id: 'opt-x', label: 'Beginner' },
+            { id: 'opt-y', label: 'Advanced' },
+          ],
+        },
+      ],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Alice',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 'opt-y' },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Level')
+    expect(wrapper.text()).toContain('Advanced')
+    expect(wrapper.text()).not.toContain('opt-y')
+  })
+
+  it('handles file upload answer by showing filename', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Upload', type: 'file_upload' }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'User',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: { filename: 'report.pdf', url: 'https://example.com/report.pdf' } },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Upload')
+    expect(wrapper.text()).toContain('report.pdf')
+  })
+
+  it('fetches form definition only on first page', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Q', type: 'short_text' }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'User',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 'test' },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    expect(mockGetForm).toHaveBeenCalledTimes(1)
+    expect(mockGetForm).toHaveBeenCalledWith('form-1')
   })
 })

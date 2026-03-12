@@ -368,6 +368,8 @@ export default {
       allowComments: 'Разрешить комментарии',
       publish: 'Опубликовать',
       errorRequired: 'Заголовок и содержание обязательны.',
+      errorTitleRequired: 'Заголовок обязателен.',
+      errorContentRequired: 'Содержимое обязательно.',
       errorFailed: 'Не удалось создать запись.',
       fetchCategoriesError: 'Не удалось загрузить категории.',
       fetchSigsError: 'Не удалось загрузить список SIG.',

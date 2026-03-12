@@ -344,6 +344,8 @@ export default {
       allowComments: '允許留言',
       publish: '發佈',
       errorRequired: '標題和內容為必填。',
+      errorTitleRequired: '標題為必填。',
+      errorContentRequired: '內容為必填。',
       errorFailed: '文章建立失敗。',
       fetchCategoriesError: '載入分類失敗。',
       fetchSigsError: '載入 SIG 列表失敗。',

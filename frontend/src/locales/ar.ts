@@ -366,6 +366,8 @@ export default {
       allowComments: 'السماح بالتعليقات',
       publish: 'نشر',
       errorRequired: 'العنوان والمحتوى مطلوبان.',
+      errorTitleRequired: 'العنوان مطلوب.',
+      errorContentRequired: 'المحتوى مطلوب.',
       errorFailed: 'فشل إنشاء المشاركة.',
       fetchCategoriesError: 'فشل في تحميل الفئات.',
       fetchSigsError: 'فشل في تحميل قائمة SIG.',

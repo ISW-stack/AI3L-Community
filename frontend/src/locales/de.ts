@@ -373,6 +373,8 @@ export default {
       allowComments: 'Kommentare erlauben',
       publish: 'Veröffentlichen',
       errorRequired: 'Titel und Inhalt sind erforderlich.',
+      errorTitleRequired: 'Titel ist erforderlich.',
+      errorContentRequired: 'Inhalt ist erforderlich.',
       errorFailed: 'Beitrag konnte nicht erstellt werden.',
       fetchCategoriesError: 'Kategorien konnten nicht geladen werden.',
       fetchSigsError: 'SIG-Liste konnte nicht geladen werden.',

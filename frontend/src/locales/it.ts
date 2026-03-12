@@ -369,6 +369,8 @@ export default {
       allowComments: 'Consenti commenti',
       publish: 'Pubblica',
       errorRequired: 'Titolo e contenuto sono obbligatori.',
+      errorTitleRequired: 'Il titolo è obbligatorio.',
+      errorContentRequired: 'Il contenuto è obbligatorio.',
       errorFailed: 'Creazione del post non riuscita.',
       fetchCategoriesError: 'Impossibile caricare le categorie.',
       fetchSigsError: 'Impossibile caricare la lista SIG.',

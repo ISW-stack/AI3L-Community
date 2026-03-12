@@ -596,6 +596,211 @@ class TestFormExport:
         data_row = next(reader)
         assert data_row[4] == "Bob"
 
+    @pytest.mark.anyio
+    async def test_export_resolves_multi_choice_uuids_to_labels(self):
+        """Multi-choice option UUIDs should be resolved to their labels."""
+        questions = [
+            {
+                "id": "q1",
+                "label": "Favorite Colors",
+                "options": [
+                    {"id": "opt-a", "label": "Red"},
+                    {"id": "opt-b", "label": "Blue"},
+                    {"id": "opt-c", "label": "Green"},
+                ],
+            },
+        ]
+        form_row = self._make_form_row(questions)
+        response_row = self._make_response_row({"q1": ["opt-a", "opt-c"]})
+
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=form_row)
+        mock_conn.fetch = AsyncMock(return_value=[response_row])
+
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire = MagicMock(return_value=mock_cm)
+
+        uploaded_data = {}
+
+        def fake_upload(data: bytes, key: str, content_type: str):
+            uploaded_data["bytes"] = data
+
+        with (
+            patch("app.tasks.form_export.get_pool", return_value=mock_pool),
+            patch("app.core.storage.get_storage", return_value=MagicMock()),
+            patch("app.tasks.form_export.upload_file", side_effect=fake_upload),
+            patch(
+                "app.tasks.form_export.generate_presigned_url",
+                return_value="https://x.com/f.csv",
+            ),
+            patch("app.tasks.form_export.generate_form_export_key", return_value="k"),
+        ):
+            from app.tasks.form_export import _async_export
+
+            await _async_export(str(uuid.uuid4()), "t1")
+
+        csv_text = uploaded_data["bytes"].decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(csv_text))
+        next(reader)  # skip header
+        data_row = next(reader)
+        assert data_row[4] == "Red; Green"
+
+    @pytest.mark.anyio
+    async def test_export_resolves_single_choice_uuid_to_label(self):
+        """Single-choice option UUID should be resolved to its label."""
+        questions = [
+            {
+                "id": "q1",
+                "label": "Level",
+                "options": [
+                    {"id": "opt-x", "label": "Beginner"},
+                    {"id": "opt-y", "label": "Advanced"},
+                ],
+            },
+        ]
+        form_row = self._make_form_row(questions)
+        response_row = self._make_response_row({"q1": "opt-y"})
+
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=form_row)
+        mock_conn.fetch = AsyncMock(return_value=[response_row])
+
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire = MagicMock(return_value=mock_cm)
+
+        uploaded_data = {}
+
+        def fake_upload(data: bytes, key: str, content_type: str):
+            uploaded_data["bytes"] = data
+
+        with (
+            patch("app.tasks.form_export.get_pool", return_value=mock_pool),
+            patch("app.core.storage.get_storage", return_value=MagicMock()),
+            patch("app.tasks.form_export.upload_file", side_effect=fake_upload),
+            patch(
+                "app.tasks.form_export.generate_presigned_url",
+                return_value="https://x.com/f.csv",
+            ),
+            patch("app.tasks.form_export.generate_form_export_key", return_value="k"),
+        ):
+            from app.tasks.form_export import _async_export
+
+            await _async_export(str(uuid.uuid4()), "t1")
+
+        csv_text = uploaded_data["bytes"].decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(csv_text))
+        next(reader)
+        data_row = next(reader)
+        assert data_row[4] == "Advanced"
+
+    @pytest.mark.anyio
+    async def test_export_free_text_passes_through(self):
+        """Free text answers (not in option map) should pass through unchanged."""
+        questions = [
+            {"id": "q1", "label": "Name"},
+            {
+                "id": "q2",
+                "label": "Color",
+                "options": [{"id": "opt-a", "label": "Red"}],
+            },
+        ]
+        form_row = self._make_form_row(questions)
+        response_row = self._make_response_row({"q1": "Alice", "q2": "opt-a"})
+
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=form_row)
+        mock_conn.fetch = AsyncMock(return_value=[response_row])
+
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire = MagicMock(return_value=mock_cm)
+
+        uploaded_data = {}
+
+        def fake_upload(data: bytes, key: str, content_type: str):
+            uploaded_data["bytes"] = data
+
+        with (
+            patch("app.tasks.form_export.get_pool", return_value=mock_pool),
+            patch("app.core.storage.get_storage", return_value=MagicMock()),
+            patch("app.tasks.form_export.upload_file", side_effect=fake_upload),
+            patch(
+                "app.tasks.form_export.generate_presigned_url",
+                return_value="https://x.com/f.csv",
+            ),
+            patch("app.tasks.form_export.generate_form_export_key", return_value="k"),
+        ):
+            from app.tasks.form_export import _async_export
+
+            await _async_export(str(uuid.uuid4()), "t1")
+
+        csv_text = uploaded_data["bytes"].decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(csv_text))
+        next(reader)
+        data_row = next(reader)
+        assert data_row[4] == "Alice"  # free text unchanged
+        assert data_row[5] == "Red"  # option UUID resolved
+
+    @pytest.mark.anyio
+    async def test_export_unknown_option_uuid_falls_through(self):
+        """Option UUIDs not in any question's options pass through as-is."""
+        questions = [
+            {
+                "id": "q1",
+                "label": "Color",
+                "options": [{"id": "opt-a", "label": "Red"}],
+            },
+        ]
+        form_row = self._make_form_row(questions)
+        response_row = self._make_response_row({"q1": ["opt-a", "opt-unknown"]})
+
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=form_row)
+        mock_conn.fetch = AsyncMock(return_value=[response_row])
+
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire = MagicMock(return_value=mock_cm)
+
+        uploaded_data = {}
+
+        def fake_upload(data: bytes, key: str, content_type: str):
+            uploaded_data["bytes"] = data
+
+        with (
+            patch("app.tasks.form_export.get_pool", return_value=mock_pool),
+            patch("app.core.storage.get_storage", return_value=MagicMock()),
+            patch("app.tasks.form_export.upload_file", side_effect=fake_upload),
+            patch(
+                "app.tasks.form_export.generate_presigned_url",
+                return_value="https://x.com/f.csv",
+            ),
+            patch("app.tasks.form_export.generate_form_export_key", return_value="k"),
+        ):
+            from app.tasks.form_export import _async_export
+
+            await _async_export(str(uuid.uuid4()), "t1")
+
+        csv_text = uploaded_data["bytes"].decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(csv_text))
+        next(reader)
+        data_row = next(reader)
+        assert data_row[4] == "Red; opt-unknown"
+
 
 # =========================================================================
 # Tests for virustotal task

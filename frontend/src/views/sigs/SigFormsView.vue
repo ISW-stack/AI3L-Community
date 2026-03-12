@@ -5,9 +5,9 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
-import { deleteForm as deleteFormApi, listFormResponses } from '@/api/forms'
+import { deleteForm as deleteFormApi, listFormResponses, getForm } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
-import type { SigForm, FormResponse } from '@/types'
+import type { SigForm, FormResponse, Question } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -78,6 +78,32 @@ const responses = ref<FormResponse[]>([])
 const responsesPage = ref(1)
 const responsesTotalPages = ref(1)
 const responsesLoading = ref(false)
+const responsesQuestions = ref<Question[]>([])
+
+function resolveQuestionLabel(questionId: string): string {
+  const q = responsesQuestions.value.find((q) => q.id === questionId)
+  return q?.label || questionId
+}
+
+function resolveAnswerValue(questionId: string, value: unknown): string {
+  const q = responsesQuestions.value.find((q) => q.id === questionId)
+  if (!q) return String(value ?? '(None)')
+
+  const optionMap = new Map((q.options || []).map((o) => [o.id, o.label]))
+
+  if (Array.isArray(value)) {
+    return value.map((v) => optionMap.get(String(v)) ?? String(v)).join(', ') || '(None)'
+  }
+  if (typeof value === 'string' && optionMap.has(value)) {
+    return optionMap.get(value)!
+  }
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>
+    if (obj.filename) return String(obj.filename)
+    return JSON.stringify(value)
+  }
+  return String(value ?? '(None)')
+}
 
 async function fetchResponses(formId: string, title: string, page = 1) {
   responsesFormId.value = formId
@@ -86,9 +112,15 @@ async function fetchResponses(formId: string, title: string, page = 1) {
   responsesLoading.value = true
   showResponsesModal.value = true
   try {
-    const data = await listFormResponses(formId, page)
-    responses.value = data.responses || []
-    const totalResp = data.total || 0
+    const [formData, respData] = await Promise.all([
+      page === 1 ? getForm(formId) : Promise.resolve(null),
+      listFormResponses(formId, page),
+    ])
+    if (formData) {
+      responsesQuestions.value = formData.questions
+    }
+    responses.value = respData.responses || []
+    const totalResp = respData.total || 0
     responsesTotalPages.value = Math.ceil(totalResp / 20) || 1
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.forms.fetchResponsesError')), 'error')
@@ -228,15 +260,11 @@ onMounted(fetchForms)
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
             <div v-for="(value, key) in resp.answers" :key="key" class="space-y-1">
-              <div class="text-[10px] font-bold text-muted uppercase tracking-wider">{{ key }}</div>
+              <div class="text-[10px] font-bold text-muted uppercase tracking-wider">
+                {{ resolveQuestionLabel(String(key)) }}
+              </div>
               <div class="text-sm text-foreground">
-                {{
-                  Array.isArray(value)
-                    ? value.join(', ')
-                    : typeof value === 'object'
-                      ? JSON.stringify(value)
-                      : value || '(None)'
-                }}
+                {{ resolveAnswerValue(String(key), value) }}
               </div>
             </div>
           </div>

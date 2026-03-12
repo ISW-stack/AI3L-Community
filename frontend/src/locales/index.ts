@@ -136,9 +136,6 @@ export const i18n = createI18n({
     tr,
     nan,
   },
-  missing: (_locale, key) => {
-    if (import.meta.env.DEV) {
-      console.warn(`[i18n] Missing key: "${key}"`)
-    }
-  },
+  silentFallbackWarn: !import.meta.env.DEV,
+  silentTranslationWarn: !import.meta.env.DEV,
 })

@@ -223,7 +223,7 @@ export default {
     },
     unauthenticated: {
       title: 'AI3L Community',
-      subtitle: 'AI in Language Learning and Literacy — शैक्षणिक आदान-प्रदान प्लेटफ़ॉर्म',
+      subtitle: 'भाषा शिक्षण और साक्षरता में AI — शैक्षणिक आदान-प्रदान प्लेटफ़ॉर्म',
       tagline: 'AI-संचालित भाषा शिक्षण को आगे बढ़ाने वाले शोधकर्ताओं और शिक्षकों से जुड़ें।',
       getStartedBtn: 'शुरू करें',
       browseGuestBtn: 'अतिथि के रूप में ब्राउज़ करें',
@@ -265,8 +265,8 @@ export default {
       mostDiscussed: 'सर्वाधिक चर्चित',
     },
     searchLogic: {
-      and: 'AND',
-      or: 'OR',
+      and: 'और',
+      or: 'या',
     },
     emptyTitle: 'यहाँ अभी कुछ नहीं है',
     emptyMessage: 'कोई पोस्ट नहीं मिली',
@@ -367,6 +367,8 @@ export default {
       allowComments: 'टिप्पणियाँ अनुमति दें',
       publish: 'प्रकाशित करें',
       errorRequired: 'शीर्षक और सामग्री आवश्यक हैं।',
+      errorTitleRequired: 'शीर्षक आवश्यक है।',
+      errorContentRequired: 'सामग्री आवश्यक है।',
       errorFailed: 'पोस्ट बनाने में विफल।',
       fetchCategoriesError: 'श्रेणियां लोड करने में विफल।',
       fetchSigsError: 'SIG सूची लोड करने में विफल।',
