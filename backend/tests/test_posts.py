@@ -1,7 +1,7 @@
 """Tests for app.services.post — create, rate limit, version conflict, delete."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -326,7 +326,7 @@ class TestSearchRepo:
         mock_conn.fetchval.return_value = 0
         mock_get_pool.return_value = mock_pool
 
-        await search(date_to="2023-10-01")
+        await search(date_to=date(2023, 10, 1))
         call_args = mock_conn.fetch.call_args
         sql = call_args[0][0]
         assert "INTERVAL '1 day'" in sql
