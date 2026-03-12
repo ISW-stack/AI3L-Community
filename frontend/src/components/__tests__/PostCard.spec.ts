@@ -37,7 +37,7 @@ vi.mock('@/api/posts', () => ({
 
 vi.mock('dompurify', () => ({
   default: {
-    sanitize: (html: string, _opts?: unknown) => html,
+    sanitize: (html: string) => html,
   },
 }))
 
