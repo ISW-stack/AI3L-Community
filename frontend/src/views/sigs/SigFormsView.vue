@@ -347,8 +347,8 @@ function handleResponsesPageChange(p: number) {
 
 onMounted(fetchForms)
 onUnmounted(() => {
-  isUnmounted = true
-  if (exportPollTimer) clearInterval(exportPollTimer)
+  if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer)
+  if (exportTimerInterval) clearInterval(exportTimerInterval)
 })
 </script>
 
