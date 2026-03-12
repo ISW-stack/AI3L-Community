@@ -10,11 +10,13 @@ const mockSubmitForm = vi.fn()
 const mockExportForm = vi.fn()
 const mockGetTaskStatus = vi.fn()
 const mockUploadEditorFile = vi.fn()
+const mockGetMyResponse = vi.fn()
 
 vi.mock('@/api/forms', () => ({
   getForm: (...args: unknown[]) => mockGetForm(...args),
   submitForm: (...args: unknown[]) => mockSubmitForm(...args),
   exportForm: (...args: unknown[]) => mockExportForm(...args),
+  getMyResponse: (...args: unknown[]) => mockGetMyResponse(...args),
 }))
 
 vi.mock('@/api/tasks', () => ({
@@ -45,6 +47,7 @@ const fakeForm = {
   deadline: null,
   max_respondents: null,
   user_is_sig_admin: false,
+  sig_id: 'sig-1',
   questions: [
     {
       id: 'q1',
@@ -101,6 +104,7 @@ function createTestRouter() {
       { path: '/forms/:formId', component: FormView },
       { path: '/forms/:formId/edit', component: { template: '<div />' } },
       { path: '/login', component: { template: '<div />' } },
+      { path: '/sigs/:id', component: { template: '<div />' } },
     ],
   })
 }
@@ -112,15 +116,25 @@ function createStubs() {
       template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
       props: ['loading', 'variant', 'size'],
     },
-    BaseAlert: { template: '<div class="base-alert"><slot /></div>', props: ['type'] },
+    BaseAlert: {
+      template:
+        '<div class="base-alert" :class="`alert-${type}`"><slot /><slot name="default" /></div>',
+      props: ['type', 'dismissible'],
+      emits: ['dismiss'],
+    },
     BaseBadge: { template: '<span class="base-badge"><slot /></span>', props: ['variant'] },
     SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
     CopyShareLinkButton: { template: '<span class="copy-share-link" />', props: ['url'] },
+    BackToTop: { template: '<div class="back-to-top" />' },
   }
 }
 
-async function mountFormView(options?: { role?: string; form?: typeof fakeForm | null }) {
-  const { role = 'MEMBER', form = fakeForm } = options ?? {}
+async function mountFormView(options?: {
+  role?: string
+  form?: Record<string, unknown> | null
+  previousResponse?: Record<string, unknown> | null
+}) {
+  const { role = 'MEMBER', form = fakeForm, previousResponse = null } = options ?? {}
   const pinia = createPinia()
   setActivePinia(pinia)
   const router = createTestRouter()
@@ -146,6 +160,12 @@ async function mountFormView(options?: { role?: string; form?: typeof fakeForm |
     mockGetForm.mockRejectedValue(new Error('Not found'))
   }
 
+  if (previousResponse) {
+    mockGetMyResponse.mockResolvedValue(previousResponse)
+  } else {
+    mockGetMyResponse.mockRejectedValue(new Error('Not found'))
+  }
+
   await router.push('/forms/form-1')
   await router.isReady()
 
@@ -160,6 +180,7 @@ describe('FormView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
+    localStorage.clear()
     mockSubmitForm.mockResolvedValue({})
   })
 
@@ -226,7 +247,6 @@ describe('FormView', () => {
 
   it('renders rating buttons', async () => {
     const { wrapper } = await mountFormView()
-    // Rating buttons 1-5
     const ratingButtons = wrapper.findAll('button[type="button"]').filter((b) => {
       const text = b.text().trim()
       return ['1', '2', '3', '4', '5'].includes(text)
@@ -247,13 +267,11 @@ describe('FormView', () => {
 
   it('shows validation error for required empty fields', async () => {
     const { wrapper } = await mountFormView()
-    // Submit without filling required fields
     const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
     expect(submitBtn).toBeTruthy()
     await submitBtn!.trigger('click')
     await flushPromises()
 
-    // Should show validation error
     expect(wrapper.text()).toContain('"Your Name"')
     expect(mockSubmitForm).not.toHaveBeenCalled()
   })
@@ -262,7 +280,6 @@ describe('FormView', () => {
     const { wrapper } = await mountFormView()
     const vm = wrapper.vm as any
 
-    // Fill required fields
     vm.answers['q1'] = 'John Doe'
     vm.answers['q2'] = 'opt1'
 
@@ -338,6 +355,7 @@ describe('FormView', () => {
     const router = createTestRouter()
 
     mockGetForm.mockResolvedValue(fakeForm)
+    mockGetMyResponse.mockRejectedValue(new Error('Not found'))
 
     await router.push('/forms/form-1')
     await router.isReady()
@@ -368,11 +386,365 @@ describe('FormView', () => {
     expect(wrapper.find('.copy-share-link').exists()).toBe(true)
   })
 
+  // ── Feature 1: Progress Indicator ──
+  describe('progress indicator', () => {
+    it('shows progress bar with 0/N when no answers given', async () => {
+      const { wrapper } = await mountFormView()
+      expect(wrapper.text()).toContain('0/5')
+    })
+
+    it('updates progress when answers are given', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+      vm.answers['q1'] = 'John'
+      await wrapper.vm.$nextTick()
+      // Should show 1/5
+      expect(wrapper.text()).toContain('1/5')
+    })
+
+    it('shows a progress bar element', async () => {
+      const { wrapper } = await mountFormView()
+      const progressBar = wrapper.find('[role="progressbar"]')
+      expect(progressBar.exists()).toBe(true)
+    })
+
+    it('calculates correct progress percentage', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      // Answer 2 of 5 questions
+      vm.answers['q1'] = 'John'
+      vm.answers['q2'] = 'opt1'
+      await wrapper.vm.$nextTick()
+
+      expect(vm.progressPercent).toBe(40)
+    })
+
+    it('reaches 100% when all questions answered', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      vm.answers['q1'] = 'John'
+      vm.answers['q2'] = 'opt1'
+      vm.answers['q3'] = ['opt3']
+      vm.answers['q4'] = 3
+      vm.answers['q5'] = 'Great'
+      await wrapper.vm.$nextTick()
+
+      expect(vm.progressPercent).toBe(100)
+    })
+  })
+
+  // ── Feature 2: Scroll-to-Error on Validation Failure ──
+  describe('validation scroll-to-error', () => {
+    it('populates per-question validation errors', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      // q1 (required text) and q2 (required single choice) should have errors
+      expect(vm.validationErrors['q1']).toBeTruthy()
+      expect(vm.validationErrors['q2']).toBeTruthy()
+      // q3 (optional) should NOT have an error
+      expect(vm.validationErrors['q3']).toBeUndefined()
+    })
+
+    it('shows per-question error text in the template', async () => {
+      const { wrapper } = await mountFormView()
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      // Both q1 and q2 errors should appear
+      const errorAlerts = wrapper.findAll('[role="alert"]')
+      expect(errorAlerts.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('adds highlight class on invalid questions', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      expect(vm.highlightedQuestions.size).toBeGreaterThan(0)
+    })
+
+    it('clears error when user starts editing', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      expect(vm.validationErrors['q1']).toBeTruthy()
+
+      // Simulate editing the field
+      const textInput = wrapper.find('input[type="text"]')
+      await textInput.setValue('John')
+      await textInput.trigger('input')
+      await wrapper.vm.$nextTick()
+
+      expect(vm.validationErrors['q1']).toBeUndefined()
+    })
+
+    it('removes highlight after 3 seconds timeout', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      expect(vm.highlightedQuestions.has('q1')).toBe(true)
+
+      vi.advanceTimersByTime(3000)
+
+      expect(vm.highlightedQuestions.has('q1')).toBe(false)
+    })
+  })
+
+  // ── Feature 3: LocalStorage Draft ──
+  describe('draft save/restore', () => {
+    it('restores draft on mount if one exists', async () => {
+      localStorage.setItem(
+        'form-response-draft-form-1',
+        JSON.stringify({ q1: 'Draft Name', q5: 'Draft comment' }),
+      )
+
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      expect(vm.answers['q1']).toBe('Draft Name')
+      expect(vm.answers['q5']).toBe('Draft comment')
+    })
+
+    it('shows draft restored info message', async () => {
+      localStorage.setItem('form-response-draft-form-1', JSON.stringify({ q1: 'Draft Name' }))
+
+      const { wrapper } = await mountFormView()
+      expect(wrapper.text()).toContain('previous answers have been restored')
+    })
+
+    it('clears draft after successful submission', async () => {
+      localStorage.setItem('form-response-draft-form-1', JSON.stringify({ q1: 'John' }))
+
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+      vm.answers['q1'] = 'John'
+      vm.answers['q2'] = 'opt1'
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      expect(localStorage.getItem('form-response-draft-form-1')).toBeNull()
+    })
+  })
+
+  // ── Feature 4: File Upload Validation ──
+  describe('file upload validation', () => {
+    const fileUploadForm = {
+      ...fakeForm,
+      questions: [
+        {
+          id: 'qf',
+          type: 'file_upload',
+          label: 'Upload Document',
+          required: false,
+          allowed_types: ['pdf', 'docx'],
+          max_size_mb: 1,
+        },
+      ],
+    }
+
+    it('validates file type client-side', async () => {
+      const { wrapper } = await mountFormView({ form: fileUploadForm })
+      const vm = wrapper.vm as any
+
+      // Try uploading an invalid file type
+      const invalidFile = new File(['data'], 'image.png', { type: 'image/png' })
+      vm.processFile('qf', invalidFile)
+      await wrapper.vm.$nextTick()
+
+      expect(vm.validationErrors['qf']).toBeTruthy()
+      expect(vm.validationErrors['qf']).toContain('pdf, docx')
+    })
+
+    it('validates file size client-side', async () => {
+      const { wrapper } = await mountFormView({ form: fileUploadForm })
+      const vm = wrapper.vm as any
+
+      // Create a file larger than 1MB
+      const bigContent = new Uint8Array(2 * 1024 * 1024)
+      const bigFile = new File([bigContent], 'large.pdf', { type: 'application/pdf' })
+      vm.processFile('qf', bigFile)
+      await wrapper.vm.$nextTick()
+
+      expect(vm.validationErrors['qf']).toBeTruthy()
+    })
+
+    it('accepts valid file type and size', async () => {
+      const formAccept = {
+        ...fakeForm,
+        questions: [
+          {
+            id: 'qf',
+            type: 'file_upload',
+            label: 'Upload Document',
+            required: false,
+            allowed_types: ['pdf'],
+            max_size_mb: 10,
+          },
+        ],
+      }
+      const { wrapper } = await mountFormView({ form: formAccept })
+      const vm = wrapper.vm as any
+
+      const validFile = new File(['data'], 'doc.pdf', { type: 'application/pdf' })
+      vm.processFile('qf', validFile)
+      await wrapper.vm.$nextTick()
+
+      expect(vm.validationErrors['qf']).toBeUndefined()
+      expect(vm.answers['qf']).toEqual(validFile)
+    })
+
+    it('renders drag-and-drop zone for file_upload questions', async () => {
+      const formDrop = {
+        ...fakeForm,
+        questions: [
+          {
+            id: 'qf',
+            type: 'file_upload',
+            label: 'Upload Document',
+            required: false,
+          },
+        ],
+      }
+      const { wrapper } = await mountFormView({ form: formDrop })
+
+      // Should have a drop zone instead of native file input
+      expect(wrapper.text()).toContain('Drag file here')
+    })
+  })
+
+  // ── Feature 5: Rating Improvements ──
+  describe('rating improvements', () => {
+    it('shows endpoint labels', async () => {
+      const { wrapper } = await mountFormView()
+      // Should show "1" and "5" as endpoint labels
+      const ratingSection = wrapper.findAll('[role="group"]')
+      expect(ratingSection.length).toBeGreaterThan(0)
+      const ratingText = ratingSection[0].text()
+      expect(ratingText).toContain('1')
+      expect(ratingText).toContain('5')
+    })
+
+    it('uses compact layout for wide ranges (>7)', async () => {
+      const wideRatingForm = {
+        ...fakeForm,
+        questions: [
+          { id: 'qr', type: 'rating', label: 'Wide Rating', min: 1, max: 10, required: false },
+        ],
+      }
+      const { wrapper } = await mountFormView({ form: wideRatingForm })
+      const vm = wrapper.vm as any
+
+      expect(vm.ratingCount(wideRatingForm.questions[0])).toBe(10)
+      // Buttons should use compact class
+      const ratingButtons = wrapper.findAll('button[type="button"]').filter((b) => {
+        const text = b.text().trim()
+        return !isNaN(Number(text)) && Number(text) >= 1 && Number(text) <= 10
+      })
+      expect(ratingButtons.length).toBe(10)
+    })
+  })
+
+  // ── Feature 6: View Submitted Response ──
+  describe('view submitted response', () => {
+    it('calls getMyResponse on mount', async () => {
+      await mountFormView()
+      expect(mockGetMyResponse).toHaveBeenCalledWith('form-1')
+    })
+
+    it('shows read-only view when user has previous response', async () => {
+      const { wrapper } = await mountFormView({
+        previousResponse: {
+          id: 'resp-1',
+          display_name: 'Test User',
+          created_at: '2026-03-01T00:00:00',
+          answers: { q1: 'John', q2: 'opt1', q4: 3 },
+        },
+      })
+
+      expect(wrapper.text()).toContain('already submitted')
+      expect(wrapper.text()).toContain('Response Summary')
+      // Should not show the submit button
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      expect(submitBtn).toBeUndefined()
+    })
+
+    it('shows response summary after successful submission', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      vm.answers['q1'] = 'John'
+      vm.answers['q2'] = 'opt1'
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Response Summary')
+    })
+
+    it('shows Back to SIG button after submission', async () => {
+      const { wrapper } = await mountFormView()
+      const vm = wrapper.vm as any
+
+      vm.answers['q1'] = 'John'
+      vm.answers['q2'] = 'opt1'
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Back to SIG')
+    })
+
+    it('displays option labels for choice questions in summary', async () => {
+      const { wrapper } = await mountFormView({
+        previousResponse: {
+          id: 'resp-1',
+          display_name: 'Test User',
+          created_at: '2026-03-01T00:00:00',
+          answers: { q1: 'John', q2: 'opt1' },
+        },
+      })
+
+      // Should show "Beginner" instead of "opt1"
+      expect(wrapper.text()).toContain('Beginner')
+    })
+  })
+
+  // ── Feature 7: Back to Top ──
+  describe('back to top', () => {
+    it('renders BackToTop component', async () => {
+      const { wrapper } = await mountFormView()
+      expect(wrapper.find('.back-to-top').exists()).toBe(true)
+    })
+  })
+
   describe('accessibility', () => {
     it('adds aria-hidden to required asterisk', async () => {
       const { wrapper } = await mountFormView()
       const asterisks = wrapper.findAll('span[aria-hidden="true"]')
-      // q1 and q2 are required, so at least 2 asterisks
       expect(asterisks.length).toBeGreaterThanOrEqual(2)
     })
 
@@ -386,19 +758,16 @@ describe('FormView', () => {
     it('adds aria-required on required textarea inputs', async () => {
       const { wrapper } = await mountFormView()
       const textareas = wrapper.findAll('textarea')
-      // q5 (Comments) is not required, should not have aria-required="true"
       const optional = textareas.find((t) => t.attributes('aria-required') === 'false')
       expect(optional).toBeTruthy()
     })
 
     it('adds aria-label and aria-pressed to rating buttons', async () => {
       const { wrapper } = await mountFormView()
-      // Rating buttons should have aria-label containing "Rate"
       const ratingBtns = wrapper
         .findAll('button')
         .filter((b) => b.attributes('aria-label')?.includes('Rate'))
       expect(ratingBtns.length).toBeGreaterThan(0)
-      // All should have aria-pressed
       for (const btn of ratingBtns) {
         expect(btn.attributes('aria-pressed')).toBeDefined()
       }
@@ -406,7 +775,6 @@ describe('FormView', () => {
 
     it('sets aria-pressed="true" on selected rating', async () => {
       const { wrapper } = await mountFormView()
-      // Click first rating button
       const ratingBtns = wrapper
         .findAll('button')
         .filter((b) => b.attributes('aria-label')?.includes('Rate'))
@@ -426,6 +794,35 @@ describe('FormView', () => {
       const ratingGroup = wrapper.find('[role="group"]')
       expect(ratingGroup.exists()).toBe(true)
       expect(ratingGroup.attributes('aria-label')).toBeTruthy()
+    })
+
+    it('has per-question validation error with role="alert"', async () => {
+      const { wrapper } = await mountFormView()
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      const errorAlerts = wrapper.findAll('p[role="alert"]')
+      expect(errorAlerts.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('file upload drop zone has correct aria-label', async () => {
+      const formWithFile = {
+        ...fakeForm,
+        questions: [
+          {
+            id: 'qf',
+            type: 'file_upload',
+            label: 'Upload Document',
+            required: false,
+          },
+        ],
+      }
+      const { wrapper } = await mountFormView({ form: formWithFile })
+
+      const dropZone = wrapper.find('[role="button"]')
+      expect(dropZone.exists()).toBe(true)
+      expect(dropZone.attributes('aria-label')).toBeTruthy()
     })
   })
 })
