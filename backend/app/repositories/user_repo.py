@@ -240,10 +240,11 @@ async def count_by_role(role: str) -> int:
     """Count non-deleted users with the given role."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await conn.fetchval(
+        result = await conn.fetchval(
             "SELECT COUNT(*) FROM users WHERE role = $1 AND is_deleted = false",
             role,
         )
+        return int(result)
 
 
 async def get_storage_used(user_id: uuid.UUID) -> int:

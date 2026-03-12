@@ -99,9 +99,7 @@ async def remove_member(
             # Authorize caller inside the transaction
             is_global_admin = caller_role in ("SUPER_ADMIN", "ADMIN")
             if not is_global_admin:
-                caller_sig_role = await sig_repo.get_member_role_in_conn(
-                    sig_id, caller_uuid, conn
-                )
+                caller_sig_role = await sig_repo.get_member_role_in_conn(sig_id, caller_uuid, conn)
                 if caller_sig_role != "ADMIN":
                     raise PermissionError("Not authorized.")
 
@@ -112,9 +110,7 @@ async def remove_member(
             if member_role == "ADMIN":
                 admin_count = await sig_repo.count_admins(sig_id, conn)
                 if admin_count <= 1:
-                    raise ValueError(
-                        "Cannot remove: this user is the last admin of the SIG."
-                    )
+                    raise ValueError("Cannot remove: this user is the last admin of the SIG.")
 
             deleted = await sig_repo.delete_member(sig_id, user_uuid, conn)
             if deleted:
@@ -192,9 +188,7 @@ async def demote_sub_admin(
             # Authorize caller inside the transaction
             is_global_admin = caller_role in ("SUPER_ADMIN", "ADMIN")
             if not is_global_admin:
-                caller_sig_role = await sig_repo.get_member_role_in_conn(
-                    sig_id, caller_uuid, conn
-                )
+                caller_sig_role = await sig_repo.get_member_role_in_conn(sig_id, caller_uuid, conn)
                 if caller_sig_role != "ADMIN":
                     raise PermissionError("Not authorized.")
 
@@ -226,9 +220,7 @@ async def assign_sub_admin(
             # Authorize caller inside the transaction
             is_global_admin = caller_role in ("SUPER_ADMIN", "ADMIN")
             if not is_global_admin:
-                caller_sig_role = await sig_repo.get_member_role_in_conn(
-                    sig_id, caller_uuid, conn
-                )
+                caller_sig_role = await sig_repo.get_member_role_in_conn(sig_id, caller_uuid, conn)
                 if caller_sig_role != "ADMIN":
                     raise PermissionError("Not authorized.")
 

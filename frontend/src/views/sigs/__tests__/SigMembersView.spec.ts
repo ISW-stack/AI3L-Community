@@ -654,8 +654,8 @@ describe('SigMembersView', () => {
 
   it('shows Promote button for SIG owner (ADMIN role) when member is MEMBER', async () => {
     const { wrapper } = await mountComponent({
-      role: 'MEMBER',          // NOT platform admin
-      userSigRole: 'ADMIN',    // IS SIG owner
+      role: 'MEMBER', // NOT platform admin
+      userSigRole: 'ADMIN', // IS SIG owner
       currentUserId: 'user-1', // current user is the SIG admin
     })
     await flushPromises()

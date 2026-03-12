@@ -558,9 +558,7 @@ class TestRemoveMemberSoleAdmin:
 
         mock_conn.fetchrow = AsyncMock(return_value={"role": "ADMIN"})
         # count_admins returns 2 admins
-        mock_conn.fetch = AsyncMock(
-            return_value=[{"id": uuid.uuid4()}, {"id": uuid.uuid4()}]
-        )
+        mock_conn.fetch = AsyncMock(return_value=[{"id": uuid.uuid4()}, {"id": uuid.uuid4()}])
         mock_conn.execute = AsyncMock(return_value="DELETE 1")
 
         with patch(f"{_SVC}.get_pool", return_value=mock_pool):
@@ -586,9 +584,7 @@ class TestRemoveMemberSoleAdminEndpoint:
             with patch(
                 f"{_EP}.remove_member",
                 new_callable=AsyncMock,
-                side_effect=ValueError(
-                    "Cannot remove: this user is the last admin of the SIG."
-                ),
+                side_effect=ValueError("Cannot remove: this user is the last admin of the SIG."),
             ):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}/members/{target_user}",
