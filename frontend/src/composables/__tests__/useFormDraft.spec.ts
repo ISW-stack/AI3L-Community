@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { useFormDraft } from '../useFormDraft'
 import type { Question } from '@/types'
 

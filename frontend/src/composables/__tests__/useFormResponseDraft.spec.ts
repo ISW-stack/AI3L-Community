@@ -24,7 +24,7 @@ describe('useFormResponseDraft', () => {
   }
 
   it('saves answers to localStorage', () => {
-    const { saveDraft, answers } = createDraft('form-1', { q1: 'hello', q2: 'world' })
+    const { saveDraft } = createDraft('form-1', { q1: 'hello', q2: 'world' })
     saveDraft()
     const stored = localStorage.getItem('form-response-draft-form-1')
     expect(stored).not.toBeNull()
@@ -73,7 +73,7 @@ describe('useFormResponseDraft', () => {
   })
 
   it('skips file_upload type questions during save', () => {
-    const { saveDraft, answers, skipTypes } = createDraft('form-6', {
+    const { saveDraft, skipTypes } = createDraft('form-6', {
       q1: 'text',
       q2: 'some-file-ref',
     })
