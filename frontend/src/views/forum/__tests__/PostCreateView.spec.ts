@@ -318,9 +318,7 @@ describe('PostCreateView', () => {
     await form.trigger('submit')
     await flushPromises()
 
-    expect(mockCreatePost).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Image Post' }),
-    )
+    expect(mockCreatePost).toHaveBeenCalledWith(expect.objectContaining({ title: 'Image Post' }))
     expect(pushSpy).toHaveBeenCalledWith('/forum/new-post-1')
   })
 

@@ -75,7 +75,9 @@ async def insert(
         row = await conn.fetchrow(
             f"""
             WITH inserted AS (
-                INSERT INTO posts (id, user_id, title, content, category_id, sig_id, keywords, allow_comments)
+                INSERT INTO posts (
+                    id, user_id, title, content, category_id, sig_id, keywords, allow_comments
+                )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                 RETURNING *
             )

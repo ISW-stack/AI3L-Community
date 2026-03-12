@@ -105,9 +105,7 @@ async def _async_export(form_id: str, task_id: str) -> dict:
                 for qid in question_ids:
                     val = answers.get(qid, "")
                     if isinstance(val, list):
-                        val = "; ".join(
-                            option_label_map.get(str(v), str(v)) for v in val
-                        )
+                        val = "; ".join(option_label_map.get(str(v), str(v)) for v in val)
                     elif isinstance(val, str) and val in option_label_map:
                         val = option_label_map[val]
                     elif isinstance(val, dict):
