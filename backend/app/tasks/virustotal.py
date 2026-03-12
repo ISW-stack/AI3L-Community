@@ -85,12 +85,11 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
 
     api_key = settings.VT_API_KEY
     if not api_key:
-        logger.debug("VT_API_KEY not set, skipping VirusTotal check")
-        # Fail-open: mark as clean when no API key
+        logger.warning("VT_API_KEY not set — file scan skipped (not verified)")
         try:
-            _run_async(_update_scan(storage_key, "clean"))
+            _run_async(_update_scan(storage_key, "skipped"))
         except Exception:
-            logger.error("Failed to update scan record to clean", exc_info=True)
+            logger.error("Failed to update scan record to skipped", exc_info=True)
         return {"status": "skipped", "reason": "no_api_key"}
 
     url = f"https://www.virustotal.com/api/v3/files/{file_hash}"
@@ -103,31 +102,45 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
         raise self.retry(exc=exc)
 
     if resp.status_code == 404:
-        logger.info("File hash not found in VirusTotal", extra={"hash": file_hash})
-        # Not found in VT database — treat as clean (fail-open)
+        logger.warning(
+            "File hash not found in VirusTotal — marking as unknown (fail-close)",
+            extra={"hash": file_hash},
+        )
         try:
-            _run_async(_update_scan(storage_key, "clean"))
+            _run_async(_update_scan(storage_key, "unknown"))
         except Exception:
-            logger.error("Failed to update scan record to clean", exc_info=True)
+            logger.error("Failed to update scan record to unknown", exc_info=True)
         return {"status": "not_found"}
 
     if resp.status_code != 200:
-        logger.warning("VirusTotal unexpected status", extra={"status": resp.status_code})
-        # Unexpected response — fail-open
+        logger.warning(
+            "VirusTotal unexpected status — retrying or marking as error (fail-close)",
+            extra={"status": resp.status_code},
+        )
         try:
-            _run_async(_update_scan(storage_key, "clean"))
-        except Exception:
-            logger.error("Failed to update scan record to clean", exc_info=True)
-        return {"status": "error", "code": resp.status_code}
+            raise self.retry(exc=RuntimeError(f"VT returned {resp.status_code}"))
+        except self.MaxRetriesExceededError:
+            logger.error(
+                "VirusTotal retries exhausted — marking as error",
+                extra={"status": resp.status_code, "key": storage_key},
+            )
+            try:
+                _run_async(_update_scan(storage_key, "error"))
+            except Exception:
+                logger.error("Failed to update scan record to error", exc_info=True)
+            return {"status": "error", "code": resp.status_code}
 
     try:
         data = resp.json()
     except (ValueError, requests.exceptions.JSONDecodeError):
-        logger.warning("VirusTotal response is not valid JSON", extra={"status": resp.status_code})
+        logger.warning(
+            "VirusTotal response is not valid JSON — marking as error (fail-close)",
+            extra={"status": resp.status_code},
+        )
         try:
-            _run_async(_update_scan(storage_key, "clean"))
+            _run_async(_update_scan(storage_key, "error"))
         except Exception:
-            logger.error("Failed to update scan record to clean", exc_info=True)
+            logger.error("Failed to update scan record to error", exc_info=True)
         return {"status": "error", "reason": "invalid_json"}
     stats = data.get("data", {}).get("attributes", {}).get("last_analysis_stats", {})
     malicious = stats.get("malicious", 0)

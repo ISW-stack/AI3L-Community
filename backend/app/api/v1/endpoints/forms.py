@@ -79,7 +79,7 @@ async def create_new_form(
 @router.get("/sigs/{sig_id}/forms", response_model=FormListResponse)
 async def get_sig_forms(
     sig_id: uuid.UUID,
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> FormListResponse:
@@ -244,7 +244,7 @@ async def delete_form(
 @router.get("/forms/{form_id}/responses", response_model=FormResponseListResponse)
 async def get_form_responses(
     form_id: uuid.UUID,
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormResponseListResponse:
@@ -333,4 +333,11 @@ async def export_form_csv(
     from app.tasks.form_export import export_form_csv as export_task
 
     task = export_task.delay(str(form_id))
+
+    # Store task ownership in Redis so the status endpoint can verify access
+    from app.core.redis import get_redis
+
+    redis = get_redis()
+    await redis.set(f"task_owner:{task.id}", user_id, ex=3600)
+
     return {"task_id": task.id}

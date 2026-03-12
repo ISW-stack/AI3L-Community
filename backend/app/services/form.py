@@ -392,16 +392,11 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
 
 
 async def soft_delete_form(form_id: uuid.UUID, user_id: str, is_admin: bool) -> bool:
-    # Check permission before deleting — also capture banner_url for cleanup
-    row, _ = await form_repo.find_by_id(form_id)
-    if not row:
-        return False
-    if not is_admin and str(row["created_by"]) != user_id:
-        raise PermissionError("Only the form creator or admin can delete this form.")
-
-    banner_url = row.get("banner_url")
-
-    deleted, _ = await form_repo.soft_delete(form_id)
+    # Permission check and delete happen in the same transaction (via FOR UPDATE
+    # in soft_delete_with_permission) to prevent TOCTOU race conditions.
+    deleted, banner_url = await form_repo.soft_delete_with_permission(
+        form_id, user_id, is_admin
+    )
 
     # Best-effort cleanup of form banner from storage
     if deleted and banner_url:

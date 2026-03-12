@@ -509,6 +509,10 @@ class TestReviewApplicationActionValidation:
                 "app.services.application.emit",
                 new_callable=AsyncMock,
             ),
+            patch(
+                "app.services.auth.revoke_user_sessions",
+                new_callable=AsyncMock,
+            ),
         ):
             result = await review_application(app_id, reviewer_id, "APPROVED")
             assert result is not None

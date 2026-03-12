@@ -418,6 +418,8 @@ export default {
       clean: 'Безопасно',
       malicious: 'Помечен как вредоносный',
       unknown: 'Результат сканирования неоднозначен',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'Не удалось загрузить файл.',
     fileTooLarge: 'Файл слишком большой. Максимальный размер — 20 МБ.',

@@ -779,6 +779,74 @@ class TestPostHistoryForbiddenNonOwner:
             _clear_overrides()
 
 
+class TestPageParameterUpperBound:
+    """Page parameter validation — le=10000 on Query(page)."""
+
+    @pytest.mark.anyio
+    async def test_page_exceeds_upper_bound_returns_422(self, client):
+        """GET /posts?page=10001 → 422 validation error."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/posts?page=10001",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_page_at_upper_bound_accepted(self, client):
+        """GET /posts?page=10000 → 200 (boundary value accepted)."""
+        post = _make_post()
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.list_posts",
+                new_callable=AsyncMock,
+                return_value={
+                    "posts": [post],
+                    "total": 1,
+                    "total_pages": 10000,
+                    "next_cursor": None,
+                    "has_more": None,
+                },
+            ):
+                resp = await client.get(
+                    "/api/v1/posts?page=10000",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_page_zero_returns_422(self, client):
+        """GET /posts?page=0 → 422 validation error (ge=1)."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/posts?page=0",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_page_negative_returns_422(self, client):
+        """GET /posts?page=-1 → 422 validation error."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/posts?page=-1",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+
 class TestPostHistoryNotFound:
     @pytest.mark.anyio
     async def test_post_history_not_found(self, client):

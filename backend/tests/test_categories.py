@@ -143,7 +143,10 @@ class TestCreateCategory:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_REPO}.get_pool", return_value=mock_pool),
+            ):
                 resp = await client.post(
                     "/api/v1/categories",
                     json={"name": "Science", "description": "Science topics"},
@@ -160,6 +163,7 @@ class TestCreateCategory:
         try:
             _override_auth("ADMIN")
             with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.category_exists", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.create_category", new_callable=AsyncMock),
             ):
@@ -198,10 +202,13 @@ class TestUpdateCategory:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.update_category",
-                new_callable=AsyncMock,
-                return_value=updated_cat,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.update_category",
+                    new_callable=AsyncMock,
+                    return_value=updated_cat,
+                ),
             ):
                 resp = await client.put(
                     f"/api/v1/categories/{cat_id}",
@@ -220,10 +227,13 @@ class TestUpdateCategory:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.update_category",
-                new_callable=AsyncMock,
-                return_value=None,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.update_category",
+                    new_callable=AsyncMock,
+                    return_value=None,
+                ),
             ):
                 resp = await client.put(
                     f"/api/v1/categories/{cat_id}",
@@ -261,10 +271,13 @@ class TestDeleteCategory:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.delete_category",
-                new_callable=AsyncMock,
-                return_value=True,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.delete_category",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 resp = await client.delete(
                     f"/api/v1/categories/{cat_id}",
@@ -281,10 +294,13 @@ class TestDeleteCategory:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.delete_category",
-                new_callable=AsyncMock,
-                return_value=False,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.delete_category",
+                    new_callable=AsyncMock,
+                    return_value=False,
+                ),
             ):
                 resp = await client.delete(
                     f"/api/v1/categories/{cat_id}",
@@ -308,5 +324,55 @@ class TestDeleteCategory:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestCategoryCrudRateLimit:
+    @pytest.mark.anyio
+    async def test_create_category_rate_limited(self, client):
+        """POST /categories → 429 when rate limited."""
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.post(
+                    "/api/v1/categories",
+                    json={"name": "Science", "description": "Science topics"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_update_category_rate_limited(self, client):
+        """PUT /categories/{id} → 429 when rate limited."""
+        cat_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.put(
+                    f"/api/v1/categories/{cat_id}",
+                    json={"name": "Updated"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_category_rate_limited(self, client):
+        """DELETE /categories/{id} → 429 when rate limited."""
+        cat_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.delete(
+                    f"/api/v1/categories/{cat_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
         finally:
             _clear_overrides()

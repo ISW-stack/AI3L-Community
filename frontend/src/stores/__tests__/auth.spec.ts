@@ -18,10 +18,10 @@ vi.mock('@/constants', () => ({
 }))
 
 // Mock notification store
-const mockNotifReset = vi.fn()
+const mockNotifResetState = vi.fn()
 vi.mock('@/stores/notifications', () => ({
   useNotificationStore: () => ({
-    $reset: mockNotifReset,
+    resetState: mockNotifResetState,
   }),
 }))
 
@@ -54,7 +54,7 @@ describe('useAuthStore', () => {
     vi.useFakeTimers()
     mockPost.mockReset()
     mockGet.mockReset()
-    mockNotifReset.mockReset()
+    mockNotifResetState.mockReset()
     mockToastClearAll.mockReset()
     mockToastShow.mockReset()
     mockRouterPush.mockReset()
@@ -135,7 +135,7 @@ describe('useAuthStore', () => {
       auth.setSession('MEMBER', 3600)
       auth.clearSession()
 
-      expect(mockNotifReset).toHaveBeenCalledOnce()
+      expect(mockNotifResetState).toHaveBeenCalledOnce()
     })
 
     it('clearSession resets toast store', () => {

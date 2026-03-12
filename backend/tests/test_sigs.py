@@ -87,7 +87,10 @@ class TestCreateSig:
 
         try:
             _override_auth("ADMIN")
-            with patch("app.services.sig.get_pool", return_value=mock_pool):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch("app.services.sig.get_pool", return_value=mock_pool),
+            ):
                 resp = await client.post(
                     "/api/v1/sigs",
                     json={"name": "New SIG", "description": "Desc"},
@@ -159,7 +162,10 @@ class TestRemoveMember:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_EP}.remove_member", new_callable=AsyncMock, return_value=True):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.remove_member", new_callable=AsyncMock, return_value=True),
+            ):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}/members/{target_user}",
                     headers={"Authorization": "Bearer fake"},
@@ -188,7 +194,10 @@ class TestAssignSubAdmin:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_EP}.assign_sub_admin", new_callable=AsyncMock, return_value=member):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.assign_sub_admin", new_callable=AsyncMock, return_value=member),
+            ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin",
                     json={"user_id": target_user},
@@ -218,7 +227,10 @@ class TestDemoteSubAdmin:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_EP}.demote_sub_admin", new_callable=AsyncMock, return_value=member):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.demote_sub_admin", new_callable=AsyncMock, return_value=member),
+            ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
                     json={"user_id": target_user},
@@ -238,10 +250,13 @@ class TestDemoteSubAdmin:
 
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP}.demote_sub_admin",
-                new_callable=AsyncMock,
-                side_effect=PermissionError("Not authorized."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.demote_sub_admin",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError("Not authorized."),
+                ),
             ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
@@ -260,10 +275,13 @@ class TestDemoteSubAdmin:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.demote_sub_admin",
-                new_callable=AsyncMock,
-                side_effect=ValueError("User is not a sub-admin."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.demote_sub_admin",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("User is not a sub-admin."),
+                ),
             ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
@@ -282,10 +300,13 @@ class TestDemoteSubAdmin:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.demote_sub_admin",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Cannot demote the SIG owner/creator."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.demote_sub_admin",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Cannot demote the SIG owner/creator."),
+                ),
             ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
@@ -315,10 +336,13 @@ class TestDemoteSubAdmin:
 
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP}.demote_sub_admin",
-                new_callable=AsyncMock,
-                return_value=member,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.demote_sub_admin",
+                    new_callable=AsyncMock,
+                    return_value=member,
+                ),
             ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
@@ -581,10 +605,15 @@ class TestRemoveMemberSoleAdminEndpoint:
 
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.remove_member",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Cannot remove: this user is the last admin of the SIG."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.remove_member",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError(
+                        "Cannot remove: this user is the last admin of the SIG."
+                    ),
+                ),
             ):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}/members/{target_user}",
@@ -692,10 +721,13 @@ class TestServiceLayerAuthorization:
 
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP}.remove_member",
-                new_callable=AsyncMock,
-                side_effect=PermissionError("Not authorized."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.remove_member",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError("Not authorized."),
+                ),
             ):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}/members/{target_user}",
@@ -713,10 +745,13 @@ class TestServiceLayerAuthorization:
 
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP}.assign_sub_admin",
-                new_callable=AsyncMock,
-                side_effect=PermissionError("Not authorized."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.assign_sub_admin",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError("Not authorized."),
+                ),
             ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin",
@@ -735,10 +770,13 @@ class TestServiceLayerAuthorization:
 
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP}.demote_sub_admin",
-                new_callable=AsyncMock,
-                side_effect=PermissionError("Not authorized."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.demote_sub_admin",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError("Not authorized."),
+                ),
             ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
@@ -746,5 +784,75 @@ class TestServiceLayerAuthorization:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestSigJoinRateLimit:
+    @pytest.mark.anyio
+    async def test_join_sig_rate_limited(self, client):
+        """POST /sigs/{id}/members/me → 429 when rate limited."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_leave_sig_rate_limited(self, client):
+        """DELETE /sigs/{id}/members/me → 429 when rate limited."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.delete(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+
+class TestSigCrudRateLimit:
+    @pytest.mark.anyio
+    async def test_create_sig_rate_limited(self, client):
+        """POST /sigs → 429 when rate limited."""
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.post(
+                    "/api/v1/sigs",
+                    json={"name": "New SIG", "description": "Desc"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+
+class TestSigManageRateLimit:
+    @pytest.mark.anyio
+    async def test_remove_member_rate_limited(self, client):
+        """DELETE /sigs/{id}/members/{uid} → 429 when rate limited."""
+        sig_id = uuid.uuid4()
+        target_user = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.delete(
+                    f"/api/v1/sigs/{sig_id}/members/{target_user}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
         finally:
             _clear_overrides()

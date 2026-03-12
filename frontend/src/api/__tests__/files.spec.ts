@@ -10,70 +10,11 @@ vi.mock('@/composables/api', () => ({
   },
 }))
 
-import {
-  getTaskStatus,
-  uploadEditorFile,
-  getFileScanStatus,
-  getPresignedUrl,
-  getStorageUsage,
-} from '../files'
+import { uploadEditorFile, getFileScanStatus, getPresignedUrl, getStorageUsage } from '../files'
 
 describe('files API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  describe('getTaskStatus', () => {
-    it('calls GET /tasks/:taskId/status and returns task status response', async () => {
-      const mockData = {
-        task_id: 'task-1',
-        status: 'completed',
-        result: { status: 'clean', malicious: 0, suspicious: 0 },
-      }
-      mockGet.mockResolvedValue({ data: mockData })
-
-      const result = await getTaskStatus('task-1')
-
-      expect(mockGet).toHaveBeenCalledWith('/tasks/task-1/status')
-      expect(result).toEqual(mockData)
-    })
-
-    it('includes the task id in the URL path', async () => {
-      mockGet.mockResolvedValue({ data: { task_id: 'abc', status: 'pending', result: null } })
-
-      await getTaskStatus('abc')
-
-      expect(mockGet).toHaveBeenCalledWith('/tasks/abc/status')
-    })
-
-    it('returns result as null when pending', async () => {
-      const mockData = { task_id: 't1', status: 'pending', result: null }
-      mockGet.mockResolvedValue({ data: mockData })
-
-      const result = await getTaskStatus('t1')
-
-      expect(result.result).toBeNull()
-    })
-
-    it('returns result with malicious count when scan finds threats', async () => {
-      const mockData = {
-        task_id: 't2',
-        status: 'completed',
-        result: { status: 'malicious', malicious: 3, suspicious: 1 },
-      }
-      mockGet.mockResolvedValue({ data: mockData })
-
-      const result = await getTaskStatus('t2')
-
-      expect(result.result?.malicious).toBe(3)
-      expect(result.result?.suspicious).toBe(1)
-    })
-
-    it('propagates API errors', async () => {
-      mockGet.mockRejectedValue(new Error('Not found'))
-
-      await expect(getTaskStatus('bad')).rejects.toThrow('Not found')
-    })
   })
 
   describe('uploadEditorFile', () => {

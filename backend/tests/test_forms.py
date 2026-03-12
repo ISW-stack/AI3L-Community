@@ -4,6 +4,7 @@ Also covers update_form transaction safety.
 
 import uuid
 from datetime import datetime, timezone
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -217,6 +218,9 @@ class TestExportForm:
         mock_export_module = MagicMock()
         mock_export_module.export_form_csv.delay.return_value = mock_task
 
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+
         try:
             _override_auth("ADMIN")
             with (
@@ -224,6 +228,7 @@ class TestExportForm:
                 patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch.dict("sys.modules", {"app.tasks.form_export": mock_export_module}),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
             ):
                 resp = await client.post(
                     f"/api/v1/forms/{form_id}/export",
@@ -231,6 +236,9 @@ class TestExportForm:
                 )
                 assert resp.status_code == 202
                 assert resp.json()["task_id"] == "celery-task-123"
+                mock_redis.set.assert_awaited_once_with(
+                    "task_owner:celery-task-123", mock.ANY, ex=3600
+                )
         finally:
             _clear_overrides()
 

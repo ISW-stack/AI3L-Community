@@ -416,6 +416,8 @@ export default {
       clean: 'آمن',
       malicious: 'مُصنَّف كضار',
       unknown: 'نتيجة الفحص غير حاسمة',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'فشل تحميل الملف.',
     fileTooLarge: 'الملف كبير جدًا. الحد الأقصى 20 ميجابايت.',

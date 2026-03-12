@@ -56,7 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Use lazy calls inside clearSession to avoid circular dependency at module level.
     const notifStore = useNotificationStore()
     const toastStore = useToastStore()
-    notifStore.$reset()
+    notifStore.resetState()
     toastStore.clearAll()
   }
 

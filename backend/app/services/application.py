@@ -35,6 +35,10 @@ async def review_application(app_id: uuid.UUID, reviewer_id: uuid.UUID, action: 
             "Membership approved, user promoted",
             extra={"user_id": str(result["user_id"])},
         )
+        # Revoke old GUEST sessions so user must re-login with MEMBER role
+        from app.services.auth import revoke_user_sessions
+
+        await revoke_user_sessions(str(result["user_id"]))
 
     # Notify applicant via event bus
     await emit(

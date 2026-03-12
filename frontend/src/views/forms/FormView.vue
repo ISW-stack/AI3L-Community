@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
 import { getErrorMessage } from '@/utils/error'
 import type { Question, FormData, FormResponse } from '@/types'
@@ -21,6 +22,7 @@ import BackToTop from '@/components/BackToTop.vue'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 // ── Core State ──
@@ -577,7 +579,7 @@ function handleClearDraft() {
 
 function goBackToSig() {
   if (form.value) {
-    window.location.href = `/sigs/${form.value.sig_id}`
+    router.push(`/sigs/${form.value.sig_id}`)
   }
 }
 
@@ -671,7 +673,7 @@ onUnmounted(() => {
             <div
               v-if="form.description"
               class="prose prose-sm max-w-none text-muted mb-3"
-              v-html="form.description"
+              v-html="DOMPurify.sanitize(form.description)"
             ></div>
           </div>
           <BaseBadge :variant="form.is_active ? 'success' : 'danger'">{{

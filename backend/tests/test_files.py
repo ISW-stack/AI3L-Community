@@ -1131,6 +1131,172 @@ class TestDeleteEditorFileValidatesPrefix:
             _clear_overrides_files()
 
 
+class TestServeFileFailClose:
+    """Verify that serve_file blocks files with unknown/error scan status."""
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_blocks_unknown_scan_status(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        """Files with 'unknown' scan status should be blocked (403)."""
+        headers, user_id, _ = auth_headers("MEMBER")
+        file_key = f"editor/{user_id}/test.png"
+
+        with patch(
+            "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+            new_callable=AsyncMock,
+            return_value={"status": "unknown", "positives": None, "total": None},
+        ):
+            resp = await client.get(
+                f"/api/v1/files/content/{file_key}",
+                headers=headers,
+            )
+
+        assert resp.status_code == 403
+        assert "not been verified" in resp.json()["detail"]
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_blocks_error_scan_status(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        """Files with 'error' scan status should be blocked (403)."""
+        headers, user_id, _ = auth_headers("MEMBER")
+        file_key = f"editor/{user_id}/test.pdf"
+
+        with patch(
+            "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+            new_callable=AsyncMock,
+            return_value={"status": "error", "positives": None, "total": None},
+        ):
+            resp = await client.get(
+                f"/api/v1/files/content/{file_key}",
+                headers=headers,
+            )
+
+        assert resp.status_code == 403
+        assert "not been verified" in resp.json()["detail"]
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_still_blocks_malicious(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        """Files with 'malicious' scan status should still be blocked (451)."""
+        headers, user_id, _ = auth_headers("MEMBER")
+        file_key = f"editor/{user_id}/test.exe"
+
+        with patch(
+            "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+            new_callable=AsyncMock,
+            return_value={"status": "malicious", "positives": 5, "total": 70},
+        ):
+            resp = await client.get(
+                f"/api/v1/files/content/{file_key}",
+                headers=headers,
+            )
+
+        assert resp.status_code == 451
+        assert "malicious" in resp.json()["detail"].lower()
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_allows_clean_files(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        """Files with 'clean' scan status should be served normally."""
+        headers, user_id, _ = auth_headers("MEMBER")
+        file_key = f"editor/{user_id}/test.png"
+
+        with (
+            patch(
+                "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+                new_callable=AsyncMock,
+                return_value={"status": "clean", "positives": 0, "total": 70},
+            ),
+            patch(
+                "app.api.v1.endpoints.files.async_download_file",
+                new_callable=AsyncMock,
+                return_value=(b"fake-image-data", "image/png"),
+            ),
+        ):
+            resp = await client.get(
+                f"/api/v1/files/content/{file_key}",
+                headers=headers,
+            )
+
+        assert resp.status_code == 200
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_allows_skipped_files(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        """Files with 'skipped' scan status should be served (no VT key is a dev choice)."""
+        headers, user_id, _ = auth_headers("MEMBER")
+        file_key = f"editor/{user_id}/test.png"
+
+        with (
+            patch(
+                "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+                new_callable=AsyncMock,
+                return_value={"status": "skipped", "positives": None, "total": None},
+            ),
+            patch(
+                "app.api.v1.endpoints.files.async_download_file",
+                new_callable=AsyncMock,
+                return_value=(b"fake-image-data", "image/png"),
+            ),
+        ):
+            resp = await client.get(
+                f"/api/v1/files/content/{file_key}",
+                headers=headers,
+            )
+
+        assert resp.status_code == 200
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_allows_pending_files(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        """Files with 'pending' scan status should be served (scan still in progress)."""
+        headers, user_id, _ = auth_headers("MEMBER")
+        file_key = f"editor/{user_id}/test.png"
+
+        with (
+            patch(
+                "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+                new_callable=AsyncMock,
+                return_value={"status": "pending", "positives": None, "total": None},
+            ),
+            patch(
+                "app.api.v1.endpoints.files.async_download_file",
+                new_callable=AsyncMock,
+                return_value=(b"fake-image-data", "image/png"),
+            ),
+        ):
+            resp = await client.get(
+                f"/api/v1/files/content/{file_key}",
+                headers=headers,
+            )
+
+        assert resp.status_code == 200
+
+
 class TestCleanupTaskImport:
     """Verify the cleanup task module can be imported without errors."""
 

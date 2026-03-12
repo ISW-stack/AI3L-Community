@@ -93,15 +93,18 @@ class TestUpdatePreferences:
         """PUT /users/me/preferences → 200, creates row via upsert."""
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP_PREFS}.update_user_preferences",
-                new_callable=AsyncMock,
-                return_value={
-                    "theme": "dark",
-                    "notify_mentions": True,
-                    "notify_replies": True,
-                    "notify_sig_posts": True,
-                },
+            with (
+                patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP_PREFS}.update_user_preferences",
+                    new_callable=AsyncMock,
+                    return_value={
+                        "theme": "dark",
+                        "notify_mentions": True,
+                        "notify_replies": True,
+                        "notify_sig_posts": True,
+                    },
+                ),
             ):
                 resp = await client.put(
                     "/api/v1/users/me/preferences",
@@ -118,15 +121,18 @@ class TestUpdatePreferences:
         """PUT /users/me/preferences → 200, updates existing row."""
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP_PREFS}.update_user_preferences",
-                new_callable=AsyncMock,
-                return_value={
-                    "theme": "dark",
-                    "notify_mentions": False,
-                    "notify_replies": True,
-                    "notify_sig_posts": True,
-                },
+            with (
+                patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP_PREFS}.update_user_preferences",
+                    new_callable=AsyncMock,
+                    return_value={
+                        "theme": "dark",
+                        "notify_mentions": False,
+                        "notify_replies": True,
+                        "notify_sig_posts": True,
+                    },
+                ),
             ):
                 resp = await client.put(
                     "/api/v1/users/me/preferences",
@@ -167,7 +173,10 @@ class TestUpdatePreferences:
                     "notify_sig_posts": True,
                 }
             )
-            with patch(f"{_EP_PREFS}.update_user_preferences", mock_update):
+            with (
+                patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP_PREFS}.update_user_preferences", mock_update),
+            ):
                 resp = await client.put(
                     "/api/v1/users/me/preferences",
                     json={"notify_replies": False},
@@ -191,6 +200,23 @@ class TestUpdatePreferences:
             json={"theme": "dark"},
         )
         assert resp.status_code == 401
+
+
+class TestUpdatePreferencesRateLimit:
+    @pytest.mark.anyio
+    async def test_update_preferences_rate_limited(self, client):
+        """PUT /users/me/preferences → 429 when rate limited."""
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.put(
+                    "/api/v1/users/me/preferences",
+                    json={"theme": "dark"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
+        finally:
+            _clear_overrides()
 
 
 class TestPreferencesRepo:

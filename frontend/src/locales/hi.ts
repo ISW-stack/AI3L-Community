@@ -417,6 +417,8 @@ export default {
       clean: 'सुरक्षित',
       malicious: 'दुर्भावनापूर्ण चिह्नित',
       unknown: 'स्कैन अनिर्णायक',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'फ़ाइल अपलोड करने में विफल।',
     fileTooLarge: 'फ़ाइल बहुत बड़ी है। अधिकतम आकार 20 MB है।',

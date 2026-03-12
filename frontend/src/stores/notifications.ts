@@ -66,6 +66,12 @@ export const useNotificationStore = defineStore('notifications', () => {
     }
   }
 
+  function resetState() {
+    unreadCount.value = 0
+    items.value = []
+    loading.value = false
+  }
+
   return {
     unreadCount,
     items,
@@ -75,5 +81,6 @@ export const useNotificationStore = defineStore('notifications', () => {
     markRead,
     markAllRead,
     addFromWebSocket,
+    resetState,
   }
 })

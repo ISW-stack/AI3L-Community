@@ -25,10 +25,17 @@ vi.mock('@/api/sigs', () => ({
 const mockDeleteForm = vi.fn()
 const mockListFormResponses = vi.fn()
 const mockGetForm = vi.fn()
+const mockExportForm = vi.fn()
 vi.mock('@/api/forms', () => ({
   deleteForm: (...args: unknown[]) => mockDeleteForm(...args),
   listFormResponses: (...args: unknown[]) => mockListFormResponses(...args),
   getForm: (...args: unknown[]) => mockGetForm(...args),
+  exportForm: (...args: unknown[]) => mockExportForm(...args),
+}))
+
+const mockGetTaskStatus = vi.fn()
+vi.mock('@/api/tasks', () => ({
+  getTaskStatus: (...args: unknown[]) => mockGetTaskStatus(...args),
 }))
 
 const sampleForms = [
@@ -847,6 +854,44 @@ describe('SigFormsView', () => {
   })
 
   // ── Feature 7: Export elapsed timer ──
+
+  it('export poll timer is cleared on component unmount', async () => {
+    vi.useFakeTimers()
+    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval')
+
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockExportForm.mockResolvedValue({ task_id: 'task-123' })
+    // Keep polling by returning PENDING status
+    mockGetTaskStatus.mockResolvedValue({ status: 'PENDING' })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    // Trigger export via the component's startExport method
+    const vm = wrapper.vm as {
+      startExport: (formId: string) => Promise<void>
+      exportPollInterval: ReturnType<typeof setInterval> | null
+      exportTimerInterval: ReturnType<typeof setInterval> | null
+    }
+    await vm.startExport('form-1')
+    await nextTick()
+
+    // Both timers should be active
+    expect(vm.exportTimerInterval).not.toBeNull()
+    expect(vm.exportPollInterval).not.toBeNull()
+
+    clearIntervalSpy.mockClear()
+
+    // Unmount the component
+    wrapper.unmount()
+
+    // clearInterval should have been called for both timers
+    expect(clearIntervalSpy).toHaveBeenCalled()
+
+    clearIntervalSpy.mockRestore()
+    vi.useRealTimers()
+  })
 
   it('export elapsed timer increments every second during export', async () => {
     vi.useFakeTimers()

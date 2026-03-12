@@ -186,8 +186,8 @@ class TestGuestLogin:
 
     @patch("app.services.auth.get_redis")
     async def test_guest_counter_sync(self, mock_get_redis):
-        """_sync_guest_counter counts session keys and sets the counter."""
-        from app.services.auth import _sync_guest_counter
+        """sync_guest_counter counts session keys and sets the counter."""
+        from app.services.auth import sync_guest_counter
 
         async def _scan_sessions(*args, **kwargs):
             for key in [f"session:GUEST:{i}" for i in range(7)]:
@@ -198,7 +198,7 @@ class TestGuestLogin:
         redis.set = AsyncMock()
         mock_get_redis.return_value = redis
 
-        await _sync_guest_counter()
+        await sync_guest_counter()
 
         from app.services.auth import _GUEST_COUNTER_KEY
 

@@ -421,6 +421,8 @@ export default {
       clean: 'Aman',
       malicious: 'Ditandai sebagai berbahaya',
       unknown: 'Pemindaian tidak meyakinkan',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'Gagal mengunggah file.',
     fileTooLarge: 'File terlalu besar. Ukuran maksimum adalah 20 MB.',

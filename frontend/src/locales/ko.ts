@@ -416,6 +416,8 @@ export default {
       clean: '안전',
       malicious: '악성으로 표시됨',
       unknown: '검사 결과 불명확',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: '파일 업로드에 실패했습니다.',
     fileTooLarge: '파일이 너무 큽니다. 최대 크기는 20 MB입니다.',

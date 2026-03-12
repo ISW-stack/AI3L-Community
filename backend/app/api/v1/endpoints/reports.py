@@ -2,7 +2,9 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.constants import RATE_LIMIT_REPORT
 from app.core.deps import require_role
+from app.core.rate_limit import check_rate_limit
 from app.schemas.report import (
     PostReportCreateRequest,
     PostReportListResponse,
@@ -25,6 +27,8 @@ async def report_post(
     req: PostReportCreateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostReportResponse:
+    if not await check_rate_limit(f"rl:report:{current_user['sub']}", *RATE_LIMIT_REPORT):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     post = await get_post_by_id(post_id)
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
@@ -40,7 +44,7 @@ async def report_post(
 @router.get("/admin/reports", response_model=PostReportListResponse)
 async def get_reports(
     status_filter: str | None = None,
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> PostReportListResponse:

@@ -67,7 +67,9 @@ watch(
 const toastStore = useToastStore()
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
-const scanStatus = ref<'pending' | 'clean' | 'malicious' | 'unknown' | null>(null)
+const scanStatus = ref<'pending' | 'clean' | 'malicious' | 'unknown' | 'error' | 'skipped' | null>(
+  null,
+)
 const scanKey = ref('')
 let scanPollTimer: ReturnType<typeof setTimeout> | null = null
 let scanDismissTimer: ReturnType<typeof setTimeout> | null = null
@@ -103,8 +105,13 @@ async function pollScanStatus() {
       scanDismissTimer = setTimeout(() => {
         if (scanStatus.value === 'clean') scanStatus.value = null
       }, 10000)
+    } else if (data.status === 'skipped') {
+      // Auto-dismiss skipped status after 10 seconds
+      scanDismissTimer = setTimeout(() => {
+        if (scanStatus.value === 'skipped') scanStatus.value = null
+      }, 10000)
     }
-    // 'unknown' stays visible until next upload
+    // 'unknown' and 'error' stay visible until next upload
   } catch {
     scanStatus.value = null
   }
@@ -333,9 +340,9 @@ async function handleFileUpload(event: Event) {
       class="flex items-center gap-1.5 px-3 py-1.5 text-xs border-b border-border"
       :class="{
         'bg-warning-50 text-warning-700': scanStatus === 'pending',
-        'bg-success-50 text-success-700': scanStatus === 'clean',
+        'bg-success-50 text-success-700': scanStatus === 'clean' || scanStatus === 'skipped',
         'bg-danger-50 text-danger-700': scanStatus === 'malicious',
-        'bg-gray-50 text-muted': scanStatus === 'unknown',
+        'bg-gray-50 text-muted': scanStatus === 'unknown' || scanStatus === 'error',
       }"
     >
       <Loader2
@@ -344,11 +351,19 @@ async function handleFileUpload(event: Event) {
         aria-hidden="true"
       />
       <ShieldCheck v-else-if="scanStatus === 'clean'" class="w-3.5 h-3.5" aria-hidden="true" />
+      <ShieldCheck v-else-if="scanStatus === 'skipped'" class="w-3.5 h-3.5" aria-hidden="true" />
       <ShieldAlert v-else-if="scanStatus === 'malicious'" class="w-3.5 h-3.5" aria-hidden="true" />
+      <ShieldAlert
+        v-else-if="scanStatus === 'unknown' || scanStatus === 'error'"
+        class="w-3.5 h-3.5"
+        aria-hidden="true"
+      />
       <span v-if="scanStatus === 'pending'">{{ t('editor.scan.pending') }}</span>
       <span v-else-if="scanStatus === 'clean'">{{ t('editor.scan.clean') }}</span>
+      <span v-else-if="scanStatus === 'skipped'">{{ t('editor.scan.skipped') }}</span>
       <span v-else-if="scanStatus === 'malicious'">{{ t('editor.scan.malicious') }}</span>
       <span v-else-if="scanStatus === 'unknown'">{{ t('editor.scan.unknown') }}</span>
+      <span v-else-if="scanStatus === 'error'">{{ t('editor.scan.error') }}</span>
     </div>
 
     <!-- Editor content -->

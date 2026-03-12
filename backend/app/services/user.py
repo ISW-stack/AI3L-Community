@@ -250,8 +250,19 @@ async def list_users(
 
 
 async def bulk_change_role(user_ids: list[uuid.UUID], role: str) -> int:
-    """Change role for multiple users in a single transaction."""
+    """Change role for multiple users in a single transaction.
+
+    Raises ValueError if the operation would remove the last SUPER_ADMIN.
+    """
     from app.core.database import get_pool
+
+    # Prevent orphaning the system by demoting all SUPER_ADMINs
+    if role != "SUPER_ADMIN" and user_ids:
+        remaining = await user_repo.count_super_admins_excluding(user_ids)
+        if remaining == 0:
+            raise ValueError(
+                "Cannot demote: this would remove the last Super Admin in the system."
+            )
 
     pool = get_pool()
     async with pool.acquire() as conn:

@@ -416,6 +416,8 @@ export default {
       clean: '安全',
       malicious: '悪意のあるファイルとして検出',
       unknown: 'スキャン結果が不確定',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'ファイルのアップロードに失敗しました。',
     fileTooLarge: 'ファイルが大きすぎます。最大サイズは 20 MB です。',

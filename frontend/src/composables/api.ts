@@ -23,7 +23,9 @@ api.interceptors.request.use((config) => {
     if (csrfToken) {
       config.headers['X-CSRF-Token'] = csrfToken
     } else {
-      console.warn('[CSRF] Token cookie missing for mutating request:', config.url)
+      if (import.meta.env.DEV) {
+        console.warn('[CSRF] Token cookie missing for mutating request:', config.url)
+      }
     }
   }
   return config

@@ -31,6 +31,14 @@ vi.mock('@/composables/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
 }))
 
+// Mock DOMPurify — use a spy so we can verify calls
+const mockSanitize = vi.fn((html: string) => html)
+vi.mock('dompurify', () => ({
+  default: {
+    sanitize: (...args: unknown[]) => mockSanitize(...args),
+  },
+}))
+
 vi.mock('@/constants', () => ({
   HEARTBEAT_INTERVAL_MS: 30000,
 }))
@@ -386,6 +394,42 @@ describe('FormView', () => {
     expect(wrapper.find('.copy-share-link').exists()).toBe(true)
   })
 
+  // ── XSS Sanitization ──
+  describe('XSS sanitization', () => {
+    it('calls DOMPurify.sanitize on form description', async () => {
+      const xssDescription = '<p>Info</p><img src=x onerror="alert(1)">'
+      const formWithXss = { ...fakeForm, description: xssDescription }
+      await mountFormView({ form: formWithXss })
+
+      expect(mockSanitize).toHaveBeenCalledWith(xssDescription)
+    })
+
+    it('strips XSS payload from description output', async () => {
+      const xssPayload = '<img src=x onerror="alert(1)"><b>safe</b>'
+      mockSanitize.mockImplementation((html: string) =>
+        html.replace(/<img[^>]*>/g, ''),
+      )
+      const formWithXss = { ...fakeForm, description: xssPayload }
+      const { wrapper } = await mountFormView({ form: formWithXss })
+
+      const descDiv = wrapper.find('.prose.prose-sm')
+      expect(descDiv.exists()).toBe(true)
+      expect(descDiv.html()).not.toContain('onerror')
+      expect(descDiv.html()).toContain('<b>safe</b>')
+
+      // Restore default passthrough behavior
+      mockSanitize.mockImplementation((html: string) => html)
+    })
+
+    it('does not render description div when description is empty', async () => {
+      const formNoDesc = { ...fakeForm, description: '' }
+      const { wrapper } = await mountFormView({ form: formNoDesc })
+
+      const descDiv = wrapper.find('.prose.prose-sm')
+      expect(descDiv.exists()).toBe(false)
+    })
+  })
+
   // ── Feature 1: Progress Indicator ──
   describe('progress indicator', () => {
     it('shows progress bar with 0/N when no answers given', async () => {
@@ -716,6 +760,26 @@ describe('FormView', () => {
       await flushPromises()
 
       expect(wrapper.text()).toContain('Back to SIG')
+    })
+
+    it('uses router.push instead of window.location.href for Back to SIG', async () => {
+      const { wrapper, router } = await mountFormView()
+      const vm = wrapper.vm as any
+      const pushSpy = vi.spyOn(router, 'push')
+
+      vm.answers['q1'] = 'John'
+      vm.answers['q2'] = 'opt1'
+
+      const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      const backBtn = wrapper.findAll('button').find((b) => b.text().includes('Back to SIG'))
+      expect(backBtn).toBeTruthy()
+      await backBtn!.trigger('click')
+      await flushPromises()
+
+      expect(pushSpy).toHaveBeenCalledWith('/sigs/sig-1')
     })
 
     it('displays option labels for choice questions in summary', async () => {

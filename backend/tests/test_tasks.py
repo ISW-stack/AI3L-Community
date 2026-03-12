@@ -1,9 +1,9 @@
-"""Tests for tasks endpoint — pending, success — and Redis config validation."""
+"""Tests for tasks endpoint — pending, success, ownership verification, and Redis config validation."""
 
 import sys
 import types
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -99,12 +99,16 @@ class TestTaskStatus:
 
         _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
 
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+
         try:
             _override_auth("ADMIN")
-            resp = await client.get(
-                "/api/v1/tasks/task-123/status",
-                headers={"Authorization": "Bearer fake"},
-            )
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-123/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
             assert resp.status_code == 200
             data = resp.json()
             assert data["status"] == "PENDING"
@@ -121,12 +125,16 @@ class TestTaskStatus:
 
         _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
 
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+
         try:
             _override_auth("ADMIN")
-            resp = await client.get(
-                "/api/v1/tasks/task-456/status",
-                headers={"Authorization": "Bearer fake"},
-            )
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-456/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
             assert resp.status_code == 200
             data = resp.json()
             assert data["status"] == "SUCCESS"
@@ -143,12 +151,16 @@ class TestTaskStatus:
 
         _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
 
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+
         try:
             _override_auth("MEMBER")
-            resp = await client.get(
-                "/api/v1/tasks/task-789/status",
-                headers={"Authorization": "Bearer fake"},
-            )
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-789/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
             assert resp.status_code == 200
             data = resp.json()
             assert data["status"] == "PENDING"
@@ -172,5 +184,164 @@ class TestTaskStatus:
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestTaskOwnership:
+    """Verify that MEMBER users can only access their own tasks."""
+
+    @pytest.mark.anyio
+    async def test_member_can_access_own_task(self, client, _mock_celery):
+        """MEMBER who owns the task gets 200."""
+        owner_id = str(uuid.uuid4())
+
+        mock_result = MagicMock()
+        mock_result.state = "SUCCESS"
+        mock_result.result = {"download_url": "https://example.com/my-export.csv"}
+        _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=owner_id)
+
+        try:
+            _override_auth("MEMBER", user_id=owner_id)
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-own-001/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["download_url"] == "https://example.com/my-export.csv"
+            mock_redis.get.assert_awaited_once_with("task_owner:task-own-001")
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_member_cannot_access_other_users_task(self, client, _mock_celery):
+        """MEMBER gets 403 when accessing another user's task."""
+        owner_id = str(uuid.uuid4())
+        other_user_id = str(uuid.uuid4())
+
+        mock_result = MagicMock()
+        mock_result.state = "SUCCESS"
+        mock_result.result = {"download_url": "https://example.com/secret.csv"}
+        _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=owner_id)
+
+        try:
+            _override_auth("MEMBER", user_id=other_user_id)
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-other-001/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 403
+            assert "do not have access" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_admin_can_access_any_task(self, client, _mock_celery):
+        """ADMIN can access any task regardless of ownership."""
+        owner_id = str(uuid.uuid4())
+
+        mock_result = MagicMock()
+        mock_result.state = "SUCCESS"
+        mock_result.result = {"download_url": "https://example.com/any-export.csv"}
+        _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=owner_id)
+
+        try:
+            # ADMIN with different user_id than the task owner
+            _override_auth("ADMIN", user_id=str(uuid.uuid4()))
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-admin-001/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["download_url"] == "https://example.com/any-export.csv"
+            # Redis should NOT be queried for ADMIN
+            mock_redis.get.assert_not_awaited()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_super_admin_can_access_any_task(self, client, _mock_celery):
+        """SUPER_ADMIN can access any task regardless of ownership."""
+        owner_id = str(uuid.uuid4())
+
+        mock_result = MagicMock()
+        mock_result.state = "SUCCESS"
+        mock_result.result = {"download_url": "https://example.com/sa-export.csv"}
+        _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=owner_id)
+
+        try:
+            _override_auth("SUPER_ADMIN", user_id=str(uuid.uuid4()))
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-sa-001/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            # Redis should NOT be queried for SUPER_ADMIN
+            mock_redis.get.assert_not_awaited()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_member_access_task_without_ownership_record(self, client, _mock_celery):
+        """MEMBER can access task when no ownership record exists in Redis (expired/missing)."""
+        mock_result = MagicMock()
+        mock_result.state = "PENDING"
+        mock_result.result = None
+        _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+
+        try:
+            _override_auth("MEMBER")
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    "/api/v1/tasks/task-noowner-001/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            # When no ownership record exists, allow access (task may be old or non-export)
+            assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_nonexistent_task_returns_pending(self, client, _mock_celery):
+        """Non-existent task returns PENDING state (Celery default for unknown task IDs)."""
+        mock_result = MagicMock()
+        mock_result.state = "PENDING"
+        mock_result.result = None
+        _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+
+        try:
+            _override_auth("MEMBER")
+            with patch("app.core.redis.get_redis", return_value=mock_redis):
+                resp = await client.get(
+                    f"/api/v1/tasks/{uuid.uuid4()}/status",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            assert resp.json()["status"] == "PENDING"
+            assert resp.json()["download_url"] is None
         finally:
             _clear_overrides()

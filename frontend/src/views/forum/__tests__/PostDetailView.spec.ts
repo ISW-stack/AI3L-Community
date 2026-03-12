@@ -124,6 +124,7 @@ function buildMockPostDetail(overrides?: Record<string, any>) {
     hasReacted: vi.fn(() => false),
     canEditComment: vi.fn(() => false),
     startEditComment: vi.fn(),
+    cancelEdit: vi.fn(),
     cancelEditComment: vi.fn(),
     saveEditComment: vi.fn(),
     handleReply: vi.fn(),
@@ -368,5 +369,20 @@ describe('PostDetailView', () => {
   it('renders floating create button', async () => {
     const { wrapper } = await mountPostDetail()
     expect(wrapper.find('.fab').exists()).toBe(true)
+  })
+
+  it('calls cancelEdit when cancel button is clicked in edit mode', async () => {
+    const { wrapper, mockData } = await mountPostDetail({ canModify: true })
+    // Enter editing mode
+    mockData.editing.value = true
+    await wrapper.vm.$nextTick()
+
+    // Find and click the cancel button (secondary variant)
+    const buttons = wrapper.findAll('button')
+    const cancelBtn = buttons.find((b) => b.text().includes('Cancel'))
+    expect(cancelBtn).toBeTruthy()
+    await cancelBtn!.trigger('click')
+
+    expect(mockData.cancelEdit).toHaveBeenCalled()
   })
 })

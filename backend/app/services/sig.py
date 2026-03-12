@@ -36,11 +36,31 @@ async def get_sig_by_id(sig_id: uuid.UUID) -> dict | None:
 
 
 async def update_sig(
-    sig_id: uuid.UUID, name: str | None = None, description: str | None = None
+    sig_id: uuid.UUID,
+    name: str | None = None,
+    description: str | None = None,
+    caller_id: str | None = None,
+    caller_role: str | None = None,
 ) -> dict | None:
+    """Update a SIG's name/description.
+
+    When caller_id and caller_role are provided, the SIG admin permission
+    check is performed inside the same transaction as the update to prevent
+    TOCTOU race conditions.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # Permission check inside the transaction
+            if caller_id and caller_role:
+                is_global_admin = caller_role in ("SUPER_ADMIN", "ADMIN")
+                if not is_global_admin:
+                    sig_role = await sig_repo.get_member_role_in_conn(
+                        sig_id, uuid.UUID(caller_id), conn
+                    )
+                    if sig_role != "ADMIN":
+                        raise PermissionError("Not authorized.")
+
             # Read current values inside the transaction to prevent TOCTOU race
             current = await conn.fetchrow(
                 """

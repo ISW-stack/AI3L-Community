@@ -234,13 +234,19 @@ async def serve_file(
                 detail="You do not have permission to access this file.",
             )
 
-    # Block files flagged as malicious by VirusTotal
+    # Block files that are malicious, unverified, or had scan errors (fail-close)
     try:
         scan = await file_scan_repo.find_by_key(key)
         if scan and scan["status"] == "malicious":
             raise HTTPException(
                 status_code=451,
                 detail="This file has been flagged as potentially malicious.",
+            )
+        if scan and scan["status"] in ("unknown", "error"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This file has not been verified as safe. Scan status: "
+                + scan["status"],
             )
     except HTTPException:
         raise

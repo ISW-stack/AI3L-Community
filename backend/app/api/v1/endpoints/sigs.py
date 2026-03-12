@@ -2,7 +2,9 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
+from app.core.constants import RATE_LIMIT_SIG_CRUD, RATE_LIMIT_SIG_JOIN, RATE_LIMIT_SIG_MANAGE
 from app.core.deps import get_current_user, require_role
+from app.core.rate_limit import check_rate_limit
 from app.schemas.auth import MessageResponse
 from app.schemas.post import PostListResponse
 from app.schemas.sig import (
@@ -21,7 +23,6 @@ from app.services.sig import (
     assign_sub_admin,
     create_sig,
     demote_sub_admin,
-    get_member_role,
     get_sig_by_id,
     join_sig,
     leave_sig,
@@ -56,6 +57,8 @@ async def create_new_sig(
     req: SigCreateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> SigResponse:
+    if not await check_rate_limit(f"rl:sig_crud:{current_user['sub']}", *RATE_LIMIT_SIG_CRUD):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     try:
         sig = await create_sig(req.name, req.description, current_user["sub"])
     except ValueError as e:
@@ -88,14 +91,19 @@ async def update_existing_sig(
     req: SigUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigResponse:
-    # Allow SUPER_ADMIN, ADMIN, or SIG ADMIN
-    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
-    if not is_global_admin:
-        sig_role = await get_member_role(sig_id, current_user["sub"])
-        if sig_role != "ADMIN":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
-
-    sig = await update_sig(sig_id, name=req.name, description=req.description)
+    if not await check_rate_limit(f"rl:sig_crud:{current_user['sub']}", *RATE_LIMIT_SIG_CRUD):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    # Permission check is done inside the service layer transaction to prevent TOCTOU
+    try:
+        sig = await update_sig(
+            sig_id,
+            name=req.name,
+            description=req.description,
+            caller_id=current_user["sub"],
+            caller_role=current_user["role"],
+        )
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
     if sig is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
     return SigResponse(**sig)
@@ -106,6 +114,8 @@ async def delete_sig(
     sig_id: uuid.UUID,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> None:
+    if not await check_rate_limit(f"rl:sig_crud:{current_user['sub']}", *RATE_LIMIT_SIG_CRUD):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     deleted = await soft_delete_sig(sig_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIG not found.")
@@ -118,6 +128,8 @@ async def join_sig_endpoint(
     sig_id: uuid.UUID,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigMemberResponse:
+    if not await check_rate_limit(f"rl:sig_join:{current_user['sub']}", *RATE_LIMIT_SIG_JOIN):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     try:
         member = await join_sig(sig_id, current_user["sub"])
     except ValueError as e:
@@ -132,6 +144,8 @@ async def leave_sig_endpoint(
     sig_id: uuid.UUID,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
+    if not await check_rate_limit(f"rl:sig_leave:{current_user['sub']}", *RATE_LIMIT_SIG_JOIN):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     try:
         left = await leave_sig(sig_id, current_user["sub"])
     except ValueError as e:
@@ -149,6 +163,8 @@ async def remove_sig_member(
     user_id: uuid.UUID,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
+    if not await check_rate_limit(f"rl:sig_manage:{current_user['sub']}", *RATE_LIMIT_SIG_MANAGE):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     # Prevent removing self via this endpoint
     if str(user_id) == current_user["sub"]:
         raise HTTPException(
@@ -178,6 +194,8 @@ async def assign_sig_sub_admin(
     req: SubAdminAssignRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigMemberResponse:
+    if not await check_rate_limit(f"rl:sig_manage:{current_user['sub']}", *RATE_LIMIT_SIG_MANAGE):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     try:
         member = await assign_sub_admin(
             sig_id,
@@ -199,6 +217,8 @@ async def demote_sig_sub_admin(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigMemberResponse:
     """Demote a sub-admin back to regular member."""
+    if not await check_rate_limit(f"rl:sig_manage:{current_user['sub']}", *RATE_LIMIT_SIG_MANAGE):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     try:
         member = await demote_sub_admin(
             sig_id,
@@ -230,7 +250,7 @@ async def get_sig_members(
 @router.get("/{sig_id}/posts", response_model=PostListResponse)
 async def get_sig_posts(
     sig_id: uuid.UUID,
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:

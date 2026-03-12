@@ -419,6 +419,8 @@ export default {
       clean: 'Pulito',
       malicious: 'Segnalato come dannoso',
       unknown: 'Scansione inconcludente',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'Caricamento del file non riuscito.',
     fileTooLarge: 'Il file è troppo grande. La dimensione massima è 20 MB.',

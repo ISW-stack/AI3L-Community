@@ -27,10 +27,10 @@ vi.mock('@/components/base/BaseButton.vue', () => ({
   },
 }))
 
-// Mock the notifications store to avoid $reset error on setup syntax stores
+// Mock the notifications store — clearSession calls resetState()
 vi.mock('@/stores/notifications', () => ({
   useNotificationStore: () => ({
-    $reset: vi.fn(),
+    resetState: vi.fn(),
     unreadCount: 0,
     fetchUnreadCount: vi.fn(),
   }),

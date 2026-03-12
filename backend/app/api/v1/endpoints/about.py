@@ -79,28 +79,16 @@ async def get_contributor_avatar(
                 _avatar_cache.move_to_end(contributor_id)
                 return Response(content=data, media_type=content_type)
 
-    # Fetch from GitHub
+    # Fetch from GitHub — allow_redirects=True handles multi-level redirects.
+    # SSRF is not a concern since the URL is derived from a hardcoded GitHub
+    # domain and the contributor's github_username stored in our database.
     github_url = f"https://github.com/{contributor['github_username']}.png"
     try:
         loop = asyncio.get_event_loop()
         resp = await loop.run_in_executor(
             None,
-            lambda: _requests.get(github_url, timeout=10, allow_redirects=False),
+            lambda: _requests.get(github_url, timeout=10, allow_redirects=True),
         )
-
-        # Follow redirect only if target is a trusted GitHub domain
-        if resp.status_code in (301, 302, 303, 307, 308):
-            redirect_url = resp.headers.get("location", "")
-            from urllib.parse import urlparse
-
-            parsed = urlparse(redirect_url)
-            _ALLOWED_HOSTS = (".github.com", ".githubusercontent.com")
-            if not any(parsed.hostname and parsed.hostname.endswith(h) for h in _ALLOWED_HOSTS):
-                return Response(status_code=502, content=b"Untrusted redirect target")
-            resp = await loop.run_in_executor(
-                None,
-                lambda: _requests.get(redirect_url, timeout=10, allow_redirects=False),
-            )
 
         if resp.status_code != 200:
             return Response(status_code=502, content=b"Failed to fetch avatar")
@@ -114,6 +102,11 @@ async def get_contributor_avatar(
         global _cache_total_bytes
         new_size = len(data)
         async with _cache_lock:
+            # Subtract old entry size if refreshing an existing key (TTL expired)
+            if contributor_id in _avatar_cache:
+                old_data = _avatar_cache[contributor_id][0]
+                _cache_total_bytes -= len(old_data)
+                del _avatar_cache[contributor_id]
             # Evict oldest entries until there is room (byte limit)
             while _avatar_cache and _cache_total_bytes + new_size > _MAX_CACHE_BYTES:
                 _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)

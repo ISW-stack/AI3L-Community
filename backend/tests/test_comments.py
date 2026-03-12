@@ -404,7 +404,10 @@ class TestToggleReaction:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_EP}.add_reaction", new_callable=AsyncMock, return_value=comment):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.add_reaction", new_callable=AsyncMock, return_value=comment),
+            ):
                 resp = await client.post(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}/reactions",
                     json={"reaction": "LIKE"},
@@ -412,6 +415,26 @@ class TestToggleReaction:
                 )
                 assert resp.status_code == 200
                 assert "LIKE" in resp.json()["reactions"]
+        finally:
+            _clear_overrides()
+
+
+class TestToggleReactionRateLimit:
+    @pytest.mark.anyio
+    async def test_toggle_reaction_rate_limited(self, client):
+        """POST /posts/{pid}/comments/{cid}/reactions → 429 when rate limited."""
+        post_id = uuid.uuid4()
+        comment_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.post(
+                    f"/api/v1/posts/{post_id}/comments/{comment_id}/reactions",
+                    json={"reaction": "LIKE"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
         finally:
             _clear_overrides()
 

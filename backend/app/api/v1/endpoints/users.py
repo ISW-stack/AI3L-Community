@@ -234,7 +234,7 @@ async def get_public_profile(
     response_model=UserListResponse,
 )
 async def get_all_users(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),
     search: str | None = Query(None),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
@@ -396,7 +396,7 @@ async def unban_user_endpoint(
 
 @router.get("/admin/audit-logs")
 async def get_audit_logs(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),
     user_id: str | None = None,
     date_from: str | None = None,

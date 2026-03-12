@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
+from app.core.constants import RATE_LIMIT_REACTION
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
@@ -63,7 +64,7 @@ async def create_new_post(
 
 @router.get("", response_model=PostListResponse)
 async def get_posts_list(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
     category_id: str | None = None,
     sig_id: str | None = None,
@@ -172,6 +173,10 @@ async def toggle_post_reaction_endpoint(
     req: ReactionRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
+    if not await check_rate_limit(
+        f"rl:post_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION
+    ):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     result = await toggle_post_reaction(post_id, current_user["sub"], req.reaction)
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
@@ -222,6 +227,7 @@ async def update_existing_post(
             keywords=req.keywords,
             allow_comments=req.allow_comments,
             expected_version=req.version,
+            caller_role=current_user["role"],
         )
     except PermissionError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))

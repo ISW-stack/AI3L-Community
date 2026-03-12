@@ -127,8 +127,9 @@ MOCK_POST_ROW = {
 
 
 @pytest.mark.asyncio
+@patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_success(mock_toggle, client):
+async def test_toggle_post_reaction_success(mock_toggle, mock_rl, client):
     from app.converters.post_converter import row_to_post
     from app.core.deps import get_current_user
     from app.main import app
@@ -150,8 +151,9 @@ async def test_toggle_post_reaction_success(mock_toggle, client):
 
 
 @pytest.mark.asyncio
+@patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_not_found(mock_toggle, client):
+async def test_toggle_post_reaction_not_found(mock_toggle, mock_rl, client):
     from app.core.deps import get_current_user
     from app.main import app
 
@@ -185,8 +187,9 @@ async def test_toggle_post_reaction_invalid_type(client):
 
 
 @pytest.mark.asyncio
+@patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_smile(mock_toggle, client):
+async def test_toggle_post_reaction_smile(mock_toggle, mock_rl, client):
     from app.converters.post_converter import row_to_post
     from app.core.deps import get_current_user
     from app.main import app
@@ -208,8 +211,9 @@ async def test_toggle_post_reaction_smile(mock_toggle, client):
 
 
 @pytest.mark.asyncio
+@patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_cry(mock_toggle, client):
+async def test_toggle_post_reaction_cry(mock_toggle, mock_rl, client):
     from app.converters.post_converter import row_to_post
     from app.core.deps import get_current_user
     from app.main import app
@@ -225,6 +229,23 @@ async def test_toggle_post_reaction_cry(mock_toggle, client):
             json={"reaction": "CRY"},
         )
         assert resp.status_code == status.HTTP_200_OK
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=False)
+async def test_toggle_post_reaction_rate_limited(mock_rl, client):
+    from app.core.deps import get_current_user
+    from app.main import app
+
+    app.dependency_overrides[get_current_user] = lambda: MOCK_USER
+    try:
+        resp = await client.post(
+            f"/api/v1/posts/{uuid.uuid4()}/reactions",
+            json={"reaction": "LIKE"},
+        )
+        assert resp.status_code == 429
     finally:
         app.dependency_overrides.clear()
 

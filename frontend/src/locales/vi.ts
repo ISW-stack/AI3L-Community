@@ -418,6 +418,8 @@ export default {
       clean: 'Sạch',
       malicious: 'Bị gắn cờ độc hại',
       unknown: 'Kết quả quét không xác định',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'Tải tệp lên thất bại.',
     fileTooLarge: 'Tệp quá lớn. Kích thước tối đa là 20 MB.',

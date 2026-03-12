@@ -113,7 +113,7 @@ describe('NotificationsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockListNotifications.mockResolvedValue({
-      notifications: fakeNotifications,
+      notifications: fakeNotifications.map((n) => ({ ...n })),
       total: 3,
       unread_count: 2,
     })
@@ -251,5 +251,72 @@ describe('NotificationsView', () => {
     await clearBtn!.trigger('click')
     await flushPromises()
     expect(mockBulkDeleteNotifications).toHaveBeenCalled()
+  })
+
+  it('passes unread param to API when unread filter is active', async () => {
+    const { wrapper } = await mountNotifications()
+    mockListNotifications.mockClear()
+
+    // Click on the "Unread" tab
+    const unreadTab = wrapper
+      .findAll('button[role="tab"]')
+      .find((b) => b.text().includes('Unread'))
+    expect(unreadTab).toBeTruthy()
+    await unreadTab!.trigger('click')
+    await flushPromises()
+
+    expect(mockListNotifications).toHaveBeenCalledWith(
+      expect.objectContaining({ unread: true }),
+    )
+  })
+
+  it('does not pass unread param when all filter is active', async () => {
+    const { wrapper } = await mountNotifications()
+    // Initial fetch should NOT include unread param
+    expect(mockListNotifications).toHaveBeenCalledWith(
+      expect.not.objectContaining({ unread: true }),
+    )
+  })
+
+  it('decrements unreadCount when deleting an unread notification', async () => {
+    const { wrapper } = await mountNotifications()
+    const vm = wrapper.vm as any
+
+    // Verify initial state: n1 is unread
+    expect(vm.unreadCount).toBe(2)
+    const n1 = vm.notifications.find((n: any) => n.id === 'n1')
+    expect(n1).toBeTruthy()
+    expect(n1.is_read).toBe(false)
+
+    // Mock store's fetchUnreadCount to return updated count
+    mockListNotifications.mockResolvedValue({
+      notifications: fakeNotifications.filter((n) => n.id !== 'n1'),
+      total: 2,
+      unread_count: 1,
+    })
+
+    // Delete n1 (unread notification)
+    await vm.handleDeleteNotification('n1')
+    await flushPromises()
+
+    // Notification should be removed from array
+    expect(vm.notifications.find((n: any) => n.id === 'n1')).toBeUndefined()
+    // unreadCount should be decremented (either by local logic or store re-fetch)
+    expect(vm.unreadCount).toBe(1)
+  })
+
+  it('does not decrement unreadCount when deleting a read notification', async () => {
+    const { wrapper } = await mountNotifications()
+    const vm = wrapper.vm as any
+
+    expect(vm.unreadCount).toBe(2)
+
+    // Delete n2 (already read notification) - call the handler directly
+    await vm.handleDeleteNotification('n2')
+
+    // unreadCount should remain 2 since n2 was already read
+    expect(vm.unreadCount).toBe(2)
+    // Notification should be removed from array
+    expect(vm.notifications.find((n: any) => n.id === 'n2')).toBeUndefined()
   })
 })

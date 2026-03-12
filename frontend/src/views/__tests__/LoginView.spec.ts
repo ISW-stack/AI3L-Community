@@ -44,6 +44,7 @@ function createTestRouter(): Router {
       { path: '/register', component: { template: '<div>Register</div>' } },
       { path: '/guest', component: { template: '<div>Guest</div>' } },
       { path: '/dashboard', component: { template: '<div>Dashboard</div>' } },
+      { path: '/posts', component: { template: '<div>Posts</div>' } },
     ],
   })
 }
@@ -284,6 +285,37 @@ describe('LoginView', () => {
       await flushPromises()
 
       expect(router.currentRoute.value.path).toBe('/dashboard')
+    })
+
+    it('blocks triple-slash redirect ///attacker.com → stays on same origin', async () => {
+      const { wrapper, router } = await mountLogin('/login?redirect=///attacker.com')
+
+      await wrapper.find('#input-username').setValue('user1')
+      await wrapper.find('input[type="password"]').setValue('pass')
+      await wrapper.find('input[maxlength="4"]').setValue('1234')
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      // ///attacker.com resolves to same-origin path /attacker.com via URL constructor
+      // This is safe — no open redirect to an external site
+      expect(router.currentRoute.value.path).not.toContain('//')
+    })
+
+    it('allows redirect with query params /posts?page=2', async () => {
+      const { wrapper, router } = await mountLogin(
+        '/login?redirect=' + encodeURIComponent('/posts?page=2'),
+      )
+
+      await wrapper.find('#input-username').setValue('user1')
+      await wrapper.find('input[type="password"]').setValue('pass')
+      await wrapper.find('input[maxlength="4"]').setValue('1234')
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      expect(router.currentRoute.value.path).toBe('/posts')
+      expect(router.currentRoute.value.query.page).toBe('2')
     })
   })
 

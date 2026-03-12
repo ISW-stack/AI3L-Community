@@ -115,6 +115,7 @@ async def update_post(
     keywords: list[str] | None = None,
     allow_comments: bool | None = None,
     expected_version: int = 1,
+    caller_role: str = "MEMBER",
 ) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -123,7 +124,8 @@ async def update_post(
             if not current:
                 return None
 
-            if str(current["user_id"]) != user_id:
+            is_admin = caller_role in ("ADMIN", "SUPER_ADMIN")
+            if str(current["user_id"]) != user_id and not is_admin:
                 raise PermissionError("You can only edit your own posts.")
 
             if current["version"] != expected_version:

@@ -423,6 +423,8 @@ export default {
       clean: 'Sain',
       malicious: 'Signalé comme malveillant',
       unknown: 'Analyse non concluante',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'Échec du téléchargement du fichier.',
     fileTooLarge: 'Le fichier est trop volumineux. La taille maximale est de 20 Mo.',

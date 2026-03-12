@@ -153,6 +153,7 @@ async function handleShareForm(formId: string) {
 onUnmounted(() => {
   if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer)
   if (exportTimerInterval) clearInterval(exportTimerInterval)
+  if (exportPollInterval) clearInterval(exportPollInterval)
 })
 
 // ── Responses Modal ──
@@ -207,6 +208,7 @@ const exporting = ref(false)
 const exportingFormId = ref<string | null>(null)
 const exportElapsed = ref(0)
 let exportTimerInterval: ReturnType<typeof setInterval> | null = null
+let exportPollInterval: ReturnType<typeof setInterval> | null = null
 const exportCancelled = ref(false)
 
 function startExportTimer() {
@@ -222,6 +224,10 @@ function stopExportTimer() {
   if (exportTimerInterval) {
     clearInterval(exportTimerInterval)
     exportTimerInterval = null
+  }
+  if (exportPollInterval) {
+    clearInterval(exportPollInterval)
+    exportPollInterval = null
   }
 }
 
@@ -239,14 +245,15 @@ async function startExport(formId: string): Promise<void> {
   try {
     const data = await exportForm(formId)
     let attempts = 0
-    const pollTimer = setInterval(async () => {
+    // Assign to module-level variable so onUnmounted can clear it
+    if (exportPollInterval) clearInterval(exportPollInterval)
+    exportPollInterval = setInterval(async () => {
       if (exportCancelled.value) {
-        clearInterval(pollTimer)
+        stopExportTimer()
         return
       }
       attempts++
       if (attempts > 60) {
-        clearInterval(pollTimer)
         stopExportTimer()
         exporting.value = false
         exportingFormId.value = null
@@ -256,13 +263,11 @@ async function startExport(formId: string): Promise<void> {
       try {
         const status = await getTaskStatus(data.task_id)
         if (status.status === 'SUCCESS' && status.download_url) {
-          clearInterval(pollTimer)
           stopExportTimer()
           exporting.value = false
           exportingFormId.value = null
           window.open(status.download_url, '_blank')
         } else if (status.status === 'FAILURE') {
-          clearInterval(pollTimer)
           stopExportTimer()
           exporting.value = false
           exportingFormId.value = null
@@ -346,10 +351,6 @@ function handleResponsesPageChange(p: number) {
 }
 
 onMounted(fetchForms)
-onUnmounted(() => {
-  if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer)
-  if (exportTimerInterval) clearInterval(exportTimerInterval)
-})
 </script>
 
 <template>

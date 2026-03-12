@@ -248,6 +248,34 @@ describe('useNotificationStore', () => {
     })
   })
 
+  // ---------- resetState ----------
+
+  describe('resetState', () => {
+    it('should reset all reactive state to initial values', () => {
+      const store = useNotificationStore()
+      // Populate state
+      store.items = [makeNotification({ id: '1' }), makeNotification({ id: '2' })]
+      store.unreadCount = 5
+      store.loading = true
+
+      store.resetState()
+
+      expect(store.unreadCount).toBe(0)
+      expect(store.items).toEqual([])
+      expect(store.loading).toBe(false)
+    })
+
+    it('should be callable multiple times without error', () => {
+      const store = useNotificationStore()
+      store.resetState()
+      store.resetState()
+
+      expect(store.unreadCount).toBe(0)
+      expect(store.items).toEqual([])
+      expect(store.loading).toBe(false)
+    })
+  })
+
   // ---------- markAllRead ----------
 
   describe('markAllRead', () => {

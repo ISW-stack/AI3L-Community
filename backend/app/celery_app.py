@@ -43,6 +43,11 @@ celery.conf.beat_schedule = {
         "schedule": 604800.0,  # every 7 days
         "options": {"soft_time_limit": 3500, "time_limit": 3600},
     },
+    "sync-guest-counter": {
+        "task": "sync_guest_counter",
+        "schedule": 300.0,  # every 5 minutes
+        "options": {"soft_time_limit": 30, "time_limit": 60},
+    },
     "cleanup-old-file-scans": {
         "task": "cleanup_old_file_scans",
         "schedule": 86400.0,  # every 24 hours

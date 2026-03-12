@@ -33,19 +33,24 @@ const filter = ref<'all' | 'unread'>('all')
 let fetchId = 0
 
 const filteredNotifications = computed(() => {
-  if (filter.value === 'unread') return notifications.value.filter((n) => !n.is_read)
   return notifications.value
 })
 
 function changeFilter(f: 'all' | 'unread') {
   filter.value = f
+  setPage(1)
+  fetchNotifications()
 }
 
 async function fetchNotifications() {
   const localFetchId = ++fetchId
   loading.value = true
   try {
-    const data = await listNotifications({ page: page.value, page_size: pageSize })
+    const data = await listNotifications({
+      page: page.value,
+      page_size: pageSize,
+      ...(filter.value === 'unread' && { unread: true }),
+    })
     if (localFetchId !== fetchId) return
     notifications.value = data.notifications
     updateFromResponse(data.total)
@@ -95,7 +100,12 @@ function navigateToEntity(notif: Notification) {
 
 async function handleDeleteNotification(id: string) {
   try {
+    const notif = notifications.value.find((n) => n.id === id)
     await deleteNotification(id)
+    // Decrement local unreadCount if the deleted notification was unread
+    if (notif && !notif.is_read) {
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    }
     notifications.value = notifications.value.filter((n) => n.id !== id)
     notificationStore.fetchUnreadCount()
   } catch {

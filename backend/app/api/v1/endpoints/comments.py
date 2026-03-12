@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.constants import RATE_LIMIT_COMMENT
+from app.core.constants import RATE_LIMIT_COMMENT, RATE_LIMIT_REACTION
 from app.core.deps import get_current_user, require_role
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
@@ -29,7 +29,7 @@ router = APIRouter(prefix="/posts/{post_id}/comments", tags=["comments"])
 @router.get("", response_model=CommentListResponse)
 async def get_comments(
     post_id: uuid.UUID,
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=200),
     current_user: dict = Depends(get_current_user),
 ) -> CommentListResponse:
@@ -125,6 +125,10 @@ async def toggle_reaction(
     req: ReactionRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CommentResponse:
+    if not await check_rate_limit(
+        f"rl:comment_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION
+    ):
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     comment = await add_reaction(comment_id, current_user["sub"], req.reaction)
     if comment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")

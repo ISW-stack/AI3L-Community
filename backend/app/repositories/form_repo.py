@@ -317,17 +317,50 @@ async def lock_schema(form_id: uuid.UUID, conn: Any) -> None:
 
 
 async def soft_delete(form_id: uuid.UUID) -> tuple[bool, str | None]:
-    """Returns (deleted, created_by_str)."""
+    """Returns (deleted, created_by_str).
+
+    Uses FOR UPDATE to lock the row, ensuring the permission check in the
+    service layer and the delete happen within the same serializable window.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
-        form = await conn.fetchrow(
-            "SELECT created_by FROM forms WHERE id = $1 AND is_deleted = false",
-            form_id,
-        )
-        if not form:
-            return False, None
-        await conn.execute(
-            "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",
-            form_id,
-        )
-        return True, str(form["created_by"])
+        async with conn.transaction():
+            form = await conn.fetchrow(
+                "SELECT created_by FROM forms WHERE id = $1 AND is_deleted = false FOR UPDATE",
+                form_id,
+            )
+            if not form:
+                return False, None
+            await conn.execute(
+                "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",
+                form_id,
+            )
+            return True, str(form["created_by"])
+
+
+async def soft_delete_with_permission(
+    form_id: uuid.UUID, user_id: str, is_admin: bool
+) -> tuple[bool, str | None]:
+    """Permission check + soft delete in one transaction to prevent TOCTOU.
+
+    Returns (deleted, banner_url). Raises PermissionError if not authorized.
+    """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            form = await conn.fetchrow(
+                "SELECT created_by, banner_url FROM forms "
+                "WHERE id = $1 AND is_deleted = false FOR UPDATE",
+                form_id,
+            )
+            if not form:
+                return False, None
+            if not is_admin and str(form["created_by"]) != user_id:
+                raise PermissionError(
+                    "Only the form creator or admin can delete this form."
+                )
+            await conn.execute(
+                "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",
+                form_id,
+            )
+            return True, form.get("banner_url")

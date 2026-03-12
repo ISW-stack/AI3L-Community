@@ -390,6 +390,8 @@ export default {
       clean: '安全',
       malicious: '標記為惡意',
       unknown: '掃描結果不確定',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: '檔案上傳失敗。',
     fileTooLarge: '檔案太大。最大上限為 20 MB。',

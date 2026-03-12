@@ -52,6 +52,7 @@ class TestReportPost:
         try:
             _override_auth("MEMBER")
             with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value={"id": post_id}
                 ),
@@ -122,6 +123,7 @@ class TestReportPostNotFound:
         try:
             _override_auth("MEMBER")
             with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=None),
                 patch(f"{_EP}.create_report", new_callable=AsyncMock),
             ):
@@ -145,6 +147,7 @@ class TestReportPostDuplicate:
         try:
             _override_auth("MEMBER")
             with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_EP}.get_post_by_id",
                     new_callable=AsyncMock,
@@ -163,6 +166,25 @@ class TestReportPostDuplicate:
                 )
                 assert resp.status_code == 409
                 assert "already reported" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestReportPostRateLimit:
+    @pytest.mark.anyio
+    async def test_report_post_rate_limited(self, client):
+        """POST /posts/{pid}/report → 429 when rate limited."""
+        post_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.post(
+                    f"/api/v1/posts/{post_id}/report",
+                    json={"reason": "Spam content"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 429
         finally:
             _clear_overrides()
 

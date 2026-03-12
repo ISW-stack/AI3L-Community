@@ -85,7 +85,7 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
 _GUEST_COUNTER_KEY = "meta:guest_counter"
 
 
-async def _sync_guest_counter() -> None:
+async def sync_guest_counter() -> None:
     """Sync the atomic guest counter with actual session count in Redis.
 
     Called on startup or when counter may be stale.
@@ -103,7 +103,7 @@ async def _get_guest_count() -> int:
     val = await redis.get(_GUEST_COUNTER_KEY)
     if val is None:
         # Counter not initialised yet — sync from session keys
-        await _sync_guest_counter()
+        await sync_guest_counter()
         val = await redis.get(_GUEST_COUNTER_KEY)
     return int(val) if val is not None else 0
 
@@ -118,7 +118,7 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
     # Ensure counter exists before INCR (initialise from session scan if needed)
     exists = await redis.exists(_GUEST_COUNTER_KEY)
     if not exists:
-        await _sync_guest_counter()
+        await sync_guest_counter()
 
     # Atomically increment — if over limit, decrement and reject
     new_count = await redis.incr(_GUEST_COUNTER_KEY)
@@ -128,6 +128,9 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
 
     guest_id = str(uuid.uuid4())
     token, ttl_seconds = await create_session(guest_id, "GUEST")
+
+    # Store display_name in Redis so WebSocket and API can retrieve it
+    await redis.set(f"guest:display_name:{guest_id}", display_name, ex=ttl_seconds)
 
     logger.info(
         "Guest login",

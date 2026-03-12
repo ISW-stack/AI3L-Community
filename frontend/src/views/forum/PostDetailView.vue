@@ -82,6 +82,7 @@ const {
   cancelEditComment,
   saveEditComment,
   handleReply,
+  cancelEdit,
 } = usePostDetail({ postId, auth, router })
 
 const breadcrumbItems = computed(() => {
@@ -125,7 +126,7 @@ const breadcrumbItems = computed(() => {
           <BaseButton :loading="editSaving" @click="saveEdit">{{
             t('post.detail.saveChanges')
           }}</BaseButton>
-          <BaseButton variant="secondary" @click="editing = false">{{
+          <BaseButton variant="secondary" @click="cancelEdit">{{
             t('common.cancel')
           }}</BaseButton>
         </div>

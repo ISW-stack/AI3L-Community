@@ -423,6 +423,8 @@ export default {
       clean: 'Sauber',
       malicious: 'Als bösartig markiert',
       unknown: 'Scan nicht eindeutig',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'Datei konnte nicht hochgeladen werden.',
     fileTooLarge: 'Datei ist zu groß. Maximale Größe ist 20 MB.',

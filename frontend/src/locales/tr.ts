@@ -419,6 +419,8 @@ export default {
       clean: 'Temiz',
       malicious: 'Zararlı olarak işaretlendi',
       unknown: 'Tarama sonuçsuz',
+      error: 'Scan failed',
+      skipped: 'Scan skipped',
     },
     uploadFailed: 'Dosya yüklenemedi.',
     fileTooLarge: 'Dosya çok büyük. Maksimum boyut 20 MB.',

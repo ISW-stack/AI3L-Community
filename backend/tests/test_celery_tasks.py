@@ -909,7 +909,7 @@ class TestVirusTotal:
         mock_init.assert_not_awaited()
 
     def test_check_skipped_when_no_api_key(self):
-        """check_virustotal should return 'skipped' when VT_API_KEY is empty."""
+        """check_virustotal should return 'skipped' and write 'skipped' to DB."""
         mock_self = MagicMock()
         mock_self.request.id = "task-1"
 
@@ -926,6 +926,9 @@ class TestVirusTotal:
 
         assert result["status"] == "skipped"
         assert result["reason"] == "no_api_key"
+        # Verify DB is updated to 'skipped' (not 'clean')
+        # _run_async is called twice: once for _insert_pending, once for _update_scan("skipped")
+        assert mock_run.call_count == 2
 
     def test_check_clean_file(self):
         """check_virustotal should return 'clean' for a file with 0 positives."""
@@ -1079,7 +1082,7 @@ class TestVirusTotal:
         mock_decrement.assert_awaited_once_with(uuid.UUID(user_id), -1024)
 
     def test_check_not_found_in_vt(self):
-        """check_virustotal should return 'not_found' for 404 responses."""
+        """check_virustotal should return 'not_found' and mark DB as 'unknown' (fail-close)."""
         mock_self = MagicMock()
         mock_self.request.id = "task-1"
 
@@ -1101,6 +1104,8 @@ class TestVirusTotal:
             result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
 
         assert result["status"] == "not_found"
+        # Verify DB is updated to 'unknown' (not 'clean') — fail-close
+        assert mock_run.call_count == 2
 
     def test_check_retries_on_request_exception(self):
         """check_virustotal should call self.retry on network errors."""
@@ -1125,10 +1130,13 @@ class TestVirusTotal:
 
         mock_self.retry.assert_called_once()
 
-    def test_check_unexpected_status_code(self):
-        """check_virustotal should return 'error' for unexpected HTTP status codes."""
+    def test_check_unexpected_status_code_retries_then_errors(self):
+        """check_virustotal should retry on unexpected status, then mark as 'error'."""
         mock_self = MagicMock()
         mock_self.request.id = "task-1"
+        # Simulate max retries exceeded — self.retry raises MaxRetriesExceededError
+        mock_self.MaxRetriesExceededError = type("MaxRetriesExceededError", (Exception,), {})
+        mock_self.retry.side_effect = mock_self.MaxRetriesExceededError()
 
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -1149,9 +1157,39 @@ class TestVirusTotal:
 
         assert result["status"] == "error"
         assert result["code"] == 500
+        mock_self.retry.assert_called_once()
+
+    def test_check_unexpected_status_code_retry_succeeds(self):
+        """check_virustotal should propagate retry when retries are available."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+        # self.retry raises Retry exception (normal Celery behavior to re-queue)
+        retry_exc = Exception("Retry")
+        mock_self.MaxRetriesExceededError = type("MaxRetriesExceededError", (Exception,), {})
+        mock_self.retry.side_effect = retry_exc
+
+        mock_response = MagicMock()
+        mock_response.status_code = 503
+
+        with (
+            patch("app.tasks.virustotal._run_async") as mock_run,
+            patch("app.tasks.virustotal.settings") as mock_settings,
+            patch("app.tasks.virustotal.requests") as mock_requests,
+        ):
+            mock_settings.VT_API_KEY = "test-key"
+            mock_requests.get.return_value = mock_response
+            mock_requests.RequestException = Exception
+            mock_run.return_value = None
+
+            from app.tasks.virustotal import check_virustotal
+
+            with pytest.raises(Exception, match="Retry"):
+                check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
+
+        mock_self.retry.assert_called_once()
 
     def test_check_invalid_json_response(self):
-        """check_virustotal should return 'error' when VT returns invalid JSON."""
+        """check_virustotal should return 'error' and mark DB as 'error' (fail-close)."""
         mock_self = MagicMock()
         mock_self.request.id = "task-1"
 
@@ -1177,6 +1215,300 @@ class TestVirusTotal:
 
         assert result["status"] == "error"
         assert result["reason"] == "invalid_json"
+        # Verify DB is updated to 'error' (not 'clean') — fail-close
+        assert mock_run.call_count == 2
+
+
+# =========================================================================
+# Tests for fail-close behavior (status values written to DB)
+# =========================================================================
+
+
+class TestVirusTotalFailClose:
+    """Verify that error/unknown paths write the correct status to DB (not 'clean')."""
+
+    def test_no_api_key_writes_skipped_to_db(self):
+        """No API key should write 'skipped' status to DB, not 'clean'."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+
+        update_calls = []
+
+        def capture_run_async(coro):
+            # Capture the coroutine's arguments by inspecting the coro
+            update_calls.append(coro)
+            return None
+
+        with (
+            patch("app.tasks.virustotal._run_async", side_effect=capture_run_async),
+            patch("app.tasks.virustotal.settings") as mock_settings,
+        ):
+            mock_settings.VT_API_KEY = ""
+
+            from app.tasks.virustotal import check_virustotal
+
+            result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
+
+        assert result["status"] == "skipped"
+        # 2 calls: _insert_pending + _update_scan
+        assert len(update_calls) == 2
+
+    def test_404_writes_unknown_to_db(self):
+        """404 from VT should write 'unknown' status to DB, not 'clean'."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+
+        update_status_mock = AsyncMock()
+
+        with (
+            patch("app.tasks.virustotal.settings") as mock_settings,
+            patch("app.tasks.virustotal.requests") as mock_requests,
+            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch(
+                "app.repositories.file_scan_repo.update_status", update_status_mock
+            ),
+            patch("app.repositories.file_scan_repo.insert", AsyncMock()),
+            patch("app.tasks.virustotal._run_async") as mock_run,
+        ):
+            mock_settings.VT_API_KEY = "test-key"
+            mock_requests.get.return_value = mock_response
+            mock_requests.RequestException = Exception
+
+            import asyncio
+
+            def run_coro(coro):
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(coro)
+                finally:
+                    loop.close()
+
+            mock_run.side_effect = run_coro
+
+            from app.tasks.virustotal import check_virustotal
+
+            result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
+
+        assert result["status"] == "not_found"
+        update_status_mock.assert_awaited_once_with(
+            "uploads/file.pdf", "unknown", None, None, None
+        )
+
+    def test_non_200_writes_error_to_db_after_max_retries(self):
+        """Non-200 with max retries exceeded should write 'error' to DB."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+        mock_self.MaxRetriesExceededError = type("MaxRetriesExceededError", (Exception,), {})
+        mock_self.retry.side_effect = mock_self.MaxRetriesExceededError()
+
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+
+        update_status_mock = AsyncMock()
+
+        with (
+            patch("app.tasks.virustotal.settings") as mock_settings,
+            patch("app.tasks.virustotal.requests") as mock_requests,
+            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch(
+                "app.repositories.file_scan_repo.update_status", update_status_mock
+            ),
+            patch("app.repositories.file_scan_repo.insert", AsyncMock()),
+            patch("app.tasks.virustotal._run_async") as mock_run,
+        ):
+            mock_settings.VT_API_KEY = "test-key"
+            mock_requests.get.return_value = mock_response
+            mock_requests.RequestException = Exception
+
+            import asyncio
+
+            def run_coro(coro):
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(coro)
+                finally:
+                    loop.close()
+
+            mock_run.side_effect = run_coro
+
+            from app.tasks.virustotal import check_virustotal
+
+            result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
+
+        assert result["status"] == "error"
+        assert result["code"] == 500
+        update_status_mock.assert_awaited_once_with(
+            "uploads/file.pdf", "error", None, None, None
+        )
+
+    def test_invalid_json_writes_error_to_db(self):
+        """Invalid JSON from VT should write 'error' to DB, not 'clean'."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("bad json")
+
+        update_status_mock = AsyncMock()
+
+        with (
+            patch("app.tasks.virustotal.settings") as mock_settings,
+            patch("app.tasks.virustotal.requests") as mock_requests,
+            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch(
+                "app.repositories.file_scan_repo.update_status", update_status_mock
+            ),
+            patch("app.repositories.file_scan_repo.insert", AsyncMock()),
+            patch("app.tasks.virustotal._run_async") as mock_run,
+        ):
+            mock_settings.VT_API_KEY = "test-key"
+            mock_requests.get.return_value = mock_response
+            mock_requests.RequestException = Exception
+            mock_requests.exceptions = MagicMock()
+            mock_requests.exceptions.JSONDecodeError = type(
+                "JSONDecodeError", (ValueError,), {}
+            )
+
+            import asyncio
+
+            def run_coro(coro):
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(coro)
+                finally:
+                    loop.close()
+
+            mock_run.side_effect = run_coro
+
+            from app.tasks.virustotal import check_virustotal
+
+            result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
+
+        assert result["status"] == "error"
+        assert result["reason"] == "invalid_json"
+        update_status_mock.assert_awaited_once_with(
+            "uploads/file.pdf", "error", None, None, None
+        )
+
+    def test_clean_file_still_writes_clean(self):
+        """Confirmed clean file should still write 'clean' to DB (unchanged behavior)."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "data": {
+                "id": "scan-abc",
+                "attributes": {
+                    "last_analysis_stats": {
+                        "malicious": 0,
+                        "suspicious": 0,
+                        "undetected": 65,
+                        "harmless": 5,
+                    }
+                },
+            }
+        }
+
+        update_status_mock = AsyncMock()
+
+        with (
+            patch("app.tasks.virustotal.settings") as mock_settings,
+            patch("app.tasks.virustotal.requests") as mock_requests,
+            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch(
+                "app.repositories.file_scan_repo.update_status", update_status_mock
+            ),
+            patch("app.repositories.file_scan_repo.insert", AsyncMock()),
+            patch("app.tasks.virustotal._run_async") as mock_run,
+        ):
+            mock_settings.VT_API_KEY = "test-key"
+            mock_requests.get.return_value = mock_response
+            mock_requests.RequestException = Exception
+
+            import asyncio
+
+            def run_coro(coro):
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(coro)
+                finally:
+                    loop.close()
+
+            mock_run.side_effect = run_coro
+
+            from app.tasks.virustotal import check_virustotal
+
+            result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
+
+        assert result["status"] == "clean"
+        update_status_mock.assert_awaited_once_with(
+            "uploads/file.pdf", "clean", "scan-abc", 0, 70
+        )
+
+    def test_malicious_file_still_writes_malicious(self):
+        """Confirmed malicious file should still write 'malicious' to DB (unchanged)."""
+        mock_self = MagicMock()
+        mock_self.request.id = "task-1"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "data": {
+                "id": "scan-bad",
+                "attributes": {
+                    "last_analysis_stats": {
+                        "malicious": 3,
+                        "suspicious": 1,
+                        "undetected": 60,
+                        "harmless": 5,
+                    }
+                },
+            }
+        }
+
+        update_status_mock = AsyncMock()
+
+        with (
+            patch("app.tasks.virustotal.settings") as mock_settings,
+            patch("app.tasks.virustotal.requests") as mock_requests,
+            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch(
+                "app.repositories.file_scan_repo.update_status", update_status_mock
+            ),
+            patch("app.repositories.file_scan_repo.insert", AsyncMock()),
+            patch("app.tasks.virustotal._run_async") as mock_run,
+            patch("app.core.storage.delete_file", MagicMock()),
+            patch("app.core.storage.get_file_size", MagicMock(return_value=0)),
+        ):
+            mock_settings.VT_API_KEY = "test-key"
+            mock_requests.get.return_value = mock_response
+            mock_requests.RequestException = Exception
+
+            import asyncio
+
+            def run_coro(coro):
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(coro)
+                finally:
+                    loop.close()
+
+            mock_run.side_effect = run_coro
+
+            from app.tasks.virustotal import check_virustotal
+
+            result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
+
+        assert result["status"] == "malicious"
+        update_status_mock.assert_awaited_once_with(
+            "uploads/file.pdf", "malicious", "scan-bad", 4, 69
+        )
 
 
 # =========================================================================

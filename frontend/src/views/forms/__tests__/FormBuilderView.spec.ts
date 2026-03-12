@@ -29,6 +29,14 @@ vi.mock('@/composables/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
 }))
 
+// Mock DOMPurify — use a spy so we can verify calls
+const mockSanitize = vi.fn((html: string) => html)
+vi.mock('dompurify', () => ({
+  default: {
+    sanitize: (...args: unknown[]) => mockSanitize(...args),
+  },
+}))
+
 vi.mock('@/constants', () => ({
   HEARTBEAT_INTERVAL_MS: 30000,
 }))
@@ -680,6 +688,40 @@ describe('FormBuilderView', () => {
       await flushPromises()
       // In edit mode the draft banner should never be shown
       expect(wrapper.text()).not.toContain('Restore')
+    })
+  })
+
+  describe('XSS sanitization', () => {
+    it('calls DOMPurify.sanitize on description in preview', async () => {
+      const xssDescription = '<p>Hello</p><img src=x onerror="alert(1)">'
+      mockGetForm.mockResolvedValue({ ...fakeEditForm, description: xssDescription })
+      const { wrapper } = await mountBuilder({ isEdit: true })
+      const vm = wrapper.vm as any
+      vm.showPreview = true
+      await nextTick()
+
+      expect(mockSanitize).toHaveBeenCalledWith(xssDescription)
+    })
+
+    it('renders sanitized description, not raw HTML', async () => {
+      const xssPayload = '<img src=x onerror="alert(1)"><b>safe</b>'
+      // Make sanitize strip the img tag
+      mockSanitize.mockImplementation((html: string) =>
+        html.replace(/<img[^>]*>/g, ''),
+      )
+      mockGetForm.mockResolvedValue({ ...fakeEditForm, description: xssPayload })
+      const { wrapper } = await mountBuilder({ isEdit: true })
+      const vm = wrapper.vm as any
+      vm.showPreview = true
+      await nextTick()
+
+      const descDiv = wrapper.find('.prose.prose-sm')
+      if (descDiv.exists()) {
+        expect(descDiv.html()).not.toContain('onerror')
+        expect(descDiv.html()).toContain('<b>safe</b>')
+      }
+      // Restore default passthrough behavior
+      mockSanitize.mockImplementation((html: string) => html)
     })
   })
 

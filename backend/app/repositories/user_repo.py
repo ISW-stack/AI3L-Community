@@ -149,13 +149,9 @@ async def list_all(
     async with pool.acquire() as conn:
         if search:
             pattern = f"%{search}%"
-            total = await conn.fetchval(
-                "SELECT COUNT(*) FROM users WHERE is_deleted = false"
-                " AND (username ILIKE $1 OR display_name ILIKE $1)",
-                pattern,
-            )
             rows = await conn.fetch(
-                "SELECT * FROM users WHERE is_deleted = false"
+                "SELECT *, COUNT(*) OVER() AS _total FROM users"
+                " WHERE is_deleted = false"
                 " AND (username ILIKE $1 OR display_name ILIKE $1)"
                 " ORDER BY created_at DESC OFFSET $2 LIMIT $3",
                 pattern,
@@ -163,14 +159,19 @@ async def list_all(
                 page_size,
             )
         else:
-            total = await conn.fetchval("SELECT COUNT(*) FROM users WHERE is_deleted = false")
             rows = await conn.fetch(
-                "SELECT * FROM users WHERE is_deleted = false"
+                "SELECT *, COUNT(*) OVER() AS _total FROM users"
+                " WHERE is_deleted = false"
                 " ORDER BY created_at DESC OFFSET $1 LIMIT $2",
                 offset,
                 page_size,
             )
-        return [dict(r) for r in rows], total
+        if rows:
+            total = rows[0]["_total"]
+            return [
+                {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
+            ], total
+        return [], 0
 
 
 async def update_password_hash(user_id: uuid.UUID, new_hash: str) -> None:
@@ -243,6 +244,19 @@ async def count_by_role(role: str) -> int:
         result = await conn.fetchval(
             "SELECT COUNT(*) FROM users WHERE role = $1 AND is_deleted = false",
             role,
+        )
+        return int(result)
+
+
+async def count_super_admins_excluding(user_ids: list[uuid.UUID]) -> int:
+    """Count SUPER_ADMIN users not in the given list (non-deleted)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.fetchval(
+            "SELECT COUNT(*) FROM users "
+            "WHERE role = 'SUPER_ADMIN' AND is_deleted = false "
+            "AND id != ALL($1::uuid[])",
+            user_ids,
         )
         return int(result)
 

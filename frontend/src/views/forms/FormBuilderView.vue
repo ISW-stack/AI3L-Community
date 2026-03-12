@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import DOMPurify from 'dompurify'
 import type { Question, QuestionOption } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { getForm, createForm, updateForm } from '@/api/forms'
@@ -1115,7 +1116,7 @@ onUnmounted(() => {
               <div
                 v-if="description"
                 class="prose prose-sm max-w-none text-muted"
-                v-html="description"
+                v-html="DOMPurify.sanitize(description)"
               ></div>
 
               <div
