@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
@@ -15,6 +15,11 @@ const { t } = useLocale()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
+const mobileAdminOpen = ref(false)
+
+watch(mobileMenuOpen, (open) => {
+  if (!open) mobileAdminOpen.value = false
+})
 
 const { handleDropdownKeydown: handleAdminKeydown } = useDropdownKeyNav({
   isOpen: adminDropdownOpen,
@@ -47,6 +52,7 @@ const roleBadgeVariant: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'
 async function handleLogout() {
   userDropdownOpen.value = false
   mobileMenuOpen.value = false
+  mobileAdminOpen.value = false
   await auth.logout()
   router.push('/login')
 }
@@ -292,53 +298,67 @@ onUnmounted(() => {
 
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
-              <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
+              <button
+                type="button"
+                @click="mobileAdminOpen = !mobileAdminOpen"
+                class="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted uppercase tracking-wider hover:bg-surface-alt rounded-lg transition"
+                :aria-expanded="mobileAdminOpen"
+              >
                 {{ t('nav.sectionAdmin') }}
-              </div>
-              <router-link
-                to="/admin"
-                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                @click="mobileMenuOpen = false"
-                >{{ t('nav.dashboard') }}</router-link
-              >
-              <router-link
-                to="/admin/users"
-                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                @click="mobileMenuOpen = false"
-                >{{ t('nav.users') }}</router-link
-              >
-              <router-link
-                to="/admin/applications"
-                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                @click="mobileMenuOpen = false"
-                >{{ t('nav.applications') }}</router-link
-              >
-              <router-link
-                to="/admin/reports"
-                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                @click="mobileMenuOpen = false"
-                >{{ t('nav.reports') }}</router-link
-              >
-              <router-link
-                to="/admin/categories"
-                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                @click="mobileMenuOpen = false"
-                >{{ t('nav.categories') }}</router-link
-              >
-              <router-link
-                to="/admin/invite-codes"
-                class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                @click="mobileMenuOpen = false"
-                >{{ t('nav.inviteCodes') }}</router-link
-              >
+                <ChevronDown
+                  class="w-4 h-4 transition-transform"
+                  :class="{ 'rotate-180': mobileAdminOpen }"
+                  aria-hidden="true"
+                />
+              </button>
+              <Transition name="mobile-admin">
+                <div v-if="mobileAdminOpen" class="space-y-1">
+                  <router-link
+                    to="/admin"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.dashboard') }}</router-link
+                  >
+                  <router-link
+                    to="/admin/users"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.users') }}</router-link
+                  >
+                  <router-link
+                    to="/admin/applications"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.applications') }}</router-link
+                  >
+                  <router-link
+                    to="/admin/reports"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.reports') }}</router-link
+                  >
+                  <router-link
+                    to="/admin/categories"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.categories') }}</router-link
+                  >
+                  <router-link
+                    to="/admin/invite-codes"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.inviteCodes') }}</router-link
+                  >
+                  <router-link
+                    v-if="auth.isSuperAdmin"
+                    to="/admin/audit-logs"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition border-t border-border"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.auditLogs') }}</router-link
+                  >
+                </div>
+              </Transition>
             </template>
-            <router-link
-              v-if="auth.isSuperAdmin"
-              to="/admin/audit-logs"
-              class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-              @click="mobileMenuOpen = false"
-              >{{ t('nav.auditLogs') }}</router-link
-            >
 
             <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
               {{ t('nav.sectionAccount') }}
@@ -434,5 +454,22 @@ onUnmounted(() => {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+/* Mobile admin accordion animation */
+.mobile-admin-enter-active,
+.mobile-admin-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+.mobile-admin-enter-from,
+.mobile-admin-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.mobile-admin-enter-to,
+.mobile-admin-leave-from {
+  opacity: 1;
+  max-height: 400px;
 }
 </style>
