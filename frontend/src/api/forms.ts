@@ -1,5 +1,5 @@
 import api from '@/composables/api'
-import type { FormData, FormResponse } from '@/types'
+import type { FormData, FormResponse, FormStatsResponse } from '@/types'
 
 export async function getForm(formId: string) {
   const { data } = await api.get(`/forms/${formId}`)
@@ -61,4 +61,10 @@ export async function listFormResponses(formId: string, page = 1, pageSize = 20)
 export async function getMyResponse(formId: string) {
   const { data } = await api.get(`/forms/${formId}/my-response`)
   return data as FormResponse
+}
+
+/** Returns aggregated statistics for a form's responses (computed server-side). */
+export async function getFormStats(formId: string): Promise<FormStatsResponse> {
+  const { data } = await api.get(`/forms/${formId}/stats`)
+  return data as FormStatsResponse
 }
