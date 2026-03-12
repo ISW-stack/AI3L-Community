@@ -544,10 +544,34 @@ export default {
       editBtn: 'Edit',
       responsesBtn: 'Responses',
       deleteBtn: 'Delete',
+      shareBtn: 'Share',
+      linkCopied: 'Link copied!',
+      showMore: 'Show more',
+      showLess: 'Show less',
+      deadlineWas: 'Deadline was {date}',
+      tabIndividual: 'Individual Responses',
+      tabStatistics: 'Statistics',
+      searchPlaceholder: 'Search by respondent name...',
+      dateFrom: 'From date',
+      dateTo: 'To date',
+      filteredCount: '{shown} of {total} responses',
+      statsTotal: '{count} total responses',
+      statsTotalResponses: '{count} response(s)',
+      statsAverage: 'average',
+      statsViewTextResponses: 'View all text responses',
+      statsHideResponses: 'Hide responses',
+      statsUploads: '{count} upload(s)',
+      exportTitle: 'Exporting',
+      exportProgress: 'Exporting... ({seconds}s elapsed)',
+      exportTimeoutHint: 'Export is taking longer than expected. You may cancel and try again.',
       deleteConfirm: {
         title: 'Delete Form?',
         message:
           'Are you sure you want to delete this form? This action will permanently remove all associated fields and responses.',
+        messageNoResponses:
+          'This form has no responses. Are you sure you want to delete it?',
+        messageWithCount:
+          'Are you sure you want to delete this form? This will permanently remove {count} response(s) and all associated data.',
         confirmBtn: 'Confirm Delete',
       },
       deleteSuccess: 'Form deleted.',
@@ -578,6 +602,11 @@ export default {
       addQuestionBtn: '+ Add Question',
       schemaLockedWarning:
         'Questions are locked because responses have been submitted. You can still edit title, description, and deadline.',
+      schemaLockBanner: {
+        message:
+          'This form has {count} response(s). Questions are locked.',
+        viewResponses: 'View Responses',
+      },
       questionLabel: 'Question',
       typeLabel: 'Type',
       labelRequired: 'Label *',

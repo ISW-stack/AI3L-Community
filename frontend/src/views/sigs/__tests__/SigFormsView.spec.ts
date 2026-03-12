@@ -479,4 +479,403 @@ describe('SigFormsView', () => {
     expect(mockGetForm).toHaveBeenCalledTimes(1)
     expect(mockGetForm).toHaveBeenCalledWith('form-1')
   })
+
+  // ── Feature 1: Statistics Tab ──
+
+  it('clicking Statistics tab switches to stats content', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Rating Q', type: 'rating', min: 1, max: 5 }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Alice',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 4 },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    // Default tab is individual
+    expect(wrapper.text()).toContain('Alice')
+
+    // Switch to Statistics tab
+    const statsTab = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('aria-label') === 'Statistics')
+    expect(statsTab).toBeTruthy()
+    await statsTab!.trigger('click')
+    await nextTick()
+
+    // Stats content: total count and question label should appear
+    expect(wrapper.text()).toContain('1 total responses')
+    expect(wrapper.text()).toContain('Rating Q')
+  })
+
+  it('clicking Individual Responses tab switches back from statistics', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Q', type: 'short_text' }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Bob',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 'hello' },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    // Switch to Statistics
+    const statsTab = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('aria-label') === 'Statistics')
+    await statsTab!.trigger('click')
+    await nextTick()
+
+    // Switch back to Individual Responses
+    const individualTab = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('aria-label') === 'Individual Responses')
+    expect(individualTab).toBeTruthy()
+    await individualTab!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Bob')
+  })
+
+  // ── Feature 2: Search/Filter ──
+
+  it('search input filters responses by respondent name (case-insensitive)', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Q', type: 'short_text' }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Alice Smith',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 'answer1' },
+        },
+        {
+          id: 'resp-2',
+          display_name: 'Bob Jones',
+          created_at: '2026-01-02T00:00:00Z',
+          answers: { q1: 'answer2' },
+        },
+      ],
+      total: 2,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    // Both responses visible initially
+    expect(wrapper.text()).toContain('Alice Smith')
+    expect(wrapper.text()).toContain('Bob Jones')
+
+    // Type in search box
+    const searchInput = wrapper.find('input[aria-label="Search by respondent name..."]')
+    expect(searchInput.exists()).toBe(true)
+    await searchInput.setValue('alice')
+    await nextTick()
+
+    // Only Alice should be visible
+    expect(wrapper.text()).toContain('Alice Smith')
+    expect(wrapper.text()).not.toContain('Bob Jones')
+  })
+
+  it('search filter showing zero results renders no-results empty state', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Q', type: 'short_text' }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Alice',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 'answer' },
+        },
+      ],
+      total: 1,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    const searchInput = wrapper.find('input[aria-label="Search by respondent name..."]')
+    await searchInput.setValue('zzznomatch')
+    await nextTick()
+
+    const emptyStates = wrapper.findAll('.empty-state')
+    expect(emptyStates.length).toBeGreaterThan(0)
+  })
+
+  // ── Feature 3: Date range filter ──
+
+  it('dateFrom filter excludes responses before the specified date', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Q', type: 'short_text' }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Early User',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 'old' },
+        },
+        {
+          id: 'resp-2',
+          display_name: 'Late User',
+          created_at: '2026-06-15T00:00:00Z',
+          answers: { q1: 'new' },
+        },
+      ],
+      total: 2,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    // Set dateFrom to exclude early responses
+    const dateFromInput = wrapper.find('input[aria-label="From date"]')
+    expect(dateFromInput.exists()).toBe(true)
+    await dateFromInput.setValue('2026-06-01')
+    await nextTick()
+
+    expect(wrapper.text()).not.toContain('Early User')
+    expect(wrapper.text()).toContain('Late User')
+  })
+
+  it('dateTo filter excludes responses after the specified date', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockGetForm.mockResolvedValue({
+      id: 'form-1',
+      questions: [{ id: 'q1', label: 'Q', type: 'short_text' }],
+    })
+    mockListFormResponses.mockResolvedValue({
+      responses: [
+        {
+          id: 'resp-1',
+          display_name: 'Early User',
+          created_at: '2026-01-01T00:00:00Z',
+          answers: { q1: 'old' },
+        },
+        {
+          id: 'resp-2',
+          display_name: 'Late User',
+          created_at: '2026-06-15T00:00:00Z',
+          answers: { q1: 'new' },
+        },
+      ],
+      total: 2,
+    })
+
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
+    await responsesBtn!.trigger('click')
+    await nextTick()
+    await nextTick()
+
+    const dateToInput = wrapper.find('input[aria-label="To date"]')
+    expect(dateToInput.exists()).toBe(true)
+    await dateToInput.setValue('2026-03-01')
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Early User')
+    expect(wrapper.text()).not.toContain('Late User')
+  })
+
+  // ── Feature 4: Description expand/collapse ──
+
+  it('description expand toggle: Show more button expands and Show less collapses', async () => {
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    const { wrapper } = await mountComponent({ userSigRole: 'MEMBER' })
+    await nextTick()
+    await nextTick()
+
+    // In jsdom scrollHeight === clientHeight === 0, so manually mark as truncated
+    // to make the Show more button appear
+    const vm = wrapper.vm as { truncatedDescriptions: Set<string> }
+    vm.truncatedDescriptions.add('form-1')
+    await nextTick()
+
+    const showMoreBtn = wrapper.findAll('button').find((b) => b.text() === 'Show more')
+    expect(showMoreBtn).toBeTruthy()
+
+    // Click to expand
+    await showMoreBtn!.trigger('click')
+    await nextTick()
+
+    const showLessBtn = wrapper.findAll('button').find((b) => b.text() === 'Show less')
+    expect(showLessBtn).toBeTruthy()
+    expect(wrapper.findAll('button').find((b) => b.text() === 'Show more')).toBeFalsy()
+
+    // Click to collapse
+    await showLessBtn!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.findAll('button').find((b) => b.text() === 'Show more')).toBeTruthy()
+  })
+
+  // ── Feature 5: Delete confirmation modal with response count message ──
+
+  it('delete modal shows "no responses" message when form has 0 responses', async () => {
+    const formWithNoResponses = { ...sampleForms[0], response_count: 0 }
+    mockGetSigForms.mockResolvedValue({ forms: [formWithNoResponses], total: 1 })
+
+    const { wrapper } = await mountComponent({ platformRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('Delete'))
+    expect(deleteBtn).toBeTruthy()
+    await deleteBtn!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+    expect(wrapper.text()).toContain('This form has no responses. Are you sure you want to delete it?')
+  })
+
+  it('delete modal shows response count when form has responses', async () => {
+    const formWith5Responses = { ...sampleForms[0], response_count: 5 }
+    mockGetSigForms.mockResolvedValue({ forms: [formWith5Responses], total: 1 })
+
+    const { wrapper } = await mountComponent({ platformRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('Delete'))
+    expect(deleteBtn).toBeTruthy()
+    await deleteBtn!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.base-modal').exists()).toBe(true)
+    expect(wrapper.text()).toContain('5 response(s)')
+  })
+
+  // ── Feature 6: Copy feedback tooltip ──
+
+  it('clicking share button shows "Link copied!" tooltip then hides after 2 seconds', async () => {
+    vi.useFakeTimers()
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      writable: true,
+      configurable: true,
+    })
+
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const shareBtn = wrapper.findAll('button').find((b) => b.attributes('aria-label') === 'Share')
+    expect(shareBtn).toBeTruthy()
+    await shareBtn!.trigger('click')
+    await nextTick()
+
+    // Tooltip should be visible immediately after click
+    const tooltip = wrapper.find('[role="status"]')
+    expect(tooltip.exists()).toBe(true)
+    expect(tooltip.text()).toContain('Link copied!')
+
+    // After 2 seconds, tooltip should disappear
+    vi.advanceTimersByTime(2001)
+    await nextTick()
+
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+
+    vi.useRealTimers()
+  })
+
+  // ── Feature 7: Export elapsed timer ──
+
+  it('export elapsed timer increments every second during export', async () => {
+    vi.useFakeTimers()
+
+    mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
+    await nextTick()
+    await nextTick()
+
+    const vm = wrapper.vm as {
+      exporting: boolean
+      exportElapsed: number
+      startExportTimer: () => void
+    }
+
+    // Simulate export starting
+    vm.exporting = true
+    vm.startExportTimer()
+    await nextTick()
+
+    expect(vm.exportElapsed).toBe(0)
+
+    // Advance 3 seconds
+    vi.advanceTimersByTime(3000)
+    await nextTick()
+
+    expect(vm.exportElapsed).toBe(3)
+
+    // Export modal should be visible with elapsed time
+    expect(wrapper.text()).toContain('3s elapsed')
+
+    vi.useRealTimers()
+  })
 })

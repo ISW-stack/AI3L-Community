@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { FormData } from '@/types'
 import { getForm } from '@/api/forms'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -8,9 +9,19 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const props = defineProps<{ formId: string }>()
 
+const { t } = useI18n()
 const form = ref<FormData | null>(null)
 const loading = ref(true)
 const errorState = ref(false)
+
+const deadlineText = computed(() => {
+  if (!form.value?.deadline) return ''
+  const dateStr = new Date(form.value.deadline).toLocaleDateString()
+  if (!form.value.is_active) {
+    return t('sigs.forms.deadlineWas', { date: dateStr })
+  }
+  return `${t('forms.view.deadline')} ${dateStr}`
+})
 
 onMounted(async () => {
   try {
@@ -34,18 +45,18 @@ onMounted(async () => {
             <BaseBadge variant="purple">Form</BaseBadge>
             <span class="font-semibold text-foreground text-sm">{{ form.title }}</span>
             <BaseBadge :variant="form.is_active ? 'success' : 'danger'" class="ml-auto shrink-0">
-              {{ form.is_active ? 'Active' : 'Closed' }}
+              {{ form.is_active ? t('common.active') : t('common.closed') }}
             </BaseBadge>
           </div>
           <p v-if="form.description" class="text-xs text-muted line-clamp-2 mb-1">
             {{ form.description }}
           </p>
           <div class="flex items-center gap-3 text-xs text-muted">
-            <span>{{ form.response_count }} response(s)</span>
+            <span>{{ form.response_count }} {{ t('forms.view.response') }}</span>
             <span v-if="form.deadline">
-              Deadline: {{ new Date(form.deadline).toLocaleDateString() }}
+              {{ deadlineText }}
             </span>
-            <span>By {{ form.created_by_name }}</span>
+            <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
           </div>
         </div>
       </div>

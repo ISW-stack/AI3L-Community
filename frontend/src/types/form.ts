@@ -44,3 +44,16 @@ export interface FormResponse {
   created_at: string
   answers: Record<string, unknown>
 }
+
+export interface QuestionStats {
+  question_id: string
+  question_type: string
+  question_label: string
+  stats: Record<string, unknown>
+}
+
+export interface FormStatsResponse {
+  form_id: number
+  total_responses: number
+  question_stats: QuestionStats[]
+}
