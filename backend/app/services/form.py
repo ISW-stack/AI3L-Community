@@ -42,9 +42,7 @@ async def create_form(
     return row_to_form(result, 0)
 
 
-async def get_form_by_id(
-    form_id: uuid.UUID, user_id: str | None = None
-) -> dict | None:
+async def get_form_by_id(form_id: uuid.UUID, user_id: str | None = None) -> dict | None:
     row, response_count = await form_repo.find_by_id(form_id)
     if not row:
         return None

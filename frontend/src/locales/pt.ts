@@ -563,13 +563,16 @@ export default {
       statsUploads: '{count} upload(s)',
       exportTitle: 'Exportando',
       exportProgress: 'Exportando... ({seconds}s decorridos)',
-      exportTimeoutHint: 'A exportação está demorando mais que o esperado. Você pode cancelar e tentar novamente.',
+      exportTimeoutHint:
+        'A exportação está demorando mais que o esperado. Você pode cancelar e tentar novamente.',
       deleteConfirm: {
         title: 'Excluir Formulário?',
         message:
           'Tem certeza que deseja excluir este formulário? Esta ação removerá permanentemente todos os campos e respostas associados.',
-        messageNoResponses: 'Este formulário não possui respostas. Tem certeza que deseja excluí-lo?',
-        messageWithCount: 'Tem certeza que deseja excluir este formulário? Isso removerá permanentemente {count} resposta(s) e todos os dados associados.',
+        messageNoResponses:
+          'Este formulário não possui respostas. Tem certeza que deseja excluí-lo?',
+        messageWithCount:
+          'Tem certeza que deseja excluir este formulário? Isso removerá permanentemente {count} resposta(s) e todos os dados associados.',
         confirmBtn: 'Confirmar Exclusão',
       },
       deleteSuccess: 'Formulário excluído.',

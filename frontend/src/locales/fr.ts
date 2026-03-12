@@ -569,7 +569,8 @@ export default {
       statsUploads: '{count} téléchargement(s)',
       exportTitle: 'Exportation',
       exportProgress: 'Exportation en cours... ({seconds}s écoulées)',
-      exportTimeoutHint: "L'exportation prend plus de temps que prévu. Vous pouvez annuler et réessayer.",
+      exportTimeoutHint:
+        "L'exportation prend plus de temps que prévu. Vous pouvez annuler et réessayer.",
       deleteConfirm: {
         title: 'Supprimer le formulaire ?',
         message:

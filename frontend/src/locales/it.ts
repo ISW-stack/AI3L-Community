@@ -565,13 +565,15 @@ export default {
       statsUploads: '{count} caricamento/i',
       exportTitle: 'Esportazione in corso',
       exportProgress: 'Esportazione in corso... ({seconds}s trascorsi)',
-      exportTimeoutHint: "L'esportazione richiede più tempo del previsto. Puoi annullare e riprovare.",
+      exportTimeoutHint:
+        "L'esportazione richiede più tempo del previsto. Puoi annullare e riprovare.",
       deleteConfirm: {
         title: 'Eliminare il modulo?',
         message:
           'Sei sicuro di voler eliminare questo modulo? Questa azione rimuoverà definitivamente tutti i campi e le risposte associati.',
         messageNoResponses: 'Questo modulo non ha risposte. Sei sicuro di volerlo eliminare?',
-        messageWithCount: 'Sei sicuro di voler eliminare questo modulo? Verranno eliminate definitivamente {count} risposta/e e tutti i dati associati.',
+        messageWithCount:
+          'Sei sicuro di voler eliminare questo modulo? Verranno eliminate definitivamente {count} risposta/e e tutti i dati associati.',
         confirmBtn: 'Conferma eliminazione',
       },
       deleteSuccess: 'Modulo eliminato.',

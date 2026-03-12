@@ -570,13 +570,13 @@ export default {
       statsUploads: '{count} Upload(s)',
       exportTitle: 'Exportieren',
       exportProgress: 'Exportieren... ({seconds}s vergangen)',
-      exportTimeoutHint: 'Der Export dauert länger als erwartet. Sie können abbrechen und es erneut versuchen.',
+      exportTimeoutHint:
+        'Der Export dauert länger als erwartet. Sie können abbrechen und es erneut versuchen.',
       deleteConfirm: {
         title: 'Formular löschen?',
         message:
           'Möchten Sie dieses Formular wirklich löschen? Alle zugehörigen Felder und Antworten werden dauerhaft entfernt.',
-        messageNoResponses:
-          'Dieses Formular hat keine Antworten. Möchten Sie es wirklich löschen?',
+        messageNoResponses: 'Dieses Formular hat keine Antworten. Möchten Sie es wirklich löschen?',
         messageWithCount:
           'Möchten Sie dieses Formular wirklich löschen? Dadurch werden {count} Antwort(en) und alle zugehörigen Daten dauerhaft entfernt.',
         confirmBtn: 'Löschen bestätigen',

@@ -42,10 +42,7 @@ function resolve(v: StringOrGetter): string | undefined {
  * a race condition when the composable is instantiated before route params
  * are resolved. Call `checkForDraft()` in `onMounted` to read the correct key.
  */
-export function useFormDraft(
-  sigId?: StringOrGetter,
-  formId?: StringOrGetter,
-): FormDraftState {
+export function useFormDraft(sigId?: StringOrGetter, formId?: StringOrGetter): FormDraftState {
   const hasDraft = ref(false)
   const draftTime = ref('')
 

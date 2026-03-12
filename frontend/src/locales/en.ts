@@ -568,8 +568,7 @@ export default {
         title: 'Delete Form?',
         message:
           'Are you sure you want to delete this form? This action will permanently remove all associated fields and responses.',
-        messageNoResponses:
-          'This form has no responses. Are you sure you want to delete it?',
+        messageNoResponses: 'This form has no responses. Are you sure you want to delete it?',
         messageWithCount:
           'Are you sure you want to delete this form? This will permanently remove {count} response(s) and all associated data.',
         confirmBtn: 'Confirm Delete',
@@ -603,8 +602,7 @@ export default {
       schemaLockedWarning:
         'Questions are locked because responses have been submitted. You can still edit title, description, and deadline.',
       schemaLockBanner: {
-        message:
-          'This form has {count} response(s). Questions are locked.',
+        message: 'This form has {count} response(s). Questions are locked.',
         viewResponses: 'View Responses',
       },
       questionLabel: 'Question',

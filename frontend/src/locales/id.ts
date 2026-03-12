@@ -567,13 +567,16 @@ export default {
       statsUploads: '{count} unggahan',
       exportTitle: 'Mengekspor',
       exportProgress: 'Mengekspor... ({seconds} detik berlalu)',
-      exportTimeoutHint: 'Ekspor memakan waktu lebih lama dari yang diharapkan. Anda dapat membatalkan dan mencoba lagi.',
+      exportTimeoutHint:
+        'Ekspor memakan waktu lebih lama dari yang diharapkan. Anda dapat membatalkan dan mencoba lagi.',
       deleteConfirm: {
         title: 'Hapus Formulir?',
         message:
           'Apakah Anda yakin ingin menghapus formulir ini? Tindakan ini akan menghapus secara permanen semua bidang dan respons terkait.',
-        messageNoResponses: 'Formulir ini tidak memiliki respons. Apakah Anda yakin ingin menghapusnya?',
-        messageWithCount: 'Apakah Anda yakin ingin menghapus formulir ini? Ini akan menghapus secara permanen {count} respons dan semua data terkait.',
+        messageNoResponses:
+          'Formulir ini tidak memiliki respons. Apakah Anda yakin ingin menghapusnya?',
+        messageWithCount:
+          'Apakah Anda yakin ingin menghapus formulir ini? Ini akan menghapus secara permanen {count} respons dan semua data terkait.',
         confirmBtn: 'Konfirmasi Hapus',
       },
       deleteSuccess: 'Formulir dihapus.',

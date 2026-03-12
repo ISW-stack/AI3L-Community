@@ -567,7 +567,8 @@ export default {
       statsUploads: '{count} archivo(s) subido(s)',
       exportTitle: 'Exportando',
       exportProgress: 'Exportando... ({seconds}s transcurridos)',
-      exportTimeoutHint: 'La exportación está tardando más de lo esperado. Puede cancelar e intentar de nuevo.',
+      exportTimeoutHint:
+        'La exportación está tardando más de lo esperado. Puede cancelar e intentar de nuevo.',
       deleteConfirm: {
         title: '¿Eliminar formulario?',
         message:

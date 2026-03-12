@@ -561,7 +561,8 @@ export default {
       statsUploads: '{count} 件のアップロード',
       exportTitle: 'エクスポート中',
       exportProgress: 'エクスポート中...（{seconds}秒経過）',
-      exportTimeoutHint: 'エクスポートに予想以上の時間がかかっています。キャンセルして再試行できます。',
+      exportTimeoutHint:
+        'エクスポートに予想以上の時間がかかっています。キャンセルして再試行できます。',
       deleteConfirm: {
         title: 'フォームを削除しますか？',
         message:

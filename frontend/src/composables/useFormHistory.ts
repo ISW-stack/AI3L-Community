@@ -30,10 +30,7 @@ export function useFormHistory(): FormHistoryState {
   function pushState(questions: Question[]): void {
     const snapshot = JSON.stringify(deepCloneQuestions(questions))
     // Avoid pushing duplicate consecutive states
-    if (
-      undoStack.value.length > 0 &&
-      undoStack.value[undoStack.value.length - 1] === snapshot
-    ) {
+    if (undoStack.value.length > 0 && undoStack.value[undoStack.value.length - 1] === snapshot) {
       return
     }
     undoStack.value.push(snapshot)

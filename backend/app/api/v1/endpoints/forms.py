@@ -117,9 +117,7 @@ async def get_my_response(
                 )
     response = await get_user_response(form_id, current_user["sub"])
     if response is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="No response found."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No response found.")
     return FormUserResponseSchema(**response)
 
 
@@ -129,9 +127,7 @@ async def get_form_statistics(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormStatsResponse:
     user_id = current_user["sub"]
-    if not await check_rate_limit(
-        f"rl:form_stats:{user_id}:{form_id}", *RATE_LIMIT_FORM_STATS
-    ):
+    if not await check_rate_limit(f"rl:form_stats:{user_id}:{form_id}", *RATE_LIMIT_FORM_STATS):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     form = await get_form_by_id(form_id)
     if form is None:

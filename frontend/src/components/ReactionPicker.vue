@@ -76,7 +76,11 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         :aria-label="`React with ${r}`"
         :aria-pressed="hasReacted(r)"
         class="text-xs px-2 py-0.5 rounded-full transition-colors inline-flex items-center gap-1 cursor-pointer"
-        :class="hasReacted(r) ? 'bg-brand-100 text-brand-700' : 'bg-surface-alt text-muted hover:bg-gray-100'"
+        :class="
+          hasReacted(r)
+            ? 'bg-brand-100 text-brand-700'
+            : 'bg-surface-alt text-muted hover:bg-gray-100'
+        "
         @click.stop="handleReaction(r)"
       >
         {{ EMOJI_MAP[r] }}

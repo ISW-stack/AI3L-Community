@@ -564,13 +564,15 @@ export default {
       statsUploads: '{count} tệp tải lên',
       exportTitle: 'Đang xuất',
       exportProgress: 'Đang xuất... ({seconds} giây đã trôi qua)',
-      exportTimeoutHint: 'Quá trình xuất mất nhiều thời gian hơn dự kiến. Bạn có thể hủy và thử lại.',
+      exportTimeoutHint:
+        'Quá trình xuất mất nhiều thời gian hơn dự kiến. Bạn có thể hủy và thử lại.',
       deleteConfirm: {
         title: 'Xóa biểu mẫu?',
         message:
           'Bạn có chắc chắn muốn xóa biểu mẫu này không? Thao tác này sẽ xóa vĩnh viễn tất cả các trường và phản hồi liên quan.',
         messageNoResponses: 'Biểu mẫu này chưa có phản hồi. Bạn có chắc chắn muốn xóa không?',
-        messageWithCount: 'Bạn có chắc chắn muốn xóa biểu mẫu này không? Thao tác này sẽ xóa vĩnh viễn {count} phản hồi và tất cả dữ liệu liên quan.',
+        messageWithCount:
+          'Bạn có chắc chắn muốn xóa biểu mẫu này không? Thao tác này sẽ xóa vĩnh viễn {count} phản hồi và tất cả dữ liệu liên quan.',
         confirmBtn: 'Xác nhận xóa',
       },
       deleteSuccess: 'Biểu mẫu đã được xóa.',

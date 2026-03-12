@@ -603,17 +603,15 @@ onUnmounted(() => {
       <!-- Feature 7: Draft restoration banner -->
       <BaseAlert v-if="showDraftBanner" type="warning" class="mb-4">
         <div class="flex flex-wrap items-center gap-2">
-          <span>{{ t('forms.builder.draftFound', { time: new Date(draft.draftTime.value).toLocaleString() }) }}</span>
-          <button
-            class="text-sm font-medium text-brand-600 hover:underline"
-            @click="restoreDraft"
-          >
+          <span>{{
+            t('forms.builder.draftFound', {
+              time: new Date(draft.draftTime.value).toLocaleString(),
+            })
+          }}</span>
+          <button class="text-sm font-medium text-brand-600 hover:underline" @click="restoreDraft">
             {{ t('forms.builder.draftRestore') }}
           </button>
-          <button
-            class="text-sm font-medium text-danger-500 hover:underline"
-            @click="discardDraft"
-          >
+          <button class="text-sm font-medium text-danger-500 hover:underline" @click="discardDraft">
             {{ t('forms.builder.draftDiscard') }}
           </button>
         </div>
@@ -754,7 +752,11 @@ onUnmounted(() => {
             >
               <div
                 class="w-full border-t border-dashed transition-colors"
-                :class="dropTargetIndex === i ? 'border-brand-500 border-2' : 'border-transparent group-hover:border-border'"
+                :class="
+                  dropTargetIndex === i
+                    ? 'border-brand-500 border-2'
+                    : 'border-transparent group-hover:border-border'
+                "
               ></div>
               <button
                 class="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-surface border border-border rounded-full w-6 h-6 flex items-center justify-center text-xs text-muted hover:text-brand-600 hover:border-brand-500 shadow-sm z-10"
@@ -791,11 +793,16 @@ onUnmounted(() => {
                     @touchstart="handleTouchStart($event, i)"
                     @touchmove="handleTouchMove($event)"
                     @touchend="handleTouchEnd($event)"
-                  >&#x2261;</span>
+                    >&#x2261;</span
+                  >
                   <!-- Feature 4: Collapse toggle -->
                   <button
                     class="text-muted hover:text-foreground transition text-sm px-1"
-                    :aria-label="isCollapsed(q.id) ? t('forms.builder.expandQuestion') : t('forms.builder.collapseQuestion')"
+                    :aria-label="
+                      isCollapsed(q.id)
+                        ? t('forms.builder.expandQuestion')
+                        : t('forms.builder.collapseQuestion')
+                    "
                     @click="toggleCollapse(q.id)"
                   >
                     <span v-if="isCollapsed(q.id)">&#x25B6;</span>
@@ -901,7 +908,9 @@ onUnmounted(() => {
                     class="w-full border border-border rounded-lg px-2 py-1.5 text-sm"
                   />
                   <div class="flex items-center gap-2">
-                    <label class="text-xs text-muted">{{ t('forms.builder.maxLengthLabel') }}</label>
+                    <label class="text-xs text-muted">{{
+                      t('forms.builder.maxLengthLabel')
+                    }}</label>
                     <input
                       v-model.number="q.max_length"
                       :disabled="isSchemaLocked"
@@ -991,7 +1000,9 @@ onUnmounted(() => {
 
                 <div v-if="q.type === 'file_upload'" class="space-y-2">
                   <div class="flex items-center gap-2">
-                    <label class="text-xs text-muted">{{ t('forms.builder.allowedTypesLabel') }}</label>
+                    <label class="text-xs text-muted">{{
+                      t('forms.builder.allowedTypesLabel')
+                    }}</label>
                     <input
                       :value="(q.allowed_types ?? []).join(', ')"
                       @input="updateAllowedTypes(q, $event)"
@@ -1033,13 +1044,18 @@ onUnmounted(() => {
     <button
       v-if="!isSchemaLocked && !loading"
       class="fixed z-40 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
-      style="bottom: calc(2rem + env(safe-area-inset-bottom, 0px)); right: calc(2rem + env(safe-area-inset-right, 0px))"
+      style="
+        bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+        right: calc(2rem + env(safe-area-inset-right, 0px));
+      "
       :class="['w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-3']"
       :aria-label="t('forms.builder.addQuestionBtn')"
       @click="addQuestion"
     >
       <span class="text-xl leading-none sm:mr-2">+</span>
-      <span class="hidden sm:inline text-sm font-medium">{{ t('forms.builder.addQuestionBtn') }}</span>
+      <span class="hidden sm:inline text-sm font-medium">{{
+        t('forms.builder.addQuestionBtn')
+      }}</span>
     </button>
 
     <!-- Preview modal -->
@@ -1049,14 +1065,22 @@ onUnmounted(() => {
         <div class="flex items-center justify-center gap-2 mb-2">
           <button
             class="px-3 py-1 text-sm rounded-l-lg border transition"
-            :class="previewMode === 'desktop' ? 'bg-brand-600 text-white border-brand-600' : 'bg-surface text-muted border-border hover:text-foreground'"
+            :class="
+              previewMode === 'desktop'
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-surface text-muted border-border hover:text-foreground'
+            "
             @click="setPreviewDesktop"
           >
             {{ t('forms.builder.previewDesktop') }}
           </button>
           <button
             class="px-3 py-1 text-sm rounded-r-lg border transition"
-            :class="previewMode === 'mobile' ? 'bg-brand-600 text-white border-brand-600' : 'bg-surface text-muted border-border hover:text-foreground'"
+            :class="
+              previewMode === 'mobile'
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'bg-surface text-muted border-border hover:text-foreground'
+            "
             @click="setPreviewMobile"
           >
             {{ t('forms.builder.previewMobile') }}
@@ -1069,12 +1093,14 @@ onUnmounted(() => {
 
         <!-- Phone frame for mobile preview -->
         <div
-          :class="previewMode === 'mobile' ? 'mx-auto border-2 border-gray-400 rounded-[2rem] p-3 bg-gray-50' : ''"
+          :class="
+            previewMode === 'mobile'
+              ? 'mx-auto border-2 border-gray-400 rounded-[2rem] p-3 bg-gray-50'
+              : ''
+          "
           :style="previewMode === 'mobile' ? 'max-width: 375px' : ''"
         >
-          <div
-            :class="previewMode === 'mobile' ? 'rounded-xl overflow-hidden bg-surface' : ''"
-          >
+          <div :class="previewMode === 'mobile' ? 'rounded-xl overflow-hidden bg-surface' : ''">
             <div class="space-y-4" :class="previewMode === 'mobile' ? 'p-3' : ''">
               <div v-if="bannerUrl" class="rounded-lg overflow-hidden">
                 <img
@@ -1172,7 +1198,10 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <EmptyState v-if="questions.length === 0" :message="t('forms.builder.noQuestionsAdded')" />
+              <EmptyState
+                v-if="questions.length === 0"
+                :message="t('forms.builder.noQuestionsAdded')"
+              />
             </div>
           </div>
         </div>

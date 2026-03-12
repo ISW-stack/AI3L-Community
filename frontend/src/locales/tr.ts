@@ -565,13 +565,15 @@ export default {
       statsUploads: '{count} yükleme',
       exportTitle: 'Dışa aktarılıyor',
       exportProgress: 'Dışa aktarılıyor... ({seconds}s geçti)',
-      exportTimeoutHint: 'Dışa aktarma beklenenden uzun sürüyor. İptal edip tekrar deneyebilirsiniz.',
+      exportTimeoutHint:
+        'Dışa aktarma beklenenden uzun sürüyor. İptal edip tekrar deneyebilirsiniz.',
       deleteConfirm: {
         title: 'Form Silinsin mi?',
         message:
           'Bu formu silmek istediğinizden emin misiniz? Bu işlem tüm ilgili alanları ve yanıtları kalıcı olarak kaldıracaktır.',
         messageNoResponses: 'Bu formun yanıtı yok. Silmek istediğinizden emin misiniz?',
-        messageWithCount: 'Bu formu silmek istediğinizden emin misiniz? {count} yanıt ve tüm ilişkili veriler kalıcı olarak kaldırılacaktır.',
+        messageWithCount:
+          'Bu formu silmek istediğinizden emin misiniz? {count} yanıt ve tüm ilişkili veriler kalıcı olarak kaldırılacaktır.',
         confirmBtn: 'Silmeyi Onayla',
       },
       deleteSuccess: 'Form silindi.',

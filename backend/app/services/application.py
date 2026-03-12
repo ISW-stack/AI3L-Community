@@ -24,9 +24,7 @@ async def list_applications(
 async def review_application(app_id: uuid.UUID, reviewer_id: uuid.UUID, action: str) -> dict | None:
     VALID_ACTIONS = {"APPROVED", "REJECTED"}
     if action not in VALID_ACTIONS:
-        raise ValueError(
-            f"Invalid action: must be one of {VALID_ACTIONS}"
-        )
+        raise ValueError(f"Invalid action: must be one of {VALID_ACTIONS}")
 
     result = await application_repo.update_status(app_id, reviewer_id, action)
     if result is None:

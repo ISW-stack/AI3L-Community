@@ -218,7 +218,10 @@ const breadcrumbItems = computed(() => {
             </div>
           </div>
 
-          <div ref="postContentRef" class="prose prose-sm max-w-none break-words text-foreground/80 mb-4">
+          <div
+            ref="postContentRef"
+            class="prose prose-sm max-w-none break-words text-foreground/80 mb-4"
+          >
             <template v-for="(seg, i) in contentSegments" :key="i">
               <div v-if="seg.type === 'html'" v-html="seg.content"></div>
               <SigShareCard

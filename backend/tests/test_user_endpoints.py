@@ -495,10 +495,7 @@ class TestChangeRoleEmitsEvent:
 
                 # Verify user.role_changed was emitted
                 calls = mock_emit.call_args_list
-                role_changed_calls = [
-                    c for c in calls
-                    if c.args[0] == "user.role_changed"
-                ]
+                role_changed_calls = [c for c in calls if c.args[0] == "user.role_changed"]
                 assert len(role_changed_calls) == 1
                 call_kwargs = role_changed_calls[0].kwargs
                 assert call_kwargs["user_id"] == str(target_user)

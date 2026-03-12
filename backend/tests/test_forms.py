@@ -1836,19 +1836,40 @@ class TestFormStatsService:
             "creator_display_name": "Test User",
         }
         responses = [
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": "opt1"}, "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": "opt1"}, "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": "opt2"}, "created_at": now},
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": "opt1"},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": "opt1"},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": "opt2"},
+                "created_at": now,
+            },
         ]
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 3)),
-            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
-                  return_value=responses),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 3),
+            ),
+            patch(
+                "app.services.form.form_repo.find_all_responses",
+                new_callable=AsyncMock,
+                return_value=responses,
+            ),
         ):
             result = await get_form_stats(form_id)
 
@@ -1897,17 +1918,33 @@ class TestFormStatsService:
             "creator_display_name": "Test User",
         }
         responses = [
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": ["opt1", "opt2"]}, "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": ["opt2", "opt3"]}, "created_at": now},
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": ["opt1", "opt2"]},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": ["opt2", "opt3"]},
+                "created_at": now,
+            },
         ]
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 2)),
-            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
-                  return_value=responses),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 2),
+            ),
+            patch(
+                "app.services.form.form_repo.find_all_responses",
+                new_callable=AsyncMock,
+                return_value=responses,
+            ),
         ):
             result = await get_form_stats(form_id)
 
@@ -1935,9 +1972,7 @@ class TestFormStatsService:
             "banner_url": None,
             "deadline": None,
             "max_respondents": None,
-            "questions": [
-                {"id": "q1", "type": "rating", "label": "Rate", "min": 1, "max": 5}
-            ],
+            "questions": [{"id": "q1", "type": "rating", "label": "Rate", "min": 1, "max": 5}],
             "is_schema_locked": False,
             "allow_non_members": False,
             "is_deleted": False,
@@ -1946,19 +1981,40 @@ class TestFormStatsService:
             "creator_display_name": "Test User",
         }
         responses = [
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": 3}, "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": 5}, "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": 4}, "created_at": now},
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": 3},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": 5},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": 4},
+                "created_at": now,
+            },
         ]
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 3)),
-            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
-                  return_value=responses),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 3),
+            ),
+            patch(
+                "app.services.form.form_repo.find_all_responses",
+                new_callable=AsyncMock,
+                return_value=responses,
+            ),
         ):
             result = await get_form_stats(form_id)
 
@@ -1985,9 +2041,7 @@ class TestFormStatsService:
             "banner_url": None,
             "deadline": None,
             "max_respondents": None,
-            "questions": [
-                {"id": "q1", "type": "text", "label": "Name"}
-            ],
+            "questions": [{"id": "q1", "type": "text", "label": "Name"}],
             "is_schema_locked": False,
             "allow_non_members": False,
             "is_deleted": False,
@@ -1996,19 +2050,40 @@ class TestFormStatsService:
             "creator_display_name": "Test User",
         }
         responses = [
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": "Alice"}, "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": ""}, "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": "Bob"}, "created_at": now},
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": "Alice"},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": ""},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": "Bob"},
+                "created_at": now,
+            },
         ]
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 3)),
-            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
-                  return_value=responses),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 3),
+            ),
+            patch(
+                "app.services.form.form_repo.find_all_responses",
+                new_callable=AsyncMock,
+                return_value=responses,
+            ),
         ):
             result = await get_form_stats(form_id)
 
@@ -2030,9 +2105,7 @@ class TestFormStatsService:
             "banner_url": None,
             "deadline": None,
             "max_respondents": None,
-            "questions": [
-                {"id": "q1", "type": "file_upload", "label": "Upload"}
-            ],
+            "questions": [{"id": "q1", "type": "file_upload", "label": "Upload"}],
             "is_schema_locked": False,
             "allow_non_members": False,
             "is_deleted": False,
@@ -2041,18 +2114,33 @@ class TestFormStatsService:
             "creator_display_name": "Test User",
         }
         responses = [
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": {"key": "files/abc.pdf", "filename": "abc.pdf"}},
-             "created_at": now},
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": None}, "created_at": now},
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": {"key": "files/abc.pdf", "filename": "abc.pdf"}},
+                "created_at": now,
+            },
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": None},
+                "created_at": now,
+            },
         ]
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 2)),
-            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
-                  return_value=responses),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 2),
+            ),
+            patch(
+                "app.services.form.form_repo.find_all_responses",
+                new_callable=AsyncMock,
+                return_value=responses,
+            ),
         ):
             result = await get_form_stats(form_id)
 
@@ -2095,10 +2183,16 @@ class TestFormStatsService:
         }
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 0)),
-            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
-                  return_value=[]),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 0),
+            ),
+            patch(
+                "app.services.form.form_repo.find_all_responses",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
             result = await get_form_stats(form_id)
 
@@ -2117,8 +2211,9 @@ class TestFormStatsService:
 
         form_id = uuid.uuid4()
 
-        with patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                    return_value=(None, 0)):
+        with patch(
+            "app.services.form.form_repo.find_by_id", new_callable=AsyncMock, return_value=(None, 0)
+        ):
             with pytest.raises(ValueError, match="Form not found"):
                 await get_form_stats(form_id)
 
@@ -2264,8 +2359,11 @@ class TestGetUserResponseService:
             "created_at": now,
         }
 
-        with patch("app.services.form.form_repo.find_user_response",
-                    new_callable=AsyncMock, return_value=response_row):
+        with patch(
+            "app.services.form.form_repo.find_user_response",
+            new_callable=AsyncMock,
+            return_value=response_row,
+        ):
             result = await get_user_response(form_id, user_id)
 
         assert result is not None
@@ -2282,8 +2380,11 @@ class TestGetUserResponseService:
         form_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
 
-        with patch("app.services.form.form_repo.find_user_response",
-                    new_callable=AsyncMock, return_value=None):
+        with patch(
+            "app.services.form.form_repo.find_user_response",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await get_user_response(form_id, user_id)
 
         assert result is None
@@ -2304,8 +2405,11 @@ class TestGetUserResponseService:
             "created_at": now,
         }
 
-        with patch("app.services.form.form_repo.find_user_response",
-                    new_callable=AsyncMock, return_value=response_row):
+        with patch(
+            "app.services.form.form_repo.find_user_response",
+            new_callable=AsyncMock,
+            return_value=response_row,
+        ):
             result = await get_user_response(form_id, user_id)
 
         assert result is not None
@@ -2342,10 +2446,16 @@ class TestGetFormByIdService:
         }
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 5)),
-            patch("app.services.form.form_repo.has_user_responded", new_callable=AsyncMock,
-                  return_value=True),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 5),
+            ),
+            patch(
+                "app.services.form.form_repo.has_user_responded",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
         ):
             result = await get_form_by_id(form_id, user_id=user_id)
 
@@ -2378,8 +2488,11 @@ class TestGetFormByIdService:
             "creator_display_name": "Test User",
         }
 
-        with patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                    return_value=(form_row, 0)):
+        with patch(
+            "app.services.form.form_repo.find_by_id",
+            new_callable=AsyncMock,
+            return_value=(form_row, 0),
+        ):
             result = await get_form_by_id(form_id)
 
         assert result is not None
@@ -2392,8 +2505,9 @@ class TestGetFormByIdService:
 
         form_id = uuid.uuid4()
 
-        with patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                    return_value=(None, 0)):
+        with patch(
+            "app.services.form.form_repo.find_by_id", new_callable=AsyncMock, return_value=(None, 0)
+        ):
             result = await get_form_by_id(form_id, user_id=str(uuid.uuid4()))
 
         assert result is None
@@ -2437,15 +2551,26 @@ class TestFormStatsDropdownType:
             "creator_display_name": "Test User",
         }
         responses = [
-            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
-             "answers": {"q1": "opt1"}, "created_at": now},
+            {
+                "id": uuid.uuid4(),
+                "form_id": form_id,
+                "user_id": uuid.uuid4(),
+                "answers": {"q1": "opt1"},
+                "created_at": now,
+            },
         ]
 
         with (
-            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
-                  return_value=(form_row, 1)),
-            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
-                  return_value=responses),
+            patch(
+                "app.services.form.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 1),
+            ),
+            patch(
+                "app.services.form.form_repo.find_all_responses",
+                new_callable=AsyncMock,
+                return_value=responses,
+            ),
         ):
             result = await get_form_stats(form_id)
 

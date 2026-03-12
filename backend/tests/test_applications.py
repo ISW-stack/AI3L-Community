@@ -510,9 +510,7 @@ class TestReviewApplicationActionValidation:
                 new_callable=AsyncMock,
             ),
         ):
-            result = await review_application(
-                app_id, reviewer_id, "APPROVED"
-            )
+            result = await review_application(app_id, reviewer_id, "APPROVED")
             assert result is not None
             assert result["status"] == "APPROVED"
 
@@ -537,8 +535,6 @@ class TestReviewApplicationActionValidation:
                 new_callable=AsyncMock,
             ),
         ):
-            result = await review_application(
-                app_id, reviewer_id, "REJECTED"
-            )
+            result = await review_application(app_id, reviewer_id, "REJECTED")
             assert result is not None
             assert result["status"] == "REJECTED"

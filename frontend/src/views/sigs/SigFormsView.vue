@@ -204,6 +204,7 @@ const filteredCount = computed(() => filteredResponses.value.length)
 
 // ── Feature 3: Export UX Improvement ──
 const exporting = ref(false)
+const exportingFormId = ref<string | null>(null)
 const exportElapsed = ref(0)
 let exportTimerInterval: ReturnType<typeof setInterval> | null = null
 const exportCancelled = ref(false)
@@ -227,7 +228,58 @@ function stopExportTimer() {
 function cancelExport() {
   exportCancelled.value = true
   exporting.value = false
+  exportingFormId.value = null
   stopExportTimer()
+}
+
+async function startExport(formId: string): Promise<void> {
+  exportingFormId.value = formId
+  exporting.value = true
+  startExportTimer()
+  try {
+    const data = await exportForm(formId)
+    let attempts = 0
+    const pollTimer = setInterval(async () => {
+      if (exportCancelled.value) {
+        clearInterval(pollTimer)
+        return
+      }
+      attempts++
+      if (attempts > 60) {
+        clearInterval(pollTimer)
+        stopExportTimer()
+        exporting.value = false
+        exportingFormId.value = null
+        toastStore.show(t('forms.view.exportTimeout'), 'error')
+        return
+      }
+      try {
+        const status = await getTaskStatus(data.task_id)
+        if (status.status === 'SUCCESS' && status.download_url) {
+          clearInterval(pollTimer)
+          stopExportTimer()
+          exporting.value = false
+          exportingFormId.value = null
+          window.open(status.download_url, '_blank')
+        } else if (status.status === 'FAILURE') {
+          clearInterval(pollTimer)
+          stopExportTimer()
+          exporting.value = false
+          exportingFormId.value = null
+          toastStore.show(t('forms.view.exportFailed'), 'error')
+        }
+      } catch {
+        /* continue polling */
+      }
+    }, 1000)
+  } catch (e: unknown) {
+    if (!exportCancelled.value) {
+      toastStore.show(getErrorMessage(e, t('forms.view.exportError')), 'error')
+    }
+    exporting.value = false
+    exportingFormId.value = null
+    stopExportTimer()
+  }
 }
 
 function resolveQuestionLabel(questionId: string): string {
@@ -364,17 +416,11 @@ onUnmounted(() => {
             v-if="isDescriptionTruncated(f.id) || isDescriptionExpanded(f.id)"
             class="text-xs text-brand-600 hover:text-brand-700 font-medium mt-1"
             :aria-label="
-              isDescriptionExpanded(f.id)
-                ? t('sigs.forms.showLess')
-                : t('sigs.forms.showMore')
+              isDescriptionExpanded(f.id) ? t('sigs.forms.showLess') : t('sigs.forms.showMore')
             "
             @click="toggleDescription(f.id)"
           >
-            {{
-              isDescriptionExpanded(f.id)
-                ? t('sigs.forms.showLess')
-                : t('sigs.forms.showMore')
-            }}
+            {{ isDescriptionExpanded(f.id) ? t('sigs.forms.showLess') : t('sigs.forms.showMore') }}
           </button>
         </div>
 
@@ -431,7 +477,11 @@ onUnmounted(() => {
               :disabled="exportingFormId !== null"
               class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ exportingFormId === f.id ? t('forms.view.exportStarting') : t('forms.view.exportCSVBtn') }}
+              {{
+                exportingFormId === f.id
+                  ? t('forms.view.exportStarting')
+                  : t('forms.view.exportCSVBtn')
+              }}
             </button>
             <button
               v-if="f.created_by === auth.user?.id || auth.isAdmin"
@@ -455,9 +505,7 @@ onUnmounted(() => {
         {{ deleteWarningMessage }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="cancelDelete">{{
-          t('common.cancel')
-        }}</BaseButton>
+        <BaseButton variant="secondary" @click="cancelDelete">{{ t('common.cancel') }}</BaseButton>
         <BaseButton variant="danger" @click="handleDeleteForm">{{
           t('sigs.forms.deleteConfirm.confirmBtn')
         }}</BaseButton>
@@ -530,18 +578,14 @@ onUnmounted(() => {
               </div>
             </div>
             <p class="text-xs text-muted">
-              {{ t('sigs.forms.filteredCount', { shown: filteredCount, total: allResponses.length }) }}
+              {{
+                t('sigs.forms.filteredCount', { shown: filteredCount, total: allResponses.length })
+              }}
             </p>
           </div>
 
-          <EmptyState
-            v-if="allResponses.length === 0"
-            :message="t('sigs.forms.noResponses')"
-          />
-          <EmptyState
-            v-else-if="filteredResponses.length === 0"
-            :message="t('common.noResults')"
-          />
+          <EmptyState v-if="allResponses.length === 0" :message="t('sigs.forms.noResponses')" />
+          <EmptyState v-else-if="filteredResponses.length === 0" :message="t('common.noResults')" />
           <div v-else class="max-h-[60vh] overflow-y-auto pr-2 space-y-4">
             <div
               v-for="resp in filteredResponses"
@@ -578,10 +622,7 @@ onUnmounted(() => {
 
         <!-- Feature 1: Statistics Tab -->
         <div v-if="responsesTab === 'statistics'">
-          <EmptyState
-            v-if="allResponses.length === 0"
-            :message="t('sigs.forms.noResponses')"
-          />
+          <EmptyState v-if="allResponses.length === 0" :message="t('sigs.forms.noResponses')" />
           <div v-else class="max-h-[60vh] overflow-y-auto pr-2 space-y-6">
             <p class="text-sm text-muted">
               {{ t('sigs.forms.statsTotal', { count: responsesTotal }) }}

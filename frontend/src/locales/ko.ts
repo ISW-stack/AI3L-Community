@@ -560,13 +560,15 @@ export default {
       statsUploads: '{count}개 업로드',
       exportTitle: '내보내기 중',
       exportProgress: '내보내기 중... ({seconds}초 경과)',
-      exportTimeoutHint: '내보내기가 예상보다 오래 걸리고 있습니다. 취소하고 다시 시도할 수 있습니다.',
+      exportTimeoutHint:
+        '내보내기가 예상보다 오래 걸리고 있습니다. 취소하고 다시 시도할 수 있습니다.',
       deleteConfirm: {
         title: '양식을 삭제하시겠습니까?',
         message:
           '이 양식을 정말로 삭제하시겠습니까? 관련된 모든 필드와 응답이 영구적으로 삭제됩니다.',
         messageNoResponses: '이 양식에는 응답이 없습니다. 삭제하시겠습니까?',
-        messageWithCount: '이 양식을 정말로 삭제하시겠습니까? {count}개의 응답과 모든 관련 데이터가 영구적으로 삭제됩니다.',
+        messageWithCount:
+          '이 양식을 정말로 삭제하시겠습니까? {count}개의 응답과 모든 관련 데이터가 영구적으로 삭제됩니다.',
         confirmBtn: '삭제 확인',
       },
       deleteSuccess: '양식이 삭제되었습니다.',

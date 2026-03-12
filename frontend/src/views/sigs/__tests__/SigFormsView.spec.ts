@@ -790,7 +790,9 @@ describe('SigFormsView', () => {
     await nextTick()
 
     expect(wrapper.find('.base-modal').exists()).toBe(true)
-    expect(wrapper.text()).toContain('This form has no responses. Are you sure you want to delete it?')
+    expect(wrapper.text()).toContain(
+      'This form has no responses. Are you sure you want to delete it?',
+    )
   })
 
   it('delete modal shows response count when form has responses', async () => {
