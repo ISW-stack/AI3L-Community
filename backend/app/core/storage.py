@@ -10,11 +10,12 @@ from loguru import logger
 from app.core.config import settings
 
 _s3_client = None
+_s3_presign_client = None  # Client using public URL endpoint for presigned URLs
 
 
 def init_storage() -> None:
     """Initialize MinIO/S3 client and ensure bucket exists."""
-    global _s3_client
+    global _s3_client, _s3_presign_client
     endpoint_url = f"{'https' if settings.MINIO_USE_SSL else 'http'}://{settings.MINIO_ENDPOINT}"
 
     _s3_client = boto3.client(
@@ -25,6 +26,17 @@ def init_storage() -> None:
         config=BotoConfig(signature_version="s3v4"),
         region_name="us-east-1",
     )
+
+    # Presign client uses the public URL so the HMAC host matches what the browser sees
+    if settings.MINIO_PUBLIC_URL:
+        _s3_presign_client = boto3.client(
+            "s3",
+            endpoint_url=settings.MINIO_PUBLIC_URL.rstrip("/"),
+            aws_access_key_id=settings.MINIO_ROOT_USER,
+            aws_secret_access_key=settings.MINIO_ROOT_PASSWORD,
+            config=BotoConfig(signature_version="s3v4"),
+            region_name="us-east-1",
+        )
 
     # Ensure bucket exists
     bucket = settings.MINIO_BUCKET_NAME
@@ -44,10 +56,13 @@ def get_storage() -> Any:
 
 def close_storage() -> None:
     """Close the boto3 S3 client and release its resources."""
-    global _s3_client
+    global _s3_client, _s3_presign_client
     if _s3_client is not None:
         _s3_client.close()
         _s3_client = None
+    if _s3_presign_client is not None:
+        _s3_presign_client.close()
+        _s3_presign_client = None
 
 
 def upload_file(data: bytes, key: str, content_type: str) -> str:
@@ -67,30 +82,18 @@ def upload_file(data: bytes, key: str, content_type: str) -> str:
 def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
     """Generate presigned download URL.
 
-    If MINIO_PUBLIC_URL is set, the internal Docker hostname in the presigned URL
-    is rewritten to the public URL so browsers can reach MinIO directly.
+    When MINIO_PUBLIC_URL is set, uses a client configured with that endpoint so
+    the HMAC signature is computed against the public host (e.g. localhost:19000).
+    Rewriting the host after signing would break the signature.
     """
-    client = get_storage()
-    url = str(
+    client = _s3_presign_client if _s3_presign_client is not None else get_storage()
+    return str(
         client.generate_presigned_url(
             "get_object",
             Params={"Bucket": settings.MINIO_BUCKET_NAME, "Key": key},
             ExpiresIn=expires_in,
         )
     )
-    if settings.MINIO_PUBLIC_URL:
-        from urllib.parse import urlparse, urlunparse
-
-        parsed = urlparse(url)
-        public_parsed = urlparse(settings.MINIO_PUBLIC_URL.rstrip("/"))
-        safe_url = urlunparse(
-            parsed._replace(
-                scheme=public_parsed.scheme,
-                netloc=public_parsed.netloc,
-            )
-        )
-        url = safe_url
-    return url
 
 
 def download_file(key: str) -> tuple[bytes, str]:
