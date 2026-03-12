@@ -1363,3 +1363,1093 @@ class TestGetFormAccessControl:
                 assert resp.status_code == 200
         finally:
             _clear_overrides()
+
+
+# ──────────────────────────────────────────────────────────────────────
+# NEW TESTS: my-response, stats, has_responded, response_count
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestGetMyResponse:
+    """GET /forms/{form_id}/my-response tests."""
+
+    @pytest.mark.anyio
+    async def test_my_response_success(self, client) -> None:
+        """GET /forms/{form_id}/my-response → 200 when user has responded."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form = _make_form()
+        form["id"] = str(form_id)
+        now = datetime.now(timezone.utc).isoformat()
+        user_response = {
+            "id": str(uuid.uuid4()),
+            "form_id": str(form_id),
+            "user_id": user_id,
+            "answers": {"q1": "My answer"},
+            "created_at": now,
+        }
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+                patch(
+                    f"{_EP}.get_user_response",
+                    new_callable=AsyncMock,
+                    return_value=user_response,
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/my-response",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["form_id"] == str(form_id)
+                assert data["user_id"] == user_id
+                assert data["answers"] == {"q1": "My answer"}
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_my_response_not_found(self, client) -> None:
+        """GET /forms/{form_id}/my-response → 404 when user has not responded."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+                patch(
+                    f"{_EP}.get_user_response",
+                    new_callable=AsyncMock,
+                    return_value=None,
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/my-response",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "no response" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_my_response_form_not_found(self, client) -> None:
+        """GET /forms/{form_id}/my-response → 404 when form does not exist."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=None):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/my-response",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "form not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_my_response_returns_correct_schema(self, client) -> None:
+        """GET /forms/{form_id}/my-response returns all required fields."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        response_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        form = _make_form()
+        form["id"] = str(form_id)
+        user_response = {
+            "id": response_id,
+            "form_id": str(form_id),
+            "user_id": user_id,
+            "answers": {"q1": "Answer", "q2": ["opt1", "opt2"]},
+            "created_at": now,
+        }
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+                patch(
+                    f"{_EP}.get_user_response",
+                    new_callable=AsyncMock,
+                    return_value=user_response,
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/my-response",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["id"] == response_id
+                assert data["form_id"] == str(form_id)
+                assert data["user_id"] == user_id
+                assert data["answers"]["q2"] == ["opt1", "opt2"]
+                assert data["created_at"] == now
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_my_response_non_member_gets_403(self, client) -> None:
+        """GET /forms/{form_id}/my-response → 403 when allow_non_members=False and user is not a SIG member."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        # Form restricts to SIG members only
+        form = _make_form(allow_non_members=False)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value=None,
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/my-response",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "sig members" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestGetFormStats:
+    """GET /forms/{form_id}/stats tests."""
+
+    @pytest.mark.anyio
+    async def test_stats_success_as_admin(self, client) -> None:
+        """GET /forms/{form_id}/stats → 200 for SIG admin."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+        stats = {
+            "form_id": str(form_id),
+            "total_responses": 5,
+            "question_stats": [
+                {
+                    "question_id": "q1",
+                    "question_type": "text",
+                    "question_label": "Name",
+                    "stats": {"count": 5},
+                }
+            ],
+        }
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/stats",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["form_id"] == str(form_id)
+                assert data["total_responses"] == 5
+                assert len(data["question_stats"]) == 1
+                assert data["question_stats"][0]["question_id"] == "q1"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_stats_success_as_creator(self, client) -> None:
+        """GET /forms/{form_id}/stats → 200 for form creator (non-admin)."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form = _make_form(creator_id=user_id)
+        form["id"] = str(form_id)
+        stats = {
+            "form_id": str(form_id),
+            "total_responses": 3,
+            "question_stats": [],
+        }
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/stats",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["total_responses"] == 3
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_stats_forbidden_non_admin_non_creator(self, client) -> None:
+        """GET /forms/{form_id}/stats → 403 for non-admin, non-creator."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        creator_id = str(uuid.uuid4())
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/stats",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "creator or admin" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_stats_form_not_found(self, client) -> None:
+        """GET /forms/{form_id}/stats → 404 when form does not exist."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=None),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/stats",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                assert "form not found" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_stats_with_choice_questions(self, client) -> None:
+        """GET /forms/{form_id}/stats returns option counts and percentages."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+        stats = {
+            "form_id": str(form_id),
+            "total_responses": 10,
+            "question_stats": [
+                {
+                    "question_id": "q1",
+                    "question_type": "single_choice",
+                    "question_label": "Favorite color",
+                    "stats": {
+                        "options": [
+                            {
+                                "option_id": "opt1",
+                                "option_label": "Red",
+                                "count": 6,
+                                "percentage": 60.0,
+                            },
+                            {
+                                "option_id": "opt2",
+                                "option_label": "Blue",
+                                "count": 4,
+                                "percentage": 40.0,
+                            },
+                        ]
+                    },
+                }
+            ],
+        }
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/stats",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                opts = data["question_stats"][0]["stats"]["options"]
+                assert len(opts) == 2
+                assert opts[0]["count"] == 6
+                assert opts[0]["percentage"] == 60.0
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_stats_with_rating_question(self, client) -> None:
+        """GET /forms/{form_id}/stats returns rating avg/min/max/distribution."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+        stats = {
+            "form_id": str(form_id),
+            "total_responses": 3,
+            "question_stats": [
+                {
+                    "question_id": "q1",
+                    "question_type": "rating",
+                    "question_label": "Rate us",
+                    "stats": {
+                        "average": 3.67,
+                        "min": 2,
+                        "max": 5,
+                        "count": 3,
+                        "distribution": {"2": 1, "4": 1, "5": 1},
+                    },
+                }
+            ],
+        }
+
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/stats",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                rating_stats = data["question_stats"][0]["stats"]
+                assert rating_stats["average"] == 3.67
+                assert rating_stats["min"] == 2
+                assert rating_stats["max"] == 5
+                assert rating_stats["count"] == 3
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_stats_forbidden_for_regular_user(self, client) -> None:
+        """GET /forms/{form_id}/stats → 403 for a MEMBER who is neither creator nor SIG admin."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        creator_id = str(uuid.uuid4())
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}/stats",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "creator or admin" in resp.json()["detail"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_stats_requires_authentication(self, client) -> None:
+        """GET /forms/{form_id}/stats → 401 for unauthenticated request."""
+        form_id = uuid.uuid4()
+        # No _override_auth — no valid session cookie or token
+        resp = await client.get(f"/api/v1/forms/{form_id}/stats")
+        assert resp.status_code in (401, 403)
+
+
+class TestFormStatsService:
+    """Unit tests for the get_form_stats service function."""
+
+    @pytest.mark.anyio
+    async def test_stats_single_choice(self) -> None:
+        """get_form_stats correctly counts single_choice answers."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [
+                {
+                    "id": "q1",
+                    "type": "single_choice",
+                    "label": "Pick one",
+                    "options": [
+                        {"id": "opt1", "label": "A"},
+                        {"id": "opt2", "label": "B"},
+                    ],
+                }
+            ],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+        responses = [
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": "opt1"}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": "opt1"}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": "opt2"}, "created_at": now},
+        ]
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 3)),
+            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
+                  return_value=responses),
+        ):
+            result = await get_form_stats(form_id)
+
+        assert result["total_responses"] == 3
+        opts = result["question_stats"][0]["stats"]["options"]
+        opt1 = next(o for o in opts if o["option_id"] == "opt1")
+        opt2 = next(o for o in opts if o["option_id"] == "opt2")
+        assert opt1["count"] == 2
+        assert opt1["percentage"] == 66.7
+        assert opt2["count"] == 1
+        assert opt2["percentage"] == 33.3
+
+    @pytest.mark.anyio
+    async def test_stats_multiple_choice(self) -> None:
+        """get_form_stats correctly counts multiple_choice answers."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [
+                {
+                    "id": "q1",
+                    "type": "multiple_choice",
+                    "label": "Select all",
+                    "options": [
+                        {"id": "opt1", "label": "A"},
+                        {"id": "opt2", "label": "B"},
+                        {"id": "opt3", "label": "C"},
+                    ],
+                }
+            ],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+        responses = [
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": ["opt1", "opt2"]}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": ["opt2", "opt3"]}, "created_at": now},
+        ]
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 2)),
+            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
+                  return_value=responses),
+        ):
+            result = await get_form_stats(form_id)
+
+        opts = result["question_stats"][0]["stats"]["options"]
+        opt1 = next(o for o in opts if o["option_id"] == "opt1")
+        opt2 = next(o for o in opts if o["option_id"] == "opt2")
+        opt3 = next(o for o in opts if o["option_id"] == "opt3")
+        assert opt1["count"] == 1
+        assert opt2["count"] == 2
+        assert opt3["count"] == 1
+
+    @pytest.mark.anyio
+    async def test_stats_rating(self) -> None:
+        """get_form_stats correctly computes rating avg/min/max/distribution."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [
+                {"id": "q1", "type": "rating", "label": "Rate", "min": 1, "max": 5}
+            ],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+        responses = [
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": 3}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": 5}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": 4}, "created_at": now},
+        ]
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 3)),
+            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
+                  return_value=responses),
+        ):
+            result = await get_form_stats(form_id)
+
+        stats = result["question_stats"][0]["stats"]
+        assert stats["average"] == 4.0
+        assert stats["min"] == 3
+        assert stats["max"] == 5
+        assert stats["count"] == 3
+        assert stats["distribution"] == {3: 1, 4: 1, 5: 1}
+
+    @pytest.mark.anyio
+    async def test_stats_text_count(self) -> None:
+        """get_form_stats correctly counts text/textarea responses."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [
+                {"id": "q1", "type": "text", "label": "Name"}
+            ],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+        responses = [
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": "Alice"}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": ""}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": "Bob"}, "created_at": now},
+        ]
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 3)),
+            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
+                  return_value=responses),
+        ):
+            result = await get_form_stats(form_id)
+
+        assert result["question_stats"][0]["stats"]["count"] == 2
+
+    @pytest.mark.anyio
+    async def test_stats_file_upload_count(self) -> None:
+        """get_form_stats correctly counts file_upload responses."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [
+                {"id": "q1", "type": "file_upload", "label": "Upload"}
+            ],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+        responses = [
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": {"key": "files/abc.pdf", "filename": "abc.pdf"}},
+             "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": None}, "created_at": now},
+        ]
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 2)),
+            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
+                  return_value=responses),
+        ):
+            result = await get_form_stats(form_id)
+
+        assert result["question_stats"][0]["stats"]["count"] == 1
+
+    @pytest.mark.anyio
+    async def test_stats_empty_responses(self) -> None:
+        """get_form_stats returns zeros when no responses exist."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [
+                {
+                    "id": "q1",
+                    "type": "single_choice",
+                    "label": "Pick",
+                    "options": [
+                        {"id": "opt1", "label": "A"},
+                        {"id": "opt2", "label": "B"},
+                    ],
+                },
+                {"id": "q2", "type": "rating", "label": "Rate", "min": 1, "max": 5},
+            ],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 0)),
+            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
+                  return_value=[]),
+        ):
+            result = await get_form_stats(form_id)
+
+        assert result["total_responses"] == 0
+        choice_stats = result["question_stats"][0]["stats"]
+        assert all(o["count"] == 0 for o in choice_stats["options"])
+        assert all(o["percentage"] == 0.0 for o in choice_stats["options"])
+        rating_stats = result["question_stats"][1]["stats"]
+        assert rating_stats["average"] == 0.0
+        assert rating_stats["count"] == 0
+
+    @pytest.mark.anyio
+    async def test_stats_form_not_found_raises(self) -> None:
+        """get_form_stats raises ValueError when form does not exist."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+
+        with patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                    return_value=(None, 0)):
+            with pytest.raises(ValueError, match="Form not found"):
+                await get_form_stats(form_id)
+
+
+class TestFormHasResponded:
+    """GET /forms/{form_id} includes has_responded field."""
+
+    @pytest.mark.anyio
+    async def test_get_form_includes_has_responded_true(self, client) -> None:
+        """GET /forms/{form_id} → has_responded=true when user has responded."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+        form["has_responded"] = True
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["has_responded"] is True
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_get_form_includes_has_responded_false(self, client) -> None:
+        """GET /forms/{form_id} → has_responded=false when user has not responded."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+        form["has_responded"] = False
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["has_responded"] is False
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_get_form_passes_user_id(self, client) -> None:
+        """GET /forms/{form_id} passes current user_id to get_form_by_id."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form = _make_form()
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(
+                    f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form
+                ) as mock_get,
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                mock_get.assert_called_once_with(form_id, user_id=user_id)
+        finally:
+            _clear_overrides()
+
+
+class TestFormResponseCount:
+    """Verify response_count is already included in form detail response."""
+
+    @pytest.mark.anyio
+    async def test_get_form_includes_response_count(self, client) -> None:
+        """GET /forms/{form_id} → response body includes response_count field."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+        form["response_count"] = 42
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/forms/{form_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["response_count"] == 42
+        finally:
+            _clear_overrides()
+
+
+class TestGetUserResponseService:
+    """Unit tests for the get_user_response service function."""
+
+    @pytest.mark.anyio
+    async def test_get_user_response_found(self) -> None:
+        """get_user_response returns formatted dict when response exists."""
+        from app.services.form import get_user_response
+
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        response_row = {
+            "id": uuid.uuid4(),
+            "form_id": form_id,
+            "user_id": uuid.UUID(user_id),
+            "answers": {"q1": "Answer"},
+            "created_at": now,
+        }
+
+        with patch("app.services.form.form_repo.find_user_response",
+                    new_callable=AsyncMock, return_value=response_row):
+            result = await get_user_response(form_id, user_id)
+
+        assert result is not None
+        assert result["form_id"] == str(form_id)
+        assert result["user_id"] == user_id
+        assert result["answers"] == {"q1": "Answer"}
+        assert result["created_at"] == now.isoformat()
+
+    @pytest.mark.anyio
+    async def test_get_user_response_not_found(self) -> None:
+        """get_user_response returns None when no response exists."""
+        from app.services.form import get_user_response
+
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        with patch("app.services.form.form_repo.find_user_response",
+                    new_callable=AsyncMock, return_value=None):
+            result = await get_user_response(form_id, user_id)
+
+        assert result is None
+
+    @pytest.mark.anyio
+    async def test_get_user_response_parses_json_string(self) -> None:
+        """get_user_response handles answers stored as JSON string."""
+        from app.services.form import get_user_response
+
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        response_row = {
+            "id": uuid.uuid4(),
+            "form_id": form_id,
+            "user_id": uuid.UUID(user_id),
+            "answers": '{"q1": "Answer"}',
+            "created_at": now,
+        }
+
+        with patch("app.services.form.form_repo.find_user_response",
+                    new_callable=AsyncMock, return_value=response_row):
+            result = await get_user_response(form_id, user_id)
+
+        assert result is not None
+        assert result["answers"] == {"q1": "Answer"}
+
+
+class TestGetFormByIdService:
+    """Unit tests for get_form_by_id with user_id parameter."""
+
+    @pytest.mark.anyio
+    async def test_get_form_by_id_with_user_id(self) -> None:
+        """get_form_by_id includes has_responded when user_id is provided."""
+        from app.services.form import get_form_by_id
+
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 5)),
+            patch("app.services.form.form_repo.has_user_responded", new_callable=AsyncMock,
+                  return_value=True),
+        ):
+            result = await get_form_by_id(form_id, user_id=user_id)
+
+        assert result is not None
+        assert result["has_responded"] is True
+        assert result["response_count"] == 5
+
+    @pytest.mark.anyio
+    async def test_get_form_by_id_without_user_id(self) -> None:
+        """get_form_by_id omits has_responded when user_id is None."""
+        from app.services.form import get_form_by_id
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+
+        with patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                    return_value=(form_row, 0)):
+            result = await get_form_by_id(form_id)
+
+        assert result is not None
+        assert "has_responded" not in result
+
+    @pytest.mark.anyio
+    async def test_get_form_by_id_not_found(self) -> None:
+        """get_form_by_id returns None when form does not exist."""
+        from app.services.form import get_form_by_id
+
+        form_id = uuid.uuid4()
+
+        with patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                    return_value=(None, 0)):
+            result = await get_form_by_id(form_id, user_id=str(uuid.uuid4()))
+
+        assert result is None
+
+
+class TestFormStatsDropdownType:
+    """Verify dropdown question type is treated like single_choice in stats."""
+
+    @pytest.mark.anyio
+    async def test_stats_dropdown(self) -> None:
+        """get_form_stats correctly counts dropdown answers."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [
+                {
+                    "id": "q1",
+                    "type": "dropdown",
+                    "label": "Select",
+                    "options": [
+                        {"id": "opt1", "label": "X"},
+                        {"id": "opt2", "label": "Y"},
+                    ],
+                }
+            ],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+        responses = [
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(),
+             "answers": {"q1": "opt1"}, "created_at": now},
+        ]
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock,
+                  return_value=(form_row, 1)),
+            patch("app.services.form.form_repo.find_all_responses", new_callable=AsyncMock,
+                  return_value=responses),
+        ):
+            result = await get_form_stats(form_id)
+
+        opts = result["question_stats"][0]["stats"]["options"]
+        opt1 = next(o for o in opts if o["option_id"] == "opt1")
+        assert opt1["count"] == 1
+        assert opt1["percentage"] == 100.0

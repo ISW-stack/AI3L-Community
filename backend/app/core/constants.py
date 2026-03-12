@@ -52,5 +52,6 @@ RATE_LIMIT_CAPTCHA = _rate_limit("CAPTCHA", 20, 60)
 RATE_LIMIT_FILE_UPLOAD = _rate_limit("FILE_UPLOAD", 10, 60)
 RATE_LIMIT_FORM_SUBMIT = _rate_limit("FORM_SUBMIT", 5, 60)
 RATE_LIMIT_FORM_EXPORT = _rate_limit("FORM_EXPORT", 1, 300)  # 1 per 5 min per form
+RATE_LIMIT_FORM_STATS = _rate_limit("FORM_STATS", 10, 60)  # 10 per min per user per form
 RATE_LIMIT_INVITE_GEN = _rate_limit("INVITE_GEN", 5, 3600)
 RATE_LIMIT_INVITE_VERIFY = _rate_limit("INVITE_VERIFY", 30, 60)

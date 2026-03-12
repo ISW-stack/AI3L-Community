@@ -42,11 +42,144 @@ async def create_form(
     return row_to_form(result, 0)
 
 
-async def get_form_by_id(form_id: uuid.UUID) -> dict | None:
+async def get_form_by_id(
+    form_id: uuid.UUID, user_id: str | None = None
+) -> dict | None:
     row, response_count = await form_repo.find_by_id(form_id)
     if not row:
         return None
-    return row_to_form(row, response_count)
+    result = row_to_form(row, response_count)
+    if user_id is not None:
+        has_responded = await form_repo.has_user_responded(form_id, uuid.UUID(user_id))
+        result["has_responded"] = has_responded
+    return result
+
+
+async def get_user_response(form_id: uuid.UUID, user_id: str) -> dict | None:
+    """Get a specific user's response to a form."""
+    response = await form_repo.find_user_response(form_id, uuid.UUID(user_id))
+    if not response:
+        return None
+    answers = response["answers"]
+    if isinstance(answers, str):
+        answers = json.loads(answers)
+    return {
+        "id": str(response["id"]),
+        "form_id": str(response["form_id"]),
+        "user_id": str(response["user_id"]),
+        "answers": answers,
+        "created_at": response["created_at"].isoformat(),
+    }
+
+
+async def get_form_stats(form_id: uuid.UUID) -> dict:
+    """Compute aggregated statistics for all responses to a form."""
+    row, _ = await form_repo.find_by_id(form_id)
+    if not row:
+        raise ValueError("Form not found.")
+
+    questions_raw = row.get("questions")
+    if isinstance(questions_raw, str):
+        questions = json.loads(questions_raw)
+    else:
+        questions = questions_raw or []
+
+    responses = await form_repo.find_all_responses(form_id)
+    total_responses = len(responses)
+
+    question_stats = []
+    for q in questions:
+        qid = q["id"]
+        qtype = q["type"]
+        qlabel = q["label"]
+        stats: dict = {}
+
+        if qtype in ("single_choice", "multiple_choice", "dropdown"):
+            # Count per option + percentage
+            option_counts: dict[str, int] = {}
+            option_labels: dict[str, str] = {}
+            for opt in q.get("options") or []:
+                option_counts[opt["id"]] = 0
+                option_labels[opt["id"]] = opt["label"]
+
+            for resp in responses:
+                answers = resp.get("answers", {})
+                value = answers.get(qid)
+                if value is None:
+                    continue
+                if qtype == "multiple_choice" and isinstance(value, list):
+                    for v in value:
+                        if v in option_counts:
+                            option_counts[v] += 1
+                elif isinstance(value, str) and value in option_counts:
+                    option_counts[value] += 1
+
+            option_stats = []
+            for opt_id, count in option_counts.items():
+                pct = (count / total_responses * 100) if total_responses > 0 else 0.0
+                option_stats.append(
+                    {
+                        "option_id": opt_id,
+                        "option_label": option_labels.get(opt_id, ""),
+                        "count": count,
+                        "percentage": round(pct, 1),
+                    }
+                )
+            stats["options"] = option_stats
+
+        elif qtype == "rating":
+            values = []
+            distribution: dict[int, int] = {}
+            for resp in responses:
+                answers = resp.get("answers", {})
+                value = answers.get(qid)
+                if isinstance(value, int) and not isinstance(value, bool):
+                    values.append(value)
+                    distribution[value] = distribution.get(value, 0) + 1
+
+            if values:
+                stats["average"] = round(sum(values) / len(values), 2)
+                stats["min"] = min(values)
+                stats["max"] = max(values)
+            else:
+                stats["average"] = 0.0
+                stats["min"] = 0
+                stats["max"] = 0
+            stats["count"] = len(values)
+            stats["distribution"] = distribution
+
+        elif qtype in ("text", "textarea"):
+            count = 0
+            for resp in responses:
+                answers = resp.get("answers", {})
+                value = answers.get(qid)
+                if value is not None and value != "":
+                    count += 1
+            stats["count"] = count
+
+        elif qtype == "file_upload":
+            count = 0
+            for resp in responses:
+                answers = resp.get("answers", {})
+                value = answers.get(qid)
+                if value is not None and isinstance(value, dict) and "key" in value:
+                    count += 1
+            stats["count"] = count
+
+        question_stats.append(
+            {
+                "question_id": qid,
+                "question_type": qtype,
+                "question_label": qlabel,
+                "stats": stats,
+            }
+        )
+
+    return {
+        "form_id": str(form_id),
+        "total_responses": total_responses,
+        "question_stats": question_stats,
+    }
 
 
 async def update_form(
