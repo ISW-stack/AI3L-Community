@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, inject, type Ref } from 'vue'
+import { ref, onMounted, onUnmounted, computed, inject, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
-import { deleteForm as deleteFormApi, listFormResponses, getForm } from '@/api/forms'
+import { deleteForm as deleteFormApi, listFormResponses, getForm, exportForm } from '@/api/forms'
+import { getTaskStatus } from '@/api/tasks'
 import { getErrorMessage } from '@/utils/error'
 import type { SigForm, FormResponse, Question, Sig } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -131,7 +132,62 @@ async function fetchResponses(formId: string, title: string, page = 1) {
   }
 }
 
+// Form CSV export
+const exportingFormId = ref<string | null>(null)
+let exportPollTimer: ReturnType<typeof setInterval> | null = null
+let isUnmounted = false
+
+async function startExport(formId: string) {
+  exportingFormId.value = formId
+  try {
+    const data = await exportForm(formId)
+    pollExportStatus(formId, data.task_id)
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('forms.view.exportError')), 'error')
+    exportingFormId.value = null
+  }
+}
+
+function pollExportStatus(formId: string, taskId: string) {
+  let attempts = 0
+  exportPollTimer = setInterval(async () => {
+    if (isUnmounted) {
+      clearInterval(exportPollTimer!)
+      exportPollTimer = null
+      return
+    }
+    attempts++
+    if (attempts > 30) {
+      clearInterval(exportPollTimer!)
+      exportPollTimer = null
+      exportingFormId.value = null
+      toastStore.show(t('forms.view.exportTimeout'), 'error')
+      return
+    }
+    try {
+      const data = await getTaskStatus(taskId)
+      if (data.status === 'SUCCESS' && data.download_url) {
+        clearInterval(exportPollTimer!)
+        exportPollTimer = null
+        exportingFormId.value = null
+        window.open(data.download_url, '_blank')
+      } else if (data.status === 'FAILURE') {
+        clearInterval(exportPollTimer!)
+        exportPollTimer = null
+        exportingFormId.value = null
+        toastStore.show(t('forms.view.exportFailed'), 'error')
+      }
+    } catch {
+      /* continue polling */
+    }
+  }, 2000)
+}
+
 onMounted(fetchForms)
+onUnmounted(() => {
+  isUnmounted = true
+  if (exportPollTimer) clearInterval(exportPollTimer)
+})
 </script>
 
 <template>
@@ -215,6 +271,13 @@ onMounted(fetchForms)
               class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
             >
               {{ t('sigs.forms.responsesBtn') }}
+            </button>
+            <button
+              @click="startExport(f.id)"
+              :disabled="exportingFormId !== null"
+              class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ exportingFormId === f.id ? t('forms.view.exportStarting') : t('forms.view.exportCSVBtn') }}
             </button>
             <button
               v-if="f.created_by === auth.user?.id || auth.isAdmin"

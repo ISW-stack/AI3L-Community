@@ -60,7 +60,7 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     # Build option lookup for resolving UUIDs to labels
     option_label_map: dict[str, str] = {}
     for q in questions:
-        for opt in q.get("options", []):
+        for opt in (q.get("options") or []):
             option_label_map[opt["id"]] = opt.get("label", opt["id"])
 
     # Build CSV in chunks to avoid loading all responses into memory
