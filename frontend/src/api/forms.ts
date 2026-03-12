@@ -57,3 +57,8 @@ export async function listFormResponses(formId: string, page = 1, pageSize = 20)
   })
   return data as { responses: FormResponse[]; total: number }
 }
+
+export async function getMyResponse(formId: string) {
+  const { data } = await api.get(`/forms/${formId}/my-response`)
+  return data as FormResponse
+}
