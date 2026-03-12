@@ -15,6 +15,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 
 const { t } = useI18n()
@@ -116,6 +117,12 @@ onMounted(fetchContributors)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.admin'), to: '/admin' },
+        { label: t('breadcrumb.contributors') },
+      ]"
+    />
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('admin.contributors.title') }}</h1>
       <BaseButton @click="openCreate">

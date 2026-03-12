@@ -297,6 +297,7 @@ export default {
     fetchTrendingError: 'Beliebte Beiträge konnten nicht geladen werden.',
     fetchPostsError: 'Beiträge konnten nicht geladen werden.',
     searchError: 'Suche fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    searchLoading: 'Suche läuft...',
   },
 
   // ── Post ──
@@ -1019,6 +1020,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Startseite',
+    forum: 'Forum',
+    profile: 'Mein Profil',
+    users: 'Benutzer',
+    sigs: 'SIGs',
+    posts: 'Beiträge',
+    members: 'Mitglieder',
+    forms: 'Formulare',
+    admin: 'Verwaltung',
+    dashboard: 'Dashboard',
+    userManagement: 'Benutzerverwaltung',
+    applications: 'Bewerbungen',
+    reports: 'Meldungen',
+    categories: 'Kategorien',
+    inviteCodes: 'Einladungscodes',
+    contributors: 'Mitwirkende',
+    auditLogs: 'Audit-Protokolle',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'Zeige {start}-{end} von {total}',
+    pageOf: 'Seite {current} von {total}',
+  },
+
   errors: {
     AUTH_001: 'Sitzung abgelaufen. Bitte erneut anmelden.',
     AUTH_002: 'Ungültige oder widerrufene Sitzung.',

@@ -118,7 +118,7 @@ describe('sigs API', () => {
 
       const result = await getSigMembers(sigId)
 
-      expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/members`)
+      expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/members`, { params: undefined })
       expect(result).toEqual(mockData)
     })
   })

@@ -5,8 +5,10 @@ import { useI18n } from 'vue-i18n'
 import type { Question } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { getForm, createForm, updateForm } from '@/api/forms'
+import { getSig } from '@/api/sigs'
 import { uploadEditorFile } from '@/api/files'
 import BaseCard from '@/components/base/BaseCard.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -46,6 +48,8 @@ const saving = ref(false)
 const message = ref('')
 const error = ref('')
 const showPreview = ref(false)
+const sigName = ref('')
+const breadcrumbSigId = ref('')
 
 const hasInvalidRating = computed(() =>
   questions.value.some((q) => q.type === 'rating' && (q.min ?? 1) >= (q.max ?? 5)),
@@ -138,6 +142,13 @@ async function fetchForm() {
       allowed_types: q.allowed_types || [],
       max_size_mb: q.max_size_mb ?? undefined,
     }))
+    breadcrumbSigId.value = data.sig_id
+    try {
+      const sigData = await getSig(data.sig_id)
+      sigName.value = sigData.name
+    } catch {
+      /* breadcrumb will show fallback */
+    }
   } catch {
     error.value = t('forms.builder.loadError')
   } finally {
@@ -239,19 +250,43 @@ async function saveForm() {
   }
 }
 
+async function fetchSigName(id: string) {
+  breadcrumbSigId.value = id
+  try {
+    const sigData = await getSig(id)
+    sigName.value = sigData.name
+  } catch {
+    /* breadcrumb will show fallback */
+  }
+}
+
 onMounted(() => {
-  if (isEdit.value) fetchForm()
-  else addQuestion()
+  if (isEdit.value) {
+    fetchForm()
+  } else {
+    addQuestion()
+    if (sigId.value) fetchSigName(sigId.value)
+  }
 })
 </script>
 
 <template>
   <div class="max-w-3xl mx-auto">
-    <div class="mb-6">
-      <button @click="router.back()" class="text-sm text-brand-600 hover:underline">
-        &larr; {{ t('forms.builder.backBtn') }}
-      </button>
-    </div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.sigs'), to: '/sigs' },
+        {
+          label: sigName || '...',
+          to: breadcrumbSigId ? `/sigs/${breadcrumbSigId}` : '/sigs',
+        },
+        {
+          label: t('breadcrumb.forms'),
+          to: breadcrumbSigId ? `/sigs/${breadcrumbSigId}/forms` : '/sigs',
+        },
+        { label: isEdit ? title || t('forms.builder.editTitle') : t('forms.builder.createTitle') },
+      ]"
+    />
 
     <h1 class="text-2xl font-bold text-foreground mb-6">
       {{ isEdit ? t('forms.builder.editTitle') : t('forms.builder.createTitle') }}
@@ -359,6 +394,7 @@ onMounted(() => {
                 <button
                   @click="moveQuestion(i, -1)"
                   :disabled="i === 0"
+                  :aria-label="t('accessibility.moveQuestionUp')"
                   class="text-muted hover:text-foreground disabled:opacity-30 px-1"
                 >
                   &uarr;
@@ -366,12 +402,14 @@ onMounted(() => {
                 <button
                   @click="moveQuestion(i, 1)"
                   :disabled="i === questions.length - 1"
+                  :aria-label="t('accessibility.moveQuestionDown')"
                   class="text-muted hover:text-foreground disabled:opacity-30 px-1"
                 >
                   &darr;
                 </button>
                 <button
                   @click="removeQuestion(i)"
+                  :aria-label="t('accessibility.deleteQuestion')"
                   class="text-danger-500 hover:text-danger-600 px-1 ml-2"
                 >
                   &times;
@@ -449,11 +487,13 @@ onMounted(() => {
                   :disabled="isSchemaLocked"
                   type="text"
                   :placeholder="`Option ${oi + 1}`"
+                  :aria-label="t('accessibility.optionN', { n: oi + 1 })"
                   class="flex-1 border border-border rounded-lg px-2 py-1.5 text-sm"
                 />
                 <button
                   v-if="!isSchemaLocked"
                   @click="removeOption(q, oi)"
+                  :aria-label="t('accessibility.removeOption')"
                   class="text-danger-500 hover:text-danger-600 text-sm"
                 >
                   &times;

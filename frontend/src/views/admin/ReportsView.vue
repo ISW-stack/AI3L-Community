@@ -10,6 +10,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const { t } = useI18n()
@@ -67,6 +68,9 @@ onMounted(fetchReports)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[{ label: t('breadcrumb.admin'), to: '/admin' }, { label: t('breadcrumb.reports') }]"
+    />
     <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('admin.reports.title') }}</h1>
 
     <!-- Filter -->

@@ -294,6 +294,7 @@ export default {
     fetchTrendingError: 'Не удалось загрузить популярные записи.',
     fetchPostsError: 'Не удалось загрузить записи.',
     searchError: 'Поиск не удался. Пожалуйста, попробуйте еще раз.',
+    searchLoading: 'Поиск...',
   },
 
   // ── Post ──
@@ -1013,6 +1014,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Главная',
+    forum: 'Форум',
+    profile: 'Мой профиль',
+    users: 'Пользователи',
+    sigs: 'SIGs',
+    posts: 'Записи',
+    members: 'Участники',
+    forms: 'Формы',
+    admin: 'Администрирование',
+    dashboard: 'Панель',
+    userManagement: 'Пользователи',
+    applications: 'Заявки',
+    reports: 'Жалобы',
+    categories: 'Категории',
+    inviteCodes: 'Коды приглашения',
+    contributors: 'Участники проекта',
+    auditLogs: 'Журнал аудита',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'Показано {start}-{end} из {total}',
+    pageOf: 'Страница {current} из {total}',
+  },
+
   errors: {
     AUTH_001: 'Сессия истекла. Пожалуйста, войдите снова.',
     AUTH_002: 'Недействительная или отозванная сессия.',

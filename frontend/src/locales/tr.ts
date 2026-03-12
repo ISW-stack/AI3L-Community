@@ -295,6 +295,7 @@ export default {
     fetchTrendingError: 'Gündem gönderileri yüklenemedi.',
     fetchPostsError: 'Gönderiler yüklenemedi.',
     searchError: 'Arama başarısız. Lütfen tekrar deneyin.',
+    searchLoading: 'Aranıyor...',
   },
 
   // ── Post ──
@@ -1014,6 +1015,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Ana Sayfa',
+    forum: 'Forum',
+    profile: 'Profilim',
+    users: 'Kullanıcılar',
+    sigs: 'SIGs',
+    posts: 'Gönderiler',
+    members: 'Üyeler',
+    forms: 'Formlar',
+    admin: 'Yönetim',
+    dashboard: 'Gösterge Paneli',
+    userManagement: 'Kullanıcılar',
+    applications: 'Başvurular',
+    reports: 'Raporlar',
+    categories: 'Kategoriler',
+    inviteCodes: 'Davet Kodları',
+    contributors: 'Katkıda Bulunanlar',
+    auditLogs: 'Denetim Kayıtları',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: '{total} öğeden {start}-{end} arası gösteriliyor',
+    pageOf: 'Sayfa {current} / {total}',
+  },
+
   errors: {
     AUTH_001: 'Oturum sona erdi. Lütfen tekrar giriş yapın.',
     AUTH_002: 'Geçersiz veya iptal edilmiş oturum.',

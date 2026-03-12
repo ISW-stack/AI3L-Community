@@ -11,6 +11,7 @@ vi.mock('@/composables/api', () => ({
   default: {
     post: vi.fn(),
     get: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -132,6 +133,11 @@ async function mountComponent(
         BaseButton: {
           template: '<button :class="$attrs.class" @click="$emit(\'click\')"><slot /></button>',
           props: ['variant', 'size', 'loading'],
+        },
+        BasePagination: {
+          template:
+            '<div class="base-pagination" v-if="totalPages > 1" @click="$emit(\'update:currentPage\', currentPage + 1)">Page {{ currentPage }} of {{ totalPages }}</div>',
+          props: ['currentPage', 'totalPages', 'pageSize', 'total'],
         },
       },
     },
@@ -576,5 +582,73 @@ describe('SigMembersView', () => {
     // Row 0 = user-1 (ADMIN role) — platform admin should see Remove
     const adminRow = tableRows[0]
     expect(adminRow.text()).toContain('Remove')
+  })
+
+  describe('pagination', () => {
+    it('does not show pagination when total members fit in one page', async () => {
+      const { wrapper } = await mountComponent({
+        members: sampleMembers,
+        total: 3,
+      })
+      await flushPromises()
+
+      expect(wrapper.find('.base-pagination').exists()).toBe(false)
+    })
+
+    it('shows pagination when members exceed page size', async () => {
+      // Create enough members to require pagination (total > PAGE_SIZE)
+      const { wrapper } = await mountComponent({
+        members: sampleMembers,
+        total: 25, // total > PAGE_SIZE of 20
+      })
+      await flushPromises()
+
+      expect(wrapper.find('.base-pagination').exists()).toBe(true)
+    })
+
+    it('fetches members with pagination params', async () => {
+      await mountComponent()
+      await flushPromises()
+
+      // Should be called with offset and limit params
+      expect(mockGetSigMembers).toHaveBeenCalledWith('sig-1', {
+        offset: 0,
+        limit: 20,
+      })
+    })
+
+    it('page change triggers new fetch with updated offset', async () => {
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: 25 })
+
+      const { wrapper } = await mountComponent({
+        members: sampleMembers,
+        total: 25,
+      })
+      await flushPromises()
+      vi.clearAllMocks()
+
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: 25 })
+
+      // Click on pagination to go to page 2
+      const pagination = wrapper.find('.base-pagination')
+      await pagination.trigger('click')
+      await flushPromises()
+
+      expect(mockGetSigMembers).toHaveBeenCalledWith('sig-1', {
+        offset: 20,
+        limit: 20,
+      })
+    })
+
+    it('displays total member count in heading', async () => {
+      const { wrapper } = await mountComponent({
+        members: sampleMembers,
+        total: 3,
+      })
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Members')
+      expect(wrapper.text()).toContain('3')
+    })
   })
 })

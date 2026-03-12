@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { usePagination } from '@/composables/usePagination'
 import {
   getSigMembers,
   removeMember as removeMemberApi,
@@ -11,10 +12,12 @@ import {
   demoteSubAdmin as demoteSubAdminApi,
 } from '@/api/sigs'
 import { getErrorMessage } from '@/utils/error'
-import type { SigMember } from '@/types'
+import type { SigMember, Sig } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -25,12 +28,15 @@ const route = useRoute()
 const auth = useAuthStore()
 const toastStore = useToastStore()
 
+const PAGE_SIZE = 20
+
 const sigId = computed(() => route.params.id as string)
+const sig = inject<Ref<Sig | null>>('sig', ref(null))
 const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
 
 const members = ref<SigMember[]>([])
-const total = ref(0)
 const loading = ref(true)
+const { page, total, totalPages, pageSize, setPage, updateFromResponse } = usePagination(PAGE_SIZE)
 
 const confirmAction = ref<{ action: 'remove' | 'demote'; user: SigMember } | null>(null)
 const showConfirmModal = computed({
@@ -54,14 +60,20 @@ const memberRoleBadge: Record<string, 'orange' | 'purple' | 'brand'> = {
 async function fetchMembers() {
   loading.value = true
   try {
-    const data = await getSigMembers(sigId.value)
+    const offset = (page.value - 1) * pageSize
+    const data = await getSigMembers(sigId.value, { offset, limit: pageSize })
     members.value = data.members
-    total.value = data.total
+    updateFromResponse(data.total)
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.members.fetchError')), 'error')
   } finally {
     loading.value = false
   }
+}
+
+function goToPage(p: number) {
+  setPage(p)
+  fetchMembers()
 }
 
 function canRemoveMember(m: SigMember) {
@@ -128,6 +140,14 @@ onMounted(fetchMembers)
 
 <template>
   <div class="space-y-4">
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.sigs'), to: '/sigs' },
+        { label: sig?.name || '...', to: `/sigs/${sigId}` },
+        { label: t('breadcrumb.members') },
+      ]"
+    />
     <h2 class="text-lg font-semibold text-foreground">
       {{ t('sigs.members.title') }} ({{ total }})
     </h2>
@@ -284,6 +304,17 @@ onMounted(fetchMembers)
         </BaseCard>
       </div>
     </div>
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="mt-4">
+      <BasePagination
+        :current-page="page"
+        :total-pages="totalPages"
+        :page-size="pageSize"
+        :total="total"
+        @update:current-page="goToPage"
+      />
+    </div>
+
     <!-- Confirm Action Modal -->
     <BaseModal
       v-model="showConfirmModal"

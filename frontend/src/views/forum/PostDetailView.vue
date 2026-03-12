@@ -20,6 +20,7 @@ import SigShareCard from '@/components/SigShareCard.vue'
 import FormShareCard from '@/components/FormShareCard.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -117,11 +118,13 @@ const {
 
       <!-- View mode -->
       <div v-else>
-        <div class="mb-6">
-          <router-link to="/forum" class="text-sm text-brand-600 hover:underline"
-            >&larr; {{ t('post.detail.backToForum') }}</router-link
-          >
-        </div>
+        <BaseBreadcrumb
+          :items="[
+            { label: t('breadcrumb.home'), to: '/' },
+            { label: t('breadcrumb.forum'), to: '/forum' },
+            { label: post.title },
+          ]"
+        />
 
         <BaseCard padding="lg" class="mb-6">
           <!-- Post Header with Avatar -->

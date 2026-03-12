@@ -292,6 +292,7 @@ export default {
     fetchTrendingError: 'فشل في تحميل المنشورات الشائعة.',
     fetchPostsError: 'فشل في تحميل المنشورات.',
     searchError: 'فشل البحث. يرجى المحاولة مرة أخرى.',
+    searchLoading: 'جارٍ البحث...',
   },
 
   // ── Post ──
@@ -1008,6 +1009,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'الرئيسية',
+    forum: 'المنتدى',
+    profile: 'ملفي الشخصي',
+    users: 'المستخدمون',
+    sigs: 'SIGs',
+    posts: 'المنشورات',
+    members: 'الأعضاء',
+    forms: 'النماذج',
+    admin: 'الإدارة',
+    dashboard: 'لوحة القيادة',
+    userManagement: 'المستخدمون',
+    applications: 'الطلبات',
+    reports: 'البلاغات',
+    categories: 'الفئات',
+    inviteCodes: 'رموز الدعوة',
+    contributors: 'المساهمون',
+    auditLogs: 'سجلات التدقيق',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'عرض {start}-{end} من {total}',
+    pageOf: 'صفحة {current} من {total}',
+  },
+
   errors: {
     AUTH_001: 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.',
     AUTH_002: 'جلسة غير صالحة أو ملغاة.',

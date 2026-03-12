@@ -55,7 +55,14 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)) -> User
     user = await get_user_by_id(uuid.UUID(current_user["sub"]))
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    return _user_to_response(user)
+    resp = _user_to_response(user)
+
+    # Include preferences in response
+    from app.services.preferences import get_user_preferences
+
+    prefs = await get_user_preferences(uuid.UUID(current_user["sub"]))
+    resp.preferences = prefs  # type: ignore[attr-defined]
+    return resp
 
 
 @router.put("/me", response_model=UserResponse)

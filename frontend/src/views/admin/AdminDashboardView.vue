@@ -8,6 +8,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import type { DashboardStats } from '@/types'
 import { getDashboard } from '@/api/admin'
 
@@ -83,6 +84,12 @@ onMounted(fetchStats)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.admin'), to: '/admin' },
+        { label: t('breadcrumb.dashboard') },
+      ]"
+    />
     <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('admin.dashboard.title') }}</h1>
 
     <SkeletonLoader v-if="loading" :lines="2" variant="card" />

@@ -293,6 +293,7 @@ export default {
     fetchTrendingError: 'Falha ao carregar postagens em alta.',
     fetchPostsError: 'Falha ao carregar postagens.',
     searchError: 'A pesquisa falhou. Por favor, tente novamente.',
+    searchLoading: 'Pesquisando...',
   },
 
   // ── Post ──
@@ -1012,6 +1013,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Início',
+    forum: 'Fórum',
+    profile: 'Meu Perfil',
+    users: 'Usuários',
+    sigs: 'SIGs',
+    posts: 'Publicações',
+    members: 'Membros',
+    forms: 'Formulários',
+    admin: 'Administração',
+    dashboard: 'Painel',
+    userManagement: 'Usuários',
+    applications: 'Candidaturas',
+    reports: 'Denúncias',
+    categories: 'Categorias',
+    inviteCodes: 'Códigos de convite',
+    contributors: 'Contribuidores',
+    auditLogs: 'Logs de auditoria',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'Exibindo {start}-{end} de {total}',
+    pageOf: 'Página {current} de {total}',
+  },
+
   errors: {
     AUTH_001: 'Sessão expirada. Por favor, faça login novamente.',
     AUTH_002: 'Sessão inválida ou revogada.',

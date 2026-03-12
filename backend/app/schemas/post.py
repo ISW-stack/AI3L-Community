@@ -110,3 +110,13 @@ class PostSearchRequest(BaseModel):
 
 class PinPostRequest(BaseModel):
     is_pinned: bool
+
+
+class SearchSuggestion(BaseModel):
+    id: str
+    title: str
+
+
+class SearchSuggestionsResponse(BaseModel):
+    posts: list[SearchSuggestion]
+    keywords: list[str]

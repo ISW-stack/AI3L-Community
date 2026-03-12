@@ -523,3 +523,36 @@ async def toggle_reaction(post_id: uuid.UUID, user_id: str, reaction: str) -> di
                 post_id,
             )
             return dict(row) if row else None
+
+
+async def get_search_suggestions(query: str, limit: int = 5) -> list[dict]:
+    """Return posts whose title or keywords match the query (ILIKE)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        sql = """
+            SELECT DISTINCT title, id
+            FROM posts
+            WHERE is_deleted = FALSE
+              AND (title ILIKE $1 OR EXISTS (
+                  SELECT 1 FROM unnest(keywords) AS kw WHERE kw ILIKE $1
+              ))
+            ORDER BY title
+            LIMIT $2
+        """
+        rows = await conn.fetch(sql, f"%{query}%", limit)
+        return [dict(r) for r in rows]
+
+
+async def get_keyword_suggestions(query: str, limit: int = 5) -> list[str]:
+    """Return distinct keywords matching the query (ILIKE)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        sql = """
+            SELECT DISTINCT kw
+            FROM posts, unnest(keywords) AS kw
+            WHERE posts.is_deleted = FALSE AND kw ILIKE $1
+            ORDER BY kw
+            LIMIT $2
+        """
+        rows = await conn.fetch(sql, f"%{query}%", limit)
+        return [r["kw"] for r in rows]

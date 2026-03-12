@@ -5,9 +5,10 @@ import { useI18n } from 'vue-i18n'
 import { getSigPosts } from '@/api/sigs'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
-import type { Post } from '@/types'
+import type { Post, Sig } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
@@ -16,6 +17,7 @@ const { t } = useI18n()
 const toast = useToastStore()
 const route = useRoute()
 const sigId = computed(() => route.params.id as string)
+const sig = inject<Ref<Sig | null>>('sig', ref(null))
 const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
 
 const posts = ref<Post[]>([])
@@ -42,6 +44,14 @@ onMounted(fetchPosts)
 
 <template>
   <div class="space-y-4">
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.sigs'), to: '/sigs' },
+        { label: sig?.name || '...', to: `/sigs/${sigId}` },
+        { label: t('breadcrumb.posts') },
+      ]"
+    />
     <!-- Header/Actions -->
     <div class="flex items-center justify-between">
       <h2 class="text-lg font-semibold text-foreground">

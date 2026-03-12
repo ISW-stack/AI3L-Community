@@ -298,6 +298,7 @@ export default {
     fetchTrendingError: 'Échec du chargement des tendances.',
     fetchPostsError: 'Échec du chargement des publications.',
     searchError: 'La recherche a échoué. Veuillez réessayer.',
+    searchLoading: 'Recherche en cours...',
   },
 
   // ── Post ──
@@ -1019,6 +1020,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Accueil',
+    forum: 'Forum',
+    profile: 'Mon profil',
+    users: 'Utilisateurs',
+    sigs: 'SIGs',
+    posts: 'Publications',
+    members: 'Membres',
+    forms: 'Formulaires',
+    admin: 'Administration',
+    dashboard: 'Tableau de bord',
+    userManagement: 'Utilisateurs',
+    applications: 'Candidatures',
+    reports: 'Signalements',
+    categories: 'Catégories',
+    inviteCodes: "Codes d'invitation",
+    contributors: 'Contributeurs',
+    auditLogs: "Journaux d'audit",
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'Affichage de {start}-{end} sur {total}',
+    pageOf: 'Page {current} sur {total}',
+  },
+
   errors: {
     AUTH_001: 'Session expirée. Veuillez vous reconnecter.',
     AUTH_002: 'Session invalide ou révoquée.',

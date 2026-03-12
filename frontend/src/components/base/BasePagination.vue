@@ -9,9 +9,13 @@ const props = withDefaults(
     currentPage: number
     totalPages: number
     maxVisible?: number
+    pageSize?: number
+    total?: number
   }>(),
   {
     maxVisible: 5,
+    pageSize: 0,
+    total: 0,
   },
 )
 
@@ -38,36 +42,81 @@ const pages = computed(() => {
 
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
+
+const showingStart = computed(() => {
+  if (!props.pageSize || !props.total) return 0
+  return (props.currentPage - 1) * props.pageSize + 1
+})
+
+const showingEnd = computed(() => {
+  if (!props.pageSize || !props.total) return 0
+  return Math.min(props.currentPage * props.pageSize, props.total)
+})
+
+const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
 </script>
 
 <template>
-  <div v-if="totalPages > 1" class="flex items-center justify-center gap-1 flex-wrap">
-    <button
-      :disabled="currentPage <= 1"
-      class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
-      @click="emit('update:currentPage', currentPage - 1)"
+  <nav v-if="totalPages > 1" :aria-label="t('accessibility.pagination')" class="space-y-2">
+    <!-- Result count text -->
+    <p v-if="showResultCount" class="text-sm text-muted text-center" data-testid="result-count">
+      {{ t('pagination.showing', { start: showingStart, end: showingEnd, total }) }}
+    </p>
+
+    <!-- Desktop pagination (sm+) -->
+    <div
+      class="hidden sm:flex items-center justify-center gap-1 flex-wrap"
+      data-testid="desktop-pagination"
     >
-      {{ t('common.prev') }}
-    </button>
-    <button
-      v-for="page in pages"
-      :key="page"
-      :class="[
-        'px-3 py-1 text-sm rounded-lg border transition',
-        page === currentPage
-          ? 'bg-brand-600 text-white border-brand-600'
-          : 'bg-surface text-muted border-border hover:bg-surface-alt',
-      ]"
-      @click="emit('update:currentPage', page)"
-    >
-      {{ page }}
-    </button>
-    <button
-      :disabled="currentPage >= totalPages"
-      class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
-      @click="emit('update:currentPage', currentPage + 1)"
-    >
-      {{ t('common.next') }}
-    </button>
-  </div>
+      <button
+        :disabled="currentPage <= 1"
+        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        @click="emit('update:currentPage', currentPage - 1)"
+      >
+        {{ t('common.prev') }}
+      </button>
+      <button
+        v-for="page in pages"
+        :key="page"
+        :aria-current="page === currentPage ? 'page' : undefined"
+        :class="[
+          'px-3 py-1 text-sm rounded-lg border transition',
+          page === currentPage
+            ? 'bg-brand-600 text-white border-brand-600'
+            : 'bg-surface text-muted border-border hover:bg-surface-alt',
+        ]"
+        @click="emit('update:currentPage', page)"
+      >
+        {{ page }}
+      </button>
+      <button
+        :disabled="currentPage >= totalPages"
+        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        @click="emit('update:currentPage', currentPage + 1)"
+      >
+        {{ t('common.next') }}
+      </button>
+    </div>
+
+    <!-- Mobile pagination (<sm) -->
+    <div class="flex sm:hidden items-center justify-center gap-3" data-testid="mobile-pagination">
+      <button
+        :disabled="currentPage <= 1"
+        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        @click="emit('update:currentPage', currentPage - 1)"
+      >
+        {{ t('common.prev') }}
+      </button>
+      <span class="text-sm text-muted">
+        {{ t('pagination.pageOf', { current: currentPage, total: totalPages }) }}
+      </span>
+      <button
+        :disabled="currentPage >= totalPages"
+        class="px-3 py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        @click="emit('update:currentPage', currentPage + 1)"
+      >
+        {{ t('common.next') }}
+      </button>
+    </div>
+  </nav>
 </template>

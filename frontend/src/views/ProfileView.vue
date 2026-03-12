@@ -22,6 +22,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import { getErrorMessage } from '@/utils/error'
 import { useLocale } from '@/composables/useLocale'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
 const { t } = useLocale()
 const auth = useAuthStore()
@@ -270,14 +271,9 @@ function toggleConfirmPassword() {
 <template>
   <div class="w-full lg:px-layout px-4 py-6 sm:py-8 min-h-screen">
     <div class="max-w-2xl mx-auto">
-      <div class="mb-4 text-left">
-        <router-link
-          to="/forum"
-          class="text-sm text-brand-600 hover:underline flex items-center gap-1"
-        >
-          <span>&larr;</span> {{ t('profile.backBtn') }}
-        </router-link>
-      </div>
+      <BaseBreadcrumb
+        :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.profile') }]"
+      />
       <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('profile.title') }}</h1>
 
       <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>

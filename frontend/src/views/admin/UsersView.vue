@@ -23,6 +23,7 @@ import BaseModal from '@/components/base/BaseModal.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -207,6 +208,12 @@ onMounted(fetchUsers)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.admin'), to: '/admin' },
+        { label: t('breadcrumb.userManagement') },
+      ]"
+    />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('admin.users.title') }}</h1>
       <BaseButton @click="showCreateModal = true">{{ t('admin.users.createButton') }}</BaseButton>

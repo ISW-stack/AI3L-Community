@@ -295,6 +295,7 @@ export default {
     fetchTrendingError: 'Gagal memuat postingan tren.',
     fetchPostsError: 'Gagal memuat postingan.',
     searchError: 'Pencarian gagal. Silakan coba lagi.',
+    searchLoading: 'Mencari...',
   },
 
   // ── Post ──
@@ -1016,6 +1017,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Beranda',
+    forum: 'Forum',
+    profile: 'Profil Saya',
+    users: 'Pengguna',
+    sigs: 'SIGs',
+    posts: 'Postingan',
+    members: 'Anggota',
+    forms: 'Formulir',
+    admin: 'Administrasi',
+    dashboard: 'Dasbor',
+    userManagement: 'Pengguna',
+    applications: 'Lamaran',
+    reports: 'Laporan',
+    categories: 'Kategori',
+    inviteCodes: 'Kode Undangan',
+    contributors: 'Kontributor',
+    auditLogs: 'Log Audit',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'Menampilkan {start}-{end} dari {total}',
+    pageOf: 'Halaman {current} dari {total}',
+  },
+
   errors: {
     AUTH_001: 'Sesi kedaluwarsa. Silakan masuk kembali.',
     AUTH_002: 'Sesi tidak valid atau telah dicabut.',

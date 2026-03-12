@@ -17,6 +17,8 @@ from app.schemas.post import (
     PostResponse,
     PostSearchRequest,
     PostUpdateRequest,
+    SearchSuggestion,
+    SearchSuggestionsResponse,
 )
 from app.services.post import (
     create_post,
@@ -145,6 +147,23 @@ async def bulk_delete_posts(
         target_id=",".join(str(pid) for pid in req.post_ids),
     )
     return {"deleted_count": count}
+
+
+@router.get("/suggestions", response_model=SearchSuggestionsResponse)
+async def search_suggestions(
+    q: str = Query(min_length=2, max_length=100),
+    limit: int = Query(5, ge=1, le=20),
+    current_user: dict = Depends(get_current_user),
+) -> SearchSuggestionsResponse:
+    """Return search suggestions for posts and keywords matching the query."""
+    from app.repositories import post_repo
+
+    posts = await post_repo.get_search_suggestions(q, limit=limit)
+    keywords = await post_repo.get_keyword_suggestions(q, limit=limit)
+    return SearchSuggestionsResponse(
+        posts=[SearchSuggestion(id=str(p["id"]), title=p["title"]) for p in posts],
+        keywords=keywords,
+    )
 
 
 @router.post("/{post_id}/reactions", response_model=PostResponse)

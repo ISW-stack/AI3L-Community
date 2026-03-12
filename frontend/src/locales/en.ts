@@ -293,6 +293,7 @@ export default {
     fetchTrendingError: 'Failed to load trending posts.',
     fetchPostsError: 'Failed to load posts.',
     searchError: 'Search failed. Please try again.',
+    searchLoading: 'Searching...',
   },
 
   // ── Post ──
@@ -1009,7 +1010,45 @@ export default {
     },
   },
 
+  // ── Accessibility ──
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+
+  // ── Breadcrumb ──
+  breadcrumb: {
+    home: 'Home',
+    forum: 'Forum',
+    profile: 'My Profile',
+    users: 'Users',
+    sigs: 'SIGs',
+    posts: 'Posts',
+    members: 'Members',
+    forms: 'Forms',
+    admin: 'Admin',
+    dashboard: 'Dashboard',
+    userManagement: 'Users',
+    applications: 'Applications',
+    reports: 'Reports',
+    categories: 'Categories',
+    inviteCodes: 'Invite Codes',
+    contributors: 'Contributors',
+    auditLogs: 'Audit Logs',
+  },
+
   // ── Errors (backend error codes) ──
+  // ── Pagination ──
+  pagination: {
+    showing: 'Showing {start}-{end} of {total}',
+    pageOf: 'Page {current} of {total}',
+  },
+
   errors: {
     AUTH_001: 'Session expired. Please log in again.',
     AUTH_002: 'Invalid or revoked session.',

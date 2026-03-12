@@ -292,6 +292,7 @@ export default {
     fetchTrendingError: '인기 게시물을 불러오지 못했습니다.',
     fetchPostsError: '게시물을 불러오지 못했습니다.',
     searchError: '검색에 실패했습니다. 다시 시도해 주세요.',
+    searchLoading: '검색 중...',
   },
 
   // ── Post ──
@@ -1007,6 +1008,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: '홈',
+    forum: '포럼',
+    profile: '내 프로필',
+    users: '사용자',
+    sigs: 'SIGs',
+    posts: '게시물',
+    members: '멤버',
+    forms: '양식',
+    admin: '관리',
+    dashboard: '대시보드',
+    userManagement: '사용자 관리',
+    applications: '신청',
+    reports: '신고',
+    categories: '카테고리',
+    inviteCodes: '초대 코드',
+    contributors: '기여자',
+    auditLogs: '감사 로그',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: '{total}개 중 {start}-{end} 표시',
+    pageOf: '{total}페이지 중 {current}페이지',
+  },
+
   errors: {
     AUTH_001: '세션이 만료되었습니다. 다시 로그인해 주세요.',
     AUTH_002: '유효하지 않거나 취소된 세션입니다.',

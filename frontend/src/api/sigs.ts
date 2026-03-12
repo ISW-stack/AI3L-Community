@@ -51,8 +51,8 @@ export async function getSigPosts(sigId: string) {
   return data as SigPostsResponse
 }
 
-export async function getSigMembers(sigId: string) {
-  const { data } = await api.get(`/sigs/${sigId}/members`)
+export async function getSigMembers(sigId: string, params?: { offset?: number; limit?: number }) {
+  const { data } = await api.get(`/sigs/${sigId}/members`, { params })
   return data as SigMembersResponse
 }
 

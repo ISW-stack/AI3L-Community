@@ -294,6 +294,7 @@ export default {
     fetchTrendingError: 'Không tải được bài đăng thịnh hành.',
     fetchPostsError: 'Không tải được bài đăng.',
     searchError: 'Tìm kiếm thất bại. Vui lòng thử lại.',
+    searchLoading: 'Đang tìm kiếm...',
   },
 
   // ── Post ──
@@ -1012,6 +1013,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Trang chủ',
+    forum: 'Diễn đàn',
+    profile: 'Hồ sơ của tôi',
+    users: 'Người dùng',
+    sigs: 'SIGs',
+    posts: 'Bài viết',
+    members: 'Thành viên',
+    forms: 'Biểu mẫu',
+    admin: 'Quản trị',
+    dashboard: 'Bảng điều khiển',
+    userManagement: 'Người dùng',
+    applications: 'Đơn ứng tuyển',
+    reports: 'Báo cáo',
+    categories: 'Danh mục',
+    inviteCodes: 'Mã mời',
+    contributors: 'Người đóng góp',
+    auditLogs: 'Nhật ký kiểm toán',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'Hiển thị {start}-{end} trong {total}',
+    pageOf: 'Trang {current} / {total}',
+  },
+
   errors: {
     AUTH_001: 'Phiên đã hết hạn. Vui lòng đăng nhập lại.',
     AUTH_002: 'Phiên không hợp lệ hoặc đã bị thu hồi.',

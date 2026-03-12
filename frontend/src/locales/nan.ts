@@ -289,6 +289,7 @@ export default {
     fetchTrendingError: '載入熱門貼文失敗。',
     fetchPostsError: '載入貼文失敗。',
     searchError: '搜尋失敗，請再試一擺。',
+    searchLoading: '搜尋中...',
   },
 
   // ── Post ──
@@ -999,6 +1000,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: '首頁',
+    forum: '論壇',
+    profile: '我的個人檔案',
+    users: '使用者',
+    sigs: 'SIGs',
+    posts: '文章',
+    members: '成員',
+    forms: '表單',
+    admin: '管理',
+    dashboard: '儀表板',
+    userManagement: '使用者管理',
+    applications: '申請',
+    reports: '檢舉',
+    categories: '分類',
+    inviteCodes: '邀請碼',
+    contributors: '貢獻者',
+    auditLogs: '稽核紀錄',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: '顯示第 {start}-{end} 筆，攏總 {total} 筆',
+    pageOf: '第 {current} 頁，攏總 {total} 頁',
+  },
+
   errors: {
     AUTH_001: 'Session 已過期，請重新登入。',
     AUTH_002: 'Session 無效，iah-sī 已撤銷。',

@@ -33,16 +33,30 @@ class TestGetProfile:
         """GET /users/me → 200."""
         user_id = str(uuid.uuid4())
         user = make_user_dict(user_id=user_id, username="alice")
+        default_prefs = {
+            "theme": "light",
+            "notify_mentions": True,
+            "notify_replies": True,
+            "notify_sig_posts": True,
+        }
 
         try:
             _override_auth("MEMBER", user_id=user_id)
-            with patch(f"{_EP}.get_user_by_id", new_callable=AsyncMock, return_value=user):
+            with (
+                patch(f"{_EP}.get_user_by_id", new_callable=AsyncMock, return_value=user),
+                patch(
+                    "app.services.preferences.get_user_preferences",
+                    new_callable=AsyncMock,
+                    return_value=default_prefs,
+                ),
+            ):
                 resp = await client.get(
                     "/api/v1/users/me",
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
                 assert resp.json()["username"] == "alice"
+                assert resp.json()["preferences"] == default_prefs
         finally:
             _clear_overrides()
 

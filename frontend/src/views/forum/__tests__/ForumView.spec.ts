@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
@@ -174,12 +174,17 @@ async function mountForum(query?: Record<string, string>) {
 describe('ForumView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
     mockListPosts.mockResolvedValue(fakePageOneResponse)
     mockListCategories.mockResolvedValue(fakeCategories)
     mockGetTrendingPosts.mockResolvedValue(fakeTrending)
     mockSearchPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
     mockIOObserve.mockClear()
     mockIODisconnect.mockClear()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('renders forum title', async () => {
@@ -226,7 +231,7 @@ describe('ForumView', () => {
     expect(searchInput.exists()).toBe(true)
   })
 
-  it('triggers search on enter key', async () => {
+  it('triggers search on enter key (immediate, bypasses debounce)', async () => {
     const { wrapper } = await mountForum()
     const searchInput = wrapper.find('input[type="text"]')
     await searchInput.setValue('machine learning')
@@ -234,6 +239,80 @@ describe('ForumView', () => {
     await flushPromises()
     expect(mockSearchPosts).toHaveBeenCalledWith(
       expect.objectContaining({ keyword: 'machine learning' }),
+    )
+  })
+
+  it('triggers debounced search after 300ms on input', async () => {
+    mockSearchPosts.mockResolvedValue({ posts: fakePosts, next_cursor: null, has_more: false })
+    const { wrapper } = await mountForum()
+    vi.clearAllMocks()
+    mockSearchPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
+
+    const searchInput = wrapper.find('input[type="text"]')
+    await searchInput.setValue('debounce test')
+    await searchInput.trigger('input')
+
+    // Should NOT have called search yet
+    expect(mockSearchPosts).not.toHaveBeenCalled()
+
+    // Advance timer by 300ms
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+
+    // Now search should have been called
+    expect(mockSearchPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ keyword: 'debounce test' }),
+    )
+  })
+
+  it('does not trigger search before debounce delay', async () => {
+    const { wrapper } = await mountForum()
+    vi.clearAllMocks()
+    mockSearchPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
+
+    const searchInput = wrapper.find('input[type="text"]')
+    await searchInput.setValue('early check')
+    await searchInput.trigger('input')
+
+    // Advance timer by only 200ms (less than 300ms debounce)
+    vi.advanceTimersByTime(200)
+    await flushPromises()
+
+    expect(mockSearchPosts).not.toHaveBeenCalled()
+  })
+
+  it('shows search loading spinner during debounce', async () => {
+    const { wrapper } = await mountForum()
+
+    const searchInput = wrapper.find('input[type="text"]')
+    await searchInput.setValue('loading test')
+    await searchInput.trigger('input')
+    await nextTick()
+
+    // Spinner should be visible during debounce
+    const spinner = wrapper
+      .find('input[type="text"]')
+      .element.parentElement?.querySelector('svg.animate-spin')
+    expect(spinner).toBeTruthy()
+  })
+
+  it('immediate search via button click bypasses debounce', async () => {
+    const { wrapper } = await mountForum()
+    vi.clearAllMocks()
+    mockSearchPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
+
+    const searchInput = wrapper.find('input[type="text"]')
+    await searchInput.setValue('button search')
+
+    // Click the search button
+    const searchButton = wrapper.findAll('button').find((b) => b.text().includes('Search'))
+    expect(searchButton).toBeTruthy()
+    await searchButton!.trigger('click')
+    await flushPromises()
+
+    // Should trigger immediately without waiting for debounce
+    expect(mockSearchPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ keyword: 'button search' }),
     )
   })
 

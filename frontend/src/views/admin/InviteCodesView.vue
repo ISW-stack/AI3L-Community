@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Copy, Check } from 'lucide-vue-next'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import type { InviteCode } from '@/types'
 import { listInviteCodes, createInviteCode } from '@/api/admin'
 import { getErrorMessage } from '@/utils/error'
@@ -108,6 +109,12 @@ onMounted(fetchCodes)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.admin'), to: '/admin' },
+        { label: t('breadcrumb.inviteCodes') },
+      ]"
+    />
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('admin.inviteCodes.title') }}</h1>
       <BaseButton :loading="generating" @click="generateCode">{{

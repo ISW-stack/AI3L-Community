@@ -272,6 +272,7 @@ export default {
     fetchTrendingError: '加载热门帖子失败。',
     fetchPostsError: '加载帖子失败。',
     searchError: '搜索失败，请重试。',
+    searchLoading: '搜索中...',
   },
   post: {
     card: {
@@ -960,6 +961,40 @@ export default {
       },
     },
   },
+  breadcrumb: {
+    home: '首页',
+    forum: '论坛',
+    profile: '我的个人资料',
+    users: '用户',
+    sigs: 'SIGs',
+    posts: '文章',
+    members: '成员',
+    forms: '表单',
+    admin: '管理',
+    dashboard: '仪表板',
+    userManagement: '用户管理',
+    applications: '申请',
+    reports: '举报',
+    categories: '分类',
+    inviteCodes: '邀请码',
+    contributors: '贡献者',
+    auditLogs: '审计日志',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: '显示第 {start}-{end} 条，共 {total} 条',
+    pageOf: '第 {current} 页，共 {total} 页',
+  },
+
   errors: {
     AUTH_001: '会话已过期，请重新登录。',
     AUTH_002: '无效或已撤销的会话。',

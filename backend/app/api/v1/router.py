@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     health,
     notifications,
     posts,
+    preferences,
     public,
     reports,
     sigs,
@@ -27,6 +28,7 @@ api_v1_router.include_router(public.router)
 api_v1_router.include_router(admin.router)
 api_v1_router.include_router(health.router)
 api_v1_router.include_router(auth.router)
+api_v1_router.include_router(preferences.router)
 api_v1_router.include_router(users.router)
 api_v1_router.include_router(applications.router)
 api_v1_router.include_router(categories.router)

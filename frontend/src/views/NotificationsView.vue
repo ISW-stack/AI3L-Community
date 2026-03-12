@@ -146,8 +146,10 @@ onMounted(fetchNotifications)
     </div>
 
     <!-- Filter Tabs -->
-    <div class="flex gap-1 mb-4 border-b border-border">
+    <div class="flex gap-1 mb-4 border-b border-border" role="tablist">
       <button
+        role="tab"
+        :aria-selected="filter === 'all'"
         class="px-4 py-2 text-sm font-medium border-b-2 transition"
         :class="
           filter === 'all'
@@ -159,6 +161,8 @@ onMounted(fetchNotifications)
         {{ t('notifications.filter.all') }}
       </button>
       <button
+        role="tab"
+        :aria-selected="filter === 'unread'"
         class="px-4 py-2 text-sm font-medium border-b-2 transition"
         :class="
           filter === 'unread'

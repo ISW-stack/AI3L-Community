@@ -294,6 +294,7 @@ export default {
     fetchTrendingError: 'Impossibile caricare i post di tendenza.',
     fetchPostsError: 'Impossibile caricare i post.',
     searchError: 'Ricerca fallita. Riprova.',
+    searchLoading: 'Ricerca in corso...',
   },
 
   // ── Post ──
@@ -1014,6 +1015,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'Home',
+    forum: 'Forum',
+    profile: 'Il mio profilo',
+    users: 'Utenti',
+    sigs: 'SIGs',
+    posts: 'Post',
+    members: 'Membri',
+    forms: 'Moduli',
+    admin: 'Amministrazione',
+    dashboard: 'Dashboard',
+    userManagement: 'Utenti',
+    applications: 'Candidature',
+    reports: 'Segnalazioni',
+    categories: 'Categorie',
+    inviteCodes: 'Codici invito',
+    contributors: 'Contributori',
+    auditLogs: 'Log di audit',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: 'Visualizzazione {start}-{end} di {total}',
+    pageOf: 'Pagina {current} di {total}',
+  },
+
   errors: {
     AUTH_001: 'Sessione scaduta. Accedi di nuovo.',
     AUTH_002: 'Sessione non valida o revocata.',

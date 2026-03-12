@@ -7,8 +7,9 @@ import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
 import { deleteForm as deleteFormApi, listFormResponses, getForm } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
-import type { SigForm, FormResponse, Question } from '@/types'
+import type { SigForm, FormResponse, Question, Sig } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -22,6 +23,7 @@ const auth = useAuthStore()
 const toastStore = useToastStore()
 
 const sigId = computed(() => route.params.id as string)
+const sig = inject<Ref<Sig | null>>('sig', ref(null))
 const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
 
 const forms = ref<SigForm[]>([])
@@ -134,6 +136,14 @@ onMounted(fetchForms)
 
 <template>
   <div class="space-y-4">
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.sigs'), to: '/sigs' },
+        { label: sig?.name || '...', to: `/sigs/${sigId}` },
+        { label: t('breadcrumb.forms') },
+      ]"
+    />
     <!-- Header -->
     <div class="flex items-center justify-between">
       <h2 class="text-lg font-semibold text-foreground">

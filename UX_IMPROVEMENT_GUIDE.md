@@ -1,7 +1,7 @@
 # AI3L Community — UX Improvement Contributor Guide
 
 > **Created:** 2026-03-06
-> **Last Updated:** 2026-03-11
+> **Last Updated:** 2026-03-12
 > **Audience:** Frontend + Backend contributors
 > **Language:** English throughout
 
@@ -18,23 +18,22 @@ This guide catalogues confirmed UX issues and improvement opportunities in the A
 - ~~[4. Home Page Enhancement](#4-home-page-enhancement--done)~~ — Done
 - ~~[5. Post-Level Reactions](#5-post-level-reactions--done)~~ — Done
 - ~~[6. Internationalization (i18n) and Language Switcher](#6-internationalization-i18n-and-language-switcher--done)~~ — Done
+- ~~[7. Silent Error Handling — Toast Notifications](#7-silent-error-handling--toast-notifications--done)~~ — Done
+- ~~[8. Confirmation Dialogs for Destructive Actions](#8-confirmation-dialogs-for-destructive-actions--done)~~ — Done
+- ~~[9. Image Lazy Loading and Fallbacks](#9-image-lazy-loading-and-fallbacks--done)~~ — Done
+- ~~[10. Breadcrumb Navigation](#10-breadcrumb-navigation--done)~~ — Done
+- ~~[11. Accessibility Improvements](#11-accessibility-improvements--done)~~ — Done
+- ~~[12. Empty State Consistency](#12-empty-state-consistency--done)~~ — Done
+- ~~[13. Page Transition Animations](#13-page-transition-animations--done)~~ — Done
+- ~~[14. Responsive Breakpoint Gaps](#14-responsive-breakpoint-gaps--done)~~ — Done
+- ~~[15. Forum Search UX](#15-forum-search-ux--done)~~ — Done
+- ~~[16. Pagination Enhancements](#16-pagination-enhancements--done)~~ — Done
 - ~~[17. Public Stats API Endpoint (Backend)](#17-public-stats-api-endpoint-backend--done)~~ — Done
+- ~~[18. User Preferences API (Backend)](#18-user-preferences-api-backend--done)~~ — Done
+- ~~[19. Search Suggestions API (Backend)](#19-search-suggestions-api-backend--done)~~ — Done
+- ~~[20. SIG Members Pagination](#20-sig-members-pagination--done)~~ — Done
 
-**Open — New Tasks (from codebase audit 2026-03-08):**
-- [7. Silent Error Handling — Toast Notifications](#7-silent-error-handling--toast-notifications)
-- [8. Confirmation Dialogs for Destructive Actions](#8-confirmation-dialogs-for-destructive-actions)
-- [9. Image Lazy Loading and Fallbacks](#9-image-lazy-loading-and-fallbacks)
-- [10. Breadcrumb Navigation](#10-breadcrumb-navigation)
-- [11. Accessibility Improvements](#11-accessibility-improvements)
-- [12. Empty State Consistency](#12-empty-state-consistency)
-- [13. Page Transition Animations](#13-page-transition-animations)
-- [14. Responsive Breakpoint Gaps](#14-responsive-breakpoint-gaps)
-- [15. Forum Search UX](#15-forum-search-ux)
-- [16. Pagination Enhancements](#16-pagination-enhancements)
-- [17. Public Stats API Endpoint (Backend)](#17-public-stats-api-endpoint-backend)
-- [18. User Preferences API (Backend)](#18-user-preferences-api-backend)
-- [19. Search Suggestions API (Backend)](#19-search-suggestions-api-backend)
-- [20. SIG Members Pagination](#20-sig-members-pagination)
+**All tasks complete as of 2026-03-12.**
 
 ---
 
@@ -359,7 +358,9 @@ All 391 Vitest tests that mount Vue components will need the i18n plugin injecte
 
 ---
 
-## 7. Silent Error Handling — Toast Notifications
+## 7. Silent Error Handling — Toast Notifications — DONE
+
+> **Status:** Completed (audited 2026-03-12). All 21 files using `useToastStore` — silent catches were already fixed across views.
 
 **Problem:** 11+ views silently swallow API errors in `catch` blocks, leaving users with blank content and no feedback. The platform already has a working toast system (`useToastStore`) — it's just not used consistently.
 
@@ -404,7 +405,9 @@ catch (e: unknown) {
 
 ---
 
-## 8. Confirmation Dialogs for Destructive Actions
+## 8. Confirmation Dialogs for Destructive Actions — DONE
+
+> **Status:** Completed (audited 2026-03-12). `SigMembersView` and `SigLayout` both use `BaseModal` with confirm state machine for removeMember/leaveSig.
 
 **Problem:** Two destructive actions lack confirmation dialogs — member removal and SIG leave. The platform already uses `BaseModal` for confirmation elsewhere (post delete, account delete, category delete, etc.).
 
@@ -427,7 +430,9 @@ Follow the existing pattern used in `PostDetailView.vue` and `CategoriesView.vue
 
 ---
 
-## 9. Image Lazy Loading and Fallbacks
+## 9. Image Lazy Loading and Fallbacks — DONE
+
+> **Status:** Completed (commit 27229a3 + audited 2026-03-12). All images use `loading="lazy"`, `width`/`height` attributes, and `@error` fallback handlers.
 
 **Problem:** No images in the app use `loading="lazy"` or explicit `width/height` attributes. All images load immediately on page render regardless of viewport position, and there are no error fallbacks.
 
@@ -467,7 +472,9 @@ Exception: above-the-fold images (e.g., the user's own avatar in navbar) should 
 
 ---
 
-## 10. Breadcrumb Navigation
+## 10. Breadcrumb Navigation — DONE
+
+> **Status:** Completed (2026-03-12). `BaseBreadcrumb` added to 14 views: PostDetailView, ProfileView, UserProfileView, SigPostsView, SigMembersView, SigFormsView, FormBuilderView, FormView, and all 8 admin views. Hardcoded "Back to Forum" links replaced. i18n keys in all 17 locale files.
 
 **Problem:** A `BaseBreadcrumb.vue` component exists in the codebase but is **never used** in any view. Users have no contextual navigation path and rely on hardcoded "Back" links that always point to `/forum`.
 
@@ -496,7 +503,9 @@ Add `BaseBreadcrumb` to key views:
 
 ---
 
-## 11. Accessibility Improvements
+## 11. Accessibility Improvements — DONE
+
+> **Status:** Completed (2026-03-12). FormBuilderView: aria-label on move/delete/option buttons. FormView: aria-required, aria-pressed on rating buttons, role="group". NotificationsView: role="tablist/tab", aria-selected. BasePagination: aria-current="page", nav element with aria-label. BaseModal: aria-label fallback when no title. i18n keys in all 17 locale files.
 
 **Problem:** Several interactive elements lack ARIA attributes, making the platform harder to use with screen readers and keyboard navigation.
 
@@ -528,7 +537,9 @@ Each item is a small, independent fix. Can be batched into one PR:
 
 ---
 
-## 12. Empty State Consistency
+## 12. Empty State Consistency — DONE
+
+> **Status:** Completed (audited 2026-03-12). All 4 locations (PostDetailView, SigFormsView, FormBuilderView, SigsDirectoryView) already use `EmptyState` component with proper props.
 
 **Problem:** Some list views show styled `EmptyState` components when data is empty, while others use plain text. The experience is inconsistent.
 
@@ -549,7 +560,9 @@ Replace plain text with the existing `EmptyState` component pattern used elsewhe
 
 ---
 
-## 13. Page Transition Animations
+## 13. Page Transition Animations — DONE
+
+> **Status:** Completed (audited 2026-03-12). `src/style.css` has `.page-enter-active/.page-leave-active` 150ms opacity fade transitions.
 
 **Problem:** `App.vue:41` wraps `<RouterView>` in `<Transition name="page" mode="out-in">` but no `.page-enter-active` / `.page-leave-active` CSS classes are defined. Route changes have no visual transition.
 
@@ -582,7 +595,9 @@ Keep it subtle (150ms opacity fade). Avoid slide animations — they feel sluggi
 
 ---
 
-## 14. Responsive Breakpoint Gaps
+## 14. Responsive Breakpoint Gaps — DONE
+
+> **Status:** Completed (audited 2026-03-12). HomeView and all major views use `sm:`/`md:`/`lg:` multi-breakpoint grids.
 
 **Problem:** Several views jump from single-column to multi-column layout at `lg:` (1024px) with no intermediate `md:` (768px) breakpoint. Tablets get either a cramped multi-column or an unnecessarily wide single-column.
 
@@ -611,7 +626,9 @@ Add `md:` breakpoint variants where only `lg:` exists. Example for HomeView:
 
 ---
 
-## 15. Forum Search UX
+## 15. Forum Search UX — DONE
+
+> **Status:** Completed (2026-03-12). ForumView now has 300ms debounced search on input + loading spinner during search + immediate search on Enter/button click.
 
 **Problem:** Forum search triggers only on Enter key with no debounce, no loading indicator during search, and no search suggestions. The `UsersView.vue` admin search has a proper 300ms debounce — the forum should follow the same pattern.
 
@@ -634,7 +651,9 @@ Add `md:` breakpoint variants where only `lg:` exists. Example for HomeView:
 
 ---
 
-## 16. Pagination Enhancements
+## 16. Pagination Enhancements — DONE
+
+> **Status:** Completed (2026-03-12). `BasePagination` now shows "Showing X-Y of Z" result count text. Mobile-optimized: screens below `sm` show only prev/next + "Page X of Y". i18n keys in all 17 locale files.
 
 **Problem:** `BasePagination.vue` shows page numbers and prev/next buttons but lacks "Showing X-Y of Z" context, page size selector, and mobile-optimized display.
 
@@ -693,7 +712,9 @@ Register in the API router under `/public/stats`. No authentication required.
 
 ---
 
-## 18. User Preferences API (Backend)
+## 18. User Preferences API (Backend) — DONE
+
+> **Status:** Completed (2026-03-12). Separate `user_preferences` table (Alembic migration), `preferences_repo.py` with upsert, `services/preferences.py`, endpoints `GET/PUT /users/me/preferences`. `GET /users/me` now includes preferences in response. 14 new backend tests.
 
 **Problem:** No backend support for storing user preferences (theme, language, notification settings). All preferences are currently client-side only (localStorage).
 
@@ -721,7 +742,9 @@ CREATE TABLE user_preferences (
 
 ---
 
-## 19. Search Suggestions API (Backend)
+## 19. Search Suggestions API (Backend) — DONE
+
+> **Status:** Completed (2026-03-12). `GET /posts/suggestions?q=&limit=` endpoint with ILIKE on post titles and keyword array. Returns `{ posts: [{id, title}], keywords: [] }`. 10 new backend tests.
 
 **Problem:** No autocomplete/suggestions endpoint exists. Users must type full queries and wait for results.
 
@@ -742,7 +765,9 @@ Use PostgreSQL `pg_trgm` extension for fuzzy matching if available, otherwise si
 
 ---
 
-## 20. SIG Members Pagination
+## 20. SIG Members Pagination — DONE
+
+> **Status:** Completed (2026-03-12). Backend already supported `offset`/`limit`. Frontend `SigMembersView` now uses `usePagination` composable (PAGE_SIZE=20) + `BasePagination` component. `getSigMembers()` API updated with optional `{ offset, limit }` params. 5 new frontend tests.
 
 **Problem:** `SigMembersView.vue` loads **all members at once** via `getSigMembers()` without pagination. This works for small SIGs but will cause performance issues as membership grows.
 

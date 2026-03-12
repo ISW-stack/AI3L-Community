@@ -6,9 +6,11 @@ import { useAuthStore } from '@/stores/auth'
 import { getErrorMessage } from '@/utils/error'
 import type { Question, FormData } from '@/types'
 import { getForm, submitForm as apiSubmitForm, exportForm } from '@/api/forms'
+import { getSig } from '@/api/sigs'
 import { getTaskStatus } from '@/api/tasks'
 import { uploadEditorFile } from '@/api/files'
 import BaseCard from '@/components/base/BaseCard.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -28,6 +30,7 @@ const submitting = ref(false)
 const submitted = ref(false)
 const message = ref('')
 const error = ref('')
+const sigName = ref('')
 const exporting = ref(false)
 const exportStatus = ref('')
 let exportPollTimer: ReturnType<typeof setInterval> | null = null
@@ -50,6 +53,12 @@ async function fetchForm() {
     form.value = data
     for (const q of data.questions) {
       answers.value[q.id] = q.type === 'multiple_choice' ? [] : q.type === 'rating' ? null : ''
+    }
+    try {
+      const sigData = await getSig(data.sig_id)
+      sigName.value = sigData.name
+    } catch {
+      /* breadcrumb will show fallback */
     }
   } catch {
     error.value = t('forms.view.loadError')
@@ -226,11 +235,21 @@ onUnmounted(() => {
 
 <template>
   <div class="max-w-3xl mx-auto">
-    <div class="mb-6">
-      <button @click="router.back()" class="text-sm text-brand-600 hover:underline">
-        &larr; {{ t('forms.view.backBtn') }}
-      </button>
-    </div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.sigs'), to: '/sigs' },
+        {
+          label: sigName || '...',
+          to: form ? `/sigs/${form.sig_id}` : '/sigs',
+        },
+        {
+          label: t('breadcrumb.forms'),
+          to: form ? `/sigs/${form.sig_id}/forms` : '/sigs',
+        },
+        { label: form?.title || '...' },
+      ]"
+    />
 
     <SkeletonLoader v-if="loading" :lines="2" variant="card" />
     <div v-else-if="!form" class="text-center py-12">
@@ -305,7 +324,8 @@ onUnmounted(() => {
       >
         <BaseCard v-for="q in form.questions" :key="q.id">
           <label class="block text-sm font-medium text-foreground mb-2">
-            {{ q.label }}<span v-if="q.required" class="text-danger-500"> *</span>
+            {{ q.label
+            }}<span v-if="q.required" aria-hidden="true" class="text-danger-500"> *</span>
           </label>
 
           <input
@@ -314,6 +334,7 @@ onUnmounted(() => {
             type="text"
             :placeholder="q.placeholder || ''"
             :maxlength="q.max_length || undefined"
+            :aria-required="q.required"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
           />
 
@@ -323,6 +344,7 @@ onUnmounted(() => {
             rows="4"
             :placeholder="q.placeholder || ''"
             :maxlength="q.max_length || undefined"
+            :aria-required="q.required"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
           ></textarea>
 
@@ -361,18 +383,26 @@ onUnmounted(() => {
           <select
             v-else-if="q.type === 'dropdown'"
             v-model="answers[q.id]"
+            :aria-required="q.required"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
           >
             <option value="">{{ t('forms.view.selectOptionPlaceholder') }}</option>
             <option v-for="opt in q.options" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
           </select>
 
-          <div v-else-if="q.type === 'rating'" class="flex items-center gap-1">
+          <div
+            v-else-if="q.type === 'rating'"
+            class="flex items-center gap-1"
+            role="group"
+            :aria-label="q.label"
+          >
             <button
               v-for="n in ratingRange(q)"
               :key="n"
               @click="answers[q.id] = n"
               type="button"
+              :aria-label="t('accessibility.rateNOutOfM', { n, m: q.max ?? 5 })"
+              :aria-pressed="answers[q.id] === n"
               class="w-10 h-10 rounded-lg text-sm font-medium transition"
               :class="
                 answers[q.id] === n

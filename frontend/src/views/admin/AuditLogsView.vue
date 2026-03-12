@@ -8,6 +8,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
 const { t } = useI18n()
 const logs = ref<AuditLog[]>([])
@@ -94,6 +95,12 @@ onMounted(fetchLogs)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.admin'), to: '/admin' },
+        { label: t('breadcrumb.auditLogs') },
+      ]"
+    />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('admin.auditLogs.title') }}</h1>
       <button

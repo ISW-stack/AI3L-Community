@@ -292,6 +292,7 @@ export default {
     fetchTrendingError: 'トレンド投稿の読み込みに失敗しました。',
     fetchPostsError: '投稿の読み込みに失敗しました。',
     searchError: '検索に失敗しました。もう一度お試しください。',
+    searchLoading: '検索中...',
   },
 
   // ── Post ──
@@ -1008,6 +1009,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'ホーム',
+    forum: 'フォーラム',
+    profile: 'マイプロフィール',
+    users: 'ユーザー',
+    sigs: 'SIGs',
+    posts: '投稿',
+    members: 'メンバー',
+    forms: 'フォーム',
+    admin: '管理',
+    dashboard: 'ダッシュボード',
+    userManagement: 'ユーザー管理',
+    applications: '申請',
+    reports: 'レポート',
+    categories: 'カテゴリ',
+    inviteCodes: '招待コード',
+    contributors: 'コントリビューター',
+    auditLogs: '監査ログ',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: '{total} 件中 {start}-{end} 件を表示',
+    pageOf: '{total} ページ中 {current} ページ',
+  },
+
   errors: {
     AUTH_001: 'セッションが期限切れです。再度ログインしてください。',
     AUTH_002: 'セッションが無効または失効しています。',

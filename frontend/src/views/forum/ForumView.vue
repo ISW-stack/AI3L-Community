@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { Post, Category } from '@/types'
@@ -44,7 +44,11 @@ const searchDateTo = ref((route.query.to as string) || '')
 const searchLogic = ref((route.query.logic as string) || 'AND')
 const sortBy = ref((route.query.sort as string) || 'newest')
 const isSearching = ref(false)
+const isSearchLoading = ref(false)
 const showAdvanced = ref(false)
+
+// Debounce timer for search-as-you-type
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 // Sentinel element for IntersectionObserver
 const sentinelRef = ref<HTMLElement | null>(null)
@@ -229,6 +233,25 @@ function clearSearch() {
   fetchPosts()
 }
 
+function immediateSearch() {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+    searchDebounceTimer = null
+  }
+  doSearch()
+}
+
+function onSearchInput() {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  isSearchLoading.value = true
+  searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null
+    doSearch().finally(() => {
+      isSearchLoading.value = false
+    })
+  }, 300)
+}
+
 function selectCategory(catId: string | null) {
   categoryFilter.value = catId
 }
@@ -270,6 +293,10 @@ onMounted(() => {
   } else {
     fetchPosts()
   }
+})
+
+onUnmounted(() => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
 })
 </script>
 
@@ -324,14 +351,40 @@ onMounted(() => {
           <!-- Search & Filter Bar -->
           <BaseCard class="mb-6 space-y-3">
             <div class="flex flex-col sm:flex-row gap-3">
-              <input
-                v-model="searchKeyword"
-                type="text"
-                :placeholder="t('forum.searchPlaceholder')"
-                class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
-                @keyup.enter="() => doSearch()"
-              />
-              <BaseButton @click="doSearch">{{ t('common.search') }}</BaseButton>
+              <div class="relative flex-1">
+                <input
+                  v-model="searchKeyword"
+                  type="text"
+                  :placeholder="t('forum.searchPlaceholder')"
+                  class="w-full px-3 py-2 pr-9 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
+                  @input="onSearchInput"
+                  @keyup.enter="immediateSearch"
+                />
+                <svg
+                  v-if="isSearchLoading"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin h-4 w-4 text-brand-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  role="status"
+                  :aria-label="t('forum.searchLoading')"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  ></path>
+                </svg>
+              </div>
+              <BaseButton @click="immediateSearch">{{ t('common.search') }}</BaseButton>
               <button
                 class="text-sm text-brand-600 hover:text-brand-700 hover:underline shrink-0"
                 @click="toggleAdvanced"

@@ -293,6 +293,7 @@ export default {
     fetchTrendingError: 'ट्रेंडिंग पोस्ट लोड करने में विफल।',
     fetchPostsError: 'पोस्ट लोड करने में विफल।',
     searchError: 'खोज विफल रही। कृपया पुनः प्रयास करें।',
+    searchLoading: 'खोज रहा है...',
   },
 
   // ── Post ──
@@ -1010,6 +1011,40 @@ export default {
   },
 
   // ── Errors (backend error codes) ──
+  breadcrumb: {
+    home: 'होम',
+    forum: 'फोरम',
+    profile: 'मेरी प्रोफ़ाइल',
+    users: 'उपयोगकर्ता',
+    sigs: 'SIGs',
+    posts: 'पोस्ट',
+    members: 'सदस्य',
+    forms: 'फॉर्म',
+    admin: 'प्रशासन',
+    dashboard: 'डैशबोर्ड',
+    userManagement: 'उपयोगकर्ता',
+    applications: 'आवेदन',
+    reports: 'रिपोर्ट',
+    categories: 'श्रेणियाँ',
+    inviteCodes: 'आमंत्रण कोड',
+    contributors: 'योगदानकर्ता',
+    auditLogs: 'ऑडिट लॉग',
+  },
+  accessibility: {
+    moveQuestionUp: 'Move question up',
+    moveQuestionDown: 'Move question down',
+    deleteQuestion: 'Delete question',
+    removeOption: 'Remove option',
+    optionN: 'Option {n}',
+    rateNOutOfM: 'Rate {n} out of {m}',
+    pagination: 'Pagination',
+  },
+  // ── Pagination ──
+  pagination: {
+    showing: '{total} में से {start}-{end} दिखा रहा है',
+    pageOf: 'पृष्ठ {current} / {total}',
+  },
+
   errors: {
     AUTH_001: 'सत्र समाप्त हो गया। कृपया फिर से लॉग इन करें।',
     AUTH_002: 'अमान्य या रद्द किया गया सत्र।',

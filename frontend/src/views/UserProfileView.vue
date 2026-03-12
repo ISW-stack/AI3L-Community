@@ -16,6 +16,7 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -112,14 +113,13 @@ onMounted(() => {
 <template>
   <div class="w-full lg:px-layout px-4 py-6 sm:py-8 min-h-screen">
     <div class="max-w-4xl mx-auto">
-      <div class="mb-4 text-left">
-        <router-link
-          to="/forum"
-          class="text-sm text-brand-600 hover:underline flex items-center gap-1"
-        >
-          <span>&larr;</span> {{ t('userProfile.backBtn') }}
-        </router-link>
-      </div>
+      <BaseBreadcrumb
+        :items="[
+          { label: t('breadcrumb.home'), to: '/' },
+          { label: t('breadcrumb.users'), to: '/forum' },
+          { label: user?.display_name || '...' },
+        ]"
+      />
 
       <SkeletonLoader v-if="loading" :lines="2" variant="card" />
 

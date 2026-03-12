@@ -108,6 +108,7 @@ onUnmounted(() => {
         role="dialog"
         aria-modal="true"
         :aria-labelledby="title ? 'modal-title' : undefined"
+        :aria-label="title ? undefined : 'Dialog'"
         @click.self="close"
       >
         <div

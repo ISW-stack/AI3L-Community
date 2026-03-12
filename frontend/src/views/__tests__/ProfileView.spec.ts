@@ -43,6 +43,7 @@ function createTestRouter() {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
+      { path: '/', component: { template: '<div />' } },
       { path: '/profile', component: ProfileView },
       { path: '/forum', component: { template: '<div />' } },
       { path: '/login', name: 'login', component: { template: '<div />' } },

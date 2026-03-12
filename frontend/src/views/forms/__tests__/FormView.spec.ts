@@ -367,4 +367,65 @@ describe('FormView', () => {
     const { wrapper } = await mountFormView()
     expect(wrapper.find('.copy-share-link').exists()).toBe(true)
   })
+
+  describe('accessibility', () => {
+    it('adds aria-hidden to required asterisk', async () => {
+      const { wrapper } = await mountFormView()
+      const asterisks = wrapper.findAll('span[aria-hidden="true"]')
+      // q1 and q2 are required, so at least 2 asterisks
+      expect(asterisks.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('adds aria-required on required text inputs', async () => {
+      const { wrapper } = await mountFormView()
+      const textInputs = wrapper.findAll('input[type="text"]')
+      const requiredInput = textInputs.find((i) => i.attributes('aria-required') === 'true')
+      expect(requiredInput).toBeTruthy()
+    })
+
+    it('adds aria-required on required textarea inputs', async () => {
+      const { wrapper } = await mountFormView()
+      const textareas = wrapper.findAll('textarea')
+      // q5 (Comments) is not required, should not have aria-required="true"
+      const optional = textareas.find((t) => t.attributes('aria-required') === 'false')
+      expect(optional).toBeTruthy()
+    })
+
+    it('adds aria-label and aria-pressed to rating buttons', async () => {
+      const { wrapper } = await mountFormView()
+      // Rating buttons should have aria-label containing "Rate"
+      const ratingBtns = wrapper
+        .findAll('button')
+        .filter((b) => b.attributes('aria-label')?.includes('Rate'))
+      expect(ratingBtns.length).toBeGreaterThan(0)
+      // All should have aria-pressed
+      for (const btn of ratingBtns) {
+        expect(btn.attributes('aria-pressed')).toBeDefined()
+      }
+    })
+
+    it('sets aria-pressed="true" on selected rating', async () => {
+      const { wrapper } = await mountFormView()
+      // Click first rating button
+      const ratingBtns = wrapper
+        .findAll('button')
+        .filter((b) => b.attributes('aria-label')?.includes('Rate'))
+      expect(ratingBtns.length).toBeGreaterThan(0)
+      await ratingBtns[0].trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const updatedBtns = wrapper
+        .findAll('button')
+        .filter((b) => b.attributes('aria-label')?.includes('Rate'))
+      const pressed = updatedBtns.find((b) => b.attributes('aria-pressed') === 'true')
+      expect(pressed).toBeTruthy()
+    })
+
+    it('wraps rating buttons in a group with aria-label', async () => {
+      const { wrapper } = await mountFormView()
+      const ratingGroup = wrapper.find('[role="group"]')
+      expect(ratingGroup.exists()).toBe(true)
+      expect(ratingGroup.attributes('aria-label')).toBeTruthy()
+    })
+  })
 })

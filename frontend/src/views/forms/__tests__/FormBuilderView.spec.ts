@@ -344,4 +344,52 @@ describe('FormBuilderView', () => {
       expect(wrapper.text()).toContain('Questions are locked')
     })
   })
+
+  describe('Accessibility', () => {
+    it('has aria-label on move up button', async () => {
+      const { wrapper } = await mountBuilder()
+      const moveUpBtn = wrapper.find('button[aria-label="Move question up"]')
+      expect(moveUpBtn.exists()).toBe(true)
+    })
+
+    it('has aria-label on move down button', async () => {
+      const { wrapper } = await mountBuilder()
+      const moveDownBtn = wrapper.find('button[aria-label="Move question down"]')
+      expect(moveDownBtn.exists()).toBe(true)
+    })
+
+    it('has aria-label on delete question button', async () => {
+      const { wrapper } = await mountBuilder()
+      const deleteBtn = wrapper.find('button[aria-label="Delete question"]')
+      expect(deleteBtn.exists()).toBe(true)
+    })
+
+    it('has aria-label on choice option inputs', async () => {
+      const { wrapper } = await mountBuilder()
+      const vm = wrapper.vm as any
+      // Change the first question to single_choice with options
+      vm.questions[0].type = 'single_choice'
+      vm.questions[0].options = [
+        { id: 'o1', label: 'A' },
+        { id: 'o2', label: 'B' },
+      ]
+      await wrapper.vm.$nextTick()
+
+      const optionInputs = wrapper.findAll('input[aria-label^="Option"]')
+      expect(optionInputs.length).toBe(2)
+      expect(optionInputs[0].attributes('aria-label')).toBe('Option 1')
+      expect(optionInputs[1].attributes('aria-label')).toBe('Option 2')
+    })
+
+    it('has aria-label on remove option button', async () => {
+      const { wrapper } = await mountBuilder()
+      const vm = wrapper.vm as any
+      vm.questions[0].type = 'single_choice'
+      vm.questions[0].options = [{ id: 'o1', label: 'A' }]
+      await wrapper.vm.$nextTick()
+
+      const removeBtn = wrapper.find('button[aria-label="Remove option"]')
+      expect(removeBtn.exists()).toBe(true)
+    })
+  })
 })

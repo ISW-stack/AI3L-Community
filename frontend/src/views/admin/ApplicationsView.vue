@@ -10,6 +10,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
 const { t } = useI18n()
 const applications = ref<Application[]>([])
@@ -73,6 +74,12 @@ onMounted(fetchApplications)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.admin'), to: '/admin' },
+        { label: t('breadcrumb.applications') },
+      ]"
+    />
     <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('admin.applications.title') }}</h1>
 
     <div class="flex gap-2 mb-4">
