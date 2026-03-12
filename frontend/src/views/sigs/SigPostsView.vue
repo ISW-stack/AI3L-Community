@@ -90,7 +90,10 @@ onMounted(fetchPosts)
             </div>
           </div>
 
-          <router-link :to="`/forum/${p.id}`" class="group">
+          <router-link
+            :to="{ path: `/forum/${p.id}`, query: { fromSigId: sigId, fromSigName: sig?.name || '' } }"
+            class="group"
+          >
             <h3 class="font-bold text-foreground mb-1 group-hover:text-brand-600 transition-colors">
               {{ p.title }}
             </h3>

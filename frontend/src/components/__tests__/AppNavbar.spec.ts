@@ -143,6 +143,45 @@ describe('AppNavbar', () => {
       // The dropdown button shows the role as the display or badge text
       expect(wrapper.text()).toContain('Member')
     })
+
+    it('shows role badge before username in the dropdown button', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      auth.user = {
+        id: 'u1',
+        username: 'alice',
+        display_name: 'AliceDisplay',
+        role: 'MEMBER',
+        bio: null,
+        affiliation: null,
+        orcid: null,
+        avatar_url: null,
+        preferred_language: 'en',
+        is_banned: false,
+        ban_reason: null,
+        created_at: new Date().toISOString(),
+      } as any
+      await nextTick()
+
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      const btnText = userBtn.text()
+      const roleIdx = btnText.indexOf('Member')
+      const nameIdx = btnText.indexOf('AliceDisplay')
+      // Role badge label should appear before the username
+      expect(roleIdx).toBeGreaterThanOrEqual(0)
+      expect(nameIdx).toBeGreaterThanOrEqual(0)
+      expect(roleIdx).toBeLessThan(nameIdx)
+    })
+
+    it('shows fallback dash when display_name is not set', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      // user is null → display_name fallback is "—"
+      await nextTick()
+
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      expect(userBtn.text()).toContain('—')
+    })
   })
 
   // ---------- Authenticated ADMIN ----------

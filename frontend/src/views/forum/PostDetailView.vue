@@ -21,6 +21,7 @@ import FormShareCard from '@/components/FormShareCard.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
+import ReactionPicker from '@/components/ReactionPicker.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -86,6 +87,24 @@ const {
   saveEditComment,
   handleReply,
 } = usePostDetail({ postId, auth, router })
+
+const breadcrumbItems = computed(() => {
+  const fromSigId = route.query.fromSigId as string | undefined
+  const fromSigName = route.query.fromSigName as string | undefined
+  if (fromSigId) {
+    return [
+      { label: t('breadcrumb.home'), to: '/' },
+      { label: t('breadcrumb.sigs'), to: '/sigs' },
+      { label: fromSigName || '...', to: `/sigs/${fromSigId}` },
+      { label: post.value?.title || '...' },
+    ]
+  }
+  return [
+    { label: t('breadcrumb.home'), to: '/' },
+    { label: t('breadcrumb.forum'), to: '/forum' },
+    { label: post.value?.title || '...' },
+  ]
+})
 </script>
 
 <template>
@@ -118,13 +137,7 @@ const {
 
       <!-- View mode -->
       <div v-else>
-        <BaseBreadcrumb
-          :items="[
-            { label: t('breadcrumb.home'), to: '/' },
-            { label: t('breadcrumb.forum'), to: '/forum' },
-            { label: post.title },
-          ]"
-        />
+        <BaseBreadcrumb :items="breadcrumbItems" />
 
         <BaseCard padding="lg" class="mb-6">
           <!-- Post Header with Avatar -->
@@ -205,7 +218,7 @@ const {
             </div>
           </div>
 
-          <div ref="postContentRef" class="prose prose-sm max-w-none text-foreground/80 mb-4">
+          <div ref="postContentRef" class="prose prose-sm max-w-none break-words text-foreground/80 mb-4">
             <template v-for="(seg, i) in contentSegments" :key="i">
               <div v-if="seg.type === 'html'" v-html="seg.content"></div>
               <SigShareCard
@@ -226,37 +239,13 @@ const {
           </div>
 
           <!-- Post Reactions -->
-          <div v-if="auth.isAuthenticated && !auth.isGuest" class="flex items-center gap-1.5 mb-3">
-            <button
-              v-for="r in ['LIKE', 'SMILE', 'CRY']"
-              :key="r"
-              type="button"
-              :aria-label="`React with ${r}`"
-              class="text-xs px-2 py-1 rounded-full transition-colors inline-flex items-center gap-1"
-              :class="
-                hasPostReacted(r)
-                  ? 'bg-brand-100 text-brand-700'
-                  : 'bg-surface-alt text-muted hover:bg-gray-100'
-              "
-              @click="togglePostReactionHandler(r)"
-            >
-              {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
-              {{ getPostReactionCount(r) || '' }}
-            </button>
-          </div>
-          <div
-            v-else-if="post.reactions && Object.keys(post.reactions).length"
-            class="flex items-center gap-1.5 mb-3"
-          >
-            <span
-              v-for="r in ['LIKE', 'SMILE', 'CRY']"
-              :key="r"
-              class="text-xs px-2 py-1 rounded-full bg-surface-alt text-muted inline-flex items-center gap-1"
-              :class="{ hidden: !getPostReactionCount(r) }"
-            >
-              {{ r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;' }}
-              {{ getPostReactionCount(r) }}
-            </span>
+          <div class="mb-3">
+            <ReactionPicker
+              :reactions="post.reactions ?? null"
+              :user-id="auth.user?.id ?? null"
+              :readonly="!auth.isAuthenticated || auth.isGuest"
+              @toggle="togglePostReactionHandler"
+            />
           </div>
 
           <!-- Action Bar -->
@@ -356,30 +345,18 @@ const {
                   </template>
                   <template v-else>
                     <p
-                      class="text-sm text-foreground/80 mb-2"
+                      class="text-sm text-foreground/80 break-words mb-2"
                       v-html="
                         renderMentions(DOMPurify.sanitize(node.root.content), node.root.mentions)
                       "
                     ></p>
                     <div class="flex items-center gap-3">
-                      <template v-if="auth.isAuthenticated && !auth.isGuest">
-                        <button
-                          v-for="r in ['LIKE', 'SMILE', 'CRY']"
-                          :key="r"
-                          @click="toggleReactionHandler(node.root.id, r)"
-                          class="text-xs px-2 py-0.5 rounded-full transition"
-                          :class="
-                            hasReacted(node.root, r)
-                              ? 'bg-brand-100 text-brand-700'
-                              : 'bg-surface-alt text-muted hover:bg-gray-100'
-                          "
-                        >
-                          {{
-                            r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
-                          }}
-                          {{ getReactionCount(node.root, r) || '' }}
-                        </button>
-                      </template>
+                      <ReactionPicker
+                        :reactions="node.root.reactions"
+                        :user-id="auth.user?.id ?? null"
+                        :readonly="!auth.isAuthenticated || auth.isGuest"
+                        @toggle="(r) => toggleReactionHandler(node.root.id, r)"
+                      />
                       <button
                         v-if="post.allow_comments && auth.isAuthenticated && !auth.isGuest"
                         @click="handleReply(node.root.id)"
@@ -476,28 +453,16 @@ const {
                     </template>
                     <template v-else>
                       <p
-                        class="text-sm text-foreground/80 mb-2"
+                        class="text-sm text-foreground/80 break-words mb-2"
                         v-html="renderMentions(DOMPurify.sanitize(reply.content), reply.mentions)"
                       ></p>
                       <div class="flex items-center gap-3">
-                        <template v-if="auth.isAuthenticated && !auth.isGuest">
-                          <button
-                            v-for="r in ['LIKE', 'SMILE', 'CRY']"
-                            :key="r"
-                            @click="toggleReactionHandler(reply.id, r)"
-                            class="text-xs px-2 py-0.5 rounded-full transition"
-                            :class="
-                              hasReacted(reply, r)
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'bg-surface-alt text-muted hover:bg-gray-100'
-                            "
-                          >
-                            {{
-                              r === 'LIKE' ? '&#128077;' : r === 'SMILE' ? '&#128522;' : '&#128546;'
-                            }}
-                            {{ getReactionCount(reply, r) || '' }}
-                          </button>
-                        </template>
+                        <ReactionPicker
+                          :reactions="reply.reactions"
+                          :user-id="auth.user?.id ?? null"
+                          :readonly="!auth.isAuthenticated || auth.isGuest"
+                          @toggle="(r) => toggleReactionHandler(reply.id, r)"
+                        />
                         <button
                           v-if="canEditComment(reply)"
                           @click="startEditComment(reply)"

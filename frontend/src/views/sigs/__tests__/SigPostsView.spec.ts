@@ -219,4 +219,16 @@ describe('SigPostsView', () => {
     expect(wrapper.text()).toContain('Second Post')
     expect(wrapper.text()).toContain('Bob Jones')
   })
+
+  it('post links include fromSigId query param for breadcrumb context', async () => {
+    mockGetSigPosts.mockResolvedValue({ posts: fakePosts, total: 2 })
+
+    const { wrapper } = await mountComponent({ userSigRole: ref(null) })
+    await flushPromises()
+
+    const postLinks = wrapper.findAll('a').filter((a) => a.attributes('href')?.includes('/forum/'))
+    expect(postLinks.length).toBeGreaterThan(0)
+    const firstHref = postLinks[0].attributes('href') ?? ''
+    expect(firstHref).toContain('fromSigId=sig1')
+  })
 })

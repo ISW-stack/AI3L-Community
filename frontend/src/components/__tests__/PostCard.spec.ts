@@ -29,6 +29,7 @@ vi.mock('lucide-vue-next', () => ({
   Pin: { name: 'Pin', template: '<svg data-testid="pin-icon" />' },
   Eye: { name: 'Eye', template: '<svg data-testid="eye-icon" />' },
   MessageCircle: { name: 'MessageCircle', template: '<svg data-testid="message-icon" />' },
+  Smile: { name: 'Smile', template: '<svg data-testid="smile-icon" />' },
 }))
 
 vi.mock('@/api/posts', () => ({
@@ -442,13 +443,46 @@ describe('PostCard', () => {
   })
 
   describe('reactions', () => {
-    it('shows reaction buttons for authenticated non-guest users', () => {
+    it('shows reaction chip and add-reaction button for authenticated non-guest users', () => {
       const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-2'] } }), {
         role: 'MEMBER',
         userId: 'user-1',
       })
-      const buttons = wrapper.findAll('button[aria-label]')
-      expect(buttons.length).toBe(3) // LIKE, SMILE, CRY
+      // LIKE chip is visible (count > 0), plus the "+" picker trigger
+      const likeChip = wrapper.find('button[aria-label="React with LIKE"]')
+      const addBtn = wrapper.find('button[aria-label="Add reaction"]')
+      expect(likeChip.exists()).toBe(true)
+      expect(addBtn.exists()).toBe(true)
+    })
+
+    it('shows add-reaction picker button even when no reactions exist', () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: null }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const addBtn = wrapper.find('button[aria-label="Add reaction"]')
+      expect(addBtn.exists()).toBe(true)
+      // No chips since no reactions
+      const likeChip = wrapper.find('button[aria-label="React with LIKE"]')
+      expect(likeChip.exists()).toBe(false)
+    })
+
+    it('opens reaction picker popup when "+" button is clicked', async () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: null }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const addBtn = wrapper.find('button[aria-label="Add reaction"]')
+      await addBtn.trigger('click')
+      await nextTick()
+
+      // All 3 reactions should now appear in the popup
+      const likeInPopup = wrapper.find('button[aria-label="React with LIKE"]')
+      const smileInPopup = wrapper.find('button[aria-label="React with SMILE"]')
+      const cryInPopup = wrapper.find('button[aria-label="React with CRY"]')
+      expect(likeInPopup.exists()).toBe(true)
+      expect(smileInPopup.exists()).toBe(true)
+      expect(cryInPopup.exists()).toBe(true)
     })
 
     it('shows reaction count when reactions exist', () => {
@@ -461,7 +495,7 @@ describe('PostCard', () => {
       expect(likeButton.text()).toContain('2')
     })
 
-    it('highlights reaction button when user has reacted', () => {
+    it('highlights reaction chip when user has reacted', () => {
       const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-1'] } }), {
         role: 'MEMBER',
         userId: 'user-1',
@@ -471,7 +505,7 @@ describe('PostCard', () => {
       expect(likeButton.attributes('aria-pressed')).toBe('true')
     })
 
-    it('does not highlight reaction button when user has not reacted', () => {
+    it('does not highlight reaction chip when user has not reacted', () => {
       const wrapper = mountCardWithAuth(makePost({ reactions: { LIKE: ['user-2'] } }), {
         role: 'MEMBER',
         userId: 'user-1',
@@ -481,11 +515,11 @@ describe('PostCard', () => {
       expect(likeButton.attributes('aria-pressed')).toBe('false')
     })
 
-    it('calls togglePostReaction when reaction button is clicked', async () => {
+    it('calls togglePostReaction when visible reaction chip is clicked', async () => {
       const { togglePostReaction } = await import('@/api/posts')
       const mockedToggle = vi.mocked(togglePostReaction)
-      const postData = makePost({ reactions: null })
-      mockedToggle.mockResolvedValue({ ...postData, reactions: { LIKE: ['user-1'] } })
+      const postData = makePost({ reactions: { LIKE: ['user-2'] } })
+      mockedToggle.mockResolvedValue({ ...postData, reactions: { LIKE: ['user-1', 'user-2'] } })
 
       const wrapper = mountCardWithAuth(postData, { role: 'MEMBER', userId: 'user-1' })
 
@@ -495,9 +529,9 @@ describe('PostCard', () => {
       expect(mockedToggle).toHaveBeenCalledWith('post-1', 'LIKE')
     })
 
-    it('shows read-only reactions for guests when reactions exist', () => {
+    it('shows read-only reaction spans for guests when reactions exist', () => {
       const wrapper = mountCard(makePost({ reactions: { LIKE: ['user-2'], SMILE: ['user-3'] } }))
-      // No interactive buttons (no aria-label buttons)
+      // No interactive buttons
       const buttons = wrapper.findAll('button[aria-label]')
       expect(buttons.length).toBe(0)
       // Should show reaction counts as spans
@@ -505,7 +539,7 @@ describe('PostCard', () => {
       expect(reactionSpans.length).toBeGreaterThanOrEqual(1)
     })
 
-    it('does not show read-only reactions section when no reactions exist', () => {
+    it('does not show reaction UI when no reactions exist and user is unauthenticated', () => {
       const wrapper = mountCard(makePost({ reactions: null }))
       const buttons = wrapper.findAll('button[aria-label]')
       expect(buttons.length).toBe(0)

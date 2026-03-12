@@ -198,10 +198,10 @@ onUnmounted(() => {
                 class="flex items-center gap-2 text-sm text-foreground hover:text-foreground/80 transition"
                 :aria-expanded="userDropdownOpen"
               >
-                <span>{{ auth.user?.display_name || auth.role }}</span>
                 <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'">
                   {{ roleLabels[auth.role || ''] || auth.role }}
                 </BaseBadge>
+                <span>{{ auth.user?.display_name || '—' }}</span>
                 <ChevronDown class="w-4 h-4 text-muted" aria-hidden="true" />
               </button>
 
@@ -344,12 +344,10 @@ onUnmounted(() => {
               {{ t('nav.sectionAccount') }}
             </div>
             <div class="flex items-center gap-2 px-3 py-2">
-              <span class="text-sm text-foreground">{{
-                auth.user?.display_name || auth.role
-              }}</span>
               <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'">
                 {{ roleLabels[auth.role || ''] || auth.role }}
               </BaseBadge>
+              <span class="text-sm text-foreground">{{ auth.user?.display_name || '—' }}</span>
             </div>
             <div class="px-3 py-2">
               <LanguageSwitcher variant="form" />

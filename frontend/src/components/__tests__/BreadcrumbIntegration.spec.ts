@@ -131,6 +131,7 @@ vi.mock('@/api/tasks', () => ({
 
 vi.mock('@/constants', () => ({
   HEARTBEAT_INTERVAL_MS: 30000,
+  REACTIONS: ['LIKE', 'SMILE', 'CRY'],
 }))
 
 // ── Imports after mocks ──

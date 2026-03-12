@@ -319,18 +319,50 @@ describe('PostDetailView', () => {
     expect(backLink).toBeTruthy()
   })
 
-  it('renders reaction buttons on comments', async () => {
+  it('renders reaction picker add button for authenticated user', async () => {
     const { wrapper } = await mountPostDetail()
-    // Reaction buttons render emoji: thumbs up, smile, cry
-    const html = wrapper.html()
-    const hasReactionEmoji =
-      html.includes('\uD83D\uDC4D') || // thumbs up
-      html.includes('\uD83D\uDE0A') || // smile
-      html.includes('\uD83D\uDE22') || // cry
-      html.includes('128077') ||
-      html.includes('128522') ||
-      html.includes('128546')
-    expect(hasReactionEmoji).toBe(true)
+    // ReactionPicker should render an "Add reaction" button for authenticated non-guest users
+    const addBtns = wrapper.findAll('button[aria-label="Add reaction"]')
+    // At least one (for post reactions); comments also have their own pickers
+    expect(addBtns.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('shows forum breadcrumb when no fromSigId query param', async () => {
+    const { wrapper } = await mountPostDetail()
+    // Default breadcrumb shows "Forum" path
+    const links = wrapper.findAll('a').map((a) => a.attributes('href'))
+    expect(links).toContain('/forum')
+    expect(links).not.toContain('/sigs')
+  })
+
+  it('shows SIG breadcrumb when fromSigId and fromSigName query params are present', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createTestRouter()
+    const auth = useAuthStore()
+    auth.setSession('MEMBER', 3600)
+    auth.user = { id: 'u1' } as any
+
+    const mockData = buildMockPostDetail()
+    mockUsePostDetail.mockReturnValue(mockData)
+
+    await router.push('/forum/post-1?fromSigId=sig-42&fromSigName=NLP+Research')
+    await router.isReady()
+
+    const wrapper = mount(PostDetailView, {
+      global: { plugins: [pinia, router], stubs: createStubs() },
+    })
+    await flushPromises()
+
+    // Breadcrumb should link to /sigs and /sigs/sig-42
+    const links = wrapper.findAll('a').map((a) => a.attributes('href'))
+    expect(links).toContain('/sigs')
+    expect(links.some((h) => h?.includes('/sigs/sig-42'))).toBe(true)
+    // Should NOT link to /forum in the breadcrumb
+    const breadcrumbForumLink = links.filter((h) => h === '/forum')
+    expect(breadcrumbForumLink.length).toBe(0)
+    // SIG name should appear as breadcrumb label
+    expect(wrapper.text()).toContain('NLP Research')
   })
 
   it('renders floating create button', async () => {

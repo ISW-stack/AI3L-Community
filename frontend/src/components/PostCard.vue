@@ -10,6 +10,7 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import { Pin, Eye, MessageCircle } from 'lucide-vue-next'
+import ReactionPicker from '@/components/ReactionPicker.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -211,7 +212,7 @@ function displayTime(dateStr: string): string {
     <div class="px-4 pb-2">
       <div
         ref="contentRef"
-        class="prose prose-sm max-w-none text-muted post-preview-content"
+        class="prose prose-sm max-w-none break-words text-muted post-preview-content"
         :class="{ 'is-collapsed': !isExpanded && isOverflowing }"
         :style="!isExpanded ? { maxHeight: maxHeight, overflow: 'hidden' } : {}"
         v-html="sanitizedPreviewHtml"
@@ -244,34 +245,16 @@ function displayTime(dateStr: string): string {
     </div>
 
     <!-- Reactions -->
-    <div v-if="auth.isAuthenticated && !auth.isGuest" class="px-4 pb-2 flex items-center gap-1.5">
-      <button
-        v-for="r in REACTIONS"
-        :key="r"
-        type="button"
-        :aria-label="`React with ${r}`"
-        :aria-pressed="hasReacted(r)"
-        class="text-xs px-2 py-1 rounded-full transition-colors inline-flex items-center gap-1"
-        :class="hasReacted(r) ? 'bg-brand-100 text-brand-700' : 'hover:bg-surface-alt text-muted'"
-        @click.stop.prevent="handleReaction(r)"
-      >
-        {{ EMOJI_MAP[r] }}
-        <span v-if="getReactionCount(r)">{{ getReactionCount(r) }}</span>
-      </button>
-    </div>
-    <!-- Read-only reactions for guests / unauthenticated -->
     <div
-      v-else-if="reactionsData && Object.keys(reactionsData).length"
-      class="px-4 pb-2 flex items-center gap-1.5"
+      v-if="auth.isAuthenticated || (reactionsData && Object.keys(reactionsData).length)"
+      class="px-4 pb-2"
     >
-      <span
-        v-for="r in REACTIONS"
-        :key="r"
-        class="text-xs px-2 py-1 rounded-full bg-surface-alt text-muted inline-flex items-center gap-1"
-        :class="{ hidden: !getReactionCount(r) }"
-      >
-        {{ EMOJI_MAP[r] }} {{ getReactionCount(r) }}
-      </span>
+      <ReactionPicker
+        :reactions="reactionsData"
+        :user-id="auth.user?.id ?? null"
+        :readonly="!auth.isAuthenticated || auth.isGuest"
+        @toggle="handleReaction"
+      />
     </div>
 
     <!-- Action Bar -->
