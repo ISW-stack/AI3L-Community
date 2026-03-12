@@ -280,6 +280,14 @@ export default {
       allPosts: '전체 게시물',
       trendingTitle: '인기 (7일)',
     },
+    leftSidebar: {
+      quickLinks: '빠른 링크',
+      home: '홈 피드',
+      allSigs: '모든 SIG',
+      createPost: '글 작성',
+      notifications: '알림',
+      mySigs: '내 SIG',
+    },
     fetchCategoriesError: '카테고리를 불러오지 못했습니다.',
     fetchTrendingError: '인기 게시물을 불러오지 못했습니다.',
     fetchPostsError: '게시물을 불러오지 못했습니다.',
@@ -293,6 +301,8 @@ export default {
       comments: '댓글 {count}개',
       views: '{count}',
       lastReply: '마지막 답글 {time}',
+      showMore: '더 보기',
+      showLess: '접기',
       timeFormat: {
         justNow: '방금 전',
         minutesAgo: '{count}분 전',

@@ -260,6 +260,14 @@ export default {
       allPosts: '所有文章',
       trendingTitle: '熱門 (7天)',
     },
+    leftSidebar: {
+      quickLinks: '快速連結',
+      home: '首頁動態',
+      allSigs: '所有 SIG',
+      createPost: '建立貼文',
+      notifications: '通知',
+      mySigs: '我的 SIG',
+    },
     fetchCategoriesError: '載入分類失敗。',
     fetchTrendingError: '載入熱門文章失敗。',
     fetchPostsError: '載入文章失敗。',
@@ -271,6 +279,8 @@ export default {
       comments: '{count} 則留言',
       views: '{count}',
       lastReply: '最後回覆 {time}',
+      showMore: '顯示更多',
+      showLess: '顯示較少',
       timeFormat: {
         justNow: '剛剛',
         minutesAgo: '{count} 分鐘前',

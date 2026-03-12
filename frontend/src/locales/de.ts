@@ -285,6 +285,14 @@ export default {
       allPosts: 'Alle Beiträge',
       trendingTitle: 'Trending (7T)',
     },
+    leftSidebar: {
+      quickLinks: 'Schnelllinks',
+      home: 'Start-Feed',
+      allSigs: 'Alle SIGs',
+      createPost: 'Beitrag erstellen',
+      notifications: 'Benachrichtigungen',
+      mySigs: 'Meine SIGs',
+    },
     fetchCategoriesError: 'Kategorien konnten nicht geladen werden.',
     fetchTrendingError: 'Beliebte Beiträge konnten nicht geladen werden.',
     fetchPostsError: 'Beiträge konnten nicht geladen werden.',
@@ -298,6 +306,8 @@ export default {
       comments: '{count} Kommentar | {count} Kommentare',
       views: '{count}',
       lastReply: 'Letzte Antwort {time}',
+      showMore: 'Mehr anzeigen',
+      showLess: 'Weniger anzeigen',
       timeFormat: {
         justNow: 'gerade eben',
         minutesAgo: 'vor {count} Min.',

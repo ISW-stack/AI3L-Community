@@ -185,7 +185,7 @@ onMounted(() => {
 
         <div v-else class="space-y-4">
           <div v-for="p in posts" :key="p.id">
-            <PostCard :post="p" :format-time="toLocaleTime" :content-clamp="3" />
+            <PostCard :post="p" :format-time="toLocaleTime" :max-preview-lines="3" />
           </div>
         </div>
 

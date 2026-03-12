@@ -283,6 +283,14 @@ export default {
       allPosts: 'Todas las publicaciones',
       trendingTitle: 'Tendencias (7d)',
     },
+    leftSidebar: {
+      quickLinks: 'Enlaces rápidos',
+      home: 'Inicio',
+      allSigs: 'Todos los SIG',
+      createPost: 'Crear publicación',
+      notifications: 'Notificaciones',
+      mySigs: 'Mis SIG',
+    },
     fetchCategoriesError: 'Error al cargar las categorías.',
     fetchTrendingError: 'Error al cargar las publicaciones en tendencia.',
     fetchPostsError: 'Error al cargar las publicaciones.',
@@ -296,6 +304,8 @@ export default {
       comments: '{count} comentario | {count} comentarios',
       views: '{count}',
       lastReply: 'Última respuesta {time}',
+      showMore: 'Ver más',
+      showLess: 'Ver menos',
       timeFormat: {
         justNow: 'ahora mismo',
         minutesAgo: 'hace {count}m',

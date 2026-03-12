@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import DOMPurify from 'dompurify'
 import type { Post } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { togglePostReaction } from '@/api/posts'
@@ -19,21 +20,78 @@ const EMOJI_MAP: Record<string, string> = {
   CRY: '\uD83D\uDE22',
 }
 
+const PREVIEW_ALLOWED_TAGS = [
+  'p',
+  'br',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'code',
+  'pre',
+]
+
 const props = withDefaults(
   defineProps<{
     post: Post
     formatTime?: (dateStr: string) => string
-    contentClamp?: 3 | 8
+    maxPreviewLines?: number
   }>(),
   {
     formatTime: undefined,
-    contentClamp: 8,
+    maxPreviewLines: 15,
   },
 )
 
 const emit = defineEmits<{
   (e: 'reactionToggled', post: Post): void
 }>()
+
+// Show more / show less
+const isExpanded = ref(false)
+const isOverflowing = ref(false)
+const contentRef = ref<HTMLElement | null>(null)
+
+const maxHeight = computed(() => `${props.maxPreviewLines * 1.5}rem`)
+
+function checkOverflow() {
+  nextTick(() => {
+    if (contentRef.value) {
+      isOverflowing.value = contentRef.value.scrollHeight > contentRef.value.clientHeight + 1
+    }
+  })
+}
+
+function toggleExpanded() {
+  isExpanded.value = !isExpanded.value
+}
+
+onMounted(checkOverflow)
+watch(
+  () => props.post.content,
+  () => {
+    isExpanded.value = false
+    checkOverflow()
+  },
+)
+
+// Sanitized HTML for preview (strips images, links text only, allows basic formatting)
+const sanitizedPreviewHtml = computed(() => {
+  return DOMPurify.sanitize(props.post.content, {
+    ALLOWED_TAGS: PREVIEW_ALLOWED_TAGS,
+    ALLOWED_ATTR: [],
+  })
+})
 
 // Local optimistic reactions state
 const localReactions = ref<Record<string, string[]> | null>(null)
@@ -100,12 +158,6 @@ function defaultFormatTime(dateStr: string): string {
 function displayTime(dateStr: string): string {
   return props.formatTime ? props.formatTime(dateStr) : defaultFormatTime(dateStr)
 }
-
-function stripHtml(html: string): string {
-  const div = document.createElement('div')
-  div.innerHTML = html
-  return div.textContent || ''
-}
 </script>
 
 <template>
@@ -150,30 +202,42 @@ function stripHtml(html: string): string {
       </div>
     </div>
 
-    <!-- Post Title & Content — link to post -->
-    <router-link :to="`/forum/${post.id}`" class="block px-4 pb-3">
+    <!-- Post Title — link to post -->
+    <router-link :to="`/forum/${post.id}`" class="block px-4">
       <h2 class="text-base font-bold text-foreground mb-1.5">{{ post.title }}</h2>
+    </router-link>
 
-      <!-- Content area: text + optional thumbnail -->
-      <div class="flex gap-4">
-        <p
-          class="flex-1 text-sm text-muted leading-relaxed content-preview"
-          :class="contentClamp === 3 ? 'line-clamp-3' : 'line-clamp-8'"
-        >
-          {{ stripHtml(post.content) }}
-        </p>
-        <img
-          v-if="thumbnailUrl"
-          :src="thumbnailUrl"
-          alt=""
-          loading="lazy"
-          class="hidden sm:block w-28 h-28 sm:w-36 sm:h-28 object-cover rounded-lg shrink-0 bg-surface-alt"
-        />
-      </div>
+    <!-- Content preview — sanitized HTML with show more/less -->
+    <div class="px-4 pb-2">
+      <div
+        ref="contentRef"
+        class="prose prose-sm max-w-none text-muted post-preview-content"
+        :class="{ 'is-collapsed': !isExpanded && isOverflowing }"
+        :style="!isExpanded ? { maxHeight: maxHeight, overflow: 'hidden' } : {}"
+        v-html="sanitizedPreviewHtml"
+      ></div>
+      <button
+        v-if="isOverflowing || isExpanded"
+        type="button"
+        class="text-sm font-medium text-brand-600 hover:text-brand-700 hover:underline mt-1"
+        @click.stop.prevent="toggleExpanded"
+      >
+        {{ isExpanded ? t('post.card.showLess') : t('post.card.showMore') }}
+      </button>
+    </div>
+
+    <!-- Full-width image below content -->
+    <router-link v-if="thumbnailUrl" :to="`/forum/${post.id}`" class="block">
+      <img
+        :src="thumbnailUrl"
+        alt=""
+        loading="lazy"
+        class="w-full max-h-80 object-cover bg-surface-alt"
+      />
     </router-link>
 
     <!-- Keywords -->
-    <div v-if="post.keywords?.length" class="px-4 pb-3 flex gap-1 flex-wrap">
+    <div v-if="post.keywords?.length" class="px-4 pb-3 pt-2 flex gap-1 flex-wrap">
       <BaseBadge v-for="kw in post.keywords.slice(0, 5)" :key="kw" variant="neutral">{{
         kw
       }}</BaseBadge>
@@ -228,17 +292,30 @@ function stripHtml(html: string): string {
 </template>
 
 <style scoped>
-.content-preview {
+.is-collapsed {
   position: relative;
-  overflow: hidden;
 }
-.content-preview::after {
+.is-collapsed::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 2rem;
+  height: 3rem;
   background: linear-gradient(transparent, var(--color-surface));
+  pointer-events: none;
+}
+.post-preview-content :deep(p) {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.post-preview-content :deep(ul),
+.post-preview-content :deep(ol) {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.post-preview-content :deep(blockquote) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
 }
 </style>

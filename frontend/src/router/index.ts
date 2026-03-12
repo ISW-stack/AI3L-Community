@@ -56,7 +56,7 @@ const router = createRouter({
       path: '/forum',
       name: 'forum',
       component: () => import('@/views/forum/ForumView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, fullWidth: true },
     },
     {
       path: '/forum/create',

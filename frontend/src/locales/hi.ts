@@ -281,6 +281,14 @@ export default {
       allPosts: 'सभी पोस्ट',
       trendingTitle: 'ट्रेंडिंग (7 दिन)',
     },
+    leftSidebar: {
+      quickLinks: 'त्वरित लिंक',
+      home: 'होम फ़ीड',
+      allSigs: 'सभी SIG',
+      createPost: 'पोस्ट बनाएं',
+      notifications: 'सूचनाएं',
+      mySigs: 'मेरे SIG',
+    },
     fetchCategoriesError: 'श्रेणियां लोड करने में विफल।',
     fetchTrendingError: 'ट्रेंडिंग पोस्ट लोड करने में विफल।',
     fetchPostsError: 'पोस्ट लोड करने में विफल।',
@@ -294,6 +302,8 @@ export default {
       comments: '{count} टिप्पणी | {count} टिप्पणियाँ',
       views: '{count}',
       lastReply: 'अंतिम उत्तर {time}',
+      showMore: 'और दिखाएं',
+      showLess: 'कम दिखाएं',
       timeFormat: {
         justNow: 'अभी-अभी',
         minutesAgo: '{count} मिनट पहले',

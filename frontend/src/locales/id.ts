@@ -283,6 +283,14 @@ export default {
       allPosts: 'Semua Postingan',
       trendingTitle: 'Trending (7h)',
     },
+    leftSidebar: {
+      quickLinks: 'Tautan Cepat',
+      home: 'Beranda',
+      allSigs: 'Semua SIG',
+      createPost: 'Buat Post',
+      notifications: 'Notifikasi',
+      mySigs: 'SIG Saya',
+    },
     fetchCategoriesError: 'Gagal memuat kategori.',
     fetchTrendingError: 'Gagal memuat postingan tren.',
     fetchPostsError: 'Gagal memuat postingan.',
@@ -296,6 +304,8 @@ export default {
       comments: '{count} komentar | {count} komentar',
       views: '{count}',
       lastReply: 'Balasan terakhir {time}',
+      showMore: 'Tampilkan lebih',
+      showLess: 'Tampilkan kurang',
       timeFormat: {
         justNow: 'baru saja',
         minutesAgo: '{count} mnt lalu',

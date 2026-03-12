@@ -281,6 +281,14 @@ export default {
       allPosts: 'Todas as Publicações',
       trendingTitle: 'Em alta (7d)',
     },
+    leftSidebar: {
+      quickLinks: 'Links Rápidos',
+      home: 'Feed Principal',
+      allSigs: 'Todos os SIGs',
+      createPost: 'Criar Publicação',
+      notifications: 'Notificações',
+      mySigs: 'Meus SIGs',
+    },
     fetchCategoriesError: 'Falha ao carregar categorias.',
     fetchTrendingError: 'Falha ao carregar postagens em alta.',
     fetchPostsError: 'Falha ao carregar postagens.',
@@ -294,6 +302,8 @@ export default {
       comments: '{count} comentário | {count} comentários',
       views: '{count}',
       lastReply: 'Última resposta {time}',
+      showMore: 'Ver mais',
+      showLess: 'Ver menos',
       timeFormat: {
         justNow: 'agora mesmo',
         minutesAgo: 'há {count}min',

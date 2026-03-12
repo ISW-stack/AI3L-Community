@@ -14,6 +14,7 @@ import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
+import ForumLeftSidebar from '@/components/forum/ForumLeftSidebar.vue'
 
 const PAGE_SIZE = 20
 
@@ -273,263 +274,275 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">{{ t('forum.title') }}</h1>
-    </div>
-
-    <!-- Mobile Category Pills -->
-    <div class="lg:hidden mb-4 overflow-x-auto">
-      <div class="flex gap-2 pb-2">
-        <button
-          class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
-          :class="
-            !categoryFilter
-              ? 'bg-brand-600 text-white'
-              : 'bg-surface-alt text-muted hover:bg-surface-alt'
-          "
-          @click="selectCategory(null)"
-        >
-          {{ t('common.all') }}
-        </button>
-        <button
-          v-for="cat in categories"
-          :key="cat.id"
-          class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
-          :class="
-            categoryFilter === cat.id
-              ? 'bg-brand-600 text-white'
-              : 'bg-surface-alt text-muted hover:bg-surface-alt'
-          "
-          @click="selectCategory(cat.id)"
-        >
-          {{ cat.name }} ({{ cat.post_count }})
-        </button>
+  <div class="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <div class="max-w-[1340px] mx-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-foreground">{{ t('forum.title') }}</h1>
       </div>
-    </div>
 
-    <div class="flex gap-6">
-      <!-- Main Feed Column -->
-      <div class="flex-1 min-w-0">
-        <!-- Search & Filter Bar -->
-        <BaseCard class="mb-6 space-y-3">
-          <div class="flex flex-col sm:flex-row gap-3">
-            <input
-              v-model="searchKeyword"
-              type="text"
-              :placeholder="t('forum.searchPlaceholder')"
-              class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
-              @keyup.enter="() => doSearch()"
-            />
-            <BaseButton @click="doSearch">{{ t('common.search') }}</BaseButton>
+      <!-- Mobile Category Pills -->
+      <div class="lg:hidden mb-4 overflow-x-auto">
+        <div class="flex gap-2 pb-2">
+          <button
+            class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
+            :class="
+              !categoryFilter
+                ? 'bg-brand-600 text-white'
+                : 'bg-surface-alt text-muted hover:bg-surface-alt'
+            "
+            @click="selectCategory(null)"
+          >
+            {{ t('common.all') }}
+          </button>
+          <button
+            v-for="cat in categories"
+            :key="cat.id"
+            class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
+            :class="
+              categoryFilter === cat.id
+                ? 'bg-brand-600 text-white'
+                : 'bg-surface-alt text-muted hover:bg-surface-alt'
+            "
+            @click="selectCategory(cat.id)"
+          >
+            {{ cat.name }} ({{ cat.post_count }})
+          </button>
+        </div>
+      </div>
+
+      <!-- 3-column layout -->
+      <div class="flex gap-6 justify-center">
+        <!-- Left Sidebar (xl+) -->
+        <aside class="hidden xl:block w-[240px] 2xl:w-[280px] shrink-0">
+          <div class="sticky top-20">
+            <ForumLeftSidebar />
+          </div>
+        </aside>
+
+        <!-- Main Feed Column -->
+        <div class="w-full lg:flex-1 xl:w-[640px] xl:flex-none 2xl:w-[680px] min-w-0">
+          <!-- Search & Filter Bar -->
+          <BaseCard class="mb-6 space-y-3">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input
+                v-model="searchKeyword"
+                type="text"
+                :placeholder="t('forum.searchPlaceholder')"
+                class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
+                @keyup.enter="() => doSearch()"
+              />
+              <BaseButton @click="doSearch">{{ t('common.search') }}</BaseButton>
+              <button
+                class="text-sm text-brand-600 hover:text-brand-700 hover:underline shrink-0"
+                @click="toggleAdvanced"
+              >
+                {{ showAdvanced ? t('forum.hideAdvanced') : t('forum.advanced') }}
+              </button>
+            </div>
+
+            <!-- Advanced Search (collapsible) -->
+            <div v-if="showAdvanced" class="space-y-3 border-t border-border pt-3">
+              <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <input
+                  v-model="searchDateFrom"
+                  type="date"
+                  class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                />
+                <span class="text-muted text-sm hidden sm:inline">{{ t('common.to') }}</span>
+                <input
+                  v-model="searchDateTo"
+                  type="date"
+                  class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                />
+                <select
+                  v-model="searchLogic"
+                  class="px-3 py-2 border border-border rounded-lg text-sm w-20 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+                >
+                  <option value="AND">{{ t('forum.searchLogic.and') }}</option>
+                  <option value="OR">{{ t('forum.searchLogic.or') }}</option>
+                </select>
+              </div>
+              <p v-if="dateRangeInvalid" class="text-sm text-danger-600">
+                {{ t('forum.dateRangeError') }}
+              </p>
+              <div class="flex gap-2">
+                <BaseButton :disabled="dateRangeInvalid" @click="doSearch">
+                  {{ t('forum.applyFilters') }}
+                </BaseButton>
+                <BaseButton v-if="isSearching" variant="secondary" @click="clearSearch">
+                  {{ t('forum.clearFilters') }}
+                </BaseButton>
+              </div>
+            </div>
+          </BaseCard>
+
+          <!-- Sort Button Group -->
+          <div class="flex items-center gap-1 mb-4">
+            <span class="text-sm text-muted mr-2">{{ t('forum.sortLabel') }}</span>
             <button
-              class="text-sm text-brand-600 hover:text-brand-700 hover:underline shrink-0"
-              @click="toggleAdvanced"
+              class="px-3 py-1.5 text-sm font-medium rounded-l-lg border transition"
+              :class="
+                sortBy === 'newest'
+                  ? 'bg-brand-600 text-white border-brand-600'
+                  : 'bg-surface text-foreground border-border hover:bg-surface-alt'
+              "
+              @click="selectSort('newest')"
             >
-              {{ showAdvanced ? t('forum.hideAdvanced') : t('forum.advanced') }}
+              {{ t('forum.sort.newest') }}
             </button>
+            <button
+              class="px-3 py-1.5 text-sm font-medium border-y transition"
+              :class="
+                sortBy === 'oldest'
+                  ? 'bg-brand-600 text-white border-brand-600'
+                  : 'bg-surface text-foreground border-border hover:bg-surface-alt'
+              "
+              @click="selectSort('oldest')"
+            >
+              {{ t('forum.sort.oldest') }}
+            </button>
+            <button
+              class="px-3 py-1.5 text-sm font-medium rounded-r-lg border transition"
+              :class="
+                sortBy === 'most_comments'
+                  ? 'bg-brand-600 text-white border-brand-600'
+                  : 'bg-surface text-foreground border-border hover:bg-surface-alt'
+              "
+              @click="selectSort('most_comments')"
+            >
+              {{ t('forum.sort.mostDiscussed') }}
+            </button>
+            <span v-if="activeCategoryName" class="ml-3 text-sm text-muted">
+              {{ t('common.in') }}
+              <span class="font-medium text-foreground">{{ activeCategoryName }}</span>
+            </span>
           </div>
 
-          <!-- Advanced Search (collapsible) -->
-          <div v-if="showAdvanced" class="space-y-3 border-t border-border pt-3">
-            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              <input
-                v-model="searchDateFrom"
-                type="date"
-                class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-              />
-              <span class="text-muted text-sm hidden sm:inline">{{ t('common.to') }}</span>
-              <input
-                v-model="searchDateTo"
-                type="date"
-                class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-              />
-              <select
-                v-model="searchLogic"
-                class="px-3 py-2 border border-border rounded-lg text-sm w-20 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-              >
-                <option value="AND">{{ t('forum.searchLogic.and') }}</option>
-                <option value="OR">{{ t('forum.searchLogic.or') }}</option>
-              </select>
+          <SkeletonLoader v-if="loading" :lines="3" variant="card" />
+          <EmptyState
+            v-else-if="posts.length === 0"
+            :message="t('forum.emptyMessage')"
+            :title="t('forum.emptyTitle')"
+            :action-label="t('forum.createPostAction')"
+            action-to="/forum/create"
+          />
+
+          <!-- Post Feed -->
+          <div class="space-y-4">
+            <div v-for="post in posts" :key="post.id">
+              <PostCard :post="post" />
             </div>
-            <p v-if="dateRangeInvalid" class="text-sm text-danger-600">
-              {{ t('forum.dateRangeError') }}
-            </p>
-            <div class="flex gap-2">
-              <BaseButton :disabled="dateRangeInvalid" @click="doSearch">
-                {{ t('forum.applyFilters') }}
-              </BaseButton>
-              <BaseButton v-if="isSearching" variant="secondary" @click="clearSearch">
-                {{ t('forum.clearFilters') }}
-              </BaseButton>
-            </div>
           </div>
-        </BaseCard>
 
-        <!-- Sort Button Group -->
-        <div class="flex items-center gap-1 mb-4">
-          <span class="text-sm text-muted mr-2">{{ t('forum.sortLabel') }}</span>
-          <button
-            class="px-3 py-1.5 text-sm font-medium rounded-l-lg border transition"
-            :class="
-              sortBy === 'newest'
-                ? 'bg-brand-600 text-white border-brand-600'
-                : 'bg-surface text-foreground border-border hover:bg-surface-alt'
-            "
-            @click="selectSort('newest')"
-          >
-            {{ t('forum.sort.newest') }}
-          </button>
-          <button
-            class="px-3 py-1.5 text-sm font-medium border-y transition"
-            :class="
-              sortBy === 'oldest'
-                ? 'bg-brand-600 text-white border-brand-600'
-                : 'bg-surface text-foreground border-border hover:bg-surface-alt'
-            "
-            @click="selectSort('oldest')"
-          >
-            {{ t('forum.sort.oldest') }}
-          </button>
-          <button
-            class="px-3 py-1.5 text-sm font-medium rounded-r-lg border transition"
-            :class="
-              sortBy === 'most_comments'
-                ? 'bg-brand-600 text-white border-brand-600'
-                : 'bg-surface text-foreground border-border hover:bg-surface-alt'
-            "
-            @click="selectSort('most_comments')"
-          >
-            {{ t('forum.sort.mostDiscussed') }}
-          </button>
-          <span v-if="activeCategoryName" class="ml-3 text-sm text-muted">
-            {{ t('common.in') }}
-            <span class="font-medium text-foreground">{{ activeCategoryName }}</span>
-          </span>
-        </div>
+          <!-- Infinite Scroll Sentinel -->
+          <div ref="sentinelRef" class="h-4"></div>
 
-        <SkeletonLoader v-if="loading" :lines="3" variant="card" />
-        <EmptyState
-          v-else-if="posts.length === 0"
-          :message="t('forum.emptyMessage')"
-          :title="t('forum.emptyTitle')"
-          :action-label="t('forum.createPostAction')"
-          action-to="/forum/create"
-        />
-
-        <!-- Post Feed -->
-        <div class="space-y-4">
-          <div v-for="post in posts" :key="post.id">
-            <PostCard :post="post" />
+          <!-- Loading More Spinner -->
+          <div v-if="isLoadingMore" class="flex justify-center py-6">
+            <svg
+              class="animate-spin h-6 w-6 text-brand-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              role="status"
+              aria-label="Loading more posts"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              ></path>
+            </svg>
           </div>
+
+          <!-- No More Posts -->
+          <p v-if="!hasMore && posts.length > 0" class="mt-4 text-sm text-muted text-center py-4">
+            {{ t('forum.noMorePosts') }}
+          </p>
         </div>
 
-        <!-- Infinite Scroll Sentinel -->
-        <div ref="sentinelRef" class="h-4"></div>
+        <!-- Right Sidebar (lg+) -->
+        <aside class="hidden lg:block w-[240px] 2xl:w-[280px] shrink-0">
+          <div class="sticky top-20 space-y-6">
+            <!-- About -->
+            <BaseCard>
+              <h3 class="text-sm font-semibold text-foreground mb-2">
+                {{ t('forum.sidebar.aboutTitle') }}
+              </h3>
+              <p class="text-sm text-muted">
+                {{ t('forum.sidebar.aboutDescription') }}
+              </p>
+            </BaseCard>
 
-        <!-- Loading More Spinner -->
-        <div v-if="isLoadingMore" class="flex justify-center py-6">
-          <svg
-            class="animate-spin h-6 w-6 text-brand-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            role="status"
-            aria-label="Loading more posts"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            ></path>
-          </svg>
-        </div>
+            <!-- Categories -->
+            <BaseCard>
+              <h3 class="text-sm font-semibold text-foreground mb-3">
+                {{ t('forum.sidebar.categoriesTitle') }}
+              </h3>
+              <ul class="space-y-1">
+                <li>
+                  <button
+                    class="w-full text-left px-3 py-2 rounded-lg text-sm transition"
+                    :class="
+                      !categoryFilter
+                        ? 'bg-brand-50 text-brand-700 font-medium'
+                        : 'text-foreground hover:bg-surface-alt'
+                    "
+                    @click="selectCategory(null)"
+                  >
+                    {{ t('forum.sidebar.allPosts') }}
+                  </button>
+                </li>
+                <li v-for="cat in categories" :key="cat.id">
+                  <button
+                    class="w-full text-left px-3 py-2 rounded-lg text-sm transition flex justify-between items-center"
+                    :class="
+                      categoryFilter === cat.id
+                        ? 'bg-brand-50 text-brand-700 font-medium'
+                        : 'text-foreground hover:bg-surface-alt'
+                    "
+                    @click="selectCategory(cat.id)"
+                  >
+                    <span>{{ cat.name }}</span>
+                    <span class="text-xs text-muted">{{ cat.post_count }}</span>
+                  </button>
+                </li>
+              </ul>
+            </BaseCard>
 
-        <!-- No More Posts -->
-        <p v-if="!hasMore && posts.length > 0" class="mt-4 text-sm text-muted text-center py-4">
-          {{ t('forum.noMorePosts') }}
-        </p>
+            <!-- Trending Posts -->
+            <BaseCard v-if="trendingPosts.length > 0">
+              <h3 class="text-sm font-semibold text-foreground mb-3">
+                {{ t('forum.sidebar.trendingTitle') }}
+              </h3>
+              <ul class="space-y-3">
+                <li v-for="tp in trendingPosts" :key="tp.id">
+                  <router-link
+                    :to="`/forum/${tp.id}`"
+                    class="block hover:bg-surface-alt rounded-lg px-2 py-1.5 -mx-2 transition"
+                  >
+                    <p class="text-sm text-foreground font-medium line-clamp-2">{{ tp.title }}</p>
+                    <div class="flex items-center gap-3 mt-1 text-xs text-muted">
+                      <span>{{ tp.comment_count }} comments</span>
+                      <span>{{ tp.view_count }} views</span>
+                    </div>
+                  </router-link>
+                </li>
+              </ul>
+            </BaseCard>
+          </div>
+        </aside>
       </div>
 
-      <!-- Right Sidebar (desktop only) -->
-      <aside class="hidden lg:block w-[280px] shrink-0 space-y-6">
-        <!-- About -->
-        <BaseCard>
-          <h3 class="text-sm font-semibold text-foreground mb-2">
-            {{ t('forum.sidebar.aboutTitle') }}
-          </h3>
-          <p class="text-sm text-muted">
-            {{ t('forum.sidebar.aboutDescription') }}
-          </p>
-        </BaseCard>
-
-        <!-- Categories -->
-        <BaseCard>
-          <h3 class="text-sm font-semibold text-foreground mb-3">
-            {{ t('forum.sidebar.categoriesTitle') }}
-          </h3>
-          <ul class="space-y-1">
-            <li>
-              <button
-                class="w-full text-left px-3 py-2 rounded-lg text-sm transition"
-                :class="
-                  !categoryFilter
-                    ? 'bg-brand-50 text-brand-700 font-medium'
-                    : 'text-foreground hover:bg-surface-alt'
-                "
-                @click="selectCategory(null)"
-              >
-                {{ t('forum.sidebar.allPosts') }}
-              </button>
-            </li>
-            <li v-for="cat in categories" :key="cat.id">
-              <button
-                class="w-full text-left px-3 py-2 rounded-lg text-sm transition flex justify-between items-center"
-                :class="
-                  categoryFilter === cat.id
-                    ? 'bg-brand-50 text-brand-700 font-medium'
-                    : 'text-foreground hover:bg-surface-alt'
-                "
-                @click="selectCategory(cat.id)"
-              >
-                <span>{{ cat.name }}</span>
-                <span class="text-xs text-muted">{{ cat.post_count }}</span>
-              </button>
-            </li>
-          </ul>
-        </BaseCard>
-
-        <!-- Trending Posts -->
-        <BaseCard v-if="trendingPosts.length > 0">
-          <h3 class="text-sm font-semibold text-foreground mb-3">
-            {{ t('forum.sidebar.trendingTitle') }}
-          </h3>
-          <ul class="space-y-3">
-            <li v-for="tp in trendingPosts" :key="tp.id">
-              <router-link
-                :to="`/forum/${tp.id}`"
-                class="block hover:bg-surface-alt rounded-lg px-2 py-1.5 -mx-2 transition"
-              >
-                <p class="text-sm text-foreground font-medium line-clamp-2">{{ tp.title }}</p>
-                <div class="flex items-center gap-3 mt-1 text-xs text-muted">
-                  <span>{{ tp.comment_count }} comments</span>
-                  <span>{{ tp.view_count }} views</span>
-                </div>
-              </router-link>
-            </li>
-          </ul>
-        </BaseCard>
-      </aside>
+      <FloatingCreateButton to="/forum/create" />
     </div>
-
-    <FloatingCreateButton to="/forum/create" />
   </div>
 </template>

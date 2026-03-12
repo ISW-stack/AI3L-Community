@@ -282,6 +282,14 @@ export default {
       allPosts: 'Tutti i post',
       trendingTitle: 'Di tendenza (7g)',
     },
+    leftSidebar: {
+      quickLinks: 'Link rapidi',
+      home: 'Feed principale',
+      allSigs: 'Tutti i SIG',
+      createPost: 'Crea post',
+      notifications: 'Notifiche',
+      mySigs: 'I miei SIG',
+    },
     fetchCategoriesError: 'Impossibile caricare le categorie.',
     fetchTrendingError: 'Impossibile caricare i post di tendenza.',
     fetchPostsError: 'Impossibile caricare i post.',
@@ -295,6 +303,8 @@ export default {
       comments: '{count} commento | {count} commenti',
       views: '{count}',
       lastReply: 'Ultima risposta {time}',
+      showMore: 'Mostra di più',
+      showLess: 'Mostra meno',
       timeFormat: {
         justNow: 'proprio ora',
         minutesAgo: '{count}m fa',

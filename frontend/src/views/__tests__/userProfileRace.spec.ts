@@ -74,7 +74,7 @@ async function mountComponent(userId: string) {
         BaseAvatar: { template: '<span class="base-avatar" />', props: ['src', 'name', 'size'] },
         PostCard: {
           template: '<div class="post-card">{{ post.title }}</div>',
-          props: ['post', 'formatTime', 'contentClamp'],
+          props: ['post', 'formatTime', 'maxPreviewLines'],
         },
         SkeletonLoader: {
           template: '<div class="skeleton-loader" />',

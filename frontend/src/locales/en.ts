@@ -281,6 +281,14 @@ export default {
       allPosts: 'All Posts',
       trendingTitle: 'Trending (7d)',
     },
+    leftSidebar: {
+      quickLinks: 'Quick Links',
+      home: 'Home Feed',
+      allSigs: 'All SIGs',
+      createPost: 'Create Post',
+      notifications: 'Notifications',
+      mySigs: 'My SIGs',
+    },
     fetchCategoriesError: 'Failed to load categories.',
     fetchTrendingError: 'Failed to load trending posts.',
     fetchPostsError: 'Failed to load posts.',
@@ -294,6 +302,8 @@ export default {
       comments: '{count} comment | {count} comments',
       views: '{count}',
       lastReply: 'Last reply {time}',
+      showMore: 'Show more',
+      showLess: 'Show less',
       timeFormat: {
         justNow: 'just now',
         minutesAgo: '{count}m ago',

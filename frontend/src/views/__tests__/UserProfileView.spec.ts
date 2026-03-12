@@ -83,7 +83,7 @@ function createStubs() {
     },
     PostCard: {
       template: '<div class="post-card">{{ post.title }}</div>',
-      props: ['post', 'formatTime', 'contentClamp'],
+      props: ['post', 'formatTime', 'maxPreviewLines'],
     },
   }
 }

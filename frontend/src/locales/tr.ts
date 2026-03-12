@@ -283,6 +283,14 @@ export default {
       allPosts: 'Tüm Gönderiler',
       trendingTitle: 'Gündemde (7 gün)',
     },
+    leftSidebar: {
+      quickLinks: 'Hızlı Bağlantılar',
+      home: 'Ana Akış',
+      allSigs: "Tüm SIG'ler",
+      createPost: 'Gönderi Oluştur',
+      notifications: 'Bildirimler',
+      mySigs: "SIG'lerim",
+    },
     fetchCategoriesError: 'Kategoriler yüklenemedi.',
     fetchTrendingError: 'Gündem gönderileri yüklenemedi.',
     fetchPostsError: 'Gönderiler yüklenemedi.',
@@ -296,6 +304,8 @@ export default {
       comments: '{count} yorum | {count} yorum',
       views: '{count}',
       lastReply: 'Son yanıt {time}',
+      showMore: 'Daha fazla göster',
+      showLess: 'Daha az göster',
       timeFormat: {
         justNow: 'şimdi',
         minutesAgo: '{count} dk önce',

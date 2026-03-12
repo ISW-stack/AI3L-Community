@@ -48,10 +48,10 @@ describe('Route meta — fullWidth', () => {
     expect(router.currentRoute.value.meta.fullWidth).toBe(true)
   })
 
-  it('/forum route does NOT have fullWidth meta', async () => {
+  it('/forum route has fullWidth meta', async () => {
     await router.push('/forum')
     await router.isReady()
-    expect(router.currentRoute.value.meta.fullWidth).toBeFalsy()
+    expect(router.currentRoute.value.meta.fullWidth).toBe(true)
   })
 
   it('/ (home) route does NOT have fullWidth meta', async () => {

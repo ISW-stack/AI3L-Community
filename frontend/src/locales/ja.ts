@@ -280,6 +280,14 @@ export default {
       allPosts: 'すべての投稿',
       trendingTitle: 'トレンド（7日間）',
     },
+    leftSidebar: {
+      quickLinks: 'クイックリンク',
+      home: 'ホームフィード',
+      allSigs: 'すべてのSIG',
+      createPost: '投稿作成',
+      notifications: '通知',
+      mySigs: 'マイSIG',
+    },
     fetchCategoriesError: 'カテゴリーの読み込みに失敗しました。',
     fetchTrendingError: 'トレンド投稿の読み込みに失敗しました。',
     fetchPostsError: '投稿の読み込みに失敗しました。',
@@ -293,6 +301,8 @@ export default {
       comments: '{count} 件のコメント | {count} 件のコメント',
       views: '{count}',
       lastReply: '最終返信 {time}',
+      showMore: 'もっと見る',
+      showLess: '折りたたむ',
       timeFormat: {
         justNow: 'たった今',
         minutesAgo: '{count} 分前',

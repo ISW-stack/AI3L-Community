@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import PostCard from '../PostCard.vue'
@@ -32,6 +33,12 @@ vi.mock('lucide-vue-next', () => ({
 
 vi.mock('@/api/posts', () => ({
   togglePostReaction: vi.fn(),
+}))
+
+vi.mock('dompurify', () => ({
+  default: {
+    sanitize: (html: string, _opts?: unknown) => html,
+  },
 }))
 
 function createTestRouter() {
@@ -155,11 +162,76 @@ describe('PostCard', () => {
     })
   })
 
-  describe('content HTML stripping', () => {
-    it('strips HTML tags and renders plain text', () => {
+  describe('content rendering', () => {
+    it('renders sanitized HTML content with formatting preserved', () => {
       const wrapper = mountCard(makePost({ content: '<p>Test <b>content</b></p>' }))
-      expect(wrapper.text()).toContain('Test content')
-      expect(wrapper.html()).not.toContain('<p>Test')
+      const previewDiv = wrapper.find('.post-preview-content')
+      expect(previewDiv.exists()).toBe(true)
+      // DOMPurify mock passes HTML through, so tags should be in rendered output
+      expect(previewDiv.html()).toContain('<p>')
+      expect(previewDiv.html()).toContain('<b>')
+    })
+
+    it('renders content via v-html (not text interpolation)', () => {
+      const wrapper = mountCard(makePost({ content: '<p>Hello <em>world</em></p>' }))
+      const previewDiv = wrapper.find('.post-preview-content')
+      expect(previewDiv.html()).toContain('<em>')
+    })
+  })
+
+  describe('show more / show less', () => {
+    it('does not show toggle button when content fits within maxHeight', () => {
+      const wrapper = mountCard(makePost({ content: '<p>Short</p>' }))
+      const toggleBtn = wrapper.findAll('button').find((b) => b.text().includes('Show more'))
+      expect(toggleBtn).toBeUndefined()
+    })
+
+    it('renders the content preview div with max-height style', () => {
+      const wrapper = mountCard(makePost({ content: '<p>Content</p>' }))
+      const previewDiv = wrapper.find('.post-preview-content')
+      expect(previewDiv.exists()).toBe(true)
+      // Default maxPreviewLines = 15, so maxHeight = 22.5rem
+      expect(previewDiv.element.style.maxHeight).toBe('22.5rem')
+    })
+
+    it('respects custom maxPreviewLines prop', () => {
+      const wrapper = mountCard(makePost({ content: '<p>Content</p>' }), {
+        maxPreviewLines: 3,
+      })
+      const previewDiv = wrapper.find('.post-preview-content')
+      expect(previewDiv.element.style.maxHeight).toBe('4.5rem')
+    })
+
+    it('toggles expanded state when button is clicked', async () => {
+      const wrapper = mountCard(makePost({ content: '<p>Content</p>' }))
+      const vm = wrapper.vm as unknown as { isExpanded: boolean; isOverflowing: boolean }
+
+      // Simulate overflow
+      vm.isOverflowing = true
+      await nextTick()
+
+      const toggleBtn = wrapper.findAll('button').find((b) => b.text().includes('Show more'))
+      expect(toggleBtn).toBeTruthy()
+
+      await toggleBtn!.trigger('click')
+      expect(vm.isExpanded).toBe(true)
+
+      // Now should show "Show less"
+      await nextTick()
+      const lessBtn = wrapper.findAll('button').find((b) => b.text().includes('Show less'))
+      expect(lessBtn).toBeTruthy()
+    })
+
+    it('removes max-height when expanded', async () => {
+      const wrapper = mountCard(makePost({ content: '<p>Content</p>' }))
+      const vm = wrapper.vm as unknown as { isExpanded: boolean; isOverflowing: boolean }
+
+      vm.isOverflowing = true
+      vm.isExpanded = true
+      await nextTick()
+
+      const previewDiv = wrapper.find('.post-preview-content')
+      expect(previewDiv.element.style.maxHeight).toBe('')
     })
   })
 
@@ -329,21 +401,43 @@ describe('PostCard', () => {
     })
   })
 
-  describe('image thumbnail', () => {
-    it('shows thumbnail when content contains an image', () => {
+  describe('image display', () => {
+    it('shows full-width image when content contains an image', () => {
       const wrapper = mountCard(
-        makePost({ content: '<p>Hello</p><img src="https://example.com/img.jpg" />' }),
+        makePost({
+          id: 'post-img-test',
+          content: '<p>Hello</p><img src="https://example.com/img.jpg" />',
+        }),
       )
-      const img = wrapper.find('img[src="https://example.com/img.jpg"]')
-      expect(img.exists()).toBe(true)
+      // The full-width image is rendered inside a router-link to the post
+      // (separate from the v-html content preview)
+      const imgLink = wrapper.find('a[href="/forum/post-img-test"]')
+      expect(imgLink.exists()).toBe(true)
+      // Find images with bg-surface-alt class (the standalone full-width image)
+      const imgs = wrapper.findAll('img').filter((i) => i.html().includes('bg-surface-alt'))
+      expect(imgs.length).toBe(1)
+      expect(imgs[0].html()).toContain('w-full')
+      expect(imgs[0].html()).toContain('max-h-80')
+      expect(imgs[0].html()).toContain('object-cover')
     })
 
-    it('does not show thumbnail when content has no image', () => {
+    it('does not show image when content has no image', () => {
       const wrapper = mountCard(makePost({ content: '<p>No images here</p>' }))
       // Only the avatar img should exist
       const imgs = wrapper.findAll('img')
       const contentImgs = imgs.filter((img) => img.attributes('alt') !== 'Alice')
       expect(contentImgs.length).toBe(0)
+    })
+
+    it('wraps image in a router-link to the post', () => {
+      const wrapper = mountCard(
+        makePost({
+          id: 'post-img',
+          content: '<p>With image</p><img src="https://example.com/pic.jpg" />',
+        }),
+      )
+      const imgLink = wrapper.find('a[href="/forum/post-img"] img.w-full')
+      expect(imgLink.exists()).toBe(true)
     })
   })
 

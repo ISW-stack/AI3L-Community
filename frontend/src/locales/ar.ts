@@ -280,6 +280,14 @@ export default {
       allPosts: 'جميع المشاركات',
       trendingTitle: 'الرائج (7 أيام)',
     },
+    leftSidebar: {
+      quickLinks: 'روابط سريعة',
+      home: 'الصفحة الرئيسية',
+      allSigs: 'جميع SIG',
+      createPost: 'إنشاء منشور',
+      notifications: 'الإشعارات',
+      mySigs: 'مجموعاتي',
+    },
     fetchCategoriesError: 'فشل في تحميل الفئات.',
     fetchTrendingError: 'فشل في تحميل المنشورات الشائعة.',
     fetchPostsError: 'فشل في تحميل المنشورات.',
@@ -293,6 +301,8 @@ export default {
       comments: '{count} تعليق | {count} تعليقات',
       views: '{count}',
       lastReply: 'آخر رد {time}',
+      showMore: 'عرض المزيد',
+      showLess: 'عرض أقل',
       timeFormat: {
         justNow: 'الآن',
         minutesAgo: 'منذ {count} د',

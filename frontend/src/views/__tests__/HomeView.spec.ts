@@ -103,7 +103,7 @@ function createStubs() {
     SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
     PostCard: {
       template: '<div class="post-card">{{ post?.title }}</div>',
-      props: ['post', 'contentClamp'],
+      props: ['post', 'maxPreviewLines'],
     },
     MessageSquare: { template: '<span />' },
     Users: { template: '<span />' },

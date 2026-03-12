@@ -282,6 +282,14 @@ export default {
       allPosts: 'Все записи',
       trendingTitle: 'Популярное (7д)',
     },
+    leftSidebar: {
+      quickLinks: 'Быстрые ссылки',
+      home: 'Лента',
+      allSigs: 'Все SIG',
+      createPost: 'Создать пост',
+      notifications: 'Уведомления',
+      mySigs: 'Мои SIG',
+    },
     fetchCategoriesError: 'Не удалось загрузить категории.',
     fetchTrendingError: 'Не удалось загрузить популярные записи.',
     fetchPostsError: 'Не удалось загрузить записи.',
@@ -295,6 +303,8 @@ export default {
       comments: '{count} комментарий | {count} комментария | {count} комментариев',
       views: '{count}',
       lastReply: 'Последний ответ {time}',
+      showMore: 'Показать больше',
+      showLess: 'Показать меньше',
       timeFormat: {
         justNow: 'только что',
         minutesAgo: '{count} мин. назад',

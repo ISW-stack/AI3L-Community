@@ -282,6 +282,14 @@ export default {
       allPosts: 'Tất cả bài viết',
       trendingTitle: 'Xu hướng (7 ngày)',
     },
+    leftSidebar: {
+      quickLinks: 'Liên kết nhanh',
+      home: 'Bảng tin',
+      allSigs: 'Tất cả SIG',
+      createPost: 'Tạo bài viết',
+      notifications: 'Thông báo',
+      mySigs: 'SIG của tôi',
+    },
     fetchCategoriesError: 'Không tải được danh mục.',
     fetchTrendingError: 'Không tải được bài đăng thịnh hành.',
     fetchPostsError: 'Không tải được bài đăng.',
@@ -295,6 +303,8 @@ export default {
       comments: '{count} bình luận | {count} bình luận',
       views: '{count}',
       lastReply: 'Trả lời cuối {time}',
+      showMore: 'Xem thêm',
+      showLess: 'Thu gọn',
       timeFormat: {
         justNow: 'vừa xong',
         minutesAgo: '{count} phút trước',

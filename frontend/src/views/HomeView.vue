@@ -206,7 +206,7 @@ onMounted(() => {
                 v-for="p in trendingPosts.slice(0, 3)"
                 :key="p.id"
                 :post="p"
-                :content-clamp="3"
+                :max-preview-lines="3"
               />
             </div>
           </div>
@@ -221,7 +221,7 @@ onMounted(() => {
               {{ t('home.recentPosts.empty') }}
             </div>
             <div v-else class="space-y-4">
-              <PostCard v-for="p in recentPosts" :key="p.id" :post="p" :content-clamp="3" />
+              <PostCard v-for="p in recentPosts" :key="p.id" :post="p" :max-preview-lines="3" />
             </div>
           </div>
         </div>

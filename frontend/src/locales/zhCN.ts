@@ -260,6 +260,14 @@ export default {
       allPosts: '所有文章',
       trendingTitle: '热门 (7天)',
     },
+    leftSidebar: {
+      quickLinks: '快速链接',
+      home: '首页动态',
+      allSigs: '所有 SIG',
+      createPost: '创建帖子',
+      notifications: '通知',
+      mySigs: '我的 SIG',
+    },
     fetchCategoriesError: '加载分类失败。',
     fetchTrendingError: '加载热门帖子失败。',
     fetchPostsError: '加载帖子失败。',
@@ -271,6 +279,8 @@ export default {
       comments: '{count} 条评论',
       views: '{count}',
       lastReply: '最后回复 {time}',
+      showMore: '展开更多',
+      showLess: '收起',
       timeFormat: {
         justNow: '刚刚',
         minutesAgo: '{count} 分钟前',

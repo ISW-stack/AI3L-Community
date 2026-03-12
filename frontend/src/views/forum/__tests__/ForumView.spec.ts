@@ -147,6 +147,7 @@ function createStubs() {
       props: ['post'],
     },
     FloatingCreateButton: { template: '<div class="fab" />', props: ['to'] },
+    ForumLeftSidebar: { template: '<div class="forum-left-sidebar" />' },
   }
 }
 
@@ -588,5 +589,39 @@ describe('ForumView', () => {
     vm.loadMore()
     await nextTick()
     expect(mockSearchPosts).not.toHaveBeenCalled()
+  })
+
+  describe('3-column layout', () => {
+    it('renders the left sidebar component', async () => {
+      const { wrapper } = await mountForum()
+      expect(wrapper.find('.forum-left-sidebar').exists()).toBe(true)
+    })
+
+    it('left sidebar is hidden below xl breakpoint (has hidden xl:block classes)', async () => {
+      const { wrapper } = await mountForum()
+      // The aside wrapping the left sidebar should have responsive hiding classes
+      const asides = wrapper.findAll('aside')
+      const leftSidebar = asides.find((a) => a.find('.forum-left-sidebar').exists())
+      expect(leftSidebar).toBeTruthy()
+      expect(leftSidebar!.classes()).toContain('hidden')
+      expect(leftSidebar!.classes()).toContain('xl:block')
+    })
+
+    it('right sidebar is hidden below lg breakpoint (has hidden lg:block classes)', async () => {
+      const { wrapper } = await mountForum()
+      const asides = wrapper.findAll('aside')
+      // Right sidebar has categories/trending, not the ForumLeftSidebar
+      const rightSidebar = asides.find((a) => !a.find('.forum-left-sidebar').exists())
+      expect(rightSidebar).toBeTruthy()
+      expect(rightSidebar!.classes()).toContain('hidden')
+      expect(rightSidebar!.classes()).toContain('lg:block')
+    })
+
+    it('uses self-managed padding (fullWidth mode)', async () => {
+      const { wrapper } = await mountForum()
+      // The root div should have its own px padding classes
+      const root = wrapper.find('div')
+      expect(root.classes()).toContain('px-4')
+    })
   })
 })
