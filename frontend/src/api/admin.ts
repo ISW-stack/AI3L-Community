@@ -40,7 +40,8 @@ export async function createAccount(payload: {
 }
 
 export async function changeRole(userId: string, role: string) {
-  await api.put(`/users/${userId}/role`, { role })
+  const { data } = await api.put(`/users/${userId}/role`, { role })
+  return data as AdminUser
 }
 
 export async function banUser(userId: string, reason: string) {

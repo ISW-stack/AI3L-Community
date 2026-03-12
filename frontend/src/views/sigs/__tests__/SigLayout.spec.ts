@@ -445,6 +445,113 @@ describe('SigLayout', () => {
     expect(injectedEl.text()).toContain('MEMBER')
   })
 
+  it('provides refreshSigRole function that re-fetches current user role', async () => {
+    let capturedRefreshSigRole: (() => Promise<void>) | undefined
+    const ChildComponent = {
+      template: '<div class="injected">{{ roleVal }}</div>',
+      setup() {
+        const roleVal = inject('userSigRole')
+        capturedRefreshSigRole = inject('refreshSigRole') as (() => Promise<void>) | undefined
+        return { roleVal }
+      },
+    }
+
+    // Initial mount: user is MEMBER
+    mockGetSig.mockResolvedValue(fakeSig)
+    mockGetSigMembers.mockResolvedValue(fakeMembersWithUser)
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { template: '<div />' } },
+        { path: '/sigs', name: 'sigs', component: { template: '<div />' } },
+        {
+          path: '/sigs/:id',
+          component: SigLayout,
+          children: [
+            { path: '', redirect: { name: 'sig-posts' } },
+            { path: 'posts', name: 'sig-posts', component: ChildComponent },
+            { path: 'members', name: 'sig-members', component: { template: '<div />' } },
+            { path: 'forms', name: 'sig-forms', component: { template: '<div />' } },
+          ],
+        },
+      ],
+    })
+
+    const pinia = createPinia()
+    setActivePinia(pinia)
+
+    const auth = useAuthStore()
+    auth.setSession('MEMBER', 3600)
+    auth.user = {
+      id: 'user1',
+      username: 'testuser',
+      display_name: 'Test User',
+      role: 'MEMBER',
+      bio: null,
+      affiliation: null,
+      orcid: null,
+      avatar_url: null,
+      is_banned: false,
+      ban_reason: null,
+    } as any
+
+    await router.push('/sigs/sig-1/posts')
+    await router.isReady()
+
+    const wrapper = mount(SigLayout, {
+      global: {
+        plugins: [pinia, router],
+        stubs: {
+          BaseCard: { template: '<div class="base-card"><slot /></div>' },
+          BaseButton: { template: '<button><slot /></button>' },
+          BaseModal: { template: '<div />' },
+          BaseInput: { template: '<input />' },
+          BaseTextarea: { template: '<textarea />' },
+          SkeletonLoader: { template: '<div class="skeleton-loader" />' },
+          CopyShareLinkButton: { template: '<span />' },
+          transition: { template: '<div><slot /></div>' },
+        },
+      },
+    })
+
+    await vi.dynamicImportSettled()
+    await nextTick()
+    await nextTick()
+    await nextTick()
+    await nextTick()
+
+    // Verify injected function exists
+    expect(capturedRefreshSigRole).toBeDefined()
+    expect(typeof capturedRefreshSigRole).toBe('function')
+
+    // Verify initial role is MEMBER
+    const injectedEl = wrapper.find('.injected')
+    expect(injectedEl.text()).toContain('MEMBER')
+
+    // Now simulate role change: user was promoted to SUB_ADMIN
+    mockGetSigMembers.mockResolvedValueOnce({
+      members: [
+        {
+          id: 'member-1',
+          sig_id: 'sig-1',
+          user_id: 'user1',
+          role: 'SUB_ADMIN',
+          display_name: 'Test User',
+          username: 'testuser',
+          avatar_url: null,
+          created_at: '2026-01-15T00:00:00Z',
+        },
+      ],
+    })
+
+    await capturedRefreshSigRole!()
+    await nextTick()
+    await nextTick()
+
+    expect(injectedEl.text()).toContain('SUB_ADMIN')
+  })
+
   it('shows leave confirmation modal when Leave SIG is clicked', async () => {
     const { wrapper } = await mountLayout({
       role: 'MEMBER',

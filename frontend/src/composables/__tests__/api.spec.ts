@@ -9,10 +9,14 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 const mockClearSession = vi.fn()
 const mockToastShow = vi.fn()
 const mockRouterPush = vi.fn()
+let mockIsAuthenticated = true
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
     clearSession: mockClearSession,
+    get isAuthenticated() {
+      return mockIsAuthenticated
+    },
   }),
 }))
 
@@ -32,6 +36,7 @@ describe('api composable', () => {
     mockClearSession.mockReset()
     mockToastShow.mockReset()
     mockRouterPush.mockReset()
+    mockIsAuthenticated = true
     // Reset module cache so api.ts re-runs
     vi.resetModules()
   })
@@ -212,6 +217,27 @@ describe('api composable', () => {
       expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
     })
 
+    it('should show session expired toast on AUTH_001 when user was logged in', async () => {
+      mockIsAuthenticated = true
+      const errorHandler = await getErrorInterceptor()
+      const error = makeAxiosError(401, { code: 'AUTH_001', message: 'Token expired' })
+
+      await expect(errorHandler(error)).rejects.toBe(error)
+
+      expect(mockToastShow).toHaveBeenCalledWith('Session expired. Please log in again.', 'warning')
+    })
+
+    it('should NOT show toast on AUTH_001 when user was not logged in', async () => {
+      mockIsAuthenticated = false
+      const errorHandler = await getErrorInterceptor()
+      const error = makeAxiosError(401, { code: 'AUTH_001', message: 'Token expired' })
+
+      await expect(errorHandler(error)).rejects.toBe(error)
+
+      expect(mockClearSession).toHaveBeenCalled()
+      expect(mockToastShow).not.toHaveBeenCalled()
+    })
+
     it('should clear session and redirect on AUTH_002 (token revoked)', async () => {
       const errorHandler = await getErrorInterceptor()
       const error = makeAxiosError(401, { code: 'AUTH_002', message: 'Token revoked' })
@@ -222,6 +248,16 @@ describe('api composable', () => {
       expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
     })
 
+    it('should show revoked session toast on AUTH_002 when user was logged in', async () => {
+      mockIsAuthenticated = true
+      const errorHandler = await getErrorInterceptor()
+      const error = makeAxiosError(401, { code: 'AUTH_002', message: 'Token revoked' })
+
+      await expect(errorHandler(error)).rejects.toBe(error)
+
+      expect(mockToastShow).toHaveBeenCalledWith('Invalid or revoked session.', 'warning')
+    })
+
     it('should clear session and redirect on plain 401 (no error code)', async () => {
       const errorHandler = await getErrorInterceptor()
       const error = makeAxiosError(401, 'Unauthorized')
@@ -230,6 +266,16 @@ describe('api composable', () => {
 
       expect(mockClearSession).toHaveBeenCalled()
       expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
+    })
+
+    it('should show session expired toast on plain 401 when user was logged in', async () => {
+      mockIsAuthenticated = true
+      const errorHandler = await getErrorInterceptor()
+      const error = makeAxiosError(401, 'Unauthorized')
+
+      await expect(errorHandler(error)).rejects.toBe(error)
+
+      expect(mockToastShow).toHaveBeenCalledWith('Session expired. Please log in again.', 'warning')
     })
 
     it('should clear session, show toast, and redirect on AUTH_004 (banned)', async () => {

@@ -462,3 +462,83 @@ class TestApplicationApprovalRoleGuard:
         assert result is not None
         # execute should NOT have been called (no role update for REJECTED)
         mock_conn.execute.assert_not_called()
+
+
+class TestReviewApplicationActionValidation:
+    """Bug fix: review_application must reject invalid action strings."""
+
+    @pytest.mark.anyio
+    async def test_invalid_action_raises_value_error(self):
+        """Passing an invalid action to review_application raises ValueError."""
+        from app.services.application import review_application
+
+        app_id = uuid.uuid4()
+        reviewer_id = uuid.uuid4()
+
+        with pytest.raises(ValueError, match="Invalid action"):
+            await review_application(app_id, reviewer_id, "INVALID")
+
+    @pytest.mark.anyio
+    async def test_arbitrary_string_action_raises_value_error(self):
+        """Arbitrary strings like 'PENDING' are also rejected."""
+        from app.services.application import review_application
+
+        app_id = uuid.uuid4()
+        reviewer_id = uuid.uuid4()
+
+        with pytest.raises(ValueError, match="Invalid action"):
+            await review_application(app_id, reviewer_id, "PENDING")
+
+    @pytest.mark.anyio
+    async def test_approved_action_passes_validation(self):
+        """'APPROVED' passes validation and reaches the repo call."""
+        from app.services.application import review_application
+
+        app_id = uuid.uuid4()
+        reviewer_id = uuid.uuid4()
+        app_row = _make_application()
+        app_row["status"] = "APPROVED"
+
+        with (
+            patch(
+                f"{_REPO}.update_status",
+                new_callable=AsyncMock,
+                return_value=app_row,
+            ),
+            patch(
+                "app.services.application.emit",
+                new_callable=AsyncMock,
+            ),
+        ):
+            result = await review_application(
+                app_id, reviewer_id, "APPROVED"
+            )
+            assert result is not None
+            assert result["status"] == "APPROVED"
+
+    @pytest.mark.anyio
+    async def test_rejected_action_passes_validation(self):
+        """'REJECTED' passes validation and reaches the repo call."""
+        from app.services.application import review_application
+
+        app_id = uuid.uuid4()
+        reviewer_id = uuid.uuid4()
+        app_row = _make_application()
+        app_row["status"] = "REJECTED"
+
+        with (
+            patch(
+                f"{_REPO}.update_status",
+                new_callable=AsyncMock,
+                return_value=app_row,
+            ),
+            patch(
+                "app.services.application.emit",
+                new_callable=AsyncMock,
+            ),
+        ):
+            result = await review_application(
+                app_id, reviewer_id, "REJECTED"
+            )
+            assert result is not None
+            assert result["status"] == "REJECTED"

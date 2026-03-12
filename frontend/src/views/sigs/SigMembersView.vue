@@ -33,6 +33,7 @@ const PAGE_SIZE = 20
 const sigId = computed(() => route.params.id as string)
 const sig = inject<Ref<Sig | null>>('sig', ref(null))
 const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
+const refreshSigRole = inject<() => Promise<void>>('refreshSigRole')
 
 const members = ref<SigMember[]>([])
 const loading = ref(true)
@@ -94,6 +95,7 @@ async function executeRemoveMember() {
   try {
     await removeMemberApi(sigId.value, confirmAction.value.user.user_id)
     await fetchMembers()
+    await refreshSigRole?.()
     toastStore.show(t('sigs.members.removeSuccess'), 'info')
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.members.removeError')), 'error')
@@ -117,6 +119,7 @@ async function executeDemoteMember() {
   try {
     await demoteSubAdminApi(sigId.value, confirmAction.value.user.user_id)
     await fetchMembers()
+    await refreshSigRole?.()
     toastStore.show(t('sigs.members.demoteSuccess'), 'info')
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.members.demoteError')), 'error')
@@ -129,6 +132,7 @@ async function handleAssignSubAdmin(userId: string) {
   try {
     await assignSubAdminApi(sigId.value, userId)
     await fetchMembers()
+    await refreshSigRole?.()
     toastStore.show(t('sigs.members.promoteSuccess'), 'success')
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.members.promoteError')), 'error')

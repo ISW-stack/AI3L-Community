@@ -310,6 +310,13 @@ async def change_user_role(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
+    # Notify target user about role change via WebSocket
+    await emit(
+        "user.role_changed",
+        user_id=str(user_id),
+        new_role=req.role,
+    )
+
     # Revoke target user's existing sessions
     await revoke_user_sessions(str(user_id))
 

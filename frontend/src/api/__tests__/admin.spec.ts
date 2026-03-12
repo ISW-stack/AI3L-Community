@@ -98,11 +98,37 @@ describe('admin API', () => {
 
   describe('changeRole', () => {
     it('calls PUT /users/{userId}/role with role payload', async () => {
-      mockPut.mockResolvedValue({})
+      const updatedUser = {
+        id: 'u-1',
+        username: 'alice',
+        display_name: 'Alice',
+        role: 'ADMIN',
+        is_banned: false,
+        ban_reason: null,
+      }
+      mockPut.mockResolvedValue({ data: updatedUser })
 
-      await changeRole('u-1', 'ADMIN')
+      const result = await changeRole('u-1', 'ADMIN')
 
       expect(mockPut).toHaveBeenCalledWith('/users/u-1/role', { role: 'ADMIN' })
+      expect(result).toEqual(updatedUser)
+    })
+
+    it('returns the updated user object from the response', async () => {
+      const updatedUser = {
+        id: 'u-2',
+        username: 'bob',
+        display_name: 'Bob',
+        role: 'MEMBER',
+        is_banned: false,
+        ban_reason: null,
+      }
+      mockPut.mockResolvedValue({ data: updatedUser })
+
+      const result = await changeRole('u-2', 'MEMBER')
+
+      expect(result).toEqual(updatedUser)
+      expect(result.role).toBe('MEMBER')
     })
   })
 

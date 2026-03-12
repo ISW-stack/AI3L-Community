@@ -64,12 +64,14 @@ async function applyBulkRole() {
   if (selectedIds.value.size === 0) return
   bulkLoading.value = true
   try {
-    await api.put('/users/bulk-role', {
+    const { data } = await api.put('/users/bulk-role', {
       user_ids: Array.from(selectedIds.value),
       role: bulkRole.value,
     })
     toast.show(
-      t('admin.users.message.bulkRoleUpdated', { count: selectedIds.value.size }),
+      t('admin.users.message.bulkRoleUpdated', {
+        count: data.updated_count ?? selectedIds.value.size,
+      }),
       'success',
     )
     selectedIds.value.clear()
@@ -140,9 +142,12 @@ function goToPage(p: number) {
 
 async function changeRole(userId: string, newRole: string) {
   try {
-    await apiChangeRole(userId, newRole)
+    const updated = await apiChangeRole(userId, newRole)
+    const idx = users.value.findIndex((u) => u.id === userId)
+    if (idx >= 0) {
+      users.value[idx] = { ...users.value[idx], role: updated.role }
+    }
     message.value = t('admin.users.message.roleUpdated')
-    await fetchUsers()
   } catch (e: unknown) {
     message.value = getErrorMessage(e, t('admin.users.message.roleFailed'))
   }

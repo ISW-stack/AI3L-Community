@@ -462,6 +462,93 @@ class TestAdminCreateAccountRestrictions:
             _clear_overrides()
 
 
+class TestChangeRoleEmitsEvent:
+    @pytest.mark.anyio
+    async def test_change_role_emits_user_role_changed(self, client):
+        """PUT /users/{id}/role emits user.role_changed event."""
+        target_user = uuid.uuid4()
+        user = make_user_dict(user_id=str(target_user), role="ADMIN")
+
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch(
+                    f"{_EP}.update_user_role",
+                    new_callable=AsyncMock,
+                    return_value=user,
+                ),
+                patch(
+                    f"{_EP}.revoke_user_sessions",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    f"{_EP}.emit",
+                    new_callable=AsyncMock,
+                ) as mock_emit,
+            ):
+                resp = await client.put(
+                    f"/api/v1/users/{target_user}/role",
+                    json={"role": "ADMIN"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+
+                # Verify user.role_changed was emitted
+                calls = mock_emit.call_args_list
+                role_changed_calls = [
+                    c for c in calls
+                    if c.args[0] == "user.role_changed"
+                ]
+                assert len(role_changed_calls) == 1
+                call_kwargs = role_changed_calls[0].kwargs
+                assert call_kwargs["user_id"] == str(target_user)
+                assert call_kwargs["new_role"] == "ADMIN"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_change_role_emits_before_revoke(self, client):
+        """user.role_changed is emitted before sessions are revoked."""
+        target_user = uuid.uuid4()
+        user = make_user_dict(user_id=str(target_user), role="MEMBER")
+        call_order: list[str] = []
+
+        async def track_emit(*args, **kwargs):
+            call_order.append("emit")
+
+        async def track_revoke(*args, **kwargs):
+            call_order.append("revoke")
+
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch(
+                    f"{_EP}.update_user_role",
+                    new_callable=AsyncMock,
+                    return_value=user,
+                ),
+                patch(
+                    f"{_EP}.revoke_user_sessions",
+                    side_effect=track_revoke,
+                ),
+                patch(
+                    f"{_EP}.emit",
+                    side_effect=track_emit,
+                ),
+            ):
+                resp = await client.put(
+                    f"/api/v1/users/{target_user}/role",
+                    json={"role": "MEMBER"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                # First emit is user.role_changed, then revoke
+                assert call_order[0] == "emit"
+                assert "revoke" in call_order
+        finally:
+            _clear_overrides()
+
+
 class TestBanUserNotFound:
     @pytest.mark.anyio
     async def test_ban_user_not_found(self, client):

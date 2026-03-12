@@ -53,7 +53,12 @@ api.interceptors.response.use(
     // AUTH_001 / AUTH_002 — token expired or revoked
     if (code === 'AUTH_001' || code === 'AUTH_002' || (status === 401 && !code)) {
       const auth = useAuthStore()
+      const wasLoggedIn = auth.isAuthenticated
       auth.clearSession()
+      if (wasLoggedIn) {
+        const toastKey = code === 'AUTH_002' ? 'errors.AUTH_002' : 'errors.AUTH_001'
+        useToastStore().show(t(toastKey), 'warning')
+      }
       router.push({ name: 'login' })
       return Promise.reject(error)
     }

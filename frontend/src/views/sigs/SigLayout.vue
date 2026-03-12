@@ -47,6 +47,18 @@ const showLeaveConfirm = ref(false)
 provide('sig', sig)
 provide('userSigRole', userSigRole)
 
+async function refreshSigRole() {
+  try {
+    const membersData = await getSigMembers(sigId.value)
+    const me = membersData.members.find((m: SigMember) => m.user_id === auth.user?.id)
+    userSigRole.value = me?.role ?? null
+  } catch {
+    // Silently fail — role stays as-is
+  }
+}
+
+provide('refreshSigRole', refreshSigRole)
+
 const sigShareUrl = computed(() => `${window.location.origin}/sigs/${sigId.value}`)
 const isMember = computed(() => userSigRole.value !== null)
 const isSigAdmin = computed(

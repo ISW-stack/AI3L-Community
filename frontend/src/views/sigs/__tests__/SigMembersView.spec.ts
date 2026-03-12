@@ -80,6 +80,8 @@ function createTestRouter() {
   })
 }
 
+const mockRefreshSigRole = vi.fn().mockResolvedValue(undefined)
+
 async function mountComponent(
   options: {
     role?: string
@@ -87,6 +89,7 @@ async function mountComponent(
     members?: SigMember[]
     total?: number
     currentUserId?: string
+    refreshSigRole?: () => Promise<void>
   } = {},
 ) {
   const {
@@ -95,6 +98,7 @@ async function mountComponent(
     members = sampleMembers,
     total = members.length,
     currentUserId = 'current-user',
+    refreshSigRole = mockRefreshSigRole,
   } = options
 
   mockGetSigMembers.mockResolvedValue({ members, total })
@@ -115,6 +119,7 @@ async function mountComponent(
       plugins: [pinia, router],
       provide: {
         userSigRole: ref(userSigRole),
+        refreshSigRole,
       },
       stubs: {
         BaseCard: { template: '<div class="base-card"><slot /></div>' },
@@ -149,6 +154,7 @@ async function mountComponent(
 describe('SigMembersView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRefreshSigRole.mockResolvedValue(undefined)
   })
 
   it('shows loading skeleton initially', async () => {
@@ -720,5 +726,181 @@ describe('SigMembersView', () => {
     // Card for user-3 (MEMBER role, index 2)
     const memberCard = mobileCards[2]
     expect(memberCard.text()).toContain('Promote')
+  })
+
+  describe('refreshSigRole integration', () => {
+    it('calls refreshSigRole after successful promote (assignSubAdmin)', async () => {
+      mockAssignSubAdmin.mockResolvedValue({})
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+      const { wrapper } = await mountComponent({
+        role: 'MEMBER',
+        userSigRole: 'ADMIN',
+        currentUserId: 'user-1',
+      })
+      await flushPromises()
+
+      const table = wrapper.find('table')
+      const tableRows = table.findAll('tbody tr')
+      const memberRow = tableRows[2] // user-3 = MEMBER
+      const promoteBtn = memberRow.findAll('button').find((b) => b.text().includes('Promote'))
+      expect(promoteBtn).toBeTruthy()
+
+      await promoteBtn!.trigger('click')
+      await flushPromises()
+
+      expect(mockAssignSubAdmin).toHaveBeenCalledWith('sig-1', 'user-3')
+      expect(mockRefreshSigRole).toHaveBeenCalledTimes(1)
+    })
+
+    it('calls refreshSigRole after successful demote', async () => {
+      mockDemoteSubAdmin.mockResolvedValue({})
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+      const { wrapper } = await mountComponent({
+        role: 'ADMIN',
+        currentUserId: 'user-1',
+      })
+      await flushPromises()
+      mockRefreshSigRole.mockClear()
+
+      const table = wrapper.find('table')
+      const tableRows = table.findAll('tbody tr')
+      const subAdminRow = tableRows[1] // user-2 = SUB_ADMIN
+      const demoteBtn = subAdminRow.findAll('button').find((b) => b.text().includes('Demote'))
+      expect(demoteBtn).toBeTruthy()
+
+      await demoteBtn!.trigger('click')
+      await flushPromises()
+
+      // Modal should be visible — click confirm
+      const modal = wrapper.find('.base-modal')
+      expect(modal.exists()).toBe(true)
+      const confirmBtn = modal.findAll('button').find((b) => b.text().includes('Demote'))
+      expect(confirmBtn).toBeTruthy()
+
+      mockRefreshSigRole.mockClear()
+      await confirmBtn!.trigger('click')
+      await flushPromises()
+
+      expect(mockDemoteSubAdmin).toHaveBeenCalledWith('sig-1', 'user-2')
+      expect(mockRefreshSigRole).toHaveBeenCalled()
+    })
+
+    it('calls refreshSigRole after successful remove', async () => {
+      mockRemoveMember.mockResolvedValue({})
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+      const { wrapper } = await mountComponent({
+        role: 'MEMBER',
+        userSigRole: 'ADMIN',
+        currentUserId: 'user-2',
+      })
+      await flushPromises()
+      mockRefreshSigRole.mockClear()
+
+      // Click Remove on user-3 (Regular Member) in the table
+      const table = wrapper.find('table')
+      const tableRows = table.findAll('tbody tr')
+      const memberRow = tableRows[2] // user-3 = Regular Member
+      const removeBtn = memberRow.findAll('button').find((b) => b.text().includes('Remove'))
+      expect(removeBtn).toBeTruthy()
+
+      await removeBtn!.trigger('click')
+      await flushPromises()
+
+      // Modal should be visible — click confirm
+      const modal = wrapper.find('.base-modal')
+      expect(modal.exists()).toBe(true)
+      const confirmBtn = modal.findAll('button').find((b) => b.text().includes('Remove'))
+      expect(confirmBtn).toBeTruthy()
+
+      mockRefreshSigRole.mockClear()
+      await confirmBtn!.trigger('click')
+      await flushPromises()
+
+      expect(mockRemoveMember).toHaveBeenCalledWith('sig-1', 'user-3')
+      expect(mockRefreshSigRole).toHaveBeenCalled()
+    })
+
+    it('does not call refreshSigRole when promote fails', async () => {
+      mockAssignSubAdmin.mockRejectedValue(new Error('Promote failed'))
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+      const { wrapper } = await mountComponent({
+        role: 'MEMBER',
+        userSigRole: 'ADMIN',
+        currentUserId: 'user-1',
+      })
+      await flushPromises()
+
+      const table = wrapper.find('table')
+      const tableRows = table.findAll('tbody tr')
+      const memberRow = tableRows[2]
+      const promoteBtn = memberRow.findAll('button').find((b) => b.text().includes('Promote'))
+
+      await promoteBtn!.trigger('click')
+      await flushPromises()
+
+      expect(mockAssignSubAdmin).toHaveBeenCalled()
+      expect(mockRefreshSigRole).not.toHaveBeenCalled()
+    })
+
+    it('does not call refreshSigRole when demote fails', async () => {
+      mockDemoteSubAdmin.mockRejectedValue(new Error('Demote failed'))
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+      const { wrapper } = await mountComponent({
+        role: 'ADMIN',
+        currentUserId: 'user-1',
+      })
+      await flushPromises()
+
+      const table = wrapper.find('table')
+      const tableRows = table.findAll('tbody tr')
+      const subAdminRow = tableRows[1]
+      const demoteBtn = subAdminRow.findAll('button').find((b) => b.text().includes('Demote'))
+
+      await demoteBtn!.trigger('click')
+      await flushPromises()
+
+      const modal = wrapper.find('.base-modal')
+      const confirmBtn = modal.findAll('button').find((b) => b.text().includes('Demote'))
+
+      await confirmBtn!.trigger('click')
+      await flushPromises()
+
+      expect(mockDemoteSubAdmin).toHaveBeenCalled()
+      expect(mockRefreshSigRole).not.toHaveBeenCalled()
+    })
+
+    it('does not call refreshSigRole when remove fails', async () => {
+      mockRemoveMember.mockRejectedValue(new Error('Remove failed'))
+      mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+      const { wrapper } = await mountComponent({
+        role: 'MEMBER',
+        userSigRole: 'ADMIN',
+        currentUserId: 'user-2',
+      })
+      await flushPromises()
+
+      const table = wrapper.find('table')
+      const tableRows = table.findAll('tbody tr')
+      const memberRow = tableRows[2]
+      const removeBtn = memberRow.findAll('button').find((b) => b.text().includes('Remove'))
+
+      await removeBtn!.trigger('click')
+      await flushPromises()
+
+      const modal = wrapper.find('.base-modal')
+      const confirmBtn = modal.findAll('button').find((b) => b.text().includes('Remove'))
+
+      await confirmBtn!.trigger('click')
+      await flushPromises()
+
+      expect(mockRemoveMember).toHaveBeenCalled()
+      expect(mockRefreshSigRole).not.toHaveBeenCalled()
+    })
   })
 })
