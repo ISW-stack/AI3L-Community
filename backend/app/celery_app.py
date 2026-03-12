@@ -6,6 +6,12 @@ celery = Celery(
     "ai3l_community",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
+    include=[
+        "app.tasks.event_retry",
+        "app.tasks.cleanup",
+        "app.tasks.form_export",
+        "app.tasks.virustotal",
+    ],
 )
 
 celery.conf.update(
@@ -43,5 +49,3 @@ celery.conf.beat_schedule = {
         "options": {"soft_time_limit": 60, "time_limit": 120},
     },
 }
-
-celery.autodiscover_tasks(["app.tasks"])

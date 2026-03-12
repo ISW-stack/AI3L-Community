@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import asyncpg
 from loguru import logger
@@ -247,8 +247,8 @@ async def search_posts(
     keyword: str | None = None,
     category_id: str | None = None,
     keywords_filter: list[str] | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     logic: str = "AND",
     page: int = 1,
     page_size: int = 20,

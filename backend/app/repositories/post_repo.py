@@ -2,7 +2,7 @@ import base64
 import math
 import shlex
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from app.core.database import get_pool
@@ -354,8 +354,8 @@ async def search(
     keyword: str | None = None,
     category_id: uuid.UUID | None = None,
     keywords_filter: list[str] | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     logic: str = "AND",
     page: int = 1,
     page_size: int = 20,
@@ -395,14 +395,14 @@ async def search(
         idx += 1
 
     if date_from:
-        conditions.append(f"p.created_at >= ${idx}::timestamptz")
-        params.append(date_from)
+        conditions.append(f"p.created_at >= ${idx}")
+        params.append(datetime(date_from.year, date_from.month, date_from.day))
         idx += 1
 
     if date_to:
-        # Cast to date then add 1 day so the entire end date is included
-        conditions.append(f"p.created_at < (${idx}::date + INTERVAL '1 day')")
-        params.append(date_to)
+        # Add 1 day so the entire end date is included
+        conditions.append(f"p.created_at < ${idx} + INTERVAL '1 day'")
+        params.append(datetime(date_to.year, date_to.month, date_to.day))
         idx += 1
 
     where = "WHERE " + " AND ".join(conditions)

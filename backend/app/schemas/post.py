@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -100,8 +101,8 @@ class PostSearchRequest(BaseModel):
     keyword: str | None = Field(None, max_length=200)
     category_id: str | None = None
     keywords: list[str] | None = None
-    date_from: str | None = None
-    date_to: str | None = None
+    date_from: date | None = None
+    date_to: date | None = None
     logic: str = Field(default="AND", pattern="^(AND|OR)$")
     sort: str = Field(default="newest", pattern="^(newest|oldest|most_comments)$")
     page: int = Field(default=1, ge=1)
