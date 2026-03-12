@@ -83,10 +83,14 @@ async def update_status(
                 return None
 
             if action == "APPROVED":
-                await conn.execute(
-                    "UPDATE users SET role = 'MEMBER', updated_at = NOW() WHERE id = $1",
+                result = await conn.execute(
+                    "UPDATE users SET role = 'MEMBER', updated_at = NOW() WHERE id = $1 AND role = 'GUEST'",  # noqa: E501
                     row["user_id"],
                 )
+                if result != "UPDATE 1":
+                    raise ValueError(
+                        "User role was not updated: user may have been deleted or is no longer a guest."
+                    )
 
             return dict(row)
 

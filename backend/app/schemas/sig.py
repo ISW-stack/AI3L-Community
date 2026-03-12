@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 
@@ -58,4 +60,4 @@ class MySigListResponse(BaseModel):
 
 
 class SubAdminAssignRequest(BaseModel):
-    user_id: str
+    user_id: uuid.UUID

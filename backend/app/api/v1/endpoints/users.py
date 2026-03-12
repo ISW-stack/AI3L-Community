@@ -303,7 +303,10 @@ async def change_user_role(
             detail="Cannot change your own role.",
         )
 
-    user = await update_user_role(user_id, req.role)
+    try:
+        user = await update_user_role(user_id, req.role)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 

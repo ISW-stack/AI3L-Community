@@ -651,4 +651,74 @@ describe('SigMembersView', () => {
       expect(wrapper.text()).toContain('3')
     })
   })
+
+  it('shows Promote button for SIG owner (ADMIN role) when member is MEMBER', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',          // NOT platform admin
+      userSigRole: 'ADMIN',    // IS SIG owner
+      currentUserId: 'user-1', // current user is the SIG admin
+    })
+    await flushPromises()
+
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+
+    // Row 2 = user-3 (MEMBER role) — SIG owner should see Promote
+    expect(tableRows[2].text()).toContain('Promote')
+
+    // Row 0 = user-1 (ADMIN) and Row 1 = user-2 (SUB_ADMIN) should NOT have Promote
+    expect(tableRows[0].text()).not.toContain('Promote')
+    expect(tableRows[1].text()).not.toContain('Promote')
+  })
+
+  it('hides Promote button for SUB_ADMIN SIG members', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'SUB_ADMIN',
+      currentUserId: 'user-2',
+    })
+    await flushPromises()
+
+    const buttons = wrapper.findAll('button')
+    const promoteButtons = buttons.filter((b) => b.text().includes('Promote'))
+    expect(promoteButtons.length).toBe(0)
+  })
+
+  it('SIG owner Promote button calls assignSubAdmin API with correct args', async () => {
+    mockAssignSubAdmin.mockResolvedValue({})
+    mockGetSigMembers.mockResolvedValue({ members: sampleMembers, total: sampleMembers.length })
+
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-1',
+    })
+    await flushPromises()
+
+    const table = wrapper.find('table')
+    const tableRows = table.findAll('tbody tr')
+    const memberRow = tableRows[2] // user-3 = MEMBER
+    const promoteBtn = memberRow.findAll('button').find((b) => b.text().includes('Promote'))
+    expect(promoteBtn).toBeTruthy()
+
+    await promoteBtn!.trigger('click')
+    await flushPromises()
+
+    expect(mockAssignSubAdmin).toHaveBeenCalledWith('sig-1', 'user-3')
+  })
+
+  it('shows Promote button in mobile view for SIG owner', async () => {
+    const { wrapper } = await mountComponent({
+      role: 'MEMBER',
+      userSigRole: 'ADMIN',
+      currentUserId: 'user-1',
+    })
+    await flushPromises()
+
+    // Find mobile card view (the grid that's hidden on md+)
+    const mobileCards = wrapper.findAll('.base-card')
+    // Card for user-3 (MEMBER role, index 2)
+    const memberCard = mobileCards[2]
+    expect(memberCard.text()).toContain('Promote')
+  })
 })

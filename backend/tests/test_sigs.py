@@ -238,7 +238,11 @@ class TestDemoteSubAdmin:
 
         try:
             _override_auth("MEMBER")
-            with patch(f"{_EP}.get_member_role", new_callable=AsyncMock, return_value="MEMBER"):
+            with patch(
+                f"{_EP}.demote_sub_admin",
+                new_callable=AsyncMock,
+                side_effect=PermissionError("Not authorized."),
+            ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
                     json={"user_id": target_user},
@@ -311,17 +315,10 @@ class TestDemoteSubAdmin:
 
         try:
             _override_auth("MEMBER")
-            with (
-                patch(
-                    f"{_EP}.get_member_role",
-                    new_callable=AsyncMock,
-                    return_value="ADMIN",
-                ),
-                patch(
-                    f"{_EP}.demote_sub_admin",
-                    new_callable=AsyncMock,
-                    return_value=member,
-                ),
+            with patch(
+                f"{_EP}.demote_sub_admin",
+                new_callable=AsyncMock,
+                return_value=member,
             ):
                 resp = await client.post(
                     f"/api/v1/sigs/{sig_id}/sub-admin/demote",
@@ -350,7 +347,12 @@ class TestAssignSubAdminNonMember:
 
         with patch(f"{_SVC}.get_pool", return_value=mock_pool):
             with pytest.raises(ValueError, match="must be a member"):
-                await assign_sub_admin(sig_id, user_id)
+                await assign_sub_admin(
+                    sig_id,
+                    user_id,
+                    caller_id=str(uuid.uuid4()),
+                    caller_role="ADMIN",
+                )
 
 
 class TestListMembers:
@@ -489,3 +491,264 @@ class TestUpdateSigTransaction:
         assert all(r is not None for r in results)
         # transaction() called once per update_sig call (2 total)
         assert mock_conn.transaction.call_count == 2
+
+
+# ── Bug fix: sole admin protection ─────────────────────────────────
+
+
+class TestRemoveMemberSoleAdmin:
+    """Bug fix: remove_member must prevent removing the last admin."""
+
+    @pytest.mark.anyio
+    async def test_remove_last_admin_raises(self, mock_pool, mock_conn):
+        """remove_member raises ValueError when target is the sole admin."""
+        from app.services.sig import remove_member
+
+        sig_id = uuid.uuid4()
+        admin_user_id = str(uuid.uuid4())
+        caller_id = str(uuid.uuid4())
+
+        admin_row = {"id": uuid.uuid4()}
+        mock_conn.fetchrow = AsyncMock(
+            side_effect=[
+                {"role": "ADMIN"},  # target member role
+            ]
+        )
+        # count_admins returns 1 (sole admin)
+        mock_conn.fetch = AsyncMock(return_value=[admin_row])
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with pytest.raises(ValueError, match="last admin"):
+                await remove_member(
+                    sig_id,
+                    admin_user_id,
+                    caller_id=caller_id,
+                    caller_role="ADMIN",
+                )
+
+    @pytest.mark.anyio
+    async def test_remove_non_admin_succeeds(self, mock_pool, mock_conn):
+        """remove_member succeeds when target is a regular MEMBER."""
+        from app.services.sig import remove_member
+
+        sig_id = uuid.uuid4()
+        member_user_id = str(uuid.uuid4())
+        caller_id = str(uuid.uuid4())
+
+        mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
+        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            result = await remove_member(
+                sig_id,
+                member_user_id,
+                caller_id=caller_id,
+                caller_role="ADMIN",
+            )
+        assert result is True
+
+    @pytest.mark.anyio
+    async def test_remove_admin_when_multiple_admins(self, mock_pool, mock_conn):
+        """remove_member succeeds when target is ADMIN but others exist."""
+        from app.services.sig import remove_member
+
+        sig_id = uuid.uuid4()
+        admin_user_id = str(uuid.uuid4())
+        caller_id = str(uuid.uuid4())
+
+        mock_conn.fetchrow = AsyncMock(return_value={"role": "ADMIN"})
+        # count_admins returns 2 admins
+        mock_conn.fetch = AsyncMock(
+            return_value=[{"id": uuid.uuid4()}, {"id": uuid.uuid4()}]
+        )
+        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            result = await remove_member(
+                sig_id,
+                admin_user_id,
+                caller_id=caller_id,
+                caller_role="ADMIN",
+            )
+        assert result is True
+
+
+class TestRemoveMemberSoleAdminEndpoint:
+    """Endpoint: DELETE /sigs/{id}/members/{uid} → 400 for sole admin."""
+
+    @pytest.mark.anyio
+    async def test_remove_sole_admin_returns_400(self, client):
+        sig_id = uuid.uuid4()
+        target_user = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.remove_member",
+                new_callable=AsyncMock,
+                side_effect=ValueError(
+                    "Cannot remove: this user is the last admin of the SIG."
+                ),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/sigs/{sig_id}/members/{target_user}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                assert "last admin" in resp.json()["detail"]
+        finally:
+            _clear_overrides()
+
+
+# ── Bug fix: TOCTOU — service-level authorization ──────────────────
+
+
+class TestServiceLayerAuthorization:
+    """Bug fix: authorization checked inside transaction (TOCTOU)."""
+
+    @pytest.mark.anyio
+    async def test_remove_member_unauthorized_caller(self, mock_pool, mock_conn):
+        """remove_member raises PermissionError for non-admin caller."""
+        from app.services.sig import remove_member
+
+        sig_id = uuid.uuid4()
+        target_id = str(uuid.uuid4())
+        caller_id = str(uuid.uuid4())
+
+        # Caller's SIG role is MEMBER (not ADMIN)
+        mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with pytest.raises(PermissionError, match="Not authorized"):
+                await remove_member(
+                    sig_id,
+                    target_id,
+                    caller_id=caller_id,
+                    caller_role="MEMBER",
+                )
+
+    @pytest.mark.anyio
+    async def test_assign_sub_admin_unauthorized_caller(self, mock_pool, mock_conn):
+        """assign_sub_admin raises PermissionError for non-admin caller."""
+        from app.services.sig import assign_sub_admin
+
+        sig_id = uuid.uuid4()
+        target_id = str(uuid.uuid4())
+        caller_id = str(uuid.uuid4())
+
+        mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with pytest.raises(PermissionError, match="Not authorized"):
+                await assign_sub_admin(
+                    sig_id,
+                    target_id,
+                    caller_id=caller_id,
+                    caller_role="MEMBER",
+                )
+
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_unauthorized_caller(self, mock_pool, mock_conn):
+        """demote_sub_admin raises PermissionError for non-admin caller."""
+        from app.services.sig import demote_sub_admin
+
+        sig_id = uuid.uuid4()
+        target_id = str(uuid.uuid4())
+        caller_id = str(uuid.uuid4())
+
+        mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            with pytest.raises(PermissionError, match="Not authorized"):
+                await demote_sub_admin(
+                    sig_id,
+                    target_id,
+                    caller_id=caller_id,
+                    caller_role="MEMBER",
+                )
+
+    @pytest.mark.anyio
+    async def test_global_admin_bypasses_sig_role_check(self, mock_pool, mock_conn):
+        """Global ADMIN can remove members without being a SIG admin."""
+        from app.services.sig import remove_member
+
+        sig_id = uuid.uuid4()
+        target_id = str(uuid.uuid4())
+        caller_id = str(uuid.uuid4())
+
+        mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
+        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+
+        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+            result = await remove_member(
+                sig_id,
+                target_id,
+                caller_id=caller_id,
+                caller_role="ADMIN",
+            )
+        assert result is True
+
+    @pytest.mark.anyio
+    async def test_remove_member_permission_error_403(self, client):
+        """DELETE /sigs/{id}/members/{uid} → 403 on PermissionError."""
+        sig_id = uuid.uuid4()
+        target_user = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.remove_member",
+                new_callable=AsyncMock,
+                side_effect=PermissionError("Not authorized."),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/sigs/{sig_id}/members/{target_user}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_assign_sub_admin_permission_error_403(self, client):
+        """POST /sigs/{id}/sub-admin → 403 on PermissionError."""
+        sig_id = uuid.uuid4()
+        target_user = str(uuid.uuid4())
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.assign_sub_admin",
+                new_callable=AsyncMock,
+                side_effect=PermissionError("Not authorized."),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/sub-admin",
+                    json={"user_id": target_user},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_permission_error_403(self, client):
+        """POST /sigs/{id}/sub-admin/demote → 403 on PermissionError."""
+        sig_id = uuid.uuid4()
+        target_user = str(uuid.uuid4())
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.demote_sub_admin",
+                new_callable=AsyncMock,
+                side_effect=PermissionError("Not authorized."),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/sub-admin/demote",
+                    json={"user_id": target_user},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()

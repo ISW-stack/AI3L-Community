@@ -383,3 +383,82 @@ class TestListApplicationsFilter:
             assert resp.status_code == 403
         finally:
             _clear_overrides()
+
+
+# ── Bug fix: application approval role guard ───────────────────────
+
+
+class TestApplicationApprovalRoleGuard:
+    """Bug fix: approve must only promote GUEST users."""
+
+    @pytest.mark.anyio
+    async def test_approve_non_guest_raises(self, mock_pool, mock_conn):
+        """Approving when user is no longer GUEST raises ValueError."""
+        from app.repositories.application_repo import update_status
+
+        app_id = uuid.uuid4()
+        reviewer_id = uuid.uuid4()
+
+        app_row = {
+            "id": app_id,
+            "user_id": uuid.uuid4(),
+            "description": "I want to join",
+            "status": "APPROVED",
+            "reviewed_by": reviewer_id,
+            "reviewed_at": None,
+        }
+        mock_conn.fetchrow = AsyncMock(return_value=app_row)
+        # UPDATE users ... WHERE role = 'GUEST' returns "UPDATE 0"
+        mock_conn.execute = AsyncMock(return_value="UPDATE 0")
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            with pytest.raises(ValueError, match="no longer a guest"):
+                await update_status(app_id, reviewer_id, "APPROVED")
+
+    @pytest.mark.anyio
+    async def test_approve_guest_succeeds(self, mock_pool, mock_conn):
+        """Approving a GUEST user succeeds normally."""
+        from app.repositories.application_repo import update_status
+
+        app_id = uuid.uuid4()
+        reviewer_id = uuid.uuid4()
+
+        app_row = {
+            "id": app_id,
+            "user_id": uuid.uuid4(),
+            "description": "I want to join",
+            "status": "APPROVED",
+            "reviewed_by": reviewer_id,
+            "reviewed_at": None,
+        }
+        mock_conn.fetchrow = AsyncMock(return_value=app_row)
+        mock_conn.execute = AsyncMock(return_value="UPDATE 1")
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await update_status(app_id, reviewer_id, "APPROVED")
+        assert result is not None
+
+    @pytest.mark.anyio
+    async def test_reject_does_not_update_user_role(self, mock_pool, mock_conn):
+        """Rejecting an application should not attempt user role update."""
+        from app.repositories.application_repo import update_status
+
+        app_id = uuid.uuid4()
+        reviewer_id = uuid.uuid4()
+
+        app_row = {
+            "id": app_id,
+            "user_id": uuid.uuid4(),
+            "description": "I want to join",
+            "status": "REJECTED",
+            "reviewed_by": reviewer_id,
+            "reviewed_at": None,
+        }
+        mock_conn.fetchrow = AsyncMock(return_value=app_row)
+        mock_conn.execute = AsyncMock()
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await update_status(app_id, reviewer_id, "REJECTED")
+        assert result is not None
+        # execute should NOT have been called (no role update for REJECTED)
+        mock_conn.execute.assert_not_called()

@@ -149,13 +149,6 @@ async def remove_sig_member(
     user_id: uuid.UUID,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
-    # Allow SUPER_ADMIN, ADMIN, or SIG ADMIN
-    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
-    if not is_global_admin:
-        sig_role = await get_member_role(sig_id, current_user["sub"])
-        if sig_role != "ADMIN":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
-
     # Prevent removing self via this endpoint
     if str(user_id) == current_user["sub"]:
         raise HTTPException(
@@ -163,7 +156,17 @@ async def remove_sig_member(
             detail="Use the leave endpoint to remove yourself.",
         )
 
-    removed = await remove_member(sig_id, str(user_id))
+    try:
+        removed = await remove_member(
+            sig_id,
+            str(user_id),
+            caller_id=current_user["sub"],
+            caller_role=current_user["role"],
+        )
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not removed:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found.")
     return MessageResponse(message="Member removed.")
@@ -175,15 +178,15 @@ async def assign_sig_sub_admin(
     req: SubAdminAssignRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigMemberResponse:
-    # Allow global admins OR the SIG's own ADMIN
-    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
-    if not is_global_admin:
-        sig_role = await get_member_role(sig_id, current_user["sub"])
-        if sig_role != "ADMIN":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
-
     try:
-        member = await assign_sub_admin(sig_id, req.user_id)
+        member = await assign_sub_admin(
+            sig_id,
+            str(req.user_id),
+            caller_id=current_user["sub"],
+            caller_role=current_user["role"],
+        )
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return SigMemberResponse(**member)
@@ -196,15 +199,15 @@ async def demote_sig_sub_admin(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigMemberResponse:
     """Demote a sub-admin back to regular member."""
-    # Allow global admins OR the SIG's own ADMIN (owner)
-    is_global_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
-    if not is_global_admin:
-        sig_role = await get_member_role(sig_id, current_user["sub"])
-        if sig_role != "ADMIN":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
-
     try:
-        member = await demote_sub_admin(sig_id, req.user_id)
+        member = await demote_sub_admin(
+            sig_id,
+            str(req.user_id),
+            caller_id=current_user["sub"],
+            caller_role=current_user["role"],
+        )
+    except PermissionError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return SigMemberResponse(**member)

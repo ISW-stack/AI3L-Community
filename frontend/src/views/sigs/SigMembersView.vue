@@ -224,7 +224,7 @@ onMounted(fetchMembers)
               </td>
               <td v-if="canEdit" class="px-6 py-4 whitespace-nowrap text-right space-x-3 text-xs">
                 <button
-                  v-if="auth.isAdmin && m.role === 'MEMBER'"
+                  v-if="(auth.isAdmin || userSigRole === 'ADMIN') && m.role === 'MEMBER'"
                   @click="handleAssignSubAdmin(m.user_id)"
                   class="text-brand-600 hover:text-brand-700 font-medium hover:underline"
                 >
@@ -279,7 +279,7 @@ onMounted(fetchMembers)
 
             <div v-if="canEdit" class="flex gap-3">
               <button
-                v-if="auth.isAdmin && m.role === 'MEMBER'"
+                v-if="(auth.isAdmin || userSigRole === 'ADMIN') && m.role === 'MEMBER'"
                 @click="handleAssignSubAdmin(m.user_id)"
                 class="text-xs text-brand-600 font-medium"
               >
