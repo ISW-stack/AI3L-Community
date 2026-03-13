@@ -1096,7 +1096,7 @@ onUnmounted(() => {
         <div
           :class="
             previewMode === 'mobile'
-              ? 'mx-auto border-2 border-gray-400 rounded-[2rem] p-3 bg-gray-50'
+              ? 'mx-auto border-2 border-gray-400 rounded-4xl p-3 bg-gray-50'
               : ''
           "
           :style="previewMode === 'mobile' ? 'max-width: 375px' : ''"
