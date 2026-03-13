@@ -383,9 +383,7 @@ async def find_many(
                 )
             else:
                 created_at_last: datetime = last["created_at"]
-                next_cursor_val = _encode_cursor(
-                    created_at_last.isoformat(), last["id"], sort
-                )
+                next_cursor_val = _encode_cursor(created_at_last.isoformat(), last["id"], sort)
 
         return {
             "posts": result,
