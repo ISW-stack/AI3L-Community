@@ -325,7 +325,7 @@ class TestSearchRepo:
         parameter to avoid asyncpg type-inference issues with SQL INTERVAL
         arithmetic on parameterised timestamps.
         """
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         from app.repositories.post_repo import search
 
