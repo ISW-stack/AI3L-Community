@@ -155,12 +155,7 @@ async function fetchMorePosts() {
 async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: boolean } = {}) {
   searchPage.value = 1
   if (resetBeforeSearch) resetScrollState()
-  if (
-    !searchKeyword.value &&
-    !categoryFilter.value &&
-    !searchDateFrom.value &&
-    !searchDateTo.value
-  ) {
+  if (!searchKeyword.value && !searchDateFrom.value && !searchDateTo.value) {
     await fetchPosts()
     return
   }
@@ -175,8 +170,8 @@ async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: bool
     }
     if (searchKeyword.value) body.keyword = searchKeyword.value
     if (categoryFilter.value) body.category_id = categoryFilter.value
-    if (searchDateFrom.value) body.date_from = searchDateFrom.value
-    if (searchDateTo.value) body.date_to = searchDateTo.value
+    if (searchDateFrom.value && !dateRangeInvalid.value) body.date_from = searchDateFrom.value
+    if (searchDateTo.value && !dateRangeInvalid.value) body.date_to = searchDateTo.value
     const data = await searchPosts(body)
     posts.value = data.posts
     nextCursor.value = null
@@ -203,8 +198,8 @@ async function fetchMoreSearchResults() {
     }
     if (searchKeyword.value) body.keyword = searchKeyword.value
     if (categoryFilter.value) body.category_id = categoryFilter.value
-    if (searchDateFrom.value) body.date_from = searchDateFrom.value
-    if (searchDateTo.value) body.date_to = searchDateTo.value
+    if (searchDateFrom.value && !dateRangeInvalid.value) body.date_from = searchDateFrom.value
+    if (searchDateTo.value && !dateRangeInvalid.value) body.date_to = searchDateTo.value
     const data = await searchPosts(body)
     posts.value = [...posts.value, ...data.posts]
     hasMore.value = data.has_more ?? false
@@ -230,6 +225,7 @@ function clearSearch() {
   searchKeyword.value = ''
   searchDateFrom.value = ''
   searchDateTo.value = ''
+  searchLogic.value = 'AND'
   categoryFilter.value = null
   sortBy.value = 'newest'
   isSearching.value = false

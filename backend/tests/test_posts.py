@@ -319,7 +319,14 @@ class TestSearchRepo:
     async def test_search_date_to_uses_exclusive_upper_bound(
         self, mock_get_pool, mock_pool, mock_conn
     ):
-        """date_to filter should use < (date + 1 day) to include the entire end date."""
+        """date_to filter should use < (date + 1 day) to include the entire end date.
+
+        The +1 day is now computed in Python (timedelta) and passed as a plain
+        parameter to avoid asyncpg type-inference issues with SQL INTERVAL
+        arithmetic on parameterised timestamps.
+        """
+        from datetime import datetime, timedelta
+
         from app.repositories.post_repo import search
 
         mock_conn.fetch.return_value = []
@@ -329,10 +336,13 @@ class TestSearchRepo:
         await search(date_to=date(2023, 10, 1))
         call_args = mock_conn.fetch.call_args
         sql = call_args[0][0]
-        assert "INTERVAL '1 day'" in sql
-        assert "<" in sql
+        assert "created_at <" in sql
         # Must NOT use <= with direct timestamptz cast
         assert "created_at <=" not in sql
+        # The bound param should be 2023-10-02 (date_to + 1 day)
+        params = call_args[0][1:]
+        expected_end = datetime(2023, 10, 2)
+        assert expected_end in params
 
     @patch("app.repositories.post_repo.get_pool")
     async def test_search_sort_oldest(self, mock_get_pool, mock_pool, mock_conn):
@@ -663,8 +673,9 @@ class TestFindManyOffsetMode:
         result = await find_many(page=1, page_size=20)
         assert result["total"] == 1
         assert result["total_pages"] == 1
+        # OFFSET page is the last page (1 of 1), so no cursor / has_more
         assert result["next_cursor"] is None
-        assert result["has_more"] is None
+        assert result["has_more"] is False
         assert len(result["posts"]) == 1
 
     @patch("app.repositories.post_repo.get_pool")

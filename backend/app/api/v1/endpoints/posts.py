@@ -97,6 +97,8 @@ async def get_posts_list(
         total=result["total"],
         current_page=page,
         total_pages=result["total_pages"],
+        next_cursor=result.get("next_cursor"),
+        has_more=result.get("has_more"),
     )
 
 

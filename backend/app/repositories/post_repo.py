@@ -2,7 +2,7 @@ import base64
 import math
 import shlex
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from app.core.database import get_pool
@@ -26,10 +26,17 @@ _SORT_MAP = {
     "popular": "p.is_pinned DESC, p.like_count DESC, p.created_at DESC",
 }
 
+# Search results should NOT prioritise pinned posts — relevance / date matters more.
+_SEARCH_SORT_MAP = {
+    "newest": "p.created_at DESC",
+    "oldest": "p.created_at ASC",
+    "most_comments": "p.comment_count DESC, p.created_at DESC",
+}
+
 # Sorts that support cursor pagination and the comparison direction they use
 # "popular" maps to like_count; otherwise created_at is the primary key
 _CURSOR_SORT_ASC = {"oldest"}  # use > comparison
-_CURSOR_SORT_DESC = {"newest", "popular"}  # use < comparison
+_CURSOR_SORT_DESC = {"newest", "popular", "most_comments"}  # use < comparison
 
 
 def _encode_cursor(primary_val: str, row_id: uuid.UUID, sort: str) -> str:
@@ -266,11 +273,20 @@ async def find_many(
         use_asc = cursor_sort in _CURSOR_SORT_ASC
         cmp = ">" if use_asc else "<"
 
+        # Pinned posts are shown on the OFFSET first page; exclude from cursor
+        # pages to prevent duplicates when their sort value overlaps.
+        where += " AND p.is_pinned = false"
+
         if cursor_sort == "popular":
             # primary key is like_count (integer)
             like_count_val = int(primary_val)
             where += f" AND (p.like_count, p.id::text) {cmp} (${idx}, ${idx + 1})"
             params.extend([like_count_val, str(cursor_id)])
+        elif cursor_sort == "most_comments":
+            # primary key is comment_count (integer)
+            comment_count_val = int(primary_val)
+            where += f" AND (p.comment_count, p.id::text) {cmp} (${idx}, ${idx + 1})"
+            params.extend([comment_count_val, str(cursor_id)])
         else:
             # primary key is created_at (timestamptz)
             created_at_val = datetime.fromisoformat(primary_val)
@@ -299,6 +315,13 @@ async def find_many(
                 like_count_raw = last.get("like_count")
                 next_cursor = _encode_cursor(
                     str(like_count_raw if like_count_raw is not None else 0),
+                    last["id"],
+                    cursor_sort,
+                )
+            elif cursor_sort == "most_comments":
+                comment_count_raw = last.get("comment_count")
+                next_cursor = _encode_cursor(
+                    str(comment_count_raw if comment_count_raw is not None else 0),
                     last["id"],
                     cursor_sort,
                 )
@@ -341,12 +364,35 @@ async def find_many(
             )
             result = []
         total_pages = max(1, math.ceil(total / page_size))
+
+        # Bridge OFFSET → cursor: encode a next_cursor from the last row so the
+        # frontend can switch to efficient keyset pagination from page 2 onward.
+        next_cursor_val: str | None = None
+        has_more_val = page < total_pages
+        if has_more_val and result:
+            last = result[-1]
+            if sort == "popular":
+                lc_raw = last.get("like_count")
+                next_cursor_val = _encode_cursor(
+                    str(lc_raw if lc_raw is not None else 0), last["id"], sort
+                )
+            elif sort == "most_comments":
+                cc_raw = last.get("comment_count")
+                next_cursor_val = _encode_cursor(
+                    str(cc_raw if cc_raw is not None else 0), last["id"], sort
+                )
+            else:
+                created_at_last: datetime = last["created_at"]
+                next_cursor_val = _encode_cursor(
+                    created_at_last.isoformat(), last["id"], sort
+                )
+
         return {
             "posts": result,
             "total": total,
             "total_pages": total_pages,
-            "next_cursor": None,
-            "has_more": None,
+            "next_cursor": next_cursor_val,
+            "has_more": has_more_val,
         }
 
 
@@ -363,7 +409,7 @@ async def search(
 ) -> tuple[list[dict], int, int]:
     pool = get_pool()
     offset = (page - 1) * page_size
-    order_by = _SORT_MAP.get(sort, _SORT_MAP["newest"])
+    order_by = _SEARCH_SORT_MAP.get(sort, _SEARCH_SORT_MAP["newest"])
 
     conditions = ["p.is_deleted = false"]
     params: list = []
@@ -400,9 +446,10 @@ async def search(
         idx += 1
 
     if date_to:
-        # Add 1 day so the entire end date is included
-        conditions.append(f"p.created_at < ${idx} + INTERVAL '1 day'")
-        params.append(datetime(date_to.year, date_to.month, date_to.day))
+        # Add 1 day so the entire end date is included (computed in Python
+        # to avoid asyncpg type-inference issues with INTERVAL arithmetic).
+        conditions.append(f"p.created_at < ${idx}")
+        params.append(datetime(date_to.year, date_to.month, date_to.day) + timedelta(days=1))
         idx += 1
 
     where = "WHERE " + " AND ".join(conditions)
