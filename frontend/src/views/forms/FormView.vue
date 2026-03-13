@@ -680,7 +680,7 @@ onUnmounted(() => {
             form.is_active ? t('common.active') : t('common.closed')
           }}</BaseBadge>
         </div>
-        <div class="flex items-center gap-4 text-xs text-muted mt-2">
+        <div class="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs text-muted mt-2">
           <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
           <span>{{ form.response_count }} {{ t('forms.view.response') }}</span>
           <span v-if="form.deadline"
@@ -690,7 +690,7 @@ onUnmounted(() => {
             >{{ t('forms.view.max') }} {{ form.max_respondents }}</span
           >
         </div>
-        <div v-if="auth.isAuthenticated" class="flex items-center gap-2 mt-4">
+        <div v-if="auth.isAuthenticated" class="flex items-center gap-2 flex-wrap mt-4">
           <CopyShareLinkButton :url="formShareUrl" />
           <router-link
             v-if="canEdit"

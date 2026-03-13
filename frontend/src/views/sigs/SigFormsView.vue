@@ -440,7 +440,7 @@ onMounted(fetchForms)
 
           <div
             v-if="f.user_is_sig_admin || auth.isAdmin"
-            class="flex items-center gap-4 pt-3 mt-2 border-t border-border"
+            class="flex items-center gap-x-4 gap-y-2 flex-wrap pt-3 mt-2 border-t border-border"
           >
             <router-link
               :to="`/forms/${f.id}/edit`"

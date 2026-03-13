@@ -784,12 +784,12 @@ onUnmounted(() => {
               @dragend="handleDragEnd"
             >
               <!-- Question header row -->
-              <div class="flex items-center justify-between mb-1">
-                <div class="flex items-center gap-2">
+              <div class="flex items-center justify-between mb-1 gap-1 flex-wrap">
+                <div class="flex items-center gap-2 min-w-0">
                   <!-- Feature 2: Drag handle -->
                   <span
                     v-if="!isSchemaLocked"
-                    class="cursor-grab active:cursor-grabbing text-muted hover:text-foreground select-none text-lg leading-none"
+                    class="cursor-grab active:cursor-grabbing text-muted hover:text-foreground select-none text-lg leading-none shrink-0"
                     :aria-label="t('forms.builder.dragHandle')"
                     @touchstart="handleTouchStart($event, i)"
                     @touchmove="handleTouchMove($event)"
@@ -798,7 +798,7 @@ onUnmounted(() => {
                   >
                   <!-- Feature 4: Collapse toggle -->
                   <button
-                    class="text-muted hover:text-foreground transition text-sm px-1"
+                    class="text-muted hover:text-foreground transition text-sm px-1 shrink-0"
                     :aria-label="
                       isCollapsed(q.id)
                         ? t('forms.builder.expandQuestion')
@@ -809,21 +809,21 @@ onUnmounted(() => {
                     <span v-if="isCollapsed(q.id)">&#x25B6;</span>
                     <span v-else>&#x25BC;</span>
                   </button>
-                  <span class="text-sm font-medium text-muted">
+                  <span class="text-sm font-medium text-muted shrink-0">
                     {{ t('forms.builder.questionLabel') }} {{ i + 1 }}
                   </span>
                   <!-- Collapsed: show type badge + label + required -->
                   <template v-if="isCollapsed(q.id)">
-                    <span class="text-xs bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded">
+                    <span class="text-xs bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded shrink-0">
                       {{ getTypeBadgeText(q.type) }}
                     </span>
-                    <span class="text-sm text-foreground truncate max-w-xs">
+                    <span class="text-sm text-foreground truncate">
                       {{ q.label || t('forms.builder.untitledQuestion') }}
                     </span>
-                    <span v-if="q.required" class="text-danger-500 text-xs">*</span>
+                    <span v-if="q.required" class="text-danger-500 text-xs shrink-0">*</span>
                   </template>
                 </div>
-                <div v-if="!isSchemaLocked" class="flex items-center gap-1">
+                <div v-if="!isSchemaLocked" class="flex items-center gap-1 shrink-0">
                   <button
                     @click="moveQuestion(i, -1)"
                     :disabled="i === 0"
@@ -1031,7 +1031,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="flex justify-end gap-3">
+      <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
         <BaseButton variant="secondary" size="lg" @click="showPreview = true">{{
           t('forms.builder.previewBtn')
         }}</BaseButton>

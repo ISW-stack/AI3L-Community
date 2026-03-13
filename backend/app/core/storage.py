@@ -92,11 +92,18 @@ def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | Non
     client = _s3_presign_client if _s3_presign_client is not None else get_storage()
     params: dict = {"Bucket": settings.MINIO_BUCKET_NAME, "Key": key}
     if filename:
+        import re
         import urllib.parse
 
+        # ASCII-safe fallback for the filename parameter (non-ASCII chars → _)
+        import os
+
+        base, ext = os.path.splitext(filename)
+        ascii_base = re.sub(r"[^\x20-\x7E]", "_", base).strip(" _") or "export"
+        ascii_fallback = ascii_base + ext
         encoded = urllib.parse.quote(filename, safe="")
         params["ResponseContentDisposition"] = (
-            f"attachment; filename=\"{filename}\"; filename*=UTF-8''{encoded}"
+            f"attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{encoded}"
         )
     return str(
         client.generate_presigned_url(
