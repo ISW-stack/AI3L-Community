@@ -577,7 +577,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto pb-24">
+  <div class="max-w-3xl mx-auto pb-24 overflow-x-hidden">
     <BaseBreadcrumb
       :items="[
         { label: t('breadcrumb.home'), to: '/' },
@@ -1053,7 +1053,7 @@ onUnmounted(() => {
       :aria-label="t('forms.builder.addQuestionBtn')"
       @click="addQuestion"
     >
-      <span class="text-xl leading-none sm:mr-2">+</span>
+      <span class="text-xl leading-none sm:hidden">+</span>
       <span class="hidden sm:inline text-sm font-medium">{{
         t('forms.builder.addQuestionBtn')
       }}</span>

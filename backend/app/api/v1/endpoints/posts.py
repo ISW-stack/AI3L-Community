@@ -121,6 +121,7 @@ async def search_posts_endpoint(
         total=total,
         current_page=req.page,
         total_pages=total_pages,
+        has_more=req.page < total_pages,
     )
 
 

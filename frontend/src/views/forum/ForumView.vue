@@ -46,6 +46,7 @@ const sortBy = ref((route.query.sort as string) || 'newest')
 const isSearching = ref(false)
 const isSearchLoading = ref(false)
 const showAdvanced = ref(false)
+const searchPage = ref(1)
 
 // Debounce timer for search-as-you-type
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -152,6 +153,7 @@ async function fetchMorePosts() {
 
 // Initial search or filter-reset search (no cursor, replaces posts)
 async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: boolean } = {}) {
+  searchPage.value = 1
   if (resetBeforeSearch) resetScrollState()
   if (
     !searchKeyword.value &&
@@ -166,6 +168,7 @@ async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: bool
   isSearching.value = true
   try {
     const body: Parameters<typeof searchPosts>[0] = {
+      page: 1,
       page_size: PAGE_SIZE,
       logic: searchLogic.value,
       sort: sortBy.value,
@@ -176,7 +179,7 @@ async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: bool
     if (searchDateTo.value) body.date_to = searchDateTo.value
     const data = await searchPosts(body)
     posts.value = data.posts
-    nextCursor.value = data.next_cursor ?? null
+    nextCursor.value = null
     hasMore.value = data.has_more ?? false
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('forum.searchError')), 'error')
@@ -186,13 +189,14 @@ async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: bool
   syncQueryParams()
 }
 
-// Append next page of search results via cursor
+// Append next page of search results via page number
 async function fetchMoreSearchResults() {
-  if (isLoadingMore.value || !hasMore.value || !nextCursor.value) return
+  if (isLoadingMore.value || !hasMore.value) return
   isLoadingMore.value = true
   try {
+    const nextPage = searchPage.value + 1
     const body: Parameters<typeof searchPosts>[0] = {
-      cursor: nextCursor.value,
+      page: nextPage,
       page_size: PAGE_SIZE,
       logic: searchLogic.value,
       sort: sortBy.value,
@@ -203,8 +207,8 @@ async function fetchMoreSearchResults() {
     if (searchDateTo.value) body.date_to = searchDateTo.value
     const data = await searchPosts(body)
     posts.value = [...posts.value, ...data.posts]
-    nextCursor.value = data.next_cursor ?? null
     hasMore.value = data.has_more ?? false
+    if (data.posts.length > 0) searchPage.value = nextPage
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('forum.searchError')), 'error')
   } finally {

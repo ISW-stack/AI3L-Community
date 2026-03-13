@@ -2,6 +2,7 @@ import asyncio
 import csv
 import io
 import json
+import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -132,8 +133,13 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     storage_key = generate_form_export_key(form_id, task_id)
     upload_file(csv_bytes, storage_key, "text/csv")
 
+    # Build a safe filename from the form title for the browser download prompt
+    raw_title = (form["title"] or "export").strip()
+    safe_title = re.sub(r"[^\w\s\-]", "", raw_title).strip().replace(" ", "_")[:80] or "export"
+    download_filename = f"{safe_title}.csv"
+
     # Generate presigned URL (24h expiry)
-    download_url = generate_presigned_url(storage_key, expires_in=86400)
+    download_url = generate_presigned_url(storage_key, expires_in=86400, filename=download_filename)
 
     logger.info("Form CSV export completed", extra={"form_id": form_id, "rows": total_rows})
     return {"download_url": download_url}

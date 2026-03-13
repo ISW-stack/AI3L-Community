@@ -79,18 +79,29 @@ def upload_file(data: bytes, key: str, content_type: str) -> str:
     return key
 
 
-def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
+def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | None = None) -> str:
     """Generate presigned download URL.
 
     When MINIO_PUBLIC_URL is set, uses a client configured with that endpoint so
     the HMAC signature is computed against the public host (e.g. localhost:19000).
     Rewriting the host after signing would break the signature.
+
+    When ``filename`` is provided, sets Content-Disposition so the browser uses
+    that name for the downloaded file.
     """
     client = _s3_presign_client if _s3_presign_client is not None else get_storage()
+    params: dict = {"Bucket": settings.MINIO_BUCKET_NAME, "Key": key}
+    if filename:
+        import urllib.parse
+
+        encoded = urllib.parse.quote(filename, safe="")
+        params["ResponseContentDisposition"] = (
+            f'attachment; filename="{filename}"; filename*=UTF-8\'\'{encoded}'
+        )
     return str(
         client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": settings.MINIO_BUCKET_NAME, "Key": key},
+            Params=params,
             ExpiresIn=expires_in,
         )
     )
