@@ -610,9 +610,11 @@ describe('FormView', () => {
       const { wrapper } = await mountFormView({ form: fileUploadForm })
       const vm = wrapper.vm as any
 
-      // Try uploading an invalid file type
+      // Simulate file input change with an invalid file type
       const invalidFile = new File(['data'], 'image.png', { type: 'image/png' })
-      vm.processFile('qf', invalidFile)
+      const fileInput = wrapper.find('#file-input-qf')
+      Object.defineProperty(fileInput.element, 'files', { value: [invalidFile], writable: false })
+      await fileInput.trigger('change')
       await wrapper.vm.$nextTick()
 
       expect(vm.validationErrors['qf']).toBeTruthy()
@@ -626,7 +628,9 @@ describe('FormView', () => {
       // Create a file larger than 1MB
       const bigContent = new Uint8Array(2 * 1024 * 1024)
       const bigFile = new File([bigContent], 'large.pdf', { type: 'application/pdf' })
-      vm.processFile('qf', bigFile)
+      const fileInput = wrapper.find('#file-input-qf')
+      Object.defineProperty(fileInput.element, 'files', { value: [bigFile], writable: false })
+      await fileInput.trigger('change')
       await wrapper.vm.$nextTick()
 
       expect(vm.validationErrors['qf']).toBeTruthy()
@@ -650,7 +654,9 @@ describe('FormView', () => {
       const vm = wrapper.vm as any
 
       const validFile = new File(['data'], 'doc.pdf', { type: 'application/pdf' })
-      vm.processFile('qf', validFile)
+      const fileInput = wrapper.find('#file-input-qf')
+      Object.defineProperty(fileInput.element, 'files', { value: [validFile], writable: false })
+      await fileInput.trigger('change')
       await wrapper.vm.$nextTick()
 
       expect(vm.validationErrors['qf']).toBeUndefined()

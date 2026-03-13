@@ -6,6 +6,7 @@ from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_STATS, RA
 from app.core.deps import get_current_user, require_role
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
+from app.dependencies.sig_admin import require_sig_admin
 from app.repositories import sig_repo
 from app.schemas.form import (
     FormCreateRequest,
@@ -34,8 +35,8 @@ from app.services.form import (
 router = APIRouter(tags=["forms"])
 
 
-async def _check_sig_admin(sig_id: uuid.UUID, user_id: str, role: str) -> bool:
-    """Check if user is a platform admin or SIG ADMIN/SUB_ADMIN."""
+async def _is_sig_admin(sig_id: uuid.UUID, user_id: str, role: str) -> bool:
+    """Return True if the user is a platform admin or holds ADMIN/SUB_ADMIN in the SIG."""
     if role in ("SUPER_ADMIN", "ADMIN"):
         return True
     member_role = await sig_repo.get_member_role(sig_id, uuid.UUID(user_id))
@@ -50,14 +51,8 @@ async def _check_sig_admin(sig_id: uuid.UUID, user_id: str, role: str) -> bool:
 async def create_new_form(
     sig_id: uuid.UUID,
     req: FormCreateRequest,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_sig_admin()),
 ) -> FormResponseSchema:
-    is_sig_admin = await _check_sig_admin(sig_id, current_user["sub"], current_user["role"])
-    if not is_sig_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only SIG admins can create forms.",
-        )
     try:
         form = await create_form(
             sig_id=str(sig_id),
@@ -84,9 +79,9 @@ async def get_sig_forms(
     current_user: dict = Depends(get_current_user),
 ) -> FormListResponse:
     forms, total = await list_forms_by_sig(sig_id, page=page, page_size=page_size)
-    is_sig_admin = await _check_sig_admin(sig_id, current_user["sub"], current_user["role"])
+    is_admin = await _is_sig_admin(sig_id, current_user["sub"], current_user["role"])
     for f in forms:
-        f["user_is_sig_admin"] = is_sig_admin
+        f["user_is_sig_admin"] = is_admin
     return FormListResponse(
         forms=[FormResponseSchema(**f) for f in forms],
         total=total,
@@ -103,10 +98,10 @@ async def get_my_response(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
     # If form restricts access to SIG members only, verify membership
     if not form.get("allow_non_members", False):
-        is_sig_admin = await _check_sig_admin(
+        is_admin = await _is_sig_admin(
             uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
-        if not is_sig_admin:
+        if not is_admin:
             member_role = await sig_repo.get_member_role(
                 uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
             )
@@ -132,11 +127,11 @@ async def get_form_statistics(
     form = await get_form_by_id(form_id)
     if form is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
-    is_sig_admin = await _check_sig_admin(
+    is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
     is_creator = form["created_by"] == current_user["sub"]
-    if not is_sig_admin and not is_creator:
+    if not is_admin and not is_creator:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the form creator or admins can view form statistics.",
@@ -156,11 +151,11 @@ async def get_form(
     form = await get_form_by_id(form_id, user_id=current_user["sub"])
     if form is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
-    is_sig_admin = await _check_sig_admin(
+    is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
     # If form restricts access to SIG members only, verify membership
-    if not form.get("allow_non_members", False) and not is_sig_admin:
+    if not form.get("allow_non_members", False) and not is_admin:
         member_role = await sig_repo.get_member_role(
             uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
         )
@@ -169,7 +164,7 @@ async def get_form(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only SIG members can view this form.",
             )
-    form["user_is_sig_admin"] = is_sig_admin
+    form["user_is_sig_admin"] = is_admin
     return FormResponseSchema(**form)
 
 
@@ -184,16 +179,16 @@ async def update_existing_form(
     if existing_form is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
 
-    is_sig_admin = await _check_sig_admin(
+    is_admin = await _is_sig_admin(
         uuid.UUID(existing_form["sig_id"]), current_user["sub"], current_user["role"]
     )
-    if not is_sig_admin and existing_form["created_by"] != current_user["sub"]:
+    if not is_admin and existing_form["created_by"] != current_user["sub"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only SIG admins or the form creator can update this form.",
         )
 
-    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN") or is_sig_admin
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN") or is_admin
     try:
         form = await update_form(
             form_id=form_id,
@@ -229,7 +224,7 @@ async def delete_form(
         form = await get_form_by_id(form_id)
         if form is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
-        is_admin = await _check_sig_admin(
+        is_admin = await _is_sig_admin(
             uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
 
@@ -252,10 +247,10 @@ async def get_form_responses(
     if form is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
 
-    is_sig_admin = await _check_sig_admin(
+    is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
-    if not is_sig_admin:
+    if not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only SIG admins can view form responses.",
@@ -318,10 +313,10 @@ async def export_form_csv(
     if form is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
 
-    is_sig_admin = await _check_sig_admin(
+    is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
-    if not is_sig_admin:
+    if not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only SIG admins can export form data.",

@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
-import { getErrorMessage } from '@/utils/error'
-import type { Question, FormData, FormResponse } from '@/types'
-import { getForm, submitForm as apiSubmitForm, exportForm, getMyResponse } from '@/api/forms'
-import { getSig } from '@/api/sigs'
-import { getTaskStatus } from '@/api/tasks'
-import { uploadEditorFile } from '@/api/files'
-import { useFormResponseDraft } from '@/composables/useFormResponseDraft'
+import { useFormSubmit } from '@/composables/useFormSubmit'
+import { useFormExport } from '@/composables/useFormExport'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -25,580 +20,74 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-// ── Core State ──
 const formId = computed(() => route.params.formId as string)
-const form = ref<FormData | null>(null)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const answers = ref<Record<string, any>>({})
-const loading = ref(true)
-const submitting = ref(false)
-const submitted = ref(false)
-const message = ref('')
-const error = ref('')
-const sigName = ref('')
-const exporting = ref(false)
-const exportStatus = ref('')
-let exportPollTimer: ReturnType<typeof setInterval> | null = null
-let isUnmounted = false
 
-// ── View Submitted Response State (Feature 6) ──
-const previousResponse = ref<FormResponse | null>(null)
-const submittedAnswers = ref<Record<string, unknown>>({})
-
-// ── Validation Error State (Feature 2) ──
-const validationErrors = ref<Record<string, string>>({})
-const highlightedQuestions = ref<Set<string>>(new Set())
-const questionRefs = ref<Record<string, HTMLElement>>({})
-let highlightTimers: Record<string, ReturnType<typeof setTimeout>> = {}
-
-// ── File Upload State (Feature 4) ──
-const dragOverQuestions = ref<Set<string>>(new Set())
-const filePreviews = ref<Record<string, string>>({})
-const uploadingFiles = ref<string[]>([])
-
-// ── Question type map for draft skipping ──
-const questionTypeMap = computed(() => {
-  const map: Record<string, string> = {}
-  if (form.value) {
-    for (const q of form.value.questions) {
-      map[q.id] = q.type
-    }
-  }
-  return map
-})
-
-// ── Draft Composable (Feature 3) ──
-const { draftRestored, loadDraft, clearDraft, startAutoSave, stopAutoSave } = useFormResponseDraft({
-  formId,
+const {
+  form,
   answers,
-  skipTypes: questionTypeMap,
+  loading,
+  submitting,
+  submitted,
+  error,
+  message,
+  sigName,
+  previousResponse,
+  validationErrors,
+  highlightedQuestions,
+  dragOverQuestions,
+  filePreviews,
+  uploadingFiles,
+  draftRestored,
+  canEdit,
+  canExport,
+  totalQuestions,
+  answeredCount,
+  progressPercent,
+  showForm,
+  loadForm,
+  submitForm,
+  handleFileUpload,
+  handleDrop,
+  handleDragOver,
+  handleDragLeave,
+  triggerFileInput,
+  removeFile,
+  toggleMultipleChoice,
+  ratingRange,
+  ratingCount,
+  selectRating,
+  onTextInput,
+  onSelectChange,
+  onRadioChange,
+  getDisplayAnswer,
+  getResponseAnswers,
+  handleClearDraft,
+  goBackToSig,
+  setQuestionRef,
+  isFileObject,
+  getFileName,
+  formatFileSize,
+} = useFormSubmit({ formId, auth, router, t })
+
+const { exportStatus, exportStatusMessage, startExport } = useFormExport({
+  onError: (msg) => {
+    error.value = msg
+  },
 })
 
-// ── Computed ──
-const canEdit = computed(() => {
-  if (!form.value) return false
-  return auth.isAdmin || form.value.user_is_sig_admin || auth.user?.id === form.value.created_by
-})
-const canExport = computed(() => {
-  if (!form.value) return false
-  return auth.isAdmin || form.value.user_is_sig_admin
-})
 const formShareUrl = computed(() => `${window.location.origin}/forms/${formId.value}`)
 
-// ── Progress Indicator (Feature 1) ──
-const totalQuestions = computed(() => form.value?.questions.length ?? 0)
-const answeredCount = computed(() => {
-  if (!form.value) return 0
-  let count = 0
-  for (const q of form.value.questions) {
-    const val = answers.value[q.id]
-    if (val === null || val === undefined || val === '') continue
-    if (Array.isArray(val) && val.length === 0) continue
-    count++
-  }
-  return count
-})
-const progressPercent = computed(() => {
-  if (totalQuestions.value === 0) return 0
-  return Math.round((answeredCount.value / totalQuestions.value) * 100)
-})
-
-// ── Show form or read-only view ──
-const showForm = computed(() => {
-  return (
-    !submitted.value &&
-    !previousResponse.value &&
-    form.value?.is_active &&
-    auth.isAuthenticated &&
-    !auth.isGuest
-  )
-})
-
-// ── Fetch Form ──
-async function fetchForm() {
-  loading.value = true
-  try {
-    const data = await getForm(formId.value)
-    form.value = data
-    for (const q of data.questions) {
-      answers.value[q.id] = q.type === 'multiple_choice' ? [] : q.type === 'rating' ? null : ''
-    }
-    try {
-      const sigData = await getSig(data.sig_id)
-      sigName.value = sigData.name
-    } catch {
-      /* breadcrumb will show fallback */
-    }
-
-    // Feature 6: Check for previous response
-    if (auth.isAuthenticated && !auth.isGuest) {
-      try {
-        const resp = await getMyResponse(formId.value)
-        if (resp) {
-          previousResponse.value = resp
-        }
-      } catch {
-        // No previous response, show the form
-      }
-    }
-
-    // Feature 3: Restore draft if no previous response
-    if (!previousResponse.value) {
-      loadDraft()
-      startAutoSave()
-    }
-  } catch {
-    error.value = t('forms.view.loadError')
-  } finally {
-    loading.value = false
-  }
-}
-
-// ── Validation (Feature 2) ──
-function validateAnswers(): string | null {
-  if (!form.value) return t('forms.view.loadError')
-  validationErrors.value = {}
-  let firstError: string | null = null
-  let firstErrorQuestionId: string | null = null
-
-  for (const q of form.value.questions) {
-    const val = answers.value[q.id]
-    if (q.required) {
-      if (val === null || val === undefined || val === '') {
-        const msg = `"${q.label}" ${t('common.required').toLowerCase()}.`
-        validationErrors.value[q.id] = msg
-        if (!firstError) {
-          firstError = msg
-          firstErrorQuestionId = q.id
-        }
-        continue
-      }
-      if (Array.isArray(val) && val.length === 0) {
-        const msg = `"${q.label}" ${t('common.required').toLowerCase()}.`
-        validationErrors.value[q.id] = msg
-        if (!firstError) {
-          firstError = msg
-          firstErrorQuestionId = q.id
-        }
-        continue
-      }
-    }
-    if (val === null || val === undefined || val === '' || (Array.isArray(val) && val.length === 0))
-      continue
-    if (
-      (q.type === 'text' || q.type === 'textarea') &&
-      q.max_length &&
-      typeof val === 'string' &&
-      val.length > q.max_length
-    ) {
-      const msg = `"${q.label}" exceeds maximum length of ${q.max_length}.`
-      validationErrors.value[q.id] = msg
-      if (!firstError) {
-        firstError = msg
-        firstErrorQuestionId = q.id
-      }
-    }
-  }
-
-  // Scroll to first error and highlight
-  if (firstErrorQuestionId) {
-    scrollToQuestion(firstErrorQuestionId)
-    for (const qId of Object.keys(validationErrors.value)) {
-      addHighlight(qId)
-    }
-  }
-
-  return firstError
-}
-
-function scrollToQuestion(questionId: string) {
-  nextTick(() => {
-    const el = questionRefs.value[questionId]
-    if (el && typeof el.scrollIntoView === 'function') {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
+function handleStartExport() {
+  startExport(formId.value, {
+    starting: t('forms.view.exportStarting'),
+    statusPrefix: t('forms.view.exportStatus'),
+    timeout: t('forms.view.exportTimeout'),
+    failed: t('forms.view.exportFailed'),
+    error: t('forms.view.exportError'),
   })
 }
 
-function addHighlight(questionId: string) {
-  highlightedQuestions.value.add(questionId)
-  // Clear existing timer for this question
-  if (highlightTimers[questionId]) {
-    clearTimeout(highlightTimers[questionId])
-  }
-  highlightTimers[questionId] = setTimeout(() => {
-    highlightedQuestions.value.delete(questionId)
-  }, 3000)
-}
-
-function clearQuestionError(questionId: string) {
-  if (validationErrors.value[questionId]) {
-    delete validationErrors.value[questionId]
-  }
-  highlightedQuestions.value.delete(questionId)
-  if (highlightTimers[questionId]) {
-    clearTimeout(highlightTimers[questionId])
-    delete highlightTimers[questionId]
-  }
-}
-
-function setQuestionRef(questionId: string, el: unknown) {
-  if (el instanceof HTMLElement) {
-    questionRefs.value[questionId] = el
-  } else if (el != null && typeof el === 'object' && '$el' in el) {
-    const root = (el as { $el: HTMLElement }).$el
-    if (root instanceof HTMLElement) {
-      questionRefs.value[questionId] = root
-    }
-  }
-}
-
-// ── Submit Form ──
-async function submitForm() {
-  error.value = ''
-  const validationError = validateAnswers()
-  if (validationError) {
-    error.value = validationError
-    return
-  }
-  submitting.value = true
-  try {
-    const cleanAnswers: Record<string, unknown> = {}
-    for (const [key, val] of Object.entries(answers.value)) {
-      if (
-        val !== null &&
-        val !== undefined &&
-        val !== '' &&
-        !(Array.isArray(val) && val.length === 0)
-      )
-        cleanAnswers[key] = val
-    }
-
-    // Upload any pending files before submitting
-    for (const [key, val] of Object.entries(cleanAnswers)) {
-      if (val instanceof File) {
-        uploadingFiles.value = [...uploadingFiles.value, key]
-        try {
-          const data = await uploadEditorFile(val)
-          cleanAnswers[key] = { key: data.key || data.url, filename: val.name }
-        } finally {
-          uploadingFiles.value = uploadingFiles.value.filter((id) => id !== key)
-        }
-      }
-    }
-
-    await apiSubmitForm(formId.value, cleanAnswers)
-    submitted.value = true
-    message.value = t('forms.view.successMessage')
-    // Feature 6: save submitted answers for read-only view
-    submittedAnswers.value = { ...cleanAnswers }
-    // Feature 3: clear draft after successful submission
-    stopAutoSave()
-    clearDraft()
-  } catch (e: unknown) {
-    if (
-      e != null &&
-      typeof e === 'object' &&
-      'response' in e &&
-      (e as { response?: { status?: number } }).response?.status === 409
-    ) {
-      submitted.value = true
-      message.value = t('forms.view.alreadySubmitted')
-      // Try to fetch existing response
-      try {
-        const resp = await getMyResponse(formId.value)
-        if (resp) {
-          previousResponse.value = resp
-        }
-      } catch {
-        // ignore
-      }
-    } else {
-      error.value = getErrorMessage(e, t('forms.view.submitError'))
-    }
-  } finally {
-    submitting.value = false
-  }
-}
-
-// ── File Upload (Feature 4) ──
-function handleFileUpload(questionId: string, event: Event): void {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  processFile(questionId, file)
-  // Reset so user can re-select the same file
-  input.value = ''
-}
-
-function processFile(questionId: string, file: File) {
-  const question = form.value?.questions.find((q) => q.id === questionId)
-  if (!question) return
-
-  // Validate file type
-  if (question.allowed_types && question.allowed_types.length > 0) {
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
-    const allowed = question.allowed_types.map((t) => t.toLowerCase().trim())
-    if (!allowed.includes(ext)) {
-      validationErrors.value[questionId] = t('forms.view.fileTypeError', {
-        types: question.allowed_types.join(', '),
-      })
-      addHighlight(questionId)
-      return
-    }
-  }
-
-  // Validate file size
-  if (question.max_size_mb) {
-    const maxBytes = question.max_size_mb * 1024 * 1024
-    if (file.size > maxBytes) {
-      validationErrors.value[questionId] = t('forms.view.fileSizeError', {
-        max: question.max_size_mb,
-      })
-      addHighlight(questionId)
-      return
-    }
-  }
-
-  clearQuestionError(questionId)
-  answers.value[questionId] = file
-
-  // Generate preview for image files
-  if (file.type.startsWith('image/')) {
-    const url = URL.createObjectURL(file)
-    filePreviews.value[questionId] = url
-  } else {
-    // Remove any stale preview
-    revokePreview(questionId)
-  }
-}
-
-function handleDrop(questionId: string, event: DragEvent) {
-  event.preventDefault()
-  dragOverQuestions.value.delete(questionId)
-  const file = event.dataTransfer?.files?.[0]
-  if (file) {
-    processFile(questionId, file)
-  }
-}
-
-function handleDragOver(questionId: string, event: DragEvent) {
-  event.preventDefault()
-  dragOverQuestions.value.add(questionId)
-}
-
-function handleDragLeave(questionId: string) {
-  dragOverQuestions.value.delete(questionId)
-}
-
-function triggerFileInput(questionId: string) {
-  const input = document.getElementById(`file-input-${questionId}`) as HTMLInputElement | null
-  if (input) input.click()
-}
-
-function removeFile(questionId: string) {
-  answers.value[questionId] = ''
-  revokePreview(questionId)
-  clearQuestionError(questionId)
-  // Reset file input
-  const input = document.getElementById(`file-input-${questionId}`) as HTMLInputElement | null
-  if (input) input.value = ''
-}
-
-function revokePreview(questionId: string) {
-  if (filePreviews.value[questionId]) {
-    URL.revokeObjectURL(filePreviews.value[questionId])
-    delete filePreviews.value[questionId]
-  }
-}
-
-function isFileObject(val: unknown): val is File {
-  return val instanceof File
-}
-
-function getFileName(val: unknown): string {
-  if (val instanceof File) return val.name
-  if (val && typeof val === 'object' && 'filename' in val)
-    return (val as { filename: string }).filename
-  return ''
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-// ── Multiple Choice Toggle ──
-function toggleMultipleChoice(questionId: string, optionId: string) {
-  if (!Array.isArray(answers.value[questionId])) {
-    answers.value[questionId] = []
-  }
-  const arr = answers.value[questionId] as string[]
-  const idx = arr.indexOf(optionId)
-  if (idx === -1) arr.push(optionId)
-  else arr.splice(idx, 1)
-  clearQuestionError(questionId)
-}
-
-// ── Rating (Feature 5) ──
-function ratingRange(q: Question): number[] {
-  const min = q.min ?? 1
-  const max = q.max ?? 5
-  const range: number[] = []
-  for (let i = min; i <= max; i++) range.push(i)
-  return range
-}
-
-function ratingCount(q: Question): number {
-  return (q.max ?? 5) - (q.min ?? 1) + 1
-}
-
-function selectRating(questionId: string, value: number) {
-  answers.value[questionId] = value
-  clearQuestionError(questionId)
-}
-
-// ── Answer Change Handlers (clear validation) ──
-function onTextInput(questionId: string) {
-  clearQuestionError(questionId)
-}
-
-function onSelectChange(questionId: string) {
-  clearQuestionError(questionId)
-}
-
-function onRadioChange(questionId: string) {
-  clearQuestionError(questionId)
-}
-
-// ── Export ──
-async function startExport() {
-  exporting.value = true
-  exportStatus.value = t('forms.view.exportStarting')
-  try {
-    const data = await exportForm(formId.value)
-    pollExportStatus(data.task_id)
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, t('forms.view.exportError'))
-    exporting.value = false
-    exportStatus.value = ''
-  }
-}
-
-function pollExportStatus(taskId: string) {
-  let attempts = 0
-  exportPollTimer = setInterval(async () => {
-    if (isUnmounted) {
-      clearInterval(exportPollTimer!)
-      exportPollTimer = null
-      return
-    }
-    attempts++
-    if (attempts > 30) {
-      clearInterval(exportPollTimer!)
-      exportPollTimer = null
-      exporting.value = false
-      exportStatus.value = ''
-      error.value = t('forms.view.exportTimeout')
-      return
-    }
-    try {
-      const data = await getTaskStatus(taskId)
-      exportStatus.value = `${t('forms.view.exportStatus')} ${data.status}`
-      if (data.status === 'SUCCESS' && data.download_url) {
-        clearInterval(exportPollTimer!)
-        exportPollTimer = null
-        exporting.value = false
-        exportStatus.value = ''
-        window.open(data.download_url, '_blank')
-      } else if (data.status === 'FAILURE') {
-        clearInterval(exportPollTimer!)
-        exportPollTimer = null
-        exporting.value = false
-        exportStatus.value = ''
-        error.value = t('forms.view.exportFailed')
-      }
-    } catch {
-      /* continue */
-    }
-  }, 2000)
-}
-
-// ── View Submitted Response helpers (Feature 6) ──
-function getDisplayAnswer(question: Question, answerVal: unknown): string {
-  if (answerVal === null || answerVal === undefined || answerVal === '') {
-    return t('forms.view.noAnswer')
-  }
-
-  if (question.type === 'single_choice' || question.type === 'dropdown') {
-    const opt = question.options?.find((o) => o.id === answerVal)
-    return opt?.label ?? String(answerVal)
-  }
-
-  if (question.type === 'multiple_choice' && Array.isArray(answerVal)) {
-    if (answerVal.length === 0) return t('forms.view.noAnswer')
-    return answerVal
-      .map((id) => {
-        const opt = question.options?.find((o) => o.id === id)
-        return opt?.label ?? String(id)
-      })
-      .join(', ')
-  }
-
-  if (question.type === 'rating') {
-    return String(answerVal)
-  }
-
-  if (question.type === 'file_upload') {
-    if (typeof answerVal === 'object' && answerVal !== null && 'filename' in answerVal) {
-      return (answerVal as { filename: string }).filename
-    }
-    return t('forms.view.fileUploaded')
-  }
-
-  return String(answerVal)
-}
-
-function getResponseAnswers(): Record<string, unknown> {
-  if (previousResponse.value) {
-    return previousResponse.value.answers
-  }
-  return submittedAnswers.value
-}
-
-function handleClearDraft() {
-  clearDraft()
-  // Reset answers to defaults
-  if (form.value) {
-    for (const q of form.value.questions) {
-      answers.value[q.id] = q.type === 'multiple_choice' ? [] : q.type === 'rating' ? null : ''
-    }
-  }
-}
-
-function goBackToSig() {
-  if (form.value) {
-    router.push(`/sigs/${form.value.sig_id}`)
-  }
-}
-
-// ── Lifecycle ──
-onMounted(() => fetchForm())
-onUnmounted(() => {
-  isUnmounted = true
-  stopAutoSave()
-  if (exportPollTimer) clearInterval(exportPollTimer)
-  // Clean up highlight timers
-  for (const timer of Object.values(highlightTimers)) {
-    clearTimeout(timer)
-  }
-  highlightTimers = {}
-  // Revoke all file preview URLs
-  for (const url of Object.values(filePreviews.value)) {
-    URL.revokeObjectURL(url)
-  }
-})
+onMounted(() => loadForm())
 </script>
 
 <template>
@@ -702,11 +191,13 @@ onUnmounted(() => {
             v-if="canExport"
             variant="secondary"
             size="sm"
-            :loading="exporting"
-            @click="startExport"
+            :loading="exportStatus === 'pending'"
+            @click="handleStartExport"
             >{{ t('forms.view.exportCSVBtn') }}</BaseButton
           >
-          <span v-if="exportStatus" class="text-xs text-muted">{{ exportStatus }}</span>
+          <span v-if="exportStatusMessage" class="text-xs text-muted">{{
+            exportStatusMessage
+          }}</span>
         </div>
       </BaseCard>
 

@@ -61,7 +61,7 @@ class TestCreateForm:
         try:
             _override_auth("ADMIN")
             with (
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.create_form", new_callable=AsyncMock, return_value=form),
             ):
                 resp = await client.post(
@@ -91,7 +91,7 @@ class TestListForms:
         try:
             _override_auth("MEMBER")
             with (
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(f"{_EP}.list_forms_by_sig", new_callable=AsyncMock, return_value=([form], 1)),
             ):
                 resp = await client.get(
@@ -116,7 +116,7 @@ class TestGetForm:
         try:
             _override_auth("MEMBER")
             with (
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
@@ -147,7 +147,7 @@ class TestUpdateForm:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=form),
             ):
                 resp = await client.put(
@@ -225,7 +225,7 @@ class TestExportForm:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch.dict("sys.modules", {"app.tasks.form_export": mock_export_module}),
                 patch("app.core.redis.get_redis", return_value=mock_redis),
@@ -306,7 +306,7 @@ class TestDeleteFormSigAdmin:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.soft_delete_form", new_callable=AsyncMock, return_value=True),
             ):
                 resp = await client.delete(
@@ -330,7 +330,7 @@ class TestDeleteFormSigAdmin:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.soft_delete_form",
                     new_callable=AsyncMock,
@@ -596,7 +596,7 @@ class TestExportRateLimit:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False),
             ):
                 resp = await client.post(
@@ -878,7 +878,7 @@ class TestFormDeletePermissions:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.soft_delete_form",
                     new_callable=AsyncMock,
@@ -914,7 +914,7 @@ class TestFormUpdateLocked:
             _override_auth("ADMIN", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form),
             ):
                 resp = await client.put(
@@ -942,7 +942,7 @@ class TestFormListEmpty:
         try:
             _override_auth("MEMBER")
             with (
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.list_forms_by_sig",
                     new_callable=AsyncMock,
@@ -968,7 +968,7 @@ class TestFormListEmpty:
         try:
             _override_auth("MEMBER")
             with (
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.list_forms_by_sig",
                     new_callable=AsyncMock,
@@ -1007,7 +1007,7 @@ class TestFormResponsesList:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_EP}.list_form_responses",
                     new_callable=AsyncMock,
@@ -1037,7 +1037,7 @@ class TestFormResponsesList:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
             ):
                 resp = await client.get(
                     f"/api/v1/forms/{form_id}/responses",
@@ -1061,7 +1061,7 @@ class TestFormExportPermissions:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False),
             ):
                 resp = await client.post(
@@ -1147,7 +1147,7 @@ class TestFormDescriptionSanitization:
         try:
             _override_auth("ADMIN")
             with (
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_EP}.create_form", new_callable=AsyncMock, return_value=form
                 ) as mock_create,
@@ -1188,7 +1188,7 @@ class TestFormDescriptionSanitization:
         try:
             _override_auth("ADMIN")
             with (
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.create_form", new_callable=AsyncMock, return_value=form),
                 patch(f"{_EP}.sanitize_html", return_value="") as mock_sanitize,
             ):
@@ -1223,7 +1223,7 @@ class TestFormDescriptionSanitization:
             _override_auth("ADMIN", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form
                 ) as mock_update,
@@ -1259,7 +1259,7 @@ class TestFormDescriptionSanitization:
             _override_auth("ADMIN", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.update_form", new_callable=AsyncMock, return_value=form),
                 patch(f"{_EP}.sanitize_html", return_value="") as mock_sanitize,
             ):
@@ -1288,7 +1288,7 @@ class TestGetFormAccessControl:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -1315,7 +1315,7 @@ class TestGetFormAccessControl:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -1341,7 +1341,7 @@ class TestGetFormAccessControl:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
             ):
                 resp = await client.get(
                     f"/api/v1/forms/{form_id}",
@@ -1362,7 +1362,7 @@ class TestGetFormAccessControl:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
             ):
                 resp = await client.get(
                     f"/api/v1/forms/{form_id}",
@@ -1401,7 +1401,7 @@ class TestGetMyResponse:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -1436,7 +1436,7 @@ class TestGetMyResponse:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -1495,7 +1495,7 @@ class TestGetMyResponse:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -1535,7 +1535,7 @@ class TestGetMyResponse:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -1579,7 +1579,7 @@ class TestGetFormStats:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
             ):
                 resp = await client.get(
@@ -1613,7 +1613,7 @@ class TestGetFormStats:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
             ):
                 resp = await client.get(
@@ -1640,7 +1640,7 @@ class TestGetFormStats:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
             ):
                 resp = await client.get(
                     f"/api/v1/forms/{form_id}/stats",
@@ -1710,7 +1710,7 @@ class TestGetFormStats:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
             ):
                 resp = await client.get(
@@ -1756,7 +1756,7 @@ class TestGetFormStats:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_stats", new_callable=AsyncMock, return_value=stats),
             ):
                 resp = await client.get(
@@ -1787,7 +1787,7 @@ class TestGetFormStats:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
             ):
                 resp = await client.get(
                     f"/api/v1/forms/{form_id}/stats",
@@ -2242,7 +2242,7 @@ class TestFormHasResponded:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -2270,7 +2270,7 @@ class TestFormHasResponded:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -2300,7 +2300,7 @@ class TestFormHasResponded:
                 patch(
                     f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form
                 ) as mock_get,
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,
@@ -2332,7 +2332,7 @@ class TestFormResponseCount:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
-                patch(f"{_EP}._check_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
                 patch(
                     f"{_EP}.sig_repo.get_member_role",
                     new_callable=AsyncMock,

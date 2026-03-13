@@ -5,11 +5,11 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
-import { deleteForm as deleteFormApi, listFormResponses, getForm, exportForm } from '@/api/forms'
-import { getTaskStatus } from '@/api/tasks'
+import { deleteForm as deleteFormApi } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
-import { computeFormStats, filterResponses, type QuestionStats } from '@/utils/formStats'
-import type { SigForm, FormResponse, Question, Sig } from '@/types'
+import { useFormResponseViewer } from '@/composables/useFormResponseViewer'
+import { useFormExport } from '@/composables/useFormExport'
+import type { SigForm, Sig } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -152,203 +152,54 @@ async function handleShareForm(formId: string) {
 
 onUnmounted(() => {
   if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer)
-  if (exportTimerInterval) clearInterval(exportTimerInterval)
-  if (exportPollInterval) clearInterval(exportPollInterval)
 })
 
-// ── Responses Modal ──
+// ── Response viewer ──
+// Destructure refs that need v-model (Vue 3 doesn't auto-unwrap refs nested in plain objects)
+const {
+  searchQuery: rvSearchQuery,
+  dateFrom: rvDateFrom,
+  dateTo: rvDateTo,
+  viewMode: rvViewMode,
+  ...responseViewer
+} = useFormResponseViewer({
+  pageSize: 200,
+  onError: (msg) => toastStore.show(msg || t('sigs.forms.fetchResponsesError'), 'error'),
+})
+
 const showResponsesModal = ref(false)
 const responsesFormId = ref('')
 const responsesFormTitle = ref('')
-const allResponses = ref<FormResponse[]>([])
-const responsesPage = ref(1)
-const responsesTotalPages = ref(1)
-const responsesTotal = ref(0)
-const responsesLoading = ref(false)
-const responsesQuestions = ref<Question[]>([])
 
-// ── Feature 1: Statistics Tab ──
-const responsesTab = ref<'individual' | 'statistics'>('individual')
-const formStats = ref<QuestionStats[]>([])
-const expandedTextQuestions = ref<Set<string>>(new Set())
-
-function switchToIndividualTab() {
-  responsesTab.value = 'individual'
-}
-
-function switchToStatisticsTab() {
-  responsesTab.value = 'statistics'
-}
-
-function toggleTextExpand(questionId: string) {
-  if (expandedTextQuestions.value.has(questionId)) {
-    expandedTextQuestions.value.delete(questionId)
-  } else {
-    expandedTextQuestions.value.add(questionId)
-  }
-}
-
-function isTextExpanded(questionId: string): boolean {
-  return expandedTextQuestions.value.has(questionId)
-}
-
-// ── Feature 2: Search/Filter in Responses Modal ──
-const searchQuery = ref('')
-const dateFrom = ref('')
-const dateTo = ref('')
-
-const filteredResponses = computed(() => {
-  return filterResponses(allResponses.value, searchQuery.value, dateFrom.value, dateTo.value)
-})
-
-const filteredCount = computed(() => filteredResponses.value.length)
-
-// ── Feature 3: Export UX Improvement ──
-const exporting = ref(false)
-const exportingFormId = ref<string | null>(null)
-const exportElapsed = ref(0)
-let exportTimerInterval: ReturnType<typeof setInterval> | null = null
-let exportPollInterval: ReturnType<typeof setInterval> | null = null
-const exportCancelled = ref(false)
-
-function startExportTimer() {
-  exportElapsed.value = 0
-  exportCancelled.value = false
-  if (exportTimerInterval) clearInterval(exportTimerInterval)
-  exportTimerInterval = setInterval(() => {
-    exportElapsed.value++
-  }, 1000)
-}
-
-function stopExportTimer() {
-  if (exportTimerInterval) {
-    clearInterval(exportTimerInterval)
-    exportTimerInterval = null
-  }
-  if (exportPollInterval) {
-    clearInterval(exportPollInterval)
-    exportPollInterval = null
-  }
-}
-
-function cancelExport() {
-  exportCancelled.value = true
-  exporting.value = false
-  exportingFormId.value = null
-  stopExportTimer()
-}
-
-async function startExport(formId: string): Promise<void> {
-  exportingFormId.value = formId
-  exporting.value = true
-  startExportTimer()
-  try {
-    const data = await exportForm(formId)
-    let attempts = 0
-    // Assign to module-level variable so onUnmounted can clear it
-    if (exportPollInterval) clearInterval(exportPollInterval)
-    exportPollInterval = setInterval(async () => {
-      if (exportCancelled.value) {
-        stopExportTimer()
-        return
-      }
-      attempts++
-      if (attempts > 60) {
-        stopExportTimer()
-        exporting.value = false
-        exportingFormId.value = null
-        toastStore.show(t('forms.view.exportTimeout'), 'error')
-        return
-      }
-      try {
-        const status = await getTaskStatus(data.task_id)
-        if (status.status === 'SUCCESS' && status.download_url) {
-          stopExportTimer()
-          exporting.value = false
-          exportingFormId.value = null
-          window.open(status.download_url, '_blank')
-        } else if (status.status === 'FAILURE') {
-          stopExportTimer()
-          exporting.value = false
-          exportingFormId.value = null
-          toastStore.show(t('forms.view.exportFailed'), 'error')
-        }
-      } catch {
-        /* continue polling */
-      }
-    }, 1000)
-  } catch (e: unknown) {
-    if (!exportCancelled.value) {
-      toastStore.show(getErrorMessage(e, t('forms.view.exportError')), 'error')
-    }
-    exporting.value = false
-    exportingFormId.value = null
-    stopExportTimer()
-  }
-}
-
-function resolveQuestionLabel(questionId: string): string {
-  const q = responsesQuestions.value.find((q) => q.id === questionId)
-  return q?.label || questionId
-}
-
-function resolveAnswerValue(questionId: string, value: unknown): string {
-  const q = responsesQuestions.value.find((q) => q.id === questionId)
-  if (!q) return String(value ?? '(None)')
-
-  const optionMap = new Map((q.options || []).map((o) => [o.id, o.label]))
-
-  if (Array.isArray(value)) {
-    return value.map((v) => optionMap.get(String(v)) ?? String(v)).join(', ') || '(None)'
-  }
-  if (typeof value === 'string' && optionMap.has(value)) {
-    return optionMap.get(value)!
-  }
-  if (typeof value === 'object' && value !== null) {
-    const obj = value as Record<string, unknown>
-    if (obj.filename) return String(obj.filename)
-    return JSON.stringify(value)
-  }
-  return String(value ?? '(None)')
-}
-
-async function fetchResponses(formId: string, title: string, page = 1) {
+async function openResponsesModal(formId: string, title: string, page = 1) {
   responsesFormId.value = formId
   responsesFormTitle.value = title
-  responsesPage.value = page
-  responsesLoading.value = true
   showResponsesModal.value = true
-  responsesTab.value = 'individual'
-  searchQuery.value = ''
-  dateFrom.value = ''
-  dateTo.value = ''
-  expandedTextQuestions.value = new Set()
-  try {
-    const [formData, respData] = await Promise.all([
-      page === 1 ? getForm(formId) : Promise.resolve(null),
-      listFormResponses(formId, page, 200),
-    ])
-    if (formData) {
-      responsesQuestions.value = formData.questions
-    }
-    allResponses.value = respData.responses || []
-    responsesTotal.value = respData.total || 0
-    responsesTotalPages.value = Math.ceil(responsesTotal.value / 200) || 1
-
-    // Compute stats client-side
-    if (responsesQuestions.value.length > 0) {
-      formStats.value = computeFormStats(responsesQuestions.value, allResponses.value)
-    }
-  } catch (e: unknown) {
-    toastStore.show(getErrorMessage(e, t('sigs.forms.fetchResponsesError')), 'error')
-  } finally {
-    responsesLoading.value = false
-  }
+  responseViewer.resetFilters()
+  await responseViewer.fetchResponses(formId, page)
 }
 
 function handleResponsesPageChange(p: number) {
-  fetchResponses(responsesFormId.value, responsesFormTitle.value, p)
+  openResponsesModal(responsesFormId.value, responsesFormTitle.value, p)
 }
+
+// ── Export ──
+const formExport = useFormExport({
+  onError: (msg) => toastStore.show(msg || t('forms.view.exportFailed'), 'error'),
+  onTimeout: () => toastStore.show(t('forms.view.exportTimeout'), 'error'),
+})
+
+function handleStartExport(formId: string) {
+  formExport.startExport(formId, {
+    starting: t('forms.view.exportStarting'),
+    statusPrefix: t('forms.view.exportStatusPrefix'),
+    timeout: t('forms.view.exportTimeout'),
+    failed: t('forms.view.exportFailed'),
+    error: t('forms.view.exportError'),
+  })
+}
+
+const exporting = computed(() => formExport.exportStatus.value === 'pending')
 
 onMounted(fetchForms)
 </script>
@@ -449,8 +300,8 @@ onMounted(fetchForms)
               {{ t('sigs.forms.editBtn') }}
             </router-link>
             <button
-              @click="fetchResponses(f.id, f.title)"
               class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline"
+              @click="openResponsesModal(f.id, f.title)"
             >
               {{ t('sigs.forms.responsesBtn') }}
             </button>
@@ -474,12 +325,12 @@ onMounted(fetchForms)
               </Transition>
             </span>
             <button
-              @click="startExport(f.id)"
-              :disabled="exportingFormId !== null"
+              :disabled="formExport.exportingFormId.value !== null"
               class="text-xs text-brand-600 hover:text-brand-700 font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="handleStartExport(f.id)"
             >
               {{
-                exportingFormId === f.id
+                formExport.exportingFormId.value === f.id
                   ? t('forms.view.exportStarting')
                   : t('forms.view.exportCSVBtn')
               }}
@@ -513,13 +364,13 @@ onMounted(fetchForms)
       </template>
     </BaseModal>
 
-    <!-- Responses Modal with Tabs, Search/Filter, Statistics -->
+    <!-- Responses Modal -->
     <BaseModal
       v-model="showResponsesModal"
       :title="`${t('sigs.forms.responsesBtn')}: ${responsesFormTitle}`"
       size="xl"
     >
-      <div v-if="responsesLoading" class="py-12 flex justify-center">
+      <div v-if="responseViewer.loading.value" class="py-12 flex justify-center">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
       </div>
       <template v-else>
@@ -528,36 +379,35 @@ onMounted(fetchForms)
           <button
             :class="[
               'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-              responsesTab === 'individual'
+              rvViewMode === 'individual'
                 ? 'border-brand-600 text-brand-600'
                 : 'border-transparent text-muted hover:text-foreground',
             ]"
             :aria-label="t('sigs.forms.tabIndividual')"
-            @click="switchToIndividualTab"
+            @click="rvViewMode = 'individual' as const"
           >
             {{ t('sigs.forms.tabIndividual') }}
           </button>
           <button
             :class="[
               'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-              responsesTab === 'statistics'
+              rvViewMode === 'statistics'
                 ? 'border-brand-600 text-brand-600'
                 : 'border-transparent text-muted hover:text-foreground',
             ]"
             :aria-label="t('sigs.forms.tabStatistics')"
-            @click="switchToStatisticsTab"
+            @click="rvViewMode = 'statistics' as const"
           >
             {{ t('sigs.forms.tabStatistics') }}
           </button>
         </div>
 
         <!-- Individual Responses Tab -->
-        <div v-if="responsesTab === 'individual'">
-          <!-- Feature 2: Search/Filter -->
+        <div v-if="rvViewMode === 'individual'">
           <div class="mb-4 space-y-3">
             <div class="flex flex-col sm:flex-row gap-2">
               <input
-                v-model="searchQuery"
+                v-model="rvSearchQuery"
                 type="text"
                 :placeholder="t('sigs.forms.searchPlaceholder')"
                 :aria-label="t('sigs.forms.searchPlaceholder')"
@@ -565,13 +415,13 @@ onMounted(fetchForms)
               />
               <div class="flex gap-2">
                 <input
-                  v-model="dateFrom"
+                  v-model="rvDateFrom"
                   type="date"
                   :aria-label="t('sigs.forms.dateFrom')"
                   class="text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
                 />
                 <input
-                  v-model="dateTo"
+                  v-model="rvDateTo"
                   type="date"
                   :aria-label="t('sigs.forms.dateTo')"
                   class="text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -580,16 +430,25 @@ onMounted(fetchForms)
             </div>
             <p class="text-xs text-muted">
               {{
-                t('sigs.forms.filteredCount', { shown: filteredCount, total: allResponses.length })
+                t('sigs.forms.filteredCount', {
+                  shown: responseViewer.filteredCount.value,
+                  total: responseViewer.responses.value.length,
+                })
               }}
             </p>
           </div>
 
-          <EmptyState v-if="allResponses.length === 0" :message="t('sigs.forms.noResponses')" />
-          <EmptyState v-else-if="filteredResponses.length === 0" :message="t('common.noResults')" />
+          <EmptyState
+            v-if="responseViewer.responses.value.length === 0"
+            :message="t('sigs.forms.noResponses')"
+          />
+          <EmptyState
+            v-else-if="responseViewer.filteredResponses.value.length === 0"
+            :message="t('common.noResults')"
+          />
           <div v-else class="max-h-[60vh] overflow-y-auto pr-2 space-y-4">
             <div
-              v-for="resp in filteredResponses"
+              v-for="resp in responseViewer.filteredResponses.value"
               :key="resp.id"
               class="border border-border rounded-lg p-5 bg-surface-alt/30"
             >
@@ -602,35 +461,38 @@ onMounted(fetchForms)
               <div class="grid gap-3 sm:grid-cols-2">
                 <div v-for="(value, key) in resp.answers" :key="key" class="space-y-1">
                   <div class="text-[10px] font-bold text-muted uppercase tracking-wider">
-                    {{ resolveQuestionLabel(String(key)) }}
+                    {{ responseViewer.resolveQuestionLabel(String(key)) }}
                   </div>
                   <div class="text-sm text-foreground">
-                    {{ resolveAnswerValue(String(key), value) }}
+                    {{ responseViewer.resolveAnswerValue(String(key), value) }}
                   </div>
                 </div>
               </div>
             </div>
 
             <BasePagination
-              v-if="responsesTotalPages > 1"
-              :current-page="responsesPage"
-              :total-pages="responsesTotalPages"
+              v-if="responseViewer.pagination.totalPages.value > 1"
+              :current-page="responseViewer.pagination.page.value"
+              :total-pages="responseViewer.pagination.totalPages.value"
               class="mt-6 pt-4 border-t border-border"
               @update:current-page="handleResponsesPageChange"
             />
           </div>
         </div>
 
-        <!-- Feature 1: Statistics Tab -->
-        <div v-if="responsesTab === 'statistics'">
-          <EmptyState v-if="allResponses.length === 0" :message="t('sigs.forms.noResponses')" />
+        <!-- Statistics Tab -->
+        <div v-if="rvViewMode === 'statistics'">
+          <EmptyState
+            v-if="responseViewer.responses.value.length === 0"
+            :message="t('sigs.forms.noResponses')"
+          />
           <div v-else class="max-h-[60vh] overflow-y-auto pr-2 space-y-6">
             <p class="text-sm text-muted">
-              {{ t('sigs.forms.statsTotal', { count: responsesTotal }) }}
+              {{ t('sigs.forms.statsTotal', { count: responseViewer.pagination.total.value }) }}
             </p>
 
             <div
-              v-for="stat in formStats"
+              v-for="stat in responseViewer.formStats.value"
               :key="stat.questionId"
               class="border border-border rounded-lg p-4"
             >
@@ -710,16 +572,16 @@ onMounted(fetchForms)
                   v-if="stat.answers.length > 0"
                   class="text-xs text-brand-600 hover:text-brand-700 font-medium"
                   :aria-label="t('sigs.forms.statsViewTextResponses')"
-                  @click="toggleTextExpand(stat.questionId)"
+                  @click="responseViewer.toggleTextExpand(stat.questionId)"
                 >
                   {{
-                    isTextExpanded(stat.questionId)
+                    responseViewer.isTextExpanded(stat.questionId)
                       ? t('sigs.forms.statsHideResponses')
                       : t('sigs.forms.statsViewTextResponses')
                   }}
                 </button>
                 <div
-                  v-if="isTextExpanded(stat.questionId)"
+                  v-if="responseViewer.isTextExpanded(stat.questionId)"
                   class="mt-2 space-y-2 max-h-32 sm:max-h-48 overflow-y-auto"
                 >
                   <div
@@ -749,19 +611,19 @@ onMounted(fetchForms)
       </template>
     </BaseModal>
 
-    <!-- Feature 3: Export modal (overlay) -->
+    <!-- Export progress modal -->
     <BaseModal v-model="exporting" :title="t('sigs.forms.exportTitle')" size="sm" persistent>
       <div class="text-center py-4 space-y-3">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
         <p class="text-sm text-foreground">
-          {{ t('sigs.forms.exportProgress', { seconds: exportElapsed }) }}
+          {{ t('sigs.forms.exportProgress', { seconds: formExport.exportElapsed.value }) }}
         </p>
-        <p v-if="exportElapsed >= 60" class="text-xs text-danger-600">
+        <p v-if="formExport.exportElapsed.value >= 60" class="text-xs text-danger-600">
           {{ t('sigs.forms.exportTimeoutHint') }}
         </p>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" @click="cancelExport">
+        <BaseButton variant="secondary" @click="formExport.cancelExport()">
           {{ t('common.cancel') }}
         </BaseButton>
       </template>

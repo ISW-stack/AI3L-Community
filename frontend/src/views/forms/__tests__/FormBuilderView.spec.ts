@@ -654,14 +654,26 @@ describe('FormBuilderView', () => {
     })
 
     it('clears draft after successful save', async () => {
+      // Manually set a draft in localStorage
+      localStorage.setItem(
+        'form-draft-sig-1',
+        JSON.stringify({
+          title: 'Draft',
+          description: '',
+          bannerUrl: '',
+          deadline: '',
+          maxRespondents: null,
+          allowNonMembers: false,
+          questions: [{ id: 'q1', type: 'text', label: 'Q1', required: true }],
+          savedAt: new Date().toISOString(),
+        }),
+      )
+      expect(localStorage.getItem('form-draft-sig-1')).toBeTruthy()
+
       const { wrapper } = await mountBuilder()
       const vm = wrapper.vm as any
       vm.title = 'New Survey'
       vm.questions[0].label = 'Q1'
-
-      // Save to generate draft
-      vm.saveDraftNow()
-      expect(localStorage.getItem('form-draft-sig-1')).toBeTruthy()
 
       // Save form
       const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Create Form'))

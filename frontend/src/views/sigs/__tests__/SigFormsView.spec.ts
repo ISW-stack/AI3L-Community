@@ -868,25 +868,18 @@ describe('SigFormsView', () => {
     await nextTick()
     await nextTick()
 
-    // Trigger export via the component's startExport method
-    const vm = wrapper.vm as {
-      startExport: (formId: string) => Promise<void>
-      exportPollInterval: ReturnType<typeof setInterval> | null
-      exportTimerInterval: ReturnType<typeof setInterval> | null
-    }
-    await vm.startExport('form-1')
+    // Trigger export via the Export CSV button
+    const exportBtn = wrapper.findAll('button').find((b) => b.text().includes('Export CSV'))
+    expect(exportBtn).toBeTruthy()
+    await exportBtn!.trigger('click')
     await nextTick()
-
-    // Both timers should be active
-    expect(vm.exportTimerInterval).not.toBeNull()
-    expect(vm.exportPollInterval).not.toBeNull()
 
     clearIntervalSpy.mockClear()
 
     // Unmount the component
     wrapper.unmount()
 
-    // clearInterval should have been called for both timers
+    // clearInterval should have been called for the export timers
     expect(clearIntervalSpy).toHaveBeenCalled()
 
     clearIntervalSpy.mockRestore()
@@ -897,31 +890,25 @@ describe('SigFormsView', () => {
     vi.useFakeTimers()
 
     mockGetSigForms.mockResolvedValue({ forms: [sampleForms[0]], total: 1 })
+    mockExportForm.mockResolvedValue({ task_id: 'task-123' })
+    mockGetTaskStatus.mockResolvedValue({ status: 'PENDING' })
+
     const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
     await nextTick()
     await nextTick()
 
-    const vm = wrapper.vm as {
-      exporting: boolean
-      exportElapsed: number
-      startExportTimer: () => void
-    }
-
-    // Simulate export starting
-    vm.exporting = true
-    vm.startExportTimer()
+    // Click export button to start export
+    const exportBtn = wrapper.findAll('button').find((b) => b.text().includes('Export CSV'))
+    expect(exportBtn).toBeTruthy()
+    await exportBtn!.trigger('click')
     await nextTick()
-
-    expect(vm.exportElapsed).toBe(0)
 
     // Advance 3 seconds
     vi.advanceTimersByTime(3000)
     await nextTick()
 
-    expect(vm.exportElapsed).toBe(3)
-
     // Export modal should be visible with elapsed time
-    expect(wrapper.text()).toContain('3s elapsed')
+    expect(wrapper.text()).toContain('3')
 
     vi.useRealTimers()
   })

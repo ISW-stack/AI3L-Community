@@ -1,4 +1,6 @@
+import json
 from datetime import datetime, timezone
+from typing import Any
 
 from app.converters.shared import safe_json_parse
 
@@ -28,4 +30,51 @@ def row_to_form(row: dict, response_count: int = 0) -> dict:
         "created_by_name": row.get("creator_display_name") or "Unknown",
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
+    }
+
+
+def row_to_form_list_item(row: dict, response_count: int = 0) -> dict:
+    """Convert a paginated list row (includes creator_display_name) to a form dict.
+
+    Identical in shape to ``row_to_form`` — provided as a named entry point
+    so callers can signal intent and future divergence is easy to add.
+    """
+    return row_to_form(row, response_count)
+
+
+def row_to_form_response(row: dict) -> dict:
+    """Convert a form_responses JOIN users row to the API response dict.
+
+    Expected row keys: id, form_id, user_id, answers, created_at,
+    display_name, username.
+    """
+    answers: Any = row.get("answers")
+    if isinstance(answers, str):
+        answers = json.loads(answers)
+    return {
+        "id": str(row["id"]),
+        "form_id": str(row["form_id"]),
+        "user_id": str(row["user_id"]),
+        "display_name": row.get("display_name"),
+        "username": row.get("username"),
+        "answers": answers,
+        "created_at": row["created_at"].isoformat(),
+    }
+
+
+def row_to_form_response_for_stats(row: dict) -> dict:
+    """Convert a raw stats row (id, form_id, user_id, answers, created_at)
+    to a plain dict suitable for aggregation in ``get_form_stats``.
+
+    ``answers`` is guaranteed to be a parsed dict (never a raw JSON string).
+    """
+    answers: Any = row.get("answers")
+    if isinstance(answers, str):
+        answers = json.loads(answers)
+    return {
+        "id": str(row["id"]),
+        "form_id": str(row["form_id"]),
+        "user_id": str(row["user_id"]),
+        "answers": answers,
+        "created_at": row["created_at"].isoformat(),
     }
