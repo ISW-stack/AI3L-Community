@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Awaitable, Callable
 
 from fastapi import Depends, HTTPException, status
 
@@ -6,7 +7,7 @@ from app.core.deps import get_current_user
 from app.repositories import sig_repo
 
 
-def require_sig_admin(sig_id_param: str = "sig_id"):  # noqa: ARG001
+def require_sig_admin(sig_id_param: str = "sig_id") -> Callable[..., Awaitable[dict]]:  # noqa: ARG001
     """Factory that returns a FastAPI dependency enforcing SIG admin access.
 
     Usage::
