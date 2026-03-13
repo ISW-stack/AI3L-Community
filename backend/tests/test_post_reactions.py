@@ -22,7 +22,8 @@ async def test_toggle_reaction_add_new():
     result = await toggle_reaction_jsonb(fake_conn, "posts", row_id, "user1", "LIKE")
 
     assert result == {"LIKE": ["user1"]}
-    fake_conn.execute.assert_called_once()
+    # Two execute calls: update reactions + sync like_count for posts table
+    assert fake_conn.execute.call_count == 2
 
 
 @pytest.mark.asyncio

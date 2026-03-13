@@ -141,6 +141,7 @@ class TestSigUpdate:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.sigs.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch("app.services.sig.get_pool", return_value=mock_pool),
                 patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
             ):
                 resp = await client.put(

@@ -114,7 +114,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   const pinSaving = ref(false)
 
   // --- VirusTotal scan ---
-  const imageScanStatuses = ref<Record<string, 'pending' | 'clean' | 'malicious' | 'unknown'>>({})
+  const imageScanStatuses = ref<Record<string, 'pending' | 'clean' | 'malicious' | 'unknown' | 'skipped'>>({})
   const postContentRef = ref<HTMLElement | null>(null)
   let scanPollTimers: ReturnType<typeof setTimeout>[] = []
   let isUnmounted = false
