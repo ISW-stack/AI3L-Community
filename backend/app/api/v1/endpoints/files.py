@@ -245,8 +245,7 @@ async def serve_file(
         if scan and scan["status"] in ("unknown", "error"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="This file has not been verified as safe. Scan status: "
-                + scan["status"],
+                detail="This file has not been verified as safe. Scan status: " + scan["status"],
             )
     except HTTPException:
         raise

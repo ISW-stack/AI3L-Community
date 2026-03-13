@@ -174,9 +174,7 @@ async def toggle_post_reaction_endpoint(
     req: ReactionRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
-    if not await check_rate_limit(
-        f"rl:post_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION
-    ):
+    if not await check_rate_limit(f"rl:post_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     result = await toggle_post_reaction(post_id, current_user["sub"], req.reaction)
     if result is None:

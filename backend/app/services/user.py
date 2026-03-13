@@ -260,9 +260,7 @@ async def bulk_change_role(user_ids: list[uuid.UUID], role: str) -> int:
     if role != "SUPER_ADMIN" and user_ids:
         remaining = await user_repo.count_super_admins_excluding(user_ids)
         if remaining == 0:
-            raise ValueError(
-                "Cannot demote: this would remove the last Super Admin in the system."
-            )
+            raise ValueError("Cannot demote: this would remove the last Super Admin in the system.")
 
     pool = get_pool()
     async with pool.acquire() as conn:

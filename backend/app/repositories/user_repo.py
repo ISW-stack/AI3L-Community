@@ -168,9 +168,7 @@ async def list_all(
             )
         if rows:
             total = rows[0]["_total"]
-            return [
-                {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
-            ], total
+            return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
         return [], 0
 
 

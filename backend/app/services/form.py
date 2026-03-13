@@ -394,9 +394,7 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
 async def soft_delete_form(form_id: uuid.UUID, user_id: str, is_admin: bool) -> bool:
     # Permission check and delete happen in the same transaction (via FOR UPDATE
     # in soft_delete_with_permission) to prevent TOCTOU race conditions.
-    deleted, banner_url = await form_repo.soft_delete_with_permission(
-        form_id, user_id, is_admin
-    )
+    deleted, banner_url = await form_repo.soft_delete_with_permission(form_id, user_id, is_admin)
 
     # Best-effort cleanup of form banner from storage
     if deleted and banner_url:

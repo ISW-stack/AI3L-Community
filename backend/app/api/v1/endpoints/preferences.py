@@ -26,9 +26,7 @@ async def update_preferences(
     current_user: dict = Depends(get_current_user),
 ) -> UserPreferencesResponse:
     """Update current user's preferences (partial update via upsert)."""
-    if not await check_rate_limit(
-        f"rl:preferences:{current_user['sub']}", *RATE_LIMIT_PREFERENCES
-    ):
+    if not await check_rate_limit(f"rl:preferences:{current_user['sub']}", *RATE_LIMIT_PREFERENCES):
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
     data = req.model_dump(exclude_none=True)
     prefs = await update_user_preferences(uuid.UUID(current_user["sub"]), data)

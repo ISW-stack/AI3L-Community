@@ -356,9 +356,7 @@ async def soft_delete_with_permission(
             if not form:
                 return False, None
             if not is_admin and str(form["created_by"]) != user_id:
-                raise PermissionError(
-                    "Only the form creator or admin can delete this form."
-                )
+                raise PermissionError("Only the form creator or admin can delete this form.")
             await conn.execute(
                 "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",
                 form_id,

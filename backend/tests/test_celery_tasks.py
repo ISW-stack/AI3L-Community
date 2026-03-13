@@ -1267,9 +1267,7 @@ class TestVirusTotalFailClose:
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
             patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
-            patch(
-                "app.repositories.file_scan_repo.update_status", update_status_mock
-            ),
+            patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
         ):
@@ -1293,9 +1291,7 @@ class TestVirusTotalFailClose:
             result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
 
         assert result["status"] == "not_found"
-        update_status_mock.assert_awaited_once_with(
-            "uploads/file.pdf", "unknown", None, None, None
-        )
+        update_status_mock.assert_awaited_once_with("uploads/file.pdf", "unknown", None, None, None)
 
     def test_non_200_writes_error_to_db_after_max_retries(self):
         """Non-200 with max retries exceeded should write 'error' to DB."""
@@ -1313,9 +1309,7 @@ class TestVirusTotalFailClose:
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
             patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
-            patch(
-                "app.repositories.file_scan_repo.update_status", update_status_mock
-            ),
+            patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
         ):
@@ -1340,9 +1334,7 @@ class TestVirusTotalFailClose:
 
         assert result["status"] == "error"
         assert result["code"] == 500
-        update_status_mock.assert_awaited_once_with(
-            "uploads/file.pdf", "error", None, None, None
-        )
+        update_status_mock.assert_awaited_once_with("uploads/file.pdf", "error", None, None, None)
 
     def test_invalid_json_writes_error_to_db(self):
         """Invalid JSON from VT should write 'error' to DB, not 'clean'."""
@@ -1359,9 +1351,7 @@ class TestVirusTotalFailClose:
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
             patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
-            patch(
-                "app.repositories.file_scan_repo.update_status", update_status_mock
-            ),
+            patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
         ):
@@ -1369,9 +1359,7 @@ class TestVirusTotalFailClose:
             mock_requests.get.return_value = mock_response
             mock_requests.RequestException = Exception
             mock_requests.exceptions = MagicMock()
-            mock_requests.exceptions.JSONDecodeError = type(
-                "JSONDecodeError", (ValueError,), {}
-            )
+            mock_requests.exceptions.JSONDecodeError = type("JSONDecodeError", (ValueError,), {})
 
             import asyncio
 
@@ -1390,9 +1378,7 @@ class TestVirusTotalFailClose:
 
         assert result["status"] == "error"
         assert result["reason"] == "invalid_json"
-        update_status_mock.assert_awaited_once_with(
-            "uploads/file.pdf", "error", None, None, None
-        )
+        update_status_mock.assert_awaited_once_with("uploads/file.pdf", "error", None, None, None)
 
     def test_clean_file_still_writes_clean(self):
         """Confirmed clean file should still write 'clean' to DB (unchanged behavior)."""
@@ -1421,9 +1407,7 @@ class TestVirusTotalFailClose:
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
             patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
-            patch(
-                "app.repositories.file_scan_repo.update_status", update_status_mock
-            ),
+            patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
         ):
@@ -1447,9 +1431,7 @@ class TestVirusTotalFailClose:
             result = check_virustotal(mock_self, "abc123hash", "uploads/file.pdf")
 
         assert result["status"] == "clean"
-        update_status_mock.assert_awaited_once_with(
-            "uploads/file.pdf", "clean", "scan-abc", 0, 70
-        )
+        update_status_mock.assert_awaited_once_with("uploads/file.pdf", "clean", "scan-abc", 0, 70)
 
     def test_malicious_file_still_writes_malicious(self):
         """Confirmed malicious file should still write 'malicious' to DB (unchanged)."""
@@ -1478,9 +1460,7 @@ class TestVirusTotalFailClose:
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
             patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
-            patch(
-                "app.repositories.file_scan_repo.update_status", update_status_mock
-            ),
+            patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
             patch("app.core.storage.delete_file", MagicMock()),

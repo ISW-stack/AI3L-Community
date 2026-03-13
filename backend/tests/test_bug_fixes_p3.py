@@ -15,7 +15,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ── Bug 9: reaction_helpers UUID conversion ─────────────────────────────
 
 
@@ -138,9 +137,7 @@ class TestUpdatePostAdminEdit:
         mock_conn.execute = AsyncMock()
         mock_get_pool.return_value = mock_pool
 
-        result = await update_post(
-            post_id, admin_id, title="Admin Updated", caller_role="ADMIN"
-        )
+        result = await update_post(post_id, admin_id, title="Admin Updated", caller_role="ADMIN")
         assert result is not None
 
     @patch("app.services.post.get_pool")
@@ -158,9 +155,7 @@ class TestUpdatePostAdminEdit:
         mock_conn.execute = AsyncMock()
         mock_get_pool.return_value = mock_pool
 
-        result = await update_post(
-            post_id, admin_id, title="Updated", caller_role="SUPER_ADMIN"
-        )
+        result = await update_post(post_id, admin_id, title="Updated", caller_role="SUPER_ADMIN")
         assert result is not None
 
     @patch("app.services.post.get_pool")
@@ -202,7 +197,9 @@ class TestSoftDeleteFormTransaction:
     """Bug 11: Permission check and delete should be in the same transaction."""
 
     @patch("app.repositories.form_repo.get_pool")
-    async def test_soft_delete_with_permission_authorized(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_soft_delete_with_permission_authorized(
+        self, mock_get_pool, mock_pool, mock_conn
+    ):
         """Creator can delete their own form in a single transaction."""
         from app.repositories.form_repo import soft_delete_with_permission
 
@@ -262,9 +259,7 @@ class TestSoftDeleteFormTransaction:
             await soft_delete_with_permission(form_id, other_id, is_admin=False)
 
     @patch("app.repositories.form_repo.get_pool")
-    async def test_soft_delete_with_permission_not_found(
-        self, mock_get_pool, mock_pool, mock_conn
-    ):
+    async def test_soft_delete_with_permission_not_found(self, mock_get_pool, mock_pool, mock_conn):
         """Non-existent form returns (False, None)."""
         from app.repositories.form_repo import soft_delete_with_permission
 
@@ -512,9 +507,7 @@ class TestGuestDisplayNameStored:
 
         # Verify display_name was stored in Redis
         set_calls = redis.set.call_args_list
-        display_name_calls = [
-            c for c in set_calls if "guest:display_name:" in str(c[0][0])
-        ]
+        display_name_calls = [c for c in set_calls if "guest:display_name:" in str(c[0][0])]
         assert len(display_name_calls) == 1
         call = display_name_calls[0]
         assert call[0][1] == "Test Guest"
@@ -538,9 +531,7 @@ class TestGuestDisplayNameStored:
         await guest_login("Alice")
 
         set_calls = redis.set.call_args_list
-        display_name_calls = [
-            c for c in set_calls if "guest:display_name:" in str(c[0][0])
-        ]
+        display_name_calls = [c for c in set_calls if "guest:display_name:" in str(c[0][0])]
         assert len(display_name_calls) == 1
         key = display_name_calls[0][0][0]
         # Extract and validate the UUID part
@@ -564,7 +555,5 @@ class TestGuestDisplayNameStored:
 
         # No display_name key should have been set
         set_calls = redis.set.call_args_list
-        display_name_calls = [
-            c for c in set_calls if "guest:display_name:" in str(c[0][0])
-        ]
+        display_name_calls = [c for c in set_calls if "guest:display_name:" in str(c[0][0])]
         assert len(display_name_calls) == 0

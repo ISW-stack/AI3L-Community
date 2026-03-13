@@ -258,16 +258,12 @@ describe('NotificationsView', () => {
     mockListNotifications.mockClear()
 
     // Click on the "Unread" tab
-    const unreadTab = wrapper
-      .findAll('button[role="tab"]')
-      .find((b) => b.text().includes('Unread'))
+    const unreadTab = wrapper.findAll('button[role="tab"]').find((b) => b.text().includes('Unread'))
     expect(unreadTab).toBeTruthy()
     await unreadTab!.trigger('click')
     await flushPromises()
 
-    expect(mockListNotifications).toHaveBeenCalledWith(
-      expect.objectContaining({ unread: true }),
-    )
+    expect(mockListNotifications).toHaveBeenCalledWith(expect.objectContaining({ unread: true }))
   })
 
   it('does not pass unread param when all filter is active', async () => {

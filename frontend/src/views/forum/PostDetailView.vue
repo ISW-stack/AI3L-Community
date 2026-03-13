@@ -126,9 +126,7 @@ const breadcrumbItems = computed(() => {
           <BaseButton :loading="editSaving" @click="saveEdit">{{
             t('post.detail.saveChanges')
           }}</BaseButton>
-          <BaseButton variant="secondary" @click="cancelEdit">{{
-            t('common.cancel')
-          }}</BaseButton>
+          <BaseButton variant="secondary" @click="cancelEdit">{{ t('common.cancel') }}</BaseButton>
         </div>
       </div>
 

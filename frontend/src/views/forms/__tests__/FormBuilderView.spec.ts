@@ -706,9 +706,7 @@ describe('FormBuilderView', () => {
     it('renders sanitized description, not raw HTML', async () => {
       const xssPayload = '<img src=x onerror="alert(1)"><b>safe</b>'
       // Make sanitize strip the img tag
-      mockSanitize.mockImplementation((html: string) =>
-        html.replace(/<img[^>]*>/g, ''),
-      )
+      mockSanitize.mockImplementation((html: string) => html.replace(/<img[^>]*>/g, ''))
       mockGetForm.mockResolvedValue({ ...fakeEditForm, description: xssPayload })
       const { wrapper } = await mountBuilder({ isEdit: true })
       const vm = wrapper.vm as any

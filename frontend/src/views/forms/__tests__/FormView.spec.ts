@@ -406,9 +406,7 @@ describe('FormView', () => {
 
     it('strips XSS payload from description output', async () => {
       const xssPayload = '<img src=x onerror="alert(1)"><b>safe</b>'
-      mockSanitize.mockImplementation((html: string) =>
-        html.replace(/<img[^>]*>/g, ''),
-      )
+      mockSanitize.mockImplementation((html: string) => html.replace(/<img[^>]*>/g, ''))
       const formWithXss = { ...fakeForm, description: xssPayload }
       const { wrapper } = await mountFormView({ form: formWithXss })
 

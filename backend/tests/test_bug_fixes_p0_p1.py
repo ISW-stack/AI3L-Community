@@ -248,9 +248,7 @@ class TestToggleReactionLikeCount:
         user_id = str(uuid.uuid4())
 
         # Row already has a like from this user
-        conn.fetchrow = AsyncMock(
-            return_value={"reactions": json.dumps({"like": [user_id]})}
-        )
+        conn.fetchrow = AsyncMock(return_value={"reactions": json.dumps({"like": [user_id]})})
         conn.execute = AsyncMock()
 
         from app.repositories.reaction_helpers import toggle_reaction_jsonb
@@ -296,9 +294,7 @@ class TestToggleReactionLikeCount:
 
         from app.repositories.reaction_helpers import toggle_reaction_jsonb
 
-        result = await toggle_reaction_jsonb(
-            conn, "comments", comment_id, user_id, "like"
-        )
+        result = await toggle_reaction_jsonb(conn, "comments", comment_id, user_id, "like")
 
         assert result == {"like": [user_id]}
         # Should have only 1 execute call (update reactions), no like_count update
@@ -316,16 +312,12 @@ class TestToggleReactionLikeCount:
 
         # Already has 2 likes
         existing = {"like": [user_a, user_b], "heart": [user_a]}
-        conn.fetchrow = AsyncMock(
-            return_value={"reactions": json.dumps(existing)}
-        )
+        conn.fetchrow = AsyncMock(return_value={"reactions": json.dumps(existing)})
         conn.execute = AsyncMock()
 
         from app.repositories.reaction_helpers import toggle_reaction_jsonb
 
-        result = await toggle_reaction_jsonb(
-            conn, "posts", post_id, new_user, "like"
-        )
+        result = await toggle_reaction_jsonb(conn, "posts", post_id, new_user, "like")
 
         assert len(result["like"]) == 3
         like_count_call = conn.execute.call_args_list[1]

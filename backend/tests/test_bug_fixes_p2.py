@@ -70,9 +70,7 @@ class TestAsyncResolveAvatarUrl:
         ) as mock_presign:
             result = await async_resolve_avatar_url("avatars/user123.png")
             assert result == "https://minio/signed-async"
-            mock_presign.assert_awaited_once_with(
-                "avatars/user123.png", expires_in=86400 * 7
-            )
+            mock_presign.assert_awaited_once_with("avatars/user123.png", expires_in=86400 * 7)
 
     @pytest.mark.anyio
     async def test_presigned_url_exception_returns_key(self):
@@ -279,8 +277,15 @@ class TestUserRepoListAll:
         from app.repositories.user_repo import list_all
 
         rows = [
-            {"id": uuid.uuid4(), "username": f"u{i}", "display_name": f"U{i}",
-             "role": "MEMBER", "is_deleted": False, "created_at": _NOW, "_total": 5}
+            {
+                "id": uuid.uuid4(),
+                "username": f"u{i}",
+                "display_name": f"U{i}",
+                "role": "MEMBER",
+                "is_deleted": False,
+                "created_at": _NOW,
+                "_total": 5,
+            }
             for i in range(3)
         ]
         mock_conn.fetch = AsyncMock(return_value=rows)
