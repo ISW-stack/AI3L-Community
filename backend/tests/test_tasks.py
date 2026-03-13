@@ -1,4 +1,4 @@
-"""Tests for tasks endpoint — pending, success, ownership verification, and Redis config validation."""
+"""Tests for tasks endpoint — pending, success, ownership verification, and Redis config."""
 
 import sys
 import types

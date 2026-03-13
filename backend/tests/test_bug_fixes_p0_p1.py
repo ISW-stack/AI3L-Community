@@ -244,7 +244,6 @@ class TestToggleReactionLikeCount:
         """Removing the last like reaction should set like_count to 0."""
         conn = AsyncMock()
         post_id = str(uuid.uuid4())
-        post_uuid = uuid.UUID(post_id)
         user_id = str(uuid.uuid4())
 
         # Row already has a like from this user
@@ -305,7 +304,6 @@ class TestToggleReactionLikeCount:
         """like_count should reflect the number of users who liked."""
         conn = AsyncMock()
         post_id = str(uuid.uuid4())
-        post_uuid = uuid.UUID(post_id)
         user_a = str(uuid.uuid4())
         user_b = str(uuid.uuid4())
         new_user = str(uuid.uuid4())

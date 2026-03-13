@@ -16,7 +16,7 @@ export async function uploadEditorFile(file: File) {
 }
 
 export interface FileScanStatus {
-  status: 'pending' | 'clean' | 'malicious' | 'unknown'
+  status: 'pending' | 'clean' | 'malicious' | 'unknown' | 'skipped'
   positives: number | null
   total: number | null
 }

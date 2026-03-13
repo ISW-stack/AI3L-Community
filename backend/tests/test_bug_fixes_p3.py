@@ -8,7 +8,6 @@ Bug 13: SIG update endpoint TOCTOU on permission check
 Bug 14: guest_login discards display_name
 """
 
-import json
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch

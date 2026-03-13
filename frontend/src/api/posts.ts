@@ -58,6 +58,7 @@ export async function searchPosts(payload: {
   logic?: string
   sort?: string
   cursor?: string
+  page?: number
   page_size?: number
 }) {
   const { data } = await api.post('/posts/search', payload)

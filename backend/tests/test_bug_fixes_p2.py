@@ -7,7 +7,6 @@ Bug 7: Orphan cleanup decrements storage counters
 Bug 8: GUEST->MEMBER promotion revokes old sessions
 """
 
-import json
 import sys
 import time
 import types
