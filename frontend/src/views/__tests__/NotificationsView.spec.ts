@@ -267,7 +267,7 @@ describe('NotificationsView', () => {
   })
 
   it('does not pass unread param when all filter is active', async () => {
-    const { wrapper } = await mountNotifications()
+    await mountNotifications()
     // Initial fetch should NOT include unread param
     expect(mockListNotifications).toHaveBeenCalledWith(
       expect.not.objectContaining({ unread: true }),

@@ -96,7 +96,7 @@ def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | Non
 
         encoded = urllib.parse.quote(filename, safe="")
         params["ResponseContentDisposition"] = (
-            f'attachment; filename="{filename}"; filename*=UTF-8\'\'{encoded}'
+            f"attachment; filename=\"{filename}\"; filename*=UTF-8''{encoded}"
         )
     return str(
         client.generate_presigned_url(
