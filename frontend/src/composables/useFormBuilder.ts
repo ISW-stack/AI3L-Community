@@ -329,6 +329,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   }
 
   function startAutoSave(): void {
+    if (autoSaveTimer !== null) return
     autoSaveTimer = setInterval(saveDraftNow, 30000)
   }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -68,6 +68,9 @@ const generatedCode = ref('')
 const generatingCode = ref(false)
 const codeCopied = ref(false)
 
+let codeCopiedTimer: ReturnType<typeof setTimeout> | undefined
+let logoutTimer: ReturnType<typeof setTimeout> | undefined
+
 function switchTab(tab: 'general' | 'security' | 'danger') {
   activeTab.value = tab
 }
@@ -90,7 +93,7 @@ async function copyInviteCode() {
     await navigator.clipboard.writeText(generatedCode.value)
     codeCopied.value = true
     toast.show(t('profile.security.inviteCodes.copySuccess'), 'success')
-    setTimeout(() => {
+    codeCopiedTimer = setTimeout(() => {
       codeCopied.value = false
     }, 2000)
   } catch {
@@ -108,6 +111,11 @@ onMounted(() => {
   if (!auth.isGuest) {
     fetchStorageUsage()
   }
+})
+
+onUnmounted(() => {
+  if (codeCopiedTimer) clearTimeout(codeCopiedTimer)
+  if (logoutTimer) clearTimeout(logoutTimer)
 })
 
 async function saveProfile() {
@@ -163,7 +171,7 @@ async function changePassword() {
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
-    setTimeout(async () => {
+    logoutTimer = setTimeout(async () => {
       await auth.logout()
       router.push({ name: 'login' })
     }, 1500)

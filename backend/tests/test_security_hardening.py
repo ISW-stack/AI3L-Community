@@ -95,14 +95,12 @@ class TestReactionHelpersTableWhitelist:
 
 class TestGuestCounterAtomicInit:
     @patch("app.services.auth.get_redis")
-    async def test_guest_login_uses_setnx(self, mock_get_redis: MagicMock) -> None:
-        """guest_login uses SET NX to atomically initialise the counter."""
+    async def test_guest_login_uses_lua_eval(self, mock_get_redis: MagicMock) -> None:
+        """guest_login uses redis.eval (Lua script) for atomic counter check."""
         from app.services.auth import guest_login
 
         redis = AsyncMock()
-        redis.scan_iter = MagicMock(return_value=AsyncIterator([]))
-        redis.set = AsyncMock(return_value=True)
-        redis.incr = AsyncMock(return_value=1)
+        redis.eval = AsyncMock(return_value=1)
         mock_get_redis.return_value = redis
 
         with patch("app.services.auth.create_session", new_callable=AsyncMock) as mock_session:
@@ -110,48 +108,39 @@ class TestGuestCounterAtomicInit:
             result = await guest_login("TestGuest")
 
         assert result is not None
-        # Verify SET was called with nx=True
-        set_calls = [c for c in redis.set.call_args_list if c.kwargs.get("nx") is True]
-        assert len(set_calls) == 1, "Expected exactly one SET NX call for counter init"
+        redis.eval.assert_called_once()
 
     @patch("app.services.auth.get_redis")
-    async def test_setnx_does_not_overwrite_existing_counter(
+    async def test_lua_eval_receives_correct_args(
         self, mock_get_redis: MagicMock
     ) -> None:
-        """If counter already exists, SET NX returns False and counter is preserved."""
-        from app.services.auth import guest_login
+        """redis.eval is called with Lua script, 1 key, counter key, MAX_GUESTS."""
+        from app.core.constants import MAX_GUESTS
+        from app.services.auth import _GUEST_INCR_LUA, guest_login
 
         redis = AsyncMock()
-        redis.scan_iter = MagicMock(return_value=AsyncIterator([]))
-        # SET NX returns False when key already exists
-        redis.set = AsyncMock(return_value=False)
-        redis.incr = AsyncMock(return_value=5)
+        redis.eval = AsyncMock(return_value=1)
         mock_get_redis.return_value = redis
 
         with patch("app.services.auth.create_session", new_callable=AsyncMock) as mock_session:
             mock_session.return_value = ("token", 3600)
-            result = await guest_login("TestGuest")
+            await guest_login("TestGuest")
 
-        assert result is not None
-        # incr still happens regardless of SET NX result
-        redis.incr.assert_called_once()
+        redis.eval.assert_called_once_with(
+            _GUEST_INCR_LUA, 1, "meta:guest_counter", MAX_GUESTS
+        )
 
     @patch("app.services.auth.get_redis")
     async def test_guest_login_respects_max_guests(self, mock_get_redis: MagicMock) -> None:
-        """guest_login decrements and returns None when over MAX_GUESTS."""
-        from app.core.constants import MAX_GUESTS
+        """guest_login returns None when Lua script returns -1 (limit exceeded)."""
         from app.services.auth import guest_login
 
         redis = AsyncMock()
-        redis.scan_iter = MagicMock(return_value=AsyncIterator([]))
-        redis.set = AsyncMock(return_value=True)
-        redis.incr = AsyncMock(return_value=MAX_GUESTS + 1)
-        redis.decr = AsyncMock(return_value=MAX_GUESTS)
+        redis.eval = AsyncMock(return_value=-1)
         mock_get_redis.return_value = redis
 
         result = await guest_login("TestGuest")
         assert result is None
-        redis.decr.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

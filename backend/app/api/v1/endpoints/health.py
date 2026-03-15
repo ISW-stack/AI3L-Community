@@ -1,10 +1,11 @@
 import time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.database import get_pool
+from app.core.deps import require_role
 from app.core.redis import get_redis
 from app.schemas.health import DependencyStatus, HealthResponse
 
@@ -18,7 +19,9 @@ async def liveness() -> JSONResponse:
 
 
 @router.get("/health", response_model=HealthResponse)
-async def health_check() -> HealthResponse:
+async def health_check(
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> HealthResponse:
     dependencies: list[DependencyStatus] = []
     overall_healthy = True
 

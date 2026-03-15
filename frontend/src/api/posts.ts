@@ -1,4 +1,5 @@
 import api from '@/composables/api'
+import { assertShape } from '@/utils/apiValidation'
 import type { Post, PostListResponse, HistoryItem } from '@/types'
 
 export async function listPosts(params: {
@@ -10,12 +11,12 @@ export async function listPosts(params: {
   sort?: string
 }) {
   const { data } = await api.get('/posts', { params })
-  return data as PostListResponse
+  return assertShape<PostListResponse>(data, ['posts', 'total'], 'listPosts')
 }
 
 export async function getPost(postId: string) {
   const { data } = await api.get(`/posts/${postId}`)
-  return data as Post
+  return assertShape<Post>(data, ['id', 'title'], 'getPost')
 }
 
 export async function createPost(payload: {

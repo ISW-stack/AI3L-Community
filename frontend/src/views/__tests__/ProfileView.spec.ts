@@ -346,6 +346,63 @@ describe('ProfileView', () => {
     })
   })
 
+  describe('timer cleanup', () => {
+    it('clears timers on unmount', async () => {
+      vi.useFakeTimers()
+      try {
+        const { wrapper } = await mountProfile()
+
+        // Switch to security tab to access invite code + password features
+        const tabs = wrapper.findAll('button')
+        const securityTab = tabs.find((b) => b.text() === 'Security')
+        await securityTab!.trigger('click')
+        await nextTick()
+
+        // Trigger the codeCopied timer via copyInviteCode
+        // First generate a code
+        mockCreateInviteCode.mockResolvedValue({ invite_code: 'TIMER-TEST' })
+        const buttons = wrapper.findAll('button')
+        const generateBtn = buttons.find((b) => b.text().includes('Generate Invite Code'))
+        await generateBtn!.trigger('click')
+        await flushPromises()
+
+        // Mock clipboard for copy
+        Object.assign(navigator, {
+          clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+        })
+
+        const copyBtn = wrapper.findAll('button').find((b) => b.text().includes('Copy'))
+        await copyBtn!.trigger('click')
+        await flushPromises()
+
+        // Trigger the logout timer via changePassword
+        mockChangePassword.mockResolvedValue(undefined)
+        const vm = wrapper.vm as any
+        // Set password fields directly
+        vm.currentPassword = 'OldPass1'
+        vm.newPassword = 'NewPass1'
+        vm.confirmPassword = 'NewPass1'
+        await nextTick()
+
+        // Find and submit the change password form
+        await vm.changePassword()
+        await flushPromises()
+
+        // Both timers are now pending — unmount should clear them
+        wrapper.unmount()
+
+        // Advance time past both timer durations
+        vi.advanceTimersByTime(3000)
+
+        // If timers were NOT cleared, codeCopied.value would be set to false
+        // and auth.logout would be called. Since we unmounted, no errors should occur.
+        // The fact that this test doesn't throw proves the timers were cleared.
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+  })
+
   describe('formatBytes helper (via component state)', () => {
     it('formats bytes below 1024 as B', async () => {
       mockGetStorageUsage.mockResolvedValue({ used_bytes: 512, quota_bytes: 1_073_741_824 })

@@ -57,6 +57,10 @@ class TestInsertResponseAtomic:
         )
 
         assert result is True
+        # Without max_respondents, advisory lock should NOT be called
+        for call in mock_conn.execute.call_args_list:
+            query = call[0][0]
+            assert "pg_advisory_xact_lock" not in query
         call_args = mock_conn.execute.call_args
         query = call_args[0][0]
         assert "VALUES" in query
@@ -77,12 +81,16 @@ class TestInsertResponseAtomic:
         )
 
         assert result is True
-        call_args = mock_conn.execute.call_args
-        query = call_args[0][0]
+        # First call should be the advisory lock
+        lock_call = mock_conn.execute.call_args_list[0]
+        assert "pg_advisory_xact_lock" in lock_call[0][0]
+        # Second call should be the INSERT...SELECT
+        insert_call = mock_conn.execute.call_args_list[1]
+        query = insert_call[0][0]
         assert "SELECT" in query
         assert "COUNT(*)" in query
         # max_respondents should be the 5th parameter
-        assert call_args[0][5] == 10
+        assert insert_call[0][5] == 10
 
     @pytest.mark.anyio
     async def test_insert_returns_false_when_limit_reached(self, mock_conn):
@@ -99,6 +107,24 @@ class TestInsertResponseAtomic:
         )
 
         assert result is False
+
+    @pytest.mark.anyio
+    async def test_advisory_lock_uses_form_id(self, mock_conn):
+        """Verify the advisory lock call passes str(form_id)."""
+        from app.repositories import form_repo
+
+        rid = uuid.uuid4()
+        fid = uuid.uuid4()
+        uid = uuid.uuid4()
+        mock_conn.execute = AsyncMock(return_value="INSERT 0 1")
+
+        await form_repo.insert_response(
+            rid, fid, uid, {"q1": "answer"}, mock_conn, max_respondents=10
+        )
+
+        lock_call = mock_conn.execute.call_args_list[0]
+        assert "pg_advisory_xact_lock" in lock_call[0][0]
+        assert lock_call[0][1] == str(fid)
 
 
 class TestSubmitResponseService:

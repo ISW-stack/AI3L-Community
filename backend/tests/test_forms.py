@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncpg
 import pytest
 
 _EP = "app.api.v1.endpoints.forms"
@@ -501,7 +502,7 @@ class TestUniqueViolationHandling:
 
     @pytest.mark.anyio
     async def test_unique_violation_returns_409(self, client):
-        """Concurrent duplicate submit → 409 Conflict."""
+        """Concurrent duplicate submit via asyncpg.UniqueViolationError → 409 Conflict."""
         form_id = uuid.uuid4()
 
         try:
@@ -511,9 +512,8 @@ class TestUniqueViolationHandling:
                 patch(
                     f"{_EP}.submit_response",
                     new_callable=AsyncMock,
-                    side_effect=Exception(
-                        "duplicate key value violates unique constraint "
-                        '"uq_form_responses_form_user" (23505)'
+                    side_effect=asyncpg.UniqueViolationError(
+                        "duplicate key value violates unique constraint"
                     ),
                 ),
             ):
@@ -796,7 +796,7 @@ class TestFormSubmitDuplicate:
 
     @pytest.mark.anyio
     async def test_submit_form_duplicate_via_db_unique_violation(self, client):
-        """POST /forms/{form_id}/submit → 409 on DB unique constraint violation."""
+        """POST /forms/{form_id}/submit → 409 on asyncpg.UniqueViolationError."""
         form_id = uuid.uuid4()
 
         try:
@@ -806,7 +806,9 @@ class TestFormSubmitDuplicate:
                 patch(
                     f"{_EP}.submit_response",
                     new_callable=AsyncMock,
-                    side_effect=Exception("duplicate key value violates unique constraint (23505)"),
+                    side_effect=asyncpg.UniqueViolationError(
+                        "duplicate key value violates unique constraint"
+                    ),
                 ),
             ):
                 resp = await client.post(
@@ -3066,3 +3068,122 @@ class TestIsSigAdminHelper:
         ):
             result = await _is_sig_admin(sig_id, user_id, "MEMBER")
             assert result is False
+
+
+# ──────────────────────────────────────────────────────────────────────
+# M1: Guest submit auth — allow guests when form permits
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestGuestFormSubmit:
+    """M1: submit_form_response uses get_current_user (not require_role), so guests can submit."""
+
+    @pytest.mark.anyio
+    async def test_submit_form_guest_allowed_when_form_permits(self, client):
+        """POST /forms/{form_id}/submit → 201 for GUEST when form allows non-members."""
+        form_id = uuid.uuid4()
+        result = {"id": str(uuid.uuid4()), "message": "Response submitted successfully."}
+
+        try:
+            _override_auth("GUEST")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.submit_response", new_callable=AsyncMock, return_value=result),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "Guest answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 201
+                assert "submitted" in resp.json()["message"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_submit_form_guest_rejected_when_form_disallows(self, client):
+        """POST /forms/{form_id}/submit → 403 for GUEST when form disallows non-members."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("GUEST")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=PermissionError("Only SIG members can submit this form."),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "Guest answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+                assert "SIG members" in resp.json()["detail"]["message"]
+        finally:
+            _clear_overrides()
+
+
+# ──────────────────────────────────────────────────────────────────────
+# M7: asyncpg.UniqueViolationError handling
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestAsyncpgUniqueViolation:
+    """M7: submit_form_response catches asyncpg.UniqueViolationError specifically."""
+
+    @pytest.mark.anyio
+    async def test_submit_form_unique_violation_returns_409(self, client):
+        """asyncpg.UniqueViolationError → 409 Conflict with structured error."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=asyncpg.UniqueViolationError(
+                        "duplicate key value violates unique constraint"
+                    ),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/submit",
+                    json={"answers": {"q1": "answer"}},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                data = resp.json()
+                assert data["detail"]["code"] == "SYS_409"
+                assert "already submitted" in data["detail"]["message"].lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_submit_form_other_db_error_propagates(self, client):
+        """A generic RuntimeError is NOT caught as 409 — it propagates as an unhandled error."""
+        form_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.submit_response",
+                    new_callable=AsyncMock,
+                    side_effect=RuntimeError("unexpected database error"),
+                ),
+            ):
+                # RuntimeError should NOT be caught — propagates through as unhandled
+                with pytest.raises((RuntimeError, ExceptionGroup)):
+                    await client.post(
+                        f"/api/v1/forms/{form_id}/submit",
+                        json={"answers": {"q1": "answer"}},
+                        headers={"Authorization": "Bearer fake"},
+                    )
+        finally:
+            _clear_overrides()

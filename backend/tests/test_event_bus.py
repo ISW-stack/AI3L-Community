@@ -291,6 +291,45 @@ class TestPersistFailedEvent:
         payload = json.loads(value)
         assert payload["kwargs"]["id"] == str(uid)
 
+    @pytest.mark.asyncio
+    async def test_persist_includes_timestamp(self, mock_redis):
+        """Persisted failed events must include a 'timestamp' key with a float value."""
+        with patch("app.core.redis.get_redis", return_value=mock_redis):
+            await _persist_failed_event("evt", "handler", {"k": "v"}, retry_count=0)
+
+        _, value = mock_redis.lpush.call_args[0]
+        payload = json.loads(value)
+        assert "timestamp" in payload
+        assert isinstance(payload["timestamp"], float)
+
+
+# ---------------------------------------------------------------------------
+# Permanent failure exc_info
+# ---------------------------------------------------------------------------
+
+
+class TestPermanentFailureExcInfo:
+    @pytest.mark.asyncio
+    async def test_permanent_failure_logs_with_exc_info(self):
+        """When a handler permanently fails, logger.error must include exc_info=True."""
+
+        async def always_fails(**kw):
+            raise ValueError("boom")
+
+        on("evt", always_fails)
+
+        with patch("app.core.event_bus.asyncio.sleep", new_callable=AsyncMock):
+            with patch("app.core.event_bus._persist_failed_event", new_callable=AsyncMock):
+                with patch("app.core.event_bus.logger") as mock_logger:
+                    await emit("evt", data="test")
+
+        # Find the logger.error call for permanent failure
+        error_calls = mock_logger.error.call_args_list
+        assert len(error_calls) >= 1
+        perm_fail_call = error_calls[0]
+        # exc_info=True should be in kwargs
+        assert perm_fail_call.kwargs.get("exc_info") is True
+
 
 # ---------------------------------------------------------------------------
 # Edge cases

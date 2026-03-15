@@ -309,7 +309,7 @@ class TestFileUploadRollback:
                 )
 
             assert resp.status_code == 500
-            assert "Upload failed" in resp.json()["detail"]
+            assert "Upload failed" in resp.json()["detail"]["message"]
             mock_delete.assert_awaited_once()  # rollback deletion called
         finally:
             self._clear_overrides()

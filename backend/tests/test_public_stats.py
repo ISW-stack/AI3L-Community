@@ -71,3 +71,92 @@ def test_public_stats_no_auth_required(mock_repo, client):
 
     resp = client.get("/api/v1/public/stats")
     assert resp.status_code == 200
+
+
+@patch("app.api.v1.endpoints.public.dashboard_repo")
+def test_public_stats_returns_correct_shape(mock_repo, client):
+    """Response must have exactly the expected keys — no internal keys like _ts."""
+    from app.api.v1.endpoints.public import _stats_cache
+
+    _stats_cache.clear()
+
+    mock_repo.count_users = AsyncMock(return_value=7)
+    mock_repo.count_posts = AsyncMock(return_value=14)
+    mock_repo.count_sigs = AsyncMock(return_value=2)
+
+    resp = client.get("/api/v1/public/stats")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert set(data.keys()) == {"member_count", "post_count", "sig_count"}
+    assert "_ts" not in data
+
+
+@patch("app.api.v1.endpoints.public.time")
+@patch("app.api.v1.endpoints.public.dashboard_repo")
+def test_public_stats_cache_expires_after_ttl(mock_repo, mock_time, client):
+    """Cache should expire after TTL (300s), forcing a fresh repo call."""
+    from app.api.v1.endpoints.public import _stats_cache
+
+    _stats_cache.clear()
+
+    mock_time.monotonic.return_value = 1000.0
+
+    mock_repo.count_users = AsyncMock(return_value=10)
+    mock_repo.count_posts = AsyncMock(return_value=20)
+    mock_repo.count_sigs = AsyncMock(return_value=3)
+
+    # First call populates cache at t=1000
+    resp1 = client.get("/api/v1/public/stats")
+    assert resp1.status_code == 200
+    assert resp1.json()["member_count"] == 10
+    first_call_count = mock_repo.count_users.call_count
+
+    # Second call within TTL — should use cache
+    mock_time.monotonic.return_value = 1200.0  # +200s < 300s TTL
+    mock_repo.count_users = AsyncMock(return_value=999)
+    mock_repo.count_posts = AsyncMock(return_value=888)
+    mock_repo.count_sigs = AsyncMock(return_value=777)
+
+    resp2 = client.get("/api/v1/public/stats")
+    assert resp2.status_code == 200
+    assert resp2.json()["member_count"] == 10  # Still cached
+
+    # Third call after TTL expires — should hit repo again
+    mock_time.monotonic.return_value = 1301.0  # +301s > 300s TTL
+    resp3 = client.get("/api/v1/public/stats")
+    assert resp3.status_code == 200
+    assert resp3.json()["member_count"] == 999  # Fresh data
+
+
+@patch("app.api.v1.endpoints.public.dashboard_repo")
+def test_public_stats_repo_error_raises(mock_repo, client):
+    """If a repo function raises, endpoint should propagate the error (500)."""
+    from app.api.v1.endpoints.public import _stats_cache
+
+    _stats_cache.clear()
+
+    mock_repo.count_users = AsyncMock(side_effect=RuntimeError("DB connection failed"))
+    mock_repo.count_posts = AsyncMock(return_value=0)
+    mock_repo.count_sigs = AsyncMock(return_value=0)
+
+    with pytest.raises((RuntimeError, ExceptionGroup)):
+        client.get("/api/v1/public/stats")
+
+
+@patch("app.api.v1.endpoints.public.dashboard_repo")
+def test_public_stats_returns_zero_counts(mock_repo, client):
+    """Zero counts should be returned as 0, not as errors."""
+    from app.api.v1.endpoints.public import _stats_cache
+
+    _stats_cache.clear()
+
+    mock_repo.count_users = AsyncMock(return_value=0)
+    mock_repo.count_posts = AsyncMock(return_value=0)
+    mock_repo.count_sigs = AsyncMock(return_value=0)
+
+    resp = client.get("/api/v1/public/stats")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["member_count"] == 0
+    assert data["post_count"] == 0
+    assert data["sig_count"] == 0

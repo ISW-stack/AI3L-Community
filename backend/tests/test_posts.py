@@ -57,6 +57,11 @@ class TestCreatePost:
         result = await create_post(user_id, "Title", "Content")
         assert result["title"] == "Test Post"
         mock_atomic_limit.assert_called_once()
+        # Verify fetchrow was called (the INSERT query)
+        mock_conn.fetchrow.assert_called_once()
+        # Verify the SQL contains INSERT
+        sql_arg = mock_conn.fetchrow.call_args[0][0]
+        assert "INSERT" in sql_arg.upper()
 
     @patch(
         "app.services.post._atomic_check_and_increment_post_limit",
@@ -198,6 +203,10 @@ class TestDeletePost:
 
         result = await soft_delete_post(post_id, user_id, is_admin=True)
         assert result is True
+        # Verify execute was called and includes the post_id in arguments
+        mock_conn.execute.assert_called_once()
+        execute_args = mock_conn.execute.call_args[0]
+        assert post_id in execute_args, "post_id must be passed to the execute call"
 
     @patch("app.repositories.post_repo.get_pool")
     async def test_delete_post_owner(self, mock_get_pool, mock_pool, mock_conn):
@@ -210,6 +219,10 @@ class TestDeletePost:
 
         result = await soft_delete_post(post_id, user_id, is_admin=False)
         assert result is True
+        # Verify execute was called and includes the post_id in arguments
+        mock_conn.execute.assert_called_once()
+        execute_args = mock_conn.execute.call_args[0]
+        assert post_id in execute_args, "post_id must be passed to the execute call"
 
 
 class TestPinPost:
@@ -775,6 +788,10 @@ class TestGetPostsEndpoint:
         assert data["total"] == 10
         assert data["total_pages"] == 1
         assert "has_more" in data
+        # Verify response dict has all expected keys for a list endpoint
+        assert "posts" in data
+        assert "total" in data
+        assert "next_cursor" in data
 
     @patch("app.api.v1.endpoints.posts.list_posts")
     async def test_get_posts_cursor_returns_next_cursor(self, mock_list, client):

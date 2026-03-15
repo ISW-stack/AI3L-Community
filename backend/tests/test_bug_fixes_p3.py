@@ -500,8 +500,7 @@ class TestGuestDisplayNameStored:
             yield  # noqa
 
         redis = AsyncMock()
-        redis.scan_iter = _empty_scan
-        redis.incr = AsyncMock(return_value=5)
+        redis.eval = AsyncMock(return_value=5)
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("token-guest", 2700)
 
@@ -525,13 +524,8 @@ class TestGuestDisplayNameStored:
         """The Redis key should contain the guest's UUID."""
         from app.services.auth import guest_login
 
-        async def _empty_scan(*a, **kw):
-            return
-            yield  # noqa
-
         redis = AsyncMock()
-        redis.scan_iter = _empty_scan
-        redis.incr = AsyncMock(return_value=1)
+        redis.eval = AsyncMock(return_value=1)
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("tok", 2700)
 
@@ -551,14 +545,8 @@ class TestGuestDisplayNameStored:
         """When guest limit is reached, display_name should NOT be stored."""
         from app.services.auth import guest_login
 
-        async def _empty_scan(*a, **kw):
-            return
-            yield  # noqa
-
         redis = AsyncMock()
-        redis.scan_iter = _empty_scan
-        redis.incr = AsyncMock(return_value=31)
-        redis.decr = AsyncMock()
+        redis.eval = AsyncMock(return_value=-1)
         mock_get_redis.return_value = redis
 
         result = await guest_login("Over Limit Guest")

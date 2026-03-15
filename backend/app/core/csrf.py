@@ -64,6 +64,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
         # Double-submit check
         cookie_token = request.cookies.get("csrf_token")
+        # Starlette Headers.get() is case-insensitive per ASGI spec
         header_token = request.headers.get(self.header_name)
 
         if (

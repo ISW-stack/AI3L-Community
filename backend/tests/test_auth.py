@@ -128,13 +128,8 @@ class TestGuestLogin:
     async def test_guest_login_success(self, mock_get_redis, mock_create_session):
         from app.services.auth import guest_login
 
-        async def _empty_scan(*a, **kw):
-            return
-            yield  # noqa: unreachable — makes this an async generator
-
         redis = AsyncMock()
-        redis.scan_iter = _empty_scan
-        redis.incr = AsyncMock(return_value=6)
+        redis.eval = AsyncMock(return_value=6)
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("token-guest", 2700)
 
@@ -143,52 +138,43 @@ class TestGuestLogin:
         token, ttl = result
         assert token == "token-guest"
         assert ttl == 2700
-        # INCR was called atomically
-        redis.incr.assert_called_once()
+        # Lua eval was called atomically
+        redis.eval.assert_called_once()
 
     @patch("app.services.auth.get_redis")
     async def test_guest_login_limit_reached(self, mock_get_redis):
         from app.services.auth import guest_login
 
-        async def _empty_scan(*a, **kw):
-            return
-            yield  # noqa
-
         redis = AsyncMock()
-        redis.scan_iter = _empty_scan
-        redis.incr = AsyncMock(return_value=31)
-        redis.decr = AsyncMock()
+        redis.eval = AsyncMock(return_value=-1)
         mock_get_redis.return_value = redis
 
         result = await guest_login("Guest User")
         assert result is None
-        # Over limit → DECR to undo the INCR
-        redis.decr.assert_called_once()
 
+    @patch("app.services.auth.create_session")
     @patch("app.services.auth.get_redis")
-    async def test_guest_login_initialises_counter_when_missing(self, mock_get_redis):
-        """When the counter key doesn't exist, guest_login syncs from session keys."""
-        from app.services.auth import guest_login
-
-        async def _scan_sessions(*args, **kwargs):
-            for key in [f"session:GUEST:{i}" for i in range(3)]:
-                yield key
+    async def test_guest_login_lua_script_receives_correct_args(
+        self, mock_get_redis, mock_create_session
+    ):
+        """Verify redis.eval is called with the Lua script, 1, key, MAX_GUESTS."""
+        from app.services.auth import (
+            MAX_GUESTS,
+            _GUEST_COUNTER_KEY,
+            _GUEST_INCR_LUA,
+            guest_login,
+        )
 
         redis = AsyncMock()
-        redis.exists = AsyncMock(return_value=False)
-        redis.scan_iter = _scan_sessions
-        redis.set = AsyncMock()
-        # After sync sets counter to 3, INCR returns 4
-        redis.incr = AsyncMock(return_value=4)
+        redis.eval = AsyncMock(return_value=5)
         mock_get_redis.return_value = redis
+        mock_create_session.return_value = ("tok", 2700)
 
-        with patch("app.services.auth.create_session", new_callable=AsyncMock) as mock_cs:
-            mock_cs.return_value = ("tok", 2700)
-            result = await guest_login("Guest")
+        await guest_login("Guest")
 
-        assert result is not None
-        # Counter was synced (set called with scan result)
-        redis.set.assert_called()
+        redis.eval.assert_called_once_with(
+            _GUEST_INCR_LUA, 1, _GUEST_COUNTER_KEY, MAX_GUESTS
+        )
 
     @patch("app.services.auth.get_redis")
     async def test_guest_counter_sync(self, mock_get_redis):
@@ -281,30 +267,27 @@ class TestGuestLogin:
 
     @patch("app.services.auth.create_session")
     @patch("app.services.auth.get_redis")
-    async def test_guest_login_atomic_incr_prevents_race(self, mock_get_redis, mock_create_session):
+    async def test_guest_login_lua_prevents_race(self, mock_get_redis, mock_create_session):
         """Simulate TOCTOU race: two concurrent requests both try to take the last slot.
 
-        With atomic INCR, only one succeeds (gets 30), the other gets 31 and is rejected.
+        With the Lua script, only one succeeds (gets 30), the other gets -1 and is rejected.
         """
         import asyncio
 
         from app.services.auth import guest_login
 
-        incr_counter = {"value": 29}
+        eval_counter = {"value": 29}
 
-        async def _atomic_incr(key):
-            """Simulate Redis INCR: atomically increment and return new value."""
-            incr_counter["value"] += 1
-            return incr_counter["value"]
-
-        async def _empty_scan(*a, **kw):
-            return
-            yield  # noqa
+        async def _atomic_eval(script, num_keys, key, max_guests):
+            """Simulate Lua INCR+limit: atomically increment and return new value or -1."""
+            eval_counter["value"] += 1
+            if eval_counter["value"] > max_guests:
+                eval_counter["value"] -= 1
+                return -1
+            return eval_counter["value"]
 
         redis = AsyncMock()
-        redis.scan_iter = _empty_scan
-        redis.incr = AsyncMock(side_effect=_atomic_incr)
-        redis.decr = AsyncMock()
+        redis.eval = AsyncMock(side_effect=_atomic_eval)
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("tok", 2700)
 
@@ -319,5 +302,3 @@ class TestGuestLogin:
 
         assert len(successes) == 1, "Exactly one request should get the last slot"
         assert len(failures) == 1, "The other request should be rejected"
-        # The rejected request should have called DECR to undo its INCR
-        redis.decr.assert_called_once()

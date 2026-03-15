@@ -1,8 +1,25 @@
 import sys
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
+
+
+def _override_auth(role="MEMBER", user_id=None):
+    from app.core.deps import get_current_user
+    from app.main import app
+
+    uid = user_id or str(uuid.uuid4())
+    payload = {"sub": uid, "role": role, "jti": str(uuid.uuid4())}
+    app.dependency_overrides[get_current_user] = lambda: payload
+    return payload, uid
+
+
+def _clear_overrides():
+    from app.main import app
+
+    app.dependency_overrides.clear()
 
 
 @patch("app.core.storage.get_storage")
@@ -35,7 +52,15 @@ async def test_health_check_healthy(
     mock_s3 = MagicMock()
     mock_get_storage.return_value = mock_s3
 
-    response = await client.get("/api/v1/health")
+    try:
+        _override_auth("SUPER_ADMIN")
+        response = await client.get(
+            "/api/v1/health",
+            headers={"Authorization": "Bearer fake"},
+        )
+    finally:
+        _clear_overrides()
+
     assert response.status_code == 200
 
     data = response.json()
@@ -44,6 +69,36 @@ async def test_health_check_healthy(
     assert data["dependencies"][0]["name"] == "postgresql"
     assert data["dependencies"][1]["name"] == "redis"
     assert data["dependencies"][2]["name"] == "minio"
+
+
+class TestHealthEndpointAuth:
+    """M5: /health requires SUPER_ADMIN; /health/live is public."""
+
+    @pytest.mark.anyio
+    async def test_health_check_requires_super_admin(self, client: AsyncClient) -> None:
+        """GET /health without auth returns 401."""
+        response = await client.get("/api/v1/health")
+        assert response.status_code == 401
+
+    @pytest.mark.anyio
+    async def test_health_check_member_rejected(self, client: AsyncClient) -> None:
+        """GET /health as MEMBER returns 403."""
+        try:
+            _override_auth("MEMBER")
+            response = await client.get(
+                "/api/v1/health",
+                headers={"Authorization": "Bearer fake"},
+            )
+        finally:
+            _clear_overrides()
+        assert response.status_code == 403
+
+    @pytest.mark.anyio
+    async def test_health_live_no_auth_needed(self, client: AsyncClient) -> None:
+        """GET /health/live returns 200 without any auth."""
+        response = await client.get("/api/v1/health/live")
+        assert response.status_code == 200
+        assert response.json()["status"] == "ok"
 
 
 class TestStartupSecurityChecks:

@@ -82,6 +82,26 @@ describe('useNotificationStore', () => {
 
       expect(store.unreadCount).toBe(3)
     })
+
+    it('should not increment unreadCount for duplicate notification', () => {
+      const store = useNotificationStore()
+      const notif = makeNotification({ id: 'dup-1', message: 'Duplicate' })
+
+      store.addFromWebSocket(notif)
+      store.addFromWebSocket(notif)
+
+      expect(store.items).toHaveLength(1)
+      expect(store.unreadCount).toBe(1)
+    })
+
+    it('should allow different notifications with different ids', () => {
+      const store = useNotificationStore()
+      store.addFromWebSocket(makeNotification({ id: 'a', message: 'First' }))
+      store.addFromWebSocket(makeNotification({ id: 'b', message: 'Second' }))
+
+      expect(store.items).toHaveLength(2)
+      expect(store.unreadCount).toBe(2)
+    })
   })
 
   // ---------- fetchUnreadCount ----------

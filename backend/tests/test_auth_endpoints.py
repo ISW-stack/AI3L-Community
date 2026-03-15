@@ -40,10 +40,16 @@ class TestLoginEndpoint:
         # Token is now in HttpOnly cookie, not in response body
         assert data["role"] == "MEMBER"
         assert "token" not in data
+        # Verify response contains ONLY expected keys
+        assert set(data.keys()) == {"role", "expires_in", "requires_consent"}
+        assert isinstance(data["expires_in"], int)
+        assert isinstance(data["requires_consent"], bool)
         # Check cookies are set
         cookies = {c.name: c for c in resp.cookies.jar}
         assert "access_token" in cookies
         assert "csrf_token" in cookies
+        # Verify authenticate_user was called with correct credentials
+        mock_auth.assert_called_once_with("alice", "Password1")
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=False)
@@ -192,8 +198,17 @@ class TestRegisterEndpoint:
         data = resp.json()
         assert data["requires_consent"] is True
         assert "token" not in data
+        # Verify response contains ONLY expected keys
+        assert set(data.keys()) == {"role", "expires_in", "requires_consent"}
         cookies = {c.name: c for c in resp.cookies.jar}
         assert "access_token" in cookies
+        # Verify register_new_user was called with the correct arguments
+        mock_register.assert_called_once_with(
+            username="newuser",
+            password="Password1",
+            display_name="New User",
+            invite_code="VALID-CODE",
+        )
 
     async def test_register_without_invite_code(self, client: AsyncClient):
         """POST /auth/register without invite_code → 422 validation error."""

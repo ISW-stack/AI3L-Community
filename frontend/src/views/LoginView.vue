@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getCaptcha } from '@/api/auth'
@@ -62,7 +62,9 @@ async function handleLogin() {
   }
 }
 
-loadCaptcha()
+onMounted(() => {
+  loadCaptcha()
+})
 </script>
 
 <template>

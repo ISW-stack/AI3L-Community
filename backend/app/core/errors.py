@@ -13,6 +13,7 @@ class ErrorCode(str, Enum):
     SYS_422 = "SYS_422"  # Validation error
     SYS_409 = "SYS_409"  # Version / idempotency conflict
     SYS_429 = "SYS_429"  # Rate limit exceeded
+    SYS_500 = "SYS_500"  # Internal server error
     FILE_001 = "FILE_001"  # Invalid magic number / malware
     FORM_001 = "FORM_001"  # Form deadline passed
 

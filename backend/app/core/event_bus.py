@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -74,6 +75,7 @@ async def emit(event: str, **kwargs: Any) -> EmitResult:
         if not success:
             logger.error(
                 "Event handler permanently failed after retries",
+                exc_info=True,
                 extra={
                     "event": event,
                     "handler": handler_name,
@@ -102,6 +104,7 @@ async def _persist_failed_event(
                 "handler": handler_name,
                 "kwargs": {k: v for k, v in kwargs.items()},
                 "retry_count": retry_count,
+                "timestamp": time.time(),
             },
             default=str,
         )

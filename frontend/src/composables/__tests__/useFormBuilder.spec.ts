@@ -875,6 +875,32 @@ describe('useFormBuilder', () => {
     })
   })
 
+  // startAutoSave guard
+  describe('startAutoSave guard', () => {
+    it('should not create duplicate auto-save timers', () => {
+      const setIntervalSpy = vi.spyOn(globalThis, 'setInterval')
+
+      const h = createHarness()
+
+      // Clear calls from constructor/createHarness
+      setIntervalSpy.mockClear()
+
+      // Trigger onMounted which calls startAutoSave
+      for (const cb of onMountedCallbacks) cb()
+
+      // Count calls from onMounted
+      const callsAfterFirstMount = setIntervalSpy.mock.calls.length
+
+      // Trigger onMounted again (simulating double-mount) — startAutoSave guard should prevent duplicate
+      for (const cb of onMountedCallbacks) cb()
+
+      // setInterval should NOT have been called again
+      expect(setIntervalSpy.mock.calls.length).toBe(callsAfterFirstMount)
+
+      setIntervalSpy.mockRestore()
+    })
+  })
+
   // Drag and drop
   describe('drag and drop', () => {
     it('handleDrop reorders questions', () => {

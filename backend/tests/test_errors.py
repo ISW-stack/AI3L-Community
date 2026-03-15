@@ -5,7 +5,7 @@ from app.core.errors import AppError, ErrorCode
 
 class TestErrorCodes:
     def test_error_codes_enum(self):
-        """All 11 error codes must exist."""
+        """All 12 error codes must exist."""
         expected = [
             "AUTH_001",
             "AUTH_002",
@@ -16,6 +16,7 @@ class TestErrorCodes:
             "SYS_409",
             "SYS_422",
             "SYS_429",
+            "SYS_500",
             "FILE_001",
             "FORM_001",
         ]

@@ -89,9 +89,10 @@ async def upload_editor_file(
                     extra={"key": key},
                     exc_info=True,
                 )
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Upload failed. Please try again.",
+            raise AppError(
+                ErrorCode.SYS_500,
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "Upload failed. Please try again.",
             )
     finally:
         await redis.delete(lock_key)
@@ -174,9 +175,10 @@ async def delete_editor_file(
         await async_delete_file(key)
     except Exception:
         logger.error("Failed to delete file from storage key=%s", key, exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete file from storage.",
+        raise AppError(
+            ErrorCode.SYS_500,
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "Failed to delete file from storage.",
         )
 
     # Decrement the owner's storage counter
@@ -212,7 +214,7 @@ async def delete_editor_file(
                 owner_user_id=owner_user_id,
             )
         except Exception:
-            logger.warning("Failed to emit audit event for file deletion", exc_info=True)
+            logger.error("AUDIT FAILURE: Failed to emit audit event for admin file deletion. action=admin_file_delete actor=%s target_key=%s", current_user["sub"], key, exc_info=True)
 
     return {"detail": "File deleted.", "key": key, "freed_bytes": file_size}
 

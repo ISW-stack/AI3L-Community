@@ -1,4 +1,5 @@
 import api from '@/composables/api'
+import { assertShape } from '@/utils/apiValidation'
 
 export interface CaptchaResponse {
   captcha_id: string
@@ -13,7 +14,7 @@ export interface AuthResponse {
 
 export async function getCaptcha() {
   const { data } = await api.get('/auth/captcha')
-  return data as CaptchaResponse
+  return assertShape<CaptchaResponse>(data, ['captcha_id', 'image_base64'], 'getCaptcha')
 }
 
 export async function login(payload: {
@@ -23,7 +24,7 @@ export async function login(payload: {
   captcha_code: string
 }) {
   const { data } = await api.post('/auth/login', payload)
-  return data as AuthResponse
+  return assertShape<AuthResponse>(data, ['role', 'expires_in'], 'login')
 }
 
 export async function guestLogin(
@@ -35,7 +36,7 @@ export async function guestLogin(
   },
 ) {
   const { data } = await api.post(`/auth/guest/${encodeURIComponent(inviteCode)}`, payload)
-  return data as AuthResponse
+  return assertShape<AuthResponse>(data, ['role', 'expires_in'], 'guestLogin')
 }
 
 export async function register(payload: {
@@ -47,7 +48,7 @@ export async function register(payload: {
   captcha_code: string
 }) {
   const { data } = await api.post('/auth/register', payload)
-  return data as AuthResponse
+  return assertShape<AuthResponse>(data, ['role', 'expires_in'], 'register')
 }
 
 export async function logout() {

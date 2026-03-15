@@ -31,17 +31,24 @@ export function useFetchPaginated<T>(
   const { page, total, totalPages, setPage, resetPage, updateFromResponse } =
     usePagination(pageSize)
 
+  let fetchId = 0
+
   async function fetchPage() {
+    const localFetchId = ++fetchId
     loading.value = true
     error.value = ''
     try {
       const result = await fetchFn(page.value, pageSize)
+      if (localFetchId !== fetchId) return
       items.value = result.items
       updateFromResponse(result.total)
     } catch (e: unknown) {
+      if (localFetchId !== fetchId) return
       error.value = getErrorMessage(e, 'Failed to fetch data')
     } finally {
-      loading.value = false
+      if (localFetchId === fetchId) {
+        loading.value = false
+      }
     }
   }
 

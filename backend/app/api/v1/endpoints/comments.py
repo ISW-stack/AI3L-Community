@@ -90,7 +90,7 @@ async def edit_comment(
         content=sanitized_content,
     )
     if comment is None:
-        raise AppError(ErrorCode.SYS_403, 403, "Comment not found or you are not the owner.")
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found or you are not the owner.")
     return CommentResponse(**comment)
 
 
@@ -103,7 +103,7 @@ async def delete_comment(
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     deleted = await soft_delete_comment(comment_id, post_id, current_user["sub"], is_admin)
     if not deleted:
-        raise AppError(ErrorCode.SYS_404, 404, "Comment not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found or you are not the owner.")
     return MessageResponse(message="Comment deleted.")
 
 

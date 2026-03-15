@@ -1,3 +1,7 @@
+import warnings
+from typing import ClassVar
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -99,6 +103,19 @@ class Settings(BaseSettings):
     @property
     def CORS_ORIGINS_LIST(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    _VALID_ENVS: ClassVar[frozenset[str]] = frozenset({"development", "production", "test"})
+
+    @model_validator(mode="after")
+    def _validate_fastapi_env(self) -> "Settings":
+        if self.FASTAPI_ENV not in self._VALID_ENVS:
+            warnings.warn(
+                f"FASTAPI_ENV='{self.FASTAPI_ENV}' is not recognized. "
+                f"Expected one of: {', '.join(sorted(self._VALID_ENVS))}. "
+                f"Treating as non-development.",
+                stacklevel=1,
+            )
+        return self
 
     @property
     def is_development(self) -> bool:

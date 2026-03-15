@@ -85,6 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
     })
     setSession(data.role, data.expires_in)
     requiresConsent.value = data.requires_consent ?? false
+    await fetchProfile()
   }
 
   async function register(

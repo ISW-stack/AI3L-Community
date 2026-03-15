@@ -439,6 +439,54 @@ class TestToggleReactionRateLimit:
             _clear_overrides()
 
 
+class TestEditCommentNotFound:
+    @pytest.mark.anyio
+    async def test_edit_comment_not_found_returns_404(self, client):
+        """PUT /posts/{pid}/comments/{cid} → 404 with SYS_404 when comment not found."""
+        post_id = uuid.uuid4()
+        comment_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.sanitize_html", return_value="Updated content"),
+                patch(f"{_EP}.update_comment", new_callable=AsyncMock, return_value=None),
+            ):
+                resp = await client.put(
+                    f"/api/v1/posts/{post_id}/comments/{comment_id}",
+                    json={"content": "Updated content"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                data = resp.json()
+                assert data["detail"]["code"] == "SYS_404"
+                assert "not found or you are not the owner" in data["detail"]["message"].lower()
+        finally:
+            _clear_overrides()
+
+
+class TestDeleteCommentNotFound:
+    @pytest.mark.anyio
+    async def test_delete_comment_not_found_returns_404(self, client):
+        """DELETE /posts/{pid}/comments/{cid} → 404 with SYS_404 and consistent message."""
+        post_id = uuid.uuid4()
+        comment_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(f"{_EP}.soft_delete_comment", new_callable=AsyncMock, return_value=False):
+                resp = await client.delete(
+                    f"/api/v1/posts/{post_id}/comments/{comment_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+                data = resp.json()
+                assert data["detail"]["code"] == "SYS_404"
+                assert "not found or you are not the owner" in data["detail"]["message"].lower()
+        finally:
+            _clear_overrides()
+
+
 class TestSigMemberBatchNotification:
     """Verify _on_post_created_in_sig paginates through all SIG members in batches."""
 

@@ -84,6 +84,18 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
 
 _GUEST_COUNTER_KEY = "meta:guest_counter"
 
+# Lua: atomically increment guest counter with limit check.
+# KEYS[1] = counter key, ARGV[1] = max guests.
+# Returns new count on success, -1 if limit exceeded.
+_GUEST_INCR_LUA = """
+local new_count = redis.call('INCR', KEYS[1])
+if new_count > tonumber(ARGV[1]) then
+    redis.call('DECR', KEYS[1])
+    return -1
+end
+return new_count
+"""
+
 
 async def sync_guest_counter() -> None:
     """Sync the atomic guest counter with actual session count in Redis.
@@ -115,17 +127,13 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
     """
     redis = get_redis()
 
-    # Atomically initialise counter only if it doesn't exist (SETNX).
-    # This eliminates the TOCTOU race in the old exists-then-sync pattern.
-    count = 0
-    async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
-        count += 1
-    await redis.set(_GUEST_COUNTER_KEY, count, nx=True)
-
-    # Atomically increment — if over limit, decrement and reject
-    new_count = await redis.incr(_GUEST_COUNTER_KEY)
-    if new_count > MAX_GUESTS:
-        await redis.decr(_GUEST_COUNTER_KEY)
+    # Atomically check-and-increment via Lua script.
+    # If counter key is missing, INCR creates it at 0→1 (safe).
+    # sync_guest_counter() at startup seeds the accurate value.
+    new_count: int = await redis.eval(
+        _GUEST_INCR_LUA, 1, _GUEST_COUNTER_KEY, MAX_GUESTS
+    )
+    if new_count == -1:
         return None
 
     guest_id = str(uuid.uuid4())

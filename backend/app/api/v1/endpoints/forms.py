@@ -1,5 +1,6 @@
 import uuid
 
+import asyncpg
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_STATS, RATE_LIMIT_FORM_SUBMIT
@@ -276,7 +277,7 @@ async def get_form_responses(
 async def submit_form_response(
     form_id: uuid.UUID,
     req: FormSubmitRequest,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(get_current_user),
 ) -> FormSubmitResponse:
     user_id = current_user["sub"]
     if not await check_rate_limit(f"rl:form_submit:{user_id}:{form_id}", *RATE_LIMIT_FORM_SUBMIT):
@@ -294,16 +295,12 @@ async def submit_form_response(
         if "already submitted" in detail.lower():
             raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, detail)
         raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, detail)
-    except Exception as e:
-        # Catch DB unique-violation (concurrent duplicate submit) gracefully
-        err_str = str(e).lower()
-        if "unique" in err_str or "duplicate" in err_str or "23505" in err_str:
-            raise AppError(
-                ErrorCode.SYS_409,
-                status.HTTP_409_CONFLICT,
-                "You have already submitted a response to this form.",
-            )
-        raise
+    except asyncpg.UniqueViolationError:
+        raise AppError(
+            ErrorCode.SYS_409,
+            status.HTTP_409_CONFLICT,
+            "You have already submitted a response to this form.",
+        )
     return FormSubmitResponse(**result)
 
 

@@ -229,6 +229,12 @@ async def insert_response(
     Uses a single INSERT ... SELECT to prevent race conditions.
     """
     if max_respondents is not None:
+        # Advisory lock keyed on form_id to serialise concurrent inserts
+        # and prevent exceeding max_respondents. Released on tx commit/rollback.
+        await conn.execute(
+            "SELECT pg_advisory_xact_lock(hashtext($1::text))",
+            str(form_id),
+        )
         result = await conn.execute(
             """
             INSERT INTO form_responses (id, form_id, user_id, answers)

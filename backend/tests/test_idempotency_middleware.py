@@ -405,3 +405,134 @@ class TestIdempotencyInvalidKeyFormat:
             mock_redis.get.assert_not_called()
         finally:
             _clear_overrides()
+
+
+class TestIdempotencyRedisSetFailure:
+    """Redis set failure does not break the response — body is still returned."""
+
+    @pytest.mark.anyio
+    async def test_redis_set_failure_still_returns_response(self, client: AsyncClient):
+        """When Redis.set raises an exception, the endpoint response is still returned."""
+        idem_key = "redis-fail-key-001"
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+        # First call is the processing marker (nx=True), let it succeed
+        # Second call is the cache write — make it raise
+        mock_redis.set = AsyncMock(
+            side_effect=[True, ConnectionError("Redis unavailable")]
+        )
+
+        _override_auth("MEMBER")
+        try:
+            with (
+                patch("app.middleware.idempotency.get_redis", return_value=mock_redis),
+                patch(
+                    "app.api.v1.endpoints.posts.create_post",
+                    new_callable=AsyncMock,
+                    return_value={
+                        "id": "new-post-id",
+                        "title": "Test",
+                        "content": "<p>Hello</p>",
+                        "author": {"id": "uid", "username": "u", "display_name": "u", "avatar_url": None},
+                        "sig": None,
+                        "category": None,
+                        "keywords": [],
+                        "comment_count": 0,
+                        "view_count": 0,
+                        "is_pinned": False,
+                        "is_deleted": False,
+                        "allow_comments": True,
+                        "reactions": {},
+                        "created_at": "2026-01-01T00:00:00Z",
+                        "updated_at": "2026-01-01T00:00:00Z",
+                        "version": 1,
+                    },
+                ),
+                patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.post(
+                    "/api/v1/posts",
+                    json={
+                        "title": "Test",
+                        "content": "<p>Hello</p>",
+                        "allow_comments": True,
+                    },
+                    headers={
+                        "Idempotency-Key": idem_key,
+                        "Authorization": "Bearer faketoken123",
+                    },
+                )
+            # Response should still be returned even though Redis.set failed
+            assert resp.status_code == 201
+            assert resp.json()["id"] == "new-post-id"
+        finally:
+            _clear_overrides()
+
+
+class TestIdempotencyErrorJsonCached:
+    """Error JSON responses (4xx) are cached and returned on retry."""
+
+    @pytest.mark.anyio
+    async def test_error_json_response_is_cached(self, client: AsyncClient):
+        """A 400 JSON response is cached and returned identically on retry."""
+        idem_key = "error-cache-key-001"
+
+        store: dict[str, str] = {}
+
+        async def mock_get(key: str):
+            return store.get(key)
+
+        async def mock_set(key: str, value: str, **kwargs: object):
+            store[key] = value
+            return True
+
+        mock_redis = AsyncMock()
+        mock_redis.get = mock_get
+        mock_redis.set = mock_set
+        mock_redis.delete = AsyncMock()
+
+        _override_auth("MEMBER")
+        try:
+            with (
+                patch("app.middleware.idempotency.get_redis", return_value=mock_redis),
+                patch(
+                    "app.api.v1.endpoints.posts.create_post",
+                    new_callable=AsyncMock,
+                    side_effect=Exception("Validation error"),
+                ),
+                patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            ):
+                # First request — triggers an error response
+                resp1 = await client.post(
+                    "/api/v1/posts",
+                    json={"title": "Bad"},
+                    headers={
+                        "Idempotency-Key": idem_key,
+                        "Authorization": "Bearer faketoken123",
+                    },
+                )
+
+            # Verify something was cached (the error response)
+            cached_keys = [k for k in store if "error-cache-key-001" in k]
+            assert len(cached_keys) > 0, "Error response should have been cached"
+
+            # Verify the cached entry has the correct status code
+            cached_entry = json.loads(store[cached_keys[0]])
+            assert cached_entry["status_code"] >= 400
+
+            # Second request — should return cached error response
+            with patch("app.middleware.idempotency.get_redis", return_value=mock_redis):
+                resp2 = await client.post(
+                    "/api/v1/posts",
+                    json={"title": "Bad"},
+                    headers={
+                        "Idempotency-Key": idem_key,
+                        "Authorization": "Bearer faketoken123",
+                    },
+                )
+
+            # Both responses should have the same status code
+            assert resp2.status_code == resp1.status_code
+        finally:
+            _clear_overrides()

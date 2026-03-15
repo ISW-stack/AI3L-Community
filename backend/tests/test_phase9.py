@@ -341,7 +341,7 @@ class TestCommentEdit:
 
     @pytest.mark.anyio
     async def test_comment_edit_non_owner(self, client, mock_pool, mock_conn):
-        """PUT /posts/{pid}/comments/{cid} → 403 for non-owner."""
+        """PUT /posts/{pid}/comments/{cid} → 404 for non-owner (prevents enumeration)."""
         post_id = uuid.uuid4()
         comment_id = uuid.uuid4()
 
@@ -355,7 +355,7 @@ class TestCommentEdit:
                     json={"content": "Hacked"},
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 403
+                assert resp.status_code == 404
         finally:
             _clear_overrides()
 

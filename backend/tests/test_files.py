@@ -1297,6 +1297,157 @@ class TestServeFileFailClose:
         assert resp.status_code == 200
 
 
+class TestUploadStorageCounterFailure:
+    """C1: upload storage counter failure returns structured AppError."""
+
+    @pytest.mark.anyio
+    async def test_upload_storage_counter_failure_returns_structured_error(
+        self, client: AsyncClient
+    ) -> None:
+        """When increment_storage_used raises, response is structured {code, message} with 500."""
+        _override_auth_files("MEMBER")
+        try:
+            png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.get_storage_used",
+                    new_callable=AsyncMock,
+                    return_value=0,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.increment_storage_used",
+                    new_callable=AsyncMock,
+                    side_effect=RuntimeError("DB connection lost"),
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.async_upload_file",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.async_delete_file",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.get_redis",
+                ) as mock_redis_factory,
+            ):
+                mock_redis = AsyncMock()
+                mock_redis.set = AsyncMock(return_value=True)
+                mock_redis.delete = AsyncMock()
+                mock_redis_factory.return_value = mock_redis
+
+                resp = await client.post(
+                    "/api/v1/files/upload/editor",
+                    files={"file": ("test.png", png_data, "image/png")},
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 500
+            data = resp.json()
+            assert data["detail"]["code"] == "SYS_500"
+            assert "Upload failed" in data["detail"]["message"]
+        finally:
+            _clear_overrides_files()
+
+
+class TestDeleteStorageFailure:
+    """C1: delete storage failure returns structured AppError."""
+
+    @pytest.mark.anyio
+    async def test_delete_storage_failure_returns_structured_error(
+        self, client: AsyncClient
+    ) -> None:
+        """When async_delete_file raises, response is structured {code, message} with 500."""
+        user_id = str(uuid.uuid4())
+        _override_auth_files("MEMBER", user_id=user_id)
+        file_key = f"editor/{user_id}/abc123.png"
+
+        try:
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.async_get_file_size",
+                    new_callable=AsyncMock,
+                    return_value=5000,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.async_delete_file",
+                    new_callable=AsyncMock,
+                    side_effect=RuntimeError("Storage unavailable"),
+                ),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/files/content/{file_key}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 500
+            data = resp.json()
+            assert data["detail"]["code"] == "SYS_500"
+            assert "delete file from storage" in data["detail"]["message"].lower()
+        finally:
+            _clear_overrides_files()
+
+
+class TestDeleteFileAuditFailureLogs:
+    """H8: Audit event failure logs error but endpoint still succeeds."""
+
+    @pytest.mark.anyio
+    async def test_delete_file_audit_failure_logs_error(self, client: AsyncClient) -> None:
+        """When emit raises during admin file deletion, endpoint returns 200 and logger.error is called."""
+        admin_id = str(uuid.uuid4())
+        owner_id = str(uuid.uuid4())
+        _override_auth_files("ADMIN", user_id=admin_id)
+        file_key = f"editor/{owner_id}/abc123.png"
+        file_size = 8000
+
+        try:
+            with (
+                patch(
+                    "app.api.v1.endpoints.files.async_get_file_size",
+                    new_callable=AsyncMock,
+                    return_value=file_size,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.async_delete_file",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.user_repo.increment_storage_used",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.file_scan_repo.delete_by_key",
+                    new_callable=AsyncMock,
+                ),
+                patch(
+                    "app.core.event_bus.emit",
+                    new_callable=AsyncMock,
+                    side_effect=RuntimeError("Event bus down"),
+                ),
+                patch(
+                    "app.api.v1.endpoints.files.logger",
+                ) as mock_logger,
+            ):
+                resp = await client.delete(
+                    f"/api/v1/files/content/{file_key}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 200
+            # Verify logger.error was called with "AUDIT FAILURE"
+            mock_logger.error.assert_called()
+            call_args_str = str(mock_logger.error.call_args)
+            assert "AUDIT FAILURE" in call_args_str
+        finally:
+            _clear_overrides_files()
+
+
 class TestCleanupTaskImport:
     """Verify the cleanup task module can be imported without errors."""
 

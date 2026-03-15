@@ -256,12 +256,16 @@ class TestHealthMinIO:
         mock_storage = MagicMock()
         mock_storage.head_bucket = MagicMock(return_value={})
 
-        with (
-            patch("app.api.v1.endpoints.health.get_pool", return_value=mock_pool),
-            patch("app.api.v1.endpoints.health.get_redis", return_value=mock_redis),
-            patch("app.core.storage.get_storage", return_value=mock_storage),
-        ):
-            resp = await client.get("/api/v1/health")
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch("app.api.v1.endpoints.health.get_pool", return_value=mock_pool),
+                patch("app.api.v1.endpoints.health.get_redis", return_value=mock_redis),
+                patch("app.core.storage.get_storage", return_value=mock_storage),
+            ):
+                resp = await client.get("/api/v1/health")
+        finally:
+            _clear_overrides()
 
         assert resp.status_code == 200
         data = resp.json()
@@ -286,12 +290,16 @@ class TestHealthMinIO:
         mock_redis = AsyncMock()
         mock_redis.ping = AsyncMock(return_value=True)
 
-        with (
-            patch("app.api.v1.endpoints.health.get_pool", return_value=mock_pool),
-            patch("app.api.v1.endpoints.health.get_redis", return_value=mock_redis),
-            patch("app.core.storage.get_storage", side_effect=RuntimeError("no storage")),
-        ):
-            resp = await client.get("/api/v1/health")
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch("app.api.v1.endpoints.health.get_pool", return_value=mock_pool),
+                patch("app.api.v1.endpoints.health.get_redis", return_value=mock_redis),
+                patch("app.core.storage.get_storage", side_effect=RuntimeError("no storage")),
+            ):
+                resp = await client.get("/api/v1/health")
+        finally:
+            _clear_overrides()
 
         assert resp.status_code == 200
         data = resp.json()

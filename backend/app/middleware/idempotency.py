@@ -73,9 +73,9 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
 
-        # Cache successful JSON responses only (binary/streaming responses are skipped)
+        # Cache JSON responses (success and error) to prevent duplicate side effects
         content_type = response.headers.get("content-type", "")
-        if 200 <= response.status_code < 300 and "application/json" in content_type:
+        if "application/json" in content_type:
             body = b""
             async for chunk in response.body_iterator:  # type: ignore[attr-defined]
                 body += chunk if isinstance(chunk, bytes) else chunk.encode()
@@ -86,7 +86,10 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                     "status_code": response.status_code,
                 }
             )
-            await redis.set(redis_key, cache_data, ex=IDEMPOTENCY_TTL)
+            try:
+                await redis.set(redis_key, cache_data, ex=IDEMPOTENCY_TTL)
+            except Exception:
+                logger.warning("Failed to cache idempotency response", exc_info=True)
 
             return Response(
                 content=body,
@@ -94,24 +97,9 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 headers=dict(response.headers),
             )
 
-        # Cache error JSON responses too (prevents duplicate side effects)
-        if "application/json" in content_type and response.status_code >= 400:
-            body = b""
-            async for chunk in response.body_iterator:  # type: ignore[attr-defined]
-                body += chunk if isinstance(chunk, bytes) else chunk.encode()
-            cache_data = json.dumps(
-                {
-                    "body": body.decode("utf-8", errors="replace"),
-                    "status_code": response.status_code,
-                }
-            )
-            await redis.set(redis_key, cache_data, ex=IDEMPOTENCY_TTL)
-            return Response(
-                content=body,
-                status_code=response.status_code,
-                headers=dict(response.headers),
-            )
-
-        # Non-JSON or streaming responses — delete the processing marker
-        await redis.delete(redis_key)
+        # Non-JSON or streaming responses — clear the processing marker
+        try:
+            await redis.delete(redis_key)
+        except Exception:
+            pass
         return response

@@ -171,6 +171,49 @@ class TestSettings:
         s = self._make_settings(FASTAPI_ENV="production")
         assert s.is_development is False
 
+    # -- FASTAPI_ENV validation --
+
+    def test_settings_valid_env_no_warning(self):
+        """FASTAPI_ENV='development' should not emit a warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self._make_settings(FASTAPI_ENV="development")
+        env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
+        assert len(env_warnings) == 0
+
+    def test_settings_unknown_env_warns(self):
+        """FASTAPI_ENV='staging' should emit a warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self._make_settings(FASTAPI_ENV="staging")
+        env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
+        assert len(env_warnings) == 1
+        assert "staging" in str(env_warnings[0].message)
+
+    def test_settings_production_no_warning(self):
+        """FASTAPI_ENV='production' should not emit a warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self._make_settings(FASTAPI_ENV="production")
+        env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
+        assert len(env_warnings) == 0
+
+    def test_settings_test_no_warning(self):
+        """FASTAPI_ENV='test' should not emit a warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self._make_settings(FASTAPI_ENV="test")
+        env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
+        assert len(env_warnings) == 0
+
     # -- Env var override --
 
     def test_env_var_override(self):

@@ -316,7 +316,7 @@ describe('useAuthStore', () => {
       })
       expect(auth.role).toBe('GUEST')
       expect(auth.isGuest).toBe(true)
-      // Guest login does not call fetchProfile
+      // Guest login calls fetchProfile for consistency (returns early for GUEST role)
       expect(mockGet).not.toHaveBeenCalled()
     })
   })

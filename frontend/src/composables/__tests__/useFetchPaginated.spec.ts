@@ -185,4 +185,105 @@ describe('useFetchPaginated', () => {
     await fetchPage()
     expect(fetchFn).toHaveBeenCalledWith(5, 20)
   })
+
+  // ---------- fetchId race condition guard ----------
+
+  describe('fetchId race condition guard', () => {
+    it('stale response from slower first request is discarded', async () => {
+      let resolveFirst: (value: { items: unknown[]; total: number }) => void
+      let resolveSecond: (value: { items: unknown[]; total: number }) => void
+
+      const fetchFn = vi
+        .fn()
+        .mockImplementationOnce(
+          () => new Promise((resolve) => { resolveFirst = resolve }),
+        )
+        .mockImplementationOnce(
+          () => new Promise((resolve) => { resolveSecond = resolve }),
+        )
+
+      const { items, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      // Start first request
+      const first = fetchPage()
+      // Start second request (supersedes first)
+      const second = fetchPage()
+
+      // Resolve second first (latest)
+      resolveSecond!({ items: [{ id: 'latest' }], total: 1 })
+      await second
+
+      // Resolve first (stale) — should be discarded
+      resolveFirst!({ items: [{ id: 'stale' }], total: 1 })
+      await first
+
+      expect(items.value).toEqual([{ id: 'latest' }])
+    })
+
+    it('loading stays true while latest request is pending', async () => {
+      let resolveFirst: (value: { items: unknown[]; total: number }) => void
+      let resolveSecond: (value: { items: unknown[]; total: number }) => void
+
+      const fetchFn = vi
+        .fn()
+        .mockImplementationOnce(
+          () => new Promise((resolve) => { resolveFirst = resolve }),
+        )
+        .mockImplementationOnce(
+          () => new Promise((resolve) => { resolveSecond = resolve }),
+        )
+
+      const { loading, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      // Start first request
+      const first = fetchPage()
+      // Start second request (supersedes first)
+      const second = fetchPage()
+
+      // Resolve first (stale) — loading should stay true because second is still pending
+      resolveFirst!({ items: [], total: 0 })
+      await first
+
+      expect(loading.value).toBe(true)
+
+      // Resolve second (latest) — now loading should become false
+      resolveSecond!({ items: [], total: 0 })
+      await second
+
+      expect(loading.value).toBe(false)
+    })
+
+    it('stale error is discarded', async () => {
+      let rejectFirst: (reason: unknown) => void
+      let resolveSecond: (value: { items: unknown[]; total: number }) => void
+
+      const fetchFn = vi
+        .fn()
+        .mockImplementationOnce(
+          () => new Promise((_resolve, reject) => { rejectFirst = reject }),
+        )
+        .mockImplementationOnce(
+          () => new Promise((resolve) => { resolveSecond = resolve }),
+        )
+
+      const { error, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      // Start first request
+      const first = fetchPage()
+      // Start second request (supersedes first)
+      const second = fetchPage()
+
+      // Reject first (stale) — error should NOT be set
+      rejectFirst!(new Error('stale error'))
+      await first
+
+      expect(error.value).toBe('')
+
+      // Resolve second (latest)
+      resolveSecond!({ items: [], total: 0 })
+      await second
+
+      expect(error.value).toBe('')
+    })
+  })
 })
