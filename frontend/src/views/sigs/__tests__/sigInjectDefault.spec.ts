@@ -45,6 +45,16 @@ vi.mock('@/stores/toast', () => ({
   })),
 }))
 
+const fakeSig = {
+  id: 'sig-1',
+  name: 'Test SIG',
+  description: null,
+  created_by: 'u1',
+  creator_display_name: null,
+  member_count: 2,
+  created_at: '2026-01-01T00:00:00Z',
+}
+
 const commonStubs = {
   BaseCard: { template: '<div class="base-card"><slot /></div>' },
   BaseButton: { template: '<button class="base-button"><slot /></button>' },
@@ -69,7 +79,7 @@ const commonStubs = {
   },
 }
 
-describe('SIG Views — Inject Default Safety', () => {
+describe('SIG Views — useSigLayout Inject Safety', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetSigPosts.mockResolvedValue({ posts: [], total: 0 })
@@ -77,8 +87,33 @@ describe('SIG Views — Inject Default Safety', () => {
     mockGetSigForms.mockResolvedValue({ forms: [], total: 0 })
   })
 
-  describe('SigPostsView without userSigRole provider', () => {
-    it('mounts without error when no parent provides userSigRole', async () => {
+  describe('SigPostsView throws without required inject', () => {
+    it('throws when sig and userSigRole are not provided', () => {
+      const router = createRouter({
+        history: createMemoryHistory(),
+        routes: [
+          {
+            path: '/sigs/:id',
+            component: { template: '<div />' },
+            children: [{ path: 'posts', name: 'sig-posts', component: SigPostsView }],
+          },
+        ],
+      })
+      const pinia = createPinia()
+      setActivePinia(pinia)
+
+      expect(() => {
+        mount(SigPostsView, {
+          global: {
+            plugins: [pinia, router],
+            provide: {},
+            stubs: commonStubs,
+          },
+        })
+      }).toThrow('useSigLayout must be used within SigLayout')
+    })
+
+    it('mounts successfully when sig and userSigRole are provided', async () => {
       const router = createRouter({
         history: createMemoryHistory(),
         routes: [
@@ -94,11 +129,13 @@ describe('SIG Views — Inject Default Safety', () => {
       await router.push('/sigs/sig1/posts')
       await router.isReady()
 
-      // No provide for userSigRole — should use default ref(null)
       const wrapper = mount(SigPostsView, {
         global: {
           plugins: [pinia, router],
-          provide: {},
+          provide: {
+            sig: ref(fakeSig),
+            userSigRole: ref(null),
+          },
           stubs: commonStubs,
         },
       })
@@ -107,7 +144,7 @@ describe('SIG Views — Inject Default Safety', () => {
       expect(wrapper.exists()).toBe(true)
     })
 
-    it('isMember defaults to false when userSigRole is not provided', async () => {
+    it('isMember is false when userSigRole is null', async () => {
       const router = createRouter({
         history: createMemoryHistory(),
         routes: [
@@ -126,13 +163,16 @@ describe('SIG Views — Inject Default Safety', () => {
       const wrapper = mount(SigPostsView, {
         global: {
           plugins: [pinia, router],
-          provide: {},
+          provide: {
+            sig: ref(fakeSig),
+            userSigRole: ref(null),
+          },
           stubs: commonStubs,
         },
       })
       await flushPromises()
 
-      // Floating create button should not appear when inject defaults to null
+      // Floating create button should not appear when userSigRole is null
       expect(wrapper.find('.fab').exists()).toBe(false)
     })
 
@@ -155,7 +195,10 @@ describe('SIG Views — Inject Default Safety', () => {
       const wrapper = mount(SigPostsView, {
         global: {
           plugins: [pinia, router],
-          provide: { userSigRole: ref('MEMBER') },
+          provide: {
+            sig: ref(fakeSig),
+            userSigRole: ref('MEMBER'),
+          },
           stubs: commonStubs,
         },
       })
@@ -165,8 +208,8 @@ describe('SIG Views — Inject Default Safety', () => {
     })
   })
 
-  describe('SigMembersView without userSigRole provider', () => {
-    it('mounts without error when no parent provides userSigRole', async () => {
+  describe('SigMembersView throws without required inject', () => {
+    it('throws when sig and userSigRole are not provided', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const auth = useAuthStore()
@@ -179,22 +222,19 @@ describe('SIG Views — Inject Default Safety', () => {
           { path: '/users/:id', name: 'user-profile', component: { template: '<div />' } },
         ],
       })
-      await router.push('/sigs/sig1/members')
-      await router.isReady()
 
-      const wrapper = mount(SigMembersView, {
-        global: {
-          plugins: [pinia, router],
-          provide: {},
-          stubs: commonStubs,
-        },
-      })
-      await flushPromises()
-
-      expect(wrapper.exists()).toBe(true)
+      expect(() => {
+        mount(SigMembersView, {
+          global: {
+            plugins: [pinia, router],
+            provide: {},
+            stubs: commonStubs,
+          },
+        })
+      }).toThrow('useSigLayout must be used within SigLayout')
     })
 
-    it('SIG admin actions are hidden when userSigRole defaults to null', async () => {
+    it('SIG admin actions are hidden when userSigRole is null', async () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const auth = useAuthStore()
@@ -228,7 +268,10 @@ describe('SIG Views — Inject Default Safety', () => {
       const wrapper = mount(SigMembersView, {
         global: {
           plugins: [pinia, router],
-          provide: {},
+          provide: {
+            sig: ref(fakeSig),
+            userSigRole: ref(null),
+          },
           stubs: commonStubs,
         },
       })
@@ -239,8 +282,8 @@ describe('SIG Views — Inject Default Safety', () => {
     })
   })
 
-  describe('SigFormsView without userSigRole provider', () => {
-    it('mounts without error when no parent provides userSigRole', async () => {
+  describe('SigFormsView throws without required inject', () => {
+    it('throws when sig and userSigRole are not provided', () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const auth = useAuthStore()
@@ -259,22 +302,19 @@ describe('SIG Views — Inject Default Safety', () => {
           { path: '/forms/:id/edit', name: 'form-edit', component: { template: '<div />' } },
         ],
       })
-      await router.push('/sigs/sig1/forms')
-      await router.isReady()
 
-      const wrapper = mount(SigFormsView, {
-        global: {
-          plugins: [pinia, router],
-          provide: {},
-          stubs: commonStubs,
-        },
-      })
-      await flushPromises()
-
-      expect(wrapper.exists()).toBe(true)
+      expect(() => {
+        mount(SigFormsView, {
+          global: {
+            plugins: [pinia, router],
+            provide: {},
+            stubs: commonStubs,
+          },
+        })
+      }).toThrow('useSigLayout must be used within SigLayout')
     })
 
-    it('Create Form button is hidden when userSigRole defaults to null and not platform admin', async () => {
+    it('Create Form button is hidden when userSigRole is null and not platform admin', async () => {
       const pinia = createPinia()
       setActivePinia(pinia)
       const auth = useAuthStore()
@@ -320,7 +360,10 @@ describe('SIG Views — Inject Default Safety', () => {
       const wrapper = mount(SigFormsView, {
         global: {
           plugins: [pinia, router],
-          provide: {},
+          provide: {
+            sig: ref(fakeSig),
+            userSigRole: ref(null),
+          },
           stubs: commonStubs,
         },
       })

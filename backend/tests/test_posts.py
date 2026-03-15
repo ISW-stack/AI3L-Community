@@ -824,7 +824,7 @@ class TestGetPostsEndpoint:
         app.dependency_overrides.clear()
 
         assert response.status_code == 400
-        assert "Invalid cursor" in response.json()["detail"]
+        assert "Invalid cursor" in response.json()["detail"]["message"]
 
     @patch("app.api.v1.endpoints.posts.list_posts")
     async def test_get_posts_cursor_has_more_false(self, mock_list, client):

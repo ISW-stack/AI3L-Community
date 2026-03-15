@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.core.deps import require_role
+from app.core.errors import AppError, ErrorCode
 from app.schemas.form import TaskStatusResponse
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -22,9 +23,8 @@ async def get_task_status(
         redis = get_redis()
         owner_id = await redis.get(f"task_owner:{task_id}")
         if owner_id is not None and owner_id != current_user["sub"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have access to this task.",
+            raise AppError(
+                ErrorCode.SYS_403, 403, "You do not have access to this task."
             )
 
     result = AsyncResult(task_id, app=celery)

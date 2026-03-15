@@ -52,6 +52,12 @@ async def _on_comment_created(
                 message=f"{commenter_name} mentioned you in a comment",
             )
             succeeded += 1
+        except (ConnectionError, OSError, TimeoutError) as e:
+            failed += 1
+            logger.warning(
+                "Transient error sending mention notification (retryable)",
+                extra={"target_uid": target_uid, "error": str(e)},
+            )
         except Exception:
             failed += 1
             logger.error("Failed to send mention notification", exc_info=True)
@@ -70,6 +76,12 @@ async def _on_comment_created(
                     message=f"{commenter_name} replied to your comment",
                 )
                 succeeded += 1
+            except (ConnectionError, OSError, TimeoutError) as e:
+                failed += 1
+                logger.warning(
+                    "Transient error sending reply notification (retryable)",
+                    extra={"target_uid": reply_target[0], "error": str(e)},
+                )
             except Exception:
                 failed += 1
                 logger.error("Failed to send reply notification", exc_info=True)
@@ -199,6 +211,12 @@ async def _on_post_created_in_sig(
                     message=f'{author_name} posted "{post_title[:50]}" in your SIG',
                 )
                 succeeded += 1
+            except (ConnectionError, OSError, TimeoutError) as e:
+                failed += 1
+                logger.warning(
+                    "Transient error sending SIG new post notification (retryable)",
+                    extra={"target_uid": target_uid, "error": str(e)},
+                )
             except Exception:
                 failed += 1
                 logger.error("Failed to send SIG new post notification", exc_info=True)

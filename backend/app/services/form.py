@@ -11,6 +11,57 @@ from app.core.errors import AppError, ErrorCode
 from app.repositories import form_repo
 
 
+_VALID_QUESTION_TYPES = frozenset(
+    {"single_choice", "multiple_choice", "rating", "text", "textarea", "dropdown"}
+)
+
+
+def validate_question_schema(questions: list[dict]) -> None:
+    """Validate the structure of form questions before saving to JSONB.
+
+    Each question must have "id", "type", and "label" fields.
+    The "type" must be one of the recognized question types.
+    Choice/dropdown types must include an "options" field.
+
+    Raises ValueError with a descriptive message on validation failure.
+    """
+    if not isinstance(questions, list):
+        raise ValueError("Questions must be a list.")
+
+    seen_ids: set[str] = set()
+    for i, q in enumerate(questions):
+        if not isinstance(q, dict):
+            raise ValueError(f"Question at index {i} must be an object.")
+
+        for required_field in ("id", "type", "label"):
+            if required_field not in q:
+                raise ValueError(
+                    f"Question at index {i} is missing required field '{required_field}'."
+                )
+
+        qid = q["id"]
+        if qid in seen_ids:
+            raise ValueError(f"Duplicate question id '{qid}' at index {i}.")
+        seen_ids.add(qid)
+
+        qtype = q["type"]
+        if qtype not in _VALID_QUESTION_TYPES:
+            raise ValueError(
+                f"Question '{qid}' has invalid type '{qtype}'. "
+                f"Must be one of: {', '.join(sorted(_VALID_QUESTION_TYPES))}."
+            )
+
+        if qtype in ("single_choice", "multiple_choice", "dropdown"):
+            if "options" not in q or not isinstance(q["options"], list):
+                raise ValueError(
+                    f"Question '{qid}' of type '{qtype}' must have an 'options' list."
+                )
+            if not q["options"]:
+                raise ValueError(
+                    f"Question '{qid}' of type '{qtype}' must have at least one option."
+                )
+
+
 async def create_form(
     sig_id: str,
     user_id: str,
@@ -22,6 +73,8 @@ async def create_form(
     questions: list[dict],
     allow_non_members: bool = False,
 ) -> dict:
+    validate_question_schema(questions)
+
     active_count = await form_repo.count_active(uuid.UUID(sig_id))
     if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
         raise ValueError(f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached.")
@@ -134,6 +187,16 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
                 if isinstance(value, int) and not isinstance(value, bool):
                     values.append(value)
                     distribution[value] = distribution.get(value, 0) + 1
+                elif value is not None:
+                    logger.warning(
+                        "Malformed rating value in form response",
+                        extra={
+                            "form_id": str(form_id),
+                            "question_id": qid,
+                            "value": repr(value),
+                            "value_type": type(value).__name__,
+                        },
+                    )
 
             if values:
                 stats["average"] = round(sum(values) / len(values), 2)
@@ -220,6 +283,7 @@ async def update_form(
                     updates[field_name] = value
 
             if questions is not None:
+                validate_question_schema(questions)
                 updates["questions"] = json.dumps(questions)
 
             if not updates:

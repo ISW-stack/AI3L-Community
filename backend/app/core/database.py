@@ -30,3 +30,20 @@ def get_pool() -> asyncpg.Pool:
     if _pool is None:
         raise RuntimeError("Database pool is not initialized. Call init_db_pool() first.")
     return _pool
+
+
+async def get_pool_stats() -> dict[str, int] | None:
+    """Return pool utilization info if the pool is initialized.
+
+    Returns a dict with ``size``, ``free``, and ``in_use`` keys,
+    or ``None`` if the pool has not been created yet.
+    """
+    if _pool is None:
+        return None
+    size = _pool.get_size()
+    free = _pool.get_idle_size()
+    return {
+        "size": size,
+        "free": free,
+        "in_use": size - free,
+    }

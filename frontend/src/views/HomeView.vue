@@ -14,6 +14,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import { useFetchPaginated } from '@/composables/useFetchPaginated'
 import { getErrorMessage } from '@/utils/error'
 import { MessageSquare, Users, FileText, BookOpen, TrendingUp } from 'lucide-vue-next'
 
@@ -22,14 +23,21 @@ const auth = useAuthStore()
 const notifStore = useNotificationStore()
 const toast = useToastStore()
 
-const recentPosts = ref<Post[]>([])
+const {
+  items: recentPosts,
+  loading: loadingPosts,
+  fetchPage: fetchRecentPosts,
+} = useFetchPaginated<Post>(async () => {
+  const data = await listPosts({ page: 1, page_size: 5, sort: 'newest' })
+  return { items: data.posts, total: data.total }
+}, 5)
+
 const trendingPosts = ref<Post[]>([])
 const mySigs = ref<Sig[]>([])
 const featuredSigs = ref<Sig[]>([])
 const publicStats = ref<{ member_count: number; post_count: number; sig_count: number } | null>(
   null,
 )
-const loadingPosts = ref(false)
 const loadingTrending = ref(false)
 const loadingMySigs = ref(false)
 const loadingStats = ref(false)
@@ -54,18 +62,6 @@ async function submitApplication() {
   }
 }
 
-async function fetchRecentPosts() {
-  loadingPosts.value = true
-  try {
-    const data = await listPosts({ page: 1, page_size: 5, sort: 'newest' })
-    recentPosts.value = data.posts
-  } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('home.recentPosts.fetchError')), 'error')
-  } finally {
-    loadingPosts.value = false
-  }
-}
-
 async function fetchTrendingPosts() {
   loadingTrending.value = true
   try {
@@ -81,8 +77,8 @@ async function fetchMySigs() {
   loadingMySigs.value = true
   try {
     mySigs.value = await listMySigs()
-  } catch {
-    // Silent — non-critical
+  } catch (e: unknown) {
+    console.error('Failed to fetch SIGs:', getErrorMessage(e))
   } finally {
     loadingMySigs.value = false
   }
@@ -92,8 +88,8 @@ async function fetchPublicStats() {
   loadingStats.value = true
   try {
     publicStats.value = await getPublicStats()
-  } catch {
-    // Silent — non-critical
+  } catch (e: unknown) {
+    console.error('Failed to fetch public stats:', getErrorMessage(e))
   } finally {
     loadingStats.value = false
   }
@@ -105,8 +101,8 @@ async function fetchFeaturedSigs() {
     const data = await listSigs()
     // Show up to 3 SIGs as featured
     featuredSigs.value = data.sigs.slice(0, 3)
-  } catch {
-    // Silent — non-critical
+  } catch (e: unknown) {
+    console.error('Failed to fetch featured SIGs:', getErrorMessage(e))
   } finally {
     loadingFeaturedSigs.value = false
   }

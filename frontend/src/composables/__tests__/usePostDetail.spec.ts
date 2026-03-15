@@ -141,6 +141,48 @@ describe('usePostDetail', () => {
     mockListComments.mockResolvedValue({ comments: [], total: 0 })
   })
 
+  // 0. Instance isolation
+  it('each usePostDetail() call gets independent state', async () => {
+    const testPost1 = makePost({ id: 'post1', title: 'Post One' })
+    const testPost2 = makePost({ id: 'post2', title: 'Post Two' })
+    mockGetPost.mockResolvedValueOnce(testPost1).mockResolvedValueOnce(testPost2)
+    mockListComments.mockResolvedValue({ comments: [], total: 0 })
+
+    const harness1 = createHarness()
+    const postId2 = ref('post2')
+    const mockRouter2 = { push: vi.fn() }
+    const auth2 = createDefaultAuth()
+    onMountedCallbacks.length = 0
+    const harness2 = usePostDetail({ postId: postId2, auth: auth2, router: mockRouter2 })
+
+    await harness1.fetchPost()
+    await harness2.fetchPost()
+
+    // Each instance should have its own post state
+    expect(harness1.post.value?.title).toBe('Post One')
+    expect(harness2.post.value?.title).toBe('Post Two')
+
+    // Modifying one should not affect the other
+    harness1.editing.value = true
+    expect(harness2.editing.value).toBe(false)
+
+    harness1.newComment.value = 'Comment from harness1'
+    expect(harness2.newComment.value).toBe('')
+  })
+
+  it('scan poll timers are instance-scoped', () => {
+    const harness1 = createHarness()
+    const postId2 = ref('post2')
+    const mockRouter2 = { push: vi.fn() }
+    const auth2 = createDefaultAuth()
+    onMountedCallbacks.length = 0
+    const harness2 = usePostDetail({ postId: postId2, auth: auth2, router: mockRouter2 })
+
+    // Both instances should have independent imageScanStatuses
+    harness1.imageScanStatuses.value['key1'] = 'clean'
+    expect(harness2.imageScanStatuses.value['key1']).toBeUndefined()
+  })
+
   // 1. Initial state
   it('has correct initial state', () => {
     const { post, loading, editing, comments, newComment, showHistory } = createHarness()

@@ -215,7 +215,7 @@ function displayTime(dateStr: string): string {
     <router-link v-if="thumbnailUrl" :to="`/forum/${post.id}`" class="block">
       <img
         :src="thumbnailUrl"
-        alt=""
+        :alt="post.title || 'Post image'"
         loading="lazy"
         class="w-full max-h-80 object-cover bg-surface-alt"
       />

@@ -1,11 +1,13 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, status
 
-from app.converters.user_converter import user_to_public_response, user_to_response
+from app.converters.user_converter import async_user_to_public_response, async_user_to_response
 from app.core.constants import MAX_AVATAR_SIZE
 from app.core.deps import get_current_user, require_role
 from app.core.errors import (
+    AppError,
+    ErrorCode,
     RateLimitError,
     ServiceNotFoundError,
     ServiceValidationError,
@@ -47,21 +49,18 @@ from app.services.user import (
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-_user_to_response = user_to_response
-
-
 @router.get("/me", response_model=UserResponse)
 async def get_my_profile(current_user: dict = Depends(get_current_user)) -> UserResponse:
     user = await get_user_by_id(uuid.UUID(current_user["sub"]))
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    resp = _user_to_response(user)
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+    resp = await async_user_to_response(user)
 
     # Include preferences in response
     from app.services.preferences import get_user_preferences
 
     prefs = await get_user_preferences(uuid.UUID(current_user["sub"]))
-    resp.preferences = prefs  # type: ignore[attr-defined]
+    resp.preferences = prefs
     return resp
 
 
@@ -79,8 +78,8 @@ async def update_my_profile(
         preferred_language=req.preferred_language,
     )
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    return _user_to_response(user)
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+    return await async_user_to_response(user)
 
 
 @router.put("/me/avatar", response_model=UserResponse)
@@ -91,10 +90,7 @@ async def upload_avatar(
     """Upload avatar image (PNG/JPEG, max 2MB)."""
     data = await file.read(MAX_AVATAR_SIZE + 1)
     if len(data) > MAX_AVATAR_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 2MB limit.",
-        )
+        raise AppError(ErrorCode.SYS_422, 400, "File size exceeds 2MB limit.")
     try:
         user = await upload_user_avatar(
             user_id=current_user["sub"],
@@ -103,14 +99,14 @@ async def upload_avatar(
             filename=file.filename or "",
         )
     except ServiceValidationError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, 400, str(e))
     except StorageQuotaError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, 400, str(e))
     except RateLimitError as e:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+        raise AppError(ErrorCode.SYS_429, 429, str(e))
     except ServiceNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    return _user_to_response(user)
+        raise AppError(ErrorCode.SYS_404, 404, str(e))
+    return await async_user_to_response(user)
 
 
 @router.put("/me/password", response_model=MessageResponse)
@@ -127,7 +123,7 @@ async def change_my_password(
             new_password=req.new_password,
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, 400, str(e))
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
@@ -168,9 +164,10 @@ async def delete_my_account(
     sole_admin_sigs = await check_sole_admin_sigs(user_id)
     if sole_admin_sigs:
         sig_names = ", ".join(s["name"] for s in sole_admin_sigs)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
+        raise AppError(
+            ErrorCode.SYS_409,
+            409,
+            (
                 "Cannot delete account: you are the sole admin of the following SIG(s): "
                 f"{sig_names}. Please assign another admin before deleting your account."
             ),
@@ -178,7 +175,7 @@ async def delete_my_account(
 
     deleted = await anonymize_user(user_id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Revoke ALL sessions (all devices), not just the current one
     await revoke_user_sessions(current_user["sub"])
@@ -222,8 +219,8 @@ async def get_public_profile(
 ) -> PublicUserResponse:
     user = await get_user_by_id(user_id)
     if user is None or user.get("is_deleted", False):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    return user_to_public_response(user)
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+    return await async_user_to_public_response(user)
 
 
 # --- Admin endpoints ---
@@ -240,7 +237,8 @@ async def get_all_users(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> UserListResponse:
     users, total = await list_users(page=page, page_size=page_size, search=search)
-    return UserListResponse(users=[_user_to_response(u) for u in users], total=total)
+    user_responses = [await async_user_to_response(u) for u in users]
+    return UserListResponse(users=user_responses, total=total)
 
 
 @router.post(
@@ -254,24 +252,22 @@ async def admin_create_account(
 ) -> UserResponse:
     error = validate_password_policy(req.password)
     if error:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+        raise AppError(ErrorCode.SYS_422, 400, error)
 
     valid_roles = {UserRole.MEMBER.value, UserRole.ADMIN.value}
     if req.role not in valid_roles:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Role must be one of: {', '.join(valid_roles)}",
+        raise AppError(
+            ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}"
         )
 
     # Only SUPER_ADMIN can create ADMIN accounts
     if req.role == UserRole.ADMIN.value and current_user["role"] != UserRole.SUPER_ADMIN.value:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only Super Admin can create Admin accounts.",
+        raise AppError(
+            ErrorCode.SYS_403, 403, "Only Super Admin can create Admin accounts."
         )
 
     if await user_exists_by_username(req.username):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists.")
+        raise AppError(ErrorCode.SYS_409, 409, "Username already exists.")
 
     user = await create_user(
         username=req.username,
@@ -279,7 +275,7 @@ async def admin_create_account(
         role=req.role,
         display_name=req.display_name,
     )
-    return _user_to_response(user)
+    return await async_user_to_response(user)
 
 
 @router.put("/{user_id}/role", response_model=UserResponse)
@@ -291,24 +287,20 @@ async def change_user_role(
 ) -> UserResponse:
     valid_roles = {r.value for r in UserRole if r != UserRole.GUEST}
     if req.role not in valid_roles:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Role must be one of: {', '.join(valid_roles)}",
+        raise AppError(
+            ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}"
         )
 
     # Prevent self-demotion
     if str(user_id) == current_user["sub"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot change your own role.",
-        )
+        raise AppError(ErrorCode.SYS_422, 400, "Cannot change your own role.")
 
     try:
         user = await update_user_role(user_id, req.role)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, 400, str(e))
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Notify target user about role change via WebSocket
     await emit(
@@ -331,7 +323,7 @@ async def change_user_role(
         ip_address=ip,
     )
 
-    return _user_to_response(user)
+    return await async_user_to_response(user)
 
 
 @router.post("/{user_id}/ban", response_model=MessageResponse)
@@ -343,14 +335,11 @@ async def ban_user_endpoint(
 ) -> MessageResponse:
     """Ban a user: set is_banned=true, revoke all sessions, force logout via WS."""
     if str(user_id) == current_user["sub"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot ban yourself.",
-        )
+        raise AppError(ErrorCode.SYS_422, 400, "Cannot ban yourself.")
 
     result = await ban_user(user_id, req.reason)
     if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
@@ -375,7 +364,7 @@ async def unban_user_endpoint(
     """Unban a user: set is_banned=false, clear ban_reason."""
     result = await unban_user(user_id)
     if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None

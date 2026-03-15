@@ -122,7 +122,7 @@ class TestGetCategory:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "not found" in resp.json()["detail"].lower()
+                assert "not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -173,7 +173,7 @@ class TestCreateCategory:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
-                assert "already exists" in resp.json()["detail"].lower()
+                assert "already exists" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -241,7 +241,7 @@ class TestUpdateCategory:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "not found" in resp.json()["detail"].lower()
+                assert "not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -307,7 +307,7 @@ class TestDeleteCategory:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "not found" in resp.json()["detail"].lower()
+                assert "not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 

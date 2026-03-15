@@ -1,8 +1,9 @@
+import asyncio
 import uuid
 
 from loguru import logger
 
-from app.converters.notification_converter import row_to_notification
+from app.converters.notification_converter import async_row_to_notification
 from app.core.event_bus import emit
 from app.repositories import notification_repo
 
@@ -29,7 +30,7 @@ async def create_notification(
         message,
     )
 
-    notif = row_to_notification(row)
+    notif = await async_row_to_notification(row)
     logger.info(
         "Notification created",
         extra={"notification_id": str(notif_id), "user_id": user_id, "type": action_type},
@@ -52,7 +53,8 @@ async def list_notifications(
     rows, total, unread_count = await notification_repo.find_many(
         uuid.UUID(user_id), unread_only, page_size, offset
     )
-    return [row_to_notification(r) for r in rows], total, unread_count
+    notifications = list(await asyncio.gather(*[async_row_to_notification(r) for r in rows]))
+    return notifications, total, unread_count
 
 
 async def mark_as_read(notification_id: uuid.UUID, user_id: str) -> bool:

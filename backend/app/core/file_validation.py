@@ -76,20 +76,20 @@ def sanitize_pdf(data: bytes) -> bytes:
 
 
 def validate_avatar(content_type: str, data: bytes) -> None:
-    """Validate avatar file: type, size, and magic bytes. Raises HTTPException if invalid."""
-    from fastapi import HTTPException, status
-
+    """Validate avatar file: type, size, and magic bytes. Raises AppError if invalid."""
     from app.core.errors import AppError, ErrorCode
 
     if content_type not in AVATAR_ALLOWED_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PNG and JPEG images are allowed.",
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            "Only PNG and JPEG images are allowed.",
         )
     if len(data) > MAX_AVATAR_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 2MB limit.",
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            "File size exceeds 2MB limit.",
         )
     if not validate_magic_number(data, content_type):
         raise AppError(
@@ -102,22 +102,22 @@ def validate_avatar(content_type: str, data: bytes) -> None:
 def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
     """Validate + sanitize an editor upload. Returns (content_type, sanitized_data).
 
-    Raises HTTPException or AppError if invalid.
+    Raises AppError if invalid.
     """
-    from fastapi import HTTPException, status
-
     from app.core.errors import AppError, ErrorCode
 
     expected_type = get_content_type_from_extension(filename)
     if expected_type is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File type not allowed. Accepted: .png, .jpg, .jpeg, .pdf, .docx",
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            "File type not allowed. Accepted: .png, .jpg, .jpeg, .pdf, .docx",
         )
     if len(data) > MAX_EDITOR_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 20MB limit.",
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            "File size exceeds 20MB limit.",
         )
     if not validate_magic_number(data, expected_type):
         raise AppError(

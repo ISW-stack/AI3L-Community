@@ -303,7 +303,7 @@ class TestCreatePostFKViolation:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "Category" in resp.json()["detail"]
+                assert "Category" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -720,7 +720,7 @@ class TestUpdatePostVersionConflict:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "At least one field" in resp.json()["detail"]
+                assert "At least one field" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -742,7 +742,7 @@ class TestPostHistoryForbiddenNonOwner:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "Not authorized" in resp.json()["detail"]
+                assert "Not authorized" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 

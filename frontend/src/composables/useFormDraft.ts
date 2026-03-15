@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
 import type { Question } from '@/types'
+import { useDraft } from './useDraft'
 
 export interface FormDraftData {
   title: string
@@ -41,63 +42,87 @@ function resolve(v: StringOrGetter): string | undefined {
  * Using getter functions defers key computation to call time, which prevents
  * a race condition when the composable is instantiated before route params
  * are resolved. Call `checkForDraft()` in `onMounted` to read the correct key.
+ *
+ * Internally delegates to the generic `useDraft` composable while preserving
+ * the existing storage format and external API for backward compatibility.
  */
 export function useFormDraft(sigId?: StringOrGetter, formId?: StringOrGetter): FormDraftState {
-  const hasDraft = ref(false)
-  const draftTime = ref('')
+  const keyFn = () => getDraftKey(resolve(sigId), resolve(formId))
 
-  function getKey(): string {
-    return getDraftKey(resolve(sigId), resolve(formId))
+  const defaultValue: FormDraftData = {
+    title: '',
+    description: '',
+    bannerUrl: '',
+    deadline: '',
+    maxRespondents: null,
+    allowNonMembers: false,
+    questions: [],
+    savedAt: '',
   }
 
+  const {
+    data,
+    hasDraft,
+    loadDraft: coreLoad,
+    clearDraft: coreClear,
+    checkForDraft: coreCheck,
+  } = useDraft<FormDraftData>({
+    key: keyFn,
+    defaultValue,
+    debounceMs: 0,
+    autoSave: false,
+  })
+
+  // draftTime tracks the savedAt field from the stored data itself.
+  // This preserves the original API where savedAt is part of FormDraftData.
+  const draftTime = ref('')
+
   function checkForDraft(): void {
-    try {
-      const raw = localStorage.getItem(getKey())
-      if (raw) {
-        const data = JSON.parse(raw) as FormDraftData
-        hasDraft.value = true
-        draftTime.value = data.savedAt
-      } else {
+    const exists = coreCheck()
+    if (exists) {
+      // Validate that the stored data is valid JSON (backward compat).
+      // The old implementation parsed the JSON during check and treated
+      // parse failures as "no draft".
+      try {
+        const raw = localStorage.getItem(keyFn())
+        if (raw) {
+          const parsed = JSON.parse(raw) as FormDraftData
+          hasDraft.value = true
+          draftTime.value = parsed.savedAt || ''
+        }
+      } catch {
         hasDraft.value = false
         draftTime.value = ''
       }
-    } catch {
-      hasDraft.value = false
+    } else {
       draftTime.value = ''
     }
   }
 
-  function saveDraft(data: Omit<FormDraftData, 'savedAt'>): void {
+  function saveDraft(formData: Omit<FormDraftData, 'savedAt'>): void {
+    const now = new Date().toISOString()
+    data.value = { ...formData, savedAt: now }
+    // Write directly to localStorage to preserve the existing format
+    // (FormDraftData with embedded savedAt, stored as plain JSON).
     try {
-      const draftData: FormDraftData = {
-        ...data,
-        savedAt: new Date().toISOString(),
-      }
-      localStorage.setItem(getKey(), JSON.stringify(draftData))
+      localStorage.setItem(keyFn(), JSON.stringify(data.value))
       hasDraft.value = true
-      draftTime.value = draftData.savedAt
+      draftTime.value = now
     } catch {
       // localStorage might be full or unavailable
     }
   }
 
   function loadDraft(): FormDraftData | null {
-    try {
-      const raw = localStorage.getItem(getKey())
-      if (!raw) return null
-      return JSON.parse(raw) as FormDraftData
-    } catch {
-      return null
-    }
+    const loaded = coreLoad()
+    if (!loaded) return null
+    // Sync draftTime from the loaded data
+    draftTime.value = data.value.savedAt || ''
+    return data.value
   }
 
   function discardDraft(): void {
-    try {
-      localStorage.removeItem(getKey())
-    } catch {
-      // ignore
-    }
-    hasDraft.value = false
+    coreClear()
     draftTime.value = ''
   }
 

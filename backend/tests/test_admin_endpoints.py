@@ -228,7 +228,7 @@ class TestDeleteInviteCode:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "not found" in resp.json()["detail"].lower()
+                assert "not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 

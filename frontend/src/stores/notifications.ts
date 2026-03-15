@@ -6,6 +6,7 @@ import {
   markRead as apiMarkRead,
   markAllRead as apiMarkAllRead,
 } from '@/api/notifications'
+import { getErrorMessage } from '@/utils/error'
 
 export const useNotificationStore = defineStore('notifications', () => {
   const unreadCount = ref(0)
@@ -16,8 +17,8 @@ export const useNotificationStore = defineStore('notifications', () => {
     try {
       const data = await listNotifications({ unread: true, page_size: 1 })
       unreadCount.value = data.unread_count
-    } catch {
-      // silent
+    } catch (e: unknown) {
+      console.error('Failed to fetch unread count:', getErrorMessage(e))
     }
   }
 
@@ -28,8 +29,8 @@ export const useNotificationStore = defineStore('notifications', () => {
       const data = await listNotifications({ page, page_size: pageSize })
       items.value = data.notifications
       unreadCount.value = data.unread_count
-    } catch {
-      // silent
+    } catch (e: unknown) {
+      console.error('Failed to fetch notifications:', getErrorMessage(e))
     } finally {
       loading.value = false
     }
@@ -43,8 +44,8 @@ export const useNotificationStore = defineStore('notifications', () => {
         notif.is_read = true
         unreadCount.value = Math.max(0, unreadCount.value - 1)
       }
-    } catch {
-      // silent
+    } catch (e: unknown) {
+      console.error('Failed to mark notification as read:', getErrorMessage(e))
     }
   }
 
@@ -53,8 +54,8 @@ export const useNotificationStore = defineStore('notifications', () => {
       await apiMarkAllRead()
       items.value.forEach((n) => (n.is_read = true))
       unreadCount.value = 0
-    } catch {
-      // silent
+    } catch (e: unknown) {
+      console.error('Failed to mark all notifications as read:', getErrorMessage(e))
     }
   }
 

@@ -10,13 +10,18 @@ try:
         from ddtrace import patch_all
 
         patch_all()
-except Exception:
-    pass
+except ImportError:
+    pass  # ddtrace not installed
+except Exception as e:
+    import logging
+
+    logging.getLogger(__name__).warning("Datadog tracing init failed: %s", e)
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.middleware.base import RequestResponseEndpoint
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.router import api_v1_router
@@ -138,8 +143,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Shutting down AI3L Community API")
     try:
         await stop_redis_subscriber()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Redis subscriber cleanup failed: %s", e)
     close_storage()
     await close_redis()
     await close_db_pool()
@@ -159,7 +164,7 @@ app = FastAPI(
 
 
 @app.middleware("http")
-async def limit_request_body_size(request: Request, call_next):  # type: ignore[no-untyped-def]
+async def limit_request_body_size(request: Request, call_next: RequestResponseEndpoint):
     """Reject requests whose Content-Length exceeds the global limit."""
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > MAX_REQUEST_BODY_SIZE:

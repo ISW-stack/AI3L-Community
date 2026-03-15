@@ -389,4 +389,76 @@ describe('PostCreateView', () => {
     const backLink = wrapper.findAll('a').find((l) => l.attributes('href')?.includes('/sigs/sig1'))
     expect(backLink).toBeTruthy()
   })
+
+  describe('draft integration with useDraft', () => {
+    it('clears draft from localStorage after successful submit', async () => {
+      localStorage.setItem(
+        'ai3l_post_draft_general',
+        JSON.stringify({
+          title: 'Draft Title',
+          content: '<p>Draft content</p>',
+          categoryId: null,
+          keywords: [],
+          allowComments: true,
+        }),
+      )
+
+      const { wrapper } = await mountPostCreate()
+      // Draft should be loaded
+      expect(wrapper.text()).toContain('Draft restored')
+
+      // Submit the form (draft data has title and content)
+      const form = wrapper.find('form')
+      await form.trigger('submit')
+      await flushPromises()
+
+      expect(mockCreatePost).toHaveBeenCalled()
+      expect(localStorage.getItem('ai3l_post_draft_general')).toBeNull()
+    })
+
+    it('does not show draft restored when draft has no title or content', async () => {
+      localStorage.setItem(
+        'ai3l_post_draft_general',
+        JSON.stringify({
+          title: '',
+          content: '',
+          categoryId: null,
+          keywords: [],
+          allowComments: true,
+        }),
+      )
+
+      const { wrapper } = await mountPostCreate()
+      expect(wrapper.text()).not.toContain('Draft restored')
+    })
+
+    it('discard draft resets all form fields', async () => {
+      localStorage.setItem(
+        'ai3l_post_draft_general',
+        JSON.stringify({
+          title: 'Draft Title',
+          content: '<p>Some content</p>',
+          categoryId: 'cat1',
+          keywords: ['test'],
+          allowComments: false,
+        }),
+      )
+
+      const { wrapper } = await mountPostCreate()
+      expect(wrapper.text()).toContain('Draft restored')
+
+      const discardBtn = wrapper.findAll('button').find((b) => b.text().includes('Discard draft'))
+      await discardBtn!.trigger('click')
+      await flushPromises()
+
+      // Draft alert should be hidden
+      expect(wrapper.text()).not.toContain('Draft restored')
+
+      // Form should be reset (submitting empty form should show validation error)
+      const form = wrapper.find('form')
+      await form.trigger('submit')
+      await flushPromises()
+      expect(wrapper.text()).toContain('Title and content are required')
+    })
+  })
 })

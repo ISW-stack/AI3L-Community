@@ -1,9 +1,10 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_STATS, RATE_LIMIT_FORM_SUBMIT
 from app.core.deps import get_current_user, require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
 from app.dependencies.sig_admin import require_sig_admin
@@ -66,7 +67,7 @@ async def create_new_form(
             allow_non_members=req.allow_non_members,
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, str(e))
     form["user_is_sig_admin"] = True
     return FormResponseSchema(**form)
 
@@ -95,7 +96,7 @@ async def get_my_response(
 ) -> FormUserResponseSchema:
     form = await get_form_by_id(form_id)
     if form is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     # If form restricts access to SIG members only, verify membership
     if not form.get("allow_non_members", False):
         is_admin = await _is_sig_admin(
@@ -106,13 +107,14 @@ async def get_my_response(
                 uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
             )
             if member_role is None:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Only SIG members can view this form.",
+                raise AppError(
+                    ErrorCode.SYS_403,
+                    status.HTTP_403_FORBIDDEN,
+                    "Only SIG members can view this form.",
                 )
     response = await get_user_response(form_id, current_user["sub"])
     if response is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No response found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "No response found.")
     return FormUserResponseSchema(**response)
 
 
@@ -123,23 +125,24 @@ async def get_form_statistics(
 ) -> FormStatsResponse:
     user_id = current_user["sub"]
     if not await check_rate_limit(f"rl:form_stats:{user_id}:{form_id}", *RATE_LIMIT_FORM_STATS):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     form = await get_form_by_id(form_id)
     if form is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
     is_creator = form["created_by"] == current_user["sub"]
     if not is_admin and not is_creator:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the form creator or admins can view form statistics.",
+        raise AppError(
+            ErrorCode.SYS_403,
+            status.HTTP_403_FORBIDDEN,
+            "Only the form creator or admins can view form statistics.",
         )
     try:
         stats = await get_form_stats(form_id)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, str(e))
     return FormStatsResponse(**stats)
 
 
@@ -150,7 +153,7 @@ async def get_form(
 ) -> FormResponseSchema:
     form = await get_form_by_id(form_id, user_id=current_user["sub"])
     if form is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
@@ -160,9 +163,10 @@ async def get_form(
             uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
         )
         if member_role is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only SIG members can view this form.",
+            raise AppError(
+                ErrorCode.SYS_403,
+                status.HTTP_403_FORBIDDEN,
+                "Only SIG members can view this form.",
             )
     form["user_is_sig_admin"] = is_admin
     return FormResponseSchema(**form)
@@ -177,15 +181,16 @@ async def update_existing_form(
     # Fetch form to validate SIG ownership
     existing_form = await get_form_by_id(form_id)
     if existing_form is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
     is_admin = await _is_sig_admin(
         uuid.UUID(existing_form["sig_id"]), current_user["sub"], current_user["role"]
     )
     if not is_admin and existing_form["created_by"] != current_user["sub"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only SIG admins or the form creator can update this form.",
+        raise AppError(
+            ErrorCode.SYS_403,
+            status.HTTP_403_FORBIDDEN,
+            "Only SIG admins or the form creator can update this form.",
         )
 
     # Note: _is_sig_admin() already checks platform admin roles, no need to re-check
@@ -203,11 +208,11 @@ async def update_existing_form(
             allow_non_members=req.allow_non_members,
         )
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, str(e))
     if form is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     form["user_is_sig_admin"] = True
     return FormResponseSchema(**form)
 
@@ -223,7 +228,7 @@ async def delete_form(
     if not is_admin:
         form = await get_form_by_id(form_id)
         if form is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+            raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
         is_admin = await _is_sig_admin(
             uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
@@ -231,9 +236,9 @@ async def delete_form(
     try:
         deleted = await soft_delete_form(form_id, current_user["sub"], is_admin)
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
 
 @router.get("/forms/{form_id}/responses", response_model=FormResponseListResponse)
@@ -245,15 +250,16 @@ async def get_form_responses(
 ) -> FormResponseListResponse:
     form = await get_form_by_id(form_id)
     if form is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
     is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
     if not is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only SIG admins can view form responses.",
+        raise AppError(
+            ErrorCode.SYS_403,
+            status.HTTP_403_FORBIDDEN,
+            "Only SIG admins can view form responses.",
         )
 
     responses, total = await list_form_responses(form_id, page=page, page_size=page_size)
@@ -274,7 +280,7 @@ async def submit_form_response(
 ) -> FormSubmitResponse:
     user_id = current_user["sub"]
     if not await check_rate_limit(f"rl:form_submit:{user_id}:{form_id}", *RATE_LIMIT_FORM_SUBMIT):
-        raise HTTPException(status_code=429, detail="Too many submissions. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many submissions. Try again later.")
     try:
         result = await submit_response(
             form_id=form_id,
@@ -282,19 +288,20 @@ async def submit_form_response(
             answers=req.answers,
         )
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))
     except ValueError as e:
         detail = str(e)
         if "already submitted" in detail.lower():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+            raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, detail)
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, detail)
     except Exception as e:
         # Catch DB unique-violation (concurrent duplicate submit) gracefully
         err_str = str(e).lower()
         if "unique" in err_str or "duplicate" in err_str or "23505" in err_str:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="You have already submitted a response to this form.",
+            raise AppError(
+                ErrorCode.SYS_409,
+                status.HTTP_409_CONFLICT,
+                "You have already submitted a response to this form.",
             )
         raise
     return FormSubmitResponse(**result)
@@ -311,19 +318,20 @@ async def export_form_csv(
     user_id = current_user["sub"]
     form = await get_form_by_id(form_id)
     if form is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
     is_admin = await _is_sig_admin(
         uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
     )
     if not is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only SIG admins can export form data.",
+        raise AppError(
+            ErrorCode.SYS_403,
+            status.HTTP_403_FORBIDDEN,
+            "Only SIG admins can export form data.",
         )
 
     if not await check_rate_limit(f"rl:form_export:{user_id}:{form_id}", *RATE_LIMIT_FORM_EXPORT):
-        raise HTTPException(status_code=429, detail="Export already in progress. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Export already in progress. Try again later.")
 
     from app.tasks.form_export import export_form_csv as export_task
 

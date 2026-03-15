@@ -3,10 +3,12 @@ import { ref, watch, type Ref } from 'vue'
 const DRAFT_PREFIX = 'form-response-draft-'
 const DEBOUNCE_MS = 2000
 
+export type FormAnswerValue = string | string[] | number | boolean | null
+export type FormAnswers = Record<string, FormAnswerValue>
+
 export interface FormDraftOptions {
   formId: Ref<string>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  answers: Ref<Record<string, any>>
+  answers: Ref<FormAnswers>
   /** Question types that should not be saved (e.g. file_upload) */
   skipTypes?: Ref<Record<string, string>>
 }
@@ -21,8 +23,8 @@ export function useFormResponseDraft(options: FormDraftOptions) {
     return `${DRAFT_PREFIX}${formId.value}`
   }
 
-  function serializableAnswers(): Record<string, unknown> {
-    const result: Record<string, unknown> = {}
+  function serializableAnswers(): FormAnswers {
+    const result: FormAnswers = {}
     for (const [key, val] of Object.entries(answers.value)) {
       // Skip File objects (file_upload type)
       if (val instanceof File) continue
@@ -46,7 +48,7 @@ export function useFormResponseDraft(options: FormDraftOptions) {
     try {
       const raw = localStorage.getItem(draftKey())
       if (!raw) return false
-      const data = JSON.parse(raw) as Record<string, unknown>
+      const data = JSON.parse(raw) as FormAnswers
       for (const [key, val] of Object.entries(data)) {
         if (key in answers.value) {
           answers.value[key] = val

@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.core.redis import get_redis
 
 _LUA_RATE_LIMIT = """
@@ -21,7 +23,7 @@ async def check_rate_limit(key: str, max_count: int, window_seconds: int) -> boo
     Returns True if within limit, False if exceeded.
     """
     redis = get_redis()
-    result = await redis.eval(  # type: ignore[misc]
+    result: Any = await redis.eval(
         _LUA_RATE_LIMIT, 1, key, str(max_count), str(window_seconds)
     )
     return bool(result == 1)

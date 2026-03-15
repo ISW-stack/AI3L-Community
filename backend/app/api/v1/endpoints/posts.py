@@ -1,6 +1,7 @@
 import uuid
+from typing import Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.core.constants import RATE_LIMIT_REACTION
 from app.core.deps import get_current_user, require_role
@@ -53,11 +54,11 @@ async def create_new_post(
             allow_comments=req.allow_comments,
         )
     except RateLimitError as e:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
+        raise AppError(ErrorCode.SYS_429, 429, str(e))
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise AppError(ErrorCode.SYS_403, 403, str(e))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, 400, str(e))
 
     return PostResponse(**post)
 
@@ -84,16 +85,16 @@ async def get_posts_list(
             cursor=cursor,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        raise AppError(ErrorCode.SYS_422, 400, str(exc))
 
     if cursor is not None:
         return PostListResponse(
-            posts=result["posts"],  # type: ignore[arg-type]
+            posts=cast(list[Any], result["posts"]),
             next_cursor=result["next_cursor"],
             has_more=result["has_more"],
         )
     return PostListResponse(
-        posts=result["posts"],  # type: ignore[arg-type]
+        posts=cast(list[Any], result["posts"]),
         total=result["total"],
         current_page=page,
         total_pages=result["total_pages"],
@@ -119,7 +120,7 @@ async def search_posts_endpoint(
         sort=req.sort,
     )
     return PostListResponse(
-        posts=posts,  # type: ignore[arg-type]
+        posts=cast(list[Any], posts),
         total=total,
         current_page=req.page,
         total_pages=total_pages,
@@ -132,7 +133,7 @@ async def get_trending(
     current_user: dict = Depends(get_current_user),
 ) -> list[PostResponse]:
     posts = await get_trending_posts(limit=5, days=7)
-    return [PostResponse(**p) for p in posts]  # type: ignore[arg-type]
+    return [PostResponse(**cast(dict[str, Any], p)) for p in posts]
 
 
 @router.delete("/bulk", status_code=status.HTTP_200_OK)
@@ -177,10 +178,10 @@ async def toggle_post_reaction_endpoint(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
     if not await check_rate_limit(f"rl:post_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     result = await toggle_post_reaction(post_id, current_user["sub"], req.reaction)
     if result is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
     return PostResponse(**result)
 
 
@@ -191,7 +192,7 @@ async def get_post(
 ) -> PostResponse:
     post = await get_post_by_id(post_id, increment_view=True)
     if post is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
     return PostResponse(**post)
 
 
@@ -202,9 +203,8 @@ async def update_existing_post(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
     if not await check_rate_limit(f"edit_post:{current_user['sub']}", 30, 3600):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Edit rate limit exceeded. Please wait before editing again.",
+        raise AppError(
+            ErrorCode.SYS_429, 429, "Edit rate limit exceeded. Please wait before editing again."
         )
     if not any(
         [
@@ -215,7 +215,7 @@ async def update_existing_post(
             req.allow_comments is not None,
         ]
     ):
-        raise HTTPException(status_code=400, detail="At least one field must be provided.")
+        raise AppError(ErrorCode.SYS_422, 400, "At least one field must be provided.")
 
     content = sanitize_html(req.content) if req.content else None
     try:
@@ -231,12 +231,12 @@ async def update_existing_post(
             caller_role=current_user["role"],
         )
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise AppError(ErrorCode.SYS_403, 403, str(e))
     except ValueError as e:
         raise AppError(ErrorCode.SYS_409, 409, str(e))
 
     if post is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
     return PostResponse(**post)
 
 
@@ -249,9 +249,7 @@ async def delete_post(
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     deleted = await soft_delete_post(post_id, current_user["sub"], is_admin=is_admin)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not authorized."
-        )
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found or not authorized.")
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
@@ -283,7 +281,7 @@ async def toggle_pin(
 ) -> dict:
     updated = await pin_post(post_id, req.is_pinned)
     if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
     return {"is_pinned": req.is_pinned}
 
 
@@ -295,16 +293,13 @@ async def get_post_edit_history(
     # Verify post exists
     post = await get_post_by_id(post_id)
     if post is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
     # Only post owner or admins can view edit history
     if str(post["author"]["id"]) != current_user["sub"] and current_user["role"] not in (
         "SUPER_ADMIN",
         "ADMIN",
     ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to view edit history.",
-        )
+        raise AppError(ErrorCode.SYS_403, 403, "Not authorized to view edit history.")
 
     history = await get_post_history(post_id)
-    return PostHistoryResponse(history=history, total=len(history))  # type: ignore[arg-type]
+    return PostHistoryResponse(history=cast(list[Any], history), total=len(history))

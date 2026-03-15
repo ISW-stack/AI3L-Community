@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, inject, type Ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getSigPosts } from '@/api/sigs'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
-import type { Post, Sig } from '@/types'
+import { useSigLayout } from '@/composables/useSigLayout'
+import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
@@ -17,8 +18,7 @@ const { t } = useI18n()
 const toast = useToastStore()
 const route = useRoute()
 const sigId = computed(() => route.params.id as string)
-const sig = inject<Ref<Sig | null>>('sig', ref(null))
-const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
+const { sig, userSigRole } = useSigLayout()
 
 const posts = ref<Post[]>([])
 const total = ref(0)

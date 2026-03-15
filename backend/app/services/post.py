@@ -1,3 +1,4 @@
+import asyncio
 import re
 import uuid
 from datetime import date, datetime, timezone
@@ -5,7 +6,7 @@ from datetime import date, datetime, timezone
 import asyncpg
 from loguru import logger
 
-from app.converters.post_converter import row_to_history, row_to_post
+from app.converters.post_converter import async_row_to_post, row_to_history
 from app.core.constants import MAX_POSTS_PER_DAY
 from app.core.database import get_pool
 from app.core.errors import RateLimitError
@@ -94,7 +95,7 @@ async def create_post(
                 extra={"error": str(e), "post_id": str(post_id)},
             )
 
-    return row_to_post(row)
+    return await async_row_to_post(row)
 
 
 async def get_post_by_id(post_id: uuid.UUID, increment_view: bool = False) -> dict | None:
@@ -103,7 +104,7 @@ async def get_post_by_id(post_id: uuid.UUID, increment_view: bool = False) -> di
         return None
     if increment_view:
         await post_repo.increment_view_count(post_id)
-    return row_to_post(row)
+    return await async_row_to_post(row)
 
 
 async def update_post(
@@ -155,7 +156,7 @@ async def update_post(
             logger.info(
                 "Post updated", extra={"post_id": str(post_id), "version": expected_version + 1}
             )
-            return row_to_post(row)
+            return await async_row_to_post(row)
 
 
 async def _cleanup_post_files(post_id: uuid.UUID, user_id: str) -> None:
@@ -173,14 +174,28 @@ async def _cleanup_post_files(post_id: uuid.UUID, user_id: str) -> None:
         if not keys:
             return
         total_freed = 0
+        succeeded = 0
+        failed_keys: list[str] = []
         for key in keys:
             try:
                 size = await get_file_size(key)
                 if size and size > 0:
                     await delete_file(key)
                     total_freed += size
+                succeeded += 1
             except Exception:
+                failed_keys.append(key)
                 logger.warning("Failed to delete file during post cleanup", extra={"key": key})
+        if failed_keys:
+            logger.warning(
+                "Post file cleanup summary",
+                extra={
+                    "post_id": str(post_id),
+                    "succeeded": succeeded,
+                    "failed": len(failed_keys),
+                    "failed_keys": failed_keys,
+                },
+            )
         if total_freed > 0:
             await user_repo.decrement_storage_used(uuid.UUID(user_id), total_freed)
     except Exception:
@@ -241,7 +256,7 @@ async def list_posts(
     result = await post_repo.find_many(
         page, page_size, cat_uuid, sig_uuid, author_uuid, sort, cursor
     )
-    result["posts"] = [row_to_post(r) for r in result["posts"]]
+    result["posts"] = list(await asyncio.gather(*[async_row_to_post(r) for r in result["posts"]]))
     return result
 
 
@@ -261,7 +276,8 @@ async def search_posts(
     rows, total, total_pages = await post_repo.search(
         keyword, cat_uuid, keywords_filter, date_from, date_to, logic, page, page_size, sort
     )
-    return [row_to_post(r) for r in rows], total, total_pages
+    posts = list(await asyncio.gather(*[async_row_to_post(r) for r in rows]))
+    return posts, total, total_pages
 
 
 async def pin_post(post_id: uuid.UUID, is_pinned: bool) -> bool:
@@ -270,7 +286,7 @@ async def pin_post(post_id: uuid.UUID, is_pinned: bool) -> bool:
 
 async def get_trending_posts(limit: int = 5, days: int = 7) -> list[dict]:
     rows = await post_repo.find_trending(limit, days)
-    return [row_to_post(r) for r in rows]
+    return list(await asyncio.gather(*[async_row_to_post(r) for r in rows]))
 
 
 async def toggle_post_reaction(post_id: uuid.UUID, user_id: str, reaction: str) -> dict | None:
@@ -278,7 +294,7 @@ async def toggle_post_reaction(post_id: uuid.UUID, user_id: str, reaction: str) 
     row = await post_repo.toggle_reaction(post_id, user_id, reaction)
     if not row:
         return None
-    return row_to_post(row)
+    return await async_row_to_post(row)
 
 
 async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:

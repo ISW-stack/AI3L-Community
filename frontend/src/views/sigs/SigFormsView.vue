@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, inject, watch, nextTick, onUnmounted, type Ref } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -9,7 +9,8 @@ import { deleteForm as deleteFormApi } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
 import { useFormResponseViewer } from '@/composables/useFormResponseViewer'
 import { useFormExport } from '@/composables/useFormExport'
-import type { SigForm, Sig } from '@/types'
+import { useSigLayout } from '@/composables/useSigLayout'
+import type { SigForm } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -25,8 +26,7 @@ const auth = useAuthStore()
 const toastStore = useToastStore()
 
 const sigId = computed(() => route.params.id as string)
-const sig = inject<Ref<Sig | null>>('sig', ref(null))
-const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
+const { sig, userSigRole } = useSigLayout()
 
 const forms = ref<SigForm[]>([])
 const total = ref(0)

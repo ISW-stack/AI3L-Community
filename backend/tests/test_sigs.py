@@ -314,7 +314,7 @@ class TestDemoteSubAdmin:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "owner" in resp.json()["detail"].lower()
+                assert "owner" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -620,7 +620,7 @@ class TestRemoveMemberSoleAdminEndpoint:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "last admin" in resp.json()["detail"]
+                assert "last admin" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 

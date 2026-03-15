@@ -45,6 +45,23 @@ async def create_user(
     return result
 
 
+_PROFILE_FIELD_LIMITS: dict[str, int] = {
+    "display_name": 100,
+    "bio": 500,
+    "affiliation": 200,
+    "orcid": 30,
+}
+
+
+def _validate_profile_field_lengths(**fields: str | None) -> None:
+    """Raise ValueError if any profile field exceeds its maximum length."""
+    for name, value in fields.items():
+        if value is not None and name in _PROFILE_FIELD_LIMITS:
+            limit = _PROFILE_FIELD_LIMITS[name]
+            if len(value) > limit:
+                raise ValueError(f"{name} must be at most {limit} characters (got {len(value)}).")
+
+
 async def update_user_profile(
     user_id: uuid.UUID,
     display_name: str | None = None,
@@ -54,6 +71,12 @@ async def update_user_profile(
     avatar_url: str | None = None,
     preferred_language: str | None = None,
 ) -> dict | None:
+    _validate_profile_field_lengths(
+        display_name=display_name,
+        bio=bio,
+        affiliation=affiliation,
+        orcid=orcid,
+    )
     return await user_repo.update_profile(
         user_id,
         display_name=display_name,
@@ -124,12 +147,27 @@ async def upload_user_avatar(
         try:
             await user_repo.increment_storage_used(user_uuid, net_delta)
         except Exception:
-            logger.warning(
-                "Failed to update storage counter for user=%s key=%s",
+            logger.error(
+                "Failed to update storage counter for user=%s key=%s — "
+                "attempting rollback by deleting uploaded file",
                 user_id,
                 key,
                 exc_info=True,
             )
+            try:
+                await async_delete_file(key)
+                logger.info(
+                    "Rollback: deleted uploaded avatar after storage counter failure",
+                    extra={"user_id": user_id, "key": key},
+                )
+            except Exception:
+                logger.error(
+                    "Rollback failed: could not delete uploaded avatar after "
+                    "storage counter failure for user=%s key=%s",
+                    user_id,
+                    key,
+                    exc_info=True,
+                )
     finally:
         await redis.delete(lock_key)
 

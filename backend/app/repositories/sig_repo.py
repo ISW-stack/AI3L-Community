@@ -332,13 +332,10 @@ async def find_members(
 ) -> tuple[list[dict], int]:
     pool = get_pool()
     async with pool.acquire() as conn:
-        total = await conn.fetchval(
-            "SELECT COUNT(*) FROM sig_members WHERE sig_id = $1",
-            sig_id,
-        )
         rows = await conn.fetch(
             """
-            SELECT sm.*, u.display_name, u.username, u.avatar_url
+            SELECT sm.*, u.display_name, u.username, u.avatar_url,
+                   COUNT(*) OVER() AS _total
             FROM sig_members sm
             JOIN users u ON sm.user_id = u.id
             WHERE sm.sig_id = $1
@@ -349,4 +346,8 @@ async def find_members(
             limit,
             offset,
         )
-        return [dict(r) for r in rows], total
+        if not rows:
+            return [], 0
+        total = rows[0]["_total"]
+        items = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+        return items, total

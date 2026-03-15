@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePagination } from '@/composables/usePagination'
@@ -31,10 +31,6 @@ const unreadCount = ref(0)
 const loading = ref(false)
 const filter = ref<'all' | 'unread'>('all')
 let fetchId = 0
-
-const filteredNotifications = computed(() => {
-  return notifications.value
-})
 
 function changeFilter(f: 'all' | 'unread') {
   filter.value = f
@@ -193,14 +189,14 @@ onMounted(fetchNotifications)
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
     <EmptyState
-      v-else-if="filteredNotifications.length === 0"
+      v-else-if="notifications.length === 0"
       :message="t('notifications.emptyMessage')"
       :title="t('notifications.emptyTitle')"
     />
 
     <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
       <button
-        v-for="notif in filteredNotifications"
+        v-for="notif in notifications"
         :key="notif.id"
         @click="markRead(notif)"
         class="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-surface-alt transition"

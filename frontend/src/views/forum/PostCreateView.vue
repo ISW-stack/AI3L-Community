@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
@@ -8,11 +8,20 @@ import { getErrorMessage } from '@/utils/error'
 import { createPost as apiCreatePost } from '@/api/posts'
 import { listCategories } from '@/api/categories'
 import { listMySigs } from '@/api/sigs'
+import { useDraft } from '@/composables/useDraft'
 const TiptapEditor = defineAsyncComponent(() => import('@/components/TiptapEditor.vue'))
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+
+interface PostDraft {
+  title: string
+  content: string
+  categoryId: string | null
+  keywords: string[]
+  allowComments: boolean
+}
 
 const { t } = useI18n()
 const route = useRoute()
@@ -22,71 +31,70 @@ const toast = useToastStore()
 const querySigId = (route.query.sig_id as string) || null
 const fromSig = computed(() => !!querySigId)
 
-const title = ref('')
-const content = ref('')
-const categoryId = ref<string | null>(null)
 const sigId = ref<string | null>(querySigId)
 const keywordsInput = ref('')
-const keywords = ref<string[]>([])
-const allowComments = ref(true)
 const categories = ref<Category[]>([])
 const mySigs = ref<Sig[]>([])
 const saving = ref(false)
 const message = ref('')
 const draftRestored = ref(false)
 
-const DRAFT_KEY = `ai3l_post_draft_${querySigId || 'general'}`
+const {
+  data: draftData,
+  loadDraft,
+  clearDraft,
+} = useDraft<PostDraft>({
+  key: `ai3l_post_draft_${querySigId || 'general'}`,
+  defaultValue: {
+    title: '',
+    content: '',
+    categoryId: null,
+    keywords: [],
+    allowComments: true,
+  },
+  debounceMs: 1000,
+  autoSave: true,
+})
 
-function saveDraft() {
-  const draft = {
-    title: title.value,
-    content: content.value,
-    categoryId: categoryId.value,
-    keywords: keywords.value,
-    allowComments: allowComments.value,
-  }
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
-}
+const title = computed({
+  get: () => draftData.value.title ?? '',
+  set: (v: string) => {
+    draftData.value.title = v
+  },
+})
 
-function loadDraft() {
-  const raw = localStorage.getItem(DRAFT_KEY)
-  if (!raw) return
-  try {
-    const draft = JSON.parse(raw)
-    if (draft.title || draft.content) {
-      title.value = draft.title || ''
-      content.value = draft.content || ''
-      categoryId.value = draft.categoryId ?? null
-      keywords.value = draft.keywords || []
-      allowComments.value = draft.allowComments ?? true
-      draftRestored.value = true
-    }
-  } catch {
-    localStorage.removeItem(DRAFT_KEY)
-  }
-}
+const content = computed({
+  get: () => draftData.value.content ?? '',
+  set: (v: string) => {
+    draftData.value.content = v
+  },
+})
 
-function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY)
-}
+const categoryId = computed({
+  get: () => draftData.value.categoryId ?? null,
+  set: (v: string | null) => {
+    draftData.value.categoryId = v
+  },
+})
+
+const keywords = computed({
+  get: () => draftData.value.keywords ?? [],
+  set: (v: string[]) => {
+    draftData.value.keywords = v
+  },
+})
+
+const allowComments = computed({
+  get: () => draftData.value.allowComments ?? true,
+  set: (v: boolean) => {
+    draftData.value.allowComments = v
+  },
+})
 
 function discardDraft() {
   clearDraft()
-  title.value = ''
-  content.value = ''
-  keywords.value = []
-  categoryId.value = null
-  allowComments.value = true
   draftRestored.value = false
 }
-
-let draftTimer: ReturnType<typeof setTimeout> | null = null
-function debouncedSaveDraft() {
-  if (draftTimer) clearTimeout(draftTimer)
-  draftTimer = setTimeout(saveDraft, 1000)
-}
-
-watch([title, content, categoryId, keywords, allowComments], debouncedSaveDraft, { deep: true })
 
 async function fetchCategories() {
   try {
@@ -107,13 +115,15 @@ async function fetchMySigs() {
 function addKeyword() {
   const kw = keywordsInput.value.trim()
   if (kw && keywords.value.length < 15 && !keywords.value.includes(kw)) {
-    keywords.value.push(kw)
+    draftData.value.keywords = [...draftData.value.keywords, kw]
     keywordsInput.value = ''
   }
 }
 
 function removeKeyword(index: number) {
-  keywords.value.splice(index, 1)
+  const updated = [...draftData.value.keywords]
+  updated.splice(index, 1)
+  draftData.value.keywords = updated
 }
 
 function isContentEmpty(html: string): boolean {
@@ -166,13 +176,12 @@ async function createPost() {
 }
 
 onMounted(() => {
-  loadDraft()
+  const loaded = loadDraft()
+  if (loaded && (draftData.value.title || draftData.value.content)) {
+    draftRestored.value = true
+  }
   fetchCategories()
   fetchMySigs()
-})
-
-onUnmounted(() => {
-  if (draftTimer) clearTimeout(draftTimer)
 })
 </script>
 

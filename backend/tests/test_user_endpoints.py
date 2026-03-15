@@ -137,7 +137,7 @@ class TestDeleteAccount:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
-                detail = resp.json()["detail"]
+                detail = resp.json()["detail"]["message"]
                 assert "sole admin" in detail.lower()
                 assert "ML Research" in detail
         finally:
@@ -163,7 +163,7 @@ class TestDeleteAccount:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
-                detail = resp.json()["detail"]
+                detail = resp.json()["detail"]["message"]
                 assert "SIG Alpha" in detail
                 assert "SIG Beta" in detail
         finally:
@@ -358,7 +358,7 @@ class TestChangeRoleSelfDemotion:
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 400
-            assert "Cannot change your own role" in resp.json()["detail"]
+            assert "Cannot change your own role" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -417,7 +417,7 @@ class TestAdminCreateAccountRestrictions:
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 403
-            assert "Super Admin" in resp.json()["detail"]
+            assert "Super Admin" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -438,7 +438,7 @@ class TestAdminCreateAccountRestrictions:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
-                assert "already exists" in resp.json()["detail"].lower()
+                assert "already exists" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 

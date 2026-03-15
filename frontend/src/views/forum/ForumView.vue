@@ -296,7 +296,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+    searchDebounceTimer = null
+  }
 })
 </script>
 

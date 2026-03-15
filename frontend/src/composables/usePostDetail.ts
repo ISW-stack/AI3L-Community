@@ -120,6 +120,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     Record<string, 'pending' | 'clean' | 'malicious' | 'unknown' | 'skipped'>
   >({})
   const postContentRef = ref<HTMLElement | null>(null)
+
+  // Instance-level state (must be inside function so each usePostDetail() call gets its own)
   let scanPollTimers: ReturnType<typeof setTimeout>[] = []
   let isUnmounted = false
 

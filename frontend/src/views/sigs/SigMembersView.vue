@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, inject, type Ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
+import { useSigLayout } from '@/composables/useSigLayout'
 import {
   getSigMembers,
   removeMember as removeMemberApi,
@@ -12,7 +13,7 @@ import {
   demoteSubAdmin as demoteSubAdminApi,
 } from '@/api/sigs'
 import { getErrorMessage } from '@/utils/error'
-import type { SigMember, Sig } from '@/types'
+import type { SigMember } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -31,9 +32,7 @@ const toastStore = useToastStore()
 const PAGE_SIZE = 20
 
 const sigId = computed(() => route.params.id as string)
-const sig = inject<Ref<Sig | null>>('sig', ref(null))
-const userSigRole = inject<Ref<string | null>>('userSigRole', ref(null))
-const refreshSigRole = inject<() => Promise<void>>('refreshSigRole')
+const { sig, userSigRole, refreshSigRole } = useSigLayout()
 
 const members = ref<SigMember[]>([])
 const loading = ref(true)

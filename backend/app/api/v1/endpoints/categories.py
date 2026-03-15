@@ -1,9 +1,10 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response, status
 
 from app.core.constants import RATE_LIMIT_CATEGORY_CRUD
 from app.core.deps import get_current_user, require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
 from app.schemas.category import (
     CategoryCreateRequest,
@@ -49,7 +50,7 @@ async def get_category(
 ) -> CategoryResponse:
     cat = await get_category_by_id(category_id)
     if cat is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Category not found.")
     return CategoryResponse(
         id=str(cat["id"]),
         name=cat["name"],
@@ -66,9 +67,9 @@ async def create_new_category(
     if not await check_rate_limit(
         f"rl:category_crud:{current_user['sub']}", *RATE_LIMIT_CATEGORY_CRUD
     ):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     if await category_exists(req.name):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Category already exists.")
+        raise AppError(ErrorCode.SYS_409, 409, "Category already exists.")
 
     cat = await create_category(name=req.name, description=req.description)
     return CategoryResponse(
@@ -87,10 +88,10 @@ async def update_existing_category(
     if not await check_rate_limit(
         f"rl:category_crud:{current_user['sub']}", *RATE_LIMIT_CATEGORY_CRUD
     ):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     cat = await update_category(category_id, name=req.name, description=req.description)
     if cat is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Category not found.")
     return CategoryResponse(
         id=str(cat["id"]),
         name=cat["name"],
@@ -106,7 +107,7 @@ async def delete_existing_category(
     if not await check_rate_limit(
         f"rl:category_crud:{current_user['sub']}", *RATE_LIMIT_CATEGORY_CRUD
     ):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     deleted = await delete_category(category_id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Category not found.")

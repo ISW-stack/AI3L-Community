@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 from celery import shared_task
 from loguru import logger
@@ -29,7 +30,7 @@ async def _async_retry() -> None:
         logger.warning("Redis not available for event retry")
         return
 
-    raw_events: list = await redis.lrange("event_bus:failed", 0, -1)  # type: ignore[misc]
+    raw_events: list[Any] = await redis.lrange("event_bus:failed", 0, -1)
     if not raw_events:
         return
 

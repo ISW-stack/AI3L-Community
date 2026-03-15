@@ -111,6 +111,7 @@ async function mountComponent(opts: MountOptions = {}) {
     global: {
       plugins: [pinia, router],
       provide: {
+        sig: ref({ id: 'sig-1', name: 'Test SIG', description: null, created_by: 'u1', creator_display_name: null, member_count: 2, created_at: '2026-01-01T00:00:00Z' }),
         userSigRole: ref(userSigRole),
       },
       stubs: {

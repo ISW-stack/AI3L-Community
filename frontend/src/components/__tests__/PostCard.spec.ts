@@ -402,6 +402,34 @@ describe('PostCard', () => {
     })
   })
 
+  describe('image alt text', () => {
+    it('uses post title as alt text for thumbnail image', () => {
+      const wrapper = mountCard(
+        makePost({
+          id: 'post-alt',
+          title: 'My Great Post',
+          content: '<p>Hello</p><img src="https://example.com/img.jpg" />',
+        }),
+      )
+      const imgs = wrapper.findAll('img').filter((i) => i.classes().includes('w-full'))
+      expect(imgs.length).toBe(1)
+      expect(imgs[0].attributes('alt')).toBe('My Great Post')
+    })
+
+    it('falls back to "Post image" when post title is empty', () => {
+      const wrapper = mountCard(
+        makePost({
+          id: 'post-no-title',
+          title: '',
+          content: '<p>Hello</p><img src="https://example.com/img.jpg" />',
+        }),
+      )
+      const imgs = wrapper.findAll('img').filter((i) => i.classes().includes('w-full'))
+      expect(imgs.length).toBe(1)
+      expect(imgs[0].attributes('alt')).toBe('Post image')
+    })
+  })
+
   describe('image display', () => {
     it('shows full-width image when content contains an image', () => {
       const wrapper = mountCard(

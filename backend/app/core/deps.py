@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.errors import AppError, ErrorCode
@@ -69,10 +69,7 @@ def require_role(*allowed_roles: str) -> Any:
     async def role_checker(current_user: dict = Depends(get_current_user)) -> dict:
         user_role = current_user.get("role")
         if user_role not in allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions.",
-            )
+            raise AppError(ErrorCode.SYS_403, 403, "Insufficient permissions.")
         return current_user
 
     return role_checker

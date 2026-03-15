@@ -1,8 +1,9 @@
+import asyncio
 import uuid
 
 from loguru import logger
 
-from app.converters.sig_converter import row_to_member, row_to_sig
+from app.converters.sig_converter import async_row_to_member, row_to_sig
 from app.core.database import get_pool
 from app.repositories import sig_repo
 
@@ -177,7 +178,7 @@ async def join_sig(sig_id: uuid.UUID, user_id: str) -> dict:
             if row is None:
                 raise ValueError("SIG not found.")
             logger.info("User joined SIG", extra={"sig_id": str(sig_id), "user_id": user_id})
-            return row_to_member(row)
+            return await async_row_to_member(row)
 
 
 async def list_my_sigs(user_id: str) -> list[dict]:
@@ -225,7 +226,7 @@ async def demote_sub_admin(
                 raise ValueError("SIG not found.")
 
     logger.info("Sub-admin demoted", extra={"sig_id": str(sig_id), "user_id": user_id})
-    return row_to_member(row)
+    return await async_row_to_member(row)
 
 
 async def assign_sub_admin(
@@ -260,7 +261,7 @@ async def assign_sub_admin(
                 raise ValueError("SIG not found.")
 
     logger.info("Sub-admin assigned", extra={"sig_id": str(sig_id), "user_id": user_id})
-    return row_to_member(row)
+    return await async_row_to_member(row)
 
 
 async def list_sig_members(
@@ -269,4 +270,5 @@ async def list_sig_members(
     limit: int = 50,
 ) -> tuple[list[dict], int]:
     rows, total = await sig_repo.find_members(sig_id, offset, limit)
-    return [row_to_member(r) for r in rows], total
+    members = list(await asyncio.gather(*[async_row_to_member(r) for r in rows]))
+    return members, total

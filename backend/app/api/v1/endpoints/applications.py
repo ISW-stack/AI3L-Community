@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.core.deps import get_current_user, require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
 from app.schemas.application import (
     ApplicationListResponse,
@@ -36,15 +37,16 @@ async def apply_for_membership(
     current_user: dict = Depends(get_current_user),
 ) -> MessageResponse:
     if current_user["role"] != "GUEST":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only guests can apply for membership.",
+        raise AppError(
+            ErrorCode.SYS_422,
+            status.HTTP_400_BAD_REQUEST,
+            "Only guests can apply for membership.",
         )
 
     try:
         await create_application(uuid.UUID(current_user["sub"]), req.description)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, str(e))
 
     return MessageResponse(message="Application submitted successfully.")
 
@@ -76,9 +78,10 @@ async def review_membership_application(
         action=req.action,
     )
     if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Application not found or already reviewed.",
+        raise AppError(
+            ErrorCode.SYS_404,
+            status.HTTP_404_NOT_FOUND,
+            "Application not found or already reviewed.",
         )
 
     # Audit log (best-effort, via event bus)

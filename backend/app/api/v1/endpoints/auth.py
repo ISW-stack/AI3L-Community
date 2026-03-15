@@ -1,6 +1,6 @@
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.core.config import settings
 from app.core.constants import (
@@ -48,30 +48,37 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _set_auth_cookies(response: Response, token: str, csrf_token: str, max_age: int) -> None:
     """Set HttpOnly access_token cookie and readable csrf_token cookie."""
-    cookie_kwargs = {
-        "httponly": True,
-        "secure": settings.COOKIE_SECURE,
-        "samesite": settings.COOKIE_SAMESITE,
-        "max_age": max_age,
-        "path": "/",
-    }
-    if settings.COOKIE_DOMAIN:
-        cookie_kwargs["domain"] = settings.COOKIE_DOMAIN
+    domain = settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None
 
-    response.set_cookie(key="access_token", value=token, **cookie_kwargs)  # type: ignore[arg-type]
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=max_age,
+        path="/",
+        domain=domain,
+    )
 
     # CSRF token — NOT HttpOnly so JavaScript can read it
-    csrf_kwargs = {**cookie_kwargs, "httponly": False}
-    response.set_cookie(key="csrf_token", value=csrf_token, **csrf_kwargs)  # type: ignore[arg-type]
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=max_age,
+        path="/",
+        domain=domain,
+    )
 
 
 def _clear_auth_cookies(response: Response) -> None:
     """Clear auth cookies."""
-    kwargs = {"path": "/"}
-    if settings.COOKIE_DOMAIN:
-        kwargs["domain"] = settings.COOKIE_DOMAIN
-    response.delete_cookie(key="access_token", **kwargs)  # type: ignore[arg-type]
-    response.delete_cookie(key="csrf_token", **kwargs)  # type: ignore[arg-type]
+    domain = settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None
+    response.delete_cookie(key="access_token", path="/", domain=domain)
+    response.delete_cookie(key="csrf_token", path="/", domain=domain)
 
 
 @router.get("/captcha", response_model=CaptchaResponse)
@@ -80,7 +87,7 @@ async def get_captcha(request: Request) -> CaptchaResponse:
 
     ip = request.client.host if request.client else "unknown"
     if not await check_rate_limit(f"rl:captcha:{ip}", *RATE_LIMIT_CAPTCHA):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     captcha_id, image_base64 = await generate_captcha()
     return CaptchaResponse(captcha_id=captcha_id, image_base64=image_base64)
 
@@ -90,14 +97,11 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
     # Rate limit: 10 attempts/minute per IP
     ip = request.client.host if request.client else "unknown"
     if not await check_rate_limit(f"rl:login:{ip}", *RATE_LIMIT_LOGIN):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     # Verify captcha first
     if not await verify_captcha(req.captcha_id, req.captcha_code):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired captcha.",
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha.")
 
     user = await authenticate_user(req.username, req.password)
     if user is None:
@@ -130,20 +134,16 @@ async def login_as_guest(
     # Rate limit: 10 attempts/minute per IP
     ip = request.client.host if request.client else "unknown"
     if not await check_rate_limit(f"rl:guest:{ip}", *RATE_LIMIT_GUEST):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     invite = await get_invite_code(invite_code)
     if invite is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired invite code.",
+        raise AppError(
+            ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Invalid or expired invite code."
         )
 
     if not await verify_captcha(req.captcha_id, req.captcha_code):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired captcha.",
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha.")
 
     # Per-IP guest session limit
     from app.core.constants import MAX_GUESTS_PER_IP
@@ -153,9 +153,10 @@ async def login_as_guest(
     ip_guest_key = f"guest:ip:{ip}"
     ip_guest_count = int(await redis.get(ip_guest_key) or 0)
     if ip_guest_count >= MAX_GUESTS_PER_IP:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many guest sessions from this IP.",
+        raise AppError(
+            ErrorCode.SYS_429,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many guest sessions from this IP.",
         )
 
     result = await guest_login(req.display_name)
@@ -206,34 +207,27 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
     # Rate limit: 5 attempts/minute per IP
     ip = request.client.host if request.client else "unknown"
     if not await check_rate_limit(f"rl:register:{ip}", *RATE_LIMIT_REGISTER):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     # Verify captcha
     if not await verify_captcha(req.captcha_id, req.captcha_code):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired captcha.",
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha.")
 
     # Validate invite code
     invite = await get_invite_code(req.invite_code)
     if invite is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired invite code.",
+        raise AppError(
+            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
         )
 
     # Validate password policy
     error = validate_password_policy(req.password)
     if error:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, error)
 
     # Check username uniqueness
     if await user_exists_by_username(req.username):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already exists.",
-        )
+        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, "Username already exists.")
 
     # Create user and consume invite code in a single transaction
     try:
@@ -244,9 +238,8 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
             invite_code=req.invite_code,
         )
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired invite code.",
+        raise AppError(
+            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
         )
 
     token, expires_in = await create_session(str(user["id"]), user["role"])
@@ -280,15 +273,16 @@ async def generate_invite_code(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> InviteCodeResponse:
     if not await check_rate_limit(f"rl:invite:{current_user['sub']}", *RATE_LIMIT_INVITE_GEN):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     from app.repositories import invite_code_repo
 
     active_count = await invite_code_repo.count_active_by_user(current_user["sub"])
     if active_count >= MAX_ACTIVE_INVITE_CODES_PER_USER:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Maximum active invite codes reached. Wait for existing codes to expire or be consumed.",  # noqa: E501
+        raise AppError(
+            ErrorCode.SYS_429,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Maximum active invite codes reached. Wait for existing codes to expire or be consumed.",
         )
 
     code, expires_at = await create_invite_code(current_user["sub"])
@@ -305,11 +299,10 @@ async def generate_invite_code(
 async def verify_invite_code(code: str, request: Request) -> MessageResponse:
     ip = request.client.host if request.client else "unknown"
     if not await check_rate_limit(f"rl:invite_verify:{ip}", *RATE_LIMIT_INVITE_VERIFY):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     result = await get_invite_code(code)
     if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid or expired invite code.",
+        raise AppError(
+            ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Invalid or expired invite code."
         )
     return MessageResponse(message="Invite code is valid.")

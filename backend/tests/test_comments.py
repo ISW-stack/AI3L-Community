@@ -304,7 +304,7 @@ class TestCreateComment:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "empty" in resp.json()["detail"].lower()
+                assert "empty" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -325,7 +325,7 @@ class TestEditComment:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "empty" in resp.json()["detail"].lower()
+                assert "empty" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -344,7 +344,7 @@ class TestEditComment:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "empty" in resp.json()["detail"].lower()
+                assert "empty" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 

@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AuditLog } from '@/types'
 import { getAuditLogs } from '@/api/admin'
-import { usePagination } from '@/composables/usePagination'
+import { useFetchPaginated } from '@/composables/useFetchPaginated'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -11,15 +11,36 @@ import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
 const { t } = useI18n()
-const logs = ref<AuditLog[]>([])
-const { page, total, pageSize, setPage, resetPage, updateFromResponse } = usePagination(50)
-const loading = ref(false)
-const error = ref('')
 
 const showFilters = ref(false)
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
 const filterUserId = ref('')
+
+const {
+  items: logs,
+  loading,
+  error,
+  page,
+  total,
+  pageSize,
+  fetchPage: fetchLogs,
+  setPage,
+  resetPage,
+} = useFetchPaginated<AuditLog>(async (p, ps) => {
+  const params: {
+    page: number
+    page_size: number
+    user_id?: string
+    date_from?: string
+    date_to?: string
+  } = { page: p, page_size: ps }
+  if (filterUserId.value.trim()) params.user_id = filterUserId.value.trim()
+  if (filterDateFrom.value) params.date_from = filterDateFrom.value
+  if (filterDateTo.value) params.date_to = filterDateTo.value
+  const data = await getAuditLogs(params)
+  return { items: data.logs, total: data.total }
+}, 50)
 
 const dateRangeInvalid = computed(
   () => !!filterDateFrom.value && !!filterDateTo.value && filterDateFrom.value > filterDateTo.value,
@@ -45,30 +66,6 @@ function clearFilters() {
 const hasActiveFilters = computed(
   () => !!filterDateFrom.value || !!filterDateTo.value || !!filterUserId.value,
 )
-
-async function fetchLogs() {
-  loading.value = true
-  error.value = ''
-  try {
-    const params: {
-      page: number
-      page_size: number
-      user_id?: string
-      date_from?: string
-      date_to?: string
-    } = { page: page.value, page_size: pageSize }
-    if (filterUserId.value.trim()) params.user_id = filterUserId.value.trim()
-    if (filterDateFrom.value) params.date_from = filterDateFrom.value
-    if (filterDateTo.value) params.date_to = filterDateTo.value
-    const data = await getAuditLogs(params)
-    logs.value = data.logs
-    updateFromResponse(data.total)
-  } catch {
-    error.value = t('admin.auditLogs.error')
-  } finally {
-    loading.value = false
-  }
-}
 
 function prevPage() {
   if (page.value > 1) {

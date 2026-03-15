@@ -228,7 +228,7 @@ class TestRegisterEndpoint:
             },
         )
         assert resp.status_code == 400
-        assert "invite code" in resp.json()["detail"].lower()
+        assert "invite code" in resp.json()["detail"]["message"].lower()
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
@@ -518,7 +518,7 @@ class TestInviteCodeLimits:
                 "/api/v1/auth/invite-code", headers={"Authorization": "Bearer fake"}
             )
             assert resp.status_code == 429
-            assert "maximum" in resp.json()["detail"].lower()
+            assert "maximum" in resp.json()["detail"]["message"].lower()
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 
@@ -537,4 +537,4 @@ class TestGuestLoginInvalidCode:
             },
         )
         assert resp.status_code == 404
-        assert "invite code" in resp.json()["detail"].lower()
+        assert "invite code" in resp.json()["detail"]["message"].lower()

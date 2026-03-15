@@ -16,6 +16,7 @@ from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
 from app.core.constants import MAX_EDITOR_FILE_SIZE, RATE_LIMIT_FILE_UPLOAD
 from app.core.deps import require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import validate_editor_file
 from app.core.rate_limit import check_rate_limit
 from app.core.redis import get_redis
@@ -38,14 +39,11 @@ async def upload_editor_file(
     """Upload file for rich text editor (PNG, JPEG, PDF, DOCX). Max 20MB."""
     user_id = current_user["sub"]
     if not await check_rate_limit(f"rl:upload:{user_id}", *RATE_LIMIT_FILE_UPLOAD):
-        raise HTTPException(status_code=429, detail="Too many uploads. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many uploads. Try again later.")
     filename = file.filename or "unnamed"
     data = await file.read(MAX_EDITOR_FILE_SIZE + 1)
     if len(data) > MAX_EDITOR_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 20MB limit.",
-        )
+        raise AppError(ErrorCode.FILE_001, status.HTTP_400_BAD_REQUEST, "File size exceeds 20MB limit.")
     expected_type, data = await run_in_threadpool(validate_editor_file, filename, data)
 
     # Acquire per-user upload lock to prevent concurrent quota bypass
@@ -53,9 +51,10 @@ async def upload_editor_file(
     lock_key = f"upload_lock:{user_id}"
     acquired = await redis.set(lock_key, "1", nx=True, ex=120)
     if not acquired:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Another upload is in progress. Please wait.",
+        raise AppError(
+            ErrorCode.SYS_429,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Another upload is in progress. Please wait.",
         )
 
     try:
@@ -63,9 +62,10 @@ async def upload_editor_file(
         user_uuid = uuid.UUID(current_user["sub"])
         used = await user_repo.get_storage_used(user_uuid)
         if used + len(data) > settings.MAX_USER_STORAGE_BYTES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Storage quota exceeded (1 GB limit).",
+            raise AppError(
+                ErrorCode.SYS_422,
+                status.HTTP_400_BAD_REQUEST,
+                "Storage quota exceeded (1 GB limit).",
             )
 
         ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -135,33 +135,29 @@ async def delete_editor_file(
 ) -> dict:
     """Delete an editor file from storage and decrement the user's storage counter."""
     if ".." in key or not _SAFE_KEY_RE.match(key):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file key.",
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
 
     # Only allow deletion of editor files owned by the user (or by admins)
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     owns_file = key.startswith(f"editor/{current_user['sub']}/")
     if not is_admin and not owns_file:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete this file.",
+        raise AppError(
+            ErrorCode.SYS_403,
+            status.HTTP_403_FORBIDDEN,
+            "You do not have permission to delete this file.",
         )
 
     # Get file size before deletion for storage decrement
     file_size = await async_get_file_size(key)
     if file_size == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found.",
-        )
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "File not found.")
 
     # Validate that the key is an editor file before parsing owner from path
     if not key.startswith("editor/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only editor files can be deleted via this endpoint.",
+        raise AppError(
+            ErrorCode.SYS_422,
+            status.HTTP_400_BAD_REQUEST,
+            "Only editor files can be deleted via this endpoint.",
         )
 
     # Determine the owner user ID from the key path (editor/{user_id}/...)
@@ -169,9 +165,8 @@ async def delete_editor_file(
     if len(parts) >= 2:
         owner_user_id = parts[1]
     else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file key format.",
+        raise AppError(
+            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key format."
         )
 
     # Delete the file from storage
@@ -203,6 +198,22 @@ async def delete_editor_file(
     except Exception:
         logger.warning("Failed to delete scan record for key=%s", key, exc_info=True)
 
+    # Emit audit event for admin file deletions
+    if is_admin and not owns_file:
+        try:
+            from app.core.event_bus import emit
+
+            await emit(
+                "audit.action",
+                action="admin_file_delete",
+                actor_id=current_user["sub"],
+                target_key=key,
+                file_size=file_size,
+                owner_user_id=owner_user_id,
+            )
+        except Exception:
+            logger.warning("Failed to emit audit event for file deletion", exc_info=True)
+
     return {"detail": "File deleted.", "key": key, "freed_bytes": file_size}
 
 
@@ -217,10 +228,7 @@ async def serve_file(
     Other files require ownership or admin role.
     """
     if ".." in key or not _SAFE_KEY_RE.match(key):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file key.",
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
 
     is_editor_file = key.startswith("editor/")
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
@@ -229,25 +237,28 @@ async def serve_file(
     if not is_editor_file and not is_admin:
         owns_file = key.startswith(f"avatars/{current_user['sub']}")
         if not owns_file:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to access this file.",
+            raise AppError(
+                ErrorCode.SYS_403,
+                status.HTTP_403_FORBIDDEN,
+                "You do not have permission to access this file.",
             )
 
     # Block files that are malicious, unverified, or had scan errors (fail-close)
     try:
         scan = await file_scan_repo.find_by_key(key)
         if scan and scan["status"] == "malicious":
-            raise HTTPException(
-                status_code=451,
-                detail="This file has been flagged as potentially malicious.",
+            raise AppError(
+                ErrorCode.FILE_001,
+                451,
+                "This file has been flagged as potentially malicious.",
             )
         if scan and scan["status"] in ("unknown", "error"):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="This file has not been verified as safe. Scan status: " + scan["status"],
+            raise AppError(
+                ErrorCode.FILE_001,
+                status.HTTP_403_FORBIDDEN,
+                "This file has not been verified as safe. Scan status: " + scan["status"],
             )
-    except HTTPException:
+    except (HTTPException, AppError):
         raise
     except Exception:
         logger.warning("Failed to check scan status for key=%s", key, exc_info=True)
@@ -255,7 +266,7 @@ async def serve_file(
     try:
         data, content_type = await async_download_file(key)
     except ClientError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "File not found.")
 
     return Response(
         content=data,
@@ -285,10 +296,7 @@ async def get_scan_status(
 ) -> dict:
     """Get VirusTotal scan status for a file."""
     if ".." in key or not _SAFE_KEY_RE.match(key):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file key.",
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
 
     scan = await file_scan_repo.find_by_key(key)
     if not scan:
@@ -312,10 +320,7 @@ async def get_presigned_url(
     Other files require ownership.
     """
     if ".." in key or not _SAFE_KEY_RE.match(key):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file key.",
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
 
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     is_editor_file = key.startswith("editor/")
@@ -324,9 +329,10 @@ async def get_presigned_url(
     )
     # Editor files are readable by any authenticated member
     if not is_admin and not is_editor_file and not owns_file:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to access this file.",
+        raise AppError(
+            ErrorCode.SYS_403,
+            status.HTTP_403_FORBIDDEN,
+            "You do not have permission to access this file.",
         )
     url = await async_presigned_url(key, expires_in=3600)
     return {"url": url, "key": key}

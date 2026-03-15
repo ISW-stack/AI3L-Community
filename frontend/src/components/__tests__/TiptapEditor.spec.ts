@@ -201,6 +201,52 @@ describe('TiptapEditor', () => {
     })
   })
 
+  describe('instance-scoped timers', () => {
+    it('each TiptapEditor instance has independent scan state', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/file.pdf',
+        key: 'editor/x/file.pdf',
+        scan_task_id: 'task-1',
+      })
+
+      const wrapper1 = mount(TiptapEditor, { props: { modelValue: '' } })
+      const wrapper2 = mount(TiptapEditor, { props: { modelValue: '' } })
+
+      const vm1 = wrapper1.vm as any
+      const vm2 = wrapper2.vm as any
+
+      // Upload a file on instance 1 to trigger scan status
+      const file = new File(['data'], 'file.pdf', { type: 'application/pdf' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm1.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      // Instance 1 should have scan status pending
+      expect(vm1.scanStatus).toBe('pending')
+      // Instance 2 should still be null
+      expect(vm2.scanStatus).toBeNull()
+
+      wrapper1.unmount()
+      wrapper2.unmount()
+    })
+
+    it('unmounting one instance does not affect another', async () => {
+      const wrapper1 = mount(TiptapEditor, { props: { modelValue: '<p>First</p>' } })
+      const wrapper2 = mount(TiptapEditor, { props: { modelValue: '<p>Second</p>' } })
+
+      const vm2 = wrapper2.vm as any
+
+      // Unmount instance 1
+      wrapper1.unmount()
+
+      // Instance 2 should still function normally
+      expect(vm2.scanStatus).toBeNull()
+
+      wrapper2.unmount()
+    })
+  })
+
   describe('handleFileUpload', () => {
     it('accepts image/png,image/jpeg,image/gif,image/webp,.pdf,.docx in file input', () => {
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })

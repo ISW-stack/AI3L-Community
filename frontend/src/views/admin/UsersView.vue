@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import { usePagination } from '@/composables/usePagination'
+import { useFetchPaginated } from '@/composables/useFetchPaginated'
 import { getErrorMessage } from '@/utils/error'
 import type { AdminUser } from '@/api/admin'
 import {
@@ -29,13 +29,31 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const toast = useToastStore()
 
-const users = ref<AdminUser[]>([])
-const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } =
-  usePagination()
-const loading = ref(false)
-const message = ref('')
 const searchQuery = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+const {
+  items: users,
+  loading,
+  error: fetchError,
+  page,
+  total,
+  totalPages,
+  pageSize,
+  fetchPage: fetchUsers,
+  setPage,
+  resetPage,
+} = useFetchPaginated<AdminUser>(async (p, ps) => {
+  const params: { page: number; page_size: number; search?: string } = {
+    page: p,
+    page_size: ps,
+  }
+  if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
+  const data = await listUsers(params)
+  return { items: data.users, total: data.total }
+})
+
+const message = ref('')
 
 // Bulk selection
 const selectedIds = ref<Set<string>>(new Set())
@@ -117,23 +135,6 @@ function onSearchInput() {
   }, 300)
 }
 
-async function fetchUsers() {
-  loading.value = true
-  try {
-    const params: { page: number; page_size: number; search?: string } = {
-      page: page.value,
-      page_size: pageSize,
-    }
-    if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
-    const data = await listUsers(params)
-    users.value = data.users
-    updateFromResponse(data.total)
-  } catch {
-    message.value = t('admin.users.message.loadFailed', 'Failed to load user list.')
-  } finally {
-    loading.value = false
-  }
-}
 
 function goToPage(p: number) {
   setPage(p)
@@ -235,6 +236,7 @@ onMounted(fetchUsers)
       />
     </div>
 
+    <BaseAlert v-if="fetchError" type="error" class="mb-4">{{ fetchError }}</BaseAlert>
     <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
 
     <!-- Bulk action bar -->

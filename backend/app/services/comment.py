@@ -1,8 +1,9 @@
+import asyncio
 import uuid
 
 from loguru import logger
 
-from app.converters.comment_converter import row_to_comment
+from app.converters.comment_converter import async_row_to_comment
 from app.core.constants import MAX_COMMENTS_PER_POST
 from app.core.database import get_pool
 from app.core.event_bus import emit
@@ -44,7 +45,7 @@ async def create_comment(
                 post_id,
             )
 
-            comment_dict = row_to_comment(row)
+            comment_dict = await async_row_to_comment(row)
             commenter_name = (
                 comment_dict["author"]["display_name"] or comment_dict["author"]["username"]
             )
@@ -90,7 +91,7 @@ async def update_comment(
     if not row:
         return None
     logger.info("Comment updated", extra={"comment_id": str(comment_id)})
-    return row_to_comment(row)
+    return await async_row_to_comment(row)
 
 
 async def list_comments(
@@ -100,7 +101,8 @@ async def list_comments(
 ) -> tuple[list[dict], int]:
     offset = (page - 1) * page_size
     rows, total = await comment_repo.find_many(post_id, offset, page_size)
-    return [row_to_comment(r) for r in rows], total
+    comments = list(await asyncio.gather(*[async_row_to_comment(r) for r in rows]))
+    return comments, total
 
 
 async def soft_delete_comment(
@@ -129,4 +131,4 @@ async def add_reaction(
 ) -> dict | None:
     """Toggle a reaction on a comment. Returns updated comment."""
     row = await comment_repo.update_reactions(comment_id, user_id, reaction)
-    return row_to_comment(row) if row else None
+    return await async_row_to_comment(row) if row else None

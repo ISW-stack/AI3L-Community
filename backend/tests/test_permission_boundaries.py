@@ -101,7 +101,7 @@ class TestCrossSIGFormAccess:
             ):
                 resp = await client.get(f"/api/v1/forms/{_FORM_B_ID}")
             assert resp.status_code == 403
-            assert "SIG members" in resp.json()["detail"]
+            assert "SIG members" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -193,7 +193,7 @@ class TestRegularMemberCannotSIGAdmin:
                     },
                 )
             assert resp.status_code == 403
-            assert "SIG admin" in resp.json()["detail"]
+            assert "SIG admin" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -287,7 +287,7 @@ class TestCommentDeletionOwnership:
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",
                 )
             assert resp.status_code == 404
-            assert "Comment not found" in resp.json()["detail"]
+            assert "Comment not found" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 

@@ -1,8 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from app.core.deps import get_current_user
+from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
 from app.repositories import notification_repo
 from app.schemas.auth import MessageResponse
@@ -30,7 +31,7 @@ async def get_notifications(
     current_user: dict = Depends(get_current_user),
 ) -> NotificationListResponse:
     if not await check_rate_limit(f"rl:notif:{current_user['sub']}", 60, 60):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     notifications, total, unread_count = await list_notifications(
         user_id=current_user["sub"],
         unread_only=unread,
@@ -51,10 +52,7 @@ async def read_notification(
 ) -> MessageResponse:
     updated = await mark_as_read(notification_id, current_user["sub"])
     if not updated:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found or already read.",
-        )
+        raise AppError(ErrorCode.SYS_404, 404, "Notification not found or already read.")
     return MessageResponse(message="Notification marked as read.")
 
 
@@ -65,7 +63,7 @@ async def bulk_delete_notifications(
     current_user: dict = Depends(get_current_user),
 ) -> Response:
     if not await check_rate_limit(f"rl:notif_del:{current_user['sub']}", 30, 60):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     ids = None
     if req and req.notification_ids:
         ids = [uuid.UUID(nid) for nid in req.notification_ids]
@@ -80,10 +78,7 @@ async def delete_notification_endpoint(
 ) -> MessageResponse:
     deleted = await delete_notification(notification_id, current_user["sub"])
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification not found.",
-        )
+        raise AppError(ErrorCode.SYS_404, 404, "Notification not found.")
     return MessageResponse(message="Notification deleted.")
 
 

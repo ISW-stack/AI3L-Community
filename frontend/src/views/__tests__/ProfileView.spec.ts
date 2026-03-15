@@ -260,9 +260,11 @@ describe('ProfileView', () => {
       await deleteBtn!.trigger('click')
       await nextTick()
 
-      // Type "DELETE" in the confirmation input
+      // Access the DangerZone child component's exposed state
       const vm = wrapper.vm as any
-      vm.deleteConfirmText = 'DELETE'
+      const dangerZone = vm.dangerZoneRef
+      expect(dangerZone).toBeTruthy()
+      dangerZone.deleteConfirmText = 'DELETE'
       await nextTick()
 
       // Close the modal via cancel
@@ -272,27 +274,37 @@ describe('ProfileView', () => {
       await nextTick()
 
       // deleteConfirmText should be cleared
-      expect(vm.deleteConfirmText).toBe('')
+      expect(dangerZone.deleteConfirmText).toBe('')
     })
 
     it('clears deleteConfirmText when modal is closed programmatically', async () => {
       const { wrapper } = await mountProfile()
+
+      // Switch to danger zone tab
+      const tabs = wrapper.findAll('button')
+      const dangerTab = tabs.find((b) => b.text() === 'Danger Zone')
+      await dangerTab!.trigger('click')
+      await nextTick()
+
+      // Access the DangerZone child component's exposed state
       const vm = wrapper.vm as any
+      const dangerZone = vm.dangerZoneRef
+      expect(dangerZone).toBeTruthy()
 
       // Open the delete modal
-      vm.showDeleteConfirm = true
+      dangerZone.showDeleteConfirm = true
       await nextTick()
 
       // Type "DELETE"
-      vm.deleteConfirmText = 'DELETE'
+      dangerZone.deleteConfirmText = 'DELETE'
       await nextTick()
 
       // Close the modal
-      vm.showDeleteConfirm = false
+      dangerZone.showDeleteConfirm = false
       await nextTick()
 
       // deleteConfirmText should be cleared by the watcher
-      expect(vm.deleteConfirmText).toBe('')
+      expect(dangerZone.deleteConfirmText).toBe('')
     })
   })
 

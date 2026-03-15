@@ -301,6 +301,28 @@ describe('NotificationsView', () => {
     expect(vm.unreadCount).toBe(1)
   })
 
+  it('renders notifications directly without filteredNotifications computed', async () => {
+    const { wrapper } = await mountNotifications()
+    const vm = wrapper.vm as any
+    // Verify there is no filteredNotifications property on the component instance
+    expect(vm.filteredNotifications).toBeUndefined()
+    // Notifications should still render correctly via the notifications ref directly
+    expect(wrapper.text()).toContain('Alice liked your post')
+    expect(wrapper.text()).toContain('Bob commented on your post')
+    expect(wrapper.text()).toContain('System maintenance scheduled')
+  })
+
+  it('shows empty state using notifications ref directly', async () => {
+    mockListNotifications.mockResolvedValue({
+      notifications: [],
+      total: 0,
+      unread_count: 0,
+    })
+    const { wrapper } = await mountNotifications()
+    // Empty state should render when notifications array is empty
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
+  })
+
   it('does not decrement unreadCount when deleting a read notification', async () => {
     const { wrapper } = await mountNotifications()
     const vm = wrapper.vm as any

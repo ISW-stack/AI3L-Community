@@ -98,7 +98,7 @@ class TestPresignedUrlPathTraversal:
             headers=headers,
         )
         assert resp.status_code == 400
-        assert "invalid" in resp.json()["detail"].lower()
+        assert "invalid" in resp.json()["detail"]["message"].lower()
 
     @patch(
         "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
@@ -400,7 +400,7 @@ class TestUploadStorageTracking:
                 )
 
             assert resp.status_code == 400
-            assert "quota" in resp.json()["detail"].lower()
+            assert "quota" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides_files()
 
@@ -1126,7 +1126,7 @@ class TestDeleteEditorFileValidatesPrefix:
                 )
 
             assert resp.status_code == 400
-            assert "editor" in resp.json()["detail"].lower()
+            assert "editor" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides_files()
 
@@ -1156,7 +1156,7 @@ class TestServeFileFailClose:
             )
 
         assert resp.status_code == 403
-        assert "not been verified" in resp.json()["detail"]
+        assert "not been verified" in resp.json()["detail"]["message"]
 
     @patch(
         "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
@@ -1180,7 +1180,7 @@ class TestServeFileFailClose:
             )
 
         assert resp.status_code == 403
-        assert "not been verified" in resp.json()["detail"]
+        assert "not been verified" in resp.json()["detail"]["message"]
 
     @patch(
         "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
@@ -1204,7 +1204,7 @@ class TestServeFileFailClose:
             )
 
         assert resp.status_code == 451
-        assert "malicious" in resp.json()["detail"].lower()
+        assert "malicious" in resp.json()["detail"]["message"].lower()
 
     @patch(
         "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}

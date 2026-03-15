@@ -67,12 +67,22 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
+function handleEscapeKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    userDropdownOpen.value = false
+    adminDropdownOpen.value = false
+    mobileMenuOpen.value = false
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleEscapeKey)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleEscapeKey)
 })
 </script>
 

@@ -283,6 +283,107 @@ describe('AppNavbar', () => {
     })
   })
 
+  // ---------- Escape key handler ----------
+
+  describe('escape key closes dropdowns', () => {
+    it('closes user dropdown on Escape key', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      // Open user dropdown
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      await userBtn.trigger('click')
+      await nextTick()
+
+      // Dropdown should be open
+      expect(wrapper.find('.user-dropdown-wrapper .absolute').exists()).toBe(true)
+
+      // Press Escape via document event
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await nextTick()
+
+      // Dropdown should be closed
+      expect(wrapper.find('.user-dropdown-wrapper .absolute').exists()).toBe(false)
+    })
+
+    it('closes admin dropdown on Escape key', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('ADMIN', 3600)
+      await nextTick()
+
+      // Open admin dropdown
+      const adminBtn = wrapper.find('.admin-dropdown-wrapper button')
+      await adminBtn.trigger('click')
+      await nextTick()
+
+      // Dropdown should be open
+      expect(wrapper.find('.admin-dropdown-wrapper .absolute').exists()).toBe(true)
+
+      // Press Escape via document event
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await nextTick()
+
+      // Dropdown should be closed
+      expect(wrapper.find('.admin-dropdown-wrapper .absolute').exists()).toBe(false)
+    })
+
+    it('closes mobile menu on Escape key', async () => {
+      const { wrapper } = mountNavbar()
+
+      // Open mobile menu
+      const hamburgerButton = wrapper.find('button[aria-label="Toggle menu"]')
+      await hamburgerButton.trigger('click')
+      await nextTick()
+
+      // Mobile menu should be open
+      expect(wrapper.text()).toContain('Forum')
+
+      // Press Escape via document event
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await nextTick()
+
+      // mobileMenuOpen should be false
+      const vm = wrapper.vm as unknown as { mobileMenuOpen: boolean }
+      expect(vm.mobileMenuOpen).toBe(false)
+    })
+
+    it('does not close dropdowns on non-Escape key', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      // Open user dropdown
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      await userBtn.trigger('click')
+      await nextTick()
+
+      // Dropdown should be open
+      expect(wrapper.find('.user-dropdown-wrapper .absolute').exists()).toBe(true)
+
+      // Press a different key
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+      await nextTick()
+
+      // Dropdown should still be open
+      expect(wrapper.find('.user-dropdown-wrapper .absolute').exists()).toBe(true)
+    })
+
+    it('removes keydown listener on unmount', async () => {
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
+      const { wrapper } = mountNavbar()
+
+      wrapper.unmount()
+
+      // Should have removed the keydown listener
+      const keydownRemoveCalls = removeEventListenerSpy.mock.calls.filter(
+        (call) => call[0] === 'keydown',
+      )
+      expect(keydownRemoveCalls.length).toBeGreaterThan(0)
+      removeEventListenerSpy.mockRestore()
+    })
+  })
+
   // ---------- AI3L Community brand ----------
 
   describe('branding', () => {

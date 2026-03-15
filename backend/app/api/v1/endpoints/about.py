@@ -7,10 +7,11 @@ from collections import OrderedDict
 from typing import Any
 
 import requests as _requests  # type: ignore[import-untyped]
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
 from app.core.deps import require_role
+from app.core.errors import AppError, ErrorCode
 from app.schemas.about import (
     ContributorAdminListResponse,
     ContributorAdminResponse,
@@ -155,7 +156,7 @@ async def admin_create_contributor(
 ) -> ContributorAdminResponse:
     """Create a new contributor."""
     if await contributor_service.github_username_exists(body.github_username):
-        raise HTTPException(status_code=409, detail="GitHub username already exists.")
+        raise AppError(ErrorCode.SYS_409, 409, "GitHub username already exists.")
 
     row = await contributor_service.create_contributor(
         github_username=body.github_username,
@@ -185,7 +186,7 @@ async def admin_update_contributor(
         existing = await contributor_service.get_contributor(contributor_id)
         if existing and existing["github_username"] != body.github_username:
             if await contributor_service.github_username_exists(body.github_username):
-                raise HTTPException(status_code=409, detail="GitHub username already exists.")
+                raise AppError(ErrorCode.SYS_409, 409, "GitHub username already exists.")
 
     row = await contributor_service.update_contributor(
         contributor_id,
@@ -195,7 +196,7 @@ async def admin_update_contributor(
         display_order=body.display_order,
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="Contributor not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Contributor not found.")
 
     # Clear avatar cache if github_username changed
     global _cache_total_bytes
@@ -224,7 +225,7 @@ async def admin_delete_contributor(
     """Delete a contributor."""
     deleted = await contributor_service.delete_contributor(contributor_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Contributor not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Contributor not found.")
 
     global _cache_total_bytes
     cid_str = str(contributor_id)

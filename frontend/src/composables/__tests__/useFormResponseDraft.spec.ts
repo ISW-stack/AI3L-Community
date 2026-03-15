@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref } from 'vue'
 import { useFormResponseDraft } from '../useFormResponseDraft'
+import type { FormAnswers } from '../useFormResponseDraft'
 
 describe('useFormResponseDraft', () => {
   beforeEach(() => {
@@ -12,9 +13,9 @@ describe('useFormResponseDraft', () => {
     vi.useRealTimers()
   })
 
-  function createDraft(formId = 'form-1', initialAnswers: Record<string, unknown> = {}) {
+  function createDraft(formId = 'form-1', initialAnswers: FormAnswers = {}) {
     const formIdRef = ref(formId)
-    const answers = ref<Record<string, unknown>>(initialAnswers)
+    const answers = ref<FormAnswers>(initialAnswers)
     const skipTypes = ref<Record<string, string>>({})
     return {
       ...useFormResponseDraft({ formId: formIdRef, answers, skipTypes }),

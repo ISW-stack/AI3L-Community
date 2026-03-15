@@ -36,6 +36,42 @@ async def async_resolve_avatar_url(avatar_url: str | None) -> str | None:
         return avatar_url
 
 
+async def async_user_to_public_response(user: dict) -> PublicUserResponse:
+    """Async version of user_to_public_response — does not block the event loop."""
+    return PublicUserResponse(
+        id=str(user["id"]),
+        username=user["username"],
+        display_name=user["display_name"],
+        role=user["role"],
+        avatar_url=await async_resolve_avatar_url(user.get("avatar_url")),
+        bio=user.get("bio"),
+        affiliation=user.get("affiliation"),
+        orcid=user.get("orcid"),
+        created_at=(
+            user["created_at"].isoformat()
+            if hasattr(user["created_at"], "isoformat")
+            else user["created_at"]
+        ),
+    )
+
+
+async def async_user_to_response(user: dict) -> UserResponse:
+    """Async version of user_to_response — does not block the event loop."""
+    return UserResponse(
+        id=str(user["id"]),
+        username=user["username"],
+        display_name=user["display_name"],
+        role=user["role"],
+        avatar_url=await async_resolve_avatar_url(user.get("avatar_url")),
+        orcid=user.get("orcid"),
+        affiliation=user.get("affiliation"),
+        bio=user.get("bio"),
+        preferred_language=user.get("preferred_language", "en"),
+        is_banned=user.get("is_banned", False),
+        ban_reason=user.get("ban_reason"),
+    )
+
+
 def user_to_public_response(user: dict) -> PublicUserResponse:
     return PublicUserResponse(
         id=str(user["id"]),

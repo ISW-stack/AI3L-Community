@@ -1,9 +1,10 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.constants import RATE_LIMIT_COMMENT, RATE_LIMIT_REACTION
 from app.core.deps import get_current_user, require_role
+from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
 from app.schemas.auth import MessageResponse
@@ -36,7 +37,7 @@ async def get_comments(
     # Verify post exists
     post = await get_post_by_id(post_id)
     if post is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
 
     comments, total = await list_comments(post_id, page=page, page_size=page_size)
     return CommentListResponse(
@@ -53,14 +54,11 @@ async def create_new_comment(
 ) -> CommentResponse:
     # Rate limit: 30 comments/minute per user
     if not await check_rate_limit(f"rl:comment:{current_user['sub']}", *RATE_LIMIT_COMMENT):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     sanitized_content = sanitize_html(req.content)
     if not sanitized_content or not sanitized_content.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Comment content cannot be empty.",
-        )
+        raise AppError(ErrorCode.SYS_422, 400, "Comment content cannot be empty.")
 
     try:
         comment = await create_comment(
@@ -71,7 +69,7 @@ async def create_new_comment(
             mentions=req.mentions,
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise AppError(ErrorCode.SYS_422, 400, str(e))
 
     return CommentResponse(**comment)
 
@@ -85,20 +83,14 @@ async def edit_comment(
 ) -> CommentResponse:
     sanitized_content = sanitize_html(req.content)
     if not sanitized_content or not sanitized_content.strip():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Comment content cannot be empty.",
-        )
+        raise AppError(ErrorCode.SYS_422, 400, "Comment content cannot be empty.")
     comment = await update_comment(
         comment_id=comment_id,
         user_id=current_user["sub"],
         content=sanitized_content,
     )
     if comment is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Comment not found or you are not the owner.",
-        )
+        raise AppError(ErrorCode.SYS_403, 403, "Comment not found or you are not the owner.")
     return CommentResponse(**comment)
 
 
@@ -111,7 +103,7 @@ async def delete_comment(
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     deleted = await soft_delete_comment(comment_id, post_id, current_user["sub"], is_admin)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found.")
     return MessageResponse(message="Comment deleted.")
 
 
@@ -128,8 +120,8 @@ async def toggle_reaction(
     if not await check_rate_limit(
         f"rl:comment_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION
     ):
-        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     comment = await add_reaction(comment_id, current_user["sub"], req.reaction)
     if comment is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found.")
     return CommentResponse(**comment)

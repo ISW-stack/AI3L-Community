@@ -2,9 +2,11 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from loguru import logger
 
 from app.core.deps import require_role
+from app.core.errors import AppError, ErrorCode
 from app.repositories import invite_code_repo
 from app.services.dashboard import get_dashboard_stats
 from app.services.invite_code import list_invite_codes
@@ -39,21 +41,28 @@ async def revoke_invite_code(
 ) -> dict:
     revoked = await invite_code_repo.revoke(code_id)
     if not revoked:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invite code not found or already consumed/expired.",
+        raise AppError(
+            ErrorCode.SYS_404,
+            status.HTTP_404_NOT_FOUND,
+            "Invite code not found or already consumed/expired.",
         )
-    # Audit log
-    from app.core.event_bus import emit
+    # Audit log — failure must not crash the endpoint
+    try:
+        from app.core.event_bus import emit
 
-    ip = request.client.host if request.client else None
-    await emit(
-        "audit.action",
-        user_id=current_user["sub"],
-        action="INVITE_CODE_REVOKE",
-        ip_address=ip,
-        detail=str(code_id),
-    )
+        ip = request.client.host if request.client else None
+        await emit(
+            "audit.action",
+            user_id=current_user["sub"],
+            action="INVITE_CODE_REVOKE",
+            ip_address=ip,
+            detail=str(code_id),
+        )
+    except Exception as e:
+        logger.error(
+            "Audit log emit failed for INVITE_CODE_REVOKE",
+            extra={"code_id": str(code_id), "error": str(e)},
+        )
     return {"message": "Invite code revoked."}
 
 
@@ -65,19 +74,22 @@ async def delete_invite_code(
 ) -> Response:
     deleted = await invite_code_repo.delete(code_id)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invite code not found.",
-        )
-    # Audit log
-    from app.core.event_bus import emit
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Invite code not found.")
+    # Audit log — failure must not crash the endpoint
+    try:
+        from app.core.event_bus import emit
 
-    ip = request.client.host if request.client else None
-    await emit(
-        "audit.action",
-        user_id=current_user["sub"],
-        action="INVITE_CODE_DELETE",
-        ip_address=ip,
-        detail=str(code_id),
-    )
+        ip = request.client.host if request.client else None
+        await emit(
+            "audit.action",
+            user_id=current_user["sub"],
+            action="INVITE_CODE_DELETE",
+            ip_address=ip,
+            detail=str(code_id),
+        )
+    except Exception as e:
+        logger.error(
+            "Audit log emit failed for INVITE_CODE_DELETE",
+            extra={"code_id": str(code_id), "error": str(e)},
+        )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

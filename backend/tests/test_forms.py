@@ -265,7 +265,7 @@ class TestSubmitFormMembership:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "SIG members" in resp.json()["detail"]
+                assert "SIG members" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -523,7 +523,7 @@ class TestUniqueViolationHandling:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
-                assert "already submitted" in resp.json()["detail"].lower()
+                assert "already submitted" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -604,7 +604,7 @@ class TestExportRateLimit:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 429
-                assert "export" in resp.json()["detail"].lower()
+                assert "export" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -763,7 +763,7 @@ class TestFormSubmitMaxRespondents:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert "maximum" in resp.json()["detail"].lower()
+                assert "maximum" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -790,7 +790,7 @@ class TestFormSubmitDuplicate:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
-                assert "already submitted" in resp.json()["detail"].lower()
+                assert "already submitted" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -815,7 +815,7 @@ class TestFormSubmitDuplicate:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
-                assert "already submitted" in resp.json()["detail"].lower()
+                assert "already submitted" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -842,7 +842,7 @@ class TestFormSubmitNonMember:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "SIG members" in resp.json()["detail"]
+                assert "SIG members" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -861,7 +861,7 @@ class TestFormDeletePermissions:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "not found" in resp.json()["detail"].lower()
+                assert "not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -892,7 +892,7 @@ class TestFormDeletePermissions:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "creator or admin" in resp.json()["detail"].lower()
+                assert "creator or admin" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1044,7 +1044,7 @@ class TestFormResponsesList:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "admin" in resp.json()["detail"].lower()
+                assert "admin" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1069,7 +1069,7 @@ class TestFormExportPermissions:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 429
-                assert "export" in resp.json()["detail"].lower()
+                assert "export" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1300,7 +1300,7 @@ class TestGetFormAccessControl:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "SIG members" in resp.json()["detail"]
+                assert "SIG members" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
@@ -1453,7 +1453,7 @@ class TestGetMyResponse:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "no response" in resp.json()["detail"].lower()
+                assert "no response" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1470,7 +1470,7 @@ class TestGetMyResponse:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "form not found" in resp.json()["detail"].lower()
+                assert "form not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1547,7 +1547,7 @@ class TestGetMyResponse:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "sig members" in resp.json()["detail"].lower()
+                assert "sig members" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1647,7 +1647,7 @@ class TestGetFormStats:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "creator or admin" in resp.json()["detail"].lower()
+                assert "creator or admin" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1667,7 +1667,7 @@ class TestGetFormStats:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
-                assert "form not found" in resp.json()["detail"].lower()
+                assert "form not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -1794,7 +1794,7 @@ class TestGetFormStats:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
-                assert "creator or admin" in resp.json()["detail"].lower()
+                assert "creator or admin" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 

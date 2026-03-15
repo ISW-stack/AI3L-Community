@@ -240,7 +240,7 @@ class TestTaskOwnership:
                     headers={"Authorization": "Bearer fake"},
                 )
             assert resp.status_code == 403
-            assert "do not have access" in resp.json()["detail"]
+            assert "do not have access" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()
 
