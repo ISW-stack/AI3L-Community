@@ -319,21 +319,23 @@ async def _on_audit_action(
 async def _on_co_author_invited(
     post_id: str,
     target_user_id: str,
-    inviter_name: str,
-    post_title: str,
+    inviter_id: str | None = None,
+    inviter_name: str = "Someone",
+    post_title: str = "",
     **_kwargs: Any,
 ) -> None:
     """Notify user when invited as co-author."""
     from app.services.notification import create_notification
 
-    # Skip if the target has blocked the inviter (inviter_name is display name, need to check via event kwargs)
-    # The block check is already done in the service layer (co_author.invite_co_author)
+    # Skip notification if the inviter is the target (shouldn't happen, but be safe)
+    if inviter_id and inviter_id == target_user_id:
+        return
     if not await _check_idempotent(target_user_id, "post", post_id, "CO_AUTHOR_INVITE"):
         return
     try:
         await create_notification(
             user_id=target_user_id,
-            trigger_user_id=None,
+            trigger_user_id=inviter_id,
             action_type="CO_AUTHOR_INVITE",
             entity_type="post",
             entity_id=post_id,
@@ -347,20 +349,24 @@ async def _on_co_author_invited(
 async def _on_co_author_responded(
     post_id: str,
     post_owner_id: str,
-    responder_name: str,
-    accepted: bool,
+    responder_id: str | None = None,
+    responder_name: str = "Someone",
+    accepted: bool = False,
     **_kwargs: Any,
 ) -> None:
     """Notify post owner when co-author responds to invitation."""
     from app.services.notification import create_notification
 
+    # Skip notification if the responder is the post owner (own action)
+    if responder_id and responder_id == post_owner_id:
+        return
     action_label = "accepted" if accepted else "rejected"
     if not await _check_idempotent(post_owner_id, "post", post_id, "CO_AUTHOR_RESPONSE"):
         return
     try:
         await create_notification(
             user_id=post_owner_id,
-            trigger_user_id=None,
+            trigger_user_id=responder_id,
             action_type="CO_AUTHOR_RESPONSE",
             entity_type="post",
             entity_id=post_id,
@@ -374,8 +380,9 @@ async def _on_co_author_responded(
 async def _on_post_cited(
     cited_post_id: str,
     citing_post_id: str,
-    citer_name: str,
-    citing_post_title: str,
+    citer_id: str | None = None,
+    citer_name: str = "Someone",
+    citing_post_title: str = "",
     **_kwargs: Any,
 ) -> None:
     """Notify cited post author when their post is cited."""
@@ -386,16 +393,21 @@ async def _on_post_cited(
     owner_id = await post_repo.find_owner_id(uuid.UUID(cited_post_id))
     if not owner_id:
         return
-    # Get the citing post owner to check block status
-    citer_id = await post_repo.find_owner_id(uuid.UUID(citing_post_id))
-    if citer_id and await _is_blocked(owner_id, citer_id):
+    # Skip notification if the citer is the cited post owner (self-action)
+    if citer_id and citer_id == owner_id:
+        return
+    # Use citer_id from event data if available, otherwise look up from DB
+    effective_citer_id = citer_id
+    if not effective_citer_id:
+        effective_citer_id = await post_repo.find_owner_id(uuid.UUID(citing_post_id))
+    if effective_citer_id and await _is_blocked(owner_id, effective_citer_id):
         return  # Skip notification for blocked users
     if not await _check_idempotent(owner_id, "post", citing_post_id, "POST_CITED"):
         return
     try:
         await create_notification(
             user_id=owner_id,
-            trigger_user_id=None,
+            trigger_user_id=citer_id,
             action_type="POST_CITED",
             entity_type="post",
             entity_id=cited_post_id,

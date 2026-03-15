@@ -264,9 +264,7 @@ class TestRecommendationService:
 
         with (
             patch("app.services.recommendation.get_pool", return_value=mock_pool),
-            patch(
-                "app.services.recommendation.resolve_avatar_url", return_value=None
-            ),
+            patch("app.services.recommendation.resolve_avatar_url", return_value=None),
         ):
             from app.services.recommendation import get_recommendations
 
@@ -300,17 +298,13 @@ class TestRecommendationService:
 
         with (
             patch("app.services.recommendation.get_pool", return_value=mock_pool),
-            patch(
-                "app.services.recommendation.resolve_avatar_url", return_value=None
-            ),
+            patch("app.services.recommendation.resolve_avatar_url", return_value=None),
         ):
             from app.services.recommendation import get_recommendations
 
             result = await get_recommendations(str(uid))
 
-        assert result["recommendations"][0]["reasons"] == [
-            {"type": "mutual_friends", "count": 3}
-        ]
+        assert result["recommendations"][0]["reasons"] == [{"type": "mutual_friends", "count": 3}]
 
     @pytest.mark.anyio
     async def test_dismiss_recommendation(self):
@@ -327,9 +321,7 @@ class TestRecommendationService:
         with patch("app.services.recommendation.get_pool", return_value=mock_pool):
             from app.services.recommendation import dismiss_recommendation
 
-            result = await dismiss_recommendation(
-                str(uuid.uuid4()), str(uuid.uuid4())
-            )
+            result = await dismiss_recommendation(str(uuid.uuid4()), str(uuid.uuid4()))
 
         assert result["message"] == "Recommendation dismissed"
 
@@ -348,6 +340,11 @@ class TestRecommendationTask:
         mock_conn = AsyncMock()
         mock_conn.fetchval = AsyncMock(return_value=5)
 
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=tx)
+
         mock_pool = MagicMock()
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=mock_conn)
@@ -355,12 +352,8 @@ class TestRecommendationTask:
         mock_pool.acquire.return_value = cm
 
         with (
-            patch(
-                "app.tasks.cleanup._ensure_pool", new_callable=AsyncMock
-            ),
-            patch(
-                "app.core.database.get_pool", return_value=mock_pool
-            ),
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import _compute_recommendations_async
 
@@ -409,12 +402,8 @@ class TestRecommendationTask:
         mock_pool.acquire.return_value = cm
 
         with (
-            patch(
-                "app.tasks.cleanup._ensure_pool", new_callable=AsyncMock
-            ),
-            patch(
-                "app.core.database.get_pool", return_value=mock_pool
-            ),
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import _compute_recommendations_async
 
@@ -427,6 +416,38 @@ class TestRecommendationTask:
         mock_conn.execute.assert_awaited()
         # Verify executemany was called with the batch
         mock_conn.executemany.assert_awaited()
+
+    @pytest.mark.anyio
+    async def test_task_acquires_advisory_lock(self):
+        """Task acquires pg_advisory_xact_lock to prevent concurrent execution."""
+        mock_conn = AsyncMock()
+        mock_conn.fetchval = AsyncMock(return_value=5)  # Below min users → early return
+
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=tx)
+
+        mock_pool = MagicMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+
+        with (
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.core.database.get_pool", return_value=mock_pool),
+        ):
+            from app.tasks.recommendations import _compute_recommendations_async
+
+            await _compute_recommendations_async()
+
+        # Verify advisory lock was acquired
+        execute_calls = mock_conn.execute.call_args_list
+        assert any(
+            "pg_advisory_xact_lock" in str(call) and "compute_recommendations" in str(call)
+            for call in execute_calls
+        ), f"Expected advisory lock call, got: {execute_calls}"
 
     @pytest.mark.anyio
     async def test_task_respects_min_score(self):
@@ -452,6 +473,7 @@ class TestRecommendationTask:
         mock_conn.fetchval = AsyncMock(return_value=15)
         mock_conn.fetch = AsyncMock(return_value=cte_rows)
         mock_conn.execute = AsyncMock()
+        mock_conn.executemany = AsyncMock()
 
         tx = AsyncMock()
         tx.__aenter__ = AsyncMock(return_value=tx)
@@ -465,12 +487,8 @@ class TestRecommendationTask:
         mock_pool.acquire.return_value = cm
 
         with (
-            patch(
-                "app.tasks.cleanup._ensure_pool", new_callable=AsyncMock
-            ),
-            patch(
-                "app.core.database.get_pool", return_value=mock_pool
-            ),
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import _compute_recommendations_async
 

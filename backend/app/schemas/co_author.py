@@ -11,9 +11,7 @@ class CoAuthorInviteRequest(BaseModel):
 class ExternalCoAuthorRequest(BaseModel):
     display_name: str = Field(..., min_length=1, max_length=100)
     affiliation: str | None = Field(None, max_length=200)
-    orcid: str | None = Field(
-        None, max_length=30, pattern=r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$"
-    )
+    orcid: str | None = Field(None, max_length=30, pattern=r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$")
 
 
 class CoAuthorResponse(BaseModel):

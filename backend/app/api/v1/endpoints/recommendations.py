@@ -26,10 +26,6 @@ async def dismiss_friend_recommendation(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> dict:
     """Dismiss a friend recommendation."""
-    if not await check_rate_limit(
-        f"rl:social:{current_user['sub']}", *RATE_LIMIT_SOCIAL
-    ):
+    if not await check_rate_limit(f"rl:social:{current_user['sub']}", *RATE_LIMIT_SOCIAL):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
-    return await recommendation_service.dismiss_recommendation(
-        current_user["sub"], body.user_id
-    )
+    return await recommendation_service.dismiss_recommendation(current_user["sub"], body.user_id)

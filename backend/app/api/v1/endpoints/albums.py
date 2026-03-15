@@ -77,7 +77,7 @@ async def list_albums_endpoint(
     page_size: int = Query(DEFAULT_PAGE_SIZE_ALBUMS, ge=1, le=MAX_PAGE_SIZE),
     current_user: dict = Depends(get_current_user),
 ) -> AlbumListResponse:
-    albums, total = await list_albums(page=page, page_size=page_size)
+    albums, total = await list_albums(page=page, page_size=page_size, viewer_id=current_user["sub"])
     return AlbumListResponse(albums=cast(list[Any], albums), total=total)
 
 
@@ -201,7 +201,9 @@ async def list_members_endpoint(
 # ── Photos ──────────────────────────────────────────────────────────────────
 
 
-@router.post("/{album_id}/photos", response_model=AlbumPhotoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{album_id}/photos", response_model=AlbumPhotoResponse, status_code=status.HTTP_201_CREATED
+)
 async def upload_photo_endpoint(
     album_id: uuid.UUID,
     file: UploadFile,
@@ -226,7 +228,9 @@ async def upload_photo_endpoint(
     return AlbumPhotoResponse(**photo)
 
 
-@router.post("/{album_id}/files", response_model=AlbumPhotoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{album_id}/files", response_model=AlbumPhotoResponse, status_code=status.HTTP_201_CREATED
+)
 async def upload_file_endpoint(
     album_id: uuid.UUID,
     file: UploadFile,
@@ -262,6 +266,7 @@ async def list_photos_endpoint(
         album_id=str(album_id),
         page=page,
         page_size=page_size,
+        viewer_id=current_user["sub"],
     )
     return AlbumPhotoListResponse(photos=cast(list[Any], photos), total=total)
 
@@ -312,7 +317,9 @@ async def delete_photo_endpoint(
 # ── Comments ────────────────────────────────────────────────────────────────
 
 
-@router.post("/{album_id}/comments", response_model=AlbumCommentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{album_id}/comments", response_model=AlbumCommentResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_comment_endpoint(
     album_id: uuid.UUID,
     req: AlbumCommentCreateRequest,

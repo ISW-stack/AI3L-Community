@@ -108,7 +108,11 @@ class TestCommentNotificationUsesPostId:
             patch("app.services.comment.get_pool", return_value=mock_pool_obj),
             patch("app.services.comment.emit", side_effect=mock_emit),
             patch("app.converters.shared.resolve_avatar_url", return_value=None),
-            patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.repositories.post_repo.find_owner_id",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("app.services.comment.get_redis", return_value=mock_redis),
         ):
             from app.services.comment import create_comment
@@ -197,7 +201,11 @@ class TestCommentNotificationUsesPostId:
                 new_callable=AsyncMock,
                 return_value=parent_user_id,
             ),
-            patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.repositories.post_repo.find_owner_id",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("app.services.comment.get_redis", return_value=mock_redis),
         ):
             from app.services.comment import create_comment

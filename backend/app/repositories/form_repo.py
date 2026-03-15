@@ -12,9 +12,15 @@ async def find_standalone(conn: Any, page: int, page_size: int) -> list:
     return await conn.fetch(
         """
         SELECT f.*, COUNT(*) OVER() AS total_count,
-               u.display_name AS creator_display_name
+               u.display_name AS creator_display_name,
+               COALESCE(rc.cnt, 0) AS response_count
         FROM forms f
         JOIN users u ON f.created_by = u.id
+        LEFT JOIN (
+            SELECT form_id, COUNT(*) AS cnt
+            FROM form_responses
+            GROUP BY form_id
+        ) rc ON rc.form_id = f.id
         WHERE f.sig_id IS NULL AND f.is_deleted = false
         ORDER BY f.created_at DESC
         LIMIT $1 OFFSET $2

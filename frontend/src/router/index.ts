@@ -124,6 +124,7 @@ const router = createRouter({
       path: '/forms',
       name: 'forms',
       component: () => import('@/views/forms/FormsDirectoryView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/forms/new',

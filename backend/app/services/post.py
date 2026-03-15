@@ -338,7 +338,13 @@ async def list_posts(
     author_uuid = uuid.UUID(author_id) if author_id else None
     exclude = await _get_exclude_user_ids(viewer_id)
     result = await post_repo.find_many(
-        page, page_size, cat_uuid, sig_uuid, author_uuid, sort, cursor,
+        page,
+        page_size,
+        cat_uuid,
+        sig_uuid,
+        author_uuid,
+        sort,
+        cursor,
         post_type=post_type,
         exclude_user_ids=exclude,
     )
@@ -363,7 +369,15 @@ async def search_posts(
     cat_uuid = uuid.UUID(category_id) if category_id else None
     exclude = await _get_exclude_user_ids(viewer_id)
     rows, total, total_pages = await post_repo.search(
-        keyword, cat_uuid, keywords_filter, date_from, date_to, logic, page, page_size, sort,
+        keyword,
+        cat_uuid,
+        keywords_filter,
+        date_from,
+        date_to,
+        logic,
+        page,
+        page_size,
+        sort,
         post_type=post_type,
         exclude_user_ids=exclude,
     )

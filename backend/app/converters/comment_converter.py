@@ -11,6 +11,8 @@ async def async_row_to_comment(row: dict) -> dict:
         "parent_id": str(row["parent_id"]) if row.get("parent_id") else None,
         "mentions": row.get("mentions"),
         "reactions": safe_json_parse(row.get("reactions")),
+        "vote_score": row.get("vote_score", 0),
+        "is_best_answer": row.get("is_best_answer", False),
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }
@@ -25,6 +27,8 @@ def row_to_comment(row: dict) -> dict:
         "parent_id": str(row["parent_id"]) if row.get("parent_id") else None,
         "mentions": row.get("mentions"),
         "reactions": safe_json_parse(row.get("reactions")),
+        "vote_score": row.get("vote_score", 0),
+        "is_best_answer": row.get("is_best_answer", False),
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }

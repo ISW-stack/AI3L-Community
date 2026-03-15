@@ -60,10 +60,7 @@ async def insert_recommendations_batch(
         INSERT INTO friend_recommendations (id, user_id, recommended_user_id, score, reasons)
         VALUES ($1, $2, $3, $4, $5::jsonb)
         """,
-        [
-            (r["id"], r["user_id"], r["recommended_user_id"], r["score"], r["reasons"])
-            for r in rows
-        ],
+        [(r["id"], r["user_id"], r["recommended_user_id"], r["score"], r["reasons"]) for r in rows],
     )
 
 

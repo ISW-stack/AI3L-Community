@@ -53,7 +53,5 @@ async def get_citing_endpoint(
     current_user: dict = Depends(get_current_user),
 ) -> CitationListResponse:
     """Get posts this post cites ('References' list)."""
-    citations, total = await get_citing(
-        pool=None, post_id=post_id, page=page, page_size=page_size
-    )
+    citations, total = await get_citing(pool=None, post_id=post_id, page=page, page_size=page_size)
     return CitationListResponse(citations=citations, total=total)

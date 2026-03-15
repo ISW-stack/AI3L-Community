@@ -25,40 +25,44 @@ async def _compute_recommendations_async() -> dict[str, int]:
     pool = get_pool()
 
     async with pool.acquire() as conn:
-        # Check minimum user count
-        count = await conn.fetchval(
-            "SELECT COUNT(*) FROM users "
-            "WHERE is_deleted = false AND is_banned = false AND role != 'GUEST'"
-        )
-        if count < RECOMMENDATION_MIN_USERS:
-            logger.info("Not enough users (%d) for recommendations", count)
-            return {"total": 0, "users": 0, "skipped": True}
-
-        # Compute recommendations using CTE-based SQL
-        rows = await conn.fetch(_RECOMMENDATION_SQL)
-
-        # Group by user, take top N
-        user_recs: dict[uuid.UUID, list[dict[str, Any]]] = {}
-        for row in rows:
-            uid = row["user_id"]
-            if uid not in user_recs:
-                user_recs[uid] = []
-            if len(user_recs[uid]) < RECOMMENDATION_MAX_PER_USER:
-                score = float(row["total_score"])
-                if score >= RECOMMENDATION_MIN_SCORE:
-                    reasons = _build_reasons(row)
-                    user_recs[uid].append(
-                        {
-                            "id": uuid.uuid4(),
-                            "user_id": uid,
-                            "recommended_user_id": row["candidate_id"],
-                            "score": score,
-                            "reasons": json.dumps(reasons),
-                        }
-                    )
-
-        # Write results in transaction
         async with conn.transaction():
+            # Advisory lock to prevent concurrent recommendation computation.
+            # Auto-releases when the transaction ends.
+            await conn.execute("SELECT pg_advisory_xact_lock(hashtext('compute_recommendations'))")
+
+            # Check minimum user count
+            count = await conn.fetchval(
+                "SELECT COUNT(*) FROM users "
+                "WHERE is_deleted = false AND is_banned = false AND role != 'GUEST'"
+            )
+            if count < RECOMMENDATION_MIN_USERS:
+                logger.info("Not enough users (%d) for recommendations", count)
+                return {"total": 0, "users": 0, "skipped": True}
+
+            # Compute recommendations using CTE-based SQL
+            rows = await conn.fetch(_RECOMMENDATION_SQL)
+
+            # Group by user, take top N
+            user_recs: dict[uuid.UUID, list[dict[str, Any]]] = {}
+            for row in rows:
+                uid = row["user_id"]
+                if uid not in user_recs:
+                    user_recs[uid] = []
+                if len(user_recs[uid]) < RECOMMENDATION_MAX_PER_USER:
+                    score = float(row["total_score"])
+                    if score >= RECOMMENDATION_MIN_SCORE:
+                        reasons = _build_reasons(row)
+                        user_recs[uid].append(
+                            {
+                                "id": uuid.uuid4(),
+                                "user_id": uid,
+                                "recommended_user_id": row["candidate_id"],
+                                "score": score,
+                                "reasons": json.dumps(reasons),
+                            }
+                        )
+
+            # Write results (already inside the advisory-locked transaction)
             await conn.execute("DELETE FROM friend_recommendations")
             for recs in user_recs.values():
                 if recs:
@@ -80,11 +84,9 @@ async def _compute_recommendations_async() -> dict[str, int]:
                         ],
                     )
 
-        total = sum(len(r) for r in user_recs.values())
-        logger.info(
-            "Computed %d recommendations for %d users", total, len(user_recs)
-        )
-        return {"total": total, "users": len(user_recs), "skipped": False}
+            total = sum(len(r) for r in user_recs.values())
+            logger.info("Computed %d recommendations for %d users", total, len(user_recs))
+            return {"total": total, "users": len(user_recs), "skipped": False}
 
 
 def _build_reasons(row: Any) -> list[dict[str, Any]]:
@@ -93,9 +95,7 @@ def _build_reasons(row: Any) -> list[dict[str, Any]]:
     if row.get("common_sigs", 0) > 0:
         reasons.append({"type": "common_sig", "count": int(row["common_sigs"])})
     if row.get("mutual_friends", 0) > 0:
-        reasons.append(
-            {"type": "mutual_friends", "count": int(row["mutual_friends"])}
-        )
+        reasons.append({"type": "mutual_friends", "count": int(row["mutual_friends"])})
     if row.get("keyword_similarity", 0) > 0.01:
         reasons.append({"type": "similar_keywords"})
     if row.get("same_affiliation", False):

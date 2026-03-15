@@ -440,3 +440,247 @@ async def test_post_response_includes_qa_fields():
     assert resp.citation_count == 3
     assert resp.answer_count == 5
     assert resp.best_answer_id == "abc-123"
+
+
+# --- C2: Converter includes Q&A fields ---
+
+
+@pytest.mark.asyncio
+async def test_converter_includes_vote_score():
+    """C2: async_row_to_comment includes vote_score from row."""
+    from app.converters.comment_converter import async_row_to_comment
+
+    now = datetime.now(timezone.utc)
+    row = {
+        "id": uuid.uuid4(),
+        "post_id": uuid.uuid4(),
+        "content": "Answer text",
+        "parent_id": None,
+        "mentions": None,
+        "reactions": {},
+        "vote_score": 7,
+        "is_best_answer": False,
+        "created_at": now,
+        "updated_at": now,
+        "author_id": uuid.uuid4(),
+        "author_username": "alice",
+        "author_display_name": "Alice",
+        "author_avatar_url": None,
+    }
+
+    with patch(
+        "app.converters.shared.async_resolve_avatar_url", new_callable=AsyncMock, return_value=None
+    ):
+        result = await async_row_to_comment(row)
+
+    assert result["vote_score"] == 7
+
+
+@pytest.mark.asyncio
+async def test_converter_includes_is_best_answer():
+    """C2: row_to_comment includes is_best_answer from row."""
+    from app.converters.comment_converter import row_to_comment
+
+    now = datetime.now(timezone.utc)
+    row = {
+        "id": uuid.uuid4(),
+        "post_id": uuid.uuid4(),
+        "content": "Best answer text",
+        "parent_id": None,
+        "mentions": None,
+        "reactions": {},
+        "vote_score": 3,
+        "is_best_answer": True,
+        "created_at": now,
+        "updated_at": now,
+        "author_id": uuid.uuid4(),
+        "author_username": "bob",
+        "author_display_name": "Bob",
+        "author_avatar_url": None,
+    }
+
+    with patch("app.converters.shared.resolve_avatar_url", return_value=None):
+        result = row_to_comment(row)
+
+    assert result["is_best_answer"] is True
+
+
+# --- C3: answer_count increment/decrement ---
+
+
+@pytest.mark.asyncio
+async def test_answer_count_incremented_on_question_post():
+    """C3: create_comment increments answer_count for top-level comments on question posts."""
+    from app.services.comment import create_comment
+
+    post_id = uuid.uuid4()
+    comment_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+
+    mock_post = {"id": post_id, "allow_comments": True, "comment_count": 0, "type": "question"}
+    mock_row = {
+        "id": comment_id,
+        "post_id": post_id,
+        "user_id": uuid.UUID(user_id),
+        "parent_id": None,
+        "content": "My answer",
+        "mentions": None,
+        "reactions": {},
+        "created_at": now,
+        "updated_at": now,
+        "author_id": uuid.UUID(user_id),
+        "author_username": "alice",
+        "author_display_name": "Alice",
+        "author_avatar_url": None,
+    }
+
+    conn = AsyncMock()
+    conn.fetchrow = AsyncMock(side_effect=[mock_post, mock_row])
+    conn.execute = AsyncMock()
+
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx)
+
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+
+    mock_pool_obj = MagicMock()
+    mock_pool_obj.acquire.return_value = cm
+
+    mock_redis = AsyncMock()
+    mock_redis.smembers = AsyncMock(return_value=set())
+
+    with (
+        patch("app.services.comment.get_pool", return_value=mock_pool_obj),
+        patch("app.services.comment.emit", new_callable=AsyncMock),
+        patch(
+            "app.converters.shared.async_resolve_avatar_url",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None
+        ),
+        patch("app.services.comment.get_redis", return_value=mock_redis),
+    ):
+        await create_comment(post_id=post_id, user_id=user_id, content="My answer")
+
+    # conn.execute should have been called twice:
+    # 1) comment_count + 1, 2) answer_count + 1
+    execute_calls = conn.execute.call_args_list
+    sql_calls = [call[0][0] for call in execute_calls]
+    assert any(
+        "answer_count = answer_count + 1" in sql for sql in sql_calls
+    ), f"Expected answer_count increment SQL, got: {sql_calls}"
+
+
+@pytest.mark.asyncio
+async def test_answer_count_decremented_on_question_post_delete():
+    """C3: soft_delete decrements answer_count for top-level comments on question posts."""
+    from app.repositories.comment_repo import soft_delete
+
+    comment_id = uuid.uuid4()
+    post_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+
+    # Simulates a top-level comment (parent_id=None)
+    delete_row = {"post_id": post_id, "parent_id": None}
+
+    conn = AsyncMock()
+    conn.fetchrow = AsyncMock(return_value=delete_row)
+    conn.execute = AsyncMock()
+
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx)
+
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+
+    mock_pool_obj = MagicMock()
+    mock_pool_obj.acquire.return_value = cm
+
+    with patch("app.repositories.comment_repo.get_pool", return_value=mock_pool_obj):
+        result = await soft_delete(comment_id, post_id, user_id)
+
+    assert result == post_id
+    execute_calls = conn.execute.call_args_list
+    sql_calls = [call[0][0] for call in execute_calls]
+    assert any(
+        "answer_count" in sql and "GREATEST" in sql and "question" in sql for sql in sql_calls
+    ), f"Expected answer_count decrement SQL with GREATEST and question filter, got: {sql_calls}"
+
+
+@pytest.mark.asyncio
+async def test_answer_count_not_affected_for_regular_post():
+    """C3: create_comment does NOT increment answer_count for regular (non-question) posts."""
+    from app.services.comment import create_comment
+
+    post_id = uuid.uuid4()
+    comment_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+
+    mock_post = {"id": post_id, "allow_comments": True, "comment_count": 0, "type": "post"}
+    mock_row = {
+        "id": comment_id,
+        "post_id": post_id,
+        "user_id": uuid.UUID(user_id),
+        "parent_id": None,
+        "content": "Regular comment",
+        "mentions": None,
+        "reactions": {},
+        "created_at": now,
+        "updated_at": now,
+        "author_id": uuid.UUID(user_id),
+        "author_username": "alice",
+        "author_display_name": "Alice",
+        "author_avatar_url": None,
+    }
+
+    conn = AsyncMock()
+    conn.fetchrow = AsyncMock(side_effect=[mock_post, mock_row])
+    conn.execute = AsyncMock()
+
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx)
+
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+
+    mock_pool_obj = MagicMock()
+    mock_pool_obj.acquire.return_value = cm
+
+    mock_redis = AsyncMock()
+    mock_redis.smembers = AsyncMock(return_value=set())
+
+    with (
+        patch("app.services.comment.get_pool", return_value=mock_pool_obj),
+        patch("app.services.comment.emit", new_callable=AsyncMock),
+        patch(
+            "app.converters.shared.async_resolve_avatar_url",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None
+        ),
+        patch("app.services.comment.get_redis", return_value=mock_redis),
+    ):
+        await create_comment(post_id=post_id, user_id=user_id, content="Regular comment")
+
+    # conn.execute should only have comment_count update, NOT answer_count
+    execute_calls = conn.execute.call_args_list
+    sql_calls = [call[0][0] for call in execute_calls]
+    assert not any(
+        "answer_count" in sql for sql in sql_calls
+    ), f"answer_count should NOT be updated for regular posts, got: {sql_calls}"

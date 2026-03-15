@@ -113,9 +113,7 @@ class TestCreateStandaloneForm:
                 "/api/v1/forms",
                 json={
                     "title": "Guest Form",
-                    "questions": [
-                        {"id": "q1", "type": "text", "label": "Name", "required": True}
-                    ],
+                    "questions": [{"id": "q1", "type": "text", "label": "Name", "required": True}],
                 },
             )
             assert resp.status_code == 403
@@ -132,7 +130,9 @@ class TestCreateStandaloneForm:
                 patch(
                     f"{_EP}.create_form",
                     new_callable=AsyncMock,
-                    side_effect=ValueError("Maximum active standalone forms per user (10) reached."),
+                    side_effect=ValueError(
+                        "Maximum active standalone forms per user (10) reached."
+                    ),
                 ),
             ):
                 resp = await client.post(
@@ -443,6 +443,7 @@ class TestStandaloneFormServiceLayer:
             "updated_at": now,
             "total_count": 1,
             "creator_display_name": "User",
+            "response_count": 0,
         }
         fake_rows = [fake_row]
 
@@ -465,6 +466,52 @@ class TestStandaloneFormServiceLayer:
             assert total == 1
             assert len(forms) == 1
             assert forms[0]["sig_id"] is None
+
+    @pytest.mark.anyio
+    async def test_list_standalone_forms_includes_response_count(self):
+        """list_standalone_forms passes response_count from repo to converter."""
+        from app.services.form import list_standalone_forms
+
+        now = datetime.now(timezone.utc)
+        fake_row = {
+            "id": uuid.uuid4(),
+            "sig_id": None,
+            "created_by": uuid.uuid4(),
+            "title": "Popular Form",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": "[]",
+            "is_schema_locked": False,
+            "allow_non_members": True,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "total_count": 1,
+            "creator_display_name": "User",
+            "response_count": 42,
+        }
+        fake_rows = [fake_row]
+
+        mock_pool = MagicMock()
+        mock_conn = AsyncMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                f"{_SVC}.form_repo.find_standalone",
+                new_callable=AsyncMock,
+                return_value=fake_rows,
+            ),
+        ):
+            forms, total = await list_standalone_forms(page=1, page_size=20)
+            assert total == 1
+            assert forms[0]["response_count"] == 42
 
 
 class TestConverterNoneSigId:

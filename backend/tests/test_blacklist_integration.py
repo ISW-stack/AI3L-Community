@@ -40,9 +40,7 @@ class TestPostRepoExclusion:
         mock_pool.acquire.return_value = cm
         mock_get_pool.return_value = mock_pool
 
-        result = await post_repo.find_many(
-            page=1, page_size=20, exclude_user_ids=[_BLOCKED_UUID]
-        )
+        result = await post_repo.find_many(page=1, page_size=20, exclude_user_ids=[_BLOCKED_UUID])
 
         assert result["posts"] == []
         # Verify the SQL query included the exclusion parameter
@@ -114,9 +112,7 @@ class TestCommentRepoExclusion:
         mock_get_pool.return_value = mock_pool
 
         post_id = uuid.uuid4()
-        result, total = await comment_repo.find_many(
-            post_id, exclude_user_ids=[_BLOCKED_UUID]
-        )
+        result, total = await comment_repo.find_many(post_id, exclude_user_ids=[_BLOCKED_UUID])
 
         call_args = mock_conn.fetch.call_args
         query = call_args[0][0]
@@ -157,9 +153,7 @@ class TestNotificationRepoExclusion:
 class TestPostServiceBlockFiltering:
     @patch("app.services.post.get_redis")
     @patch("app.services.post.post_repo")
-    async def test_get_post_by_id_returns_none_for_blocked_author(
-        self, mock_repo, mock_get_redis
-    ):
+    async def test_get_post_by_id_returns_none_for_blocked_author(self, mock_repo, mock_get_redis):
         from app.services.post import get_post_by_id
 
         # Post authored by blocked user
@@ -179,9 +173,7 @@ class TestPostServiceBlockFiltering:
 
     @patch("app.services.post.get_redis")
     @patch("app.services.post.post_repo")
-    async def test_get_post_by_id_returns_post_when_not_blocked(
-        self, mock_repo, mock_get_redis
-    ):
+    async def test_get_post_by_id_returns_post_when_not_blocked(self, mock_repo, mock_get_redis):
         from app.services.post import get_post_by_id
 
         other_user = str(uuid.uuid4())
@@ -214,7 +206,15 @@ class TestPostServiceBlockFiltering:
 
         mock_redis = _mock_redis_with_blocks()
         mock_get_redis.return_value = mock_redis
-        mock_repo.find_many = AsyncMock(return_value={"posts": [], "total": 0, "total_pages": 1, "next_cursor": None, "has_more": False})
+        mock_repo.find_many = AsyncMock(
+            return_value={
+                "posts": [],
+                "total": 0,
+                "total_pages": 1,
+                "next_cursor": None,
+                "has_more": False,
+            }
+        )
 
         await list_posts(viewer_id=_VIEWER_ID)
 
@@ -230,7 +230,15 @@ class TestPostServiceBlockFiltering:
         mock_redis = AsyncMock()
         mock_redis.smembers = AsyncMock(return_value=set())
         mock_get_redis.return_value = mock_redis
-        mock_repo.find_many = AsyncMock(return_value={"posts": [], "total": 0, "total_pages": 1, "next_cursor": None, "has_more": False})
+        mock_repo.find_many = AsyncMock(
+            return_value={
+                "posts": [],
+                "total": 0,
+                "total_pages": 1,
+                "next_cursor": None,
+                "has_more": False,
+            }
+        )
 
         await list_posts(viewer_id=_VIEWER_ID)
 
@@ -300,7 +308,9 @@ class TestEventHandlerBlockCheck:
 
         with (
             patch("app.core.redis.get_redis") as mock_get_redis,
-            patch("app.core.blacklist.get_blocked_user_ids", new_callable=AsyncMock) as mock_get_blocked,
+            patch(
+                "app.core.blacklist.get_blocked_user_ids", new_callable=AsyncMock
+            ) as mock_get_blocked,
         ):
             mock_get_redis.return_value = AsyncMock()
             mock_get_blocked.return_value = {_BLOCKED_USER_ID}
@@ -313,7 +323,9 @@ class TestEventHandlerBlockCheck:
 
         with (
             patch("app.core.redis.get_redis") as mock_get_redis,
-            patch("app.core.blacklist.get_blocked_user_ids", new_callable=AsyncMock) as mock_get_blocked,
+            patch(
+                "app.core.blacklist.get_blocked_user_ids", new_callable=AsyncMock
+            ) as mock_get_blocked,
         ):
             mock_get_redis.return_value = AsyncMock()
             mock_get_blocked.return_value = set()
@@ -339,9 +351,7 @@ class TestAlbumCommentBlockFiltering:
     @patch("app.services.album.get_redis")
     @patch("app.services.album.album_repo")
     @patch("app.services.album.get_pool")
-    async def test_list_comments_passes_exclude_ids(
-        self, mock_get_pool, mock_repo, mock_get_redis
-    ):
+    async def test_list_comments_passes_exclude_ids(self, mock_get_pool, mock_repo, mock_get_redis):
         from app.services.album import list_comments
 
         mock_redis = _mock_redis_with_blocks()
@@ -355,6 +365,7 @@ class TestAlbumCommentBlockFiltering:
         mock_pool.acquire.return_value = cm
         mock_get_pool.return_value = mock_pool
 
+        mock_repo.find_album_by_id = AsyncMock(return_value={"id": uuid.uuid4(), "title": "T"})
         mock_repo.find_comments = AsyncMock(return_value=([], 0))
 
         await list_comments(str(uuid.uuid4()), viewer_id=_VIEWER_ID)
@@ -406,18 +417,24 @@ class TestUserProfileBlockCheck:
             return None
 
         with (
-            patch("app.api.v1.endpoints.users.get_user_by_id", new_callable=AsyncMock, side_effect=_mock_get_user),
-            patch("app.core.deps.get_user_by_id", new_callable=AsyncMock, side_effect=_mock_get_user),
+            patch(
+                "app.api.v1.endpoints.users.get_user_by_id",
+                new_callable=AsyncMock,
+                side_effect=_mock_get_user,
+            ),
+            patch(
+                "app.core.deps.get_user_by_id", new_callable=AsyncMock, side_effect=_mock_get_user
+            ),
             patch("app.core.redis.get_redis") as mock_redis_fn,
-            patch("app.core.blacklist.get_blocked_user_ids", new_callable=AsyncMock) as mock_get_blocked,
+            patch(
+                "app.core.blacklist.get_blocked_user_ids", new_callable=AsyncMock
+            ) as mock_get_blocked,
             patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True),
         ):
             mock_redis_fn.return_value = AsyncMock()
             mock_get_blocked.return_value = {str(target_user_id)}
 
-            resp = await client.get(
-                f"/api/v1/users/{target_user_id}", headers=headers
-            )
+            resp = await client.get(f"/api/v1/users/{target_user_id}", headers=headers)
             assert resp.status_code == 404
 
 
@@ -427,9 +444,7 @@ class TestUserProfileBlockCheck:
 class TestFormResponseBlockFiltering:
     @patch("app.services.form.get_redis")
     @patch("app.services.form.form_repo")
-    async def test_list_form_responses_passes_exclude_ids(
-        self, mock_repo, mock_get_redis
-    ):
+    async def test_list_form_responses_passes_exclude_ids(self, mock_repo, mock_get_redis):
         from app.services.form import list_form_responses
 
         mock_redis = _mock_redis_with_blocks()
@@ -443,9 +458,7 @@ class TestFormResponseBlockFiltering:
 
     @patch("app.services.form.get_redis")
     @patch("app.services.form.form_repo")
-    async def test_submit_response_to_blocked_creator_raises(
-        self, mock_repo, mock_get_redis
-    ):
+    async def test_submit_response_to_blocked_creator_raises(self, mock_repo, mock_get_redis):
         from app.services.form import submit_response
 
         mock_redis = _mock_redis_with_blocks()

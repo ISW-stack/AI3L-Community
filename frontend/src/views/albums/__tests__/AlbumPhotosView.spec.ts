@@ -142,7 +142,7 @@ async function mountPhotosView(options?: { role?: string | null }) {
     },
   })
   await flushPromises()
-  return { wrapper }
+  return { wrapper, albumRef, userAlbumRoleRef }
 }
 
 describe('AlbumPhotosView', () => {
@@ -186,6 +186,52 @@ describe('AlbumPhotosView', () => {
   it('renders PhotoGrid component when photos exist', async () => {
     const { wrapper } = await mountPhotosView()
     expect(wrapper.find('.photo-grid').exists()).toBe(true)
+  })
+
+  it('resets pagination to page 1 when album changes', async () => {
+    // Return enough items to indicate we're on page 2
+    mockListAlbumPhotos.mockResolvedValue({
+      data: { photos: fakePhotos, total: 50 },
+    })
+
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createTestRouter()
+
+    await router.push('/albums/album-1/photos')
+    await router.isReady()
+
+    const albumRef = ref<Album | null>(fakeAlbum)
+    const userAlbumRoleRef = ref<string | null>('MEMBER')
+
+    const wrapper = mount(AlbumPhotosView, {
+      global: {
+        plugins: [pinia, router],
+        stubs: createStubs(),
+        provide: {
+          album: albumRef,
+          userAlbumRole: userAlbumRoleRef,
+        },
+      },
+    })
+    await flushPromises()
+
+    // Initial fetch should be page 1
+    expect(mockListAlbumPhotos).toHaveBeenCalledWith('album-1', 1, 20)
+
+    mockListAlbumPhotos.mockClear()
+
+    // Simulate changing the album (like navigating to a different album)
+    const newAlbum: Album = {
+      ...fakeAlbum,
+      id: 'album-2',
+      title: 'Another Album',
+    }
+    albumRef.value = newAlbum
+    await flushPromises()
+
+    // After album change, the fetch should be called with page 1 (reset)
+    expect(mockListAlbumPhotos).toHaveBeenCalledWith('album-2', 1, 20)
   })
 
   it('shows loading skeleton while fetching', async () => {

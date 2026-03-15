@@ -107,9 +107,7 @@ async def test_delete_citations(mock_conn):
     from app.repositories import citation_repo
 
     mock_conn.execute = AsyncMock(return_value="DELETE 2")
-    result = await citation_repo.delete_citations(
-        mock_conn, [uuid.uuid4(), uuid.uuid4()]
-    )
+    result = await citation_repo.delete_citations(mock_conn, [uuid.uuid4(), uuid.uuid4()])
     assert result == 2
 
 
@@ -162,3 +160,181 @@ def test_post_process_citations_no_citation():
     html = '<a href="/forum/abc">Normal link</a>'
     result = post_process_citations(html)
     assert 'class="citation"' not in result
+
+
+# --- Bug fix tests ---
+
+
+@pytest.mark.asyncio
+async def test_search_posts_for_citation_excludes_blocked():
+    """H6: search_posts_for_citation excludes posts by blocked users."""
+    from app.services.citation import search_posts_for_citation
+
+    user_id = str(uuid.uuid4())
+    blocked_user_id = str(uuid.uuid4())
+
+    # Two rows returned: one from blocked user, one from normal user
+    normal_post_id = uuid.uuid4()
+    blocked_post_id = uuid.uuid4()
+    all_rows = [
+        {"id": normal_post_id, "title": "Normal Post", "author_name": "Normal User"},
+    ]
+
+    conn = AsyncMock()
+    conn.fetch = AsyncMock(return_value=all_rows)
+
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+
+    with (
+        patch(f"{_SVC}.get_pool", return_value=pool),
+        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(
+            f"{_SVC}.get_blocked_user_ids",
+            new_callable=AsyncMock,
+            return_value={blocked_user_id},
+        ),
+    ):
+        result = await search_posts_for_citation(None, "machine learning", user_id)
+        assert len(result) == 1
+        assert result[0]["title"] == "Normal Post"
+
+        # Verify the query used the blocked-user exclusion clause
+        call_args = conn.fetch.call_args
+        query = call_args[0][0]
+        assert "p.user_id != ALL" in query
+        # The blocked UUID list should be the third parameter ($3)
+        params = call_args[0][1:]
+        assert "machine learning" in params
+        # Verify blocked_uuids were passed
+        assert any(
+            isinstance(p, list) and len(p) == 1 for p in params
+        ), f"Expected blocked UUID list in params, got: {params}"
+
+
+@pytest.mark.asyncio
+async def test_search_posts_for_citation_no_blocked():
+    """H6: search_posts_for_citation works normally when no users are blocked."""
+    from app.services.citation import search_posts_for_citation
+
+    user_id = str(uuid.uuid4())
+    rows = [
+        {"id": uuid.uuid4(), "title": "Post 1", "author_name": "Author 1"},
+    ]
+
+    conn = AsyncMock()
+    conn.fetch = AsyncMock(return_value=rows)
+
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+
+    with (
+        patch(f"{_SVC}.get_pool", return_value=pool),
+        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(
+            f"{_SVC}.get_blocked_user_ids",
+            new_callable=AsyncMock,
+            return_value=set(),
+        ),
+    ):
+        result = await search_posts_for_citation(None, "test query", user_id)
+        assert len(result) == 1
+
+        # Verify the query does NOT include the blocked-user exclusion
+        call_args = conn.fetch.call_args
+        query = call_args[0][0]
+        assert "p.user_id != ALL" not in query
+
+
+@pytest.mark.asyncio
+async def test_citation_event_includes_citer_id():
+    """M6: post.cited event includes citer_id for trigger_user_id."""
+    from app.services.citation import sync_post_citations
+
+    post_id = uuid.uuid4()
+    cited_id = uuid.uuid4()
+    author_id = str(uuid.uuid4())
+    cited_author_id = uuid.uuid4()  # Different from author
+
+    html = f'<a href="/forum/{cited_id}" data-citation="true">Ref</a>'
+
+    conn = AsyncMock()
+    conn.fetchval = AsyncMock(side_effect=[1, cited_author_id])  # exists=1, cited_author
+
+    # transaction context manager
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx)
+
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+
+    # For the emit block's pool2.acquire
+    citing_post_row = {"title": "Citing Post Title"}
+    citer_row = {"display_name": "Author Name"}
+    conn2 = AsyncMock()
+    conn2.fetchrow = AsyncMock(side_effect=[citing_post_row, citer_row])
+    cm2 = AsyncMock()
+    cm2.__aenter__ = AsyncMock(return_value=conn2)
+    cm2.__aexit__ = AsyncMock(return_value=False)
+
+    pool_calls = [0]
+
+    def get_pool_side_effect():
+        pool_calls[0] += 1
+        if pool_calls[0] <= 1:
+            return pool
+        pool2 = MagicMock()
+        pool2.acquire.return_value = cm2
+        return pool2
+
+    citation_row = {
+        "id": uuid.uuid4(),
+        "citing_post_id": post_id,
+        "cited_post_id": cited_id,
+        "is_self_citation": False,
+        "created_at": datetime.now(timezone.utc),
+    }
+
+    mock_emit = AsyncMock()
+
+    with (
+        patch(f"{_SVC}.get_pool", side_effect=get_pool_side_effect),
+        patch(
+            "app.repositories.citation_repo.find_existing_citations",
+            new_callable=AsyncMock,
+            return_value=[],
+        ),
+        patch(
+            "app.repositories.citation_repo.insert_citation",
+            new_callable=AsyncMock,
+            return_value=citation_row,
+        ),
+        patch(
+            "app.repositories.citation_repo.update_citation_count",
+            new_callable=AsyncMock,
+            return_value=1,
+        ),
+        patch(
+            "app.repositories.citation_repo.delete_citations",
+            new_callable=AsyncMock,
+        ),
+        patch(f"{_SVC}.emit", mock_emit),
+    ):
+        await sync_post_citations(None, post_id, html, author_id)
+
+        # Verify emit was called with citer_id
+        mock_emit.assert_called_once()
+        call_kwargs = mock_emit.call_args[1]
+        assert call_kwargs["citer_id"] == author_id
+        assert call_kwargs["cited_post_id"] == str(cited_id)

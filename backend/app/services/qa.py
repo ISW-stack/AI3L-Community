@@ -41,8 +41,7 @@ async def mark_best_answer(
 
             # Verify comment exists and belongs to this post
             comment = await conn.fetchrow(
-                "SELECT id, user_id, post_id FROM comments "
-                "WHERE id = $1 AND is_deleted = false",
+                "SELECT id, user_id, post_id FROM comments " "WHERE id = $1 AND is_deleted = false",
                 comment_uuid,
             )
             if not comment or comment["post_id"] != post_id:
@@ -157,9 +156,7 @@ async def vote_on_answer(
             raise AppError(ErrorCode.QA_002, 400, "You cannot vote on your own answer.")
 
         async with conn.transaction():
-            new_score = await vote_repo.upsert_vote(
-                conn, comment_id, uuid.UUID(user_id), vote
-            )
+            new_score = await vote_repo.upsert_vote(conn, comment_id, uuid.UUID(user_id), vote)
 
     return {
         "comment_id": str(comment_id),
@@ -176,7 +173,5 @@ async def get_user_votes(
     """Get all votes by a user on comments in a post."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await vote_repo.get_user_votes_for_post(
-            conn, post_id, uuid.UUID(user_id)
-        )
+        rows = await vote_repo.get_user_votes_for_post(conn, post_id, uuid.UUID(user_id))
     return [{"comment_id": str(r["comment_id"]), "vote": r["vote"]} for r in rows]

@@ -44,7 +44,7 @@ async def insert(
 async def find_post_for_comment(post_id: uuid.UUID, conn: Any) -> dict | None:
     """Check post exists and get comment-relevant fields."""
     row = await conn.fetchrow(
-        "SELECT id, allow_comments, comment_count FROM posts WHERE id = $1 AND is_deleted = false",
+        "SELECT id, allow_comments, comment_count, type FROM posts WHERE id = $1 AND is_deleted = false",
         post_id,
     )
     return dict(row) if row else None
@@ -154,7 +154,8 @@ async def soft_delete(
             if is_admin:
                 row = await conn.fetchrow(
                     "UPDATE comments SET is_deleted = true, updated_at = NOW() "
-                    "WHERE id = $1 AND post_id = $2 AND is_deleted = false RETURNING post_id",
+                    "WHERE id = $1 AND post_id = $2 AND is_deleted = false "
+                    "RETURNING post_id, parent_id",
                     comment_id,
                     post_id,
                 )
@@ -162,7 +163,7 @@ async def soft_delete(
                 row = await conn.fetchrow(
                     "UPDATE comments SET is_deleted = true, updated_at = NOW() "
                     "WHERE id = $1 AND post_id = $2 AND user_id = $3 AND is_deleted = false "
-                    "RETURNING post_id",
+                    "RETURNING post_id, parent_id",
                     comment_id,
                     post_id,
                     user_id,
@@ -175,6 +176,15 @@ async def soft_delete(
                 "UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = $1",
                 row["post_id"],
             )
+
+            # Decrement answer_count for top-level comments on Q&A posts
+            if row["parent_id"] is None:
+                await conn.execute(
+                    "UPDATE posts SET answer_count = GREATEST(answer_count - 1, 0) "
+                    "WHERE id = $1 AND type = 'question'",
+                    row["post_id"],
+                )
+
             return uuid.UUID(str(row["post_id"]))
 
 

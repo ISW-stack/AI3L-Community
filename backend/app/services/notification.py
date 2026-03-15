@@ -63,7 +63,10 @@ async def list_notifications(
 
     offset = (page - 1) * page_size
     rows, total, unread_count = await notification_repo.find_many(
-        uuid.UUID(user_id), unread_only, page_size, offset,
+        uuid.UUID(user_id),
+        unread_only,
+        page_size,
+        offset,
         exclude_user_ids=exclude,
     )
     notifications = list(await asyncio.gather(*[async_row_to_notification(r) for r in rows]))

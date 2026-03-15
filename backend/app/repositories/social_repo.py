@@ -4,7 +4,6 @@ import uuid
 
 from app.core.database import get_pool
 
-
 # ── Friendship ──────────────────────────────────────────────────────
 
 
@@ -35,9 +34,13 @@ async def find_friendship_by_id(conn, friendship_id: uuid.UUID) -> dict | None:
     return dict(row) if row else None
 
 
-async def find_friendship_between(
-    conn, user_a: uuid.UUID, user_b: uuid.UUID
-) -> dict | None:
+async def find_friendship_by_id_for_update(conn, friendship_id: uuid.UUID) -> dict | None:
+    """Fetch friendship with FOR UPDATE lock. Must be called within a transaction."""
+    row = await conn.fetchrow("SELECT * FROM friendships WHERE id = $1 FOR UPDATE", friendship_id)
+    return dict(row) if row else None
+
+
+async def find_friendship_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> dict | None:
     row = await conn.fetchrow(
         """
         SELECT * FROM friendships
@@ -78,7 +81,7 @@ async def delete_friendship_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) 
         user_a,
         user_b,
     )
-    return "DELETE" in result
+    return result != "DELETE 0"
 
 
 async def find_friends(
@@ -113,10 +116,22 @@ async def find_friends(
     )
     if rows:
         total = rows[0]["_total"]
-        return [
-            {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
-        ], total
-    return [], 0
+        return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
+    # L2: Return actual total even on empty pages beyond the first
+    count = await conn.fetchval(
+        """
+        SELECT COUNT(*) FROM friendships f
+        JOIN users u ON u.id = CASE
+            WHEN f.requester_id = $1 THEN f.addressee_id
+            ELSE f.requester_id
+        END
+        WHERE f.status = 'ACCEPTED'
+          AND (f.requester_id = $1 OR f.addressee_id = $1)
+          AND u.is_deleted = false
+        """,
+        user_id,
+    )
+    return [], int(count)
 
 
 async def find_pending_requests(
@@ -152,9 +167,7 @@ async def find_pending_requests(
     )
     if rows:
         total = rows[0]["_total"]
-        return [
-            {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
-        ], total
+        return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
     return [], 0
 
 
@@ -211,11 +224,20 @@ async def delete_follows_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> 
 
 
 async def find_followers(
-    conn, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    conn,
+    user_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+    exclude_user_ids: list[uuid.UUID] | None = None,
 ) -> tuple[list[dict], int]:
     offset = (page - 1) * page_size
+    exclusion_clause = ""
+    params: list = [user_id, offset, page_size]
+    if exclude_user_ids:
+        exclusion_clause = " AND u.id != ALL($4::uuid[])"
+        params.append(exclude_user_ids)
     rows = await conn.fetch(
-        """
+        f"""
         SELECT
             f.id,
             f.created_at,
@@ -227,28 +249,43 @@ async def find_followers(
         FROM follows f
         JOIN users u ON u.id = f.follower_id
         WHERE f.following_id = $1
-          AND u.is_deleted = false
+          AND u.is_deleted = false{exclusion_clause}
         ORDER BY f.created_at DESC
         OFFSET $2 LIMIT $3
         """,
-        user_id,
-        offset,
-        page_size,
+        *params,
     )
     if rows:
         total = rows[0]["_total"]
-        return [
-            {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
-        ], total
-    return [], 0
+        return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
+    # L2: Return actual total even on empty pages beyond the first
+    count = await conn.fetchval(
+        f"""
+        SELECT COUNT(*) FROM follows f
+        JOIN users u ON u.id = f.follower_id
+        WHERE f.following_id = $1
+          AND u.is_deleted = false{exclusion_clause}
+        """,
+        *([user_id] + ([exclude_user_ids] if exclude_user_ids else [])),
+    )
+    return [], int(count)
 
 
 async def find_following(
-    conn, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    conn,
+    user_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+    exclude_user_ids: list[uuid.UUID] | None = None,
 ) -> tuple[list[dict], int]:
     offset = (page - 1) * page_size
+    exclusion_clause = ""
+    params: list = [user_id, offset, page_size]
+    if exclude_user_ids:
+        exclusion_clause = " AND u.id != ALL($4::uuid[])"
+        params.append(exclude_user_ids)
     rows = await conn.fetch(
-        """
+        f"""
         SELECT
             f.id,
             f.created_at,
@@ -260,20 +297,26 @@ async def find_following(
         FROM follows f
         JOIN users u ON u.id = f.following_id
         WHERE f.follower_id = $1
-          AND u.is_deleted = false
+          AND u.is_deleted = false{exclusion_clause}
         ORDER BY f.created_at DESC
         OFFSET $2 LIMIT $3
         """,
-        user_id,
-        offset,
-        page_size,
+        *params,
     )
     if rows:
         total = rows[0]["_total"]
-        return [
-            {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
-        ], total
-    return [], 0
+        return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
+    # L2: Return actual total even on empty pages beyond the first
+    count = await conn.fetchval(
+        f"""
+        SELECT COUNT(*) FROM follows f
+        JOIN users u ON u.id = f.following_id
+        WHERE f.follower_id = $1
+          AND u.is_deleted = false{exclusion_clause}
+        """,
+        *([user_id] + ([exclude_user_ids] if exclude_user_ids else [])),
+    )
+    return [], int(count)
 
 
 async def is_following(conn, follower_id: uuid.UUID, following_id: uuid.UUID) -> bool:
@@ -356,10 +399,18 @@ async def find_blocks(
     )
     if rows:
         total = rows[0]["_total"]
-        return [
-            {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
-        ], total
-    return [], 0
+        return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
+    # L2: Return actual total even on empty pages beyond the first
+    count = await conn.fetchval(
+        """
+        SELECT COUNT(*) FROM blocks b
+        JOIN users u ON u.id = b.blocked_id
+        WHERE b.blocker_id = $1
+          AND u.is_deleted = false
+        """,
+        user_id,
+    )
+    return [], int(count)
 
 
 async def count_blocks(conn, user_id: uuid.UUID) -> int:
@@ -392,9 +443,7 @@ async def find_all_blocks_raw(conn) -> list[dict]:
 # ── Relationship status ─────────────────────────────────────────────
 
 
-async def get_relationship_status(
-    conn, user_id: uuid.UUID, target_id: uuid.UUID
-) -> dict:
+async def get_relationship_status(conn, user_id: uuid.UUID, target_id: uuid.UUID) -> dict:
     """Return a dict with is_friend, is_following, is_followed_by, is_blocked,
     pending_request (null | 'sent' | 'received'), and friendship_id."""
 

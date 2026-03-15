@@ -87,7 +87,7 @@ async def is_accepted_co_author(conn: Any, post_id: uuid.UUID, user_id: uuid.UUI
 
 async def count_co_authors(conn: Any, post_id: uuid.UUID) -> int:
     count = await conn.fetchval(
-        "SELECT COUNT(*) FROM post_co_authors WHERE post_id = $1",
+        "SELECT COUNT(*) FROM post_co_authors WHERE post_id = $1 AND status IN ('PENDING', 'ACCEPTED')",
         post_id,
     )
     return count or 0
@@ -169,9 +169,7 @@ async def find_co_authored_posts(
     return result, total
 
 
-async def find_existing_by_user(
-    conn: Any, post_id: uuid.UUID, user_id: uuid.UUID
-) -> dict | None:
+async def find_existing_by_user(conn: Any, post_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:
     """Check if a user already has a co-author entry (any status) for a post."""
     row = await conn.fetchrow(
         "SELECT * FROM post_co_authors WHERE post_id = $1 AND user_id = $2",

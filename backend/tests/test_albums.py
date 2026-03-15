@@ -94,7 +94,7 @@ def _make_member(member_id=None, album_id=None, user_id=None):
         "username": "testuser",
         "avatar_url": None,
         "role": "MEMBER",
-        "status": "APPROVED",
+        "status": "ACCEPTED",
         "joined_at": now,
     }
 
@@ -395,7 +395,9 @@ class TestUploadPhoto:
             ):
                 resp = await client.post(
                     f"/api/v1/albums/{album_id}/photos",
-                    files={"file": ("photo.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 100, "image/jpeg")},
+                    files={
+                        "file": ("photo.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 100, "image/jpeg")
+                    },
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 201
@@ -486,7 +488,9 @@ class TestUploadFile:
             ):
                 resp = await client.post(
                     f"/api/v1/albums/{album_id}/files",
-                    files={"file": ("archive.zip", b"PK\x03\x04" + b"\x00" * 100, "application/zip")},
+                    files={
+                        "file": ("archive.zip", b"PK\x03\x04" + b"\x00" * 100, "application/zip")
+                    },
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 201
@@ -715,3 +719,368 @@ class TestDeleteComment:
                 assert resp.status_code == 404
         finally:
             _clear_overrides()
+
+
+# ── Bug-fix regression tests ──────────────────────────────────────────────
+
+
+class TestC1StatusEnum:
+    """C1: Album status uses 'ACCEPTED' not 'APPROVED'."""
+
+    @pytest.mark.anyio
+    async def test_create_album_uses_accepted_status(self):
+        """Service creates album member with 'ACCEPTED' status."""
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=_fake_album_row())
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.insert_album",
+                new_callable=AsyncMock,
+                return_value=_fake_album_row(),
+            ),
+            patch(
+                "app.repositories.album_repo.insert_member",
+                new_callable=AsyncMock,
+                return_value={"id": str(uuid.uuid4())},
+            ) as mock_insert_member,
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=_fake_album_row(),
+            ),
+        ):
+            from app.services.album import create_album
+
+            await create_album(title="Test", description=None, user_id=str(uuid.uuid4()))
+            # Verify status="ACCEPTED" was passed (not "APPROVED")
+            call_kwargs = mock_insert_member.call_args
+            assert call_kwargs is not None
+            # insert_member is called with positional args: conn, member_id, album_id, user_id, role=, status=
+            assert call_kwargs.kwargs.get("status") == "ACCEPTED" or (
+                len(call_kwargs.args) >= 6 and call_kwargs.args[5] == "ACCEPTED"
+            )
+
+
+class TestM5BlacklistAlbumListing:
+    """M5: Blacklist filtering in album listing."""
+
+    @pytest.mark.anyio
+    async def test_list_albums_excludes_blocked_users(self):
+        """list_albums passes blocked user IDs to repo."""
+        blocked_uid = str(uuid.uuid4())
+        viewer_uid = str(uuid.uuid4())
+        album = _fake_album_row()
+
+        mock_conn = AsyncMock()
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(f"{_SVC}.get_redis") as mock_get_redis,
+            patch(
+                f"{_SVC}.get_blocked_user_ids", new_callable=AsyncMock, return_value={blocked_uid}
+            ),
+            patch(
+                "app.repositories.album_repo.find_albums",
+                new_callable=AsyncMock,
+                return_value=([album], 1),
+            ) as mock_find,
+        ):
+            mock_get_redis.return_value = MagicMock()
+            from app.services.album import list_albums
+
+            result, total = await list_albums(page=1, page_size=20, viewer_id=viewer_uid)
+            assert total == 1
+            # Verify exclude_user_ids was passed
+            call_kwargs = mock_find.call_args
+            exclude_ids = call_kwargs.kwargs.get("exclude_user_ids")
+            assert exclude_ids is not None
+            assert uuid.UUID(blocked_uid) in exclude_ids
+
+
+class TestM5BlacklistPhotoListing:
+    """M5: Blacklist filtering in photo listing."""
+
+    @pytest.mark.anyio
+    async def test_list_photos_excludes_blocked_users(self):
+        """list_photos passes blocked user IDs to repo."""
+        blocked_uid = str(uuid.uuid4())
+        viewer_uid = str(uuid.uuid4())
+        album_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        photo = {
+            "id": uuid.uuid4(),
+            "album_id": uuid.UUID(album_id),
+            "uploaded_by": uuid.uuid4(),
+            "uploaded_by_name": "Test User",
+            "storage_key": "k",
+            "thumbnail_key": None,
+            "original_filename": "photo.jpg",
+            "file_size_bytes": 1024,
+            "content_type": "image/jpeg",
+            "description": None,
+            "width": None,
+            "height": None,
+            "is_zip": False,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        mock_conn = AsyncMock()
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(f"{_SVC}.get_redis") as mock_get_redis,
+            patch(
+                f"{_SVC}.get_blocked_user_ids", new_callable=AsyncMock, return_value={blocked_uid}
+            ),
+            patch(
+                "app.repositories.album_repo.find_photos",
+                new_callable=AsyncMock,
+                return_value=([photo], 1),
+            ) as mock_find,
+            patch(
+                "app.converters.album_converter.generate_presigned_url",
+                return_value="http://example.com/photo.jpg",
+            ),
+        ):
+            mock_get_redis.return_value = MagicMock()
+            from app.services.album import list_photos
+
+            result, total = await list_photos(
+                album_id=album_id, page=1, page_size=20, viewer_id=viewer_uid
+            )
+            assert total == 1
+            call_kwargs = mock_find.call_args
+            exclude_ids = call_kwargs.kwargs.get("exclude_user_ids")
+            assert exclude_ids is not None
+            assert uuid.UUID(blocked_uid) in exclude_ids
+
+
+class TestM8StorageQuotaTransaction:
+    """M8: Storage quota check uses FOR UPDATE in transaction."""
+
+    @pytest.mark.anyio
+    async def test_upload_photo_locks_quota_row(self):
+        """upload_photo uses SELECT ... FOR UPDATE for storage quota."""
+        user_uid = str(uuid.uuid4())
+        user_uuid = uuid.UUID(user_uid)
+        album_id = str(uuid.uuid4())
+        album_uuid = uuid.UUID(album_id)
+
+        fake_album = {
+            "id": album_uuid,
+            "title": "T",
+            "description": None,
+            "created_by": user_uuid,
+            "is_deleted": False,
+            "is_archived": False,
+            "created_by_name": "X",
+            "photo_count": 0,
+            "member_count": 1,
+        }
+        fake_member = {"role": "MEMBER", "status": "ACCEPTED"}
+
+        mock_conn = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value={"storage_used_bytes": 0})
+        mock_conn.execute = AsyncMock()
+
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
+
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        photo_row = {
+            "id": uuid.uuid4(),
+            "album_id": album_uuid,
+            "uploaded_by": user_uuid,
+            "storage_key": "k",
+            "original_filename": "photo.jpg",
+            "file_size_bytes": 100,
+            "content_type": "image/jpeg",
+            "width": None,
+            "height": None,
+            "is_zip": False,
+            "thumbnail_key": None,
+            "description": None,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(f"{_SVC}.validate_magic_number", return_value=True),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=fake_album,
+            ),
+            patch(
+                "app.repositories.album_repo.find_member",
+                new_callable=AsyncMock,
+                return_value=fake_member,
+            ),
+            patch(
+                "app.repositories.album_repo.count_photos", new_callable=AsyncMock, return_value=0
+            ),
+            patch(
+                "app.repositories.album_repo.insert_photo",
+                new_callable=AsyncMock,
+                return_value=photo_row,
+            ),
+            patch(
+                "app.repositories.album_repo.find_photo_by_id",
+                new_callable=AsyncMock,
+                return_value={**photo_row, "uploaded_by_name": "X"},
+            ),
+            patch(f"{_SVC}.settings") as mock_settings,
+        ):
+            mock_settings.MAX_USER_STORAGE_BYTES = 1_000_000_000
+            # Mock lazy imports in upload_photo
+            with (
+                patch("app.core.storage.album_photo_key", return_value="key"),
+                patch("app.core.storage.album_thumbnail_key", return_value="thumb"),
+                patch("app.core.storage.upload_file"),
+            ):
+                from app.services.album import upload_photo
+
+                await upload_photo(
+                    album_id=album_id,
+                    user_id=user_uid,
+                    file_data=b"\xff\xd8\xff\xe0" + b"\x00" * 100,
+                    filename="photo.jpg",
+                    content_type="image/jpeg",
+                )
+
+            # Verify FOR UPDATE was used
+            fetchrow_calls = mock_conn.fetchrow.call_args_list
+            for_update_called = any(
+                "FOR UPDATE" in str(call.args[0]) if call.args else False for call in fetchrow_calls
+            )
+            assert for_update_called, "Expected SELECT ... FOR UPDATE for storage quota check"
+
+
+class TestM9UpdatePhotoSingleQuery:
+    """M9: update_photo uses CTE — no redundant find_photo_by_id call."""
+
+    @pytest.mark.anyio
+    async def test_update_photo_no_redundant_fetch(self):
+        """album_repo.update_photo uses CTE instead of separate find_photo_by_id."""
+        photo_id = uuid.uuid4()
+        mock_conn = AsyncMock()
+        updated_row = {
+            "id": photo_id,
+            "album_id": uuid.uuid4(),
+            "uploaded_by": uuid.uuid4(),
+            "storage_key": "k",
+            "original_filename": "photo.jpg",
+            "file_size_bytes": 100,
+            "content_type": "image/jpeg",
+            "width": None,
+            "height": None,
+            "is_zip": False,
+            "thumbnail_key": None,
+            "description": "new desc",
+            "uploaded_by_name": "Test User",
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        mock_conn.fetchrow = AsyncMock(
+            return_value=MagicMock(
+                **{
+                    "__iter__": lambda s: iter(updated_row.items()),
+                    "__getitem__": lambda s, k: updated_row[k],
+                    "items": lambda: updated_row.items(),
+                    "keys": lambda: updated_row.keys(),
+                }
+            )
+        )
+
+        from app.repositories.album_repo import update_photo
+
+        result = await update_photo(mock_conn, photo_id, description="new desc")
+        assert result is not None
+        # Verify only ONE fetchrow call (the CTE), not two (update + find_photo_by_id)
+        assert mock_conn.fetchrow.call_count == 1
+        # Verify the query uses a CTE
+        query = mock_conn.fetchrow.call_args.args[0]
+        assert "WITH updated AS" in query
+
+
+class TestL3ListCommentsAlbumNotFound:
+    """L3: list_comments returns 404 for non-existent album."""
+
+    @pytest.mark.anyio
+    async def test_list_comments_album_not_found(self):
+        """list_comments raises 404 when album doesn't exist."""
+        from app.core.errors import AppError
+
+        album_id = str(uuid.uuid4())
+
+        mock_conn = AsyncMock()
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
+            from app.services.album import list_comments
+
+            with pytest.raises(AppError) as exc_info:
+                await list_comments(album_id=album_id, page=1, page_size=20)
+            assert exc_info.value.status_code == 404
+
+
+# ── Test helpers for service-layer mocks ───────────────────────────────────
+
+
+def _fake_album_row(album_id=None, user_id=None):
+    now = datetime.now(timezone.utc)
+    uid = uuid.UUID(user_id) if user_id else uuid.uuid4()
+    aid = album_id or uuid.uuid4()
+    return {
+        "id": aid,
+        "title": "Test Album",
+        "description": "A test album",
+        "cover_photo_url": None,
+        "created_by": uid,
+        "created_by_name": "Test User",
+        "is_deleted": False,
+        "is_archived": False,
+        "photo_count": 0,
+        "member_count": 1,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+class _FakeAcquire:
+    """Async context manager that returns a mock connection."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    async def __aenter__(self):
+        return self._conn
+
+    async def __aexit__(self, *args):
+        pass

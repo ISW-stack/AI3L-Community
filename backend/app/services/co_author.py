@@ -42,6 +42,14 @@ async def invite_co_author(
                 403,
                 "Cannot invite this user as co-author.",
             )
+        # H5: Bilateral block check — target may have blocked the inviter
+        target_blocked_ids = await get_blocked_user_ids(redis, target_user_id)
+        if user_id in target_blocked_ids:
+            raise AppError(
+                ErrorCode.SOCIAL_003,
+                403,
+                "Cannot invite this user as co-author.",
+            )
     except AppError:
         raise
     except Exception:
@@ -59,56 +67,60 @@ async def invite_co_author(
         if str(post["user_id"]) != user_id:
             raise ForbiddenError("Only the post owner can invite co-authors.")
 
-        # Check co-author count
-        count = await co_author_repo.count_co_authors(conn, post_id)
-        if count >= MAX_CO_AUTHORS_PER_POST:
-            raise AppError(
-                ErrorCode.COAUTHOR_001,
-                400,
-                f"Maximum co-authors ({MAX_CO_AUTHORS_PER_POST}) reached.",
+        # H3: Wrap count check + insert in transaction with advisory lock
+        async with conn.transaction():
+            # Advisory lock keyed on post_id to serialise concurrent invites
+            await conn.execute(
+                "SELECT pg_advisory_xact_lock(hashtext($1::text))",
+                str(post_id),
             )
 
-        # Check target user exists
-        target_uuid = uuid.UUID(target_user_id)
-        target = await conn.fetchrow(
-            "SELECT id, display_name FROM users WHERE id = $1 AND is_deleted = false",
-            target_uuid,
-        )
-        if not target:
-            raise NotFoundError("User", target_user_id)
+            # Check co-author count
+            count = await co_author_repo.count_co_authors(conn, post_id)
+            if count >= MAX_CO_AUTHORS_PER_POST:
+                raise AppError(
+                    ErrorCode.COAUTHOR_001,
+                    400,
+                    f"Maximum co-authors ({MAX_CO_AUTHORS_PER_POST}) reached.",
+                )
 
-        # Check for existing co-author entry
-        existing = await co_author_repo.find_existing_by_user(conn, post_id, target_uuid)
-        if existing:
-            raise AppError(
-                ErrorCode.COAUTHOR_002,
-                409,
-                "This user already has a co-author entry for this post.",
+            # Check target user exists
+            target_uuid = uuid.UUID(target_user_id)
+            target = await conn.fetchrow(
+                "SELECT id, display_name FROM users WHERE id = $1 AND is_deleted = false",
+                target_uuid,
+            )
+            if not target:
+                raise NotFoundError("User", target_user_id)
+
+            # Check for existing co-author entry
+            existing = await co_author_repo.find_existing_by_user(conn, post_id, target_uuid)
+            if existing:
+                raise AppError(
+                    ErrorCode.COAUTHOR_002,
+                    409,
+                    "This user already has a co-author entry for this post.",
+                )
+
+            # Cannot invite yourself
+            if target_user_id == user_id:
+                raise AppError(ErrorCode.SYS_422, 400, "Cannot invite yourself as a co-author.")
+
+            co_author_id = uuid.uuid4()
+            name = display_name or target["display_name"]
+            row = await co_author_repo.insert_co_author(
+                conn,
+                co_author_id,
+                post_id,
+                target_uuid,
+                name,
+                None,
+                None,
+                False,
+                "PENDING",
+                uuid.UUID(user_id),
             )
 
-        # Cannot invite yourself
-        if target_user_id == user_id:
-            raise AppError(ErrorCode.SYS_422, 400, "Cannot invite yourself as a co-author.")
-
-        co_author_id = uuid.uuid4()
-        name = display_name or target["display_name"]
-        row = await co_author_repo.insert_co_author(
-            conn,
-            co_author_id,
-            post_id,
-            target_uuid,
-            name,
-            None,
-            None,
-            False,
-            "PENDING",
-            uuid.UUID(user_id),
-        )
-
-    # Get inviter name for notification
-    inviter = await conn.fetchrow(
-        "SELECT display_name FROM users WHERE id = $1", uuid.UUID(user_id)
-    ) if False else None  # noqa: avoid conn outside pool context
     # Emit event for notification (best-effort)
     try:
         pool2 = get_pool()
@@ -121,6 +133,7 @@ async def invite_co_author(
             "co_author.invited",
             post_id=str(post_id),
             target_user_id=target_user_id,
+            inviter_id=user_id,
             inviter_name=inviter_name,
             post_title=post["title"],
         )
@@ -227,6 +240,7 @@ async def respond_to_invitation(
                 "co_author.responded",
                 post_id=str(invitation["post_id"]),
                 post_owner_id=str(post["user_id"]),
+                responder_id=user_id,
                 responder_name=responder["display_name"] if responder else "Someone",
                 accepted=accept,
             )

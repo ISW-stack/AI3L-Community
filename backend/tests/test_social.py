@@ -63,9 +63,7 @@ def _make_block_row(blocked_id: uuid.UUID | None = None) -> dict:
     }
 
 
-def _make_request_row(
-    requester_id: uuid.UUID, addressee_id: uuid.UUID
-) -> dict:
+def _make_request_row(requester_id: uuid.UUID, addressee_id: uuid.UUID) -> dict:
     now = datetime.now(timezone.utc)
     return {
         "id": uuid.uuid4(),
@@ -183,11 +181,17 @@ class TestAcceptFriendRequest:
     @patch(f"{_REPO}.insert_follow", new_callable=AsyncMock, return_value={})
     @patch(f"{_REPO}.is_following", new_callable=AsyncMock, return_value=False)
     @patch(f"{_REPO}.accept_friendship", new_callable=AsyncMock)
-    @patch(f"{_REPO}.find_friendship_by_id", new_callable=AsyncMock)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
     @patch("app.services.social.emit", new_callable=AsyncMock)
     async def test_accept_success(
-        self, mock_emit, mock_find, mock_accept, mock_is_follow, mock_insert_follow,
-        mock_pool, mock_conn,
+        self,
+        mock_emit,
+        mock_find,
+        mock_accept,
+        mock_is_follow,
+        mock_insert_follow,
+        mock_pool,
+        mock_conn,
     ):
         from app.services.social import accept_friend_request
 
@@ -203,14 +207,14 @@ class TestAcceptFriendRequest:
         # Auto-follow both directions
         assert mock_insert_follow.call_count == 2
 
-    @patch(f"{_REPO}.find_friendship_by_id", new_callable=AsyncMock, return_value=None)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock, return_value=None)
     async def test_not_found(self, mock_find, mock_pool, mock_conn):
         from app.services.social import accept_friend_request
 
         with pytest.raises(Exception, match="not found"):
             await accept_friend_request(mock_pool, uuid.uuid4(), uuid.uuid4())
 
-    @patch(f"{_REPO}.find_friendship_by_id", new_callable=AsyncMock)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
     async def test_not_addressee(self, mock_find, mock_pool, mock_conn):
         from app.services.social import accept_friend_request
 
@@ -225,7 +229,7 @@ class TestAcceptFriendRequest:
 
 class TestRejectFriendRequest:
     @patch(f"{_REPO}.reject_friendship", new_callable=AsyncMock, return_value=True)
-    @patch(f"{_REPO}.find_friendship_by_id", new_callable=AsyncMock)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
     async def test_reject_success(self, mock_find, mock_reject, mock_pool, mock_conn):
         from app.services.social import reject_friend_request
 
@@ -349,9 +353,7 @@ class TestBlockUser:
 class TestUnblockUser:
     @patch("app.services.social.update_block_cache", new_callable=AsyncMock)
     @patch(f"{_REPO}.delete_block", new_callable=AsyncMock, return_value=True)
-    async def test_unblock_success(
-        self, mock_delete, mock_cache, mock_pool, mock_conn, mock_redis
-    ):
+    async def test_unblock_success(self, mock_delete, mock_cache, mock_pool, mock_conn, mock_redis):
         from app.services.social import unblock_user
 
         await unblock_user(mock_pool, mock_redis, uuid.uuid4(), uuid.uuid4())
@@ -404,6 +406,248 @@ class TestListFollowing:
 
         rows, total = await list_following(mock_pool, uuid.uuid4())
         assert total == 1
+
+
+# ── Bug Fix Tests ──────────────────────────────────────────────────
+
+
+class TestAcceptFriendRequestTOCTOU:
+    """H4: Verify accept_friend_request uses FOR UPDATE to prevent TOCTOU."""
+
+    @patch(f"{_REPO}.insert_follow", new_callable=AsyncMock, return_value={})
+    @patch(f"{_REPO}.is_following", new_callable=AsyncMock, return_value=False)
+    @patch(f"{_REPO}.accept_friendship", new_callable=AsyncMock)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
+    @patch("app.services.social.emit", new_callable=AsyncMock)
+    async def test_accept_uses_for_update_in_transaction(
+        self,
+        mock_emit,
+        mock_find_for_update,
+        mock_accept,
+        mock_is_follow,
+        mock_insert_follow,
+        mock_pool,
+        mock_conn,
+    ):
+        """accept_friend_request must call find_friendship_by_id_for_update
+        (which uses SELECT ... FOR UPDATE) inside a transaction."""
+        from app.services.social import accept_friend_request
+
+        user_id = uuid.uuid4()
+        friendship_id = uuid.uuid4()
+        friendship = _make_friendship(uuid.uuid4(), user_id, "PENDING", friendship_id)
+        mock_find_for_update.return_value = friendship
+        mock_accept.return_value = {**friendship, "status": "ACCEPTED"}
+
+        await accept_friend_request(mock_pool, friendship_id, user_id)
+
+        # Verify FOR UPDATE variant was called (not plain find_friendship_by_id)
+        mock_find_for_update.assert_called_once_with(mock_conn, friendship_id)
+        # Verify transaction was opened
+        mock_conn.transaction.assert_called_once()
+
+
+class TestDeleteFriendshipBetweenResult:
+    """M2: Verify delete_friendship_between correctly handles 'DELETE 0'."""
+
+    async def test_delete_zero_returns_false(self, mock_conn):
+        from app.repositories.social_repo import delete_friendship_between
+
+        mock_conn.execute = AsyncMock(return_value="DELETE 0")
+        result = await delete_friendship_between(mock_conn, uuid.uuid4(), uuid.uuid4())
+        assert result is False
+
+    async def test_delete_one_returns_true(self, mock_conn):
+        from app.repositories.social_repo import delete_friendship_between
+
+        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+        result = await delete_friendship_between(mock_conn, uuid.uuid4(), uuid.uuid4())
+        assert result is True
+
+
+class TestAcceptFriendshipNoneCheck:
+    """M3: Verify accept_friend_request raises when accept_friendship returns None."""
+
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
+    @patch(f"{_REPO}.accept_friendship", new_callable=AsyncMock, return_value=None)
+    async def test_accept_returns_none_raises(
+        self,
+        mock_accept,
+        mock_find,
+        mock_pool,
+        mock_conn,
+    ):
+        from app.services.social import accept_friend_request
+
+        user_id = uuid.uuid4()
+        friendship_id = uuid.uuid4()
+        friendship = _make_friendship(uuid.uuid4(), user_id, "PENDING", friendship_id)
+        mock_find.return_value = friendship
+
+        with pytest.raises(Exception, match="not found or already processed"):
+            await accept_friend_request(mock_pool, friendship_id, user_id)
+
+
+class TestBlacklistFilterFollowers:
+    """M4: Verify blacklist filtering in followers listing."""
+
+    @patch(f"{_REPO}.find_followers", new_callable=AsyncMock)
+    @patch("app.services.social.get_blocked_user_ids", new_callable=AsyncMock)
+    async def test_followers_exclude_blocked_users(
+        self,
+        mock_get_blocked,
+        mock_find,
+        mock_pool,
+        mock_conn,
+        mock_redis,
+    ):
+        from app.services.social import list_followers
+
+        blocked_uid = uuid.uuid4()
+        mock_get_blocked.return_value = {str(blocked_uid)}
+        mock_find.return_value = ([], 0)
+
+        user_id = uuid.uuid4()
+        await list_followers(mock_pool, user_id, redis=mock_redis)
+
+        # Verify find_followers was called with exclude_user_ids containing blocked UUID
+        call_kwargs = mock_find.call_args
+        assert call_kwargs[1]["exclude_user_ids"] == [blocked_uid]
+
+    @patch(f"{_REPO}.find_followers", new_callable=AsyncMock)
+    async def test_followers_no_redis_no_exclusion(
+        self,
+        mock_find,
+        mock_pool,
+        mock_conn,
+    ):
+        from app.services.social import list_followers
+
+        mock_find.return_value = ([], 0)
+        await list_followers(mock_pool, uuid.uuid4())
+
+        # Without redis, exclude_user_ids should be None
+        call_kwargs = mock_find.call_args
+        assert call_kwargs[1]["exclude_user_ids"] is None
+
+
+class TestBlacklistFilterFollowing:
+    """M4: Verify blacklist filtering in following listing."""
+
+    @patch(f"{_REPO}.find_following", new_callable=AsyncMock)
+    @patch("app.services.social.get_blocked_user_ids", new_callable=AsyncMock)
+    async def test_following_exclude_blocked_users(
+        self,
+        mock_get_blocked,
+        mock_find,
+        mock_pool,
+        mock_conn,
+        mock_redis,
+    ):
+        from app.services.social import list_following
+
+        blocked_uid = uuid.uuid4()
+        mock_get_blocked.return_value = {str(blocked_uid)}
+        mock_find.return_value = ([], 0)
+
+        user_id = uuid.uuid4()
+        await list_following(mock_pool, user_id, redis=mock_redis)
+
+        # Verify find_following was called with exclude_user_ids containing blocked UUID
+        call_kwargs = mock_find.call_args
+        assert call_kwargs[1]["exclude_user_ids"] == [blocked_uid]
+
+    @patch(f"{_REPO}.find_following", new_callable=AsyncMock)
+    async def test_following_no_redis_no_exclusion(
+        self,
+        mock_find,
+        mock_pool,
+        mock_conn,
+    ):
+        from app.services.social import list_following
+
+        mock_find.return_value = ([], 0)
+        await list_following(mock_pool, uuid.uuid4())
+
+        # Without redis, exclude_user_ids should be None
+        call_kwargs = mock_find.call_args
+        assert call_kwargs[1]["exclude_user_ids"] is None
+
+
+class TestRejectFriendRequestAtomicity:
+    """M11: Verify reject_friend_request uses FOR UPDATE in a transaction."""
+
+    @patch(f"{_REPO}.reject_friendship", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
+    async def test_reject_uses_for_update_in_transaction(
+        self,
+        mock_find_for_update,
+        mock_reject,
+        mock_pool,
+        mock_conn,
+    ):
+        from app.services.social import reject_friend_request
+
+        user_id = uuid.uuid4()
+        friendship_id = uuid.uuid4()
+        friendship = _make_friendship(uuid.uuid4(), user_id, "PENDING", friendship_id)
+        mock_find_for_update.return_value = friendship
+
+        await reject_friend_request(mock_pool, friendship_id, user_id)
+
+        # Verify FOR UPDATE variant was called (not plain find_friendship_by_id)
+        mock_find_for_update.assert_called_once_with(mock_conn, friendship_id)
+        # Verify transaction was opened
+        mock_conn.transaction.assert_called_once()
+        # Verify delete happened
+        mock_reject.assert_called_once_with(mock_conn, friendship_id)
+
+
+class TestEmptyPageReturnsActualTotal:
+    """L2: Verify empty pages return correct total count, not 0."""
+
+    async def test_find_friends_empty_page_returns_total(self, mock_conn):
+        from app.repositories.social_repo import find_friends
+
+        # Empty rows (e.g., page 2 with only 1 result total)
+        mock_conn.fetch = AsyncMock(return_value=[])
+        mock_conn.fetchval = AsyncMock(return_value=5)
+
+        rows, total = await find_friends(mock_conn, uuid.uuid4(), page=2, page_size=20)
+        assert rows == []
+        assert total == 5
+        # Verify the COUNT query was executed
+        mock_conn.fetchval.assert_called_once()
+
+    async def test_find_followers_empty_page_returns_total(self, mock_conn):
+        from app.repositories.social_repo import find_followers
+
+        mock_conn.fetch = AsyncMock(return_value=[])
+        mock_conn.fetchval = AsyncMock(return_value=3)
+
+        rows, total = await find_followers(mock_conn, uuid.uuid4(), page=2, page_size=20)
+        assert rows == []
+        assert total == 3
+
+    async def test_find_following_empty_page_returns_total(self, mock_conn):
+        from app.repositories.social_repo import find_following
+
+        mock_conn.fetch = AsyncMock(return_value=[])
+        mock_conn.fetchval = AsyncMock(return_value=7)
+
+        rows, total = await find_following(mock_conn, uuid.uuid4(), page=2, page_size=20)
+        assert rows == []
+        assert total == 7
+
+    async def test_find_blocks_empty_page_returns_total(self, mock_conn):
+        from app.repositories.social_repo import find_blocks
+
+        mock_conn.fetch = AsyncMock(return_value=[])
+        mock_conn.fetchval = AsyncMock(return_value=2)
+
+        rows, total = await find_blocks(mock_conn, uuid.uuid4(), page=2, page_size=20)
+        assert rows == []
+        assert total == 2
 
 
 class TestListBlocks:

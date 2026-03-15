@@ -46,8 +46,8 @@ from app.services.social import (
     reject_friend_request,
     send_friend_request,
     unblock_user,
-    unfriend,
     unfollow_user,
+    unfriend,
 )
 
 router = APIRouter(prefix="/social", tags=["social"])
@@ -85,9 +85,7 @@ async def get_friend_requests(
 ) -> FriendRequestListResponse:
     """List pending friend requests (incoming and outgoing)."""
     pool = get_pool()
-    rows, total = await list_friend_requests(
-        pool, uuid.UUID(current_user["sub"]), page, page_size
-    )
+    rows, total = await list_friend_requests(pool, uuid.UUID(current_user["sub"]), page, page_size)
     return FriendRequestListResponse(
         requests=[to_friend_request_response(r) for r in rows],
         total=total,
@@ -144,9 +142,7 @@ async def get_friends(
 ) -> FriendListResponse:
     """List accepted friends (paginated)."""
     pool = get_pool()
-    rows, total = await list_friends(
-        pool, uuid.UUID(current_user["sub"]), page, page_size
-    )
+    rows, total = await list_friends(pool, uuid.UUID(current_user["sub"]), page, page_size)
     return FriendListResponse(
         friends=[to_friendship_response(r, current_user["sub"]) for r in rows],
         total=total,
@@ -195,8 +191,9 @@ async def get_followers(
 ) -> FollowUserListResponse:
     """List users who follow the current user."""
     pool = get_pool()
+    redis = get_redis()
     rows, total = await list_followers(
-        pool, uuid.UUID(current_user["sub"]), page, page_size
+        pool, uuid.UUID(current_user["sub"]), page, page_size, redis=redis
     )
     return FollowUserListResponse(
         users=[to_follow_user_response(r) for r in rows],
@@ -212,8 +209,9 @@ async def get_following(
 ) -> FollowUserListResponse:
     """List users the current user is following."""
     pool = get_pool()
+    redis = get_redis()
     rows, total = await list_following(
-        pool, uuid.UUID(current_user["sub"]), page, page_size
+        pool, uuid.UUID(current_user["sub"]), page, page_size, redis=redis
     )
     return FollowUserListResponse(
         users=[to_follow_user_response(r) for r in rows],
@@ -265,9 +263,7 @@ async def get_blocks(
 ) -> BlockListResponse:
     """List blocked users."""
     pool = get_pool()
-    rows, total = await list_blocks(
-        pool, uuid.UUID(current_user["sub"]), page, page_size
-    )
+    rows, total = await list_blocks(pool, uuid.UUID(current_user["sub"]), page, page_size)
     return BlockListResponse(
         blocks=[to_block_response(r) for r in rows],
         total=total,
@@ -284,7 +280,5 @@ async def get_status(
 ) -> RelationshipStatusResponse:
     """Get relationship status with another user."""
     pool = get_pool()
-    data = await get_relationship_status(
-        pool, uuid.UUID(current_user["sub"]), user_id
-    )
+    data = await get_relationship_status(pool, uuid.UUID(current_user["sub"]), user_id)
     return to_relationship_status_response(data)

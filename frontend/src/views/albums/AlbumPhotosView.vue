@@ -25,7 +25,7 @@ const lightboxVisible = ref(false)
 const lightboxIndex = ref(0)
 const PAGE_SIZE = 20
 
-const { page, total, totalPages, setPage, updateFromResponse } = usePagination(PAGE_SIZE)
+const { page, total, totalPages, setPage, resetPage, updateFromResponse } = usePagination(PAGE_SIZE)
 
 async function fetchPhotos() {
   if (!album.value) return
@@ -82,7 +82,13 @@ async function handleUpload(file: File) {
 }
 
 onMounted(fetchPhotos)
-watch(() => album.value?.id, fetchPhotos)
+watch(
+  () => album.value?.id,
+  () => {
+    resetPage()
+    fetchPhotos()
+  },
+)
 watch(page, fetchPhotos)
 </script>
 

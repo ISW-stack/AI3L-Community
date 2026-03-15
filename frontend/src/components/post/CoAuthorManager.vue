@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import type { CoAuthor } from '@/types/coauthor'
 import {
   listCoAuthors,
@@ -34,6 +34,10 @@ const searchQuery = ref('')
 const searchResults = ref<Array<{ id: string; display_name: string; avatar_url: string | null }>>([])
 const searchLoading = ref(false)
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+onBeforeUnmount(() => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+})
 
 // External co-author form
 const showExternalForm = ref(false)

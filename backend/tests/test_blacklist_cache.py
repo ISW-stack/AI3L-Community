@@ -109,9 +109,7 @@ class TestBuildBlockExclusionClause:
 
     def test_rejects_invalid_column(self):
         with pytest.raises(ValueError, match="Invalid column"):
-            build_block_exclusion_clause(
-                {str(uuid.uuid4())}, "evil_column", 1
-            )
+            build_block_exclusion_clause({str(uuid.uuid4())}, "evil_column", 1)
 
     def test_all_allowed_columns(self):
         allowed = [

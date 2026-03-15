@@ -1,4 +1,5 @@
 """Redis-cached bilateral block set helpers."""
+
 import logging
 import uuid
 

@@ -40,17 +40,15 @@ async def create_album(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            row = await album_repo.insert_album(
-                conn, album_id, title, description, user_uuid
-            )
-            # Auto-add creator as ADMIN member with APPROVED status
+            row = await album_repo.insert_album(conn, album_id, title, description, user_uuid)
+            # Auto-add creator as ADMIN member with ACCEPTED status
             await album_repo.insert_member(
                 conn,
                 uuid.uuid4(),
                 album_id,
                 user_uuid,
                 role="ADMIN",
-                status="APPROVED",
+                status="ACCEPTED",
             )
     logger.info("Album created", extra={"album_id": str(album_id), "user_id": user_id})
     # Re-fetch with JOINs for proper response
@@ -71,11 +69,24 @@ async def get_album(album_id: str) -> dict:
     return to_album_response(row)
 
 
-async def list_albums(page: int = 1, page_size: int = 20) -> tuple[list[dict], int]:
-    """List albums with pagination."""
+async def list_albums(
+    page: int = 1,
+    page_size: int = 20,
+    viewer_id: str | None = None,
+) -> tuple[list[dict], int]:
+    """List albums with pagination and blacklist filtering."""
+    exclude: list[uuid.UUID] | None = None
+    if viewer_id:
+        try:
+            redis = get_redis()
+            blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+            if blocked_ids:
+                exclude = [uuid.UUID(uid) for uid in blocked_ids]
+        except Exception:
+            pass
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows, total = await album_repo.find_albums(conn, page, page_size)
+        rows, total = await album_repo.find_albums(conn, page, page_size, exclude_user_ids=exclude)
     return [to_album_response(r) for r in rows], total
 
 
@@ -100,7 +111,7 @@ async def update_album(
 
         # Check album-level admin
         member = await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id))
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "APPROVED"
+        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
         if not (is_creator or is_site_admin or is_album_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to update this album.")
@@ -149,7 +160,7 @@ async def add_member(
     target_user_id: str,
     user_role: str,
 ) -> dict:
-    """ADMIN/creator adds a member directly with APPROVED status."""
+    """ADMIN/creator adds a member directly with ACCEPTED status."""
     pool = get_pool()
     album_uuid = uuid.UUID(album_id)
     user_uuid = uuid.UUID(user_id)
@@ -163,7 +174,7 @@ async def add_member(
         is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
         is_creator = str(album["created_by"]) == user_id
         member = await album_repo.find_member(conn, album_uuid, user_uuid)
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "APPROVED"
+        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
         if not (is_creator or is_site_admin or is_album_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to add members.")
@@ -171,10 +182,12 @@ async def add_member(
         # Check target not already member
         existing = await album_repo.find_member(conn, album_uuid, target_uuid)
         if existing:
-            raise AppError(ErrorCode.SYS_409, 409, "User is already a member or has a pending request.")
+            raise AppError(
+                ErrorCode.SYS_409, 409, "User is already a member or has a pending request."
+            )
 
         member_row = await album_repo.insert_member(
-            conn, uuid.uuid4(), album_uuid, target_uuid, role="MEMBER", status="APPROVED"
+            conn, uuid.uuid4(), album_uuid, target_uuid, role="MEMBER", status="ACCEPTED"
         )
 
     logger.info(
@@ -189,7 +202,7 @@ async def add_member(
         for m in members:
             if str(m["user_id"]) == target_user_id:
                 return to_album_member_response(m)
-    return {"id": str(member_row["id"]), "status": "APPROVED"}
+    return {"id": str(member_row["id"]), "status": "ACCEPTED"}
 
 
 async def join_album(album_id: str, user_id: str) -> dict:
@@ -238,12 +251,12 @@ async def approve_member(
         is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
         is_creator = str(album["created_by"]) == user_id
         member = await album_repo.find_member(conn, album_uuid, user_uuid)
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "APPROVED"
+        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
         if not (is_creator or is_site_admin or is_album_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to approve members.")
 
-        updated = await album_repo.update_member_status(conn, member_uuid, "APPROVED")
+        updated = await album_repo.update_member_status(conn, member_uuid, "ACCEPTED")
 
     return updated
 
@@ -271,7 +284,7 @@ async def remove_member(
             is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
             is_creator = str(album["created_by"]) == user_id
             member = await album_repo.find_member(conn, album_uuid, user_uuid)
-            is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "APPROVED"
+            is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
             if not (is_creator or is_site_admin or is_album_admin):
                 raise AppError(ErrorCode.SYS_403, 403, "Not authorized to remove members.")
@@ -289,9 +302,7 @@ async def list_members(
     """List album members with pagination."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows, total = await album_repo.find_members(
-            conn, uuid.UUID(album_id), page, page_size
-        )
+        rows, total = await album_repo.find_members(conn, uuid.UUID(album_id), page, page_size)
     return [to_album_member_response(r) for r in rows], total
 
 
@@ -315,14 +326,16 @@ async def upload_photo(
     # 1. Validate file type
     if content_type not in ALBUM_ALLOWED_IMAGE_TYPES:
         raise AppError(
-            ErrorCode.ALBUM_003, 400,
+            ErrorCode.ALBUM_003,
+            400,
             f"File type not allowed. Accepted: {', '.join(ALBUM_ALLOWED_IMAGE_TYPES)}",
         )
 
     # 2. Validate magic bytes
     if not validate_magic_number(file_data, content_type):
         raise AppError(
-            ErrorCode.ALBUM_003, 400,
+            ErrorCode.ALBUM_003,
+            400,
             "File content does not match its declared type.",
         )
 
@@ -330,59 +343,73 @@ async def upload_photo(
     file_size = len(file_data)
     if file_size > ALBUM_MAX_PHOTO_SIZE_BYTES:
         raise AppError(
-            ErrorCode.ALBUM_002, 400,
+            ErrorCode.ALBUM_002,
+            400,
             f"File size exceeds {ALBUM_MAX_PHOTO_SIZE_BYTES // (1024 * 1024)}MB limit.",
         )
 
     async with pool.acquire() as conn:
-        # 4. Check album exists and membership
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        async with conn.transaction():
+            # 4. Check album exists and membership
+            album = await album_repo.find_album_by_id(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        member = await album_repo.find_member(conn, album_uuid, user_uuid)
-        if not member or member["status"] != "APPROVED":
-            raise AppError(ErrorCode.SYS_403, 403, "Must be an approved album member to upload.")
+            member = await album_repo.find_member(conn, album_uuid, user_uuid)
+            if not member or member["status"] != "ACCEPTED":
+                raise AppError(
+                    ErrorCode.SYS_403, 403, "Must be an approved album member to upload."
+                )
 
-        # 5. Check album photo count
-        photo_count = await album_repo.count_photos(conn, album_uuid)
-        if photo_count >= ALBUM_MAX_PHOTOS:
-            raise AppError(
-                ErrorCode.ALBUM_002, 400,
-                f"Album has reached the maximum of {ALBUM_MAX_PHOTOS} photos.",
+            # 5. Check album photo count
+            photo_count = await album_repo.count_photos(conn, album_uuid)
+            if photo_count >= ALBUM_MAX_PHOTOS:
+                raise AppError(
+                    ErrorCode.ALBUM_002,
+                    400,
+                    f"Album has reached the maximum of {ALBUM_MAX_PHOTOS} photos.",
+                )
+
+            # 6. Check user storage quota (FOR UPDATE to prevent race condition)
+            quota_row = await conn.fetchrow(
+                "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
+                user_uuid,
+            )
+            storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
+            if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
+                raise AppError(
+                    ErrorCode.ALBUM_002,
+                    400,
+                    "Storage quota exceeded.",
+                )
+
+            # 7. Upload to MinIO
+            ext = ""
+            if "." in filename:
+                ext = filename.rsplit(".", 1)[-1].lower()
+            file_uuid = str(uuid.uuid4())
+            storage_key = album_photo_key(album_id, file_uuid, ext)
+            upload_file(file_data, storage_key, content_type)
+
+            # 8. Increment storage used (within same transaction)
+            await conn.execute(
+                "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
+                file_size,
+                user_uuid,
             )
 
-        # 6. Check user storage quota
-        storage_used = await user_repo.get_storage_used(user_uuid)
-        if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
-            raise AppError(
-                ErrorCode.ALBUM_002, 400,
-                "Storage quota exceeded.",
+            # 9. Insert photo record
+            photo_id = uuid.uuid4()
+            row = await album_repo.insert_photo(
+                conn,
+                photo_id,
+                album_uuid,
+                user_uuid,
+                storage_key,
+                filename,
+                file_size,
+                content_type,
             )
-
-        # 7. Upload to MinIO
-        ext = ""
-        if "." in filename:
-            ext = filename.rsplit(".", 1)[-1].lower()
-        file_uuid = str(uuid.uuid4())
-        storage_key = album_photo_key(album_id, file_uuid, ext)
-        upload_file(file_data, storage_key, content_type)
-
-        # 8. Increment storage used
-        await user_repo.increment_storage_used(user_uuid, file_size)
-
-        # 9. Insert photo record
-        photo_id = uuid.uuid4()
-        row = await album_repo.insert_photo(
-            conn,
-            photo_id,
-            album_uuid,
-            user_uuid,
-            storage_key,
-            filename,
-            file_size,
-            content_type,
-        )
 
     # 10. Dispatch thumbnail generation (lazy import)
     try:
@@ -424,7 +451,8 @@ async def upload_file_zip(
     # Validate type
     if content_type not in ALBUM_ALLOWED_ZIP_TYPES:
         raise AppError(
-            ErrorCode.ALBUM_003, 400,
+            ErrorCode.ALBUM_003,
+            400,
             "Only ZIP files are allowed for file uploads.",
         )
 
@@ -433,14 +461,16 @@ async def upload_file_zip(
         # ZIP and DOCX share PK signature, use the generic check
         if not file_data[:4] == b"PK\x03\x04":
             raise AppError(
-                ErrorCode.ALBUM_003, 400,
+                ErrorCode.ALBUM_003,
+                400,
                 "File content does not match ZIP format.",
             )
 
     file_size = len(file_data)
     if file_size > ALBUM_MAX_ZIP_SIZE_BYTES:
         raise AppError(
-            ErrorCode.ALBUM_002, 400,
+            ErrorCode.ALBUM_002,
+            400,
             f"ZIP file size exceeds {ALBUM_MAX_ZIP_SIZE_BYTES // (1024 * 1024)}MB limit.",
         )
 
@@ -450,7 +480,7 @@ async def upload_file_zip(
             raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
         member = await album_repo.find_member(conn, album_uuid, user_uuid)
-        if not member or member["status"] != "APPROVED":
+        if not member or member["status"] != "ACCEPTED":
             raise AppError(ErrorCode.SYS_403, 403, "Must be an approved album member to upload.")
 
         storage_used = await user_repo.get_storage_used(user_uuid)
@@ -503,12 +533,26 @@ async def list_photos(
     album_id: str,
     page: int = 1,
     page_size: int = 20,
+    viewer_id: str | None = None,
 ) -> tuple[list[dict], int]:
-    """List photos in an album with pagination."""
+    """List photos in an album with pagination and blacklist filtering."""
+    exclude: list[uuid.UUID] | None = None
+    if viewer_id:
+        try:
+            redis = get_redis()
+            blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+            if blocked_ids:
+                exclude = [uuid.UUID(uid) for uid in blocked_ids]
+        except Exception:
+            pass
     pool = get_pool()
     async with pool.acquire() as conn:
         rows, total = await album_repo.find_photos(
-            conn, uuid.UUID(album_id), page, page_size
+            conn,
+            uuid.UUID(album_id),
+            page,
+            page_size,
+            exclude_user_ids=exclude,
         )
     return [to_album_photo_response(r) for r in rows], total
 
@@ -533,7 +577,7 @@ async def update_photo(
         is_uploader = str(photo["uploaded_by"]) == user_id
         is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
         member = await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id))
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "APPROVED"
+        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
         if not (is_uploader or is_site_admin or is_album_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to update this photo.")
@@ -566,16 +610,15 @@ async def delete_photo(
         is_uploader = str(photo["uploaded_by"]) == user_id
         is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
         member = await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id))
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "APPROVED"
+        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
         # ADMIN can't delete other ADMIN's uploads
         if not is_uploader and (is_site_admin or is_album_admin):
-            uploader_member = await album_repo.find_member(
-                conn, album_uuid, photo["uploaded_by"]
-            )
+            uploader_member = await album_repo.find_member(conn, album_uuid, photo["uploaded_by"])
             if uploader_member and uploader_member["role"] == "ADMIN":
                 raise AppError(
-                    ErrorCode.SYS_403, 403,
+                    ErrorCode.SYS_403,
+                    403,
                     "Cannot delete another admin's photo.",
                 )
         elif not is_uploader and not is_site_admin and not is_album_admin:
@@ -632,7 +675,12 @@ async def create_comment(
 
         comment_id = uuid.uuid4()
         row = await album_repo.insert_comment(
-            conn, comment_id, album_uuid, photo_uuid, user_uuid, parent_uuid,
+            conn,
+            comment_id,
+            album_uuid,
+            photo_uuid,
+            user_uuid,
+            parent_uuid,
             sanitized_content,
         )
 
@@ -670,6 +718,15 @@ async def list_comments(
     viewer_id: str | None = None,
 ) -> tuple[list[dict], int]:
     """List comments on an album."""
+    pool = get_pool()
+    album_uuid = uuid.UUID(album_id)
+
+    # Check album exists
+    async with pool.acquire() as conn:
+        album = await album_repo.find_album_by_id(conn, album_uuid)
+    if not album:
+        raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+
     exclude: list[uuid.UUID] | None = None
     if viewer_id:
         try:
@@ -679,10 +736,12 @@ async def list_comments(
                 exclude = [uuid.UUID(uid) for uid in blocked_ids]
         except Exception:
             pass
-    pool = get_pool()
     async with pool.acquire() as conn:
         rows, total = await album_repo.find_comments(
-            conn, uuid.UUID(album_id), page, page_size,
+            conn,
+            album_uuid,
+            page,
+            page_size,
             exclude_user_ids=exclude,
         )
     return [to_album_comment_response(r) for r in rows], total
@@ -707,7 +766,7 @@ async def delete_comment(
         is_author = str(comment["user_id"]) == user_id
         is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
         member = await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id))
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "APPROVED"
+        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
         if not (is_author or is_site_admin or is_album_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this comment.")

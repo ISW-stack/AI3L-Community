@@ -40,9 +40,7 @@ async def record_profile_view(
         async with pool.acquire() as conn:
             async with conn.transaction():
                 # Upsert view record and check if it's a new viewer
-                is_new_viewer = await profile_view_repo.upsert_view(
-                    conn, profile_uuid, viewer_uuid
-                )
+                is_new_viewer = await profile_view_repo.upsert_view(conn, profile_uuid, viewer_uuid)
                 # Always increment total counter
                 await profile_view_repo.increment_total_counter(conn, profile_uuid)
                 # Only increment unique counter for new viewers

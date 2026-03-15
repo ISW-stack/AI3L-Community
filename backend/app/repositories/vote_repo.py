@@ -4,9 +4,7 @@ from typing import Any
 from app.core.database import get_pool
 
 
-async def upsert_vote(
-    conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote: int
-) -> int:
+async def upsert_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote: int) -> int:
     """Atomic upsert of a vote and update of comment vote_score.
 
     If vote=0, removes the vote row and subtracts the old vote from score.
@@ -68,9 +66,7 @@ async def upsert_vote(
     return row["vote_score"] if row else 0
 
 
-async def get_user_vote(
-    conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID
-) -> int | None:
+async def get_user_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID) -> int | None:
     """Return the current vote value or None if no vote exists."""
     row = await conn.fetchrow(
         "SELECT vote FROM comment_votes WHERE comment_id = $1 AND user_id = $2",
@@ -80,9 +76,7 @@ async def get_user_vote(
     return row["vote"] if row else None
 
 
-async def get_user_votes_for_post(
-    conn: Any, post_id: uuid.UUID, user_id: uuid.UUID
-) -> list[dict]:
+async def get_user_votes_for_post(conn: Any, post_id: uuid.UUID, user_id: uuid.UUID) -> list[dict]:
     """Return all votes by a user on comments in a given post."""
     rows = await conn.fetch(
         """

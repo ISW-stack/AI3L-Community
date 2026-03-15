@@ -55,8 +55,16 @@ async def test_insert_co_author(mock_conn):
     row = _make_co_author_row()
     mock_conn.fetchrow = AsyncMock(return_value=row)
     result = await co_author_repo.insert_co_author(
-        mock_conn, row["id"], row["post_id"], row["user_id"],
-        "Test", None, None, False, "PENDING", row["invited_by"],
+        mock_conn,
+        row["id"],
+        row["post_id"],
+        row["user_id"],
+        "Test",
+        None,
+        None,
+        False,
+        "PENDING",
+        row["invited_by"],
     )
     assert result["id"] == row["id"]
     mock_conn.fetchrow.assert_called_once()
@@ -144,9 +152,7 @@ async def test_find_pending_invitations_empty(mock_conn):
     from app.repositories import co_author_repo
 
     mock_conn.fetch = AsyncMock(return_value=[])
-    result, total = await co_author_repo.find_pending_invitations(
-        mock_conn, uuid.uuid4(), 1, 20
-    )
+    result, total = await co_author_repo.find_pending_invitations(mock_conn, uuid.uuid4(), 1, 20)
     assert result == []
     assert total == 0
 
@@ -157,9 +163,7 @@ async def test_find_existing_by_user(mock_conn):
 
     row = _make_co_author_row()
     mock_conn.fetchrow = AsyncMock(return_value=row)
-    result = await co_author_repo.find_existing_by_user(
-        mock_conn, row["post_id"], row["user_id"]
-    )
+    result = await co_author_repo.find_existing_by_user(mock_conn, row["post_id"], row["user_id"])
     assert result is not None
 
 
@@ -221,3 +225,213 @@ async def test_service_list_pending_invitations():
         invitations, total = await list_pending_invitations(None, user_id)
         assert total == 1
         assert len(invitations) == 1
+
+
+# --- Bug fix tests ---
+
+
+@pytest.mark.asyncio
+async def test_invite_co_author_advisory_lock():
+    """H3: invite_co_author wraps count+insert in transaction with pg_advisory_xact_lock."""
+    from app.core.errors import AppError
+    from app.services.co_author import invite_co_author
+
+    post_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+    target_user_id = str(uuid.uuid4())
+
+    post_row = {"id": post_id, "user_id": uuid.UUID(user_id), "title": "Test Post"}
+    target_row = {"id": uuid.UUID(target_user_id), "display_name": "Target User"}
+    co_author_row = _make_co_author_row(post_id=post_id, user_id=uuid.UUID(target_user_id))
+
+    # Track calls to verify advisory lock is called
+    execute_calls: list[str] = []
+    original_execute = AsyncMock(return_value="SELECT 1")
+
+    async def tracking_execute(query, *args):
+        execute_calls.append(query)
+        return "SELECT 1"
+
+    conn = AsyncMock()
+    conn.execute = AsyncMock(side_effect=tracking_execute)
+
+    # fetchrow returns post_row first, then target_row, then inviter_row
+    conn.fetchrow = AsyncMock(side_effect=[post_row, target_row])
+
+    # transaction context manager
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx)
+
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+
+    # Mock for the second pool.acquire (emit event block)
+    inviter_row = {"display_name": "Inviter"}
+    conn2 = AsyncMock()
+    conn2.fetchrow = AsyncMock(return_value=inviter_row)
+    cm2 = AsyncMock()
+    cm2.__aenter__ = AsyncMock(return_value=conn2)
+    cm2.__aexit__ = AsyncMock(return_value=False)
+
+    pool_calls = [0]
+
+    def get_pool_side_effect():
+        pool_calls[0] += 1
+        if pool_calls[0] <= 1:
+            return pool
+        # Return a second pool for the emit block
+        pool2 = MagicMock()
+        pool2.acquire.return_value = cm2
+        return pool2
+
+    with (
+        patch(f"{_SVC}.get_pool", side_effect=get_pool_side_effect),
+        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_blocked_user_ids", new_callable=AsyncMock, return_value=set()),
+        patch(f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0),
+        patch(f"{_REPO}.find_existing_by_user", new_callable=AsyncMock, return_value=None),
+        patch(f"{_REPO}.insert_co_author", new_callable=AsyncMock, return_value=co_author_row),
+        patch(f"{_SVC}.emit", new_callable=AsyncMock),
+    ):
+        result = await invite_co_author(None, post_id, user_id, target_user_id)
+        assert result is not None
+
+        # Verify advisory lock was called
+        assert any(
+            "pg_advisory_xact_lock" in call for call in execute_calls
+        ), f"Expected pg_advisory_xact_lock in execute calls, got: {execute_calls}"
+        # Verify the lock key contains the post_id
+        lock_call = [c for c in execute_calls if "pg_advisory_xact_lock" in c][0]
+        assert "hashtext" in lock_call
+
+        # Verify transaction was opened
+        conn.transaction.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_invite_co_author_bilateral_block():
+    """H5: invite_co_author rejects when target has blocked the inviter."""
+    from app.core.errors import AppError
+    from app.services.co_author import invite_co_author
+
+    post_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+    target_user_id = str(uuid.uuid4())
+
+    call_count = [0]
+
+    async def mock_get_blocked(redis, uid):
+        call_count[0] += 1
+        if uid == user_id:
+            return set()  # Inviter hasn't blocked anyone
+        if uid == target_user_id:
+            return {user_id}  # Target has blocked the inviter
+        return set()
+
+    with (
+        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_blocked_user_ids", side_effect=mock_get_blocked),
+    ):
+        with pytest.raises(AppError) as exc_info:
+            await invite_co_author(None, post_id, user_id, target_user_id)
+        assert exc_info.value.status_code == 403
+        assert "SOCIAL_003" in str(exc_info.value.detail)
+        # Ensure both directions were checked (inviter + target)
+        assert call_count[0] == 2
+
+
+@pytest.mark.asyncio
+async def test_count_co_authors_excludes_rejected(mock_conn):
+    """M1: count_co_authors query filters to PENDING and ACCEPTED only."""
+    from app.repositories import co_author_repo
+
+    mock_conn.fetchval = AsyncMock(return_value=3)
+    post_id = uuid.uuid4()
+    result = await co_author_repo.count_co_authors(mock_conn, post_id)
+    assert result == 3
+
+    # Verify the query includes the status filter
+    call_args = mock_conn.fetchval.call_args
+    query = call_args[0][0]
+    assert "status IN ('PENDING', 'ACCEPTED')" in query
+    assert "post_id = $1" in query
+
+
+@pytest.mark.asyncio
+async def test_invite_event_includes_inviter_id():
+    """M6: co_author.invited event includes inviter_id for trigger_user_id."""
+    from app.services.co_author import invite_co_author
+
+    post_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+    target_user_id = str(uuid.uuid4())
+
+    post_row = {"id": post_id, "user_id": uuid.UUID(user_id), "title": "Test Post"}
+    target_row = {"id": uuid.UUID(target_user_id), "display_name": "Target User"}
+    co_author_row = _make_co_author_row(post_id=post_id, user_id=uuid.UUID(target_user_id))
+
+    conn = AsyncMock()
+    conn.fetchrow = AsyncMock(side_effect=[post_row, target_row])
+
+    # transaction context manager
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx)
+
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+
+    # Second pool for emit block
+    inviter_row = {"display_name": "Inviter"}
+    conn2 = AsyncMock()
+    conn2.fetchrow = AsyncMock(return_value=inviter_row)
+    cm2 = AsyncMock()
+    cm2.__aenter__ = AsyncMock(return_value=conn2)
+    cm2.__aexit__ = AsyncMock(return_value=False)
+
+    pool_calls = [0]
+
+    def get_pool_side_effect():
+        pool_calls[0] += 1
+        if pool_calls[0] <= 1:
+            return pool
+        pool2 = MagicMock()
+        pool2.acquire.return_value = cm2
+        return pool2
+
+    mock_emit = AsyncMock()
+
+    with (
+        patch(f"{_SVC}.get_pool", side_effect=get_pool_side_effect),
+        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_blocked_user_ids", new_callable=AsyncMock, return_value=set()),
+        patch(f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0),
+        patch(f"{_REPO}.find_existing_by_user", new_callable=AsyncMock, return_value=None),
+        patch(f"{_REPO}.insert_co_author", new_callable=AsyncMock, return_value=co_author_row),
+        patch(f"{_SVC}.emit", mock_emit),
+    ):
+        await invite_co_author(None, post_id, user_id, target_user_id)
+
+        mock_emit.assert_called_once()
+        call_kwargs = mock_emit.call_args[1]
+        assert call_kwargs["inviter_id"] == user_id
+        assert call_kwargs["target_user_id"] == target_user_id
+
+
+def test_no_dead_code_if_false():
+    """L4: co_author.py should not contain 'if False' dead code blocks."""
+    import inspect
+
+    from app.services import co_author
+
+    source = inspect.getsource(co_author)
+    assert "if False" not in source, "Dead code 'if False' block found in co_author.py"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { searchForCitation } from '@/api/citations'
 import { getErrorMessage } from '@/utils/error'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -27,6 +27,10 @@ const loading = ref(false)
 const error = ref('')
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+onBeforeUnmount(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+})
 
 function onSearchInput() {
   if (debounceTimer) clearTimeout(debounceTimer)

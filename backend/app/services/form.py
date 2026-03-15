@@ -82,9 +82,7 @@ async def create_form(
         # Standalone form — enforce per-user limit
         pool = get_pool()
         async with pool.acquire() as conn:
-            active_count = await form_repo.count_active_standalone_by_user(
-                conn, uuid.UUID(user_id)
-            )
+            active_count = await form_repo.count_active_standalone_by_user(conn, uuid.UUID(user_id))
         if active_count >= MAX_ACTIVE_STANDALONE_FORMS_PER_USER:
             raise ValueError(
                 f"Maximum active standalone forms per user "
@@ -331,7 +329,12 @@ async def list_standalone_forms(
     if not rows:
         return [], 0
     total = rows[0]["total_count"]
-    return [row_to_form(dict(r), 0) for r in rows], total
+    results = []
+    for r in rows:
+        d = dict(r)
+        response_count = d.pop("response_count", 0)
+        results.append(row_to_form(d, response_count))
+    return results, total
 
 
 async def list_forms_by_sig(

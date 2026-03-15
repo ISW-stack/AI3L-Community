@@ -60,6 +60,13 @@ async def create_comment(
                 post_id,
             )
 
+            # Increment answer_count for top-level comments on Q&A posts
+            if not parent_uuid and post.get("type") == "question":
+                await conn.execute(
+                    "UPDATE posts SET answer_count = answer_count + 1 WHERE id = $1",
+                    post_id,
+                )
+
             comment_dict = await async_row_to_comment(row)
             commenter_name = (
                 comment_dict["author"]["display_name"] or comment_dict["author"]["username"]
@@ -123,9 +130,7 @@ async def list_comments(
         if blocked_ids:
             exclude = [uuid.UUID(uid) for uid in blocked_ids]
     offset = (page - 1) * page_size
-    rows, total = await comment_repo.find_many(
-        post_id, offset, page_size, exclude_user_ids=exclude
-    )
+    rows, total = await comment_repo.find_many(post_id, offset, page_size, exclude_user_ids=exclude)
     comments = list(await asyncio.gather(*[async_row_to_comment(r) for r in rows]))
     return comments, total
 

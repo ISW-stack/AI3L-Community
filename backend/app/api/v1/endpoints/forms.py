@@ -36,11 +36,9 @@ from app.services.form import (
     get_user_response,
     list_form_responses,
     list_forms_by_sig,
-    list_standalone_forms as list_standalone_forms_svc,
-    soft_delete_form,
-    submit_response,
-    update_form,
 )
+from app.services.form import list_standalone_forms as list_standalone_forms_svc
+from app.services.form import soft_delete_form, submit_response, update_form
 
 router = APIRouter(tags=["forms"])
 
@@ -109,9 +107,7 @@ async def create_standalone_form(
 ) -> FormResponseSchema:
     """Create a standalone form (not attached to any SIG)."""
     user_id = current_user["sub"]
-    if not await check_rate_limit(
-        f"rl:standalone_form:{user_id}", *RATE_LIMIT_STANDALONE_FORM
-    ):
+    if not await check_rate_limit(f"rl:standalone_form:{user_id}", *RATE_LIMIT_STANDALONE_FORM):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     try:
         form = await create_form(

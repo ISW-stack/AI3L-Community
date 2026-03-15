@@ -4,12 +4,11 @@ import uuid
 
 from loguru import logger
 
-from app.core.blacklist import update_block_cache
+from app.core.blacklist import get_blocked_user_ids, update_block_cache
 from app.core.constants import MAX_BLOCKS_PER_USER
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
 from app.repositories import social_repo
-
 
 # ── Friend Request Flow ─────────────────────────────────────────────
 
@@ -22,9 +21,7 @@ async def send_friend_request(pool, requester_id: uuid.UUID, addressee_id: uuid.
     async with pool.acquire() as conn:
         # Check blocked
         if await social_repo.is_blocked(conn, requester_id, addressee_id):
-            raise AppError(
-                ErrorCode.SOCIAL_003, 403, "Cannot interact with this user."
-            )
+            raise AppError(ErrorCode.SOCIAL_003, 403, "Cannot interact with this user.")
 
         # Check existing friendship
         existing = await social_repo.find_friendship_between(conn, requester_id, addressee_id)
@@ -32,10 +29,7 @@ async def send_friend_request(pool, requester_id: uuid.UUID, addressee_id: uuid.
             if existing["status"] == "ACCEPTED":
                 raise AppError(ErrorCode.SOCIAL_001, 409, "Already friends.")
             # Reverse pending request → auto-accept
-            if (
-                existing["status"] == "PENDING"
-                and existing["addressee_id"] == requester_id
-            ):
+            if existing["status"] == "PENDING" and existing["addressee_id"] == requester_id:
                 async with conn.transaction():
                     friendship = await social_repo.accept_friendship(conn, existing["id"])
                     # Auto-follow both directions
@@ -67,21 +61,30 @@ async def send_friend_request(pool, requester_id: uuid.UUID, addressee_id: uuid.
     return friendship
 
 
-async def accept_friend_request(
-    pool, friendship_id: uuid.UUID, user_id: uuid.UUID
-) -> dict:
-    """Accept a friend request. Only the addressee can accept."""
-    async with pool.acquire() as conn:
-        friendship = await social_repo.find_friendship_by_id(conn, friendship_id)
-        if not friendship:
-            raise AppError(ErrorCode.SYS_404, 404, "Friend request not found.")
-        if friendship["status"] != "PENDING":
-            raise AppError(ErrorCode.SYS_422, 400, "Request is not pending.")
-        if friendship["addressee_id"] != user_id:
-            raise AppError(ErrorCode.SYS_403, 403, "Only the addressee can accept.")
+async def accept_friend_request(pool, friendship_id: uuid.UUID, user_id: uuid.UUID) -> dict:
+    """Accept a friend request. Only the addressee can accept.
 
+    Uses SELECT ... FOR UPDATE inside a transaction to prevent TOCTOU races
+    where two concurrent accepts could both pass validation.
+    """
+    async with pool.acquire() as conn:
         async with conn.transaction():
+            # Lock the friendship row to prevent concurrent modification
+            friendship = await social_repo.find_friendship_by_id_for_update(conn, friendship_id)
+            if not friendship:
+                raise AppError(ErrorCode.SYS_404, 404, "Friend request not found.")
+            if friendship["status"] != "PENDING":
+                raise AppError(ErrorCode.SYS_422, 400, "Request is not pending.")
+            if friendship["addressee_id"] != user_id:
+                raise AppError(ErrorCode.SYS_403, 403, "Only the addressee can accept.")
+
             updated = await social_repo.accept_friendship(conn, friendship_id)
+            if not updated:
+                raise AppError(
+                    ErrorCode.SYS_404,
+                    404,
+                    "Friend request not found or already processed.",
+                )
             # Auto-follow both directions
             requester_id = friendship["requester_id"]
             await _ensure_follow(conn, user_id, requester_id)
@@ -92,22 +95,26 @@ async def accept_friend_request(
         user_id=str(friendship["requester_id"]),
         friend_id=str(user_id),
     )
-    return updated  # type: ignore[return-value]
+    return updated
 
 
-async def reject_friend_request(
-    pool, friendship_id: uuid.UUID, user_id: uuid.UUID
-) -> None:
-    """Reject (delete) a friend request. Only the addressee can reject."""
+async def reject_friend_request(pool, friendship_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    """Reject (delete) a friend request. Only the addressee can reject.
+
+    Uses SELECT ... FOR UPDATE inside a transaction to prevent TOCTOU races
+    where concurrent reject + accept could both pass validation.
+    """
     async with pool.acquire() as conn:
-        friendship = await social_repo.find_friendship_by_id(conn, friendship_id)
-        if not friendship:
-            raise AppError(ErrorCode.SYS_404, 404, "Friend request not found.")
-        if friendship["status"] != "PENDING":
-            raise AppError(ErrorCode.SYS_422, 400, "Request is not pending.")
-        if friendship["addressee_id"] != user_id:
-            raise AppError(ErrorCode.SYS_403, 403, "Only the addressee can reject.")
-        await social_repo.reject_friendship(conn, friendship_id)
+        async with conn.transaction():
+            # Lock the friendship row to prevent concurrent modification
+            friendship = await social_repo.find_friendship_by_id_for_update(conn, friendship_id)
+            if not friendship:
+                raise AppError(ErrorCode.SYS_404, 404, "Friend request not found.")
+            if friendship["status"] != "PENDING":
+                raise AppError(ErrorCode.SYS_422, 400, "Request is not pending.")
+            if friendship["addressee_id"] != user_id:
+                raise AppError(ErrorCode.SYS_403, 403, "Only the addressee can reject.")
+            await social_repo.reject_friendship(conn, friendship_id)
 
 
 async def unfriend(pool, user_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
@@ -142,9 +149,7 @@ async def follow_user(pool, follower_id: uuid.UUID, following_id: uuid.UUID) -> 
 
     async with pool.acquire() as conn:
         if await social_repo.is_blocked(conn, follower_id, following_id):
-            raise AppError(
-                ErrorCode.SOCIAL_003, 403, "Cannot interact with this user."
-            )
+            raise AppError(ErrorCode.SOCIAL_003, 403, "Cannot interact with this user.")
         if await social_repo.is_following(conn, follower_id, following_id):
             raise AppError(ErrorCode.SYS_409, 409, "Already following this user.")
 
@@ -161,25 +166,51 @@ async def unfollow_user(pool, follower_id: uuid.UUID, following_id: uuid.UUID) -
 
 
 async def list_followers(
-    pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    pool,
+    user_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+    redis=None,
 ) -> tuple[list[dict], int]:
+    exclude: list[uuid.UUID] | None = None
+    if redis:
+        try:
+            blocked_ids = await get_blocked_user_ids(redis, str(user_id))
+            if blocked_ids:
+                exclude = [uuid.UUID(uid) for uid in blocked_ids]
+        except Exception:
+            pass
     async with pool.acquire() as conn:
-        return await social_repo.find_followers(conn, user_id, page, page_size)
+        return await social_repo.find_followers(
+            conn, user_id, page, page_size, exclude_user_ids=exclude
+        )
 
 
 async def list_following(
-    pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    pool,
+    user_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+    redis=None,
 ) -> tuple[list[dict], int]:
+    exclude: list[uuid.UUID] | None = None
+    if redis:
+        try:
+            blocked_ids = await get_blocked_user_ids(redis, str(user_id))
+            if blocked_ids:
+                exclude = [uuid.UUID(uid) for uid in blocked_ids]
+        except Exception:
+            pass
     async with pool.acquire() as conn:
-        return await social_repo.find_following(conn, user_id, page, page_size)
+        return await social_repo.find_following(
+            conn, user_id, page, page_size, exclude_user_ids=exclude
+        )
 
 
 # ── Block (cascade logic) ──────────────────────────────────────────
 
 
-async def block_user(
-    pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID
-) -> dict:
+async def block_user(pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> dict:
     """Block a user. Cascades: removes friendship + follows between them."""
     if blocker_id == blocked_id:
         raise AppError(ErrorCode.SYS_422, 400, "Cannot block yourself.")
@@ -201,10 +232,10 @@ async def block_user(
             block_id = uuid.uuid4()
             block = await social_repo.insert_block(conn, block_id, blocker_id, blocked_id)
 
-    # Update Redis AFTER successful DB commit
-    await update_block_cache(
-        redis, str(blocker_id), str(blocked_id), added=True
-    )
+    # Note: There is a brief timing window between the DB write and Redis cache
+    # update where the block list may be stale. This is acceptable as it only
+    # affects blacklist filtering for a few milliseconds.
+    await update_block_cache(redis, str(blocker_id), str(blocked_id), added=True)
 
     logger.info(
         "User blocked",
@@ -213,9 +244,7 @@ async def block_user(
     return block
 
 
-async def unblock_user(
-    pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID
-) -> None:
+async def unblock_user(pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> None:
     """Unblock a user."""
     async with pool.acquire() as conn:
         deleted = await social_repo.delete_block(conn, blocker_id, blocked_id)
@@ -223,9 +252,7 @@ async def unblock_user(
             raise AppError(ErrorCode.SYS_404, 404, "Block not found.")
 
     # Update Redis AFTER successful DB commit
-    await update_block_cache(
-        redis, str(blocker_id), str(blocked_id), added=False
-    )
+    await update_block_cache(redis, str(blocker_id), str(blocked_id), added=False)
 
     logger.info(
         "User unblocked",
@@ -243,9 +270,7 @@ async def list_blocks(
 # ── Relationship Status ─────────────────────────────────────────────
 
 
-async def get_relationship_status(
-    pool, user_id: uuid.UUID, target_id: uuid.UUID
-) -> dict:
+async def get_relationship_status(pool, user_id: uuid.UUID, target_id: uuid.UUID) -> dict:
     async with pool.acquire() as conn:
         return await social_repo.get_relationship_status(conn, user_id, target_id)
 
@@ -253,9 +278,7 @@ async def get_relationship_status(
 # ── Internal helpers ─────────────────────────────────────────────────
 
 
-async def _ensure_follow(
-    conn, follower_id: uuid.UUID, following_id: uuid.UUID
-) -> None:
+async def _ensure_follow(conn, follower_id: uuid.UUID, following_id: uuid.UUID) -> None:
     """Insert follow if it doesn't already exist. Used for auto-follow on accept."""
     already = await social_repo.is_following(conn, follower_id, following_id)
     if not already:

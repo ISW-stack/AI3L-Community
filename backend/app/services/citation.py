@@ -6,8 +6,10 @@ from html.parser import HTMLParser
 
 from loguru import logger
 
+from app.core.blacklist import get_blocked_user_ids
 from app.core.database import get_pool
 from app.core.event_bus import emit
+from app.core.redis import get_redis
 from app.repositories import citation_repo
 
 
@@ -130,6 +132,7 @@ async def sync_post_citations(
                     "post.cited",
                     cited_post_id=str(citation["cited_post_id"]),
                     citing_post_id=str(post_id),
+                    citer_id=author_id,
                     citer_name=citer["display_name"] if citer else "Someone",
                     citing_post_title=citing_post["title"] if citing_post else "Untitled",
                 )
@@ -146,19 +149,19 @@ async def get_citations_of(
     """Get posts that cite this post ('Cited by' list)."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows, total = await citation_repo.find_citations_of_post(
-            conn, post_id, page, page_size
-        )
+        rows, total = await citation_repo.find_citations_of_post(conn, post_id, page, page_size)
     result = []
     for row in rows:
-        result.append({
-            "id": str(row["id"]),
-            "post_id": str(row["post_id"]),
-            "post_title": row.get("post_title", ""),
-            "author_name": row.get("author_name", ""),
-            "is_self_citation": row.get("is_self_citation", False),
-            "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
-        })
+        result.append(
+            {
+                "id": str(row["id"]),
+                "post_id": str(row["post_id"]),
+                "post_title": row.get("post_title", ""),
+                "author_name": row.get("author_name", ""),
+                "is_self_citation": row.get("is_self_citation", False),
+                "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+            }
+        )
     return result, total
 
 
@@ -168,19 +171,19 @@ async def get_citing(
     """Get posts this post cites ('References' list)."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows, total = await citation_repo.find_citations_by_post(
-            conn, post_id, page, page_size
-        )
+        rows, total = await citation_repo.find_citations_by_post(conn, post_id, page, page_size)
     result = []
     for row in rows:
-        result.append({
-            "id": str(row["id"]),
-            "post_id": str(row["post_id"]),
-            "post_title": row.get("post_title", ""),
-            "author_name": row.get("author_name", ""),
-            "is_self_citation": row.get("is_self_citation", False),
-            "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
-        })
+        result.append(
+            {
+                "id": str(row["id"]),
+                "post_id": str(row["post_id"]),
+                "post_title": row.get("post_title", ""),
+                "author_name": row.get("author_name", ""),
+                "is_self_citation": row.get("is_self_citation", False),
+                "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+            }
+        )
     return result, total
 
 
@@ -188,21 +191,47 @@ async def search_posts_for_citation(
     pool: object, query: str, user_id: str, limit: int = 10
 ) -> list[dict]:
     """Search posts for citation insertion (minimal results)."""
+    # H6: Get blocked user IDs to exclude from search results
+    blocked_ids: set[str] = set()
+    try:
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, user_id)
+    except Exception:
+        pass  # Redis failure → no filtering
+
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT p.id, p.title, u.display_name AS author_name
-            FROM posts p
-            JOIN users u ON p.user_id = u.id
-            WHERE p.is_deleted = false
-              AND p.search_vector @@ websearch_to_tsquery('english', $1)
-            ORDER BY p.created_at DESC
-            LIMIT $2
-            """,
-            query,
-            limit,
-        )
+        if blocked_ids:
+            blocked_uuids = [uuid.UUID(uid) for uid in blocked_ids]
+            rows = await conn.fetch(
+                """
+                SELECT p.id, p.title, u.display_name AS author_name
+                FROM posts p
+                JOIN users u ON p.user_id = u.id
+                WHERE p.is_deleted = false
+                  AND p.search_vector @@ websearch_to_tsquery('english', $1)
+                  AND p.user_id != ALL($3::uuid[])
+                ORDER BY p.created_at DESC
+                LIMIT $2
+                """,
+                query,
+                limit,
+                blocked_uuids,
+            )
+        else:
+            rows = await conn.fetch(
+                """
+                SELECT p.id, p.title, u.display_name AS author_name
+                FROM posts p
+                JOIN users u ON p.user_id = u.id
+                WHERE p.is_deleted = false
+                  AND p.search_vector @@ websearch_to_tsquery('english', $1)
+                ORDER BY p.created_at DESC
+                LIMIT $2
+                """,
+                query,
+                limit,
+            )
     return [
         {
             "id": str(r["id"]),

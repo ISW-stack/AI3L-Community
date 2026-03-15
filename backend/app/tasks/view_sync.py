@@ -36,8 +36,7 @@ async def _reconcile_citation_counts() -> int:
     """Recalculate citation_count on all posts from post_citations."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        result = await conn.execute(
-            """
+        result = await conn.execute("""
             UPDATE posts p SET citation_count = sub.cnt
             FROM (
                 SELECT pc.cited_post_id, COUNT(*) AS cnt
@@ -46,20 +45,17 @@ async def _reconcile_citation_counts() -> int:
                 GROUP BY pc.cited_post_id
             ) sub
             WHERE p.id = sub.cited_post_id AND p.citation_count IS DISTINCT FROM sub.cnt
-            """
-        )
+            """)
         updated = int(result.split()[-1])
         # Also zero out posts with no citations
-        await conn.execute(
-            """
+        await conn.execute("""
             UPDATE posts SET citation_count = 0
             WHERE citation_count > 0
               AND id NOT IN (
                   SELECT DISTINCT cited_post_id FROM post_citations pc
                   JOIN posts citing ON pc.citing_post_id = citing.id AND citing.is_deleted = false
               )
-            """
-        )
+            """)
         return updated
 
 
@@ -67,8 +63,7 @@ async def _reconcile_answer_counts() -> int:
     """Recalculate answer_count on question posts from comments."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        result = await conn.execute(
-            """
+        result = await conn.execute("""
             UPDATE posts p SET answer_count = sub.cnt
             FROM (
                 SELECT c.post_id, COUNT(*) AS cnt
@@ -80,20 +75,17 @@ async def _reconcile_answer_counts() -> int:
               AND p.type = 'question'
               AND p.is_deleted = false
               AND p.answer_count IS DISTINCT FROM sub.cnt
-            """
-        )
+            """)
         updated = int(result.split()[-1])
         # Zero out question posts with no answers
-        await conn.execute(
-            """
+        await conn.execute("""
             UPDATE posts SET answer_count = 0
             WHERE type = 'question' AND answer_count > 0 AND is_deleted = false
               AND id NOT IN (
                   SELECT DISTINCT post_id FROM comments
                   WHERE parent_id IS NULL AND is_deleted = false
               )
-            """
-        )
+            """)
         return updated
 
 
@@ -101,8 +93,7 @@ async def _reconcile_vote_scores() -> int:
     """Recalculate vote_score on comments from comment_votes."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        result = await conn.execute(
-            """
+        result = await conn.execute("""
             UPDATE comments c SET vote_score = COALESCE(sub.total, 0)
             FROM (
                 SELECT comment_id, SUM(vote) AS total
@@ -110,17 +101,14 @@ async def _reconcile_vote_scores() -> int:
                 GROUP BY comment_id
             ) sub
             WHERE c.id = sub.comment_id AND c.vote_score IS DISTINCT FROM COALESCE(sub.total, 0)
-            """
-        )
+            """)
         updated = int(result.split()[-1])
         # Zero out comments with no votes
-        await conn.execute(
-            """
+        await conn.execute("""
             UPDATE comments SET vote_score = 0
             WHERE vote_score != 0
               AND id NOT IN (SELECT DISTINCT comment_id FROM comment_votes)
-            """
-        )
+            """)
         return updated
 
 
@@ -129,8 +117,7 @@ async def _reconcile_profile_view_counts() -> tuple[int, int]:
     pool = get_pool()
     async with pool.acquire() as conn:
         # Unique viewers
-        result_unique = await conn.execute(
-            """
+        result_unique = await conn.execute("""
             UPDATE users u SET profile_view_count_unique = sub.cnt
             FROM (
                 SELECT profile_id, COUNT(DISTINCT viewer_id) AS cnt
@@ -139,13 +126,11 @@ async def _reconcile_profile_view_counts() -> tuple[int, int]:
             ) sub
             WHERE u.id = sub.profile_id
               AND COALESCE(u.profile_view_count_unique, 0) IS DISTINCT FROM sub.cnt
-            """
-        )
+            """)
         unique_updated = int(result_unique.split()[-1])
 
         # Total views
-        result_total = await conn.execute(
-            """
+        result_total = await conn.execute("""
             UPDATE users u SET profile_view_count_total = sub.cnt
             FROM (
                 SELECT profile_id, SUM(view_count) AS cnt
@@ -154,8 +139,7 @@ async def _reconcile_profile_view_counts() -> tuple[int, int]:
             ) sub
             WHERE u.id = sub.profile_id
               AND COALESCE(u.profile_view_count_total, 0) IS DISTINCT FROM sub.cnt
-            """
-        )
+            """)
         total_updated = int(result_total.split()[-1])
 
         return unique_updated, total_updated

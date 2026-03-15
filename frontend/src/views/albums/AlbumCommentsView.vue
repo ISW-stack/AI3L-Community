@@ -26,7 +26,7 @@ const replyContent = ref('')
 const submitting = ref(false)
 const PAGE_SIZE = 20
 
-const { page, total, totalPages, setPage, updateFromResponse } = usePagination(PAGE_SIZE)
+const { page, total, totalPages, setPage, resetPage, updateFromResponse } = usePagination(PAGE_SIZE)
 
 const canComment = computed(() => auth.isAuthenticated && !auth.isGuest)
 
@@ -131,7 +131,13 @@ function canDeleteComment(comment: AlbumComment): boolean {
 }
 
 onMounted(fetchComments)
-watch(() => album.value?.id, fetchComments)
+watch(
+  () => album.value?.id,
+  () => {
+    resetPage()
+    fetchComments()
+  },
+)
 watch(page, fetchComments)
 </script>
 
