@@ -107,21 +107,25 @@ async def update(
     comment_id: uuid.UUID,
     user_id: uuid.UUID,
     content: str,
+    post_id: uuid.UUID | None = None,
 ) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
+        where_clause = "WHERE id = $2 AND user_id = $3 AND is_deleted = false"
+        params: list[Any] = [content, comment_id, user_id]
+        if post_id is not None:
+            where_clause += " AND post_id = $4"
+            params.append(post_id)
         row = await conn.fetchrow(
             f"""
             WITH updated AS (
                 UPDATE comments SET content = $1, updated_at = NOW()
-                WHERE id = $2 AND user_id = $3 AND is_deleted = false
+                {where_clause}
                 RETURNING *
             )
             {_COMMENT_SELECT.replace("FROM comments cm", "FROM updated cm")}
             """,
-            content,
-            comment_id,
-            user_id,
+            *params,
         )
         return dict(row) if row else None
 

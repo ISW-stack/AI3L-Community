@@ -1,3 +1,4 @@
+import math
 import uuid
 
 from fastapi import APIRouter, Depends, Query, status
@@ -40,9 +41,12 @@ async def get_comments(
         raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
 
     comments, total = await list_comments(post_id, page=page, page_size=page_size)
+    total_pages = max(1, math.ceil(total / page_size))
     return CommentListResponse(
         comments=[CommentResponse(**c) for c in comments],
         total=total,
+        current_page=page,
+        total_pages=total_pages,
     )
 
 
@@ -88,6 +92,7 @@ async def edit_comment(
         comment_id=comment_id,
         user_id=current_user["sub"],
         content=sanitized_content,
+        post_id=post_id,
     )
     if comment is None:
         raise AppError(ErrorCode.SYS_404, 404, "Comment not found or you are not the owner.")

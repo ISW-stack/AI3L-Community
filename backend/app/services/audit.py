@@ -23,7 +23,16 @@ async def log_action(
             return
 
         log_id = uuid.uuid4()
-        target_uuid = uuid.UUID(target_id) if target_id else None
+        target_uuid = None
+        if target_id:
+            try:
+                target_uuid = uuid.UUID(target_id)
+            except ValueError:
+                # Non-UUID target_id (e.g. bulk ops) — store as None but log the original
+                logger.info(
+                    "Audit log with non-UUID target_id",
+                    extra={"target_id": target_id, "action": action},
+                )
         await audit_repo.insert(log_id, user_uuid, action, target_type, target_uuid, ip_address)
     except Exception as e:
         logger.warning("Failed to write audit log", extra={"action": action, "error": str(e)})

@@ -198,72 +198,70 @@ class TestGuestLogin:
 
     @patch("app.services.auth.get_redis")
     async def test_decrement_guest_counter(self, mock_get_redis):
-        """decrement_guest_counter decrements and clamps to zero."""
-        from app.services.auth import decrement_guest_counter
+        """decrement_guest_counter uses atomic Lua script via redis.eval."""
+        from app.services.auth import _GUEST_COUNTER_KEY, _GUEST_DECR_LUA, decrement_guest_counter
 
         redis = AsyncMock()
-        redis.decr = AsyncMock(return_value=4)
+        redis.eval = AsyncMock(return_value=4)
         mock_get_redis.return_value = redis
 
         await decrement_guest_counter()
-        redis.decr.assert_called_once()
-        # Positive value — no clamping needed
-        redis.set.assert_not_called()
+        redis.eval.assert_called_once_with(_GUEST_DECR_LUA, 1, _GUEST_COUNTER_KEY)
 
     @patch("app.services.auth.get_redis")
     async def test_decrement_guest_counter_clamps_to_zero(self, mock_get_redis):
-        """If counter goes negative after DECR, it is clamped to 0."""
-        from app.services.auth import _GUEST_COUNTER_KEY, decrement_guest_counter
+        """Lua script clamps to 0 atomically — no separate DECR+SET calls."""
+        from app.services.auth import _GUEST_COUNTER_KEY, _GUEST_DECR_LUA, decrement_guest_counter
 
         redis = AsyncMock()
-        redis.decr = AsyncMock(return_value=-1)
-        redis.set = AsyncMock()
+        redis.eval = AsyncMock(return_value=0)  # Lua returns 0 when clamped
         mock_get_redis.return_value = redis
 
         await decrement_guest_counter()
-        redis.set.assert_called_once_with(_GUEST_COUNTER_KEY, 0)
+        redis.eval.assert_called_once_with(_GUEST_DECR_LUA, 1, _GUEST_COUNTER_KEY)
 
     @patch("app.services.auth.get_redis")
     async def test_decrement_guest_ip_counter(self, mock_get_redis):
-        """decrement_guest_ip_counter decrements the per-IP key."""
-        from app.services.auth import decrement_guest_ip_counter
+        """decrement_guest_ip_counter uses atomic Lua script."""
+        from app.services.auth import _GUEST_IP_DECR_LUA, decrement_guest_ip_counter
 
         redis = AsyncMock()
-        redis.decr = AsyncMock(return_value=2)
+        redis.eval = AsyncMock(return_value=2)
         mock_get_redis.return_value = redis
 
         await decrement_guest_ip_counter("192.168.1.1")
-        redis.decr.assert_called_once_with("guest:ip:192.168.1.1")
-        # Positive value — no clamping needed
-        redis.set.assert_not_called()
+        redis.eval.assert_called_once_with(
+            _GUEST_IP_DECR_LUA, 1, "guest:ip:192.168.1.1", 3600
+        )
 
     @patch("app.services.auth.get_redis")
     async def test_decrement_guest_ip_counter_clamps_to_zero(self, mock_get_redis):
-        """If per-IP counter goes negative after DECR, it is clamped to 0."""
-        from app.services.auth import decrement_guest_ip_counter
+        """Lua script clamps per-IP counter to 0 atomically."""
+        from app.services.auth import _GUEST_IP_DECR_LUA, decrement_guest_ip_counter
 
         redis = AsyncMock()
-        redis.decr = AsyncMock(return_value=-1)
-        redis.set = AsyncMock()
+        redis.eval = AsyncMock(return_value=0)  # Lua returns 0 when clamped
         mock_get_redis.return_value = redis
 
         await decrement_guest_ip_counter("10.0.0.1")
-        redis.decr.assert_called_once_with("guest:ip:10.0.0.1")
-        redis.set.assert_called_once_with("guest:ip:10.0.0.1", 0)
+        redis.eval.assert_called_once_with(
+            _GUEST_IP_DECR_LUA, 1, "guest:ip:10.0.0.1", 3600
+        )
 
     @patch("app.services.auth.get_redis")
     async def test_decrement_guest_ip_counter_restores_ttl_when_clamped(self, mock_get_redis):
-        """When clamping to zero, redis.expire must be called to restore the 1-hour TTL."""
-        from app.services.auth import decrement_guest_ip_counter
+        """Lua script handles TTL restoration atomically — no separate expire call needed."""
+        from app.services.auth import _GUEST_IP_DECR_LUA, decrement_guest_ip_counter
 
         redis = AsyncMock()
-        redis.decr = AsyncMock(return_value=-1)
-        redis.set = AsyncMock()
-        redis.expire = AsyncMock()
+        redis.eval = AsyncMock(return_value=0)
         mock_get_redis.return_value = redis
 
         await decrement_guest_ip_counter("192.0.2.1")
-        redis.expire.assert_called_once_with("guest:ip:192.0.2.1", 3600)
+        # All logic is inside the Lua script — only eval should be called
+        redis.eval.assert_called_once_with(
+            _GUEST_IP_DECR_LUA, 1, "guest:ip:192.0.2.1", 3600
+        )
 
     @patch("app.services.auth.create_session")
     @patch("app.services.auth.get_redis")

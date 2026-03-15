@@ -98,11 +98,23 @@ async def create_post(
     return await async_row_to_post(row)
 
 
-async def get_post_by_id(post_id: uuid.UUID, increment_view: bool = False) -> dict | None:
+async def get_post_by_id(
+    post_id: uuid.UUID,
+    increment_view: bool = False,
+    viewer_id: str | None = None,
+) -> dict | None:
     row = await post_repo.find_by_id(post_id)
     if not row:
         return None
-    if increment_view:
+    if increment_view and viewer_id:
+        redis = get_redis()
+        view_key = f"viewed:{post_id}:{viewer_id}"
+        # Only increment if not viewed in last 5 minutes
+        is_new = await redis.set(view_key, "1", ex=300, nx=True)
+        if is_new:
+            await post_repo.increment_view_count(post_id)
+    elif increment_view:
+        # Fallback: no viewer_id, always increment (backward compat)
         await post_repo.increment_view_count(post_id)
     return await async_row_to_post(row)
 

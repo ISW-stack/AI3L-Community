@@ -1,5 +1,6 @@
 """Event handler registration — composition root for the event bus."""
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -168,7 +169,19 @@ async def _on_notification_created(user_id: str, notification: dict, **_kwargs: 
         logger.error("Failed to push notification via WebSocket", exc_info=True)
 
 
+async def _on_user_role_changed(user_id: str, new_role: str, **_kwargs: Any) -> None:
+    """Send a WebSocket notification when a user's role is changed."""
+    try:
+        from app.api.v1.endpoints.ws import send_to_user
+
+        await send_to_user(user_id, {"type": "ROLE_CHANGED", "new_role": new_role})
+    except Exception:
+        logger.error("Failed to send role change via WebSocket", exc_info=True)
+
+
 _SIG_MEMBER_BATCH_SIZE = 200
+_SIG_NOTIFICATION_MAX = 500
+_SIG_NOTIFICATION_CONCURRENCY = 20
 
 
 async def _on_post_created_in_sig(
@@ -178,7 +191,11 @@ async def _on_post_created_in_sig(
     post_title: str,
     **_kwargs: Any,
 ) -> None:
-    """Notify all SIG members (except the author) about a new post."""
+    """Notify all SIG members (except the author) about a new post.
+
+    Uses asyncio.Semaphore to limit concurrency and a hard cap to prevent
+    blocking the event bus for very large SIGs.
+    """
     from app.repositories import sig_repo
     from app.services.notification import create_notification
     from app.services.user import get_user_by_id
@@ -186,21 +203,17 @@ async def _on_post_created_in_sig(
     author = await get_user_by_id(uuid.UUID(author_id))
     author_name = author["display_name"] if author else "Someone"
 
+    sem = asyncio.Semaphore(_SIG_NOTIFICATION_CONCURRENCY)
     succeeded = 0
     failed = 0
-    offset = 0
-    while True:
-        members, total = await sig_repo.find_members(
-            uuid.UUID(sig_id), offset=offset, limit=_SIG_MEMBER_BATCH_SIZE
-        )
-        if not members:
-            break
-        for m in members:
-            target_uid = str(m["user_id"])
-            if target_uid == author_id:
-                continue
+    notified_count = 0
+    cap_reached = False
+
+    async def _notify_member(target_uid: str) -> bool:
+        """Send a notification to a single member. Returns True on success."""
+        async with sem:
             if not await _check_idempotent(target_uid, "post", post_id, "SIG_NEW_POST"):
-                continue
+                return True  # deduplicated, not a failure
             try:
                 await create_notification(
                     user_id=target_uid,
@@ -210,16 +223,51 @@ async def _on_post_created_in_sig(
                     entity_id=post_id,
                     message=f'{author_name} posted "{post_title[:50]}" in your SIG',
                 )
-                succeeded += 1
+                return True
             except (ConnectionError, OSError, TimeoutError) as e:
-                failed += 1
                 logger.warning(
                     "Transient error sending SIG new post notification (retryable)",
                     extra={"target_uid": target_uid, "error": str(e)},
                 )
+                return False
             except Exception:
-                failed += 1
                 logger.error("Failed to send SIG new post notification", exc_info=True)
+                return False
+
+    offset = 0
+    while True:
+        members, total = await sig_repo.find_members(
+            uuid.UUID(sig_id), offset=offset, limit=_SIG_MEMBER_BATCH_SIZE
+        )
+        if not members:
+            break
+
+        tasks: list[asyncio.Task[bool]] = []
+        for m in members:
+            target_uid = str(m["user_id"])
+            if target_uid == author_id:
+                continue
+            notified_count += 1
+            if notified_count > _SIG_NOTIFICATION_MAX:
+                cap_reached = True
+                break
+            tasks.append(asyncio.create_task(_notify_member(target_uid)))
+
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            for ok in results:
+                if ok:
+                    succeeded += 1
+                else:
+                    failed += 1
+
+        if cap_reached:
+            logger.warning(
+                "SIG notification cap reached",
+                extra={"sig_id": sig_id, "cap": _SIG_NOTIFICATION_MAX, "total": total},
+            )
+            break
+
         offset += _SIG_MEMBER_BATCH_SIZE
         if offset >= total:
             break
@@ -250,6 +298,7 @@ def register_all() -> None:
     on("post.deleted", _on_post_deleted)
     on("application.reviewed", _on_application_reviewed)
     on("user.banned", _on_user_banned)
+    on("user.role_changed", _on_user_role_changed)
     on("notification.created", _on_notification_created)
     on("post.created_in_sig", _on_post_created_in_sig)
     on("audit.action", _on_audit_action)

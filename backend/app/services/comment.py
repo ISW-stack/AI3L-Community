@@ -85,9 +85,10 @@ async def update_comment(
     comment_id: uuid.UUID,
     user_id: str,
     content: str,
+    post_id: uuid.UUID | None = None,
 ) -> dict | None:
     """Update comment content. Only the owner can edit."""
-    row = await comment_repo.update(comment_id, uuid.UUID(user_id), content)
+    row = await comment_repo.update(comment_id, uuid.UUID(user_id), content, post_id)
     if not row:
         return None
     logger.info("Comment updated", extra={"comment_id": str(comment_id)})

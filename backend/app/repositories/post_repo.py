@@ -570,6 +570,11 @@ async def toggle_reaction(post_id: uuid.UUID, user_id: str, reaction: str) -> di
             return dict(row) if row else None
 
 
+def _escape_ilike(s: str) -> str:
+    """Escape ILIKE special characters."""
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 async def get_search_suggestions(query: str, limit: int = 5) -> list[dict]:
     """Return posts whose title or keywords match the query (ILIKE)."""
     pool = get_pool()
@@ -578,13 +583,14 @@ async def get_search_suggestions(query: str, limit: int = 5) -> list[dict]:
             SELECT DISTINCT title, id
             FROM posts
             WHERE is_deleted = FALSE
-              AND (title ILIKE $1 OR EXISTS (
-                  SELECT 1 FROM unnest(keywords) AS kw WHERE kw ILIKE $1
+              AND (title ILIKE $1 ESCAPE '\\' OR EXISTS (
+                  SELECT 1 FROM unnest(keywords) AS kw WHERE kw ILIKE $1 ESCAPE '\\'
               ))
             ORDER BY title
             LIMIT $2
         """
-        rows = await conn.fetch(sql, f"%{query}%", limit)
+        escaped = _escape_ilike(query)
+        rows = await conn.fetch(sql, f"%{escaped}%", limit)
         return [dict(r) for r in rows]
 
 
@@ -595,9 +601,10 @@ async def get_keyword_suggestions(query: str, limit: int = 5) -> list[str]:
         sql = """
             SELECT DISTINCT kw
             FROM posts, unnest(keywords) AS kw
-            WHERE posts.is_deleted = FALSE AND kw ILIKE $1
+            WHERE posts.is_deleted = FALSE AND kw ILIKE $1 ESCAPE '\\'
             ORDER BY kw
             LIMIT $2
         """
-        rows = await conn.fetch(sql, f"%{query}%", limit)
+        escaped = _escape_ilike(query)
+        rows = await conn.fetch(sql, f"%{escaped}%", limit)
         return [r["kw"] for r in rows]

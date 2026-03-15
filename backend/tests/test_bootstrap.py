@@ -41,7 +41,7 @@ class TestBootstrapSuperAdmin:
             assert call_kwargs["display_name"] == "Super Admin"
 
     async def test_sync_path_when_user_already_exists(self):
-        """If the super admin already exists, update_password_hash should be called."""
+        """If the super admin already exists and password changed, update_password_hash should be called."""
         existing_user = make_user_dict(username="admin@ai3l.community", role="SUPER_ADMIN")
 
         with (
@@ -64,6 +64,16 @@ class TestBootstrapSuperAdmin:
                 new_callable=AsyncMock,
             ) as mock_update,
             patch("app.core.security.hash_password", return_value="new_hashed"),
+            patch(
+                "app.core.security.async_verify_password",
+                new_callable=AsyncMock,
+                return_value=False,  # Password differs → rehash needed
+            ),
+            patch(
+                "app.core.security.async_hash_password",
+                new_callable=AsyncMock,
+                return_value="new_hashed",
+            ),
         ):
             from app.main import bootstrap_super_admin
 
@@ -91,6 +101,8 @@ class TestBootstrapSuperAdmin:
                 new_callable=AsyncMock,
             ) as mock_update,
             patch("app.core.security.hash_password", return_value="new_hashed"),
+            patch("app.core.security.async_verify_password", new_callable=AsyncMock),
+            patch("app.core.security.async_hash_password", new_callable=AsyncMock),
         ):
             from app.main import bootstrap_super_admin
 

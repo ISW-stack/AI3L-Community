@@ -24,6 +24,9 @@ def _clear_overrides():
     app.dependency_overrides.clear()
 
 
+_RATE_LIMIT = "app.api.v1.endpoints.posts.check_rate_limit"
+
+
 class TestSearchSuggestions:
     @pytest.mark.anyio
     async def test_returns_empty_results(self, client):
@@ -31,6 +34,7 @@ class TestSearchSuggestions:
         try:
             _override_auth("MEMBER")
             with (
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_REPO}.get_search_suggestions",
                     new_callable=AsyncMock,
@@ -60,6 +64,7 @@ class TestSearchSuggestions:
         try:
             _override_auth("MEMBER")
             with (
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_REPO}.get_search_suggestions",
                     new_callable=AsyncMock,
@@ -89,6 +94,7 @@ class TestSearchSuggestions:
         try:
             _override_auth("MEMBER")
             with (
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
                 patch(
                     f"{_REPO}.get_search_suggestions",
                     new_callable=AsyncMock,
@@ -118,6 +124,7 @@ class TestSearchSuggestions:
             mock_posts = AsyncMock(return_value=[])
             mock_kw = AsyncMock(return_value=[])
             with (
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
                 patch(f"{_REPO}.get_search_suggestions", mock_posts),
                 patch(f"{_REPO}.get_keyword_suggestions", mock_kw),
             ):

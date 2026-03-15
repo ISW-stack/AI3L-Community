@@ -29,6 +29,8 @@ class CommentResponse(BaseModel):
 class CommentListResponse(BaseModel):
     comments: list[CommentResponse]
     total: int
+    current_page: int = 1
+    total_pages: int = 1
 
 
 class CommentUpdateRequest(BaseModel):

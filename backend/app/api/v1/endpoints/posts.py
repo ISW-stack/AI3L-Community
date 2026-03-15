@@ -3,7 +3,7 @@ from typing import Any, cast
 
 from fastapi import APIRouter, Depends, Query, Request, status
 
-from app.core.constants import RATE_LIMIT_REACTION
+from app.core.constants import RATE_LIMIT_REACTION, RATE_LIMIT_SEARCH_SUGGESTIONS
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
@@ -161,6 +161,11 @@ async def search_suggestions(
     current_user: dict = Depends(get_current_user),
 ) -> SearchSuggestionsResponse:
     """Return search suggestions for posts and keywords matching the query."""
+    if not await check_rate_limit(
+        f"rl:suggestions:{current_user['sub']}", *RATE_LIMIT_SEARCH_SUGGESTIONS
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
     from app.repositories import post_repo
 
     posts = await post_repo.get_search_suggestions(q, limit=limit)
@@ -190,7 +195,7 @@ async def get_post(
     post_id: uuid.UUID,
     current_user: dict = Depends(get_current_user),
 ) -> PostResponse:
-    post = await get_post_by_id(post_id, increment_view=True)
+    post = await get_post_by_id(post_id, increment_view=True, viewer_id=current_user["sub"])
     if post is None:
         raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
     return PostResponse(**post)
@@ -216,6 +221,9 @@ async def update_existing_post(
         ]
     ):
         raise AppError(ErrorCode.SYS_422, 400, "At least one field must be provided.")
+
+    if req.title is not None and not req.title.strip():
+        raise AppError(ErrorCode.SYS_422, 400, "Title cannot be empty.")
 
     content = sanitize_html(req.content) if req.content else None
     try:

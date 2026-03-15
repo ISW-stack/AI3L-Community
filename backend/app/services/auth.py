@@ -149,26 +149,52 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
     return token, ttl_seconds
 
 
+# Lua: atomically decrement guest counter, clamping to zero.
+# KEYS[1] = counter key. Returns new value (0 if clamped).
+_GUEST_DECR_LUA = """
+local val = redis.call('DECR', KEYS[1])
+if val < 0 then
+    redis.call('SET', KEYS[1], 0)
+    return 0
+end
+return val
+"""
+
+# Lua: atomically decrement per-IP guest counter, clamping to zero and preserving TTL.
+# KEYS[1] = ip counter key, ARGV[1] = default TTL in seconds.
+_GUEST_IP_DECR_LUA = """
+local val = redis.call('DECR', KEYS[1])
+if val < 0 then
+    redis.call('SET', KEYS[1], 0)
+    local ttl = redis.call('TTL', KEYS[1])
+    if ttl < 0 then
+        redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1]))
+    end
+    return 0
+end
+return val
+"""
+
+
 async def decrement_guest_counter() -> None:
-    """Decrement the atomic guest counter (call on guest session expiry/logout)."""
+    """Decrement the atomic guest counter (call on guest session expiry/logout).
+
+    Uses a Lua script for atomic decrement-and-clamp to prevent race conditions
+    where concurrent DECRs go negative and a SET(0) overwrites an intervening INCR.
+    """
     redis = get_redis()
-    val = await redis.decr(_GUEST_COUNTER_KEY)
-    # Prevent counter from going negative
-    if val < 0:
-        await redis.set(_GUEST_COUNTER_KEY, 0)
+    await redis.eval(_GUEST_DECR_LUA, 1, _GUEST_COUNTER_KEY)
 
 
 async def decrement_guest_ip_counter(ip: str) -> None:
     """Decrement the per-IP guest counter (call on guest logout).
 
-    Clamps to zero to prevent negative values from stale or duplicate decrements.
+    Uses a Lua script for atomic decrement-and-clamp. Preserves existing TTL
+    on the key; if no TTL is set (key was reset), applies the default 3600s.
     """
     redis = get_redis()
     ip_guest_key = f"guest:ip:{ip}"
-    val = await redis.decr(ip_guest_key)
-    if val < 0:
-        await redis.set(ip_guest_key, 0)
-        await redis.expire(ip_guest_key, 3600)
+    await redis.eval(_GUEST_IP_DECR_LUA, 1, ip_guest_key, 3600)
 
 
 async def get_invite_code(invite_code: str) -> dict | None:
