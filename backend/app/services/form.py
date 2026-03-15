@@ -306,6 +306,9 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             )
             _validate_answers(questions, answers)
 
+            # Server-side file size validation (defense-in-depth)
+            await _validate_file_sizes(questions, answers)
+
             response_id = uuid.uuid4()
             inserted = await form_repo.insert_response(
                 response_id,
@@ -389,6 +392,27 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
     for key in answers:
         if key not in valid_ids:
             raise ValueError(f"Unknown question id: '{key}'.")
+
+
+async def _validate_file_sizes(questions: list[dict], answers: dict) -> None:
+    """Check uploaded file sizes against max_size_mb limits (server-side enforcement)."""
+    from app.core.async_storage import get_file_size
+
+    for q in questions:
+        if q["type"] != "file_upload":
+            continue
+        max_size_mb = q.get("max_size_mb")
+        if not max_size_mb:
+            continue
+        value = answers.get(q["id"])
+        if not isinstance(value, dict) or "key" not in value:
+            continue
+        file_size = await get_file_size(value["key"])
+        max_bytes = max_size_mb * 1024 * 1024
+        if file_size > max_bytes:
+            raise ValueError(
+                f"File for question '{q['label']}' exceeds the maximum size of {max_size_mb} MB."
+            )
 
 
 async def soft_delete_form(form_id: uuid.UUID, user_id: str, is_admin: bool) -> bool:

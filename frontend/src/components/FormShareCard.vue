@@ -41,9 +41,9 @@ onMounted(async () => {
     <BaseCard class="border-l-4 border-purple-500 hover:shadow-md transition">
       <div class="flex items-start gap-3">
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
             <BaseBadge variant="purple">Form</BaseBadge>
-            <span class="font-semibold text-foreground text-sm">{{ form.title }}</span>
+            <span class="font-semibold text-foreground text-sm min-w-0 break-words">{{ form.title }}</span>
             <BaseBadge :variant="form.is_active ? 'success' : 'danger'" class="ml-auto shrink-0">
               {{ form.is_active ? t('common.active') : t('common.closed') }}
             </BaseBadge>

@@ -209,7 +209,7 @@ const {
 
       <div class="mb-6">
         <!-- Toolbar: title + actions -->
-        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
           <h2 class="text-lg font-semibold text-foreground">
             {{ t('forms.builder.questionsTitle') }}
           </h2>
@@ -446,7 +446,7 @@ const {
                   v-if="['single_choice', 'multiple_choice', 'dropdown'].includes(q.type)"
                   class="space-y-2"
                 >
-                  <div v-for="(opt, oi) in q.options" :key="opt.id" class="flex items-center gap-2">
+                  <div v-for="(opt, oi) in q.options" :key="opt.id" class="flex items-center gap-2 min-w-0">
                     <!-- Feature 5: Option reorder arrows -->
                     <div v-if="!isSchemaLocked" class="flex flex-col">
                       <button
@@ -615,10 +615,9 @@ const {
         <div
           :class="
             previewMode === 'mobile'
-              ? 'mx-auto border-2 border-gray-400 rounded-4xl p-3 bg-gray-50'
+              ? 'mx-auto border-2 border-gray-400 rounded-4xl p-3 bg-gray-50 max-w-full sm:max-w-[375px]'
               : ''
           "
-          :style="previewMode === 'mobile' ? 'max-width: 375px' : ''"
         >
           <div :class="previewMode === 'mobile' ? 'rounded-xl overflow-hidden bg-surface' : ''">
             <div class="space-y-4" :class="previewMode === 'mobile' ? 'p-3' : ''">

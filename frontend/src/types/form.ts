@@ -30,6 +30,7 @@ export interface FormData {
   is_schema_locked: boolean
   allow_non_members: boolean
   response_count: number
+  has_responded?: boolean
   is_active: boolean
   created_by: string
   created_by_name: string
@@ -53,7 +54,7 @@ export interface QuestionStats {
 }
 
 export interface FormStatsResponse {
-  form_id: number
+  form_id: string
   total_responses: number
   question_stats: QuestionStats[]
 }

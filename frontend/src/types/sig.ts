@@ -24,6 +24,7 @@ export interface SigForm {
   sig_id: string
   title: string
   description: string | null
+  banner_url: string | null
   deadline: string | null
   max_respondents: number | null
   response_count: number
@@ -32,5 +33,6 @@ export interface SigForm {
   created_by: string
   created_by_name: string
   created_at: string
+  updated_at: string
   user_is_sig_admin: boolean
 }

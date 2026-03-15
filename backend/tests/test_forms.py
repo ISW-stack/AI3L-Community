@@ -237,7 +237,7 @@ class TestExportForm:
                 assert resp.status_code == 202
                 assert resp.json()["task_id"] == "celery-task-123"
                 mock_redis.set.assert_awaited_once_with(
-                    "task_owner:celery-task-123", mock.ANY, ex=3600
+                    "task_owner:celery-task-123", mock.ANY, ex=86400
                 )
         finally:
             _clear_overrides()
@@ -2587,3 +2587,482 @@ class TestFormStatsDropdownType:
         opt1 = next(o for o in opts if o["option_id"] == "opt1")
         assert opt1["count"] == 1
         assert opt1["percentage"] == 100.0
+
+
+# ──────────────────────────────────────────────────────────────────────
+# NEW TESTS: File size validation, permission check, export TTL
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestFileSizeValidation:
+    """Server-side file size validation for file_upload questions."""
+
+    @pytest.mark.anyio
+    async def test_oversized_file_rejected(self):
+        """_validate_file_sizes raises ValueError when file exceeds max_size_mb."""
+        from app.services.form import _validate_file_sizes
+
+        questions = [
+            {
+                "id": "q1",
+                "type": "file_upload",
+                "label": "Upload",
+                "max_size_mb": 5,
+            }
+        ]
+        answers = {"q1": {"key": "forms/uploads/test.pdf", "filename": "test.pdf"}}
+
+        # 6 MB = 6 * 1024 * 1024 bytes — exceeds 5 MB limit
+        with patch(
+            "app.core.async_storage.get_file_size",
+            new_callable=AsyncMock,
+            return_value=6 * 1024 * 1024,
+        ):
+            with pytest.raises(ValueError, match="exceeds the maximum size of 5 MB"):
+                await _validate_file_sizes(questions, answers)
+
+    @pytest.mark.anyio
+    async def test_file_within_limit_accepted(self):
+        """_validate_file_sizes passes when file is within max_size_mb."""
+        from app.services.form import _validate_file_sizes
+
+        questions = [
+            {
+                "id": "q1",
+                "type": "file_upload",
+                "label": "Upload",
+                "max_size_mb": 10,
+            }
+        ]
+        answers = {"q1": {"key": "forms/uploads/small.pdf", "filename": "small.pdf"}}
+
+        # 5 MB — within 10 MB limit
+        with patch(
+            "app.core.async_storage.get_file_size",
+            new_callable=AsyncMock,
+            return_value=5 * 1024 * 1024,
+        ):
+            # Should not raise
+            await _validate_file_sizes(questions, answers)
+
+    @pytest.mark.anyio
+    async def test_file_exactly_at_limit_accepted(self):
+        """_validate_file_sizes passes when file is exactly at max_size_mb."""
+        from app.services.form import _validate_file_sizes
+
+        questions = [
+            {
+                "id": "q1",
+                "type": "file_upload",
+                "label": "Upload",
+                "max_size_mb": 5,
+            }
+        ]
+        answers = {"q1": {"key": "forms/uploads/exact.pdf", "filename": "exact.pdf"}}
+
+        # Exactly 5 MB
+        with patch(
+            "app.core.async_storage.get_file_size",
+            new_callable=AsyncMock,
+            return_value=5 * 1024 * 1024,
+        ):
+            # Should not raise — equal to limit, not exceeding
+            await _validate_file_sizes(questions, answers)
+
+    @pytest.mark.anyio
+    async def test_no_max_size_skips_check(self):
+        """_validate_file_sizes skips check when max_size_mb is not set."""
+        from app.services.form import _validate_file_sizes
+
+        questions = [
+            {
+                "id": "q1",
+                "type": "file_upload",
+                "label": "Upload",
+                # no max_size_mb
+            }
+        ]
+        answers = {"q1": {"key": "forms/uploads/big.pdf", "filename": "big.pdf"}}
+
+        with patch(
+            "app.core.async_storage.get_file_size",
+            new_callable=AsyncMock,
+            return_value=999 * 1024 * 1024,
+        ) as mock_size:
+            await _validate_file_sizes(questions, answers)
+            # get_file_size should not be called when no limit
+            mock_size.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_non_file_questions_skipped(self):
+        """_validate_file_sizes ignores non-file_upload questions."""
+        from app.services.form import _validate_file_sizes
+
+        questions = [
+            {"id": "q1", "type": "text", "label": "Name"},
+            {"id": "q2", "type": "rating", "label": "Rate"},
+        ]
+        answers = {"q1": "John", "q2": 5}
+
+        with patch(
+            "app.core.async_storage.get_file_size",
+            new_callable=AsyncMock,
+        ) as mock_size:
+            await _validate_file_sizes(questions, answers)
+            mock_size.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_empty_file_answer_skipped(self):
+        """_validate_file_sizes skips file questions with no answer."""
+        from app.services.form import _validate_file_sizes
+
+        questions = [
+            {
+                "id": "q1",
+                "type": "file_upload",
+                "label": "Upload",
+                "max_size_mb": 5,
+            }
+        ]
+        answers = {}  # no answer for q1
+
+        with patch(
+            "app.core.async_storage.get_file_size",
+            new_callable=AsyncMock,
+        ) as mock_size:
+            await _validate_file_sizes(questions, answers)
+            mock_size.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_file_size_validation_in_submit_response(self):
+        """submit_response calls _validate_file_sizes during submission."""
+        import json
+
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        questions = [
+            {
+                "id": "q1",
+                "type": "file_upload",
+                "label": "Upload",
+                "required": True,
+                "max_size_mb": 2,
+            }
+        ]
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test Form",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": json.dumps(questions),
+            "is_schema_locked": False,
+            "is_deleted": False,
+            "allow_non_members": True,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+
+        mock_conn = AsyncMock()
+        mock_conn.transaction = MagicMock()
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction.return_value = tx
+
+        mock_pool = MagicMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+
+        answers = {"q1": {"key": "forms/uploads/large.pdf", "filename": "large.pdf"}}
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                f"{_SVC}.form_repo.find_for_update",
+                new_callable=AsyncMock,
+                return_value=form_row,
+            ),
+            patch(
+                f"{_SVC}.form_repo.check_duplicate_response",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.core.async_storage.get_file_size",
+                new_callable=AsyncMock,
+                return_value=3 * 1024 * 1024,  # 3 MB > 2 MB limit
+            ),
+        ):
+            from app.services.form import submit_response
+
+            with pytest.raises(ValueError, match="exceeds the maximum size"):
+                await submit_response(form_id, user_id, answers)
+
+
+class TestUpdateFormPermissionConsolidated:
+    """Verify the consolidated permission check in update_existing_form."""
+
+    @pytest.mark.anyio
+    async def test_sig_admin_can_update_others_form(self, client):
+        """PUT /forms/{form_id} → 200 when SIG admin updates another user's form."""
+        form_id = uuid.uuid4()
+        admin_user_id = str(uuid.uuid4())
+        creator_id = str(uuid.uuid4())
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+        updated_form = dict(form)
+        updated_form["title"] = "Admin Updated"
+
+        try:
+            _override_auth("MEMBER", user_id=admin_user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form
+                ) as mock_update,
+            ):
+                resp = await client.put(
+                    f"/api/v1/forms/{form_id}",
+                    json={"title": "Admin Updated"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                # is_admin passed to update_form should be True (from _is_sig_admin)
+                _, kwargs = mock_update.call_args
+                assert kwargs["is_admin"] is True
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_platform_admin_is_admin_via_is_sig_admin(self, client):
+        """PUT /forms/{form_id} → _is_sig_admin returns True for SUPER_ADMIN."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form = _make_form(creator_id=str(uuid.uuid4()))
+        form["id"] = str(form_id)
+        updated_form = dict(form)
+        updated_form["title"] = "Super Admin Updated"
+
+        try:
+            _override_auth("SUPER_ADMIN", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                # _is_sig_admin checks platform admin roles internally
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form
+                ) as mock_update,
+            ):
+                resp = await client.put(
+                    f"/api/v1/forms/{form_id}",
+                    json={"title": "Super Admin Updated"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                _, kwargs = mock_update.call_args
+                assert kwargs["is_admin"] is True
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_non_admin_non_creator_cannot_update(self, client):
+        """PUT /forms/{form_id} → 403 when regular member is not creator or admin."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        creator_id = str(uuid.uuid4())
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.put(
+                    f"/api/v1/forms/{form_id}",
+                    json={"title": "Attempt"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_creator_can_update_own_form(self, client):
+        """PUT /forms/{form_id} → 200 when creator updates own form (not admin)."""
+        form_id = uuid.uuid4()
+        creator_id = str(uuid.uuid4())
+        form = _make_form(creator_id=creator_id)
+        form["id"] = str(form_id)
+        updated_form = dict(form)
+        updated_form["title"] = "Creator Updated"
+
+        try:
+            _override_auth("MEMBER", user_id=creator_id)
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=False),
+                patch(
+                    f"{_EP}.update_form", new_callable=AsyncMock, return_value=updated_form
+                ) as mock_update,
+            ):
+                resp = await client.put(
+                    f"/api/v1/forms/{form_id}",
+                    json={"title": "Creator Updated"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                _, kwargs = mock_update.call_args
+                # is_admin should be False since _is_sig_admin returns False
+                assert kwargs["is_admin"] is False
+        finally:
+            _clear_overrides()
+
+
+class TestExportTaskOwnershipTTL:
+    """Verify export task ownership Redis key uses 24-hour TTL."""
+
+    @pytest.mark.anyio
+    async def test_export_sets_24h_ttl(self, client):
+        """POST /forms/{form_id}/export → sets task_owner key with ex=86400."""
+        form_id = uuid.uuid4()
+        form = _make_form()
+        form["id"] = str(form_id)
+
+        mock_task = MagicMock()
+        mock_task.id = "celery-task-456"
+
+        mock_export_module = MagicMock()
+        mock_export_module.export_form_csv.delay.return_value = mock_task
+
+        mock_redis = AsyncMock()
+        mock_redis.set = AsyncMock(return_value=True)
+
+        try:
+            _, uid = _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form),
+                patch(f"{_EP}._is_sig_admin", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch.dict("sys.modules", {"app.tasks.form_export": mock_export_module}),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
+            ):
+                resp = await client.post(
+                    f"/api/v1/forms/{form_id}/export",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 202
+                assert resp.json()["task_id"] == "celery-task-456"
+                # Verify 24-hour TTL (86400 seconds)
+                mock_redis.set.assert_awaited_once_with(
+                    "task_owner:celery-task-456", uid, ex=86400
+                )
+        finally:
+            _clear_overrides()
+
+
+class TestIsSigAdminHelper:
+    """Verify _is_sig_admin helper covers all cases correctly."""
+
+    @pytest.mark.anyio
+    async def test_super_admin_returns_true(self):
+        """SUPER_ADMIN role should always return True without querying SIG membership."""
+        from app.api.v1.endpoints.forms import _is_sig_admin
+
+        sig_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        with patch(
+            f"{_EP}.sig_repo.get_member_role", new_callable=AsyncMock
+        ) as mock_role:
+            result = await _is_sig_admin(sig_id, user_id, "SUPER_ADMIN")
+            assert result is True
+            # Should NOT query SIG membership for platform admins
+            mock_role.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_platform_admin_returns_true(self):
+        """ADMIN role should always return True without querying SIG membership."""
+        from app.api.v1.endpoints.forms import _is_sig_admin
+
+        sig_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        with patch(
+            f"{_EP}.sig_repo.get_member_role", new_callable=AsyncMock
+        ) as mock_role:
+            result = await _is_sig_admin(sig_id, user_id, "ADMIN")
+            assert result is True
+            mock_role.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_sig_admin_returns_true(self):
+        """SIG ADMIN member role should return True."""
+        from app.api.v1.endpoints.forms import _is_sig_admin
+
+        sig_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        with patch(
+            f"{_EP}.sig_repo.get_member_role",
+            new_callable=AsyncMock,
+            return_value="ADMIN",
+        ):
+            result = await _is_sig_admin(sig_id, user_id, "MEMBER")
+            assert result is True
+
+    @pytest.mark.anyio
+    async def test_sig_sub_admin_returns_true(self):
+        """SIG SUB_ADMIN member role should return True."""
+        from app.api.v1.endpoints.forms import _is_sig_admin
+
+        sig_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        with patch(
+            f"{_EP}.sig_repo.get_member_role",
+            new_callable=AsyncMock,
+            return_value="SUB_ADMIN",
+        ):
+            result = await _is_sig_admin(sig_id, user_id, "MEMBER")
+            assert result is True
+
+    @pytest.mark.anyio
+    async def test_regular_member_returns_false(self):
+        """Regular SIG member should return False."""
+        from app.api.v1.endpoints.forms import _is_sig_admin
+
+        sig_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        with patch(
+            f"{_EP}.sig_repo.get_member_role",
+            new_callable=AsyncMock,
+            return_value="MEMBER",
+        ):
+            result = await _is_sig_admin(sig_id, user_id, "MEMBER")
+            assert result is False
+
+    @pytest.mark.anyio
+    async def test_non_member_returns_false(self):
+        """Non-member (no SIG role) should return False."""
+        from app.api.v1.endpoints.forms import _is_sig_admin
+
+        sig_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+
+        with patch(
+            f"{_EP}.sig_repo.get_member_role",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await _is_sig_admin(sig_id, user_id, "MEMBER")
+            assert result is False

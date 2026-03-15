@@ -95,14 +95,15 @@ def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | Non
         # ASCII-safe fallback for the filename parameter (non-ASCII chars → _)
         import os
         import re
-        import urllib.parse
 
         base, ext = os.path.splitext(filename)
         ascii_base = re.sub(r"[^\x20-\x7E]", "_", base).strip(" _") or "export"
         ascii_fallback = ascii_base + ext
-        encoded = urllib.parse.quote(filename, safe="")
+        # NOTE: Do NOT pre-encode the filename for filename* — boto3 will
+        # URL-encode the entire ResponseContentDisposition query parameter.
+        # Pre-encoding causes double-encoding (e.g. %E4 → %25E4 = garbled).
         params["ResponseContentDisposition"] = (
-            f"attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{encoded}"
+            f'attachment; filename="{ascii_fallback}"'
         )
     return str(
         client.generate_presigned_url(

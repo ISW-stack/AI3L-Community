@@ -291,7 +291,7 @@ onMounted(fetchForms)
 
           <div
             v-if="f.user_is_sig_admin || auth.isAdmin"
-            class="flex items-center gap-x-4 gap-y-2 flex-wrap pt-3 mt-2 border-t border-border"
+            class="flex items-center gap-x-2 sm:gap-x-4 gap-y-2 flex-wrap pt-3 mt-2 border-t border-border"
           >
             <router-link
               :to="`/forms/${f.id}/edit`"
@@ -418,13 +418,13 @@ onMounted(fetchForms)
                   v-model="rvDateFrom"
                   type="date"
                   :aria-label="t('sigs.forms.dateFrom')"
-                  class="text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
+                  class="flex-1 min-w-0 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
                 />
                 <input
                   v-model="rvDateTo"
                   type="date"
                   :aria-label="t('sigs.forms.dateTo')"
-                  class="text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
+                  class="flex-1 min-w-0 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
                 />
               </div>
             </div>

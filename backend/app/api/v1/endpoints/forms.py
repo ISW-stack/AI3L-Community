@@ -188,7 +188,7 @@ async def update_existing_form(
             detail="Only SIG admins or the form creator can update this form.",
         )
 
-    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN") or is_admin
+    # Note: _is_sig_admin() already checks platform admin roles, no need to re-check
     try:
         form = await update_form(
             form_id=form_id,
@@ -333,6 +333,6 @@ async def export_form_csv(
     from app.core.redis import get_redis
 
     redis = get_redis()
-    await redis.set(f"task_owner:{task.id}", user_id, ex=3600)
+    await redis.set(f"task_owner:{task.id}", user_id, ex=86400)
 
     return {"task_id": task.id}

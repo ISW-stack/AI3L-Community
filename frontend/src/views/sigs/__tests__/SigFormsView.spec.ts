@@ -44,13 +44,16 @@ const sampleForms = [
     sig_id: 'sig-1',
     title: 'Feedback Survey',
     description: 'Please share your feedback',
+    banner_url: null,
     deadline: null,
     max_respondents: null,
     response_count: 5,
     allow_non_members: false,
     is_active: true,
+    created_by: 'user-alice',
     created_by_name: 'Alice',
     created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
     user_is_sig_admin: true,
   },
   {
@@ -58,13 +61,16 @@ const sampleForms = [
     sig_id: 'sig-1',
     title: 'Registration Form',
     description: 'Event registration',
+    banner_url: null,
     deadline: '2026-06-01T00:00:00Z',
     max_respondents: 100,
     response_count: 42,
     allow_non_members: true,
     is_active: false,
+    created_by: 'user-bob',
     created_by_name: 'Bob',
     created_at: '2026-02-15T00:00:00Z',
+    updated_at: '2026-02-15T00:00:00Z',
     user_is_sig_admin: false,
   },
 ]
@@ -96,6 +102,7 @@ async function mountComponent(opts: MountOptions = {}) {
 
   const auth = useAuthStore()
   auth.setSession(platformRole, 3600)
+  auth.user = { id: 'user-alice' } as never
 
   await router.push('/sigs/sig-1/forms')
   await router.isReady()

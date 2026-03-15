@@ -349,8 +349,7 @@ onMounted(() => loadForm())
           <!-- Rating (Feature 5) -->
           <div v-else-if="q.type === 'rating'">
             <div
-              class="flex items-center gap-2"
-              :class="ratingCount(q) > 7 ? 'flex-wrap' : ''"
+              class="flex items-center gap-2 flex-wrap"
               role="group"
               :aria-label="q.label"
             >
