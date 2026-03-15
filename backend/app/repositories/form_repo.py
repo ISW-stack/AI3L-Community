@@ -76,11 +76,8 @@ async def find_for_update(form_id: uuid.UUID, conn: Any) -> dict | None:
     return dict(row) if row else None
 
 
-async def update(
-    form_id: uuid.UUID, fields: list[str], values: list[Any], conn: Any
-) -> tuple[dict, int] | None:
-    """Dynamic update within a connection. fields/values built by service."""
-    _ALLOWED_FORM_FIELDS = {
+_ALLOWED_FORM_FIELDS = frozenset(
+    {
         "title",
         "description",
         "banner_url",
@@ -92,18 +89,37 @@ async def update(
         "is_deleted",
         "updated_at",
     }
-    for f in fields:
-        col_name = f.split("=")[0].strip().split()[0]
-        if col_name not in _ALLOWED_FORM_FIELDS:
-            raise ValueError(f"Disallowed field in form update: {col_name}")
-    fields.append("updated_at = NOW()")
-    idx = len(values) + 1
-    values.append(form_id)
-    query = f"""
-        UPDATE forms SET {', '.join(fields)}
-        WHERE id = ${idx} AND is_deleted = false
-        RETURNING *
+)
+
+
+async def update(
+    form_id: uuid.UUID, updates: dict[str, Any], conn: Any
+) -> tuple[dict, int] | None:
+    """Dynamic update within a connection.
+
+    Accepts a dict of {column_name: value}. All keys are validated against
+    a whitelist before building the parameterised query.
     """
+    for key in updates:
+        if key not in _ALLOWED_FORM_FIELDS:
+            raise ValueError(f"Disallowed field in form update: {key}")
+
+    # Always bump updated_at
+    columns = list(updates.keys())
+    values = list(updates.values())
+
+    # Build SET clause with parameterised placeholders (column names from whitelist)
+    set_parts = [f"{col} = ${i + 1}" for i, col in enumerate(columns)]
+    set_parts.append("updated_at = NOW()")
+
+    form_id_idx = len(values) + 1
+    values.append(form_id)
+
+    query = (
+        f"UPDATE forms SET {', '.join(set_parts)} "
+        f"WHERE id = ${form_id_idx} AND is_deleted = false "
+        "RETURNING *"
+    )
     row = await conn.fetchrow(query, *values)
     if not row:
         return None

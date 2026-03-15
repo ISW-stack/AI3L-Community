@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 defineProps<{
   columns: Array<{ key: string; label: string; class?: string }>
   rows: Array<Record<string, any>>
@@ -24,11 +28,11 @@ defineProps<{
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">Loading...</td>
+            <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">{{ t('common.loading') }}</td>
           </tr>
           <tr v-else-if="!rows.length">
             <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">
-              {{ emptyText || 'No data' }}
+              {{ emptyText || t('common.noData') }}
             </td>
           </tr>
           <template v-else>

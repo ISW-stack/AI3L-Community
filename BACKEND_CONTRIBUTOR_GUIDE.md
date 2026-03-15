@@ -52,23 +52,23 @@ backend/app/
 | # | Task | Status |
 |---|------|--------|
 | 1.1 | VirusTotal silent error logging | ✅ Done |
-| 1.2 | WebSocket send failure logging | ⬜ Pending |
+| 1.2 | WebSocket send failure logging | ✅ Done |
 | 2.1 | Schema field length constraints | ✅ Done |
 | 2.2 | Post update empty payload check | ✅ Done |
 | 2.3 | Comment delete cross-validate post_id | ✅ Done |
-| 2.4 | Form update SIG ownership check | ⬜ Pending |
+| 2.4 | Form update SIG ownership check | ✅ Done |
 | 3.1 | SIG deletion cascade to forms/posts | ✅ Done |
-| 3.2 | Category deletion cascade to posts | ⬜ Pending |
+| 3.2 | Category deletion cascade to posts | ✅ Done |
 | 3.3 | SIG leave excludes deleted admins | ✅ Done |
-| 3.4 | Form response race condition | ⬜ Pending |
+| 3.4 | Form response race condition | ✅ Done |
 | 4.1 | VirusTotal integration (DB + endpoint) | ✅ Done |
 | 4.2 | Bulk operations endpoints | ✅ Done |
 | 4.3 | Reports endpoint pagination | ✅ Done |
 | 4.4 | Audit log date range filtering | ⬜ Pending |
 | 4.5 | Invite code revocation | ✅ Done |
-| 4.6 | Single category GET endpoint | ⬜ Pending |
+| 4.6 | Single category GET endpoint | ✅ Done |
 | 5.1 | Celery cross-platform async | ✅ Done |
-| 5.2 | Rate limits via environment variables | ⬜ Pending |
+| 5.2 | Rate limits via environment variables | ✅ Done |
 | 5.3 | Event bus periodic retry (Celery Beat) | ⬜ Pending |
 | 5.4 | WebSocket guest timeout on activity | ✅ Done |
 | 5.5 | WebSocket Redis Pub/Sub reconnection | ✅ Done |
@@ -92,18 +92,14 @@ Fixed. The VirusTotal scan trigger now distinguishes between `ImportError`
 
 ---
 
-### 1.2 WebSocket Send Failures Silently Ignored
+### 1.2 WebSocket Send Failures Silently Ignored — ✅ DONE
 
-**Difficulty: Beginner**
-**File:** `app/api/v1/endpoints/ws.py:135, 158`
+**File:** `app/api/v1/endpoints/ws.py`
 
-**Problem:**
-`except Exception: pass` on WebSocket send means if a broadcast fails,
-the client never receives the message and the server has no log entry.
-
-**Fix:**
-Add `logger.debug(...)` or `logger.warning(...)` inside the except blocks
-so failures are at least visible in logs.
+Fixed. `send_to_user()` logs at `WARNING` with `exc_info=True` when
+Redis Pub/Sub publish fails, then falls back to local delivery.
+`_local_send()` logs at `WARNING` with `exc_info=True` on per-socket
+send failure and removes the dead socket from `_connections`.
 
 ---
 
@@ -141,20 +137,14 @@ can only be deleted when the correct `post_id` is provided.
 
 ---
 
-### 2.4 Form Update Does Not Validate SIG Ownership
+### 2.4 Form Update Does Not Validate SIG Ownership — ✅ DONE
 
-**Difficulty: Beginner**
 **File:** `app/api/v1/endpoints/forms.py`
 
-**Problem:**
-The update form endpoint checks if the user is an admin but does not
-validate that the form belongs to the expected SIG. A user could
-theoretically update a form in a different SIG if they know the form_id.
-
-**Fix:**
-After fetching the form, verify `form["sig_id"]` matches the expected
-context (either add a `sig_id` path parameter or check the user's SIG
-admin role against the form's actual `sig_id`).
+Fixed. The update endpoint fetches the existing form first and calls
+`_is_sig_admin(form["sig_id"], user_id, role)` to verify that the caller
+is either a platform admin or holds ADMIN/SUB_ADMIN in the form's actual
+SIG. Non-admins who are not the form creator receive HTTP 403.
 
 ---
 
@@ -173,21 +163,16 @@ the SIG itself.
 
 ---
 
-### 3.2 Category Deletion Does Not Handle Associated Posts
+### 3.2 Category Deletion Does Not Handle Associated Posts — ✅ DONE
 
-**Difficulty: Beginner**
 **File:** `app/repositories/category_repo.py`
 
-**Problem:**
-Deleting a category leaves posts with a dangling `category_id` foreign key.
-Depending on the FK constraint, this may block deletion or silently orphan.
-
-**Fix:**
-Before deleting, set `category_id = NULL` on all posts in that category:
+Fixed. `delete()` runs both statements inside a single transaction:
 ```sql
 UPDATE posts SET category_id = NULL WHERE category_id = $1;
 DELETE FROM categories WHERE id = $1;
 ```
+Posts are nullified first so the DELETE never hits a FK violation.
 
 ---
 
@@ -201,20 +186,15 @@ active admins.
 
 ---
 
-### 3.4 Form Response Race Condition
+### 3.4 Form Response Race Condition — ✅ DONE
 
-**Difficulty: Intermediate**
 **File:** `app/services/form.py`
 
-**Problem:**
-When submitting a form response, the service checks if the form exists
-and if `max_respondents` has been reached. However, between the check and
-the insert, another user could submit, exceeding the limit. Also, the form
-could be deleted between check and insert.
-
-**Fix:**
-Use `SELECT ... FOR UPDATE` on the form row within the transaction, and
-re-check `is_deleted` and respondent count after acquiring the lock.
+Fixed. `submit_response()` opens a transaction and immediately calls
+`form_repo.find_for_update(form_id, conn)` which issues
+`SELECT ... FOR UPDATE` on the form row. All subsequent checks
+(deadline, duplicate response, max_respondents) happen inside the same
+transaction, preventing any race between the check and the insert.
 
 ---
 
@@ -292,27 +272,14 @@ ADMIN hard-delete a specific invite code.
 
 ---
 
-### 4.6 Single Category GET Endpoint
+### 4.6 Single Category GET Endpoint — ✅ DONE
 
-**Difficulty: Beginner**
 **Files:** `app/api/v1/endpoints/categories.py`,
 `app/repositories/category_repo.py`
 
-**Problem:**
-Only `GET /categories` (list all) exists. There is no
-`GET /categories/{id}` endpoint. Clients must filter the full list to find
-a single category.
-
-**Fix:**
-Add a simple endpoint:
-```python
-@router.get("/{category_id}", response_model=CategoryResponse)
-async def get_category(category_id: uuid.UUID):
-    category = await category_repo.find_by_id(category_id)
-    if not category:
-        raise HTTPException(404, "Category not found.")
-    return CategoryResponse(**category)
-```
+Done. `GET /categories/{category_id}` is implemented and returns a
+`CategoryResponse` including `post_count`. Returns HTTP 404 if the
+category does not exist.
 
 ---
 
@@ -329,33 +296,15 @@ dedicated `asyncio.run()` call, which is safe on all platforms.
 
 ---
 
-### 5.2 Rate Limits via Environment Variables
+### 5.2 Rate Limits via Environment Variables — ✅ DONE
 
-**Difficulty: Beginner**
 **File:** `app/core/constants.py`
 
-**Problem:**
-All rate limits are hardcoded tuples (e.g., `RATE_LIMIT_COMMENT = (30, 60)`).
-Different deployment environments (staging, production) may need different
-limits, but changing them requires a code change and redeployment.
-
-**Fix:**
-Read from environment variables with fallback defaults:
-```python
-import os
-
-def _rate_limit(env_key: str, default_max: int, default_window: int) -> tuple[int, int]:
-    max_val = int(os.getenv(f"RATE_LIMIT_{env_key}_MAX", str(default_max)))
-    window = int(os.getenv(f"RATE_LIMIT_{env_key}_WINDOW", str(default_window)))
-    return (max_val, window)
-
-RATE_LIMIT_COMMENT = _rate_limit("COMMENT", 30, 60)
-RATE_LIMIT_POST = _rate_limit("POST", 10, 86400)
-RATE_LIMIT_CAPTCHA = _rate_limit("CAPTCHA", 20, 60)
-RATE_LIMIT_FILE_UPLOAD = _rate_limit("FILE_UPLOAD", 10, 60)
-RATE_LIMIT_FORM_SUBMIT = _rate_limit("FORM_SUBMIT", 5, 60)
-```
-Document the available environment variables in `.env.example`.
+Done. All rate limits use a `_rate_limit(env_key, default_max, default_window)`
+helper that reads `RATE_LIMIT_{KEY}_MAX` and `RATE_LIMIT_{KEY}_WINDOW` from
+the environment, falling back to the hardcoded defaults. This covers all
+endpoints including login, register, comment, file upload, form submit/export,
+invite codes, reactions, and more. See `docs/environment.md` for the full list.
 
 ---
 

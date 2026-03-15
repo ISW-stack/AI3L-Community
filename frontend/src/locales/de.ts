@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Kopieren fehlgeschlagen.',
     required: 'Pflichtfeld',
     optional: 'Optional',
+    noData: 'Keine Daten',
     noResults: 'Keine Ergebnisse gefunden.',
     unknownError: 'Ein unerwarteter Fehler ist aufgetreten.',
     role: {
@@ -828,6 +829,7 @@ export default {
     deleteError: 'Benachrichtigungen konnten nicht gelöscht werden.',
     fetchError: 'Benachrichtigungen konnten nicht geladen werden.',
     markReadError: 'Benachrichtigung konnte nicht als gelesen markiert werden.',
+    viewAll: 'Alle anzeigen',
   },
 
   // ── About ──

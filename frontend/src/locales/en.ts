@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Failed to copy.',
     required: 'Required',
     optional: 'Optional',
+    noData: 'No data',
     noResults: 'No results found.',
     unknownError: 'An unexpected error occurred.',
     role: {
@@ -819,6 +820,7 @@ export default {
     deleteError: 'Failed to clear notifications.',
     fetchError: 'Failed to load notifications.',
     markReadError: 'Failed to mark notification as read.',
+    viewAll: 'View All',
   },
 
   // ── About ──

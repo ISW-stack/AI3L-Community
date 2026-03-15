@@ -38,6 +38,7 @@ export default {
     copyFailed: '複製失敗。',
     required: '必填',
     optional: '選填',
+    noData: '無資料',
     noResults: '搵無結果。',
     unknownError: '出現意外ê錯誤。',
     role: {
@@ -807,6 +808,7 @@ export default {
     deleteError: '清除通知失敗。',
     fetchError: '載入通知失敗。',
     markReadError: '標記通知已讀失敗。',
+    viewAll: '看全部',
   },
 
   // ── About ──

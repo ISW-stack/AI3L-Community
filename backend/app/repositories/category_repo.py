@@ -29,7 +29,7 @@ async def find_by_id(category_id: uuid.UUID) -> dict | None:
 async def find_all() -> list[dict]:
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM categories ORDER BY name ASC")
+        rows = await conn.fetch("SELECT * FROM categories ORDER BY name ASC LIMIT 500")
         return [dict(r) for r in rows]
 
 

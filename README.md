@@ -41,7 +41,7 @@ Docker Compose orchestration, Nginx TLS termination, automatic Alembic migration
 - SIG-scoped member roster with role promotion
 
 ### Form Builder
-- Seven field types: text, textarea, radio, checkbox, dropdown, date, rating
+- Seven field types: text, textarea, single_choice, multiple_choice, dropdown, rating, file_upload
 - Forms lock after first response (no silent schema changes mid-collection)
 - Response viewer and async CSV export via Celery task
 

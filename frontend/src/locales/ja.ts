@@ -38,6 +38,7 @@ export default {
     copyFailed: 'コピーに失敗しました。',
     required: '必須',
     optional: '任意',
+    noData: 'データなし',
     noResults: '結果が見つかりませんでした。',
     unknownError: '予期しないエラーが発生しました。',
     role: {
@@ -817,6 +818,7 @@ export default {
     deleteError: '通知のクリアに失敗しました。',
     fetchError: '通知の読み込みに失敗しました。',
     markReadError: '通知を既読にするのに失敗しました。',
+    viewAll: 'すべて表示',
   },
 
   // ── About ──

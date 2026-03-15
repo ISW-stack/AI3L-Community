@@ -396,8 +396,8 @@ async def unban_user_endpoint(
 
 @router.get("/admin/audit-logs")
 async def get_audit_logs(
-    page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, le=1000),
+    page_size: int = Query(20, ge=1, le=50),
     user_id: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,

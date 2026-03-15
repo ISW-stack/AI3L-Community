@@ -115,6 +115,10 @@ async def soft_delete(sig_id: uuid.UUID) -> bool:
                 "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE sig_id = $1 AND is_deleted = false",  # noqa: E501
                 sig_id,
             )
+            await conn.execute(
+                "DELETE FROM sig_members WHERE sig_id = $1",
+                sig_id,
+            )
             return True
 
 

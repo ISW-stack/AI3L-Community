@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Gagal menyalin.',
     required: 'Wajib diisi',
     optional: 'Opsional',
+    noData: 'Tidak ada data',
     noResults: 'Tidak ada hasil ditemukan.',
     unknownError: 'Terjadi kesalahan yang tidak terduga.',
     role: {
@@ -826,6 +827,7 @@ export default {
     deleteError: 'Gagal menghapus notifikasi.',
     fetchError: 'Gagal memuat notifikasi.',
     markReadError: 'Gagal menandai notifikasi telah dibaca.',
+    viewAll: 'Lihat Semua',
   },
 
   // ── About ──

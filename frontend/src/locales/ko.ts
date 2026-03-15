@@ -38,6 +38,7 @@ export default {
     copyFailed: '복사에 실패했습니다.',
     required: '필수',
     optional: '선택',
+    noData: '데이터 없음',
     noResults: '결과를 찾을 수 없습니다.',
     unknownError: '예기치 않은 오류가 발생했습니다.',
     role: {
@@ -816,6 +817,7 @@ export default {
     deleteError: '알림 삭제에 실패했습니다.',
     fetchError: '알림을 불러오지 못했습니다.',
     markReadError: '알림을 읽음으로 표시하지 못했습니다.',
+    viewAll: '전체 보기',
   },
 
   // ── About ──

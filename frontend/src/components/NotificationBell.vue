@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { Notification } from '@/types'
 import { useNotificationStore } from '@/stores/notifications'
 import { useDropdownKeyNav } from '@/composables/useDropdownKeyNav'
 import { relativeTime } from '@/utils/datetime'
 import { Bell, Settings, User } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const router = useRouter()
 const notifStore = useNotificationStore()
 const dropdownOpen = ref(false)
@@ -97,26 +99,26 @@ onUnmounted(() => {
       class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg z-50"
     >
       <div class="flex items-center justify-between px-4 py-2 border-b border-border">
-        <span class="text-sm font-semibold text-foreground">Notifications</span>
+        <span class="text-sm font-semibold text-foreground">{{ t('notifications.title') }}</span>
         <button
           v-if="notifStore.unreadCount > 0"
           @click="notifStore.markAllRead()"
           class="text-xs text-brand-600 hover:text-brand-700 transition"
           tabindex="-1"
         >
-          Mark all as read
+          {{ t('notifications.markAllRead') }}
         </button>
       </div>
 
       <div v-if="notifStore.loading" class="px-4 py-6 text-center text-sm text-muted">
-        Loading...
+        {{ t('common.loading') }}
       </div>
 
       <div
         v-else-if="notifStore.items.length === 0"
         class="px-4 py-6 text-center text-sm text-muted"
       >
-        No notifications yet.
+        {{ t('notifications.emptyMessage') }}
       </div>
 
       <div v-else class="max-h-80 overflow-y-auto">
@@ -159,7 +161,7 @@ onUnmounted(() => {
           class="block text-center text-sm text-brand-600 hover:text-brand-700 py-2 transition"
           tabindex="-1"
         >
-          View All
+          {{ t('notifications.viewAll') }}
         </router-link>
       </div>
     </div>

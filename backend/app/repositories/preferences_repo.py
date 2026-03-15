@@ -2,6 +2,10 @@ import uuid
 
 from app.core.database import get_pool
 
+_ALLOWED_PREFERENCE_COLUMNS = frozenset(
+    {"theme", "notify_mentions", "notify_replies", "notify_sig_posts"}
+)
+
 
 async def get_preferences(user_id: uuid.UUID) -> dict | None:
     """Fetch user preferences row. Returns None if no row exists."""
@@ -17,11 +21,15 @@ async def get_preferences(user_id: uuid.UUID) -> dict | None:
 
 async def upsert_preferences(user_id: uuid.UUID, data: dict) -> dict:
     """Insert or update user preferences. Returns the resulting row."""
+    # Reject any unknown columns up-front (defense-in-depth) — before touching DB
+    unknown = set(data.keys()) - _ALLOWED_PREFERENCE_COLUMNS
+    if unknown:
+        raise ValueError(f"Unknown preference columns: {unknown}")
+
     pool = get_pool()
 
     # Build SET clause from provided fields
-    allowed = {"theme", "notify_mentions", "notify_replies", "notify_sig_posts"}
-    fields = {k: v for k, v in data.items() if k in allowed and v is not None}
+    fields = {k: v for k, v in data.items() if k in _ALLOWED_PREFERENCE_COLUMNS and v is not None}
 
     if not fields:
         # Nothing to update; return existing or defaults

@@ -259,7 +259,7 @@ submission is blocked until the values are corrected.
 `src/components/AppNavbar.vue`, `src/components/NotificationBell.vue`
 
 Done. A `useDropdownKeyNav` composable (options object API) handles
-`ArrowDown`, `ArrowUp`, `Enter`/`Space`, and `Escape` for all dropdowns.
+`ArrowDown`, `ArrowUp`, `Space`, and `Escape` for all dropdowns.
 Applied to the user dropdown in `AppNavbar.vue` and the notification bell
 in `NotificationBell.vue`. Menu items use `tabindex="-1"` so they receive
 programmatic focus without appearing in the natural tab order.
@@ -330,7 +330,9 @@ HTML elements:
 
 Use only CSS variable–based Tailwind classes (`bg-surface`, `text-foreground`,
 `border-border`, `text-muted`) instead of hardcoded gray/white classes.
-The site uses a fixed light theme (dark mode is not active).
+The site uses a fixed light theme (dark mode is not active). The dark mode
+`@media` block was intentionally removed from `src/style.css` — do not
+re-add it, as it causes a dark background on OS-level dark mode systems.
 
 ### Running Tests
 
@@ -404,4 +406,68 @@ const handleDelete = async () => {
   showDeleteConfirm.value = false
   // ... perform delete
 }
+```
+
+---
+
+### Common Pitfalls
+
+**1. Multiline inline template handlers break Vite production builds.**
+
+Prettier sometimes reformats a short `@click` or `@change` handler into
+multiple lines if it contains more than one statement:
+
+```html
+<!-- This compiles fine in dev but fails in the Vite prod build -->
+<button
+  @click="
+    isOpen = false
+    doSomething()
+  "
+>
+```
+
+Always extract multi-statement handlers to named methods in `<script setup>`:
+
+```html
+<!-- Correct -->
+<button @click="handleClick">
+
+<!-- in <script setup> -->
+const handleClick = () => {
+  isOpen.value = false
+  doSomething()
+}
+```
+
+**2. TipTap table extension requires named imports.**
+
+```typescript
+// Correct
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableHeader } from '@tiptap/extension-table-header'
+import { TableCell } from '@tiptap/extension-table-cell'
+
+// Wrong — default import does not exist for these packages
+import Table from '@tiptap/extension-table'
+```
+
+**3. TipTap StarterKit must disable Link to avoid duplicate extension warnings.**
+
+```typescript
+StarterKit.configure({ link: false })
+// Then add Link separately:
+Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer' } })
+```
+
+**4. `inject()` returns `undefined` (not `null`) when missing.**
+
+When using `inject<Ref<T>>()` in nested route children (e.g. inside
+`SigLayout`), check with `!= null` rather than `!== null` to catch both
+`null` and `undefined`:
+
+```typescript
+const sig = inject<Ref<Sig>>('sig')
+if (sig == null) throw new Error('sig not provided')
 ```

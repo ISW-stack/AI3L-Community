@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Copia non riuscita.',
     required: 'Obbligatorio',
     optional: 'Facoltativo',
+    noData: 'Nessun dato',
     noResults: 'Nessun risultato trovato.',
     unknownError: 'Si è verificato un errore imprevisto.',
     role: {
@@ -823,6 +824,7 @@ export default {
     deleteError: 'Cancellazione delle notifiche non riuscita.',
     fetchError: 'Impossibile caricare le notifiche.',
     markReadError: 'Impossibile contrassegnare la notifica come letta.',
+    viewAll: 'Vedi tutto',
   },
 
   // ── About ──

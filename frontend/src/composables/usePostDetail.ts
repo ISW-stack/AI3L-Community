@@ -48,6 +48,8 @@ export const UUID_RE =
 
 export const FILE_CONTENT_RE = /\/api\/v1\/files\/content\/(.+)/
 
+const domParser = new DOMParser()
+
 export interface UsePostDetailOptions {
   postId: Ref<string> | ComputedRef<string>
   auth: {
@@ -152,7 +154,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     if (!post.value) return []
     const sanitized = DOMPurify.sanitize(post.value.content)
 
-    const doc = new DOMParser().parseFromString(`<div>${sanitized}</div>`, 'text/html')
+    const doc = domParser.parseFromString(`<div>${sanitized}</div>`, 'text/html')
     const wrapper = doc.body.firstElementChild!
 
     let markerIndex = 0
@@ -595,7 +597,15 @@ export function usePostDetail(options: UsePostDetailOptions) {
   }
 
   // --- Watchers ---
-  watch(imageScanStatuses, () => applyMaliciousOverlays(), { deep: true })
+  let overlayDebounceTimer: ReturnType<typeof setTimeout> | null = null
+  watch(
+    imageScanStatuses,
+    () => {
+      if (overlayDebounceTimer) clearTimeout(overlayDebounceTimer)
+      overlayDebounceTimer = setTimeout(() => applyMaliciousOverlays(), 100)
+    },
+    { deep: true },
+  )
 
   // --- Leave guard (unsaved edits) ---
   onBeforeRouteLeave((_to, _from, next) => {
@@ -629,6 +639,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     isUnmounted = true
     scanPollTimers.forEach(clearTimeout)
     scanPollTimers = []
+    if (overlayDebounceTimer) clearTimeout(overlayDebounceTimer)
     window.removeEventListener('beforeunload', handleBeforeUnload)
   })
 

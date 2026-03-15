@@ -206,9 +206,7 @@ async def update_form(
             if current["is_schema_locked"]:
                 questions = None
 
-            fields = []
-            values = []
-            idx = 1
+            updates: dict = {}
 
             for field_name, value in [
                 ("title", title),
@@ -219,16 +217,12 @@ async def update_form(
                 ("allow_non_members", allow_non_members),
             ]:
                 if value is not None:
-                    fields.append(f"{field_name} = ${idx}")
-                    values.append(value)
-                    idx += 1
+                    updates[field_name] = value
 
             if questions is not None:
-                fields.append(f"questions = ${idx}::jsonb")
-                values.append(json.dumps(questions))
-                idx += 1
+                updates["questions"] = json.dumps(questions)
 
-            if not fields:
+            if not updates:
                 creator = await conn.fetchrow(
                     "SELECT display_name FROM users WHERE id = $1",
                     current["created_by"],
@@ -238,7 +232,7 @@ async def update_form(
                 response_count = await form_repo.count_responses(form_id, conn)
                 return row_to_form(result, response_count)
 
-            update_result = await form_repo.update(form_id, fields, values, conn)
+            update_result = await form_repo.update(form_id, updates, conn)
             if update_result is None:
                 return None
             row, response_count = update_result

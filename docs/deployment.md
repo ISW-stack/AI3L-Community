@@ -182,6 +182,12 @@ docker compose exec fastapi alembic current
 | `p6q7r8s9t0u1` | Add form_response unique constraint and index |
 | `q7r8s9t0u1v2` | Add indexes on notifications and post_history |
 | `r9s0t1u2v3w4` | Add preferred_language to users (i18n support) |
+| `s0t1u2v3w4x5` | Add reactions (like/smile/cry) to posts |
+| `t1u2v3w4x5y6` | Clear legacy form descriptions |
+| `u2v3w4x5y6z7` | Add indexes on form_responses and comments |
+| `v3w4x5y6z7a8` | Add storage_used_bytes column to users |
+| `w4x5y6z7a8b9` | Add user_preferences table |
+| `x5y6z7a8b9c0` | Add like_count column to posts |
 
 ---
 

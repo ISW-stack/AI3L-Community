@@ -23,8 +23,10 @@ _EXEMPT_EXACT = frozenset(
     }
 )
 
-# Prefix-based exemptions (only for routes with dynamic path segments).
-_EXEMPT_PREFIXES = ("/api/v1/auth/guest/",)
+# Prefix-based exemptions for guest login (path has a dynamic invite code segment).
+# Only matches the exact guest login route pattern: /api/v1/auth/guest/{invite_code}
+# Rejects deeper sub-paths like /api/v1/auth/guest/{code}/foo.
+_EXEMPT_GUEST_PREFIX = "/api/v1/auth/guest/"
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
@@ -49,12 +51,14 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             return response
 
-        # Exempt paths (exact match first, then prefix match for dynamic routes)
+        # Exempt paths (exact match first, then guest login with single path segment)
         if path in _EXEMPT_EXACT:
             response = await call_next(request)
             return response
-        for prefix in _EXEMPT_PREFIXES:
-            if path.startswith(prefix):
+        if path.startswith(_EXEMPT_GUEST_PREFIX):
+            # Only allow /api/v1/auth/guest/{invite_code} — no deeper sub-paths
+            remainder = path[len(_EXEMPT_GUEST_PREFIX) :]
+            if remainder and "/" not in remainder:
                 response = await call_next(request)
                 return response
 

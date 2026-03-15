@@ -1,3 +1,12 @@
+<script lang="ts">
+let openModalCount = 0
+
+/** Exposed for testing — reset the shared counter between tests. */
+export function _resetModalCount() {
+  openModalCount = 0
+}
+</script>
+
 <script setup lang="ts">
 import { computed, watch, onUnmounted, ref, nextTick } from 'vue'
 
@@ -78,7 +87,10 @@ watch(
     if (open) {
       previouslyFocused = document.activeElement as HTMLElement
       document.addEventListener('keydown', trapFocus)
-      document.body.style.overflow = 'hidden'
+      openModalCount++
+      if (openModalCount === 1) {
+        document.body.style.overflow = 'hidden'
+      }
       await nextTick()
       if (modalRef.value) {
         const first = modalRef.value.querySelector<HTMLElement>(FOCUSABLE)
@@ -86,7 +98,11 @@ watch(
       }
     } else {
       document.removeEventListener('keydown', trapFocus)
-      document.body.style.overflow = ''
+      openModalCount--
+      if (openModalCount <= 0) {
+        openModalCount = 0
+        document.body.style.overflow = ''
+      }
       previouslyFocused?.focus()
       previouslyFocused = null
     }
@@ -95,7 +111,13 @@ watch(
 
 onUnmounted(() => {
   document.removeEventListener('keydown', trapFocus)
-  document.body.style.overflow = ''
+  if (props.modelValue) {
+    openModalCount--
+    if (openModalCount <= 0) {
+      openModalCount = 0
+      document.body.style.overflow = ''
+    }
+  }
 })
 </script>
 

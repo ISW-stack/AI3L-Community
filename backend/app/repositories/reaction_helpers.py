@@ -2,6 +2,8 @@ import json
 import uuid as _uuid
 from typing import Any
 
+_ALLOWED_TABLES = frozenset({"posts", "comments"})
+
 
 async def toggle_reaction_jsonb(
     conn: Any,
@@ -16,6 +18,8 @@ async def toggle_reaction_jsonb(
     Explicitly converts row_id to uuid.UUID to avoid relying on PostgreSQL
     implicit casting from text to UUID.
     """
+    if table not in _ALLOWED_TABLES:
+        raise ValueError(f"Invalid table: {table}")
     row_uuid = row_id if isinstance(row_id, _uuid.UUID) else _uuid.UUID(row_id)
     row = await conn.fetchrow(
         f"SELECT reactions FROM {table} WHERE id = $1 FOR UPDATE",

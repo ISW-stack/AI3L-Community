@@ -128,9 +128,12 @@ class TestGuestLogin:
     async def test_guest_login_success(self, mock_get_redis, mock_create_session):
         from app.services.auth import guest_login
 
+        async def _empty_scan(*a, **kw):
+            return
+            yield  # noqa: unreachable — makes this an async generator
+
         redis = AsyncMock()
-        # Counter exists, INCR returns 6 (under limit of 30)
-        redis.exists = AsyncMock(return_value=True)
+        redis.scan_iter = _empty_scan
         redis.incr = AsyncMock(return_value=6)
         mock_get_redis.return_value = redis
         mock_create_session.return_value = ("token-guest", 2700)
@@ -147,9 +150,12 @@ class TestGuestLogin:
     async def test_guest_login_limit_reached(self, mock_get_redis):
         from app.services.auth import guest_login
 
+        async def _empty_scan(*a, **kw):
+            return
+            yield  # noqa
+
         redis = AsyncMock()
-        # Counter exists, INCR returns 31 (over limit of 30)
-        redis.exists = AsyncMock(return_value=True)
+        redis.scan_iter = _empty_scan
         redis.incr = AsyncMock(return_value=31)
         redis.decr = AsyncMock()
         mock_get_redis.return_value = redis
@@ -291,8 +297,12 @@ class TestGuestLogin:
             incr_counter["value"] += 1
             return incr_counter["value"]
 
+        async def _empty_scan(*a, **kw):
+            return
+            yield  # noqa
+
         redis = AsyncMock()
-        redis.exists = AsyncMock(return_value=True)
+        redis.scan_iter = _empty_scan
         redis.incr = AsyncMock(side_effect=_atomic_incr)
         redis.decr = AsyncMock()
         mock_get_redis.return_value = redis

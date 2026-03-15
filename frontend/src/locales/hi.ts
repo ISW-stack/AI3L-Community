@@ -39,6 +39,7 @@ export default {
     copyFailed: 'कॉपी करने में विफल।',
     required: 'आवश्यक',
     optional: 'वैकल्पिक',
+    noData: 'कोई डेटा नहीं',
     noResults: 'कोई परिणाम नहीं मिला।',
     unknownError: 'एक अप्रत्याशित त्रुटि हुई।',
     role: {
@@ -820,6 +821,7 @@ export default {
     deleteError: 'अधिसूचनाएँ साफ़ करने में विफल।',
     fetchError: 'सूचनाएं लोड करने में विफल।',
     markReadError: 'अधिसूचना को पढ़े गए के रूप में चिह्नित करने में विफल।',
+    viewAll: 'सभी देखें',
   },
 
   // ── About ──

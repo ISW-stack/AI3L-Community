@@ -38,6 +38,7 @@ export default {
     copyFailed: 'فشل النسخ.',
     required: 'مطلوب',
     optional: 'اختياري',
+    noData: 'لا توجد بيانات',
     noResults: 'لا توجد نتائج.',
     unknownError: 'حدث خطأ غير متوقع.',
     role: {
@@ -817,6 +818,7 @@ export default {
     deleteError: 'فشل مسح الإشعارات.',
     fetchError: 'فشل في تحميل الإشعارات.',
     markReadError: 'فشل في تحديد الإشعار كمقروء.',
+    viewAll: 'عرض الكل',
   },
 
   // ── About ──

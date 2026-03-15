@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Échec de la copie.',
     required: 'Obligatoire',
     optional: 'Facultatif',
+    noData: 'Aucune donnée',
     noResults: 'Aucun résultat trouvé.',
     unknownError: "Une erreur inattendue s'est produite.",
     role: {
@@ -829,6 +830,7 @@ export default {
     deleteError: 'Échec de la suppression des notifications.',
     fetchError: 'Échec du chargement des notifications.',
     markReadError: 'Échec du marquage de la notification comme lue.',
+    viewAll: 'Tout voir',
   },
 
   // ── About ──

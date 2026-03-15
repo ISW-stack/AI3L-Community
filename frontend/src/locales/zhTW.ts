@@ -35,6 +35,7 @@ export default {
     copyFailed: '複製失敗。',
     required: '必填',
     optional: '選填',
+    noData: '暫無資料',
     noResults: '沒有找到結果。',
     unknownError: '發生未預期的錯誤。',
     role: {
@@ -774,6 +775,7 @@ export default {
     deleteError: '清除通知失敗。',
     fetchError: '載入通知失敗。',
     markReadError: '將通知標記為已讀失敗。',
+    viewAll: '查看全部',
   },
   about: {
     title: '關於 AI3L 社群',

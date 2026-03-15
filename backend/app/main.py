@@ -125,6 +125,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 "SECURITY: COOKIE_SECURE is False — cookies will be sent over HTTP. Set COOKIE_SECURE=true in .env for production"  # noqa: E501
             )
             _insecure = True
+        if not settings.MINIO_PUBLIC_URL:
+            logger.error("SECURITY: MINIO_PUBLIC_URL must be set in production")
+            _insecure = True
         if _insecure:
             logger.error("Aborting startup due to insecure production configuration.")
             sys.exit(1)
@@ -143,6 +146,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("All dependencies closed")
 
 
+MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
+
 app = FastAPI(
     title="AI3L Community API",
     version="0.1.0",
@@ -151,6 +156,18 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.is_development else None,
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def limit_request_body_size(request: Request, call_next):  # type: ignore[no-untyped-def]
+    """Reject requests whose Content-Length exceeds the global limit."""
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_REQUEST_BODY_SIZE:
+        return JSONResponse(
+            status_code=413, content={"detail": "Request body too large"}
+        )
+    return await call_next(request)
+
 
 app.add_middleware(
     CORSMiddleware,

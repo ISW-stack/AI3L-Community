@@ -260,4 +260,44 @@ describe('NotificationBell', () => {
       wrapper.unmount()
     })
   })
+
+  // ---------- i18n strings ----------
+
+  describe('i18n strings', () => {
+    it('renders translated "Notifications" header when dropdown is open', async () => {
+      const { wrapper } = mountBell()
+
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+
+      // The i18n key notifications.title resolves to "Notifications" in the en locale
+      expect(wrapper.text()).toContain('Notifications')
+
+      wrapper.unmount()
+    })
+
+    it('renders translated "No notifications yet." when dropdown is open and empty', async () => {
+      const { wrapper } = mountBell()
+
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+
+      // The i18n key notifications.emptyMessage resolves to "No notifications yet."
+      expect(wrapper.text()).toContain('No notifications yet.')
+
+      wrapper.unmount()
+    })
+
+    it('renders translated "View All" link when dropdown is open', async () => {
+      const { wrapper } = mountBell()
+
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+
+      // The i18n key notifications.viewAll resolves to "View All"
+      expect(wrapper.text()).toContain('View All')
+
+      wrapper.unmount()
+    })
+  })
 })

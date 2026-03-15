@@ -19,6 +19,7 @@ Copy `.env.example` to `.env` and set all values. Every variable marked `changem
 | Variable | Description |
 |---|---|
 | `PG_SHARED_BUFFERS` | PostgreSQL `shared_buffers` (e.g. `256MB`) |
+| `PG_EFFECTIVE_CACHE` | PostgreSQL `effective_cache_size` (e.g. `512MB`) |
 | `PG_WORK_MEM` | PostgreSQL `work_mem` (e.g. `4MB`) |
 | `PG_MAX_CONNECTIONS` | PostgreSQL `max_connections` |
 
@@ -71,6 +72,7 @@ Copy `.env.example` to `.env` and set all values. Every variable marked `changem
 | `CORS_ORIGINS` | Comma-separated list of allowed origins (e.g. `https://your-domain.com`) |
 | `COOKIE_SECURE` | Set to `true` in production (requires HTTPS) |
 | `COOKIE_SAMESITE` | Cookie `SameSite` policy: `lax` or `strict` |
+| `COOKIE_DOMAIN` | Cookie domain scope (e.g. `.example.com` for subdomain sharing) |
 
 ---
 
@@ -102,6 +104,39 @@ Copy `.env.example` to `.env` and set all values. Every variable marked `changem
 |---|---|
 | `SUPER_ADMIN_USERNAME` | Username for the auto-created super admin account (created on first startup) |
 | `SUPER_ADMIN_PASSWORD` | Password for the auto-created super admin account |
+
+---
+
+## Rate Limit Overrides (Optional)
+
+All application-layer rate limits can be tuned per environment without a code change. Each limit is read from two environment variables using the pattern `RATE_LIMIT_{KEY}_MAX` (maximum count) and `RATE_LIMIT_{KEY}_WINDOW` (window in seconds). If unset, the compiled-in defaults are used.
+
+| Key | Default max | Default window | Endpoint(s) |
+|---|---|---|---|
+| `LOGIN` | `10` | `60` | `POST /auth/login` |
+| `REGISTER` | `5` | `60` | `POST /auth/register` |
+| `GUEST` | `10` | `60` | `POST /auth/guest/{code}` |
+| `COMMENT` | `30` | `60` | `POST /posts/{id}/comments` |
+| `REPORT` | `5` | `60` | `POST /posts/{id}/report` |
+| `CAPTCHA` | `20` | `60` | `GET /auth/captcha` |
+| `FILE_UPLOAD` | `10` | `60` | `POST /files/upload/editor` |
+| `FORM_SUBMIT` | `5` | `60` | `POST /forms/{id}/submit` |
+| `FORM_EXPORT` | `1` | `300` | `POST /forms/{id}/export` |
+| `FORM_STATS` | `10` | `60` | `GET /forms/{id}/stats` |
+| `INVITE_GEN` | `5` | `3600` | `POST /auth/invite-code` |
+| `INVITE_VERIFY` | `30` | `60` | `GET /auth/invite-code/{code}` |
+| `REACTION` | `30` | `60` | `POST /posts/{id}/comments/{id}/reaction` |
+| `SIG_JOIN` | `10` | `60` | `POST /sigs/{id}/join` |
+| `SIG_MANAGE` | `20` | `60` | SIG member management |
+| `SIG_CRUD` | `10` | `60` | SIG create/update/delete |
+| `CATEGORY_CRUD` | `10` | `60` | Category create/update/delete |
+| `PREFERENCES` | `10` | `60` | `PUT /users/me/preferences` |
+
+Example:
+```env
+RATE_LIMIT_LOGIN_MAX=20
+RATE_LIMIT_LOGIN_WINDOW=60
+```
 
 ---
 

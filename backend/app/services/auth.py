@@ -115,10 +115,12 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
     """
     redis = get_redis()
 
-    # Ensure counter exists before INCR (initialise from session scan if needed)
-    exists = await redis.exists(_GUEST_COUNTER_KEY)
-    if not exists:
-        await sync_guest_counter()
+    # Atomically initialise counter only if it doesn't exist (SETNX).
+    # This eliminates the TOCTOU race in the old exists-then-sync pattern.
+    count = 0
+    async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
+        count += 1
+    await redis.set(_GUEST_COUNTER_KEY, count, nx=True)
 
     # Atomically increment — if over limit, decrement and reject
     new_count = await redis.incr(_GUEST_COUNTER_KEY)

@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Kopyalama başarısız.',
     required: 'Zorunlu',
     optional: 'İsteğe bağlı',
+    noData: 'Veri yok',
     noResults: 'Sonuç bulunamadı.',
     unknownError: 'Beklenmeyen bir hata oluştu.',
     role: {
@@ -823,6 +824,7 @@ export default {
     deleteError: 'Bildirimler temizlenemedi.',
     fetchError: 'Bildirimler yüklenemedi.',
     markReadError: 'Bildirim okundu olarak işaretlenemedi.',
+    viewAll: 'Tümünü Gör',
   },
 
   // ── About ──

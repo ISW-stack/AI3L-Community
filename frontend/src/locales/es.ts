@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Error al copiar.',
     required: 'Requerido',
     optional: 'Opcional',
+    noData: 'Sin datos',
     noResults: 'No se encontraron resultados.',
     unknownError: 'Ocurrió un error inesperado.',
     role: {
@@ -826,6 +827,7 @@ export default {
     deleteError: 'Error al eliminar las notificaciones.',
     fetchError: 'Error al cargar las notificaciones.',
     markReadError: 'Error al marcar la notificación como leída.',
+    viewAll: 'Ver todo',
   },
 
   // ── About ──

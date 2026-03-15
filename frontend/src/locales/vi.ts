@@ -39,6 +39,7 @@ export default {
     copyFailed: 'Sao chép thất bại.',
     required: 'Bắt buộc',
     optional: 'Tùy chọn',
+    noData: 'Không có dữ liệu',
     noResults: 'Không tìm thấy kết quả.',
     unknownError: 'Đã xảy ra lỗi không mong đợi.',
     role: {
@@ -821,6 +822,7 @@ export default {
     deleteError: 'Xóa thông báo thất bại.',
     fetchError: 'Không tải được thông báo.',
     markReadError: 'Không đánh dấu được thông báo là đã đọc.',
+    viewAll: 'Xem tất cả',
   },
 
   // ── About ──

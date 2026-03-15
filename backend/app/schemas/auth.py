@@ -14,7 +14,7 @@ class LoginRequest(BaseModel):
 
 
 class GuestLoginRequest(BaseModel):
-    display_name: str = Field(..., max_length=100)
+    display_name: str = Field(..., min_length=1, max_length=50)
     captcha_id: str
     captcha_code: str = Field(..., max_length=10)
 

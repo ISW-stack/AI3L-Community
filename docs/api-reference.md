@@ -29,6 +29,8 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | PUT | `/users/me/avatar` | Required | Upload avatar image |
 | PUT | `/users/me/password` | Required | Change own password |
 | POST | `/users/me/consent` | Required | Record privacy policy consent |
+| GET | `/users/me/preferences` | Required | Get user preferences (theme, language, notifications) |
+| PUT | `/users/me/preferences` | Required | Update user preferences (partial upsert) |
 | DELETE | `/users/me` | Required | Self-delete account (GDPR Right to Erasure) |
 | POST | `/users/apply-member` | Guest | Submit membership application |
 | GET | `/users/{user_id}` | Required | Get any user's public profile |
@@ -102,6 +104,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | POST | `/forms/{form_id}/submit` | Required | Submit a response |
 | GET | `/forms/{form_id}/responses` | SIG Admin | View all responses (paginated) |
 | POST | `/forms/{form_id}/export` | SIG Admin | Start async CSV export (returns a Celery task ID) |
+| GET | `/forms/{form_id}/stats` | Owner/SIG Admin | Get form statistics (response count, completion rate, per-question breakdown) |
 
 ---
 
@@ -154,6 +157,14 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | POST | `/about/admin/contributors` | Super Admin | Add a new contributor |
 | PUT | `/about/admin/contributors/{id}` | Super Admin | Update contributor details |
 | DELETE | `/about/admin/contributors/{id}` | Super Admin | Remove a contributor |
+
+---
+
+## Public
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/public/stats` | None | Platform statistics: member count, post count, SIG count (5-minute in-memory cache) |
 
 ---
 

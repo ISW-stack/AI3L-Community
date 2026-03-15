@@ -65,6 +65,7 @@ frontend/src/
 │   ├── posts.ts
 │   ├── comments.ts
 │   ├── categories.ts
+│   ├── contributors.ts
 │   ├── sigs.ts
 │   ├── forms.ts
 │   ├── files.ts
@@ -75,7 +76,9 @@ frontend/src/
 ├── components/
 │   ├── base/            Design system base components
 │   │   ├── BaseAlert.vue
+│   │   ├── BaseAvatar.vue
 │   │   ├── BaseBadge.vue
+│   │   ├── BaseBreadcrumb.vue
 │   │   ├── BaseButton.vue
 │   │   ├── BaseCard.vue
 │   │   ├── BaseInput.vue
@@ -308,7 +311,7 @@ No serif fonts are used in this project.
 
 ### Base Component Library
 
-Ten reusable base components are defined in `src/components/base/`. All application views and feature components should be built exclusively from these primitives rather than writing one-off Tailwind class combinations.
+Twelve reusable base components are defined in `src/components/base/`. All application views and feature components should be built exclusively from these primitives rather than writing one-off Tailwind class combinations.
 
 ---
 

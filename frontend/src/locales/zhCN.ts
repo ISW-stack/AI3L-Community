@@ -35,6 +35,7 @@ export default {
     copyFailed: '复制失败。',
     required: '必填',
     optional: '选填',
+    noData: '暂无数据',
     noResults: '没有找到结果。',
     unknownError: '发生意外错误。',
     role: {
@@ -774,6 +775,7 @@ export default {
     deleteError: '清除通知失败。',
     fetchError: '加载通知失败。',
     markReadError: '将通知标记为已读失败。',
+    viewAll: '查看全部',
   },
   about: {
     title: '关于 AI3L 社区',
