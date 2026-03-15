@@ -3,7 +3,7 @@ import json
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable, cast
 
 from loguru import logger
 
@@ -108,8 +108,8 @@ async def _persist_failed_event(
             },
             default=str,
         )
-        _: Any = await redis.lpush("event_bus:failed", entry)  # type: ignore[misc]
-        _ = await redis.ltrim("event_bus:failed", 0, 999)  # type: ignore[misc]  # Keep last 1000
+        _: Any = await cast(Awaitable[Any], redis.lpush("event_bus:failed", entry))
+        _ = await cast(Awaitable[Any], redis.ltrim("event_bus:failed", 0, 999))  # Keep last 1000
         await redis.expire("event_bus:failed", 86400)  # 24h TTL
     except Exception:
         logger.debug("Failed to persist event failure to Redis", exc_info=True)

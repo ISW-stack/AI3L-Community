@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Awaitable, cast
 
 from app.core.redis import get_redis
 
@@ -23,7 +23,7 @@ async def check_rate_limit(key: str, max_count: int, window_seconds: int) -> boo
     Returns True if within limit, False if exceeded.
     """
     redis = get_redis()
-    result: Any = await redis.eval(  # type: ignore[misc]
-        _LUA_RATE_LIMIT, 1, key, str(max_count), str(window_seconds)
+    result: Any = await cast(
+        Awaitable[Any], redis.eval(_LUA_RATE_LIMIT, 1, key, str(max_count), str(window_seconds))
     )
     return bool(result == 1)
