@@ -17,6 +17,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import { useFetchPaginated } from '@/composables/useFetchPaginated'
 import { getErrorMessage } from '@/utils/error'
 import { MessageSquare, Users, FileText, BookOpen, TrendingUp } from 'lucide-vue-next'
+import FriendRecommendations from '@/components/social/FriendRecommendations.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -242,6 +243,9 @@ onMounted(() => {
               </router-link>
             </div>
           </BaseCard>
+
+          <!-- Friend Recommendations -->
+          <FriendRecommendations />
 
           <!-- Community Stats -->
           <BaseCard v-if="publicStats" padding="md">

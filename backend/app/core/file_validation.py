@@ -16,6 +16,8 @@ MAGIC_NUMBERS = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
         b"PK\x03\x04"
     ],  # DOCX is a ZIP
+    "image/webp": [b"RIFF"],  # Full signature is RIFF????WEBP but first 4 bytes suffice
+    "image/gif": [b"GIF87a", b"GIF89a"],
 }
 
 ALLOWED_EXTENSIONS = {
@@ -24,6 +26,8 @@ ALLOWED_EXTENSIONS = {
     ".jpeg": "image/jpeg",
     ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
 }
 
 
@@ -171,7 +175,7 @@ def sanitize_html(html_content: str) -> str:
         "hr",
     }
     allowed_attrs = {
-        "a": {"href", "title", "target"},
+        "a": {"href", "title", "target", "data-citation"},
         "img": {"src", "alt", "width", "height"},
         "td": {"colspan", "rowspan"},
         "th": {"colspan", "rowspan"},
@@ -184,3 +188,13 @@ def sanitize_html(html_content: str) -> str:
         attributes=allowed_attrs,
         link_rel="noopener noreferrer",
     )
+
+
+def post_process_citations(html: str) -> str:
+    """Add citation class to citation links after sanitization.
+
+    nh3 does not allow adding 'class' to <a> tags (panics), so we add it
+    as a post-processing step. Since nh3 output is already safe, this
+    simple string replacement is safe to use.
+    """
+    return html.replace('data-citation="true"', 'data-citation="true" class="citation"')

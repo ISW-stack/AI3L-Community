@@ -137,7 +137,11 @@ export default {
   nav: {
     ariaLabel: '主要導覽',
     forum: '討論區',
+    qa: 'Q&A',
     sigs: 'SIGs',
+    forms: 'Forms',
+    albums: 'Albums',
+    friends: 'Friends',
     about: '關於',
     admin: '管理',
     dashboard: '主控台',
@@ -406,6 +410,7 @@ export default {
       insertLink: '插入連結',
       insertFile: '插入圖片或檔案',
       insertTable: '插入表格',
+      cite: 'Insert citation',
       undo: '復原',
       redo: '重做',
     },
@@ -712,8 +717,14 @@ export default {
     backBtn: '倒轉去',
     changeAvatar: '換大頭貼',
     memberInfo: '會員資訊',
+    social: {
+      quickLinks: 'Quick Links',
+    },
+    viewCount: '{unique} unique visitors, {total} total views',
+    coAuthoredPosts: 'Co-Authored Posts',
     tabs: {
       general: '一般',
+      social: 'Social',
       security: '安全性',
       dangerZone: '危險區域',
     },
@@ -789,6 +800,8 @@ export default {
     postsTitle: '貼文',
     postsEmptyTitle: '猶未有貼文',
     postsEmptyMessage: '這个使用者猶未發佈任何貼文。',
+    coAuthoredEmptyTitle: 'No co-authored posts',
+    coAuthoredEmptyMessage: 'This user has not co-authored any posts yet.',
     fetchError: '載入使用者資料失敗。',
     fetchPostsError: '載入使用者貼文失敗。',
   },
@@ -1106,5 +1119,99 @@ export default {
     RATE_LIMIT: '要求次數太濟，請稍後再試。',
     RATE_LIMIT_RETRY: '要求次數太濟，請 {seconds} 秒後再試。',
     unknown: '出現意外ê錯誤。',
+  },
+
+  // ── Forms Directory ──
+  formsDirectory: {
+    title: 'Forms',
+    createForm: 'Create Form',
+    noForms: 'No forms available',
+    responses: 'responses',
+    active: 'Active',
+    closed: 'Closed',
+  },
+
+  // ── Albums ──
+  albums: {
+    title: 'Albums',
+    createAlbum: 'Create Album',
+    photos: 'Photos',
+    members: 'Members',
+    comments: 'Comments',
+    noAlbums: 'No albums yet',
+    upload: 'Upload Photo',
+    archived: 'Archived',
+  },
+
+  // ── Social ──
+  social: {
+    friends: 'Friends',
+    following: 'Following',
+    followers: 'Followers',
+    blockedUsers: 'Blocked Users',
+    addFriend: 'Add Friend',
+    unfriend: 'Unfriend',
+    follow: 'Follow',
+    unfollow: 'Unfollow',
+    block: 'Block',
+    unblock: 'Unblock',
+    requestSent: 'Request Sent',
+    acceptRequest: 'Accept',
+    declineRequest: 'Decline',
+    noFriends: 'No friends yet',
+    noFollowers: 'No followers yet',
+    noBlocked: 'No blocked users',
+    blockLimit: 'You can block up to 5 users',
+  },
+
+  // ── Q&A ──
+  qa: {
+    title: 'Q&A',
+    askQuestion: 'Ask a Question',
+    noQuestions: 'No questions yet',
+    answered: 'Answered',
+    unanswered: 'Unanswered',
+    answers: 'answers',
+    bestAnswer: 'Best Answer',
+    markBest: 'Mark as Best Answer',
+    unmarkBest: 'Unmark Best Answer',
+    votes: 'votes',
+  },
+
+  // ── Co-Authors ──
+  coauthors: {
+    title: 'Co-Authors',
+    invite: 'Invite Co-Author',
+    addExternal: 'Add External',
+    pending: 'Pending',
+    accepted: 'Accepted',
+    rejected: 'Rejected',
+    invitations: 'Co-Author Invitations',
+    noInvitations: 'No pending invitations.',
+    invitedBy: 'Invited by',
+    acceptSuccess: 'Invitation accepted.',
+    rejectSuccess: 'Invitation declined.',
+    maxReached: 'Maximum co-authors reached (10)',
+  },
+
+  // ── Citations ──
+  citations: {
+    citedBy: 'Cited by',
+    references: 'References',
+    searchPosts: 'Search posts to cite',
+    selfCitation: 'self',
+    cite: 'Cite',
+  },
+
+  // ── Recommendations ──
+  recommendations: {
+    title: 'People You May Know',
+    dismiss: 'Dismiss',
+    noRecommendations: 'No recommendations available',
+    sharedSigs: 'shared SIG | shared SIGs',
+    mutualFriends: 'mutual friend | mutual friends',
+    similarInterests: 'Similar interests',
+    sameAffiliation: 'Same affiliation',
+    recentlyActive: 'Recently active',
   },
 }

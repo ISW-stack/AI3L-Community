@@ -17,6 +17,10 @@ export interface Post {
   view_count: number
   reactions: Record<string, string[]> | null
   last_comment_at: string | null
+  type: 'post' | 'question'
+  citation_count: number
+  answer_count: number
+  best_answer_id: string | null
   created_at: string
   updated_at: string
 }

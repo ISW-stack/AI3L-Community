@@ -4,6 +4,7 @@ from app.converters.shared import async_build_author, build_author, safe_json_pa
 async def async_row_to_post(row: dict) -> dict:
     """Async version of row_to_post — does not block the event loop."""
     last_comment_at = row.get("last_comment_at")
+    best_answer_id = row.get("best_answer_id")
     return {
         "id": str(row["id"]),
         "title": row["title"],
@@ -21,6 +22,10 @@ async def async_row_to_post(row: dict) -> dict:
         "view_count": row.get("view_count", 0),
         "reactions": safe_json_parse(row.get("reactions")),
         "last_comment_at": last_comment_at.isoformat() if last_comment_at else None,
+        "type": row.get("type", "post"),
+        "citation_count": row.get("citation_count", 0),
+        "answer_count": row.get("answer_count", 0),
+        "best_answer_id": str(best_answer_id) if best_answer_id else None,
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }
@@ -28,6 +33,7 @@ async def async_row_to_post(row: dict) -> dict:
 
 def row_to_post(row: dict) -> dict:
     last_comment_at = row.get("last_comment_at")
+    best_answer_id = row.get("best_answer_id")
     return {
         "id": str(row["id"]),
         "title": row["title"],
@@ -45,6 +51,10 @@ def row_to_post(row: dict) -> dict:
         "view_count": row.get("view_count", 0),
         "reactions": safe_json_parse(row.get("reactions")),
         "last_comment_at": last_comment_at.isoformat() if last_comment_at else None,
+        "type": row.get("type", "post"),
+        "citation_count": row.get("citation_count", 0),
+        "answer_count": row.get("answer_count", 0),
+        "best_answer_id": str(best_answer_id) if best_answer_id else None,
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }

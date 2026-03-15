@@ -43,15 +43,20 @@ async def create_new_post(
     req: PostCreateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> PostResponse:
+    content = sanitize_html(req.content)
+    from app.core.file_validation import post_process_citations
+
+    content = post_process_citations(content)
     try:
         post = await create_post(
             user_id=current_user["sub"],
             title=req.title,
-            content=sanitize_html(req.content),
+            content=content,
             category_id=req.category_id,
             sig_id=req.sig_id,
             keywords=req.keywords,
             allow_comments=req.allow_comments,
+            post_type=req.type,
         )
     except RateLimitError as e:
         raise AppError(ErrorCode.SYS_429, 429, str(e))
@@ -72,6 +77,7 @@ async def get_posts_list(
     author_id: str | None = None,
     sort: str = Query("newest", pattern="^(newest|oldest|most_comments|popular)$"),
     cursor: str | None = Query(None, description="Opaque cursor for keyset pagination"),
+    type: str | None = Query(None, pattern="^(post|question)$"),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
     try:
@@ -83,6 +89,8 @@ async def get_posts_list(
             author_id=author_id,
             sort=sort,
             cursor=cursor,
+            post_type=type,
+            viewer_id=current_user["sub"],
         )
     except ValueError as exc:
         raise AppError(ErrorCode.SYS_422, 400, str(exc))
@@ -118,6 +126,7 @@ async def search_posts_endpoint(
         page=req.page,
         page_size=req.page_size,
         sort=req.sort,
+        viewer_id=current_user["sub"],
     )
     return PostListResponse(
         posts=cast(list[Any], posts),
@@ -132,7 +141,7 @@ async def search_posts_endpoint(
 async def get_trending(
     current_user: dict = Depends(get_current_user),
 ) -> list[PostResponse]:
-    posts = await get_trending_posts(limit=5, days=7)
+    posts = await get_trending_posts(limit=5, days=7, viewer_id=current_user["sub"])
     return [PostResponse(**cast(dict[str, Any], p)) for p in posts]
 
 
@@ -226,6 +235,10 @@ async def update_existing_post(
         raise AppError(ErrorCode.SYS_422, 400, "Title cannot be empty.")
 
     content = sanitize_html(req.content) if req.content else None
+    if content:
+        from app.core.file_validation import post_process_citations
+
+        content = post_process_citations(content)
     try:
         post = await update_post(
             post_id=post_id,

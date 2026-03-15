@@ -544,9 +544,15 @@ class TestPostSorting:
 
         mock_conn.fetch = AsyncMock(return_value=post_rows)
 
+        mock_redis = AsyncMock()
+        mock_redis.smembers = AsyncMock(return_value=set())
+
         try:
             _override_auth("MEMBER")
-            with patch("app.repositories.post_repo.get_pool", return_value=mock_pool):
+            with (
+                patch("app.repositories.post_repo.get_pool", return_value=mock_pool),
+                patch("app.services.post.get_redis", return_value=mock_redis),
+            ):
                 resp = await client.get(
                     "/api/v1/posts?sort=most_comments",
                     headers={"Authorization": "Bearer fake"},

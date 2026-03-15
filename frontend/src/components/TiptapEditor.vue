@@ -11,6 +11,7 @@ import { ref, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { uploadEditorFile, getFileScanStatus } from '@/api/files'
 import { useToastStore } from '@/stores/toast'
+import CitationSearchDialog from '@/components/post/CitationSearchDialog.vue'
 import {
   Bold,
   Italic,
@@ -26,6 +27,7 @@ import {
   Undo2,
   Redo2,
   Table as TableIcon,
+  BookOpen,
   ShieldCheck,
   ShieldAlert,
   Loader2,
@@ -120,6 +122,22 @@ async function pollScanStatus() {
 onUnmounted(() => {
   clearScanTimers()
 })
+
+const citationDialogOpen = ref(false)
+
+function openCitationDialog() {
+  citationDialogOpen.value = true
+}
+
+function insertCitation(citation: { postId: string; title: string }) {
+  editor.value
+    ?.chain()
+    .focus()
+    .insertContent(
+      `<a href="/forum/${citation.postId}" data-citation="true">[Cite: ${citation.title}]</a>`,
+    )
+    .run()
+}
 
 function setLink() {
   const url = prompt(t('editor.promptLinkUrl'))
@@ -311,6 +329,14 @@ async function handleFileUpload(event: Event) {
       >
         <TableIcon class="w-4 h-4" aria-hidden="true" />
       </button>
+      <button
+        type="button"
+        @click="openCitationDialog"
+        class="p-1.5 rounded hover:bg-gray-200 transition"
+        :aria-label="t('editor.toolbar.cite')"
+      >
+        <BookOpen class="w-4 h-4" aria-hidden="true" />
+      </button>
 
       <span class="w-px bg-border mx-1"></span>
 
@@ -371,5 +397,8 @@ async function handleFileUpload(event: Event) {
       :editor="editor"
       class="prose prose-sm max-w-none p-3 min-h-[200px] focus:outline-none"
     />
+
+    <!-- Citation search dialog -->
+    <CitationSearchDialog v-model="citationDialogOpen" @insert="insertCitation" />
   </div>
 </template>

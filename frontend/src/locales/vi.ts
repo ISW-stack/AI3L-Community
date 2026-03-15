@@ -140,7 +140,11 @@ export default {
   nav: {
     ariaLabel: 'Điều hướng chính',
     forum: 'Diễn đàn',
+    qa: 'Q&A',
     sigs: 'SIG',
+    forms: 'Forms',
+    albums: 'Albums',
+    friends: 'Friends',
     about: 'Giới thiệu',
     admin: 'Quản trị',
     dashboard: 'Bảng điều khiển',
@@ -411,6 +415,7 @@ export default {
       insertLink: 'Chèn liên kết',
       insertFile: 'Chèn hình ảnh hoặc tệp',
       insertTable: 'Chèn bảng',
+      cite: 'Insert citation',
       undo: 'Hoàn tác',
       redo: 'Làm lại',
     },
@@ -725,8 +730,14 @@ export default {
     backBtn: 'Quay lại',
     changeAvatar: 'Thay đổi ảnh đại diện',
     memberInfo: 'Thông tin thành viên',
+    social: {
+      quickLinks: 'Quick Links',
+    },
+    viewCount: '{unique} unique visitors, {total} total views',
+    coAuthoredPosts: 'Co-Authored Posts',
     tabs: {
       general: 'Chung',
+      social: 'Social',
       security: 'Bảo mật',
       dangerZone: 'Vùng nguy hiểm',
     },
@@ -803,6 +814,8 @@ export default {
     postsTitle: 'Bài viết',
     postsEmptyTitle: 'Chưa có bài viết',
     postsEmptyMessage: 'Người dùng này chưa đăng bài nào.',
+    coAuthoredEmptyTitle: 'No co-authored posts',
+    coAuthoredEmptyMessage: 'This user has not co-authored any posts yet.',
     fetchError: 'Không tải được hồ sơ người dùng.',
     fetchPostsError: 'Không tải được bài đăng của người dùng.',
   },
@@ -1121,5 +1134,99 @@ export default {
     RATE_LIMIT: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
     RATE_LIMIT_RETRY: 'Quá nhiều yêu cầu. Vui lòng thử lại sau {seconds} giây.',
     unknown: 'Đã xảy ra lỗi không mong đợi.',
+  },
+
+  // ── Forms Directory ──
+  formsDirectory: {
+    title: 'Forms',
+    createForm: 'Create Form',
+    noForms: 'No forms available',
+    responses: 'responses',
+    active: 'Active',
+    closed: 'Closed',
+  },
+
+  // ── Albums ──
+  albums: {
+    title: 'Albums',
+    createAlbum: 'Create Album',
+    photos: 'Photos',
+    members: 'Members',
+    comments: 'Comments',
+    noAlbums: 'No albums yet',
+    upload: 'Upload Photo',
+    archived: 'Archived',
+  },
+
+  // ── Social ──
+  social: {
+    friends: 'Friends',
+    following: 'Following',
+    followers: 'Followers',
+    blockedUsers: 'Blocked Users',
+    addFriend: 'Add Friend',
+    unfriend: 'Unfriend',
+    follow: 'Follow',
+    unfollow: 'Unfollow',
+    block: 'Block',
+    unblock: 'Unblock',
+    requestSent: 'Request Sent',
+    acceptRequest: 'Accept',
+    declineRequest: 'Decline',
+    noFriends: 'No friends yet',
+    noFollowers: 'No followers yet',
+    noBlocked: 'No blocked users',
+    blockLimit: 'You can block up to 5 users',
+  },
+
+  // ── Q&A ──
+  qa: {
+    title: 'Q&A',
+    askQuestion: 'Ask a Question',
+    noQuestions: 'No questions yet',
+    answered: 'Answered',
+    unanswered: 'Unanswered',
+    answers: 'answers',
+    bestAnswer: 'Best Answer',
+    markBest: 'Mark as Best Answer',
+    unmarkBest: 'Unmark Best Answer',
+    votes: 'votes',
+  },
+
+  // ── Co-Authors ──
+  coauthors: {
+    title: 'Co-Authors',
+    invite: 'Invite Co-Author',
+    addExternal: 'Add External',
+    pending: 'Pending',
+    accepted: 'Accepted',
+    rejected: 'Rejected',
+    invitations: 'Co-Author Invitations',
+    noInvitations: 'No pending invitations.',
+    invitedBy: 'Invited by',
+    acceptSuccess: 'Invitation accepted.',
+    rejectSuccess: 'Invitation declined.',
+    maxReached: 'Maximum co-authors reached (10)',
+  },
+
+  // ── Citations ──
+  citations: {
+    citedBy: 'Cited by',
+    references: 'References',
+    searchPosts: 'Search posts to cite',
+    selfCitation: 'self',
+    cite: 'Cite',
+  },
+
+  // ── Recommendations ──
+  recommendations: {
+    title: 'People You May Know',
+    dismiss: 'Dismiss',
+    noRecommendations: 'No recommendations available',
+    sharedSigs: 'shared SIG | shared SIGs',
+    mutualFriends: 'mutual friend | mutual friends',
+    similarInterests: 'Similar interests',
+    sameAffiliation: 'Same affiliation',
+    recentlyActive: 'Recently active',
   },
 }

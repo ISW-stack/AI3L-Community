@@ -20,6 +20,7 @@ class PostCreateRequest(BaseModel):
     sig_id: str | None = None
     keywords: list[str] | None = Field(None, max_length=15)
     allow_comments: bool = True
+    type: str = Field(default="post", pattern="^(post|question)$")
 
     @field_validator("keywords")
     @classmethod
@@ -65,6 +66,10 @@ class PostResponse(BaseModel):
     view_count: int = 0
     reactions: dict[str, list[str]] | None = None
     last_comment_at: str | None = None
+    type: str = "post"
+    citation_count: int = 0
+    answer_count: int = 0
+    best_answer_id: str | None = None
     created_at: str
     updated_at: str
 

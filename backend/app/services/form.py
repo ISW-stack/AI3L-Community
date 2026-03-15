@@ -5,9 +5,15 @@ from datetime import datetime, timezone
 from loguru import logger
 
 from app.converters.form_converter import row_to_form
-from app.core.constants import MAX_ACTIVE_FORMS_PER_SIG
+from app.core.blacklist import get_blocked_user_ids
+from app.core.constants import (
+    DEFAULT_PAGE_SIZE_STANDALONE_FORMS,
+    MAX_ACTIVE_FORMS_PER_SIG,
+    MAX_ACTIVE_STANDALONE_FORMS_PER_USER,
+)
 from app.core.database import get_pool
 from app.core.errors import AppError, ErrorCode
+from app.core.redis import get_redis
 from app.repositories import form_repo
 
 _VALID_QUESTION_TYPES = frozenset(
@@ -60,7 +66,7 @@ def validate_question_schema(questions: list[dict]) -> None:
 
 
 async def create_form(
-    sig_id: str,
+    sig_id: str | None,
     user_id: str,
     title: str,
     description: str | None,
@@ -72,14 +78,29 @@ async def create_form(
 ) -> dict:
     validate_question_schema(questions)
 
-    active_count = await form_repo.count_active(uuid.UUID(sig_id))
-    if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
-        raise ValueError(f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached.")
+    if sig_id is None:
+        # Standalone form — enforce per-user limit
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            active_count = await form_repo.count_active_standalone_by_user(
+                conn, uuid.UUID(user_id)
+            )
+        if active_count >= MAX_ACTIVE_STANDALONE_FORMS_PER_USER:
+            raise ValueError(
+                f"Maximum active standalone forms per user "
+                f"({MAX_ACTIVE_STANDALONE_FORMS_PER_USER}) reached."
+            )
+        # Standalone forms are always open to all authenticated users
+        allow_non_members = True
+    else:
+        active_count = await form_repo.count_active(uuid.UUID(sig_id))
+        if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
+            raise ValueError(f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached.")
 
     form_id = uuid.uuid4()
     result = await form_repo.insert(
         form_id,
-        uuid.UUID(sig_id),
+        uuid.UUID(sig_id) if sig_id else None,
         uuid.UUID(user_id),
         title,
         description,
@@ -300,6 +321,19 @@ async def update_form(
             return row_to_form(row, response_count)
 
 
+async def list_standalone_forms(
+    page: int = 1, page_size: int = DEFAULT_PAGE_SIZE_STANDALONE_FORMS
+) -> tuple[list[dict], int]:
+    """List standalone forms (sig_id IS NULL)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await form_repo.find_standalone(conn, page, page_size)
+    if not rows:
+        return [], 0
+    total = rows[0]["total_count"]
+    return [row_to_form(dict(r), 0) for r in rows], total
+
+
 async def list_forms_by_sig(
     sig_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
@@ -308,9 +342,23 @@ async def list_forms_by_sig(
 
 
 async def list_form_responses(
-    form_id: uuid.UUID, page: int = 1, page_size: int = 20
+    form_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+    viewer_id: str | None = None,
 ) -> tuple[list[dict], int]:
-    results, total = await form_repo.find_responses(form_id, page, page_size)
+    exclude: list[uuid.UUID] | None = None
+    if viewer_id:
+        try:
+            redis = get_redis()
+            blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+            if blocked_ids:
+                exclude = [uuid.UUID(uid) for uid in blocked_ids]
+        except Exception:
+            pass
+    results, total = await form_repo.find_responses(
+        form_id, page, page_size, exclude_user_ids=exclude
+    )
     converted = []
     for r in results:
         answers = r["answers"]
@@ -331,6 +379,21 @@ async def list_form_responses(
 
 
 async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> dict:
+    # Block check: cannot submit to a form created by a blocked user
+    form_row, _ = await form_repo.find_by_id(form_id)
+    if form_row:
+        form_creator_id = str(form_row["created_by"])
+        if form_creator_id != user_id:
+            try:
+                redis = get_redis()
+                blocked_ids = await get_blocked_user_ids(redis, user_id)
+                if form_creator_id in blocked_ids:
+                    raise ValueError("Cannot submit this form.")
+            except ValueError:
+                raise
+            except Exception:
+                pass  # Redis failure → allow submission
+
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -346,7 +409,7 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             if not form:
                 raise ValueError("Form not found.")
 
-            if not form.get("allow_non_members", False):
+            if form.get("sig_id") and not form.get("allow_non_members", False):
                 from app.repositories import sig_repo
 
                 role = await sig_repo.get_member_role_in_conn(

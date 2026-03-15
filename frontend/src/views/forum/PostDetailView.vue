@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
+import { computed, ref, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -22,6 +22,8 @@ import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import ReactionPicker from '@/components/ReactionPicker.vue'
+import CoAuthorManager from '@/components/post/CoAuthorManager.vue'
+import { Quote, ChevronDown, ChevronUp } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -59,11 +61,16 @@ const {
   reportMessage,
   canReport,
   pinSaving,
+  isAuthor,
   canModify,
+  coAuthors,
+  citedBy,
+  citing,
   contentSegments,
   postContentRef,
   goToCommentPage,
   fetchHistory,
+  fetchCoAuthors,
   startEdit,
   saveEdit,
   deletePostHandler,
@@ -84,6 +91,21 @@ const {
   handleReply,
   cancelEdit,
 } = usePostDetail({ postId, auth, router })
+
+const showCitedBy = ref(false)
+const showReferences = ref(false)
+
+const acceptedCoAuthors = computed(() =>
+  coAuthors.value.filter((ca) => ca.status === 'ACCEPTED'),
+)
+
+function toggleCitedBy() {
+  showCitedBy.value = !showCitedBy.value
+}
+
+function toggleReferences() {
+  showReferences.value = !showReferences.value
+}
 
 const breadcrumbItems = computed(() => {
   const fromSigId = route.query.fromSigId as string | undefined
@@ -236,6 +258,89 @@ const breadcrumbItems = computed(() => {
             <BaseBadge v-for="kw in post.keywords" :key="kw" variant="neutral">{{ kw }}</BaseBadge>
           </div>
 
+          <!-- Co-Authors Display -->
+          <div v-if="acceptedCoAuthors.length > 0" class="mb-3">
+            <h4 class="text-xs font-medium text-muted mb-1.5">Co-Authors</h4>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div
+                v-for="ca in acceptedCoAuthors"
+                :key="ca.id"
+                class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-surface-alt"
+              >
+                <BaseAvatar :src="ca.avatar_url" :name="ca.display_name" size="xs" />
+                <span class="text-xs font-medium text-foreground">{{ ca.display_name }}</span>
+                <span v-if="ca.affiliation" class="text-xs text-muted">({{ ca.affiliation }})</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Citations sections -->
+          <div v-if="citedBy.length > 0 || citing.length > 0" class="mb-3 space-y-2">
+            <!-- Cited by -->
+            <div v-if="citedBy.length > 0">
+              <button
+                type="button"
+                class="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+                @click="toggleCitedBy"
+              >
+                <Quote class="w-3.5 h-3.5" />
+                Cited by {{ citedBy.length }}
+                <ChevronDown v-if="!showCitedBy" class="w-3.5 h-3.5" />
+                <ChevronUp v-else class="w-3.5 h-3.5" />
+              </button>
+              <div v-if="showCitedBy" class="mt-1.5 pl-5 space-y-1">
+                <div v-for="c in citedBy" :key="c.id" class="text-sm">
+                  <router-link
+                    :to="`/forum/${c.post_id}`"
+                    class="text-foreground hover:text-brand-600 hover:underline"
+                  >
+                    {{ c.post_title }}
+                  </router-link>
+                  <span class="text-xs text-muted ml-1">by {{ c.author_name }}</span>
+                  <BaseBadge
+                    v-if="c.is_self_citation"
+                    variant="neutral"
+                    class="!text-[10px] !px-1 !py-0 ml-1"
+                  >
+                    self
+                  </BaseBadge>
+                </div>
+              </div>
+            </div>
+
+            <!-- References (citing) -->
+            <div v-if="citing.length > 0">
+              <button
+                type="button"
+                class="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+                @click="toggleReferences"
+              >
+                <Quote class="w-3.5 h-3.5" />
+                References ({{ citing.length }})
+                <ChevronDown v-if="!showReferences" class="w-3.5 h-3.5" />
+                <ChevronUp v-else class="w-3.5 h-3.5" />
+              </button>
+              <div v-if="showReferences" class="mt-1.5 pl-5 space-y-1">
+                <div v-for="c in citing" :key="c.id" class="text-sm">
+                  <router-link
+                    :to="`/forum/${c.post_id}`"
+                    class="text-foreground hover:text-brand-600 hover:underline"
+                  >
+                    {{ c.post_title }}
+                  </router-link>
+                  <span class="text-xs text-muted ml-1">by {{ c.author_name }}</span>
+                  <BaseBadge
+                    v-if="c.is_self_citation"
+                    variant="neutral"
+                    class="!text-[10px] !px-1 !py-0 ml-1"
+                  >
+                    self
+                  </BaseBadge>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Post Reactions -->
           <div class="mb-3">
             <ReactionPicker
@@ -281,6 +386,11 @@ const breadcrumbItems = computed(() => {
               {{ t('post.detail.viewEditHistory') }}
             </button>
           </div>
+        </BaseCard>
+
+        <!-- Co-Author Manager (owner only) -->
+        <BaseCard v-if="isAuthor" padding="lg" class="mb-6">
+          <CoAuthorManager :post-id="postId" />
         </BaseCard>
 
         <!-- Comments Section -->

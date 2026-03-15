@@ -11,6 +11,8 @@ import {
 } from '@/api/users'
 import { createInviteCode } from '@/api/admin'
 import { getStorageUsage } from '@/api/files'
+import { listMyInvitations, acceptInvitation, rejectInvitation } from '@/api/coauthors'
+import type { CoAuthorInvitation } from '@/types/coauthor'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import ProfileEditForm from '@/components/profile/ProfileEditForm.vue'
@@ -23,7 +25,7 @@ const { t } = useLocale()
 const auth = useAuthStore()
 const router = useRouter()
 
-const activeTab = ref<'general' | 'security' | 'danger'>('general')
+const activeTab = ref<'general' | 'social' | 'security' | 'danger'>('general')
 
 const displayName = ref('')
 const bio = ref('')
@@ -64,6 +66,49 @@ async function fetchStorageUsage() {
   }
 }
 
+// Co-author invitations
+const coAuthorInvitations = ref<CoAuthorInvitation[]>([])
+const coAuthorLoading = ref(false)
+const coAuthorActionLoading = ref(false)
+
+async function fetchCoAuthorInvitations() {
+  coAuthorLoading.value = true
+  try {
+    const { data } = await listMyInvitations()
+    coAuthorInvitations.value = data.invitations
+  } catch {
+    // silently fail — not critical
+  } finally {
+    coAuthorLoading.value = false
+  }
+}
+
+async function handleAcceptInvitation(id: string) {
+  coAuthorActionLoading.value = true
+  try {
+    await acceptInvitation(id)
+    coAuthorInvitations.value = coAuthorInvitations.value.filter((inv) => inv.id !== id)
+    toast.show(t('coauthors.acceptSuccess'), 'success')
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('common.unknownError')), 'error')
+  } finally {
+    coAuthorActionLoading.value = false
+  }
+}
+
+async function handleRejectInvitation(id: string) {
+  coAuthorActionLoading.value = true
+  try {
+    await rejectInvitation(id)
+    coAuthorInvitations.value = coAuthorInvitations.value.filter((inv) => inv.id !== id)
+    toast.show(t('coauthors.rejectSuccess'), 'success')
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('common.unknownError')), 'error')
+  } finally {
+    coAuthorActionLoading.value = false
+  }
+}
+
 const generatedCode = ref('')
 const generatingCode = ref(false)
 const codeCopied = ref(false)
@@ -71,7 +116,7 @@ const codeCopied = ref(false)
 let codeCopiedTimer: ReturnType<typeof setTimeout> | undefined
 let logoutTimer: ReturnType<typeof setTimeout> | undefined
 
-function switchTab(tab: 'general' | 'security' | 'danger') {
+function switchTab(tab: 'general' | 'social' | 'security' | 'danger') {
   activeTab.value = tab
 }
 
@@ -110,6 +155,7 @@ onMounted(() => {
   }
   if (!auth.isGuest) {
     fetchStorageUsage()
+    fetchCoAuthorInvitations()
   }
 })
 
@@ -230,6 +276,18 @@ async function handleDeleteAccount() {
           v-if="!auth.isGuest"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
+            activeTab === 'social'
+              ? 'border-brand-600 text-brand-600'
+              : 'border-transparent text-muted hover:text-foreground'
+          "
+          @click="switchTab('social')"
+        >
+          {{ t('profile.tabs.social') }}
+        </button>
+        <button
+          v-if="!auth.isGuest"
+          class="px-4 py-2 text-sm font-medium border-b-2 transition"
+          :class="
             activeTab === 'security'
               ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-muted hover:text-foreground'
@@ -273,6 +331,85 @@ async function handleDeleteAccount() {
         @save="saveProfile"
         @upload-avatar="uploadAvatar"
       />
+
+      <!-- Social Tab -->
+      <div v-if="activeTab === 'social' && !auth.isGuest" class="space-y-6">
+        <!-- Quick Links -->
+        <div class="space-y-3">
+          <h3 class="text-sm font-semibold text-foreground">
+            {{ t('profile.social.quickLinks') }}
+          </h3>
+          <div class="flex flex-wrap gap-3">
+            <router-link
+              to="/friends"
+              class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition"
+            >
+              {{ t('social.friends') }}
+            </router-link>
+            <router-link
+              to="/following"
+              class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 transition"
+            >
+              {{ t('social.following') }}
+            </router-link>
+            <router-link
+              to="/blocked-users"
+              class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted bg-surface-alt rounded-lg hover:bg-gray-200 transition"
+            >
+              {{ t('social.blockedUsers') }}
+            </router-link>
+          </div>
+        </div>
+
+        <!-- Co-Author Invitations -->
+        <div>
+          <h3 class="text-sm font-semibold text-foreground mb-3">
+            {{ t('coauthors.invitations') }}
+          </h3>
+          <div v-if="coAuthorLoading" class="text-sm text-muted">{{ t('common.loading') }}</div>
+          <div
+            v-else-if="coAuthorInvitations.length === 0"
+            class="text-sm text-muted py-3 bg-surface-alt rounded-lg px-4"
+          >
+            {{ t('coauthors.noInvitations') }}
+          </div>
+          <div v-else class="space-y-3">
+            <div
+              v-for="inv in coAuthorInvitations"
+              :key="inv.id"
+              class="flex items-center justify-between gap-3 p-3 bg-surface-alt rounded-lg"
+            >
+              <div class="min-w-0">
+                <router-link
+                  :to="`/forum/${inv.post_id}`"
+                  class="text-sm font-medium text-foreground hover:text-brand-600 hover:underline block truncate"
+                >
+                  {{ inv.post_title }}
+                </router-link>
+                <p class="text-xs text-muted mt-0.5">
+                  {{ t('coauthors.invitedBy') }} {{ inv.invited_by_name }}
+                </p>
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <button
+                  class="px-3 py-1 text-xs font-medium text-white bg-brand-600 rounded hover:bg-brand-700 transition disabled:opacity-50"
+                  :disabled="coAuthorActionLoading"
+                  @click="handleAcceptInvitation(inv.id)"
+                >
+                  {{ t('social.acceptRequest') }}
+                </button>
+                <button
+                  class="px-3 py-1 text-xs font-medium text-muted bg-surface rounded border border-border hover:bg-gray-100 transition disabled:opacity-50"
+                  :disabled="coAuthorActionLoading"
+                  @click="handleRejectInvitation(inv.id)"
+                >
+                  {{ t('social.declineRequest') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Security Tab -->
       <PasswordChangeForm

@@ -101,6 +101,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.warning(f"Super Admin bootstrap skipped: {e}")
 
+    # Warm up block cache (requires DB + Redis)
+    try:
+        from app.core.blacklist import warmup_block_cache
+        from app.core.database import get_pool as _get_pool
+        from app.core.redis import get_redis as _get_redis
+
+        await warmup_block_cache(_get_pool(), _get_redis())
+    except Exception as e:
+        logger.warning(f"Block cache warmup skipped: {e}")
+
     # Register event bus handlers
     from app.event_handlers import register_all
 

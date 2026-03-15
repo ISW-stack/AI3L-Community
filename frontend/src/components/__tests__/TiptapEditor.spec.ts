@@ -90,6 +90,7 @@ vi.mock('lucide-vue-next', () => ({
   ShieldCheck: { name: 'ShieldCheck', template: '<svg data-testid="shield-check" />' },
   ShieldAlert: { name: 'ShieldAlert', template: '<svg data-testid="shield-alert" />' },
   Loader2: { name: 'Loader2', template: '<svg data-testid="loader" />' },
+  BookOpen: { name: 'BookOpen', template: '<svg data-testid="book-open" />' },
 }))
 
 describe('TiptapEditor', () => {

@@ -9,6 +9,19 @@ from loguru import logger
 from app.core.event_bus import on
 
 
+async def _is_blocked(user_a: str, user_b: str) -> bool:
+    """Check if user_a has user_b in their block set (bilateral)."""
+    try:
+        from app.core.blacklist import get_blocked_user_ids
+        from app.core.redis import get_redis
+
+        redis = get_redis()
+        blocked = await get_blocked_user_ids(redis, user_a)
+        return user_b in blocked
+    except Exception:
+        return False  # Redis failure → allow notification
+
+
 async def _check_idempotent(
     user_id: str, entity_type: str | None, entity_id: str | None, action: str
 ) -> bool:
@@ -41,6 +54,8 @@ async def _on_comment_created(
     failed = 0
 
     for target_uid, cid in mention_targets:
+        if await _is_blocked(target_uid, user_id):
+            continue  # Skip notification for blocked users
         if not await _check_idempotent(target_uid, "comment", cid, "MENTION"):
             continue
         try:
@@ -64,7 +79,9 @@ async def _on_comment_created(
             logger.error("Failed to send mention notification", exc_info=True)
 
     if reply_target:
-        if not await _check_idempotent(reply_target[0], "comment", reply_target[1], "REPLY"):
+        if await _is_blocked(reply_target[0], user_id):
+            pass  # Skip notification for blocked users
+        elif not await _check_idempotent(reply_target[0], "comment", reply_target[1], "REPLY"):
             pass
         else:
             try:
@@ -217,6 +234,8 @@ async def _on_post_created_in_sig(
     async def _notify_member(target_uid: str) -> bool:
         """Send a notification to a single member. Returns True on success."""
         async with sem:
+            if await _is_blocked(target_uid, author_id):
+                return True  # blocked, skip silently
             if not await _check_idempotent(target_uid, "post", post_id, "SIG_NEW_POST"):
                 return True  # deduplicated, not a failure
             try:
@@ -297,6 +316,188 @@ async def _on_audit_action(
     await log_action(user_id, action, target_type, target_id, ip_address)
 
 
+async def _on_co_author_invited(
+    post_id: str,
+    target_user_id: str,
+    inviter_name: str,
+    post_title: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify user when invited as co-author."""
+    from app.services.notification import create_notification
+
+    # Skip if the target has blocked the inviter (inviter_name is display name, need to check via event kwargs)
+    # The block check is already done in the service layer (co_author.invite_co_author)
+    if not await _check_idempotent(target_user_id, "post", post_id, "CO_AUTHOR_INVITE"):
+        return
+    try:
+        await create_notification(
+            user_id=target_user_id,
+            trigger_user_id=None,
+            action_type="CO_AUTHOR_INVITE",
+            entity_type="post",
+            entity_id=post_id,
+            message=f'{inviter_name} invited you as co-author on "{post_title[:50]}"',
+        )
+    except Exception:
+        logger.error("Failed to send co-author invitation notification", exc_info=True)
+        raise
+
+
+async def _on_co_author_responded(
+    post_id: str,
+    post_owner_id: str,
+    responder_name: str,
+    accepted: bool,
+    **_kwargs: Any,
+) -> None:
+    """Notify post owner when co-author responds to invitation."""
+    from app.services.notification import create_notification
+
+    action_label = "accepted" if accepted else "rejected"
+    if not await _check_idempotent(post_owner_id, "post", post_id, "CO_AUTHOR_RESPONSE"):
+        return
+    try:
+        await create_notification(
+            user_id=post_owner_id,
+            trigger_user_id=None,
+            action_type="CO_AUTHOR_RESPONSE",
+            entity_type="post",
+            entity_id=post_id,
+            message=f"{responder_name} {action_label} your co-author invitation",
+        )
+    except Exception:
+        logger.error("Failed to send co-author response notification", exc_info=True)
+        raise
+
+
+async def _on_post_cited(
+    cited_post_id: str,
+    citing_post_id: str,
+    citer_name: str,
+    citing_post_title: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify cited post author when their post is cited."""
+    from app.repositories import post_repo
+    from app.services.notification import create_notification
+
+    # Get the cited post owner
+    owner_id = await post_repo.find_owner_id(uuid.UUID(cited_post_id))
+    if not owner_id:
+        return
+    # Get the citing post owner to check block status
+    citer_id = await post_repo.find_owner_id(uuid.UUID(citing_post_id))
+    if citer_id and await _is_blocked(owner_id, citer_id):
+        return  # Skip notification for blocked users
+    if not await _check_idempotent(owner_id, "post", citing_post_id, "POST_CITED"):
+        return
+    try:
+        await create_notification(
+            user_id=owner_id,
+            trigger_user_id=None,
+            action_type="POST_CITED",
+            entity_type="post",
+            entity_id=cited_post_id,
+            message=f'{citer_name} cited your post in "{citing_post_title[:50]}"',
+        )
+    except Exception:
+        logger.error("Failed to send post citation notification", exc_info=True)
+        raise
+
+
+_QA_INVITE_MAX = 5
+
+
+async def _on_question_created(
+    post_id: str,
+    author_id: str,
+    keywords: list[str],
+    **_kwargs: Any,
+) -> None:
+    """Notify expert users when a question is posted matching their interests."""
+    if not keywords:
+        return
+
+    from app.core.redis import get_redis
+    from app.services.notification import create_notification
+
+    redis = get_redis()
+
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        # Find users with overlapping keywords in their posts (excluding the question author)
+        rows = await conn.fetch(
+            """
+            SELECT DISTINCT p.user_id, u.display_name
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.keywords && $1
+              AND p.user_id != $2
+              AND p.is_deleted = false
+              AND u.is_deleted = false
+              AND u.is_banned = false
+            ORDER BY u.display_name
+            LIMIT $3
+            """,
+            keywords,
+            uuid.UUID(author_id),
+            _QA_INVITE_MAX,
+        )
+
+    for row in rows:
+        target_uid = str(row["user_id"])
+        if await _is_blocked(target_uid, author_id):
+            continue  # Skip notification for blocked users
+        dedup_key = f"qa_invite:{post_id}:{target_uid}"
+        is_new = await redis.set(dedup_key, "1", ex=86400, nx=True)
+        if not is_new:
+            continue
+        try:
+            await create_notification(
+                user_id=target_uid,
+                trigger_user_id=author_id,
+                action_type="QA_INVITE",
+                entity_type="post",
+                entity_id=post_id,
+                message="A new question was posted that matches your expertise",
+            )
+        except Exception:
+            logger.error(
+                "Failed to send QA invite notification",
+                exc_info=True,
+                extra={"target_uid": target_uid, "post_id": post_id},
+            )
+
+
+async def _on_best_answer_marked(
+    post_id: str,
+    answer_author_id: str,
+    question_title: str,
+    marker_name: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify the answer author when their answer is marked as best."""
+    from app.services.notification import create_notification
+
+    if not await _check_idempotent(answer_author_id, "post", post_id, "BEST_ANSWER_MARKED"):
+        return
+    try:
+        await create_notification(
+            user_id=answer_author_id,
+            trigger_user_id=None,
+            action_type="BEST_ANSWER_MARKED",
+            entity_type="post",
+            entity_id=post_id,
+            message=f'{marker_name} marked your answer as best on "{question_title[:50]}"',
+        )
+    except Exception:
+        logger.error("Failed to send best answer notification", exc_info=True)
+        raise
+
+
 def register_all() -> None:
     """Register all event handlers. Called once at application startup."""
     on("comment.created", _on_comment_created)
@@ -307,3 +508,8 @@ def register_all() -> None:
     on("notification.created", _on_notification_created)
     on("post.created_in_sig", _on_post_created_in_sig)
     on("audit.action", _on_audit_action)
+    on("co_author.invited", _on_co_author_invited)
+    on("co_author.responded", _on_co_author_responded)
+    on("post.cited", _on_post_cited)
+    on("question.created", _on_question_created)
+    on("best_answer.marked", _on_best_answer_marked)

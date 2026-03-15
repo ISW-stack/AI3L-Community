@@ -33,6 +33,19 @@ vi.mock('@/utils/html', () => ({
   extractMentions: () => [],
 }))
 
+vi.mock('lucide-vue-next', async (importOriginal) => {
+  const stub = { template: '<svg />' }
+  return {
+    ...((await importOriginal()) as Record<string, unknown>),
+    Quote: stub,
+    ChevronDown: stub,
+    ChevronUp: stub,
+    Users: stub,
+    UserPlus: stub,
+    X: stub,
+  }
+})
+
 const fakePost = {
   id: 'post-1',
   title: 'Test Post Title',
@@ -103,11 +116,16 @@ function buildMockPostDetail(overrides?: Record<string, any>) {
     reportMessage: ref(''),
     canReport: computed(() => overrides?.canReport ?? true),
     pinSaving: ref(false),
+    isAuthor: computed(() => overrides?.isAuthor ?? false),
     canModify: computed(() => overrides?.canModify ?? false),
+    coAuthors: ref(overrides?.coAuthors ?? []),
+    citedBy: ref(overrides?.citedBy ?? []),
+    citing: ref(overrides?.citing ?? []),
     contentSegments: computed(() => [{ type: 'html', content: fakePost.content }]),
     postContentRef: ref(null),
     goToCommentPage: vi.fn(),
     fetchHistory: vi.fn(),
+    fetchCoAuthors: vi.fn(),
     startEdit: vi.fn(),
     saveEdit: vi.fn(),
     deletePostHandler: vi.fn(),
@@ -176,6 +194,7 @@ function createStubs() {
     SigShareCard: { template: '<div class="sig-share-card" />', props: ['sigId'] },
     FormShareCard: { template: '<div class="form-share-card" />', props: ['formId'] },
     FloatingCreateButton: { template: '<div class="fab" />', props: ['to'] },
+    CoAuthorManager: { template: '<div class="co-author-manager" />', props: ['postId'] },
   }
 }
 

@@ -139,7 +139,11 @@ export default {
   nav: {
     ariaLabel: '주 탐색',
     forum: '포럼',
+    qa: 'Q&A',
     sigs: 'SIG',
+    forms: 'Forms',
+    albums: 'Albums',
+    friends: 'Friends',
     about: '소개',
     admin: '관리',
     dashboard: '대시보드',
@@ -409,6 +413,7 @@ export default {
       insertLink: '링크 삽입',
       insertFile: '이미지 또는 파일 삽입',
       insertTable: '표 삽입',
+      cite: 'Insert citation',
       undo: '실행 취소',
       redo: '다시 실행',
     },
@@ -720,8 +725,14 @@ export default {
     backBtn: '뒤로',
     changeAvatar: '아바타 변경',
     memberInfo: '회원 정보',
+    social: {
+      quickLinks: 'Quick Links',
+    },
+    viewCount: '{unique} unique visitors, {total} total views',
+    coAuthoredPosts: 'Co-Authored Posts',
     tabs: {
       general: '일반',
+      social: 'Social',
       security: '보안',
       dangerZone: '위험 구역',
     },
@@ -798,6 +809,8 @@ export default {
     postsTitle: '게시물',
     postsEmptyTitle: '아직 게시물이 없습니다',
     postsEmptyMessage: '이 사용자는 아직 게시물을 작성하지 않았습니다.',
+    coAuthoredEmptyTitle: 'No co-authored posts',
+    coAuthoredEmptyMessage: 'This user has not co-authored any posts yet.',
     fetchError: '사용자 프로필을 불러오지 못했습니다.',
     fetchPostsError: '사용자 게시물을 불러오지 못했습니다.',
   },
@@ -1116,5 +1129,99 @@ export default {
     RATE_LIMIT: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
     RATE_LIMIT_RETRY: '요청이 너무 많습니다. {seconds}초 후에 다시 시도해 주세요.',
     unknown: '예기치 않은 오류가 발생했습니다.',
+  },
+
+  // ── Forms Directory ──
+  formsDirectory: {
+    title: 'Forms',
+    createForm: 'Create Form',
+    noForms: 'No forms available',
+    responses: 'responses',
+    active: 'Active',
+    closed: 'Closed',
+  },
+
+  // ── Albums ──
+  albums: {
+    title: 'Albums',
+    createAlbum: 'Create Album',
+    photos: 'Photos',
+    members: 'Members',
+    comments: 'Comments',
+    noAlbums: 'No albums yet',
+    upload: 'Upload Photo',
+    archived: 'Archived',
+  },
+
+  // ── Social ──
+  social: {
+    friends: 'Friends',
+    following: 'Following',
+    followers: 'Followers',
+    blockedUsers: 'Blocked Users',
+    addFriend: 'Add Friend',
+    unfriend: 'Unfriend',
+    follow: 'Follow',
+    unfollow: 'Unfollow',
+    block: 'Block',
+    unblock: 'Unblock',
+    requestSent: 'Request Sent',
+    acceptRequest: 'Accept',
+    declineRequest: 'Decline',
+    noFriends: 'No friends yet',
+    noFollowers: 'No followers yet',
+    noBlocked: 'No blocked users',
+    blockLimit: 'You can block up to 5 users',
+  },
+
+  // ── Q&A ──
+  qa: {
+    title: 'Q&A',
+    askQuestion: 'Ask a Question',
+    noQuestions: 'No questions yet',
+    answered: 'Answered',
+    unanswered: 'Unanswered',
+    answers: 'answers',
+    bestAnswer: 'Best Answer',
+    markBest: 'Mark as Best Answer',
+    unmarkBest: 'Unmark Best Answer',
+    votes: 'votes',
+  },
+
+  // ── Co-Authors ──
+  coauthors: {
+    title: 'Co-Authors',
+    invite: 'Invite Co-Author',
+    addExternal: 'Add External',
+    pending: 'Pending',
+    accepted: 'Accepted',
+    rejected: 'Rejected',
+    invitations: 'Co-Author Invitations',
+    noInvitations: 'No pending invitations.',
+    invitedBy: 'Invited by',
+    acceptSuccess: 'Invitation accepted.',
+    rejectSuccess: 'Invitation declined.',
+    maxReached: 'Maximum co-authors reached (10)',
+  },
+
+  // ── Citations ──
+  citations: {
+    citedBy: 'Cited by',
+    references: 'References',
+    searchPosts: 'Search posts to cite',
+    selfCitation: 'self',
+    cite: 'Cite',
+  },
+
+  // ── Recommendations ──
+  recommendations: {
+    title: 'People You May Know',
+    dismiss: 'Dismiss',
+    noRecommendations: 'No recommendations available',
+    sharedSigs: 'shared SIG | shared SIGs',
+    mutualFriends: 'mutual friend | mutual friends',
+    similarInterests: 'Similar interests',
+    sameAffiliation: 'Same affiliation',
+    recentlyActive: 'Recently active',
   },
 }

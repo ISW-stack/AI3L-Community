@@ -106,9 +106,11 @@ async function fetchPosts() {
       page_size?: number
       category_id?: string
       sort?: string
+      type?: 'post' | 'question'
     } = {
       page_size: PAGE_SIZE,
       sort: sortBy.value,
+      type: 'post',
     }
     if (categoryFilter.value) params.category_id = categoryFilter.value
     const data = await listPosts(params)
@@ -134,10 +136,12 @@ async function fetchMorePosts() {
       page_size?: number
       category_id?: string
       sort?: string
+      type?: 'post' | 'question'
     } = {
       cursor: nextCursor.value,
       page_size: PAGE_SIZE,
       sort: sortBy.value,
+      type: 'post',
     }
     if (categoryFilter.value) params.category_id = categoryFilter.value
     const data = await listPosts(params)

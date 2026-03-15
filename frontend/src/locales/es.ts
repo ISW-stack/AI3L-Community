@@ -140,7 +140,11 @@ export default {
   nav: {
     ariaLabel: 'Navegación principal',
     forum: 'Foro',
+    qa: 'Q&A',
     sigs: 'GIEs',
+    forms: 'Forms',
+    albums: 'Albums',
+    friends: 'Friends',
     about: 'Acerca de',
     admin: 'Administración',
     dashboard: 'Panel',
@@ -414,6 +418,7 @@ export default {
       insertLink: 'Insertar enlace',
       insertFile: 'Insertar imagen o archivo',
       insertTable: 'Insertar tabla',
+      cite: 'Insert citation',
       undo: 'Deshacer',
       redo: 'Rehacer',
     },
@@ -729,8 +734,14 @@ export default {
     backBtn: 'Volver',
     changeAvatar: 'Cambiar avatar',
     memberInfo: 'Información del miembro',
+    social: {
+      quickLinks: 'Quick Links',
+    },
+    viewCount: '{unique} unique visitors, {total} total views',
+    coAuthoredPosts: 'Co-Authored Posts',
     tabs: {
       general: 'General',
+      social: 'Social',
       security: 'Seguridad',
       dangerZone: 'Zona de peligro',
     },
@@ -808,6 +819,8 @@ export default {
     postsTitle: 'Publicaciones',
     postsEmptyTitle: 'Aún no hay publicaciones',
     postsEmptyMessage: 'Este usuario no ha publicado nada.',
+    coAuthoredEmptyTitle: 'No co-authored posts',
+    coAuthoredEmptyMessage: 'This user has not co-authored any posts yet.',
     fetchError: 'Error al cargar el perfil de usuario.',
     fetchPostsError: 'Error al cargar las publicaciones del usuario.',
   },
@@ -1126,5 +1139,99 @@ export default {
     RATE_LIMIT: 'Demasiadas solicitudes. Por favor, intente de nuevo más tarde.',
     RATE_LIMIT_RETRY: 'Demasiadas solicitudes. Por favor, reintente después de {seconds} segundos.',
     unknown: 'Ocurrió un error inesperado.',
+  },
+
+  // ── Forms Directory ──
+  formsDirectory: {
+    title: 'Forms',
+    createForm: 'Create Form',
+    noForms: 'No forms available',
+    responses: 'responses',
+    active: 'Active',
+    closed: 'Closed',
+  },
+
+  // ── Albums ──
+  albums: {
+    title: 'Albums',
+    createAlbum: 'Create Album',
+    photos: 'Photos',
+    members: 'Members',
+    comments: 'Comments',
+    noAlbums: 'No albums yet',
+    upload: 'Upload Photo',
+    archived: 'Archived',
+  },
+
+  // ── Social ──
+  social: {
+    friends: 'Friends',
+    following: 'Following',
+    followers: 'Followers',
+    blockedUsers: 'Blocked Users',
+    addFriend: 'Add Friend',
+    unfriend: 'Unfriend',
+    follow: 'Follow',
+    unfollow: 'Unfollow',
+    block: 'Block',
+    unblock: 'Unblock',
+    requestSent: 'Request Sent',
+    acceptRequest: 'Accept',
+    declineRequest: 'Decline',
+    noFriends: 'No friends yet',
+    noFollowers: 'No followers yet',
+    noBlocked: 'No blocked users',
+    blockLimit: 'You can block up to 5 users',
+  },
+
+  // ── Q&A ──
+  qa: {
+    title: 'Q&A',
+    askQuestion: 'Ask a Question',
+    noQuestions: 'No questions yet',
+    answered: 'Answered',
+    unanswered: 'Unanswered',
+    answers: 'answers',
+    bestAnswer: 'Best Answer',
+    markBest: 'Mark as Best Answer',
+    unmarkBest: 'Unmark Best Answer',
+    votes: 'votes',
+  },
+
+  // ── Co-Authors ──
+  coauthors: {
+    title: 'Co-Authors',
+    invite: 'Invite Co-Author',
+    addExternal: 'Add External',
+    pending: 'Pending',
+    accepted: 'Accepted',
+    rejected: 'Rejected',
+    invitations: 'Co-Author Invitations',
+    noInvitations: 'No pending invitations.',
+    invitedBy: 'Invited by',
+    acceptSuccess: 'Invitation accepted.',
+    rejectSuccess: 'Invitation declined.',
+    maxReached: 'Maximum co-authors reached (10)',
+  },
+
+  // ── Citations ──
+  citations: {
+    citedBy: 'Cited by',
+    references: 'References',
+    searchPosts: 'Search posts to cite',
+    selfCitation: 'self',
+    cite: 'Cite',
+  },
+
+  // ── Recommendations ──
+  recommendations: {
+    title: 'People You May Know',
+    dismiss: 'Dismiss',
+    noRecommendations: 'No recommendations available',
+    sharedSigs: 'shared SIG | shared SIGs',
+    mutualFriends: 'mutual friend | mutual friends',
+    similarInterests: 'Similar interests',
+    sameAffiliation: 'Same affiliation',
+    recentlyActive: 'Recently active',
   },
 }

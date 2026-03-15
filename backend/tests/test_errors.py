@@ -5,7 +5,7 @@ from app.core.errors import AppError, ErrorCode
 
 class TestErrorCodes:
     def test_error_codes_enum(self):
-        """All 12 error codes must exist."""
+        """All error codes must exist."""
         expected = [
             "AUTH_001",
             "AUTH_002",
@@ -19,6 +19,18 @@ class TestErrorCodes:
             "SYS_500",
             "FILE_001",
             "FORM_001",
+            "ALBUM_001",
+            "ALBUM_002",
+            "ALBUM_003",
+            "SOCIAL_001",
+            "SOCIAL_002",
+            "SOCIAL_003",
+            "COAUTHOR_001",
+            "COAUTHOR_002",
+            "CITATION_001",
+            "QA_001",
+            "QA_002",
+            "QA_003",
         ]
         actual = [e.value for e in ErrorCode]
         assert sorted(actual) == sorted(expected)

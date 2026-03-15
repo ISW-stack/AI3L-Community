@@ -11,6 +11,9 @@ celery = Celery(
         "app.tasks.cleanup",
         "app.tasks.form_export",
         "app.tasks.virustotal",
+        "app.tasks.thumbnail",
+        "app.tasks.recommendations",
+        "app.tasks.view_sync",
     ],
 )
 
@@ -52,5 +55,15 @@ celery.conf.beat_schedule = {
         "task": "cleanup_old_file_scans",
         "schedule": 86400.0,  # every 24 hours
         "options": {"soft_time_limit": 60, "time_limit": 120},
+    },
+    "compute-friend-recommendations": {
+        "task": "compute_friend_recommendations",
+        "schedule": 86400.0,  # daily
+        "options": {"soft_time_limit": 600, "time_limit": 900},
+    },
+    "reconcile-counters": {
+        "task": "reconcile_counters",
+        "schedule": 21600.0,  # every 6 hours
+        "options": {"soft_time_limit": 300, "time_limit": 600},
     },
 }

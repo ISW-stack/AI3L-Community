@@ -79,25 +79,36 @@ async def find_many(
     post_id: uuid.UUID,
     offset: int = 0,
     limit: int = 50,
+    exclude_user_ids: list[uuid.UUID] | None = None,
 ) -> tuple[list[dict], int]:
     _select_count = _COMMENT_SELECT.replace(
         "FROM comments cm", ", COUNT(*) OVER() AS _total\n    FROM comments cm", 1
     )
     pool = get_pool()
+
+    exclusion_clause = ""
+    params: list = [post_id, limit, offset]
+    if exclude_user_ids:
+        exclusion_clause = " AND cm.user_id != ALL($4::uuid[])"
+        params.append(exclude_user_ids)
+
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            f"{_select_count} WHERE cm.post_id = $1 AND cm.is_deleted = false ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",  # noqa: E501
-            post_id,
-            limit,
-            offset,
+            f"{_select_count} WHERE cm.post_id = $1 AND cm.is_deleted = false{exclusion_clause} ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",  # noqa: E501
+            *params,
         )
         if rows:
             total = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
+            count_clause = ""
+            count_params: list = [post_id]
+            if exclude_user_ids:
+                count_clause = " AND user_id != ALL($2::uuid[])"
+                count_params.append(exclude_user_ids)
             total = await conn.fetchval(
-                "SELECT COUNT(*) FROM comments WHERE post_id = $1 AND is_deleted = false",
-                post_id,
+                f"SELECT COUNT(*) FROM comments WHERE post_id = $1 AND is_deleted = false{count_clause}",
+                *count_params,
             )
             result = []
         return result, total

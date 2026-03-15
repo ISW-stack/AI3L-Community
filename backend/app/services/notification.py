@@ -4,7 +4,9 @@ import uuid
 from loguru import logger
 
 from app.converters.notification_converter import async_row_to_notification
+from app.core.blacklist import get_blocked_user_ids
 from app.core.event_bus import emit
+from app.core.redis import get_redis
 from app.repositories import notification_repo
 
 
@@ -49,9 +51,20 @@ async def list_notifications(
     page_size: int = 20,
 ) -> tuple[list[dict], int, int]:
     """Returns (notifications, total, unread_count)."""
+    # Filter out notifications triggered by blocked users
+    exclude: list[uuid.UUID] | None = None
+    try:
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, user_id)
+        if blocked_ids:
+            exclude = [uuid.UUID(uid) for uid in blocked_ids]
+    except Exception:
+        pass  # Redis failure → show all notifications
+
     offset = (page - 1) * page_size
     rows, total, unread_count = await notification_repo.find_many(
-        uuid.UUID(user_id), unread_only, page_size, offset
+        uuid.UUID(user_id), unread_only, page_size, offset,
+        exclude_user_ids=exclude,
     )
     notifications = list(await asyncio.gather(*[async_row_to_notification(r) for r in rows]))
     return notifications, total, unread_count

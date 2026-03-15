@@ -158,11 +158,13 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
       for (const q of data.questions) {
         answers.value[q.id] = q.type === 'multiple_choice' ? [] : q.type === 'rating' ? null : ''
       }
-      try {
-        const sigData = await getSig(data.sig_id)
-        sigName.value = sigData.name
-      } catch {
-        /* breadcrumb will show fallback */
+      if (data.sig_id) {
+        try {
+          const sigData = await getSig(data.sig_id)
+          sigName.value = sigData.name
+        } catch {
+          /* breadcrumb will show fallback */
+        }
       }
 
       if (auth.isAuthenticated && !auth.isGuest) {
@@ -495,7 +497,11 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
   // ── Navigation ──
   function goBackToSig() {
     if (form.value) {
-      router.push(`/sigs/${form.value.sig_id}`)
+      if (form.value.sig_id) {
+        router.push(`/sigs/${form.value.sig_id}`)
+      } else {
+        router.push('/forms')
+      }
     }
   }
 

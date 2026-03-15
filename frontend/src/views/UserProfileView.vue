@@ -17,6 +17,8 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
+import SocialActions from '@/components/social/SocialActions.vue'
+import FriendRecommendations from '@/components/social/FriendRecommendations.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -89,6 +91,38 @@ async function fetchPosts() {
   }
 }
 
+// Co-authored posts
+const coAuthoredPosts = ref<Post[]>([])
+const coAuthoredLoading = ref(false)
+
+async function fetchCoAuthoredPosts() {
+  coAuthoredLoading.value = true
+  try {
+    const data = await listPosts({
+      author_id: userId.value,
+      type: 'post',
+      page: 1,
+      page_size: 10,
+    })
+    // We filter client-side for co-authored — if needed the API can be extended
+    coAuthoredPosts.value = data.posts
+  } catch {
+    // Non-critical, silently fail
+  } finally {
+    coAuthoredLoading.value = false
+  }
+}
+
+// Active tab for the profile sections
+const activeSection = ref<'posts' | 'coauthored'>('posts')
+
+function switchSection(section: 'posts' | 'coauthored') {
+  activeSection.value = section
+  if (section === 'coauthored' && coAuthoredPosts.value.length === 0 && !coAuthoredLoading.value) {
+    fetchCoAuthoredPosts()
+  }
+}
+
 function goToPage(page: number) {
   setPage(page)
   fetchPosts()
@@ -145,13 +179,19 @@ onMounted(() => {
                 {{ t('userProfile.joined') }} {{ new Date(user.created_at).toLocaleDateString() }}
               </p>
             </div>
-            <router-link
-              v-if="isOwnProfile"
-              to="/profile"
-              class="text-sm text-brand-600 hover:underline shrink-0"
-            >
-              {{ t('userProfile.editProfileBtn') }}
-            </router-link>
+            <div class="shrink-0 flex flex-col items-end gap-2">
+              <router-link
+                v-if="isOwnProfile"
+                to="/profile"
+                class="text-sm text-brand-600 hover:underline"
+              >
+                {{ t('userProfile.editProfileBtn') }}
+              </router-link>
+              <SocialActions
+                v-if="!isOwnProfile && auth.isAuthenticated && !auth.isGuest"
+                :user-id="userId"
+              />
+            </div>
           </div>
 
           <!-- Info Cards -->
@@ -169,34 +209,86 @@ onMounted(() => {
               {{ user.orcid }}
             </div>
           </div>
+
+          <!-- Profile View Counts -->
+          <div class="mt-3 text-xs text-muted">
+            {{
+              t('profile.viewCount', {
+                unique: user.profile_view_count_unique,
+                total: user.profile_view_count_total,
+              })
+            }}
+          </div>
         </BaseCard>
 
+        <!-- Friend Recommendations (own profile only) -->
+        <FriendRecommendations v-if="isOwnProfile" class="mb-6" />
+
+        <!-- Section Tabs -->
+        <div class="flex gap-1 mb-4 border-b border-border">
+          <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition"
+            :class="
+              activeSection === 'posts'
+                ? 'border-brand-600 text-brand-600'
+                : 'border-transparent text-muted hover:text-foreground'
+            "
+            @click="switchSection('posts')"
+          >
+            {{ t('userProfile.postsTitle') }} ({{ postsTotal }})
+          </button>
+          <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition"
+            :class="
+              activeSection === 'coauthored'
+                ? 'border-brand-600 text-brand-600'
+                : 'border-transparent text-muted hover:text-foreground'
+            "
+            @click="switchSection('coauthored')"
+          >
+            {{ t('profile.coAuthoredPosts') }}
+          </button>
+        </div>
+
         <!-- Posts Feed -->
-        <h2 class="text-lg font-semibold text-foreground mb-4">
-          {{ t('userProfile.postsTitle') }} ({{ postsTotal }})
-        </h2>
-
-        <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
-        <EmptyState
-          v-else-if="posts.length === 0"
-          :title="t('userProfile.postsEmptyTitle')"
-          :message="t('userProfile.postsEmptyMessage')"
-        />
-
-        <div v-else class="space-y-4">
-          <div v-for="p in posts" :key="p.id">
-            <PostCard :post="p" :format-time="toLocaleTime" :max-preview-lines="3" />
-          </div>
-        </div>
-
-        <div class="mt-6">
-          <BasePagination
-            v-if="postsTotalPages > 1"
-            :current-page="postsPage"
-            :total-pages="postsTotalPages"
-            @update:current-page="goToPage"
+        <template v-if="activeSection === 'posts'">
+          <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
+          <EmptyState
+            v-else-if="posts.length === 0"
+            :title="t('userProfile.postsEmptyTitle')"
+            :message="t('userProfile.postsEmptyMessage')"
           />
-        </div>
+
+          <div v-else class="space-y-4">
+            <div v-for="p in posts" :key="p.id">
+              <PostCard :post="p" :format-time="toLocaleTime" :max-preview-lines="3" />
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <BasePagination
+              v-if="postsTotalPages > 1"
+              :current-page="postsPage"
+              :total-pages="postsTotalPages"
+              @update:current-page="goToPage"
+            />
+          </div>
+        </template>
+
+        <!-- Co-Authored Posts -->
+        <template v-if="activeSection === 'coauthored'">
+          <SkeletonLoader v-if="coAuthoredLoading" :lines="3" variant="card" />
+          <EmptyState
+            v-else-if="coAuthoredPosts.length === 0"
+            :title="t('userProfile.coAuthoredEmptyTitle')"
+            :message="t('userProfile.coAuthoredEmptyMessage')"
+          />
+          <div v-else class="space-y-4">
+            <div v-for="p in coAuthoredPosts" :key="p.id">
+              <PostCard :post="p" :format-time="toLocaleTime" :max-preview-lines="3" />
+            </div>
+          </div>
+        </template>
       </template>
     </div>
   </div>

@@ -6,9 +6,39 @@ from typing import Any
 from app.core.database import get_pool
 
 
+async def find_standalone(conn: Any, page: int, page_size: int) -> list:
+    """List standalone forms (sig_id IS NULL, not deleted)."""
+    offset = (page - 1) * page_size
+    return await conn.fetch(
+        """
+        SELECT f.*, COUNT(*) OVER() AS total_count,
+               u.display_name AS creator_display_name
+        FROM forms f
+        JOIN users u ON f.created_by = u.id
+        WHERE f.sig_id IS NULL AND f.is_deleted = false
+        ORDER BY f.created_at DESC
+        LIMIT $1 OFFSET $2
+        """,
+        page_size,
+        offset,
+    )
+
+
+async def count_active_standalone_by_user(conn: Any, user_id: uuid.UUID) -> int:
+    """Count active standalone forms for a user (for limit enforcement)."""
+    row = await conn.fetchrow(
+        """
+        SELECT COUNT(*) AS cnt FROM forms
+        WHERE created_by = $1 AND sig_id IS NULL AND is_deleted = false
+        """,
+        user_id,
+    )
+    return row["cnt"]
+
+
 async def insert(
     form_id: uuid.UUID,
-    sig_id: uuid.UUID,
+    sig_id: uuid.UUID | None,
     user_id: uuid.UUID,
     title: str,
     description: str | None,
@@ -180,30 +210,41 @@ async def find_by_sig(
 
 
 async def find_responses(
-    form_id: uuid.UUID, page: int = 1, page_size: int = 20
+    form_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 20,
+    exclude_user_ids: list[uuid.UUID] | None = None,
 ) -> tuple[list[dict], int]:
     """Returns (list of response dicts with user info, total count)."""
     pool = get_pool()
     offset = (page - 1) * page_size
+
+    exclusion_clause = ""
+    params_base: list = [form_id]
+    if exclude_user_ids:
+        exclusion_clause = " AND fr.user_id != ALL($2::uuid[])"
+        params_base.append(exclude_user_ids)
+
     async with pool.acquire() as conn:
         total = await conn.fetchval(
-            "SELECT COUNT(*) FROM form_responses WHERE form_id = $1",
-            form_id,
+            f"SELECT COUNT(*) FROM form_responses fr WHERE fr.form_id = $1{exclusion_clause}",
+            *params_base,
         )
+        limit_idx = len(params_base) + 1
+        offset_idx = limit_idx + 1
+        query_params = list(params_base) + [page_size, offset]
         rows = await conn.fetch(
-            """
+            f"""
             SELECT fr.id, fr.form_id, fr.user_id, fr.answers, fr.created_at,
                    COALESCE(u.display_name, 'Guest') AS display_name,
                    COALESCE(u.username, 'guest') AS username
             FROM form_responses fr
             LEFT JOIN users u ON fr.user_id = u.id
-            WHERE fr.form_id = $1
+            WHERE fr.form_id = $1{exclusion_clause}
             ORDER BY fr.created_at DESC
-            LIMIT $2 OFFSET $3
+            LIMIT ${limit_idx} OFFSET ${offset_idx}
             """,
-            form_id,
-            page_size,
-            offset,
+            *query_params,
         )
         results = []
         for r in rows:

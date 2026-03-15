@@ -93,6 +93,15 @@ onMounted(() => loadForm())
 <template>
   <div class="max-w-3xl mx-auto">
     <BaseBreadcrumb
+      v-if="form && !form.sig_id"
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.forms'), to: '/forms' },
+        { label: form?.title || '...' },
+      ]"
+    />
+    <BaseBreadcrumb
+      v-else
       :items="[
         { label: t('breadcrumb.home'), to: '/' },
         { label: t('breadcrumb.sigs'), to: '/sigs' },

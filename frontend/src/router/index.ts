@@ -119,6 +119,92 @@ const router = createRouter({
         },
       ],
     },
+    // Forms directory & standalone create (before /forms/:formId)
+    {
+      path: '/forms',
+      name: 'forms',
+      component: () => import('@/views/forms/FormsDirectoryView.vue'),
+    },
+    {
+      path: '/forms/new',
+      name: 'standalone-form-create',
+      component: () => import('@/views/forms/FormBuilderView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    // Albums
+    {
+      path: '/albums',
+      name: 'albums',
+      component: () => import('@/views/albums/AlbumsDirectoryView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/albums/create',
+      name: 'album-create',
+      component: () => import('@/views/albums/AlbumCreateView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/albums/:id',
+      component: () => import('@/views/albums/AlbumLayout.vue'),
+      meta: { requiresAuth: true, fullWidth: true },
+      children: [
+        { path: '', redirect: 'photos' },
+        {
+          path: 'photos',
+          name: 'album-photos',
+          component: () => import('@/views/albums/AlbumPhotosView.vue'),
+        },
+        {
+          path: 'members',
+          name: 'album-members',
+          component: () => import('@/views/albums/AlbumMembersView.vue'),
+        },
+        {
+          path: 'comments',
+          name: 'album-comments',
+          component: () => import('@/views/albums/AlbumCommentsView.vue'),
+        },
+      ],
+    },
+    // Social
+    {
+      path: '/friends',
+      name: 'friends',
+      component: () => import('@/views/social/FriendsView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    {
+      path: '/following',
+      name: 'following',
+      component: () => import('@/views/social/FollowingView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    {
+      path: '/blocked-users',
+      name: 'blocked-users',
+      component: () => import('@/views/social/BlockedUsersView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    // Q&A
+    {
+      path: '/qa',
+      name: 'qa',
+      component: () => import('@/views/qa/QAListView.vue'),
+      meta: { requiresAuth: true, fullWidth: true },
+    },
+    {
+      path: '/qa/ask',
+      name: 'qa-ask',
+      component: () => import('@/views/qa/QACreateView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    {
+      path: '/qa/:id',
+      name: 'qa-detail',
+      component: () => import('@/views/qa/QADetailView.vue'),
+      meta: { requiresAuth: true },
+    },
     {
       path: '/sigs',
       name: 'sigs',
@@ -164,7 +250,6 @@ const router = createRouter({
       path: '/forms/:formId',
       name: 'form-view',
       component: () => import('@/views/forms/FormView.vue'),
-      meta: { requiresAuth: true },
     },
     {
       path: '/forms/:formId/edit',

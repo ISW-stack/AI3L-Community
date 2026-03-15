@@ -20,7 +20,7 @@ export interface Question {
 
 export interface FormData {
   id: string
-  sig_id: string
+  sig_id: string | null
   title: string
   description: string | null
   banner_url: string | null

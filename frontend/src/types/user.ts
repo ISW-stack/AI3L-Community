@@ -29,5 +29,7 @@ export interface PublicUser {
   bio: string | null
   affiliation: string | null
   orcid: string | null
+  profile_view_count_unique: number
+  profile_view_count_total: number
   created_at: string
 }

@@ -104,12 +104,14 @@ class TestUnbanUser:
 
 
 class TestAnonymizeUser:
+    @patch("app.core.database.get_pool")
     @patch("app.repositories.user_repo.get_pool")
-    async def test_anonymize_user(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_anonymize_user(self, mock_repo_pool, mock_db_pool, mock_pool, mock_conn):
         from app.services.user import anonymize_user
 
         mock_conn.execute.return_value = "UPDATE 1"
-        mock_get_pool.return_value = mock_pool
+        mock_repo_pool.return_value = mock_pool
+        mock_db_pool.return_value = mock_pool
 
         result = await anonymize_user(uuid.uuid4())
         assert result is True

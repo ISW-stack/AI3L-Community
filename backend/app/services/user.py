@@ -226,11 +226,40 @@ async def check_sole_admin_sigs(user_id: uuid.UUID) -> list[dict]:
 
 
 async def anonymize_user(user_id: uuid.UUID) -> bool:
-    """GDPR anonymization: overwrite PII, set is_deleted=true."""
+    """GDPR anonymization: overwrite PII, set is_deleted=true, clean up related data."""
+    from app.core.database import get_pool
+
     anon_name = f"Deleted_User_{uuid.uuid4().hex[:8]}"
     deleted = await user_repo.anonymize(user_id, anon_name)
     if deleted:
         logger.info("User anonymized (GDPR)", extra={"user_id": str(user_id)})
+
+        # Clean up co-author entries, profile views, comment votes
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            try:
+                from app.repositories import co_author_repo, profile_view_repo, vote_repo
+
+                await co_author_repo.delete_by_user_id(conn, user_id)
+                await profile_view_repo.delete_by_profile_or_viewer(conn, user_id)
+                await vote_repo.delete_by_user_id(conn, user_id)
+
+                # Clean up friend recommendations and dismissed recommendations
+                await conn.execute(
+                    "DELETE FROM friend_recommendations WHERE user_id = $1 OR recommended_id = $1",
+                    user_id,
+                )
+                await conn.execute(
+                    "DELETE FROM dismissed_recommendations WHERE user_id = $1",
+                    user_id,
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to clean up related data during anonymization",
+                    extra={"user_id": str(user_id)},
+                    exc_info=True,
+                )
+
     return deleted
 
 

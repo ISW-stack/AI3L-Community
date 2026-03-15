@@ -194,6 +194,85 @@ async def delete_my_account(
     return MessageResponse(message="Account deleted and anonymized.")
 
 
+@router.get("/search")
+async def search_users(
+    q: str = Query(..., min_length=1, max_length=100),
+    limit: int = Query(5, ge=1, le=20),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> list[dict]:
+    """Search users by display name or username for co-author invitation."""
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, username, display_name, avatar_url
+            FROM users
+            WHERE is_deleted = false AND is_banned = false
+              AND (display_name ILIKE $1 OR username ILIKE $1)
+            ORDER BY display_name
+            LIMIT $2
+            """,
+            f"%{q}%",
+            limit,
+        )
+    from app.converters.user_converter import async_resolve_avatar_url
+
+    return [
+        {
+            "id": str(r["id"]),
+            "username": r["username"],
+            "display_name": r["display_name"],
+            "avatar_url": await async_resolve_avatar_url(r.get("avatar_url")),
+        }
+        for r in rows
+    ]
+
+
+@router.get("/me/co-author-invitations")
+async def get_my_co_author_invitations(
+    page: int = Query(1, ge=1, le=10000),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """List pending co-author invitations for the current user."""
+    from app.services.co_author import list_pending_invitations
+
+    invitations, total = await list_pending_invitations(
+        pool=None, user_id=current_user["sub"], page=page, page_size=page_size
+    )
+    return {"invitations": invitations, "total": total}
+
+
+@router.put("/me/co-author-invitations/{invitation_id}/accept")
+async def accept_co_author_invitation(
+    invitation_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Accept a co-author invitation."""
+    from app.services.co_author import respond_to_invitation
+
+    await respond_to_invitation(
+        pool=None, co_author_id=invitation_id, user_id=current_user["sub"], accept=True
+    )
+    return {"message": "Invitation accepted."}
+
+
+@router.put("/me/co-author-invitations/{invitation_id}/reject")
+async def reject_co_author_invitation(
+    invitation_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Reject a co-author invitation."""
+    from app.services.co_author import respond_to_invitation
+
+    await respond_to_invitation(
+        pool=None, co_author_id=invitation_id, user_id=current_user["sub"], accept=False
+    )
+    return {"message": "Invitation rejected."}
+
+
 @router.put("/bulk-role", status_code=status.HTTP_200_OK)
 async def bulk_change_role(
     req: BulkRoleChangeRequest,
@@ -220,6 +299,29 @@ async def get_public_profile(
     user = await get_user_by_id(user_id)
     if user is None or user.get("is_deleted", False):
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+
+    # Block check: if viewer has blocked this user or vice versa, return 404
+    try:
+        from app.core.blacklist import get_blocked_user_ids
+        from app.core.redis import get_redis
+
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, current_user["sub"])
+        if str(user_id) in blocked_ids:
+            raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+    except AppError:
+        raise
+    except Exception:
+        pass  # Redis failure → show profile
+
+    # Record profile view (best-effort)
+    try:
+        from app.services.profile_view import record_profile_view
+
+        await record_profile_view(None, None, str(user_id), current_user["sub"])
+    except Exception:
+        pass  # Best-effort, don't fail the request
+
     return await async_user_to_public_response(user)
 
 

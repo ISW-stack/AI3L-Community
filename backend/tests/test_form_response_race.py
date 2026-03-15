@@ -12,6 +12,15 @@ _REPO = "app.repositories.form_repo"
 _SVC = "app.services.form"
 
 
+def _find_by_id_mock(form_row):
+    """Return a mock for form_repo.find_by_id that returns the given row."""
+    return patch(
+        f"{_SVC}.form_repo.find_by_id",
+        new_callable=AsyncMock,
+        return_value=(form_row, 0),
+    )
+
+
 def _make_form_row(
     form_id=None,
     sig_id=None,
@@ -152,6 +161,7 @@ class TestSubmitResponseService:
 
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            _find_by_id_mock(form_row),
             patch(
                 f"{_SVC}.form_repo.find_for_update",
                 new_callable=AsyncMock,
@@ -202,6 +212,7 @@ class TestSubmitResponseService:
 
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            _find_by_id_mock(form_row),
             patch(
                 f"{_SVC}.form_repo.find_for_update",
                 new_callable=AsyncMock,
@@ -243,6 +254,7 @@ class TestSubmitResponseService:
 
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            _find_by_id_mock(form_row),
             patch(
                 f"{_SVC}.form_repo.find_for_update",
                 new_callable=AsyncMock,
@@ -290,6 +302,7 @@ class TestSubmitResponseService:
 
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            _find_by_id_mock(form_row),
             patch(
                 f"{_SVC}.form_repo.find_for_update",
                 new_callable=AsyncMock,
@@ -360,6 +373,7 @@ class TestDuplicateResponseAdvisoryLock:
 
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            _find_by_id_mock(form_row),
             patch(
                 f"{_SVC}.form_repo.find_for_update",
                 new_callable=AsyncMock,
@@ -419,6 +433,7 @@ class TestDuplicateResponseAdvisoryLock:
 
             with (
                 patch(f"{_SVC}.get_pool", return_value=mock_pool),
+                _find_by_id_mock(form_row),
                 patch(
                     f"{_SVC}.form_repo.find_for_update",
                     new_callable=AsyncMock,

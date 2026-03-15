@@ -42,7 +42,7 @@ class TestViewCountDedup:
 
         assert result == fake_post
         mock_redis.set.assert_awaited_once_with(
-            f"viewed:{post_id}:{viewer_id}", "1", ex=300, nx=True
+            f"viewed:{post_id}:{viewer_id}", "1", ex=86400, nx=True
         )
         mock_incr.assert_awaited_once_with(post_id)
 
@@ -119,6 +119,9 @@ class TestViewCountDedup:
         fake_row = {"id": post_id, "title": "Test", "user_id": uuid.uuid4()}
         fake_post = {"id": str(post_id), "title": "Test"}
 
+        mock_redis = AsyncMock()
+        mock_redis.smembers = AsyncMock(return_value=set())
+
         with (
             patch(
                 "app.services.post.post_repo.find_by_id",
@@ -128,7 +131,7 @@ class TestViewCountDedup:
             patch(
                 "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
             ) as mock_incr,
-            patch("app.services.post.get_redis") as mock_get_redis,
+            patch("app.services.post.get_redis", return_value=mock_redis),
             patch(
                 "app.services.post.async_row_to_post",
                 new_callable=AsyncMock,
@@ -143,7 +146,6 @@ class TestViewCountDedup:
 
         assert result == fake_post
         mock_incr.assert_not_awaited()
-        mock_get_redis.assert_not_called()
 
     @pytest.mark.anyio
     async def test_post_not_found(self):

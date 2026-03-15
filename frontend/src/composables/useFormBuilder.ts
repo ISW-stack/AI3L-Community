@@ -2,14 +2,14 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import type { Router } from 'vue-router'
 import type { Question, QuestionOption } from '@/types'
 import { getErrorMessage } from '@/utils/error'
-import { getForm, createForm, updateForm } from '@/api/forms'
+import { getForm, createForm, createStandaloneForm, updateForm } from '@/api/forms'
 import { getSig } from '@/api/sigs'
 import { uploadEditorFile } from '@/api/files'
 import { useFormHistory } from '@/composables/useFormHistory'
 import { useFormDraft } from '@/composables/useFormDraft'
 
 export interface FormBuilderOptions {
-  sigId: () => string
+  sigId: () => string | undefined
   formId: () => string
   router: Router
   t: (key: string, values?: Record<string, unknown>) => string
@@ -17,6 +17,7 @@ export interface FormBuilderOptions {
 
 export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions) {
   const isEdit = computed(() => !!formId())
+  const isStandalone = computed(() => !sigId())
 
   // ── Reactive state ──
   const title = ref('')
@@ -425,16 +426,18 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
         allowed_types: q.allowed_types || [],
         max_size_mb: q.max_size_mb ?? undefined,
       }))
-      breadcrumbSigId.value = data.sig_id
+      breadcrumbSigId.value = data.sig_id || ''
       for (const q of questions.value) {
         collapsedQuestions.value.add(q.id)
       }
       history.pushState(questions.value)
-      try {
-        const sigData = await getSig(data.sig_id)
-        sigName.value = sigData.name
-      } catch {
-        /* breadcrumb will show fallback */
+      if (data.sig_id) {
+        try {
+          const sigData = await getSig(data.sig_id)
+          sigName.value = sigData.name
+        } catch {
+          /* breadcrumb will show fallback */
+        }
       }
     } catch {
       error.value = t('forms.builder.loadError')
@@ -497,9 +500,14 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
         if (!isSchemaLocked.value) payload.questions = questions.value.map(serializeQuestion)
         await updateForm(formId(), payload)
         message.value = t('forms.builder.updateSuccess')
+      } else if (isStandalone.value) {
+        const serialized = questions.value.map(serializeQuestion)
+        const data = await createStandaloneForm({ ...payload, questions: serialized })
+        message.value = t('forms.builder.successMessage')
+        router.replace(`/forms/${data.id}`)
       } else {
         const serialized = questions.value.map(serializeQuestion)
-        const data = await createForm(sigId(), { ...payload, questions: serialized })
+        const data = await createForm(sigId()!, { ...payload, questions: serialized })
         message.value = t('forms.builder.successMessage')
         router.replace(`/forms/${data.id}`)
       }
@@ -525,7 +533,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
       } else {
         addQuestion()
       }
-      if (sigId()) fetchSigName(sigId())
+      if (sigId()) fetchSigName(sigId()!)
     }
     document.addEventListener('keydown', handleKeyboardShortcut)
     startAutoSave()
@@ -560,6 +568,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     showDraftBanner,
     // Computed
     isEdit,
+    isStandalone,
     hasInvalidRating,
     minDeadline,
     // Draft refs (for template access)

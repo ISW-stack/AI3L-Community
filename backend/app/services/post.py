@@ -7,9 +7,10 @@ import asyncpg
 from loguru import logger
 
 from app.converters.post_converter import async_row_to_post, row_to_history
-from app.core.constants import MAX_POSTS_PER_DAY
+from app.core.blacklist import get_blocked_user_ids
+from app.core.constants import MAX_POSTS_PER_DAY, POST_VIEW_DEDUP_TTL
 from app.core.database import get_pool
-from app.core.errors import RateLimitError
+from app.core.errors import NotFoundError, RateLimitError
 from app.core.event_bus import emit
 from app.core.redis import get_redis
 from app.repositories import post_repo
@@ -45,6 +46,7 @@ async def create_post(
     sig_id: str | None = None,
     keywords: list[str] | None = None,
     allow_comments: bool = True,
+    post_type: str = "post",
 ) -> dict:
     if not await _atomic_check_and_increment_post_limit(user_id):
         raise RateLimitError(f"Daily post limit ({MAX_POSTS_PER_DAY}) exceeded.")
@@ -71,6 +73,7 @@ async def create_post(
             sig_uuid,
             keywords,
             allow_comments,
+            post_type=post_type,
         )
     except asyncpg.exceptions.ForeignKeyViolationError:
         await _rollback_daily_post_count(user_id)
@@ -95,6 +98,32 @@ async def create_post(
                 extra={"error": str(e), "post_id": str(post_id)},
             )
 
+    # Sync citations from content
+    try:
+        from app.services.citation import sync_post_citations
+
+        await sync_post_citations(None, post_id, content, user_id)
+    except Exception as e:
+        logger.warning(
+            "Failed to sync citations after post creation",
+            extra={"error": str(e), "post_id": str(post_id)},
+        )
+
+    # Emit question.created event for Q&A auto-assignment
+    if post_type == "question":
+        try:
+            await emit(
+                "question.created",
+                post_id=str(post_id),
+                author_id=user_id,
+                keywords=keywords or [],
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to emit question.created event",
+                extra={"error": str(e), "post_id": str(post_id)},
+            )
+
     return await async_row_to_post(row)
 
 
@@ -106,11 +135,19 @@ async def get_post_by_id(
     row = await post_repo.find_by_id(post_id)
     if not row:
         return None
+
+    # Block check: if the viewer has blocked the author (or vice versa), treat as invisible
+    if viewer_id:
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+        if str(row["user_id"]) in blocked_ids:
+            return None
+
     if increment_view and viewer_id:
         redis = get_redis()
         view_key = f"viewed:{post_id}:{viewer_id}"
-        # Only increment if not viewed in last 5 minutes
-        is_new = await redis.set(view_key, "1", ex=300, nx=True)
+        # Only increment if not viewed in dedup window (24h)
+        is_new = await redis.set(view_key, "1", ex=POST_VIEW_DEDUP_TTL, nx=True)
         if is_new:
             await post_repo.increment_view_count(post_id)
     elif increment_view:
@@ -138,8 +175,16 @@ async def update_post(
                 return None
 
             is_admin = caller_role in ("ADMIN", "SUPER_ADMIN")
-            if str(current["user_id"]) != user_id and not is_admin:
-                raise PermissionError("You can only edit your own posts.")
+            is_owner = str(current["user_id"]) == user_id
+
+            # Check if user is an accepted co-author
+            from app.repositories import co_author_repo
+
+            is_co_author = await co_author_repo.is_accepted_co_author(
+                conn, post_id, uuid.UUID(user_id)
+            )
+            if not is_owner and not is_admin and not is_co_author:
+                raise PermissionError("Not authorized to edit this post")
 
             if current["version"] != expected_version:
                 raise ValueError("Version conflict. The post was modified by another request.")
@@ -168,7 +213,20 @@ async def update_post(
             logger.info(
                 "Post updated", extra={"post_id": str(post_id), "version": expected_version + 1}
             )
-            return await async_row_to_post(row)
+
+    # Sync citations if content changed (outside transaction for event emission)
+    if content is not None:
+        try:
+            from app.services.citation import sync_post_citations
+
+            await sync_post_citations(None, post_id, content, user_id)
+        except Exception as e:
+            logger.warning(
+                "Failed to sync citations after post update",
+                extra={"error": str(e), "post_id": str(post_id)},
+            )
+
+    return await async_row_to_post(row)
 
 
 async def _cleanup_post_files(post_id: uuid.UUID, user_id: str) -> None:
@@ -248,6 +306,17 @@ async def get_post_history(post_id: uuid.UUID) -> list[dict]:
     return [row_to_history(r) for r in rows]
 
 
+async def _get_exclude_user_ids(viewer_id: str | None) -> list[uuid.UUID] | None:
+    """Get list of blocked user UUIDs for the viewer, or None if no viewer/blocks."""
+    if not viewer_id:
+        return None
+    redis = get_redis()
+    blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+    if not blocked_ids:
+        return None
+    return [uuid.UUID(uid) for uid in blocked_ids]
+
+
 async def list_posts(
     page: int = 1,
     page_size: int = 20,
@@ -256,6 +325,8 @@ async def list_posts(
     author_id: str | None = None,
     sort: str = "newest",
     cursor: str | None = None,
+    post_type: str | None = None,
+    viewer_id: str | None = None,
 ) -> dict:
     """Returns a dict with posts and pagination metadata.
 
@@ -265,8 +336,11 @@ async def list_posts(
     cat_uuid = uuid.UUID(category_id) if category_id else None
     sig_uuid = uuid.UUID(sig_id) if sig_id else None
     author_uuid = uuid.UUID(author_id) if author_id else None
+    exclude = await _get_exclude_user_ids(viewer_id)
     result = await post_repo.find_many(
-        page, page_size, cat_uuid, sig_uuid, author_uuid, sort, cursor
+        page, page_size, cat_uuid, sig_uuid, author_uuid, sort, cursor,
+        post_type=post_type,
+        exclude_user_ids=exclude,
     )
     result["posts"] = list(await asyncio.gather(*[async_row_to_post(r) for r in result["posts"]]))
     return result
@@ -282,11 +356,16 @@ async def search_posts(
     page: int = 1,
     page_size: int = 20,
     sort: str = "newest",
+    post_type: str | None = None,
+    viewer_id: str | None = None,
 ) -> tuple[list[dict], int, int]:
     """Full-text search with compound filters."""
     cat_uuid = uuid.UUID(category_id) if category_id else None
+    exclude = await _get_exclude_user_ids(viewer_id)
     rows, total, total_pages = await post_repo.search(
-        keyword, cat_uuid, keywords_filter, date_from, date_to, logic, page, page_size, sort
+        keyword, cat_uuid, keywords_filter, date_from, date_to, logic, page, page_size, sort,
+        post_type=post_type,
+        exclude_user_ids=exclude,
     )
     posts = list(await asyncio.gather(*[async_row_to_post(r) for r in rows]))
     return posts, total, total_pages
@@ -296,8 +375,11 @@ async def pin_post(post_id: uuid.UUID, is_pinned: bool) -> bool:
     return await post_repo.update_pin_status(post_id, is_pinned)
 
 
-async def get_trending_posts(limit: int = 5, days: int = 7) -> list[dict]:
-    rows = await post_repo.find_trending(limit, days)
+async def get_trending_posts(
+    limit: int = 5, days: int = 7, viewer_id: str | None = None
+) -> list[dict]:
+    exclude = await _get_exclude_user_ids(viewer_id)
+    rows = await post_repo.find_trending(limit, days, exclude_user_ids=exclude)
     return list(await asyncio.gather(*[async_row_to_post(r) for r in rows]))
 
 

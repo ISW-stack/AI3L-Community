@@ -40,9 +40,14 @@ class TestSelfReferencingCommentRejected:
         # then pass that same id as parent_id.
         fixed_id = uuid.uuid4()
 
+        mock_redis = AsyncMock()
+        mock_redis.smembers = AsyncMock(return_value=set())
+
         with (
             patch("app.services.comment.uuid.uuid4", return_value=fixed_id),
             patch("app.services.comment.get_pool", return_value=MagicMock()),
+            patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None),
+            patch("app.services.comment.get_redis", return_value=mock_redis),
         ):
             from app.services.comment import create_comment
 

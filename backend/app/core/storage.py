@@ -158,3 +158,21 @@ def generate_form_upload_key(form_id: str, extension: str) -> str:
 def generate_form_export_key(form_id: str, task_id: str) -> str:
     """Generate storage key for form CSV export."""
     return f"exports/forms/{form_id}/{task_id}.csv"
+
+
+# ── Album storage keys ─────────────────────────────────────────────────────
+
+
+def album_photo_key(album_id: str, filename_uuid: str, ext: str) -> str:
+    """Generate storage key for an album photo."""
+    return f"albums/{album_id}/photos/{filename_uuid}.{ext}"
+
+
+def album_thumbnail_key(album_id: str, filename_uuid: str) -> str:
+    """Generate storage key for an album photo thumbnail."""
+    return f"albums/{album_id}/thumbs/{filename_uuid}.webp"
+
+
+def album_zip_key(album_id: str, filename_uuid: str, ext: str) -> str:
+    """Generate storage key for an album ZIP file."""
+    return f"albums/{album_id}/files/{filename_uuid}.{ext}"

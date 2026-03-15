@@ -38,6 +38,7 @@ const {
   dropTargetIndex,
   showDraftBanner,
   isEdit,
+  isStandalone,
   hasInvalidRating,
   minDeadline,
   draftTime,
@@ -73,7 +74,7 @@ const {
   uploadBanner,
   saveForm,
 } = useFormBuilder({
-  sigId: () => route.params.sigId as string,
+  sigId: () => (route.params.sigId as string) || undefined,
   formId: () => route.params.formId as string,
   router,
   t,
@@ -83,6 +84,15 @@ const {
 <template>
   <div class="max-w-3xl mx-auto pb-24 overflow-x-hidden">
     <BaseBreadcrumb
+      v-if="isStandalone"
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.forms'), to: '/forms' },
+        { label: isEdit ? title || t('forms.builder.editTitle') : t('forms.builder.createTitle') },
+      ]"
+    />
+    <BaseBreadcrumb
+      v-else
       :items="[
         { label: t('breadcrumb.home'), to: '/' },
         { label: t('breadcrumb.sigs'), to: '/sigs' },
@@ -183,13 +193,15 @@ const {
             />
           </div>
         </div>
-        <label class="flex items-center gap-2 text-sm text-foreground mt-4">
-          <input type="checkbox" v-model="allowNonMembers" class="rounded" />
-          {{ t('forms.builder.allowNonMembers') }}
-        </label>
-        <p class="text-xs text-muted mt-1">
-          {{ t('forms.builder.allowNonMembersHint') }}
-        </p>
+        <template v-if="!isStandalone">
+          <label class="flex items-center gap-2 text-sm text-foreground mt-4">
+            <input type="checkbox" v-model="allowNonMembers" class="rounded" />
+            {{ t('forms.builder.allowNonMembers') }}
+          </label>
+          <p class="text-xs text-muted mt-1">
+            {{ t('forms.builder.allowNonMembersHint') }}
+          </p>
+        </template>
       </BaseCard>
 
       <div class="mb-6">

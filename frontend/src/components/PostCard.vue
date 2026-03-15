@@ -3,13 +3,15 @@ import { computed, ref, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
 import type { Post } from '@/types'
+import type { CoAuthor } from '@/types/coauthor'
 import { useAuthStore } from '@/stores/auth'
 import { togglePostReaction } from '@/api/posts'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
-import { Pin, Eye, MessageCircle } from 'lucide-vue-next'
+import { Pin, Eye, MessageCircle, Quote, HelpCircle, MessageSquare } from 'lucide-vue-next'
 import ReactionPicker from '@/components/ReactionPicker.vue'
+import CoAuthorBadges from '@/components/post/CoAuthorBadges.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -38,13 +40,21 @@ const PREVIEW_ALLOWED_TAGS = [
 const props = withDefaults(
   defineProps<{
     post: Post
+    coAuthors?: CoAuthor[]
     formatTime?: (dateStr: string) => string
     maxPreviewLines?: number
   }>(),
   {
+    coAuthors: () => [],
     formatTime: undefined,
     maxPreviewLines: 15,
   },
+)
+
+const isQuestion = computed(() => props.post.type === 'question')
+const postLink = computed(() => isQuestion.value ? `/qa/${props.post.id}` : `/forum/${props.post.id}`)
+const acceptedCoAuthors = computed(() =>
+  props.coAuthors.filter((ca) => ca.status === 'ACCEPTED'),
 )
 
 const emit = defineEmits<{
@@ -163,13 +173,14 @@ function displayTime(dateStr: string): string {
         <BaseAvatar :src="post.author.avatar_url" :name="post.author.display_name" size="sm" />
       </router-link>
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <router-link
             :to="`/users/${post.author.id}`"
             class="text-sm font-semibold text-foreground hover:text-brand-600 hover:underline"
           >
             {{ post.author.display_name }}
           </router-link>
+          <CoAuthorBadges v-if="acceptedCoAuthors.length > 0" :co-authors="acceptedCoAuthors" />
           <span
             v-if="post.is_pinned"
             class="inline-flex items-center gap-1 text-xs font-medium text-amber-600"
@@ -177,6 +188,13 @@ function displayTime(dateStr: string): string {
             <Pin class="w-3 h-3" />
             {{ t('post.card.pinned') }}
           </span>
+          <BaseBadge
+            v-if="isQuestion"
+            class="!text-[10px] !px-1.5 !py-0 !bg-purple-100 !text-purple-700"
+          >
+            <HelpCircle class="w-3 h-3 mr-0.5 inline" />
+            Question
+          </BaseBadge>
         </div>
         <div class="flex items-center gap-2 text-xs text-muted">
           <span>{{ displayTime(post.created_at) }}</span>
@@ -188,7 +206,7 @@ function displayTime(dateStr: string): string {
     </div>
 
     <!-- Post Title — link to post -->
-    <router-link :to="`/forum/${post.id}`" class="block px-4">
+    <router-link :to="postLink" class="block px-4">
       <h2 class="text-base font-bold text-foreground mb-1.5">{{ post.title }}</h2>
     </router-link>
 
@@ -212,7 +230,7 @@ function displayTime(dateStr: string): string {
     </div>
 
     <!-- Full-width image below content -->
-    <router-link v-if="thumbnailUrl" :to="`/forum/${post.id}`" class="block">
+    <router-link v-if="thumbnailUrl" :to="postLink" class="block">
       <img
         :src="thumbnailUrl"
         :alt="post.title || 'Post image'"
@@ -250,6 +268,18 @@ function displayTime(dateStr: string): string {
       <span class="text-sm text-muted flex items-center gap-1">
         <Eye class="w-3.5 h-3.5" />
         {{ post.view_count }}
+      </span>
+      <span v-if="post.citation_count > 0" class="text-sm text-muted flex items-center gap-1">
+        <Quote class="w-3.5 h-3.5" />
+        {{ post.citation_count }}
+      </span>
+      <span
+        v-if="isQuestion"
+        class="text-sm flex items-center gap-1"
+        :class="post.best_answer_id ? 'text-green-600' : 'text-muted'"
+      >
+        <MessageSquare class="w-3.5 h-3.5" />
+        {{ post.answer_count }} {{ post.answer_count === 1 ? 'answer' : 'answers' }}
       </span>
       <span v-if="post.last_comment_at" class="text-xs text-muted ml-auto">
         {{ t('post.card.lastReply', { time: displayTime(post.last_comment_at) }) }}

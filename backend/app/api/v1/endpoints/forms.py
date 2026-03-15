@@ -3,7 +3,14 @@ import uuid
 import asyncpg
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.constants import RATE_LIMIT_FORM_EXPORT, RATE_LIMIT_FORM_STATS, RATE_LIMIT_FORM_SUBMIT
+from app.core.constants import (
+    DEFAULT_PAGE_SIZE_STANDALONE_FORMS,
+    MAX_PAGE_SIZE,
+    RATE_LIMIT_FORM_EXPORT,
+    RATE_LIMIT_FORM_STATS,
+    RATE_LIMIT_FORM_SUBMIT,
+    RATE_LIMIT_STANDALONE_FORM,
+)
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
@@ -29,6 +36,7 @@ from app.services.form import (
     get_user_response,
     list_form_responses,
     list_forms_by_sig,
+    list_standalone_forms as list_standalone_forms_svc,
     soft_delete_form,
     submit_response,
     update_form,
@@ -90,6 +98,51 @@ async def get_sig_forms(
     )
 
 
+@router.post(
+    "/forms",
+    response_model=FormResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_standalone_form(
+    req: FormCreateRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> FormResponseSchema:
+    """Create a standalone form (not attached to any SIG)."""
+    user_id = current_user["sub"]
+    if not await check_rate_limit(
+        f"rl:standalone_form:{user_id}", *RATE_LIMIT_STANDALONE_FORM
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+    try:
+        form = await create_form(
+            sig_id=None,
+            user_id=user_id,
+            title=req.title,
+            description=sanitize_html(req.description) if req.description else req.description,
+            banner_url=req.banner_url,
+            deadline=req.deadline,
+            max_respondents=req.max_respondents,
+            questions=[q.model_dump() for q in req.questions],
+            allow_non_members=True,
+        )
+    except ValueError as e:
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, str(e))
+    return FormResponseSchema(**form)
+
+
+@router.get("/forms", response_model=FormListResponse)
+async def list_standalone_forms_endpoint(
+    page: int = Query(1, ge=1, le=10000),
+    page_size: int = Query(DEFAULT_PAGE_SIZE_STANDALONE_FORMS, ge=1, le=MAX_PAGE_SIZE),
+) -> FormListResponse:
+    """List standalone forms (public, no auth required)."""
+    forms, total = await list_standalone_forms_svc(page=page, page_size=page_size)
+    return FormListResponse(
+        forms=[FormResponseSchema(**f) for f in forms],
+        total=total,
+    )
+
+
 @router.get("/forms/{form_id}/my-response", response_model=FormUserResponseSchema)
 async def get_my_response(
     form_id: uuid.UUID,
@@ -99,7 +152,8 @@ async def get_my_response(
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     # If form restricts access to SIG members only, verify membership
-    if not form.get("allow_non_members", False):
+    # Standalone forms (sig_id is None) skip this check
+    if form.get("sig_id") and not form.get("allow_non_members", False):
         is_admin = await _is_sig_admin(
             uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
@@ -130,10 +184,14 @@ async def get_form_statistics(
     form = await get_form_by_id(form_id)
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
-    is_admin = await _is_sig_admin(
-        uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
-    )
     is_creator = form["created_by"] == current_user["sub"]
+    if form.get("sig_id"):
+        is_admin = await _is_sig_admin(
+            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+        )
+    else:
+        # Standalone form — only platform admins or the creator
+        is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     if not is_admin and not is_creator:
         raise AppError(
             ErrorCode.SYS_403,
@@ -155,20 +213,24 @@ async def get_form(
     form = await get_form_by_id(form_id, user_id=current_user["sub"])
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
-    is_admin = await _is_sig_admin(
-        uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
-    )
-    # If form restricts access to SIG members only, verify membership
-    if not form.get("allow_non_members", False) and not is_admin:
-        member_role = await sig_repo.get_member_role(
-            uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
+    if form.get("sig_id"):
+        is_admin = await _is_sig_admin(
+            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
-        if member_role is None:
-            raise AppError(
-                ErrorCode.SYS_403,
-                status.HTTP_403_FORBIDDEN,
-                "Only SIG members can view this form.",
+        # If form restricts access to SIG members only, verify membership
+        if not form.get("allow_non_members", False) and not is_admin:
+            member_role = await sig_repo.get_member_role(
+                uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
             )
+            if member_role is None:
+                raise AppError(
+                    ErrorCode.SYS_403,
+                    status.HTTP_403_FORBIDDEN,
+                    "Only SIG members can view this form.",
+                )
+    else:
+        # Standalone form — no SIG admin check needed
+        is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     form["user_is_sig_admin"] = is_admin
     return FormResponseSchema(**form)
 
@@ -179,19 +241,23 @@ async def update_existing_form(
     req: FormUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormResponseSchema:
-    # Fetch form to validate SIG ownership
+    # Fetch form to validate ownership
     existing_form = await get_form_by_id(form_id)
     if existing_form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
-    is_admin = await _is_sig_admin(
-        uuid.UUID(existing_form["sig_id"]), current_user["sub"], current_user["role"]
-    )
+    if existing_form.get("sig_id"):
+        is_admin = await _is_sig_admin(
+            uuid.UUID(existing_form["sig_id"]), current_user["sub"], current_user["role"]
+        )
+    else:
+        # Standalone form — only platform admins or the creator
+        is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     if not is_admin and existing_form["created_by"] != current_user["sub"]:
         raise AppError(
             ErrorCode.SYS_403,
             status.HTTP_403_FORBIDDEN,
-            "Only SIG admins or the form creator can update this form.",
+            "Only admins or the form creator can update this form.",
         )
 
     # Note: _is_sig_admin() already checks platform admin roles, no need to re-check
@@ -230,9 +296,10 @@ async def delete_form(
         form = await get_form_by_id(form_id)
         if form is None:
             raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
-        is_admin = await _is_sig_admin(
-            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
-        )
+        if form.get("sig_id"):
+            is_admin = await _is_sig_admin(
+                uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+            )
 
     try:
         deleted = await soft_delete_form(form_id, current_user["sub"], is_admin)
@@ -253,17 +320,26 @@ async def get_form_responses(
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
-    is_admin = await _is_sig_admin(
-        uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
-    )
+    if form.get("sig_id"):
+        is_admin = await _is_sig_admin(
+            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+        )
+    else:
+        # Standalone form — only platform admins or the creator can view responses
+        is_admin = (
+            current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+            or form["created_by"] == current_user["sub"]
+        )
     if not is_admin:
         raise AppError(
             ErrorCode.SYS_403,
             status.HTTP_403_FORBIDDEN,
-            "Only SIG admins can view form responses.",
+            "Only admins or the form creator can view form responses.",
         )
 
-    responses, total = await list_form_responses(form_id, page=page, page_size=page_size)
+    responses, total = await list_form_responses(
+        form_id, page=page, page_size=page_size, viewer_id=current_user["sub"]
+    )
     return FormResponseListResponse(
         responses=[FormResponseItem(**r) for r in responses], total=total
     )
@@ -317,14 +393,21 @@ async def export_form_csv(
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
-    is_admin = await _is_sig_admin(
-        uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
-    )
+    if form.get("sig_id"):
+        is_admin = await _is_sig_admin(
+            uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
+        )
+    else:
+        # Standalone form — only platform admins or the creator can export
+        is_admin = (
+            current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+            or form["created_by"] == current_user["sub"]
+        )
     if not is_admin:
         raise AppError(
             ErrorCode.SYS_403,
             status.HTTP_403_FORBIDDEN,
-            "Only SIG admins can export form data.",
+            "Only admins or the form creator can export form data.",
         )
 
     if not await check_rate_limit(f"rl:form_export:{user_id}:{form_id}", *RATE_LIMIT_FORM_EXPORT):

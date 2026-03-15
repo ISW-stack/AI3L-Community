@@ -157,8 +157,9 @@ class TestUpdatePostAdminEdit:
         result = await update_post(post_id, admin_id, title="Updated", caller_role="SUPER_ADMIN")
         assert result is not None
 
+    @patch("app.repositories.co_author_repo.is_accepted_co_author", new_callable=AsyncMock, return_value=False)
     @patch("app.services.post.get_pool")
-    async def test_member_cannot_edit_others_post(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_member_cannot_edit_others_post(self, mock_get_pool, mock_co_author, mock_pool, mock_conn):
         from app.services.post import update_post
 
         owner_id = str(uuid.uuid4())
@@ -169,11 +170,12 @@ class TestUpdatePostAdminEdit:
         mock_conn.fetchrow = AsyncMock(return_value=current_row)
         mock_get_pool.return_value = mock_pool
 
-        with pytest.raises(PermissionError, match="only edit your own"):
+        with pytest.raises(PermissionError, match="Not authorized"):
             await update_post(post_id, other_id, title="Hacked", caller_role="MEMBER")
 
+    @patch("app.repositories.co_author_repo.is_accepted_co_author", new_callable=AsyncMock, return_value=False)
     @patch("app.services.post.get_pool")
-    async def test_default_caller_role_is_member(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_default_caller_role_is_member(self, mock_get_pool, mock_co_author, mock_pool, mock_conn):
         """Without caller_role arg, non-owner should still be rejected."""
         from app.services.post import update_post
 

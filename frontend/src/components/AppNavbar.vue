@@ -107,14 +107,35 @@ onUnmounted(() => {
             >{{ t('nav.forum') }}</router-link
           >
           <router-link
+            to="/qa"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.qa') }}</router-link
+          >
+          <router-link
             to="/sigs"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.sigs') }}</router-link
           >
           <router-link
+            to="/forms"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.forms') }}</router-link
+          >
+          <router-link
+            to="/albums"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.albums') }}</router-link
+          >
+          <router-link
             to="/about"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.about') }}</router-link
+          >
+          <router-link
+            v-if="auth.isAuthenticated && !auth.isGuest"
+            to="/friends"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.friends') }}</router-link
           >
 
           <template v-if="auth.isAuthenticated">
@@ -291,19 +312,47 @@ onUnmounted(() => {
             {{ t('nav.forum') }}
           </router-link>
           <router-link
+            to="/qa"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.qa') }}
+          </router-link>
+          <router-link
             to="/sigs"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.sigs') }}
           </router-link>
-
+          <router-link
+            to="/forms"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.forms') }}
+          </router-link>
+          <router-link
+            to="/albums"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.albums') }}
+          </router-link>
           <router-link
             to="/about"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.about') }}
+          </router-link>
+          <router-link
+            v-if="auth.isAuthenticated && !auth.isGuest"
+            to="/friends"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.friends') }}
           </router-link>
 
           <template v-if="auth.isAuthenticated">

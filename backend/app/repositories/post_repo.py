@@ -76,6 +76,7 @@ async def insert(
     sig_id: uuid.UUID | None,
     keywords: list[str] | None,
     allow_comments: bool,
+    post_type: str = "post",
 ) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -83,9 +84,9 @@ async def insert(
             f"""
             WITH inserted AS (
                 INSERT INTO posts (
-                    id, user_id, title, content, category_id, sig_id, keywords, allow_comments
+                    id, user_id, title, content, category_id, sig_id, keywords, allow_comments, type
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING *
             )
             {_POST_SELECT.replace("FROM posts p", "FROM inserted p")}
@@ -98,6 +99,7 @@ async def insert(
             sig_id,
             keywords,
             allow_comments,
+            post_type,
         )
         return dict(row)
 
@@ -229,6 +231,8 @@ async def find_many(
     author_id: uuid.UUID | None = None,
     sort: str = "newest",
     cursor: str | None = None,
+    post_type: str | None = None,
+    exclude_user_ids: list[uuid.UUID] | None = None,
 ) -> dict:
     """Fetch posts with either OFFSET pagination (cursor=None) or keyset pagination.
 
@@ -259,6 +263,16 @@ async def find_many(
     if author_id:
         where += f" AND p.user_id = ${idx}"
         params.append(author_id)
+        idx += 1
+
+    if post_type:
+        where += f" AND p.type = ${idx}"
+        params.append(post_type)
+        idx += 1
+
+    if exclude_user_ids:
+        where += f" AND p.user_id != ALL(${idx}::uuid[])"
+        params.append(exclude_user_ids)
         idx += 1
 
     # ------------------------------------------------------------------ cursor mode
@@ -404,6 +418,8 @@ async def search(
     page: int = 1,
     page_size: int = 20,
     sort: str = "newest",
+    post_type: str | None = None,
+    exclude_user_ids: list[uuid.UUID] | None = None,
 ) -> tuple[list[dict], int, int]:
     pool = get_pool()
     offset = (page - 1) * page_size
@@ -448,6 +464,16 @@ async def search(
         # to avoid asyncpg type-inference issues with INTERVAL arithmetic).
         conditions.append(f"p.created_at < ${idx}")
         params.append(datetime(date_to.year, date_to.month, date_to.day) + timedelta(days=1))
+        idx += 1
+
+    if post_type:
+        conditions.append(f"p.type = ${idx}")
+        params.append(post_type)
+        idx += 1
+
+    if exclude_user_ids:
+        conditions.append(f"p.user_id != ALL(${idx}::uuid[])")
+        params.append(exclude_user_ids)
         idx += 1
 
     where = "WHERE " + " AND ".join(conditions)
@@ -530,19 +556,28 @@ async def update_last_comment_at(post_id: uuid.UUID, conn: Any) -> None:
     )
 
 
-async def find_trending(limit: int = 5, days: int = 7) -> list[dict]:
+async def find_trending(
+    limit: int = 5,
+    days: int = 7,
+    exclude_user_ids: list[uuid.UUID] | None = None,
+) -> list[dict]:
     pool = get_pool()
+    params: list = [days, limit]
+    exclusion_clause = ""
+    if exclude_user_ids:
+        exclusion_clause = " AND p.user_id != ALL($3::uuid[])"
+        params.append(exclude_user_ids)
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             f"""
             {_POST_SELECT}
             WHERE p.is_deleted = false
               AND p.created_at >= NOW() - make_interval(days => $1)
+              {exclusion_clause}
             ORDER BY p.comment_count DESC, p.created_at DESC
             LIMIT $2
             """,
-            days,
-            limit,
+            *params,
         )
         return [dict(r) for r in rows]
 

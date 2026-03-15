@@ -3,9 +3,12 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     about,
     admin,
+    albums,
     applications,
     auth,
     categories,
+    citations,
+    co_authors,
     comments,
     files,
     forms,
@@ -14,8 +17,11 @@ from app.api.v1.endpoints import (
     posts,
     preferences,
     public,
+    qa,
+    recommendations,
     reports,
     sigs,
+    social,
     tasks,
     users,
     ws,
@@ -38,6 +44,12 @@ api_v1_router.include_router(files.router)
 api_v1_router.include_router(reports.router)
 api_v1_router.include_router(sigs.router)
 api_v1_router.include_router(forms.router)
+api_v1_router.include_router(albums.router)
+api_v1_router.include_router(social.router)
+api_v1_router.include_router(recommendations.router)
+api_v1_router.include_router(qa.router)
+api_v1_router.include_router(co_authors.router)
+api_v1_router.include_router(citations.router)
 api_v1_router.include_router(notifications.router)
 api_v1_router.include_router(tasks.router)
 api_v1_router.include_router(ws.router)

@@ -4,9 +4,11 @@ import uuid
 from loguru import logger
 
 from app.converters.comment_converter import async_row_to_comment
+from app.core.blacklist import get_blocked_user_ids
 from app.core.constants import MAX_COMMENTS_PER_POST
 from app.core.database import get_pool
 from app.core.event_bus import emit
+from app.core.redis import get_redis
 from app.repositories import comment_repo
 
 
@@ -17,6 +19,16 @@ async def create_comment(
     parent_id: str | None = None,
     mentions: list[str] | None = None,
 ) -> dict:
+    # Block check: cannot comment if blocked by or blocking the post author
+    from app.repositories import post_repo
+
+    post_owner_id = await post_repo.find_owner_id(post_id)
+    if post_owner_id and post_owner_id != user_id:
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, user_id)
+        if post_owner_id in blocked_ids:
+            raise ValueError("Cannot comment on this post.")
+
     pool = get_pool()
     comment_id = uuid.uuid4()
     parent_uuid = uuid.UUID(parent_id) if parent_id else None
@@ -102,9 +114,18 @@ async def list_comments(
     post_id: uuid.UUID,
     page: int = 1,
     page_size: int = 50,
+    viewer_id: str | None = None,
 ) -> tuple[list[dict], int]:
+    exclude: list[uuid.UUID] | None = None
+    if viewer_id:
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+        if blocked_ids:
+            exclude = [uuid.UUID(uid) for uid in blocked_ids]
     offset = (page - 1) * page_size
-    rows, total = await comment_repo.find_many(post_id, offset, page_size)
+    rows, total = await comment_repo.find_many(
+        post_id, offset, page_size, exclude_user_ids=exclude
+    )
     comments = list(await asyncio.gather(*[async_row_to_comment(r) for r in rows]))
     return comments, total
 

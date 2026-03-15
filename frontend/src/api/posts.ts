@@ -9,6 +9,7 @@ export async function listPosts(params: {
   category_id?: string
   author_id?: string
   sort?: string
+  type?: 'post' | 'question'
 }) {
   const { data } = await api.get('/posts', { params })
   return assertShape<PostListResponse>(data, ['posts', 'total'], 'listPosts')
@@ -26,6 +27,7 @@ export async function createPost(payload: {
   sig_id?: string
   keywords?: string[]
   allow_comments?: boolean
+  type?: 'post' | 'question'
 }) {
   const { data } = await api.post('/posts', payload)
   return data as Post

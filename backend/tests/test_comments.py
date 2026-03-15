@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -101,10 +101,15 @@ class TestCommentNotificationUsesPostId:
         async def mock_emit(event, **kwargs):
             emit_calls.append((event, kwargs))
 
+        mock_redis = AsyncMock()
+        mock_redis.smembers = AsyncMock(return_value=set())
+
         with (
             patch("app.services.comment.get_pool", return_value=mock_pool_obj),
             patch("app.services.comment.emit", side_effect=mock_emit),
             patch("app.converters.shared.resolve_avatar_url", return_value=None),
+            patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None),
+            patch("app.services.comment.get_redis", return_value=mock_redis),
         ):
             from app.services.comment import create_comment
 
@@ -180,6 +185,9 @@ class TestCommentNotificationUsesPostId:
         async def mock_emit(event, **kwargs):
             emit_calls.append((event, kwargs))
 
+        mock_redis = AsyncMock()
+        mock_redis.smembers = AsyncMock(return_value=set())
+
         with (
             patch("app.services.comment.get_pool", return_value=mock_pool_obj),
             patch("app.services.comment.emit", side_effect=mock_emit),
@@ -189,6 +197,8 @@ class TestCommentNotificationUsesPostId:
                 new_callable=AsyncMock,
                 return_value=parent_user_id,
             ),
+            patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None),
+            patch("app.services.comment.get_redis", return_value=mock_redis),
         ):
             from app.services.comment import create_comment
 
@@ -257,7 +267,7 @@ class TestGetCommentsPagination:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
-                mock_list.assert_called_once_with(post_id, page=2, page_size=10)
+                mock_list.assert_called_once_with(post_id, page=2, page_size=10, viewer_id=ANY)
         finally:
             _clear_overrides()
 

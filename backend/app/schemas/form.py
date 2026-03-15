@@ -68,7 +68,7 @@ class FormUpdateRequest(BaseModel):
 
 class FormResponseSchema(BaseModel):
     id: str
-    sig_id: str
+    sig_id: str | None = None
     title: str
     description: str | None = None
     banner_url: str | None = None

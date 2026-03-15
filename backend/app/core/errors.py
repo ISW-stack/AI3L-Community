@@ -16,6 +16,18 @@ class ErrorCode(str, Enum):
     SYS_500 = "SYS_500"  # Internal server error
     FILE_001 = "FILE_001"  # Invalid magic number / malware
     FORM_001 = "FORM_001"  # Form deadline passed
+    ALBUM_001 = "ALBUM_001"  # Album not found / access denied
+    ALBUM_002 = "ALBUM_002"  # Photo upload limit exceeded
+    ALBUM_003 = "ALBUM_003"  # Invalid file type for album
+    SOCIAL_001 = "SOCIAL_001"  # Already friends / duplicate request
+    SOCIAL_002 = "SOCIAL_002"  # Block limit exceeded
+    SOCIAL_003 = "SOCIAL_003"  # Cannot interact with blocked user
+    COAUTHOR_001 = "COAUTHOR_001"  # Co-author limit exceeded
+    COAUTHOR_002 = "COAUTHOR_002"  # Already a co-author / duplicate invite
+    CITATION_001 = "CITATION_001"  # Invalid citation reference
+    QA_001 = "QA_001"  # Not question author (best answer)
+    QA_002 = "QA_002"  # Cannot vote on own answer
+    QA_003 = "QA_003"  # Question not found
 
 
 class AppError(HTTPException):

@@ -5,7 +5,7 @@ const props = withDefaults(
   defineProps<{
     src?: string | null
     name: string
-    size?: 'sm' | 'md' | 'lg'
+    size?: 'xs' | 'sm' | 'md' | 'lg'
   }>(),
   { src: null, size: 'sm' },
 )
@@ -20,6 +20,8 @@ watch(
 
 const sizeClass = computed(() => {
   switch (props.size) {
+    case 'xs':
+      return 'w-5 h-5 text-[10px]'
     case 'sm':
       return 'w-8 h-8 text-xs'
     case 'md':
@@ -32,7 +34,7 @@ const sizeClass = computed(() => {
 })
 
 const sizePx = computed(() => {
-  const map: Record<string, number> = { sm: 32, md: 40, lg: 80 }
+  const map: Record<string, number> = { xs: 20, sm: 32, md: 40, lg: 80 }
   return map[props.size ?? 'sm'] ?? 32
 })
 

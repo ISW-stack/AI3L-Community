@@ -63,6 +63,17 @@ async def get_current_user(
     return payload
 
 
+async def get_optional_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+) -> dict | None:
+    """Try to get current user, return None if not authenticated."""
+    try:
+        return await get_current_user(request, credentials)
+    except (AppError, Exception):
+        return None
+
+
 def require_role(*allowed_roles: str) -> Any:
     """Dependency factory: restrict endpoint to specific roles."""
 

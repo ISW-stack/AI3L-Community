@@ -140,7 +140,11 @@ export default {
   nav: {
     ariaLabel: 'Main navigation',
     forum: 'Forum',
+    qa: 'Q&A',
     sigs: 'SIGs',
+    forms: 'Forms',
+    albums: 'Albums',
+    friends: 'Friends',
     about: 'About',
     admin: 'Admin',
     dashboard: 'Dashboard',
@@ -410,6 +414,7 @@ export default {
       insertLink: 'Insert link',
       insertFile: 'Insert image or file',
       insertTable: 'Insert table',
+      cite: 'Insert citation',
       undo: 'Undo',
       redo: 'Redo',
     },
@@ -725,9 +730,15 @@ export default {
     memberInfo: 'Member Info',
     tabs: {
       general: 'General',
+      social: 'Social',
       security: 'Security',
       dangerZone: 'Danger Zone',
     },
+    social: {
+      quickLinks: 'Quick Links',
+    },
+    viewCount: '{unique} unique visitors, {total} total views',
+    coAuthoredPosts: 'Co-Authored Posts',
     form: {
       usernameLabel: 'Username',
       displayNameLabel: 'Display Name',
@@ -801,6 +812,8 @@ export default {
     postsTitle: 'Posts',
     postsEmptyTitle: 'No posts yet',
     postsEmptyMessage: "This user hasn't posted anything.",
+    coAuthoredEmptyTitle: 'No co-authored posts',
+    coAuthoredEmptyMessage: 'This user has not co-authored any posts yet.',
     fetchError: 'Failed to load user profile.',
     fetchPostsError: 'Failed to load user posts.',
   },
@@ -1123,5 +1136,99 @@ export default {
     RATE_LIMIT: 'Too many requests. Please try again later.',
     RATE_LIMIT_RETRY: 'Too many requests. Please retry after {seconds} seconds.',
     unknown: 'An unexpected error occurred.',
+  },
+
+  // ── Forms Directory ──
+  formsDirectory: {
+    title: 'Forms',
+    createForm: 'Create Form',
+    noForms: 'No forms available',
+    responses: 'responses',
+    active: 'Active',
+    closed: 'Closed',
+  },
+
+  // ── Albums ──
+  albums: {
+    title: 'Albums',
+    createAlbum: 'Create Album',
+    photos: 'Photos',
+    members: 'Members',
+    comments: 'Comments',
+    noAlbums: 'No albums yet',
+    upload: 'Upload Photo',
+    archived: 'Archived',
+  },
+
+  // ── Social ──
+  social: {
+    friends: 'Friends',
+    following: 'Following',
+    followers: 'Followers',
+    blockedUsers: 'Blocked Users',
+    addFriend: 'Add Friend',
+    unfriend: 'Unfriend',
+    follow: 'Follow',
+    unfollow: 'Unfollow',
+    block: 'Block',
+    unblock: 'Unblock',
+    requestSent: 'Request Sent',
+    acceptRequest: 'Accept',
+    declineRequest: 'Decline',
+    noFriends: 'No friends yet',
+    noFollowers: 'No followers yet',
+    noBlocked: 'No blocked users',
+    blockLimit: 'You can block up to 5 users',
+  },
+
+  // ── Q&A ──
+  qa: {
+    title: 'Q&A',
+    askQuestion: 'Ask a Question',
+    noQuestions: 'No questions yet',
+    answered: 'Answered',
+    unanswered: 'Unanswered',
+    answers: 'answers',
+    bestAnswer: 'Best Answer',
+    markBest: 'Mark as Best Answer',
+    unmarkBest: 'Unmark Best Answer',
+    votes: 'votes',
+  },
+
+  // ── Co-Authors ──
+  coauthors: {
+    title: 'Co-Authors',
+    invite: 'Invite Co-Author',
+    addExternal: 'Add External',
+    pending: 'Pending',
+    accepted: 'Accepted',
+    rejected: 'Rejected',
+    invitations: 'Co-Author Invitations',
+    noInvitations: 'No pending invitations.',
+    invitedBy: 'Invited by',
+    acceptSuccess: 'Invitation accepted.',
+    rejectSuccess: 'Invitation declined.',
+    maxReached: 'Maximum co-authors reached (10)',
+  },
+
+  // ── Citations ──
+  citations: {
+    citedBy: 'Cited by',
+    references: 'References',
+    searchPosts: 'Search posts to cite',
+    selfCitation: 'self',
+    cite: 'Cite',
+  },
+
+  // ── Recommendations ──
+  recommendations: {
+    title: 'People You May Know',
+    dismiss: 'Dismiss',
+    noRecommendations: 'No recommendations available',
+    sharedSigs: 'shared SIG | shared SIGs',
+    mutualFriends: 'mutual friend | mutual friends',
+    similarInterests: 'Similar interests',
+    sameAffiliation: 'Same affiliation',
+    recentlyActive: 'Recently active',
   },
 }

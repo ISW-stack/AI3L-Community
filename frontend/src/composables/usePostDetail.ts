@@ -10,6 +10,8 @@ import {
 } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import type { Post, HistoryItem, Comment } from '@/types'
+import type { CoAuthor } from '@/types/coauthor'
+import type { CitationEntry } from '@/types/citation'
 import {
   getPost,
   updatePost,
@@ -27,6 +29,8 @@ import {
 } from '@/api/comments'
 import { createReport } from '@/api/reports'
 import { getFileScanStatus } from '@/api/files'
+import { listCoAuthors } from '@/api/coauthors'
+import { getCitedBy, getCiting } from '@/api/citations'
 import DOMPurify from 'dompurify'
 import { extractMentions } from '@/utils/html'
 import { getErrorMessage } from '@/utils/error'
@@ -115,6 +119,13 @@ export function usePostDetail(options: UsePostDetailOptions) {
   // --- Pin ---
   const pinSaving = ref(false)
 
+  // --- Co-Authors ---
+  const coAuthors = ref<CoAuthor[]>([])
+
+  // --- Citations ---
+  const citedBy = ref<CitationEntry[]>([])
+  const citing = ref<CitationEntry[]>([])
+
   // --- VirusTotal scan ---
   const imageScanStatuses = ref<
     Record<string, 'pending' | 'clean' | 'malicious' | 'unknown' | 'skipped'>
@@ -127,7 +138,13 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   // --- Computed ---
   const isAuthor = computed(() => post.value && auth.user && post.value.author.id === auth.user.id)
-  const canModify = computed(() => isAuthor.value || auth.isAdmin)
+  const isCoAuthor = computed(() => {
+    if (!auth.user) return false
+    return coAuthors.value.some(
+      (ca) => ca.user_id === auth.user!.id && ca.status === 'ACCEPTED',
+    )
+  })
+  const canModify = computed(() => isAuthor.value || auth.isAdmin || isCoAuthor.value)
 
   const canReport = computed(() => {
     if (!auth.isAuthenticated || auth.isGuest) return false
@@ -247,6 +264,33 @@ export function usePostDetail(options: UsePostDetailOptions) {
       showHistory.value = true
     } catch (e: unknown) {
       toastStore.show(getErrorMessage(e, 'Failed to load edit history.'), 'error')
+    }
+  }
+
+  async function fetchCoAuthors() {
+    try {
+      const res = await listCoAuthors(postId.value)
+      coAuthors.value = res.data.co_authors
+    } catch {
+      // Silently fail — co-authors section is non-critical
+    }
+  }
+
+  async function fetchCitedBy() {
+    try {
+      const res = await getCitedBy(postId.value)
+      citedBy.value = res.data.citations
+    } catch {
+      // Silently fail
+    }
+  }
+
+  async function fetchCiting() {
+    try {
+      const res = await getCiting(postId.value)
+      citing.value = res.data.citations
+    } catch {
+      // Silently fail
     }
   }
 
@@ -634,6 +678,9 @@ export function usePostDetail(options: UsePostDetailOptions) {
   onMounted(() => {
     fetchPost().then(() => scanPostImages())
     fetchComments()
+    fetchCoAuthors()
+    fetchCitedBy()
+    fetchCiting()
     window.addEventListener('beforeunload', handleBeforeUnload)
   })
 
@@ -684,7 +731,16 @@ export function usePostDetail(options: UsePostDetailOptions) {
     pinSaving,
     // Permissions
     isAuthor,
+    isCoAuthor,
     canModify,
+    // Co-Authors
+    coAuthors,
+    fetchCoAuthors,
+    // Citations
+    citedBy,
+    citing,
+    fetchCitedBy,
+    fetchCiting,
     // Content segments
     contentSegments,
     // VirusTotal scan

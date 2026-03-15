@@ -43,6 +43,7 @@ async def find_many(
     unread_only: bool = False,
     page_size: int = 20,
     offset: int = 0,
+    exclude_user_ids: list[uuid.UUID] | None = None,
 ) -> tuple[list[dict], int, int]:
     """Returns (rows, total, unread_count)."""
     pool = get_pool()
@@ -53,6 +54,11 @@ async def find_many(
 
         if unread_only:
             where += " AND n.is_read = false"
+
+        if exclude_user_ids:
+            where += f" AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL(${idx}::uuid[]))"
+            params.append(exclude_user_ids)
+            idx += 1
 
         if page_size == 0:
             row = await conn.fetchrow(

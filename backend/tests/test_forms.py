@@ -2786,6 +2786,11 @@ class TestFileSizeValidation:
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(
+                f"{_SVC}.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form_row, 0),
+            ),
+            patch(
                 f"{_SVC}.form_repo.find_for_update",
                 new_callable=AsyncMock,
                 return_value=form_row,

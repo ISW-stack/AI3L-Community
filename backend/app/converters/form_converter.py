@@ -15,7 +15,7 @@ def row_to_form(row: dict, response_count: int = 0) -> dict:
 
     return {
         "id": str(row["id"]),
-        "sig_id": str(row["sig_id"]),
+        "sig_id": str(row["sig_id"]) if row.get("sig_id") else None,
         "title": row["title"],
         "description": row.get("description"),
         "banner_url": row.get("banner_url"),

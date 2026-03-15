@@ -25,7 +25,7 @@ export interface FormDraftState {
 function getDraftKey(sigId?: string, formId?: string): string {
   if (formId) return `form-draft-edit-${formId}`
   if (sigId) return `form-draft-${sigId}`
-  return 'form-draft-unknown'
+  return 'form-draft-standalone'
 }
 
 type StringOrGetter = string | (() => string | undefined) | undefined
@@ -129,7 +129,7 @@ export function useFormDraft(sigId?: StringOrGetter, formId?: StringOrGetter): F
   // Check on creation (handles the string API case where key is known immediately)
   // Only auto-check if key resolves to something meaningful
   const initialKey = keyFn()
-  if (initialKey && !initialKey.includes('undefined') && initialKey !== 'form-draft-unknown') {
+  if (initialKey && !initialKey.includes('undefined') && initialKey !== 'form-draft-standalone') {
     checkForDraft()
   }
 
