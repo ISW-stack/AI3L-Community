@@ -9,18 +9,14 @@ async def insert(
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            existing = await conn.fetchval(
-                "SELECT id FROM post_reports WHERE post_id = $1 AND user_id = $2 AND status = 'PENDING'",  # noqa: E501
-                post_id,
-                user_id,
-            )
-            if existing:
-                return None  # duplicate
-
             row = await conn.fetchrow(
                 """
-                INSERT INTO post_reports (id, post_id, user_id, reason)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO post_reports (id, post_id, user_id, reason, status)
+                SELECT $1, $2, $3, $4, 'PENDING'
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM post_reports
+                    WHERE post_id = $2 AND user_id = $3 AND status = 'PENDING'
+                )
                 RETURNING *
                 """,
                 report_id,
@@ -28,7 +24,7 @@ async def insert(
                 user_id,
                 reason,
             )
-            return dict(row)
+            return dict(row) if row else None
 
 
 async def find_many(

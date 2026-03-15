@@ -263,6 +263,49 @@ class TestGuestLogin:
             _GUEST_IP_DECR_LUA, 1, "guest:ip:192.0.2.1", 3600
         )
 
+    @patch("app.services.auth.get_redis")
+    async def test_increment_guest_ip_counter_success(self, mock_get_redis):
+        """increment_guest_ip_counter returns True when under limit."""
+        from app.services.auth import increment_guest_ip_counter
+
+        redis = AsyncMock()
+        redis.eval = AsyncMock(return_value=1)
+        mock_get_redis.return_value = redis
+
+        result = await increment_guest_ip_counter("192.168.1.1")
+        assert result is True
+
+    @patch("app.services.auth.get_redis")
+    async def test_increment_guest_ip_counter_limit_exceeded(self, mock_get_redis):
+        """increment_guest_ip_counter returns False when limit exceeded (Lua returns -1)."""
+        from app.services.auth import increment_guest_ip_counter
+
+        redis = AsyncMock()
+        redis.eval = AsyncMock(return_value=-1)
+        mock_get_redis.return_value = redis
+
+        result = await increment_guest_ip_counter("192.168.1.1")
+        assert result is False
+
+    @patch("app.services.auth.get_redis")
+    async def test_increment_guest_ip_counter_lua_args(self, mock_get_redis):
+        """Verify redis.eval is called with the correct Lua script, keys, and args."""
+        from app.services.auth import (
+            MAX_GUESTS_PER_IP,
+            _GUEST_IP_INCR_LUA,
+            increment_guest_ip_counter,
+        )
+
+        redis = AsyncMock()
+        redis.eval = AsyncMock(return_value=1)
+        mock_get_redis.return_value = redis
+
+        await increment_guest_ip_counter("10.0.0.1")
+
+        redis.eval.assert_called_once_with(
+            _GUEST_IP_INCR_LUA, 1, "guest:ip:10.0.0.1", MAX_GUESTS_PER_IP, 3600
+        )
+
     @patch("app.services.auth.create_session")
     @patch("app.services.auth.get_redis")
     async def test_guest_login_lua_prevents_race(self, mock_get_redis, mock_create_session):

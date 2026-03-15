@@ -337,6 +337,14 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # Advisory lock on (form_id, user_id) to prevent TOCTOU race
+            # on duplicate response check. Released when transaction completes.
+            lock_key = f"{form_id}:{user_id}"
+            await conn.execute(
+                "SELECT pg_advisory_xact_lock(hashtext($1))",
+                lock_key,
+            )
+
             form = await form_repo.find_for_update(form_id, conn)
             if not form:
                 raise ValueError("Form not found.")

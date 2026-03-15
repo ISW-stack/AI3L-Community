@@ -170,10 +170,10 @@ def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
 
         # Delete the file from storage and decrement owner's storage quota
         try:
-            from app.core.storage import delete_file, get_file_size
+            from app.core.async_storage import delete_file, get_file_size
 
-            file_size = get_file_size(storage_key)
-            delete_file(storage_key)
+            file_size = _run_async(get_file_size(storage_key))
+            _run_async(delete_file(storage_key))
             logger.info("Deleted malicious file from storage", extra={"key": storage_key})
             if file_size > 0:
                 try:

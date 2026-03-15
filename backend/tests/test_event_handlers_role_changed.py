@@ -40,24 +40,25 @@ class TestOnUserRoleChanged:
         assert call_args[0][1]["new_role"] == "MEMBER"
 
     @pytest.mark.anyio
-    async def test_handles_ws_exception_gracefully(self):
-        """If send_to_user raises, the handler should not propagate the exception."""
+    async def test_reraises_ws_exception_for_event_bus_retry(self):
+        """If send_to_user raises, the handler should re-raise for event bus retry."""
         mock_send = AsyncMock(side_effect=ConnectionError("WS unavailable"))
         user_id = str(uuid.uuid4())
 
         with patch("app.api.v1.endpoints.ws.send_to_user", mock_send):
-            # Should NOT raise
-            await _on_user_role_changed(user_id=user_id, new_role="ADMIN")
+            with pytest.raises(ConnectionError, match="WS unavailable"):
+                await _on_user_role_changed(user_id=user_id, new_role="ADMIN")
 
     @pytest.mark.anyio
     async def test_logs_error_on_ws_failure(self):
-        """On WS failure, the handler should log an error with exc_info."""
+        """On WS failure, the handler should log an error with exc_info before re-raising."""
         mock_send = AsyncMock(side_effect=RuntimeError("WS down"))
         user_id = str(uuid.uuid4())
 
         with patch("app.api.v1.endpoints.ws.send_to_user", mock_send):
             with patch("app.event_handlers.logger") as mock_logger:
-                await _on_user_role_changed(user_id=user_id, new_role="ADMIN")
+                with pytest.raises(RuntimeError):
+                    await _on_user_role_changed(user_id=user_id, new_role="ADMIN")
 
                 mock_logger.error.assert_called_once()
                 call_kwargs = mock_logger.error.call_args

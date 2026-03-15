@@ -115,6 +115,7 @@ async def _on_post_deleted(
         )
     except Exception:
         logger.error("Failed to send post deletion notification", exc_info=True)
+        raise  # Let event bus retry
 
 
 async def _on_application_reviewed(
@@ -143,6 +144,7 @@ async def _on_application_reviewed(
         )
     except Exception:
         logger.error("Failed to send application review notification", exc_info=True)
+        raise  # Let event bus retry
 
 
 async def _on_user_banned(user_id: str, **_kwargs: Any) -> None:
@@ -152,6 +154,7 @@ async def _on_user_banned(user_id: str, **_kwargs: Any) -> None:
         await force_logout(user_id)
     except Exception:
         logger.error("Failed to force logout banned user", exc_info=True)
+        raise  # Let event bus retry
 
 
 async def _on_notification_created(user_id: str, notification: dict, **_kwargs: Any) -> None:
@@ -167,6 +170,7 @@ async def _on_notification_created(user_id: str, notification: dict, **_kwargs: 
         )
     except Exception:
         logger.error("Failed to push notification via WebSocket", exc_info=True)
+        raise  # Let event bus retry
 
 
 async def _on_user_role_changed(user_id: str, new_role: str, **_kwargs: Any) -> None:
@@ -177,6 +181,7 @@ async def _on_user_role_changed(user_id: str, new_role: str, **_kwargs: Any) -> 
         await send_to_user(user_id, {"type": "ROLE_CHANGED", "new_role": new_role})
     except Exception:
         logger.error("Failed to send role change via WebSocket", exc_info=True)
+        raise  # Let event bus retry
 
 
 _SIG_MEMBER_BATCH_SIZE = 200

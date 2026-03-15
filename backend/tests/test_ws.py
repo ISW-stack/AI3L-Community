@@ -3,7 +3,6 @@ guest timeout, ping/pong, Redis Pub/Sub, connection lifecycle, and helpers."""
 
 import asyncio
 import json
-import time
 import uuid
 from collections import defaultdict
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -268,23 +267,25 @@ class TestWebsocketEndpoint:
         ws.receive_text = AsyncMock(side_effect=side_effects)
 
         call_count = 0
-        original_time = time.time
+        base_time = 1000.0
 
-        def fake_time():
+        def fake_loop_time():
             nonlocal call_count
             call_count += 1
             # After 62 calls (2 init + 60 messages), jump forward 61 seconds
             if call_count > 62:
-                return original_time() + 61
-            return original_time()
+                return base_time + 61
+            return base_time
+
+        mock_loop = MagicMock()
+        mock_loop.time = fake_loop_time
 
         with (
             patch(f"{_EP}._authenticate_ws", new_callable=AsyncMock, return_value=payload),
             patch(f"{_EP}._connections", defaultdict(set)),
             patch(f"{_EP}._connections_lock", asyncio.Lock()),
-            patch(f"{_EP}.time", wraps=time) as mock_time,
+            patch(f"{_EP}.asyncio.get_event_loop", return_value=mock_loop),
         ):
-            mock_time.time = fake_time
             from app.api.v1.endpoints.ws import websocket_endpoint
 
             await websocket_endpoint(ws, ticket="t")
@@ -754,6 +755,69 @@ class TestRedisSubscriber:
 
             # Should not raise
             await _redis_subscriber()
+
+    @pytest.mark.asyncio
+    async def test_redis_subscriber_cleanup_on_cancel(self):
+        """On CancelledError, pubsub.unsubscribe() and pubsub.close() are called."""
+        redis = _make_mock_redis()
+        pubsub = AsyncMock()
+        pubsub.psubscribe = AsyncMock()
+
+        async def cancel_listen():
+            raise asyncio.CancelledError()
+            yield  # noqa: unreachable — makes this an async generator
+
+        pubsub.listen = MagicMock(return_value=cancel_listen())
+        redis.pubsub = MagicMock(return_value=pubsub)
+
+        with patch(f"{_EP}.get_redis", return_value=redis):
+            from app.api.v1.endpoints.ws import _redis_subscriber
+
+            with pytest.raises(asyncio.CancelledError):
+                await _redis_subscriber()
+
+        pubsub.unsubscribe.assert_awaited_once()
+        pubsub.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_redis_subscriber_cleanup_on_error(self):
+        """On RuntimeError, pubsub.unsubscribe() and pubsub.close() are called."""
+        redis = _make_mock_redis()
+        pubsub = AsyncMock()
+        pubsub.psubscribe = AsyncMock()
+
+        async def error_listen():
+            raise RuntimeError("connection lost")
+            yield  # noqa: unreachable — makes this an async generator
+
+        pubsub.listen = MagicMock(return_value=error_listen())
+        redis.pubsub = MagicMock(return_value=pubsub)
+
+        with patch(f"{_EP}.get_redis", return_value=redis):
+            from app.api.v1.endpoints.ws import _redis_subscriber
+
+            with pytest.raises(RuntimeError, match="connection lost"):
+                await _redis_subscriber()
+
+        pubsub.unsubscribe.assert_awaited_once()
+        pubsub.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_redis_subscriber_cleanup_on_psubscribe_failure(self):
+        """If psubscribe raises, pubsub cleanup still runs."""
+        redis = _make_mock_redis()
+        pubsub = AsyncMock()
+        pubsub.psubscribe = AsyncMock(side_effect=ConnectionError("Redis refused"))
+        redis.pubsub = MagicMock(return_value=pubsub)
+
+        with patch(f"{_EP}.get_redis", return_value=redis):
+            from app.api.v1.endpoints.ws import _redis_subscriber
+
+            with pytest.raises(ConnectionError, match="Redis refused"):
+                await _redis_subscriber()
+
+        pubsub.unsubscribe.assert_awaited_once()
+        pubsub.close.assert_awaited_once()
 
 
 # ===== _subscribe_with_retry =====

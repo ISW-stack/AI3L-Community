@@ -36,6 +36,7 @@ from app.services.auth import (
     destroy_session,
     get_invite_code,
     guest_login,
+    increment_guest_ip_counter,
     refresh_session_ttl,
     register_new_user,
 )
@@ -145,14 +146,8 @@ async def login_as_guest(
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha.")
 
-    # Per-IP guest session limit
-    from app.core.constants import MAX_GUESTS_PER_IP
-    from app.core.redis import get_redis
-
-    redis = get_redis()
-    ip_guest_key = f"guest:ip:{ip}"
-    ip_guest_count = int(await redis.get(ip_guest_key) or 0)
-    if ip_guest_count >= MAX_GUESTS_PER_IP:
+    # Per-IP guest session limit (atomic via Lua script)
+    if not await increment_guest_ip_counter(ip):
         raise AppError(
             ErrorCode.SYS_429,
             status.HTTP_429_TOO_MANY_REQUESTS,
@@ -161,12 +156,11 @@ async def login_as_guest(
 
     result = await guest_login(req.display_name)
     if result is None:
+        # Undo the per-IP increment since global capacity is full
+        await decrement_guest_ip_counter(ip)
         raise AppError(ErrorCode.AUTH_003, 429, "Guest capacity reached. Please try again later.")
 
     token, expires_in = result
-
-    await redis.incr(ip_guest_key)
-    await redis.expire(ip_guest_key, 3600, nx=True)  # fixed window: only set TTL if not already set
 
     # Set cookies
     csrf_token = secrets.token_urlsafe(32)
@@ -272,6 +266,11 @@ async def generate_invite_code(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> InviteCodeResponse:
+    # IP-based rate limit as defense-in-depth
+    ip = request.client.host if request.client else "unknown"
+    if not await check_rate_limit(f"rl:invite_ip:{ip}", 10, 3600):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
     if not await check_rate_limit(f"rl:invite:{current_user['sub']}", *RATE_LIMIT_INVITE_GEN):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 

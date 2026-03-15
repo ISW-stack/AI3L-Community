@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from loguru import logger
 
-from app.core.constants import MAX_GUESTS
+from app.core.constants import MAX_GUESTS, MAX_GUESTS_PER_IP
 from app.core.redis import get_redis
 from app.core.security import ROLE_TTL_MAP, async_verify_password, create_access_token
 from app.models.user import UserRole
@@ -175,6 +175,22 @@ end
 return val
 """
 
+# Lua: atomically increment per-IP guest counter with limit check.
+# KEYS[1] = ip counter key, ARGV[1] = max guests per IP, ARGV[2] = TTL in seconds.
+# Returns new count on success, -1 if limit exceeded.
+# Sets EXPIRE only on first guest from this IP (new_count == 1).
+_GUEST_IP_INCR_LUA = """
+local new_count = redis.call('INCR', KEYS[1])
+if new_count > tonumber(ARGV[1]) then
+    redis.call('DECR', KEYS[1])
+    return -1
+end
+if new_count == 1 then
+    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
+end
+return new_count
+"""
+
 
 async def decrement_guest_counter() -> None:
     """Decrement the atomic guest counter (call on guest session expiry/logout).
@@ -195,6 +211,21 @@ async def decrement_guest_ip_counter(ip: str) -> None:
     redis = get_redis()
     ip_guest_key = f"guest:ip:{ip}"
     await redis.eval(_GUEST_IP_DECR_LUA, 1, ip_guest_key, 3600)
+
+
+async def increment_guest_ip_counter(ip: str) -> bool:
+    """Atomically increment the per-IP guest counter with limit check.
+
+    Returns True if the increment succeeded (under limit), False if limit exceeded.
+    Uses a Lua script to prevent TOCTOU race conditions where concurrent requests
+    from the same IP could bypass the per-IP guest limit.
+    """
+    redis = get_redis()
+    ip_guest_key = f"guest:ip:{ip}"
+    result: int = await redis.eval(
+        _GUEST_IP_INCR_LUA, 1, ip_guest_key, MAX_GUESTS_PER_IP, 3600
+    )
+    return result != -1
 
 
 async def get_invite_code(invite_code: str) -> dict | None:

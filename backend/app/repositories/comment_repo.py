@@ -69,7 +69,7 @@ async def find_mentioned_users(usernames: list[str], conn: Any) -> list[dict]:
 
 async def find_parent_user_id(comment_id: uuid.UUID, conn: Any) -> str | None:
     row = await conn.fetchrow(
-        "SELECT user_id FROM comments WHERE id = $1",
+        "SELECT user_id FROM comments WHERE id = $1 AND is_deleted = false",
         comment_id,
     )
     return str(row["user_id"]) if row else None
@@ -171,7 +171,7 @@ async def find_by_id(comment_id: uuid.UUID) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            f"{_COMMENT_SELECT} WHERE cm.id = $1",
+            f"{_COMMENT_SELECT} WHERE cm.id = $1 AND cm.is_deleted = false",
             comment_id,
         )
         return dict(row) if row else None

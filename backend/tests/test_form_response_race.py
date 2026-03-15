@@ -320,6 +320,138 @@ class TestSubmitResponseService:
         mock_count.assert_not_called()
 
 
+class TestDuplicateResponseAdvisoryLock:
+    """Test the advisory lock on (form_id, user_id) prevents TOCTOU duplicate responses."""
+
+    @pytest.mark.anyio
+    async def test_duplicate_response_advisory_lock_called(self):
+        """Verify pg_advisory_xact_lock is called with a key containing both
+        form_id and user_id BEFORE the duplicate check."""
+        form_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        form_row = _make_form_row(form_id=form_id, allow_non_members=True)
+
+        mock_conn = AsyncMock()
+        mock_conn.transaction = MagicMock()
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction.return_value = tx
+
+        mock_pool = MagicMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+
+        # Track call order to verify lock happens before duplicate check
+        call_order = []
+
+        async def track_execute(query, *args):
+            if "pg_advisory_xact_lock" in query:
+                call_order.append("advisory_lock")
+            return "INSERT 0 1"
+
+        mock_conn.execute = AsyncMock(side_effect=track_execute)
+
+        async def track_check_dup(*args, **kwargs):
+            call_order.append("check_duplicate")
+            return False
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                f"{_SVC}.form_repo.find_for_update",
+                new_callable=AsyncMock,
+                return_value=form_row,
+            ),
+            patch(
+                f"{_SVC}.form_repo.check_duplicate_response",
+                new_callable=AsyncMock,
+                side_effect=track_check_dup,
+            ),
+            patch(
+                f"{_SVC}.form_repo.insert_response",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                f"{_SVC}.form_repo.lock_schema",
+                new_callable=AsyncMock,
+            ),
+        ):
+            await (await _import_submit())(form_id, user_id, {"q1": "answer"})
+
+        # Advisory lock must be called BEFORE duplicate check
+        assert call_order.index("advisory_lock") < call_order.index("check_duplicate")
+
+        # Verify the lock key contains both form_id and user_id
+        lock_call = mock_conn.execute.call_args_list[0]
+        assert "pg_advisory_xact_lock" in lock_call[0][0]
+        lock_key = lock_call[0][1]
+        assert str(form_id) in lock_key
+        assert user_id in lock_key
+
+    @pytest.mark.anyio
+    async def test_advisory_lock_key_differs_per_user(self):
+        """Different users get different advisory lock keys for the same form."""
+        form_id = uuid.uuid4()
+        user_id_a = str(uuid.uuid4())
+        user_id_b = str(uuid.uuid4())
+
+        lock_keys = []
+
+        for user_id in [user_id_a, user_id_b]:
+            form_row = _make_form_row(form_id=form_id, allow_non_members=True)
+
+            mock_conn = AsyncMock()
+            mock_conn.transaction = MagicMock()
+            tx = AsyncMock()
+            tx.__aenter__ = AsyncMock(return_value=tx)
+            tx.__aexit__ = AsyncMock(return_value=False)
+            mock_conn.transaction.return_value = tx
+
+            mock_pool = MagicMock()
+            cm = AsyncMock()
+            cm.__aenter__ = AsyncMock(return_value=mock_conn)
+            cm.__aexit__ = AsyncMock(return_value=False)
+            mock_pool.acquire.return_value = cm
+
+            with (
+                patch(f"{_SVC}.get_pool", return_value=mock_pool),
+                patch(
+                    f"{_SVC}.form_repo.find_for_update",
+                    new_callable=AsyncMock,
+                    return_value=form_row,
+                ),
+                patch(
+                    f"{_SVC}.form_repo.check_duplicate_response",
+                    new_callable=AsyncMock,
+                    return_value=False,
+                ),
+                patch(
+                    f"{_SVC}.form_repo.insert_response",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    f"{_SVC}.form_repo.lock_schema",
+                    new_callable=AsyncMock,
+                ),
+            ):
+                await (await _import_submit())(form_id, user_id, {"q1": "answer"})
+
+            # First execute call is the advisory lock
+            lock_call = mock_conn.execute.call_args_list[0]
+            lock_keys.append(lock_call[0][1])
+
+        # Lock keys must be different for different users
+        assert lock_keys[0] != lock_keys[1]
+        # But both contain the same form_id
+        assert str(form_id) in lock_keys[0]
+        assert str(form_id) in lock_keys[1]
+
+
 async def _import_submit():
     """Lazy import to avoid import-time side effects."""
     from app.services.form import submit_response

@@ -1,6 +1,5 @@
 import asyncio
 import json
-import time
 from collections import defaultdict
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
@@ -56,7 +55,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     guest_timeout_task = None
     ping_task = None
     # Use mutable container so closures share the same reference
-    activity = {"last": time.time()}
+    activity = {"last": asyncio.get_event_loop().time()}
     try:
         last_pong = asyncio.get_event_loop().time()
 
@@ -65,7 +64,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
             async def _guest_timeout() -> None:
                 while True:
-                    elapsed = time.time() - activity["last"]
+                    elapsed = asyncio.get_event_loop().time() - activity["last"]
                     remaining = GUEST_SESSION_TIMEOUT - elapsed
                     if remaining <= 0:
                         logger.info(
@@ -96,7 +95,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
         ping_task = asyncio.create_task(ping_loop())
 
         msg_count = 0
-        msg_window_start = time.time()
+        msg_window_start = asyncio.get_event_loop().time()
 
         while True:
             data = await ws.receive_text()
@@ -107,7 +106,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                 return
 
             # Message rate limiting
-            now = time.time()
+            now = asyncio.get_event_loop().time()
             if now - msg_window_start > WS_MSG_RATE_WINDOW:
                 msg_count = 0
                 msg_window_start = now
@@ -237,9 +236,9 @@ async def _subscribe_with_retry() -> None:
 
 async def _redis_subscriber() -> None:
     """Subscribe to ws:user:* and ws:logout:* channels, dispatching to local connections."""
+    redis = get_redis()
+    pubsub = redis.pubsub()
     try:
-        redis = get_redis()
-        pubsub = redis.pubsub()
         await pubsub.psubscribe("ws:user:*", "ws:logout:*")
         logger.info("Redis Pub/Sub subscriber started for WebSocket")
 
@@ -272,3 +271,9 @@ async def _redis_subscriber() -> None:
     except Exception:
         logger.error("Redis Pub/Sub subscriber crashed", exc_info=True)
         raise
+    finally:
+        try:
+            await pubsub.unsubscribe()
+            await pubsub.close()
+        except Exception:
+            logger.debug("Error during pubsub cleanup", exc_info=True)

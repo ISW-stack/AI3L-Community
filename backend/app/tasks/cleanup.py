@@ -136,10 +136,10 @@ async def _delete_orphans(orphan_keys: list[str]) -> int:
     for key in orphan_keys:
         try:
             file_size = await get_file_size(key)
-            await delete_file(key)
             await file_scan_repo.delete_by_key(key)
             if file_size > 0:
                 await _decrement_owner_storage(key, file_size)
+            await delete_file(key)
             deleted += 1
         except Exception:
             logger.warning("Failed to delete orphan file key=%s", key, exc_info=True)

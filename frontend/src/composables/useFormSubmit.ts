@@ -20,6 +20,8 @@ export interface UseFormSubmitOptions {
 export function useFormSubmit(options: UseFormSubmitOptions) {
   const { formId, auth, router, t } = options
 
+  let isUnmounted = false
+
   // ── Core State ──
   const form = ref<FormData | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,10 +271,12 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
 
       // Upload any pending File objects before submitting
       for (const [key, val] of Object.entries(cleanAnswers)) {
+        if (isUnmounted) return
         if (val instanceof File) {
           uploadingFiles.value = [...uploadingFiles.value, key]
           try {
             const data = await uploadEditorFile(val)
+            if (isUnmounted) return
             cleanAnswers[key] = { key: data.key || data.url, filename: val.name }
           } finally {
             uploadingFiles.value = uploadingFiles.value.filter((id) => id !== key)
@@ -280,7 +284,9 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
         }
       }
 
+      if (isUnmounted) return
       await apiSubmitForm(formId.value, cleanAnswers)
+      if (isUnmounted) return
       submitted.value = true
       message.value = t('forms.view.successMessage')
       submittedAnswers.value = { ...cleanAnswers }
@@ -513,6 +519,7 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
 
   // ── Cleanup ──
   onUnmounted(() => {
+    isUnmounted = true
     stopAutoSave()
     for (const timer of Object.values(highlightTimers)) {
       clearTimeout(timer)

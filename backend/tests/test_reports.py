@@ -276,11 +276,11 @@ class TestListReportsFiltered:
 
 
 class TestReportInsertTransaction:
-    """Verify report_repo.insert wraps check+insert in a transaction."""
+    """Verify report_repo.insert uses atomic INSERT...WHERE NOT EXISTS in a transaction."""
 
     @pytest.mark.anyio
     async def test_insert_no_duplicate_uses_transaction(self, mock_pool, mock_conn):
-        """insert() must open a transaction and insert when no duplicate report exists."""
+        """insert() returns the new row when no duplicate exists."""
         from app.repositories.report_repo import insert
 
         report_id = uuid.uuid4()
@@ -299,8 +299,6 @@ class TestReportInsertTransaction:
             "updated_at": now,
         }
 
-        # fetchval returns None (no existing pending report), fetchrow returns new row
-        mock_conn.fetchval = AsyncMock(return_value=None)
         mock_conn.fetchrow = AsyncMock(return_value=new_row)
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -309,31 +307,30 @@ class TestReportInsertTransaction:
         assert result is not None
         assert result["id"] == report_id
         mock_conn.transaction.assert_called_once()
+        mock_conn.fetchrow.assert_called_once()
 
     @pytest.mark.anyio
     async def test_insert_duplicate_returns_none_uses_transaction(self, mock_pool, mock_conn):
-        """insert() returns None for duplicate report, inside a transaction."""
+        """insert() returns None when WHERE NOT EXISTS filters out the duplicate."""
         from app.repositories.report_repo import insert
 
         report_id = uuid.uuid4()
         post_id = uuid.uuid4()
         user_id = uuid.uuid4()
-        existing_report_id = uuid.uuid4()
 
-        # fetchval returns an existing report id (duplicate)
-        mock_conn.fetchval = AsyncMock(return_value=existing_report_id)
+        # fetchrow returns None (WHERE NOT EXISTS prevented the INSERT)
+        mock_conn.fetchrow = AsyncMock(return_value=None)
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             result = await insert(report_id, post_id, user_id, "Spam again")
 
         assert result is None
-        # INSERT should NOT have been called
-        mock_conn.fetchrow.assert_not_called()
+        mock_conn.fetchrow.assert_called_once()
         mock_conn.transaction.assert_called_once()
 
     @pytest.mark.anyio
     async def test_insert_concurrent_only_one_succeeds(self, mock_pool, mock_conn):
-        """Simulate concurrent report inserts: second call sees duplicate and returns None."""
+        """Simulate concurrent report inserts: second call gets None from WHERE NOT EXISTS."""
         import asyncio
 
         from app.repositories.report_repo import insert
@@ -344,25 +341,24 @@ class TestReportInsertTransaction:
 
         call_count = 0
 
-        async def fetchval_side_effect(*args, **kwargs):
+        async def fetchrow_side_effect(*args, **kwargs):
             nonlocal call_count
             call_count += 1
-            # First call: no duplicate; second call: sees the first report as existing
-            return None if call_count == 1 else uuid.uuid4()
+            if call_count == 1:
+                return {
+                    "id": uuid.uuid4(),
+                    "post_id": post_id,
+                    "user_id": user_id,
+                    "reason": "Spam",
+                    "status": "PENDING",
+                    "reviewed_by": None,
+                    "reviewed_at": None,
+                    "created_at": now,
+                    "updated_at": now,
+                }
+            return None  # Second call: WHERE NOT EXISTS blocks insert
 
-        new_row = {
-            "id": uuid.uuid4(),
-            "post_id": post_id,
-            "user_id": user_id,
-            "reason": "Spam",
-            "status": "PENDING",
-            "reviewed_by": None,
-            "reviewed_at": None,
-            "created_at": now,
-            "updated_at": now,
-        }
-        mock_conn.fetchval = AsyncMock(side_effect=fetchval_side_effect)
-        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=fetchrow_side_effect)
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             results = await asyncio.gather(

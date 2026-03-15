@@ -21,6 +21,9 @@ async def create_comment(
     comment_id = uuid.uuid4()
     parent_uuid = uuid.UUID(parent_id) if parent_id else None
 
+    if parent_uuid and parent_uuid == comment_id:
+        raise ValueError("A comment cannot reply to itself.")
+
     async with pool.acquire() as conn:
         async with conn.transaction():
             post = await comment_repo.find_post_for_comment(post_id, conn)

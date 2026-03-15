@@ -49,6 +49,10 @@ async def delete(category_id: uuid.UUID) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # The FK now has ON DELETE SET NULL (migration z7a8b9c0d1e2),
+            # so PostgreSQL would handle this automatically.  The explicit
+            # UPDATE remains as defense-in-depth in case the FK rule is
+            # ever changed or the migration hasn't been applied yet.
             await conn.execute(
                 "UPDATE posts SET category_id = NULL WHERE category_id = $1",
                 category_id,

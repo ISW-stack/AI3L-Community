@@ -127,7 +127,11 @@ export function useFormDraft(sigId?: StringOrGetter, formId?: StringOrGetter): F
   }
 
   // Check on creation (handles the string API case where key is known immediately)
-  checkForDraft()
+  // Only auto-check if key resolves to something meaningful
+  const initialKey = keyFn()
+  if (initialKey && !initialKey.includes('undefined') && initialKey !== 'form-draft-unknown') {
+    checkForDraft()
+  }
 
   return {
     hasDraft,

@@ -513,6 +513,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
 
   // ── Lifecycle ──
   onMounted(() => {
+    showDraftBanner.value = false // Reset on mount
     draft.checkForDraft()
 
     if (isEdit.value) {

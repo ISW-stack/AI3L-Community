@@ -1068,4 +1068,49 @@ describe('useFormSubmit', () => {
       expect(h.validationErrors.value.q1).toBeUndefined()
     })
   })
+
+  // B4: File upload stops writing state after unmount
+  describe('unmount guard during file upload', () => {
+    it('does not write state after unmount during file upload loop', async () => {
+      mockGetForm.mockResolvedValue(
+        makeFormData({
+          questions: [
+            makeQuestion({ id: 'q1', type: 'text', label: 'Name', required: true }),
+            makeQuestion({ id: 'q2', type: 'file_upload', label: 'File', required: true }),
+          ],
+        }),
+      )
+      // Make upload hang until we resolve it manually
+      let resolveUpload: ((value: { url: string; key: string }) => void) | undefined
+      mockUploadEditorFile.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveUpload = resolve
+          }),
+      )
+      mockSubmitForm.mockResolvedValue(undefined)
+
+      const h = createHarness()
+      await h.loadForm()
+
+      h.answers.value.q1 = 'John'
+      h.answers.value.q2 = new File(['data'], 'file.pdf', { type: 'application/pdf' })
+
+      // Start submit (will await the file upload)
+      const submitPromise = h.submitForm()
+
+      // Simulate unmount while upload is in progress
+      const unmountCb = onUnmountedCallbacks[onUnmountedCallbacks.length - 1]
+      unmountCb()
+
+      // Now resolve the upload
+      resolveUpload!({ url: 'http://s3/file.pdf', key: 'files/file.pdf' })
+      await submitPromise
+
+      // After unmount, submitted and message should NOT have been set
+      expect(h.submitted.value).toBe(false)
+      expect(h.message.value).toBe('')
+      expect(mockSubmitForm).not.toHaveBeenCalled()
+    })
+  })
 })

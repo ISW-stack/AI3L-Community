@@ -176,10 +176,16 @@ app = FastAPI(
 async def limit_request_body_size(request: Request, call_next: RequestResponseEndpoint):
     """Reject requests whose Content-Length exceeds the global limit."""
     content_length = request.headers.get("content-length")
-    if content_length and int(content_length) > MAX_REQUEST_BODY_SIZE:
-        return JSONResponse(
-            status_code=413, content={"detail": "Request body too large"}
-        )
+    if content_length:
+        try:
+            if int(content_length) > MAX_REQUEST_BODY_SIZE:
+                return JSONResponse(
+                    status_code=413, content={"detail": "Request body too large"}
+                )
+        except (ValueError, TypeError):
+            return JSONResponse(
+                status_code=400, content={"detail": "Invalid Content-Length header"}
+            )
     return await call_next(request)
 
 
@@ -188,7 +194,7 @@ app.add_middleware(
     allow_origins=settings.CORS_ORIGINS_LIST,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", "X-CSRF-Token", "X-Idempotency-Key"],
+    allow_headers=["Content-Type", "X-CSRF-Token", "Idempotency-Key"],
 )
 
 # CSRF double-submit cookie middleware (after CORS so preflight is handled first)

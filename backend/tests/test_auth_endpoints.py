@@ -108,17 +108,12 @@ class TestLoginEndpoint:
 class TestGuestLoginEndpoint:
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("gtok", 2700))
+    @patch(f"{_EP}.increment_guest_ip_counter", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
-    @patch("app.core.redis.get_redis")
     async def test_guest_login_success(
-        self, mock_redis, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
+        self, mock_invite, mock_captcha, mock_ip_incr, mock_guest, mock_rl, client: AsyncClient
     ):
-        mock_redis_inst = AsyncMock()
-        mock_redis_inst.get = AsyncMock(return_value=None)
-        mock_redis_inst.incr = AsyncMock()
-        mock_redis_inst.expire = AsyncMock()
-        mock_redis.return_value = mock_redis_inst
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
         resp = await client.post(
@@ -137,18 +132,47 @@ class TestGuestLoginEndpoint:
         assert "token" not in data
         cookies = {c.name: c for c in resp.cookies.jar}
         assert "access_token" in cookies
+        # Per-IP counter was incremented atomically
+        mock_ip_incr.assert_called_once()
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
-    @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=None)
+    @patch(f"{_EP}.increment_guest_ip_counter", new_callable=AsyncMock, return_value=False)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
-    @patch("app.core.redis.get_redis")
-    async def test_guest_login_capacity_reached(
-        self, mock_redis, mock_invite, mock_captcha, mock_guest, mock_rl, client: AsyncClient
+    async def test_guest_login_per_ip_limit_exceeded(
+        self, mock_invite, mock_captcha, mock_ip_incr, mock_rl, client: AsyncClient
     ):
-        mock_redis_inst = AsyncMock()
-        mock_redis_inst.get = AsyncMock(return_value=None)
-        mock_redis.return_value = mock_redis_inst
+        """Per-IP limit exceeded → 429 before even trying global guest_login."""
+        mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
+
+        resp = await client.post(
+            "/api/v1/auth/guest/INV-123",
+            json={
+                "display_name": "Visitor",
+                "captcha_id": "cap-1",
+                "captcha_code": "ABCD",
+            },
+        )
+        assert resp.status_code == 429
+        assert "too many guest sessions" in resp.json()["detail"]["message"].lower()
+
+    @patch(f"{_EP}.decrement_guest_ip_counter", new_callable=AsyncMock)
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=None)
+    @patch(f"{_EP}.increment_guest_ip_counter", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
+    async def test_guest_login_capacity_reached_undoes_ip_increment(
+        self,
+        mock_invite,
+        mock_captcha,
+        mock_ip_incr,
+        mock_guest,
+        mock_rl,
+        mock_dec_ip,
+        client: AsyncClient,
+    ):
+        """Global capacity reached → per-IP increment is undone and 429 returned."""
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 
         resp = await client.post(
@@ -161,6 +185,8 @@ class TestGuestLoginEndpoint:
         )
         assert resp.status_code == 429
         assert resp.json()["detail"]["code"] == "AUTH_003"
+        # Per-IP increment was undone
+        mock_dec_ip.assert_called_once()
 
 
 class TestRegisterEndpoint:

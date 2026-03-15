@@ -161,4 +161,53 @@ describe('useFormDraft', () => {
       expect(draft.hasDraft.value).toBe(false)
     })
   })
+
+  describe('auto-check guard for getter functions', () => {
+    it('skips checkForDraft when getter returns undefined (unresolved route)', () => {
+      // Simulate getter functions that return undefined (route params not yet resolved)
+      const savedData = {
+        title: 'Should not be found',
+        description: '',
+        bannerUrl: '',
+        deadline: '',
+        maxRespondents: null,
+        allowNonMembers: false,
+        questions: [],
+        savedAt: '2026-03-12T10:00:00Z',
+      }
+      localStorage.setItem('form-draft-unknown', JSON.stringify(savedData))
+
+      const draft = useFormDraft(
+        () => undefined,
+        () => undefined,
+      )
+      // Auto-check should have been skipped because key resolves to 'form-draft-unknown'
+      expect(draft.hasDraft.value).toBe(false)
+    })
+
+    it('skips checkForDraft when getter produces key with undefined in it', () => {
+      const draft = useFormDraft(
+        () => undefined,
+        () => undefined,
+      )
+      expect(draft.hasDraft.value).toBe(false)
+    })
+
+    it('runs checkForDraft when getter returns a valid string', () => {
+      const savedData = {
+        title: 'Draft',
+        description: '',
+        bannerUrl: '',
+        deadline: '',
+        maxRespondents: null,
+        allowNonMembers: false,
+        questions: [],
+        savedAt: '2026-03-12T10:00:00Z',
+      }
+      localStorage.setItem('form-draft-sig-valid', JSON.stringify(savedData))
+
+      const draft = useFormDraft(() => 'sig-valid', undefined)
+      expect(draft.hasDraft.value).toBe(true)
+    })
+  })
 })

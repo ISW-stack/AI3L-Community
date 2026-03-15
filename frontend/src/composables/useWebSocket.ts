@@ -66,7 +66,12 @@ export function useWebSocket() {
         const msg = JSON.parse(event.data)
         if (msg.type === 'PING') {
           ws?.send(JSON.stringify({ type: 'PONG' }))
-        } else if (msg.type === 'FORCE_LOGOUT') {
+          return
+        }
+        // Guard: don't process non-PING messages after auth is cleared
+        if (!auth.isAuthenticated) return
+
+        if (msg.type === 'FORCE_LOGOUT') {
           auth.clearSession()
           router.push({ name: 'login' })
         } else if (msg.type === 'NEW_NOTIFICATION') {

@@ -64,16 +64,31 @@ async def _async_retry() -> None:
             dropped += 1
             continue
 
+        handler_name = entry.get("handler")
+
+        matched_handler = None
+        for handler in _handlers[event_name]:
+            if getattr(handler, "__name__", repr(handler)) == handler_name:
+                matched_handler = handler
+                break
+
+        if matched_handler is None:
+            logger.warning(
+                "Handler no longer registered, dropping event",
+                extra={"event": event_name, "handler": handler_name},
+            )
+            dropped += 1
+            continue
+
         try:
-            for handler in _handlers[event_name]:
-                await handler(**kwargs)
+            await matched_handler(**kwargs)
             retried += 1
         except Exception:
             from app.core.event_bus import _persist_failed_event
 
             await _persist_failed_event(
                 event_name,
-                entry.get("handler", "unknown"),
+                handler_name or "unknown",
                 kwargs,
                 retry_count=retry_count + 1,
             )

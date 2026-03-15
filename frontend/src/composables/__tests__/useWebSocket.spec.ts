@@ -334,6 +334,43 @@ describe('useWebSocket', () => {
       expect(mockToastShow).toHaveBeenCalledWith('New notification', 'info')
     })
 
+    it('ignores NEW_NOTIFICATION after FORCE_LOGOUT clears auth', async () => {
+      const { connect } = useWebSocket()
+      await connect()
+      const ws = MockWebSocket.instances[0]
+      ws.simulateOpen()
+
+      // FORCE_LOGOUT clears auth state
+      ws.simulateMessage({ type: 'FORCE_LOGOUT' })
+      expect(mockClearSession).toHaveBeenCalled()
+
+      // After FORCE_LOGOUT, isAuthenticated is now false
+      mockIsAuthenticatedRef.value = false
+      mockClearSession.mockClear()
+      mockAddFromWebSocket.mockClear()
+      mockToastShow.mockClear()
+
+      // Subsequent NEW_NOTIFICATION should be ignored
+      ws.simulateMessage({ type: 'NEW_NOTIFICATION', notification: { id: 'n1', message: 'Hello' } })
+
+      expect(mockAddFromWebSocket).not.toHaveBeenCalled()
+      expect(mockToastShow).not.toHaveBeenCalled()
+    })
+
+    it('still responds to PING after auth is cleared', async () => {
+      const { connect } = useWebSocket()
+      await connect()
+      const ws = MockWebSocket.instances[0]
+      ws.simulateOpen()
+
+      // Clear auth
+      mockIsAuthenticatedRef.value = false
+
+      // PING should still work (keepalive must always respond)
+      ws.simulateMessage({ type: 'PING' })
+      expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'PONG' }))
+    })
+
     it('ignores unknown message types without error', async () => {
       const { connect } = useWebSocket()
       await connect()

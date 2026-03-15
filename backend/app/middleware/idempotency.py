@@ -41,10 +41,14 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         user_id = hashlib.sha256(token.encode()).hexdigest()[:16]
         redis_key = f"idempotency:{user_id}:{idem_key}"
-        redis = get_redis()
 
-        # Check for existing response
-        cached = await redis.get(redis_key)
+        try:
+            redis = get_redis()
+            cached = await redis.get(redis_key)
+        except Exception:
+            logger.warning("Redis unavailable for idempotency, proceeding without", exc_info=True)
+            return await call_next(request)
+
         if cached:
             data = json.loads(cached)
             if data.get("status") == "processing":

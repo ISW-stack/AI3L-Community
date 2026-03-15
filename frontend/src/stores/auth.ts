@@ -173,7 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Auto-start heartbeat if already authenticated
   if (isAuthenticated.value) {
     startHeartbeat()
-    fetchProfile()
+    fetchProfile().catch(() => {})
   }
 
   return {

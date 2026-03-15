@@ -87,7 +87,7 @@ services:
       - "-c"
       - "work_mem=${PG_WORK_MEM:-4MB}"
       - "-c"
-      - "max_connections=${PG_MAX_CONNECTIONS:-50}"
+      - "max_connections=${PG_MAX_CONNECTIONS:-100}"
     deploy:
       resources:
         limits:
