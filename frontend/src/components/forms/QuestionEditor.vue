@@ -19,7 +19,7 @@ function getTypeBadgeText(type: string): string {
 
 const { t } = useI18n()
 
-const props = defineProps<{
+defineProps<{
   question: Question
   index: number
   totalQuestions: number
@@ -43,7 +43,7 @@ const emit = defineEmits<{
   'drag-start': [event: DragEvent]
   'drag-over': [event: DragEvent]
   'drag-leave': []
-  'drop': [event: DragEvent]
+  drop: [event: DragEvent]
   'drag-end': []
   'touch-start': [event: TouchEvent]
   'touch-move': [event: TouchEvent]
@@ -77,6 +77,7 @@ function onTouchEnd(event: TouchEvent) {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-mutating-props -->
   <!-- Insert question divider (between questions) -->
   <div
     v-if="index > 0 && !isSchemaLocked"
@@ -134,9 +135,7 @@ function onTouchEnd(event: TouchEvent) {
         <button
           class="text-muted hover:text-foreground transition text-sm px-1 shrink-0"
           :aria-label="
-            isCollapsed
-              ? t('forms.builder.expandQuestion')
-              : t('forms.builder.collapseQuestion')
+            isCollapsed ? t('forms.builder.expandQuestion') : t('forms.builder.collapseQuestion')
           "
           @click="emit('toggle-collapse')"
         >
@@ -197,9 +196,7 @@ function onTouchEnd(event: TouchEvent) {
     <div v-if="!isCollapsed" class="mt-2">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label class="block text-xs text-muted mb-1">{{
-            t('forms.builder.typeLabel')
-          }}</label>
+          <label class="block text-xs text-muted mb-1">{{ t('forms.builder.typeLabel') }}</label>
           <select
             v-model="question.type"
             :disabled="isSchemaLocked"
@@ -243,9 +240,7 @@ function onTouchEnd(event: TouchEvent) {
           class="w-full border border-border rounded-lg px-2 py-1.5 text-sm"
         />
         <div class="flex items-center gap-2">
-          <label class="text-xs text-muted">{{
-            t('forms.builder.maxLengthLabel')
-          }}</label>
+          <label class="text-xs text-muted">{{ t('forms.builder.maxLengthLabel') }}</label>
           <input
             v-model.number="question.max_length"
             :disabled="isSchemaLocked"
@@ -339,9 +334,7 @@ function onTouchEnd(event: TouchEvent) {
 
       <div v-if="question.type === 'file_upload'" class="space-y-2">
         <div class="flex items-center gap-2">
-          <label class="text-xs text-muted">{{
-            t('forms.builder.allowedTypesLabel')
-          }}</label>
+          <label class="text-xs text-muted">{{ t('forms.builder.allowedTypesLabel') }}</label>
           <input
             :value="(question.allowed_types ?? []).join(', ')"
             @input="emit('update-allowed-types', $event)"

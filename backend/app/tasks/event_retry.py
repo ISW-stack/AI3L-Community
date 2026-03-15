@@ -30,7 +30,7 @@ async def _async_retry() -> None:
         logger.warning("Redis not available for event retry")
         return
 
-    raw_events: list[Any] = await redis.lrange("event_bus:failed", 0, -1)
+    raw_events: list[Any] = await redis.lrange("event_bus:failed", 0, -1)  # type: ignore[misc]
     if not raw_events:
         return
 

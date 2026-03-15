@@ -1086,7 +1086,9 @@ class TestVirusTotal:
         assert result["suspicious"] == 2
         # _run_async is mocked, so async functions are passed as coroutines;
         # verify _run_async was called (which wraps the async delete/get_size)
-        assert mock_run.call_count >= 3  # insert_pending + update_scan + get_file_size + delete_file
+        assert (
+            mock_run.call_count >= 3
+        )  # insert_pending + update_scan + get_file_size + delete_file
 
     def test_check_malicious_file_decrements_storage(self):
         """check_virustotal should decrement owner storage after deleting malicious file."""

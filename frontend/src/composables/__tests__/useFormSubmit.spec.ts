@@ -58,7 +58,7 @@ const mockGetSig = getSig as ReturnType<typeof vi.fn>
 const mockUploadEditorFile = uploadEditorFile as ReturnType<typeof vi.fn>
 const mockUseFormResponseDraft = useFormResponseDraft as ReturnType<typeof vi.fn>
 
-const t = (key: string, _values?: Record<string, unknown>) => key
+const t = (key: string) => key
 
 function makeQuestion(overrides: Partial<Question> = {}): Question {
   return {
@@ -362,7 +362,13 @@ describe('useFormSubmit', () => {
       mockGetForm.mockResolvedValue(
         makeFormData({
           questions: [
-            makeQuestion({ id: 'q1', type: 'text', label: 'Short', required: false, max_length: 5 }),
+            makeQuestion({
+              id: 'q1',
+              type: 'text',
+              label: 'Short',
+              required: false,
+              max_length: 5,
+            }),
           ],
         }),
       )
@@ -1035,9 +1041,7 @@ describe('useFormSubmit', () => {
     it('onSelectChange clears validation error', async () => {
       mockGetForm.mockResolvedValue(
         makeFormData({
-          questions: [
-            makeQuestion({ id: 'q1', type: 'dropdown', label: 'Pick', required: true }),
-          ],
+          questions: [makeQuestion({ id: 'q1', type: 'dropdown', label: 'Pick', required: true })],
         }),
       )
       const h = createHarness()

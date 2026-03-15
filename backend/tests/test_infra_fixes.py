@@ -16,10 +16,10 @@ import inspect
 import os
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
 _TEST_CSRF_TOKEN = "test-csrf-token"
 
@@ -35,16 +35,16 @@ class TestVirusTotalStorageCalls:
     def test_get_file_size_is_sync(self):
         from app.core.storage import get_file_size
 
-        assert not inspect.iscoroutinefunction(get_file_size), (
-            "get_file_size should be a sync function (called from sync Celery task)"
-        )
+        assert not inspect.iscoroutinefunction(
+            get_file_size
+        ), "get_file_size should be a sync function (called from sync Celery task)"
 
     def test_delete_file_is_sync(self):
         from app.core.storage import delete_file
 
-        assert not inspect.iscoroutinefunction(delete_file), (
-            "delete_file should be a sync function (called from sync Celery task)"
-        )
+        assert not inspect.iscoroutinefunction(
+            delete_file
+        ), "delete_file should be a sync function (called from sync Celery task)"
 
 
 # ===========================================================================
@@ -74,17 +74,14 @@ class TestSigSoftDeleteCleansUpMembers:
 
         # Verify sig_members cleanup was called
         member_delete_found = any(
-            "DELETE FROM sig_members" in sql and "sig_id" in sql
-            for sql in sql_statements
+            "DELETE FROM sig_members" in sql and "sig_id" in sql for sql in sql_statements
         )
-        assert member_delete_found, (
-            f"Expected DELETE FROM sig_members in transaction. Got: {sql_statements}"
-        )
+        assert (
+            member_delete_found
+        ), f"Expected DELETE FROM sig_members in transaction. Got: {sql_statements}"
 
         # Verify it was called with the correct sig_id
-        member_delete_call = [
-            c for c in calls if "DELETE FROM sig_members" in str(c[0][0])
-        ]
+        member_delete_call = [c for c in calls if "DELETE FROM sig_members" in str(c[0][0])]
         assert len(member_delete_call) == 1
         assert member_delete_call[0][0][1] == sig_id
 
@@ -183,9 +180,7 @@ class TestMinioPublicUrlValidation:
 
     def test_production_check_includes_minio_public_url(self):
         """The lifespan function should check MINIO_PUBLIC_URL in production."""
-        source_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "main.py"
-        )
+        source_path = os.path.join(os.path.dirname(__file__), "..", "app", "main.py")
         with open(source_path, encoding="utf-8") as f:
             source = f.read()
 
@@ -194,9 +189,7 @@ class TestMinioPublicUrlValidation:
 
     def test_production_check_exits_on_empty_minio_url(self):
         """Verify the production security check aborts when MINIO_PUBLIC_URL is empty."""
-        source_path = os.path.join(
-            os.path.dirname(__file__), "..", "app", "main.py"
-        )
+        source_path = os.path.join(os.path.dirname(__file__), "..", "app", "main.py")
         with open(source_path, encoding="utf-8") as f:
             source = f.read()
 
@@ -452,12 +445,12 @@ class TestAuditLogPaginationBounds:
 
         # Find the get_audit_logs function and check its default page_size
         # Look for: page_size: int = Query(20, ge=1, le=50)
-        assert "Query(20, ge=1, le=50)" in source, (
-            "Audit log page_size should default to 20 with max 50"
-        )
-        assert "Query(1, ge=1, le=1000)" in source, (
-            "Audit log page should default to 1 with max 1000"
-        )
+        assert (
+            "Query(20, ge=1, le=50)" in source
+        ), "Audit log page_size should default to 20 with max 50"
+        assert (
+            "Query(1, ge=1, le=1000)" in source
+        ), "Audit log page should default to 1 with max 1000"
 
 
 # ===========================================================================

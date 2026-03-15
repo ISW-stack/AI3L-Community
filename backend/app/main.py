@@ -23,6 +23,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.responses import Response
 
 from app.api.v1.router import api_v1_router
 from app.core.config import settings
@@ -58,9 +59,7 @@ async def bootstrap_super_admin() -> None:
             if not await async_verify_password(password, user["password_hash"]):
                 new_hash = await async_hash_password(password)
                 await user_repo.update_password_hash(user["id"], new_hash)
-                logger.info(
-                    "Super Admin password synced from .env", extra={"username": username}
-                )
+                logger.info("Super Admin password synced from .env", extra={"username": username})
             else:
                 logger.debug(
                     "Super Admin password unchanged, skipping rehash",
@@ -173,15 +172,13 @@ app = FastAPI(
 
 
 @app.middleware("http")
-async def limit_request_body_size(request: Request, call_next: RequestResponseEndpoint):
+async def limit_request_body_size(request: Request, call_next: RequestResponseEndpoint) -> Response:
     """Reject requests whose Content-Length exceeds the global limit."""
     content_length = request.headers.get("content-length")
     if content_length:
         try:
             if int(content_length) > MAX_REQUEST_BODY_SIZE:
-                return JSONResponse(
-                    status_code=413, content={"detail": "Request body too large"}
-                )
+                return JSONResponse(status_code=413, content={"detail": "Request body too large"})
         except (ValueError, TypeError):
             return JSONResponse(
                 status_code=400, content={"detail": "Invalid Content-Length header"}

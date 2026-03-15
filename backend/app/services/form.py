@@ -10,7 +10,6 @@ from app.core.database import get_pool
 from app.core.errors import AppError, ErrorCode
 from app.repositories import form_repo
 
-
 _VALID_QUESTION_TYPES = frozenset(
     {"single_choice", "multiple_choice", "rating", "text", "textarea", "dropdown"}
 )
@@ -53,9 +52,7 @@ def validate_question_schema(questions: list[dict]) -> None:
 
         if qtype in ("single_choice", "multiple_choice", "dropdown"):
             if "options" not in q or not isinstance(q["options"], list):
-                raise ValueError(
-                    f"Question '{qid}' of type '{qtype}' must have an 'options' list."
-                )
+                raise ValueError(f"Question '{qid}' of type '{qtype}' must have an 'options' list.")
             if not q["options"]:
                 raise ValueError(
                     f"Question '{qid}' of type '{qtype}' must have at least one option."

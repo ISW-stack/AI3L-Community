@@ -31,9 +31,7 @@ def upgrade() -> None:
     # post_reports.reviewed_by → users.id  ON DELETE SET NULL
     # Also missed by the cascade migration. If a reviewer user is deleted,
     # the report should keep its data but clear the reviewer reference.
-    op.drop_constraint(
-        "post_reports_reviewed_by_fkey", "post_reports", type_="foreignkey"
-    )
+    op.drop_constraint("post_reports_reviewed_by_fkey", "post_reports", type_="foreignkey")
     op.create_foreign_key(
         "post_reports_reviewed_by_fkey",
         "post_reports",
@@ -46,9 +44,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Restore post_reports.reviewed_by → users.id  (no ON DELETE)
-    op.drop_constraint(
-        "post_reports_reviewed_by_fkey", "post_reports", type_="foreignkey"
-    )
+    op.drop_constraint("post_reports_reviewed_by_fkey", "post_reports", type_="foreignkey")
     op.create_foreign_key(
         "post_reports_reviewed_by_fkey",
         "post_reports",

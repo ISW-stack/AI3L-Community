@@ -92,9 +92,7 @@ _ALLOWED_FORM_FIELDS = frozenset(
 )
 
 
-async def update(
-    form_id: uuid.UUID, updates: dict[str, Any], conn: Any
-) -> tuple[dict, int] | None:
+async def update(form_id: uuid.UUID, updates: dict[str, Any], conn: Any) -> tuple[dict, int] | None:
     """Dynamic update within a connection.
 
     Accepts a dict of {column_name: value}. All keys are validated against

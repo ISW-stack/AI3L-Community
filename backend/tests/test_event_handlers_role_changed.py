@@ -18,14 +18,10 @@ class TestOnUserRoleChanged:
         user_id = str(uuid.uuid4())
 
         with patch("app.event_handlers.send_to_user", mock_send, create=True):
-            with patch(
-                "app.api.v1.endpoints.ws.send_to_user", mock_send
-            ):
+            with patch("app.api.v1.endpoints.ws.send_to_user", mock_send):
                 await _on_user_role_changed(user_id=user_id, new_role="ADMIN")
 
-        mock_send.assert_awaited_once_with(
-            user_id, {"type": "ROLE_CHANGED", "new_role": "ADMIN"}
-        )
+        mock_send.assert_awaited_once_with(user_id, {"type": "ROLE_CHANGED", "new_role": "ADMIN"})
 
     @pytest.mark.anyio
     async def test_sends_correct_role_value(self):

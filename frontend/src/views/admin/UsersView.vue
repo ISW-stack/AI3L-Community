@@ -39,7 +39,6 @@ const {
   page,
   total,
   totalPages,
-  pageSize,
   fetchPage: fetchUsers,
   setPage,
   resetPage,
@@ -134,7 +133,6 @@ function onSearchInput() {
     fetchUsers()
   }, 300)
 }
-
 
 function goToPage(p: number) {
   setPage(p)

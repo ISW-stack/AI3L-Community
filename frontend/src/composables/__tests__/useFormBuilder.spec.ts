@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ref } from 'vue'
-import type { Question, FormData } from '@/types'
+import type { FormData } from '@/types'
 
 // Capture lifecycle callbacks so we can invoke them manually
 const onMountedCallbacks: (() => void)[] = []
@@ -44,7 +43,7 @@ const mockUpdateForm = updateForm as ReturnType<typeof vi.fn>
 const mockGetSig = getSig as ReturnType<typeof vi.fn>
 const mockUploadEditorFile = uploadEditorFile as ReturnType<typeof vi.fn>
 
-const t = (key: string, _values?: Record<string, unknown>) => key
+const t = (key: string) => key
 
 function createHarness(opts: { sigId?: string; formId?: string } = {}) {
   const { sigId = 'sig-1', formId = '' } = opts
@@ -586,14 +585,19 @@ describe('useFormBuilder', () => {
       h.questions.value[0].type = 'text'
       await h.saveForm()
 
-      expect(mockCreateForm).toHaveBeenCalledWith('sig-1', expect.objectContaining({
-        title: 'New Form',
-        questions: expect.arrayContaining([
-          expect.objectContaining({ label: 'Question 1', type: 'text' }),
-        ]),
-      }))
+      expect(mockCreateForm).toHaveBeenCalledWith(
+        'sig-1',
+        expect.objectContaining({
+          title: 'New Form',
+          questions: expect.arrayContaining([
+            expect.objectContaining({ label: 'Question 1', type: 'text' }),
+          ]),
+        }),
+      )
       expect(h.message.value).toBe('forms.builder.successMessage')
-      expect((h.mockRouter as unknown as { replace: ReturnType<typeof vi.fn> }).replace).toHaveBeenCalledWith('/forms/new-form-1')
+      expect(
+        (h.mockRouter as unknown as { replace: ReturnType<typeof vi.fn> }).replace,
+      ).toHaveBeenCalledWith('/forms/new-form-1')
     })
 
     it('updates an existing form on edit mode', async () => {
@@ -620,9 +624,12 @@ describe('useFormBuilder', () => {
       ]
       await h.saveForm()
 
-      expect(mockUpdateForm).toHaveBeenCalledWith('form-1', expect.objectContaining({
-        title: 'Updated Title',
-      }))
+      expect(mockUpdateForm).toHaveBeenCalledWith(
+        'form-1',
+        expect.objectContaining({
+          title: 'Updated Title',
+        }),
+      )
       expect(h.message.value).toBe('forms.builder.updateSuccess')
     })
 
@@ -880,7 +887,7 @@ describe('useFormBuilder', () => {
     it('should not create duplicate auto-save timers', () => {
       const setIntervalSpy = vi.spyOn(globalThis, 'setInterval')
 
-      const h = createHarness()
+      createHarness()
 
       // Clear calls from constructor/createHarness
       setIntervalSpy.mockClear()

@@ -256,15 +256,11 @@ async def admin_create_account(
 
     valid_roles = {UserRole.MEMBER.value, UserRole.ADMIN.value}
     if req.role not in valid_roles:
-        raise AppError(
-            ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}"
-        )
+        raise AppError(ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}")
 
     # Only SUPER_ADMIN can create ADMIN accounts
     if req.role == UserRole.ADMIN.value and current_user["role"] != UserRole.SUPER_ADMIN.value:
-        raise AppError(
-            ErrorCode.SYS_403, 403, "Only Super Admin can create Admin accounts."
-        )
+        raise AppError(ErrorCode.SYS_403, 403, "Only Super Admin can create Admin accounts.")
 
     if await user_exists_by_username(req.username):
         raise AppError(ErrorCode.SYS_409, 409, "Username already exists.")
@@ -287,9 +283,7 @@ async def change_user_role(
 ) -> UserResponse:
     valid_roles = {r.value for r in UserRole if r != UserRole.GUEST}
     if req.role not in valid_roles:
-        raise AppError(
-            ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}"
-        )
+        raise AppError(ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}")
 
     # Prevent self-demotion
     if str(user_id) == current_user["sub"]:

@@ -11,7 +11,6 @@ Verifies:
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -99,9 +98,7 @@ class TestAppErrorFormat:
         post_id = uuid.uuid4()
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP_POSTS}.check_rate_limit", new_callable=AsyncMock, return_value=False
-            ):
+            with patch(f"{_EP_POSTS}.check_rate_limit", new_callable=AsyncMock, return_value=False):
                 resp = await client.post(
                     f"/api/v1/posts/{post_id}/reactions",
                     json={"reaction": "LIKE"},
@@ -426,9 +423,7 @@ class TestAppErrorFormatNotifications:
         notif_id = uuid.uuid4()
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP_NOTIF}.mark_as_read", new_callable=AsyncMock, return_value=False
-            ):
+            with patch(f"{_EP_NOTIF}.mark_as_read", new_callable=AsyncMock, return_value=False):
                 resp = await client.put(
                     f"/api/v1/notifications/{notif_id}/read",
                     headers={"Authorization": "Bearer fake"},
@@ -444,9 +439,7 @@ class TestAppErrorFormatNotifications:
         """GET /notifications -> 429 with SYS_429 code when rate limited."""
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP_NOTIF}.check_rate_limit", new_callable=AsyncMock, return_value=False
-            ):
+            with patch(f"{_EP_NOTIF}.check_rate_limit", new_callable=AsyncMock, return_value=False):
                 resp = await client.get(
                     "/api/v1/notifications",
                     headers={"Authorization": "Bearer fake"},
@@ -805,9 +798,7 @@ class TestPreferencesAppError:
         """PUT /users/me/preferences -> 429 with SYS_429 code."""
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=False
-            ):
+            with patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=False):
                 resp = await client.put(
                     "/api/v1/users/me/preferences",
                     json={"theme": "dark"},

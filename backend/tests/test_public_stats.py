@@ -109,8 +109,6 @@ def test_public_stats_cache_expires_after_ttl(mock_repo, mock_time, client):
     resp1 = client.get("/api/v1/public/stats")
     assert resp1.status_code == 200
     assert resp1.json()["member_count"] == 10
-    first_call_count = mock_repo.count_users.call_count
-
     # Second call within TTL — should use cache
     mock_time.monotonic.return_value = 1200.0  # +200s < 300s TTL
     mock_repo.count_users = AsyncMock(return_value=999)

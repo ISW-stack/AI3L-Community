@@ -29,7 +29,7 @@ const {
   fetchPage: fetchRecentPosts,
 } = useFetchPaginated<Post>(async () => {
   const data = await listPosts({ page: 1, page_size: 5, sort: 'newest' })
-  return { items: data.posts, total: data.total }
+  return { items: data.posts, total: data.total ?? 0 }
 }, 5)
 
 const trendingPosts = ref<Post[]>([])

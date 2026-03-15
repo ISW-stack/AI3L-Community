@@ -263,7 +263,7 @@ const {
             @toggle-collapse="toggleCollapse(q.id)"
             @add-option="addOption(q)"
             @remove-option="(oi: number) => removeOption(q, oi)"
-            @move-option="(oi: number, dir: number) => moveOption(q, oi, dir)"
+            @move-option="(oi: number, dir: number) => moveOption(q, oi, dir as 1 | -1)"
             @update-allowed-types="(event: Event) => updateAllowedTypes(q, event)"
             @insert-at="insertQuestionAt(i)"
             @drag-start="(e: DragEvent) => handleDragStart(e, i)"

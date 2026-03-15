@@ -18,7 +18,6 @@ from pydantic import ValidationError
 from app.repositories.reaction_helpers import _ALLOWED_TABLES, toggle_reaction_jsonb
 from app.schemas.auth import GuestLoginRequest
 
-
 # ---------------------------------------------------------------------------
 # C1: reaction_helpers table whitelist
 # ---------------------------------------------------------------------------
@@ -111,9 +110,7 @@ class TestGuestCounterAtomicInit:
         redis.eval.assert_called_once()
 
     @patch("app.services.auth.get_redis")
-    async def test_lua_eval_receives_correct_args(
-        self, mock_get_redis: MagicMock
-    ) -> None:
+    async def test_lua_eval_receives_correct_args(self, mock_get_redis: MagicMock) -> None:
         """redis.eval is called with Lua script, 1 key, counter key, MAX_GUESTS."""
         from app.core.constants import MAX_GUESTS
         from app.services.auth import _GUEST_INCR_LUA, guest_login
@@ -126,9 +123,7 @@ class TestGuestCounterAtomicInit:
             mock_session.return_value = ("token", 3600)
             await guest_login("TestGuest")
 
-        redis.eval.assert_called_once_with(
-            _GUEST_INCR_LUA, 1, "meta:guest_counter", MAX_GUESTS
-        )
+        redis.eval.assert_called_once_with(_GUEST_INCR_LUA, 1, "meta:guest_counter", MAX_GUESTS)
 
     @patch("app.services.auth.get_redis")
     async def test_guest_login_respects_max_guests(self, mock_get_redis: MagicMock) -> None:
@@ -233,7 +228,7 @@ class TestFormRepoUpdateWhitelist:
 
     async def test_accepts_valid_fields(self) -> None:
         """form_repo.update() accepts all whitelisted fields."""
-        from app.repositories.form_repo import _ALLOWED_FORM_FIELDS, update
+        from app.repositories.form_repo import update
 
         conn = AsyncMock()
         form_id = uuid.uuid4()

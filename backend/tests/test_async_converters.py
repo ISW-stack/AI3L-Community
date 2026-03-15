@@ -643,9 +643,7 @@ class TestAsyncUserToPublicResponse:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            user = _make_user_dict(
-                avatar_url=None, bio=None, affiliation=None, orcid=None
-            )
+            user = _make_user_dict(avatar_url=None, bio=None, affiliation=None, orcid=None)
             result = await async_user_to_public_response(user)
             assert result.avatar_url is None
             assert result.bio is None
@@ -704,9 +702,7 @@ class TestBatchConversion:
             return_value="https://cdn/trig.jpg",
         ):
             rows = [_make_notification_row(message=f"Notif {i}") for i in range(4)]
-            results = list(
-                await asyncio.gather(*[async_row_to_notification(r) for r in rows])
-            )
+            results = list(await asyncio.gather(*[async_row_to_notification(r) for r in rows]))
 
             assert len(results) == 4
             for i, result in enumerate(results):

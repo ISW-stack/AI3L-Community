@@ -34,8 +34,16 @@ class TestSearchSuggestionsRateLimit:
         try:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-                patch("app.repositories.post_repo.get_search_suggestions", new_callable=AsyncMock, return_value=[]),
-                patch("app.repositories.post_repo.get_keyword_suggestions", new_callable=AsyncMock, return_value=[]),
+                patch(
+                    "app.repositories.post_repo.get_search_suggestions",
+                    new_callable=AsyncMock,
+                    return_value=[],
+                ),
+                patch(
+                    "app.repositories.post_repo.get_keyword_suggestions",
+                    new_callable=AsyncMock,
+                    return_value=[],
+                ),
             ):
                 resp = await client.get("/api/v1/posts/suggestions?q=test")
                 assert resp.status_code == 200
@@ -63,9 +71,19 @@ class TestSearchSuggestionsRateLimit:
         payload, uid = _override_auth("MEMBER", user_id=user_id)
         try:
             with (
-                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True) as mock_rl,
-                patch("app.repositories.post_repo.get_search_suggestions", new_callable=AsyncMock, return_value=[]),
-                patch("app.repositories.post_repo.get_keyword_suggestions", new_callable=AsyncMock, return_value=[]),
+                patch(
+                    f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
+                ) as mock_rl,
+                patch(
+                    "app.repositories.post_repo.get_search_suggestions",
+                    new_callable=AsyncMock,
+                    return_value=[],
+                ),
+                patch(
+                    "app.repositories.post_repo.get_keyword_suggestions",
+                    new_callable=AsyncMock,
+                    return_value=[],
+                ),
             ):
                 await client.get("/api/v1/posts/suggestions?q=test")
                 mock_rl.assert_awaited_once()

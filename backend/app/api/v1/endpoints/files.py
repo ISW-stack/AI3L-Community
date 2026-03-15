@@ -43,7 +43,9 @@ async def upload_editor_file(
     filename = file.filename or "unnamed"
     data = await file.read(MAX_EDITOR_FILE_SIZE + 1)
     if len(data) > MAX_EDITOR_FILE_SIZE:
-        raise AppError(ErrorCode.FILE_001, status.HTTP_400_BAD_REQUEST, "File size exceeds 20MB limit.")
+        raise AppError(
+            ErrorCode.FILE_001, status.HTTP_400_BAD_REQUEST, "File size exceeds 20MB limit."
+        )
     expected_type, data = await run_in_threadpool(validate_editor_file, filename, data)
 
     # Acquire per-user upload lock to prevent concurrent quota bypass
@@ -166,9 +168,7 @@ async def delete_editor_file(
     if len(parts) >= 2:
         owner_user_id = parts[1]
     else:
-        raise AppError(
-            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key format."
-        )
+        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key format.")
 
     # Delete the file from storage
     try:
@@ -214,7 +214,13 @@ async def delete_editor_file(
                 owner_user_id=owner_user_id,
             )
         except Exception:
-            logger.error("AUDIT FAILURE: Failed to emit audit event for admin file deletion. action=admin_file_delete actor=%s target_key=%s", current_user["sub"], key, exc_info=True)
+            logger.error(
+                "AUDIT FAILURE: Failed to emit audit event for admin file deletion. "
+                "action=admin_file_delete actor=%s target_key=%s",
+                current_user["sub"],
+                key,
+                exc_info=True,
+            )
 
     return {"detail": "File deleted.", "key": key, "freed_bytes": file_size}
 

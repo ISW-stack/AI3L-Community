@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
@@ -65,7 +65,9 @@ describe('DangerZone', () => {
   describe('confirmation flow', () => {
     it('shows confirmation modal when delete button clicked', async () => {
       const wrapper = mountDangerZone()
-      const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('Delete My Account'))
+      const deleteBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Delete My Account'))
       await deleteBtn!.trigger('click')
       await nextTick()
 

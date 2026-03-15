@@ -55,7 +55,7 @@ describe('useFormExport', () => {
     it('calls exportForm API and sets pending status', async () => {
       mockExportForm.mockResolvedValue({ task_id: 'task-1' })
 
-      const { startExport, exportStatus, exportStatusMessage, exportingFormId } = useFormExport()
+      const { startExport, exportStatus, exportingFormId } = useFormExport()
       await startExport('form-1', messages)
 
       expect(mockExportForm).toHaveBeenCalledWith('form-1')
@@ -365,12 +365,10 @@ describe('useFormExport', () => {
   describe('polling resilience', () => {
     it('continues polling when getTaskStatus throws', async () => {
       mockExportForm.mockResolvedValue({ task_id: 'task-1' })
-      mockGetTaskStatus
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({
-          status: 'SUCCESS',
-          download_url: 'http://example.com/export.csv',
-        })
+      mockGetTaskStatus.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({
+        status: 'SUCCESS',
+        download_url: 'http://example.com/export.csv',
+      })
 
       const { startExport, exportStatus } = useFormExport({ pollInterval: 1000 })
       await startExport('form-1', messages)

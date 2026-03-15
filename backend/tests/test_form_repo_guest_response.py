@@ -8,7 +8,7 @@ with fallback display_name='Guest' and username='guest'.
 import json
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -37,9 +37,7 @@ class TestFindResponsesLeftJoin:
     """find_responses should return guest responses via LEFT JOIN."""
 
     @pytest.mark.asyncio
-    async def test_guest_response_included_with_fallback_names(
-        self, mock_pool, mock_conn
-    ):
+    async def test_guest_response_included_with_fallback_names(self, mock_pool, mock_conn):
         """A response with no matching user should get 'Guest'/'guest' defaults."""
         form_id = uuid.uuid4()
         guest_user_id = uuid.uuid4()
@@ -64,9 +62,7 @@ class TestFindResponsesLeftJoin:
         assert results[0]["user_id"] == guest_user_id
 
     @pytest.mark.asyncio
-    async def test_registered_user_response_has_real_names(
-        self, mock_pool, mock_conn
-    ):
+    async def test_registered_user_response_has_real_names(self, mock_pool, mock_conn):
         """A response from a registered user should show their real name."""
         form_id = uuid.uuid4()
         user_id = uuid.uuid4()
@@ -116,9 +112,7 @@ class TestFindResponsesLeftJoin:
         """Answers stored as JSON string should be parsed into a dict."""
         form_id = uuid.uuid4()
 
-        row = _make_response_row(
-            uuid.uuid4(), "Guest", "guest", answers={"q1": "yes", "q2": 5}
-        )
+        row = _make_response_row(uuid.uuid4(), "Guest", "guest", answers={"q1": "yes", "q2": 5})
 
         mock_conn.fetchval = AsyncMock(return_value=1)
         mock_conn.fetch = AsyncMock(return_value=[row])

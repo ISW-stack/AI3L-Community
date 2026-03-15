@@ -43,7 +43,9 @@ onMounted(async () => {
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <BaseBadge variant="purple">Form</BaseBadge>
-            <span class="font-semibold text-foreground text-sm min-w-0 break-words">{{ form.title }}</span>
+            <span class="font-semibold text-foreground text-sm min-w-0 break-words">{{
+              form.title
+            }}</span>
             <BaseBadge :variant="form.is_active ? 'success' : 'danger'" class="ml-auto shrink-0">
               {{ form.is_active ? t('common.active') : t('common.closed') }}
             </BaseBadge>

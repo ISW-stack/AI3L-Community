@@ -135,7 +135,9 @@ async def _async_export(form_id: str, task_id: str) -> dict:
 
     # Build a safe filename from the form title for the browser download prompt
     raw_title = (form["title"] or "export").strip()
-    safe_title = re.sub(r"[^a-zA-Z0-9_\s\-]", "", raw_title).strip().replace(" ", "_")[:80] or "export"
+    safe_title = (
+        re.sub(r"[^a-zA-Z0-9_\s\-]", "", raw_title).strip().replace(" ", "_")[:80] or "export"
+    )
     download_filename = f"{safe_title}.csv"
 
     # Generate presigned URL (24h expiry)

@@ -104,7 +104,15 @@ async function mountComponent(options?: { userSigRole?: ReturnType<typeof ref> |
   await router.isReady()
 
   const provide: Record<string, unknown> = {
-    sig: ref({ id: 'sig1', name: 'Test SIG', description: null, created_by: 'u1', creator_display_name: null, member_count: 2, created_at: '2026-01-01T00:00:00Z' }),
+    sig: ref({
+      id: 'sig1',
+      name: 'Test SIG',
+      description: null,
+      created_by: 'u1',
+      creator_display_name: null,
+      member_count: 2,
+      created_at: '2026-01-01T00:00:00Z',
+    }),
   }
   if (options?.userSigRole !== undefined) {
     provide.userSigRole = options.userSigRole

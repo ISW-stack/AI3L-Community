@@ -41,7 +41,7 @@ class TestBootstrapSuperAdmin:
             assert call_kwargs["display_name"] == "Super Admin"
 
     async def test_sync_path_when_user_already_exists(self):
-        """If the super admin already exists and password changed, update_password_hash should be called."""
+        """If the super admin already exists and password changed, update_password_hash should be called."""  # noqa: E501
         existing_user = make_user_dict(username="admin@ai3l.community", role="SUPER_ADMIN")
 
         with (

@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -60,7 +60,9 @@ class TestEditCommentPostIdValidation:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.sanitize_html", return_value="Updated content"),
-                patch(f"{_EP}.update_comment", new_callable=AsyncMock, return_value=None) as mock_update,
+                patch(
+                    f"{_EP}.update_comment", new_callable=AsyncMock, return_value=None
+                ) as mock_update,
             ):
                 resp = await client.put(
                     f"/api/v1/posts/{wrong_post_id}/comments/{comment_id}",
@@ -93,7 +95,9 @@ class TestEditCommentPostIdValidation:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.sanitize_html", return_value="Updated content"),
-                patch(f"{_EP}.update_comment", new_callable=AsyncMock, return_value=comment) as mock_update,
+                patch(
+                    f"{_EP}.update_comment", new_callable=AsyncMock, return_value=comment
+                ) as mock_update,
             ):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",
@@ -231,9 +235,7 @@ class TestServiceUpdateCommentPassesPostId:
             result = await update_comment(comment_id, user_id, "content", post_id)
 
         assert result is None
-        mock_repo_update.assert_called_once_with(
-            comment_id, uuid.UUID(user_id), "content", post_id
-        )
+        mock_repo_update.assert_called_once_with(comment_id, uuid.UUID(user_id), "content", post_id)
 
     @pytest.mark.anyio
     async def test_service_without_post_id(self):
@@ -251,6 +253,4 @@ class TestServiceUpdateCommentPassesPostId:
             result = await update_comment(comment_id, user_id, "content")
 
         assert result is None
-        mock_repo_update.assert_called_once_with(
-            comment_id, uuid.UUID(user_id), "content", None
-        )
+        mock_repo_update.assert_called_once_with(comment_id, uuid.UUID(user_id), "content", None)

@@ -1,6 +1,5 @@
 """Tests for Bug #13: CommentListResponse must include current_page and total_pages."""
 
-import math
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
@@ -89,9 +88,7 @@ class TestCommentPaginationFields:
                 patch(
                     f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value={"id": post_id}
                 ),
-                patch(
-                    f"{_EP}.list_comments", new_callable=AsyncMock, return_value=([comment], 25)
-                ),
+                patch(f"{_EP}.list_comments", new_callable=AsyncMock, return_value=([comment], 25)),
             ):
                 resp = await client.get(
                     f"/api/v1/posts/{post_id}/comments?page=2&page_size=10",
@@ -143,9 +140,7 @@ class TestCommentPaginationFields:
                 patch(
                     f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value={"id": post_id}
                 ),
-                patch(
-                    f"{_EP}.list_comments", new_callable=AsyncMock, return_value=(comments, 20)
-                ),
+                patch(f"{_EP}.list_comments", new_callable=AsyncMock, return_value=(comments, 20)),
             ):
                 resp = await client.get(
                     f"/api/v1/posts/{post_id}/comments?page=1&page_size=10",

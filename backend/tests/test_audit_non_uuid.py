@@ -1,7 +1,7 @@
 """Tests for Bug #1: audit log target_id handling for non-UUID strings."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -61,9 +61,7 @@ class TestAuditNonUuidTargetId:
 
     @pytest.mark.anyio
     @patch("app.repositories.audit_repo.get_pool")
-    async def test_valid_uuid_target_id_still_works(
-        self, mock_get_pool, mock_pool, mock_conn
-    ):
+    async def test_valid_uuid_target_id_still_works(self, mock_get_pool, mock_pool, mock_conn):
         """A valid UUID target_id should still be parsed and passed correctly."""
         from app.services.audit import log_action
 
@@ -83,9 +81,7 @@ class TestAuditNonUuidTargetId:
 
     @pytest.mark.anyio
     @patch("app.repositories.audit_repo.get_pool")
-    async def test_none_target_id_still_works(
-        self, mock_get_pool, mock_pool, mock_conn
-    ):
+    async def test_none_target_id_still_works(self, mock_get_pool, mock_pool, mock_conn):
         """A None target_id should pass through as None."""
         from app.services.audit import log_action
 
@@ -104,9 +100,7 @@ class TestAuditNonUuidTargetId:
 
     @pytest.mark.anyio
     @patch("app.repositories.audit_repo.get_pool")
-    async def test_non_uuid_target_id_logs_info(
-        self, mock_get_pool, mock_pool, mock_conn
-    ):
+    async def test_non_uuid_target_id_logs_info(self, mock_get_pool, mock_pool, mock_conn):
         """Non-UUID target_id should log an info message with the original value."""
         from app.services.audit import log_action
 

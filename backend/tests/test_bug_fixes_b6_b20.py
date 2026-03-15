@@ -5,7 +5,6 @@ B8:  Event handlers re-raise for event bus retry
 B11: Idempotency middleware graceful degradation when Redis unavailable
 """
 
-import json
 import uuid
 from unittest.mock import AsyncMock, patch
 

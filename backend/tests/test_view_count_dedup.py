@@ -21,17 +21,29 @@ class TestViewCountDedup:
         mock_redis.set = AsyncMock(return_value=True)  # nx=True returns True (key was new)
 
         with (
-            patch("app.services.post.post_repo.find_by_id", new_callable=AsyncMock, return_value=fake_row),
-            patch("app.services.post.post_repo.increment_view_count", new_callable=AsyncMock) as mock_incr,
+            patch(
+                "app.services.post.post_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=fake_row,
+            ),
+            patch(
+                "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
+            ) as mock_incr,
             patch("app.services.post.get_redis", return_value=mock_redis),
-            patch("app.services.post.async_row_to_post", new_callable=AsyncMock, return_value=fake_post),
+            patch(
+                "app.services.post.async_row_to_post",
+                new_callable=AsyncMock,
+                return_value=fake_post,
+            ),
         ):
             from app.services.post import get_post_by_id
 
             result = await get_post_by_id(post_id, increment_view=True, viewer_id=viewer_id)
 
         assert result == fake_post
-        mock_redis.set.assert_awaited_once_with(f"viewed:{post_id}:{viewer_id}", "1", ex=300, nx=True)
+        mock_redis.set.assert_awaited_once_with(
+            f"viewed:{post_id}:{viewer_id}", "1", ex=300, nx=True
+        )
         mock_incr.assert_awaited_once_with(post_id)
 
     @pytest.mark.anyio
@@ -46,10 +58,20 @@ class TestViewCountDedup:
         mock_redis.set = AsyncMock(return_value=None)  # nx=True returns None (key exists)
 
         with (
-            patch("app.services.post.post_repo.find_by_id", new_callable=AsyncMock, return_value=fake_row),
-            patch("app.services.post.post_repo.increment_view_count", new_callable=AsyncMock) as mock_incr,
+            patch(
+                "app.services.post.post_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=fake_row,
+            ),
+            patch(
+                "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
+            ) as mock_incr,
             patch("app.services.post.get_redis", return_value=mock_redis),
-            patch("app.services.post.async_row_to_post", new_callable=AsyncMock, return_value=fake_post),
+            patch(
+                "app.services.post.async_row_to_post",
+                new_callable=AsyncMock,
+                return_value=fake_post,
+            ),
         ):
             from app.services.post import get_post_by_id
 
@@ -67,10 +89,20 @@ class TestViewCountDedup:
         fake_post = {"id": str(post_id), "title": "Test"}
 
         with (
-            patch("app.services.post.post_repo.find_by_id", new_callable=AsyncMock, return_value=fake_row),
-            patch("app.services.post.post_repo.increment_view_count", new_callable=AsyncMock) as mock_incr,
+            patch(
+                "app.services.post.post_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=fake_row,
+            ),
+            patch(
+                "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
+            ) as mock_incr,
             patch("app.services.post.get_redis") as mock_get_redis,
-            patch("app.services.post.async_row_to_post", new_callable=AsyncMock, return_value=fake_post),
+            patch(
+                "app.services.post.async_row_to_post",
+                new_callable=AsyncMock,
+                return_value=fake_post,
+            ),
         ):
             from app.services.post import get_post_by_id
 
@@ -88,14 +120,26 @@ class TestViewCountDedup:
         fake_post = {"id": str(post_id), "title": "Test"}
 
         with (
-            patch("app.services.post.post_repo.find_by_id", new_callable=AsyncMock, return_value=fake_row),
-            patch("app.services.post.post_repo.increment_view_count", new_callable=AsyncMock) as mock_incr,
+            patch(
+                "app.services.post.post_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=fake_row,
+            ),
+            patch(
+                "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
+            ) as mock_incr,
             patch("app.services.post.get_redis") as mock_get_redis,
-            patch("app.services.post.async_row_to_post", new_callable=AsyncMock, return_value=fake_post),
+            patch(
+                "app.services.post.async_row_to_post",
+                new_callable=AsyncMock,
+                return_value=fake_post,
+            ),
         ):
             from app.services.post import get_post_by_id
 
-            result = await get_post_by_id(post_id, increment_view=False, viewer_id=str(uuid.uuid4()))
+            result = await get_post_by_id(
+                post_id, increment_view=False, viewer_id=str(uuid.uuid4())
+            )
 
         assert result == fake_post
         mock_incr.assert_not_awaited()
@@ -107,8 +151,12 @@ class TestViewCountDedup:
         post_id = uuid.uuid4()
 
         with (
-            patch("app.services.post.post_repo.find_by_id", new_callable=AsyncMock, return_value=None),
-            patch("app.services.post.post_repo.increment_view_count", new_callable=AsyncMock) as mock_incr,
+            patch(
+                "app.services.post.post_repo.find_by_id", new_callable=AsyncMock, return_value=None
+            ),
+            patch(
+                "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
+            ) as mock_incr,
             patch("app.services.post.get_redis") as mock_get_redis,
         ):
             from app.services.post import get_post_by_id

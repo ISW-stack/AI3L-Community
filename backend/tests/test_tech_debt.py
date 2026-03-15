@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
@@ -608,9 +607,7 @@ class TestQuestionSchemaValidation:
 
     def test_single_choice_empty_options_raises(self):
         with pytest.raises(ValueError, match="must have at least one option"):
-            self._validate(
-                [{"id": "q1", "type": "single_choice", "label": "Pick", "options": []}]
-            )
+            self._validate([{"id": "q1", "type": "single_choice", "label": "Pick", "options": []}])
 
     def test_duplicate_question_id_raises(self):
         with pytest.raises(ValueError, match="Duplicate question id 'q1'"):
@@ -826,9 +823,7 @@ class TestCleanupPostFilesLogging:
 
             # Should log a summary with succeeded and failed counts
             summary_calls = [
-                c
-                for c in mock_logger.warning.call_args_list
-                if "summary" in str(c).lower()
+                c for c in mock_logger.warning.call_args_list if "summary" in str(c).lower()
             ]
             assert len(summary_calls) >= 1
             summary_extra = summary_calls[0].kwargs.get("extra", {})
@@ -863,9 +858,7 @@ class TestCleanupPostFilesLogging:
 
             # No summary log when all succeed
             summary_calls = [
-                c
-                for c in mock_logger.warning.call_args_list
-                if "summary" in str(c).lower()
+                c for c in mock_logger.warning.call_args_list if "summary" in str(c).lower()
             ]
             assert len(summary_calls) == 0
 
@@ -907,9 +900,9 @@ class TestMalformedRatingLogging:
         form_row = self._make_form_row(questions)
 
         responses = [
-            {"answers": {"q1": 4}},       # valid
-            {"answers": {"q1": "five"}},   # malformed
-            {"answers": {"q1": 3}},        # valid
+            {"answers": {"q1": 4}},  # valid
+            {"answers": {"q1": "five"}},  # malformed
+            {"answers": {"q1": 3}},  # valid
         ]
 
         with (

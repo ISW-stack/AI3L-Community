@@ -2964,9 +2964,7 @@ class TestExportTaskOwnershipTTL:
                 assert resp.status_code == 202
                 assert resp.json()["task_id"] == "celery-task-456"
                 # Verify 24-hour TTL (86400 seconds)
-                mock_redis.set.assert_awaited_once_with(
-                    "task_owner:celery-task-456", uid, ex=86400
-                )
+                mock_redis.set.assert_awaited_once_with("task_owner:celery-task-456", uid, ex=86400)
         finally:
             _clear_overrides()
 
@@ -2982,9 +2980,7 @@ class TestIsSigAdminHelper:
         sig_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
 
-        with patch(
-            f"{_EP}.sig_repo.get_member_role", new_callable=AsyncMock
-        ) as mock_role:
+        with patch(f"{_EP}.sig_repo.get_member_role", new_callable=AsyncMock) as mock_role:
             result = await _is_sig_admin(sig_id, user_id, "SUPER_ADMIN")
             assert result is True
             # Should NOT query SIG membership for platform admins
@@ -2998,9 +2994,7 @@ class TestIsSigAdminHelper:
         sig_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
 
-        with patch(
-            f"{_EP}.sig_repo.get_member_role", new_callable=AsyncMock
-        ) as mock_role:
+        with patch(f"{_EP}.sig_repo.get_member_role", new_callable=AsyncMock) as mock_role:
             result = await _is_sig_admin(sig_id, user_id, "ADMIN")
             assert result is True
             mock_role.assert_not_called()

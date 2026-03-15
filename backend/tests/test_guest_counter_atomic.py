@@ -5,7 +5,7 @@ use Lua scripts for atomic decrement-and-clamp instead of non-atomic
 DECR + conditional SET.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -27,9 +27,7 @@ class TestDecrementGuestCounterAtomic:
         with patch("app.services.auth.get_redis", return_value=mock_redis):
             await decrement_guest_counter()
 
-            mock_redis.eval.assert_awaited_once_with(
-                _GUEST_DECR_LUA, 1, _GUEST_COUNTER_KEY
-            )
+            mock_redis.eval.assert_awaited_once_with(_GUEST_DECR_LUA, 1, _GUEST_COUNTER_KEY)
 
     @pytest.mark.asyncio
     async def test_does_not_use_bare_decr(self, mock_redis):

@@ -43,9 +43,9 @@ function mountForm(props: Partial<Record<string, unknown>> = {}) {
       generatedCode: '',
       generatingCode: false,
       codeCopied: false,
-      'onUpdate:currentPassword': (v: string) => {},
-      'onUpdate:newPassword': (v: string) => {},
-      'onUpdate:confirmPassword': (v: string) => {},
+      'onUpdate:currentPassword': () => {},
+      'onUpdate:newPassword': () => {},
+      'onUpdate:confirmPassword': () => {},
       ...props,
     },
     global: { plugins: [pinia], stubs: createStubs() },
@@ -155,16 +155,16 @@ describe('PasswordChangeForm', () => {
     it('toggles current password visibility', async () => {
       const wrapper = mountForm()
       // Initially password type
-      const toggleBtn = wrapper.findAll('button').find(
-        (b) => b.attributes('aria-label') === 'Show password',
-      )
+      const toggleBtn = wrapper
+        .findAll('button')
+        .find((b) => b.attributes('aria-label') === 'Show password')
       expect(toggleBtn).toBeTruthy()
       await toggleBtn!.trigger('click')
       await nextTick()
       // After toggle, button should show "Hide password"
-      const hideBtn = wrapper.findAll('button').find(
-        (b) => b.attributes('aria-label') === 'Hide password',
-      )
+      const hideBtn = wrapper
+        .findAll('button')
+        .find((b) => b.attributes('aria-label') === 'Hide password')
       expect(hideBtn).toBeTruthy()
     })
   })

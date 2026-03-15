@@ -169,9 +169,7 @@ class TestSigNotificationCap:
 
             # Should have logged a warning about cap being reached
             warning_calls = mock_logger.warning.call_args_list
-            cap_warnings = [
-                c for c in warning_calls if "cap" in str(c).lower()
-            ]
+            cap_warnings = [c for c in warning_calls if "cap" in str(c).lower()]
             assert len(cap_warnings) >= 1
 
     @pytest.mark.anyio
@@ -203,9 +201,7 @@ class TestSigNotificationCap:
 
             # No cap warning should be logged
             warning_calls = mock_logger.warning.call_args_list
-            cap_warnings = [
-                c for c in warning_calls if "cap" in str(c).lower()
-            ]
+            cap_warnings = [c for c in warning_calls if "cap" in str(c).lower()]
             assert len(cap_warnings) == 0
 
     @pytest.mark.anyio

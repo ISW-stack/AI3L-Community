@@ -157,9 +157,17 @@ function formatBytes(bytes: number): string {
         />
       </div>
 
-      <BaseInput v-model="displayName" :label="t('profile.form.displayNameLabel')" :maxlength="100" />
+      <BaseInput
+        v-model="displayName"
+        :label="t('profile.form.displayNameLabel')"
+        :maxlength="100"
+      />
       <BaseTextarea v-model="bio" :label="t('profile.form.bioLabel')" :rows="3" :maxlength="500" />
-      <BaseInput v-model="affiliation" :label="t('profile.form.affiliationLabel')" :maxlength="200" />
+      <BaseInput
+        v-model="affiliation"
+        :label="t('profile.form.affiliationLabel')"
+        :maxlength="200"
+      />
       <BaseInput
         v-model="orcid"
         :label="t('profile.form.orcidLabel')"

@@ -158,12 +158,7 @@ class TestGuestLogin:
         self, mock_get_redis, mock_create_session
     ):
         """Verify redis.eval is called with the Lua script, 1, key, MAX_GUESTS."""
-        from app.services.auth import (
-            MAX_GUESTS,
-            _GUEST_COUNTER_KEY,
-            _GUEST_INCR_LUA,
-            guest_login,
-        )
+        from app.services.auth import _GUEST_COUNTER_KEY, _GUEST_INCR_LUA, MAX_GUESTS, guest_login
 
         redis = AsyncMock()
         redis.eval = AsyncMock(return_value=5)
@@ -172,9 +167,7 @@ class TestGuestLogin:
 
         await guest_login("Guest")
 
-        redis.eval.assert_called_once_with(
-            _GUEST_INCR_LUA, 1, _GUEST_COUNTER_KEY, MAX_GUESTS
-        )
+        redis.eval.assert_called_once_with(_GUEST_INCR_LUA, 1, _GUEST_COUNTER_KEY, MAX_GUESTS)
 
     @patch("app.services.auth.get_redis")
     async def test_guest_counter_sync(self, mock_get_redis):
@@ -230,9 +223,7 @@ class TestGuestLogin:
         mock_get_redis.return_value = redis
 
         await decrement_guest_ip_counter("192.168.1.1")
-        redis.eval.assert_called_once_with(
-            _GUEST_IP_DECR_LUA, 1, "guest:ip:192.168.1.1", 3600
-        )
+        redis.eval.assert_called_once_with(_GUEST_IP_DECR_LUA, 1, "guest:ip:192.168.1.1", 3600)
 
     @patch("app.services.auth.get_redis")
     async def test_decrement_guest_ip_counter_clamps_to_zero(self, mock_get_redis):
@@ -244,9 +235,7 @@ class TestGuestLogin:
         mock_get_redis.return_value = redis
 
         await decrement_guest_ip_counter("10.0.0.1")
-        redis.eval.assert_called_once_with(
-            _GUEST_IP_DECR_LUA, 1, "guest:ip:10.0.0.1", 3600
-        )
+        redis.eval.assert_called_once_with(_GUEST_IP_DECR_LUA, 1, "guest:ip:10.0.0.1", 3600)
 
     @patch("app.services.auth.get_redis")
     async def test_decrement_guest_ip_counter_restores_ttl_when_clamped(self, mock_get_redis):
@@ -259,9 +248,7 @@ class TestGuestLogin:
 
         await decrement_guest_ip_counter("192.0.2.1")
         # All logic is inside the Lua script — only eval should be called
-        redis.eval.assert_called_once_with(
-            _GUEST_IP_DECR_LUA, 1, "guest:ip:192.0.2.1", 3600
-        )
+        redis.eval.assert_called_once_with(_GUEST_IP_DECR_LUA, 1, "guest:ip:192.0.2.1", 3600)
 
     @patch("app.services.auth.get_redis")
     async def test_increment_guest_ip_counter_success(self, mock_get_redis):
@@ -291,8 +278,8 @@ class TestGuestLogin:
     async def test_increment_guest_ip_counter_lua_args(self, mock_get_redis):
         """Verify redis.eval is called with the correct Lua script, keys, and args."""
         from app.services.auth import (
-            MAX_GUESTS_PER_IP,
             _GUEST_IP_INCR_LUA,
+            MAX_GUESTS_PER_IP,
             increment_guest_ip_counter,
         )
 

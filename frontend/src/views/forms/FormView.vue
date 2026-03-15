@@ -348,11 +348,7 @@ onMounted(() => loadForm())
 
           <!-- Rating (Feature 5) -->
           <div v-else-if="q.type === 'rating'">
-            <div
-              class="flex items-center gap-2 flex-wrap"
-              role="group"
-              :aria-label="q.label"
-            >
+            <div class="flex items-center gap-2 flex-wrap" role="group" :aria-label="q.label">
               <span class="text-xs text-muted shrink-0">{{ q.labels?.min ?? q.min ?? 1 }}</span>
               <div class="flex flex-wrap gap-2">
                 <button

@@ -4,8 +4,7 @@ import { useFetchPaginated } from '../useFetchPaginated'
 describe('useFetchPaginated', () => {
   it('has correct initial state', () => {
     const fetchFn = vi.fn()
-    const { items, loading, error, page, total, totalPages, pageSize } =
-      useFetchPaginated(fetchFn)
+    const { items, loading, error, page, total, totalPages, pageSize } = useFetchPaginated(fetchFn)
 
     expect(items.value).toEqual([])
     expect(loading.value).toBe(false)
@@ -196,10 +195,16 @@ describe('useFetchPaginated', () => {
       const fetchFn = vi
         .fn()
         .mockImplementationOnce(
-          () => new Promise((resolve) => { resolveFirst = resolve }),
+          () =>
+            new Promise((resolve) => {
+              resolveFirst = resolve
+            }),
         )
         .mockImplementationOnce(
-          () => new Promise((resolve) => { resolveSecond = resolve }),
+          () =>
+            new Promise((resolve) => {
+              resolveSecond = resolve
+            }),
         )
 
       const { items, fetchPage } = useFetchPaginated(fetchFn, 10)
@@ -227,10 +232,16 @@ describe('useFetchPaginated', () => {
       const fetchFn = vi
         .fn()
         .mockImplementationOnce(
-          () => new Promise((resolve) => { resolveFirst = resolve }),
+          () =>
+            new Promise((resolve) => {
+              resolveFirst = resolve
+            }),
         )
         .mockImplementationOnce(
-          () => new Promise((resolve) => { resolveSecond = resolve }),
+          () =>
+            new Promise((resolve) => {
+              resolveSecond = resolve
+            }),
         )
 
       const { loading, fetchPage } = useFetchPaginated(fetchFn, 10)
@@ -260,10 +271,16 @@ describe('useFetchPaginated', () => {
       const fetchFn = vi
         .fn()
         .mockImplementationOnce(
-          () => new Promise((_resolve, reject) => { rejectFirst = reject }),
+          () =>
+            new Promise((_resolve, reject) => {
+              rejectFirst = reject
+            }),
         )
         .mockImplementationOnce(
-          () => new Promise((resolve) => { resolveSecond = resolve }),
+          () =>
+            new Promise((resolve) => {
+              resolveSecond = resolve
+            }),
         )
 
       const { error, fetchPage } = useFetchPaginated(fetchFn, 10)

@@ -117,7 +117,12 @@ class TestIdempotencyNoKey:
                         "id": "abc",
                         "title": "t",
                         "content": "c",
-                        "author": {"id": "uid", "username": "u", "display_name": "u", "avatar_url": None},
+                        "author": {
+                            "id": "uid",
+                            "username": "u",
+                            "display_name": "u",
+                            "avatar_url": None,
+                        },
                         "sig": None,
                         "category": None,
                         "keywords": [],
@@ -132,9 +137,13 @@ class TestIdempotencyNoKey:
                         "version": 1,
                     },
                 ),
-                patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.api.v1.endpoints.posts.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
-                resp = await client.post(
+                _ = await client.post(
                     "/api/v1/posts",
                     json={
                         "title": "Test post",
@@ -184,12 +193,8 @@ class TestIdempotencyDifferentKeys:
     @pytest.mark.anyio
     async def test_different_keys_independent(self, client: AsyncClient):
         """Two different keys return their own cached responses."""
-        cached_a = json.dumps(
-            {"body": json.dumps({"result": "A"}), "status_code": 200}
-        )
-        cached_b = json.dumps(
-            {"body": json.dumps({"result": "B"}), "status_code": 200}
-        )
+        cached_a = json.dumps({"body": json.dumps({"result": "A"}), "status_code": 200})
+        cached_b = json.dumps({"body": json.dumps({"result": "B"}), "status_code": 200})
 
         async def mock_get(key):
             if "key-a" in key:
@@ -257,7 +262,11 @@ class TestIdempotencyExpiredCache:
                     new_callable=AsyncMock,
                     return_value=None,
                 ),
-                patch("app.api.v1.endpoints.sigs.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.api.v1.endpoints.sigs.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 # PUT request with idempotency key - Redis returns None (expired/absent)
                 resp = await client.put(
@@ -293,7 +302,7 @@ class TestIdempotencyGETBypass:
                     return_value=([], 0),
                 ),
             ):
-                resp = await client.get(
+                _ = await client.get(
                     "/api/v1/sigs",
                     headers={"Idempotency-Key": "should-be-ignored"},
                 )
@@ -336,8 +345,15 @@ class TestIdempotencyNonJSON:
                     new_callable=AsyncMock,
                     return_value=True,
                 ),
-                patch("app.api.v1.endpoints.sigs.check_rate_limit", new_callable=AsyncMock, return_value=True),
-                patch("app.core.deps.get_current_user", return_value={"sub": "uid", "role": "ADMIN", "jti": "j"}),
+                patch(
+                    "app.api.v1.endpoints.sigs.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.core.deps.get_current_user",
+                    return_value={"sub": "uid", "role": "ADMIN", "jti": "j"},
+                ),
                 patch("app.core.deps.require_role") as mock_rr,
             ):
                 mock_rr.return_value = lambda: {"sub": "uid", "role": "ADMIN", "jti": "j"}
@@ -369,10 +385,18 @@ class TestIdempotencyUnauthenticated:
         # Login is CSRF-exempt so no need for CSRF tokens
         with (
             patch("app.middleware.idempotency.get_redis", return_value=mock_redis),
-            patch("app.api.v1.endpoints.auth.check_rate_limit", new_callable=AsyncMock, return_value=True),
-            patch("app.api.v1.endpoints.auth.verify_captcha", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.api.v1.endpoints.auth.check_rate_limit",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "app.api.v1.endpoints.auth.verify_captcha",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
         ):
-            resp = await client.post(
+            _ = await client.post(
                 "/api/v1/auth/login",
                 json={"username": "x", "password": "x", "captcha_id": "c", "captcha_code": "1"},
                 headers={"Idempotency-Key": "anon-key-001"},
@@ -393,7 +417,7 @@ class TestIdempotencyInvalidKeyFormat:
         _override_auth("MEMBER")
         try:
             with patch("app.middleware.idempotency.get_redis", return_value=mock_redis):
-                resp = await client.post(
+                _ = await client.post(
                     "/api/v1/posts",
                     json={"title": "t"},
                     headers={
@@ -419,9 +443,7 @@ class TestIdempotencyRedisSetFailure:
         mock_redis.get = AsyncMock(return_value=None)
         # First call is the processing marker (nx=True), let it succeed
         # Second call is the cache write — make it raise
-        mock_redis.set = AsyncMock(
-            side_effect=[True, ConnectionError("Redis unavailable")]
-        )
+        mock_redis.set = AsyncMock(side_effect=[True, ConnectionError("Redis unavailable")])
 
         _override_auth("MEMBER")
         try:
@@ -434,7 +456,12 @@ class TestIdempotencyRedisSetFailure:
                         "id": "new-post-id",
                         "title": "Test",
                         "content": "<p>Hello</p>",
-                        "author": {"id": "uid", "username": "u", "display_name": "u", "avatar_url": None},
+                        "author": {
+                            "id": "uid",
+                            "username": "u",
+                            "display_name": "u",
+                            "avatar_url": None,
+                        },
                         "sig": None,
                         "category": None,
                         "keywords": [],
@@ -449,7 +476,11 @@ class TestIdempotencyRedisSetFailure:
                         "version": 1,
                     },
                 ),
-                patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.api.v1.endpoints.posts.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 resp = await client.post(
                     "/api/v1/posts",
@@ -501,7 +532,11 @@ class TestIdempotencyErrorJsonCached:
                     new_callable=AsyncMock,
                     side_effect=Exception("Validation error"),
                 ),
-                patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.api.v1.endpoints.posts.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 # First request — triggers an error response
                 resp1 = await client.post(

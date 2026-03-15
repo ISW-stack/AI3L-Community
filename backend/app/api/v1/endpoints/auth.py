@@ -56,7 +56,7 @@ def _set_auth_cookies(response: Response, token: str, csrf_token: str, max_age: 
         value=token,
         httponly=True,
         secure=settings.COOKIE_SECURE,
-        samesite=settings.COOKIE_SAMESITE,
+        samesite=settings.COOKIE_SAMESITE,  # type: ignore[arg-type]
         max_age=max_age,
         path="/",
         domain=domain,
@@ -68,7 +68,7 @@ def _set_auth_cookies(response: Response, token: str, csrf_token: str, max_age: 
         value=csrf_token,
         httponly=False,
         secure=settings.COOKIE_SECURE,
-        samesite=settings.COOKIE_SAMESITE,
+        samesite=settings.COOKIE_SAMESITE,  # type: ignore[arg-type]
         max_age=max_age,
         path="/",
         domain=domain,
@@ -102,7 +102,9 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
 
     # Verify captcha first
     if not await verify_captcha(req.captcha_id, req.captcha_code):
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha.")
+        raise AppError(
+            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
+        )
 
     user = await authenticate_user(req.username, req.password)
     if user is None:
@@ -144,7 +146,9 @@ async def login_as_guest(
         )
 
     if not await verify_captcha(req.captcha_id, req.captcha_code):
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha.")
+        raise AppError(
+            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
+        )
 
     # Per-IP guest session limit (atomic via Lua script)
     if not await increment_guest_ip_counter(ip):
@@ -205,7 +209,9 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
 
     # Verify captcha
     if not await verify_captcha(req.captcha_id, req.captcha_code):
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha.")
+        raise AppError(
+            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
+        )
 
     # Validate invite code
     invite = await get_invite_code(req.invite_code)
@@ -281,7 +287,8 @@ async def generate_invite_code(
         raise AppError(
             ErrorCode.SYS_429,
             status.HTTP_429_TOO_MANY_REQUESTS,
-            "Maximum active invite codes reached. Wait for existing codes to expire or be consumed.",
+            "Maximum active invite codes reached. "
+            "Wait for existing codes to expire or be consumed.",
         )
 
     code, expires_at = await create_invite_code(current_user["sub"])

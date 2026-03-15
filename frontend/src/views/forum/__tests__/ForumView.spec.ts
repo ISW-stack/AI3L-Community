@@ -681,7 +681,9 @@ describe('ForumView', () => {
       await searchInput.trigger('input')
 
       // Timer should be pending now
-      const vm = wrapper.vm as unknown as { searchDebounceTimer: ReturnType<typeof setTimeout> | null }
+      const vm = wrapper.vm as unknown as {
+        searchDebounceTimer: ReturnType<typeof setTimeout> | null
+      }
       expect(vm.searchDebounceTimer).not.toBeNull()
 
       // Unmount the component

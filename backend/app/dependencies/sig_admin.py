@@ -38,9 +38,7 @@ def require_sig_admin() -> Callable[..., Awaitable[dict]]:
         user_id = uuid.UUID(current_user["sub"])
         member_role = await sig_repo.get_member_role(sig_id, user_id)
         if member_role not in ("ADMIN", "SUB_ADMIN"):
-            raise AppError(
-                ErrorCode.SYS_403, 403, "Only SIG admins can perform this action."
-            )
+            raise AppError(ErrorCode.SYS_403, 403, "Only SIG admins can perform this action.")
         return current_user
 
     return dependency

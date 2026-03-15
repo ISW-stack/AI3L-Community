@@ -167,9 +167,7 @@ async def remove_sig_member(
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     # Prevent removing self via this endpoint
     if str(user_id) == current_user["sub"]:
-        raise AppError(
-            ErrorCode.SYS_422, 400, "Use the leave endpoint to remove yourself."
-        )
+        raise AppError(ErrorCode.SYS_422, 400, "Use the leave endpoint to remove yourself.")
 
     try:
         removed = await remove_member(

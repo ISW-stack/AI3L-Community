@@ -28,7 +28,9 @@ defineProps<{
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">{{ t('common.loading') }}</td>
+            <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">
+              {{ t('common.loading') }}
+            </td>
           </tr>
           <tr v-else-if="!rows.length">
             <td :colspan="columns.length" class="px-4 py-8 text-center text-muted">

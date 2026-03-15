@@ -1399,7 +1399,7 @@ class TestDeleteFileAuditFailureLogs:
 
     @pytest.mark.anyio
     async def test_delete_file_audit_failure_logs_error(self, client: AsyncClient) -> None:
-        """When emit raises during admin file deletion, endpoint returns 200 and logger.error is called."""
+        """When emit raises during admin file deletion, endpoint returns 200 and logger.error is called."""  # noqa: E501
         admin_id = str(uuid.uuid4())
         owner_id = str(uuid.uuid4())
         _override_auth_files("ADMIN", user_id=admin_id)

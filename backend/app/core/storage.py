@@ -102,9 +102,7 @@ def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | Non
         # NOTE: Do NOT pre-encode the filename for filename* — boto3 will
         # URL-encode the entire ResponseContentDisposition query parameter.
         # Pre-encoding causes double-encoding (e.g. %E4 → %25E4 = garbled).
-        params["ResponseContentDisposition"] = (
-            f'attachment; filename="{ascii_fallback}"'
-        )
+        params["ResponseContentDisposition"] = f'attachment; filename="{ascii_fallback}"'
     return str(
         client.generate_presigned_url(
             "get_object",

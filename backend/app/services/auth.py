@@ -130,8 +130,8 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
     # Atomically check-and-increment via Lua script.
     # If counter key is missing, INCR creates it at 0→1 (safe).
     # sync_guest_counter() at startup seeds the accurate value.
-    new_count: int = await redis.eval(
-        _GUEST_INCR_LUA, 1, _GUEST_COUNTER_KEY, MAX_GUESTS
+    new_count: int = await redis.eval(  # type: ignore[misc]
+        _GUEST_INCR_LUA, 1, _GUEST_COUNTER_KEY, MAX_GUESTS  # type: ignore[arg-type]
     )
     if new_count == -1:
         return None
@@ -199,7 +199,7 @@ async def decrement_guest_counter() -> None:
     where concurrent DECRs go negative and a SET(0) overwrites an intervening INCR.
     """
     redis = get_redis()
-    await redis.eval(_GUEST_DECR_LUA, 1, _GUEST_COUNTER_KEY)
+    await redis.eval(_GUEST_DECR_LUA, 1, _GUEST_COUNTER_KEY)  # type: ignore[misc]
 
 
 async def decrement_guest_ip_counter(ip: str) -> None:
@@ -210,7 +210,7 @@ async def decrement_guest_ip_counter(ip: str) -> None:
     """
     redis = get_redis()
     ip_guest_key = f"guest:ip:{ip}"
-    await redis.eval(_GUEST_IP_DECR_LUA, 1, ip_guest_key, 3600)
+    await redis.eval(_GUEST_IP_DECR_LUA, 1, ip_guest_key, 3600)  # type: ignore[misc, arg-type]
 
 
 async def increment_guest_ip_counter(ip: str) -> bool:
@@ -222,8 +222,8 @@ async def increment_guest_ip_counter(ip: str) -> bool:
     """
     redis = get_redis()
     ip_guest_key = f"guest:ip:{ip}"
-    result: int = await redis.eval(
-        _GUEST_IP_INCR_LUA, 1, ip_guest_key, MAX_GUESTS_PER_IP, 3600
+    result: int = await redis.eval(  # type: ignore[misc]
+        _GUEST_IP_INCR_LUA, 1, ip_guest_key, MAX_GUESTS_PER_IP, 3600  # type: ignore[arg-type]
     )
     return result != -1
 

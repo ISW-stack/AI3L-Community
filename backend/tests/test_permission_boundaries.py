@@ -187,9 +187,7 @@ class TestRegularMemberCannotSIGAdmin:
                     f"/api/v1/sigs/{_SIG_B_ID}/forms",
                     json={
                         "title": "Unauthorized Form",
-                        "questions": [
-                            {"label": "Q1", "type": "text", "required": True}
-                        ],
+                        "questions": [{"label": "Q1", "type": "text", "required": True}],
                     },
                 )
             assert resp.status_code == 403

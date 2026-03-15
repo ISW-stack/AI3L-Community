@@ -9,7 +9,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 
 const { t } = useLocale()
 
-const props = defineProps<{
+defineProps<{
   passwordMessage: string
   passwordError: boolean
   changingPassword: boolean
@@ -51,12 +51,9 @@ function toggleConfirmPassword() {
     {{ t('profile.security.changePassword.title') }}
   </h2>
 
-  <BaseAlert
-    v-if="passwordMessage"
-    :type="passwordError ? 'error' : 'success'"
-    class="mb-4"
-    >{{ passwordMessage }}</BaseAlert
-  >
+  <BaseAlert v-if="passwordMessage" :type="passwordError ? 'error' : 'success'" class="mb-4">{{
+    passwordMessage
+  }}</BaseAlert>
 
   <BaseCard padding="lg" class="mb-8">
     <form @submit.prevent="emit('change-password')" class="space-y-4">
