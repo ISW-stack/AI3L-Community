@@ -18,6 +18,7 @@ from loguru import logger
 from app.celery_app import celery
 from app.core.config import settings
 from app.core.database import get_pool, init_db_pool
+from app.core.redis import get_redis, init_redis
 
 # Matches /api/v1/files/content/editor/<user_id>/<filename>
 _FILE_KEY_RE = re.compile(r"/api/v1/files/content/(editor/[^\s\"'<>]+)")
@@ -36,6 +37,13 @@ async def _ensure_pool() -> None:
         get_pool()
     except RuntimeError:
         await init_db_pool(settings.DATABASE_URL)
+
+
+async def _ensure_redis() -> None:
+    try:
+        get_redis()
+    except RuntimeError:
+        await init_redis(settings.REDIS_URL)
 
 
 async def _get_referenced_keys() -> set[str]:
@@ -153,6 +161,7 @@ def sync_guest_counter_task(self: Any) -> dict[str, Any]:
     async def _run() -> dict:
         from app.services.auth import sync_guest_counter
 
+        await _ensure_redis()
         await sync_guest_counter()
         return {"status": "synced"}
 
