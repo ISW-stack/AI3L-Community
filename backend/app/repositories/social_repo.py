@@ -40,13 +40,17 @@ async def find_friendship_by_id_for_update(conn, friendship_id: uuid.UUID) -> di
     return dict(row) if row else None
 
 
-async def find_friendship_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> dict | None:
+async def find_friendship_between(
+    conn, user_a: uuid.UUID, user_b: uuid.UUID, *, for_update: bool = False
+) -> dict | None:
+    suffix = " FOR UPDATE" if for_update else ""
     row = await conn.fetchrow(
         """
         SELECT * FROM friendships
         WHERE (requester_id = $1 AND addressee_id = $2)
            OR (requester_id = $2 AND addressee_id = $1)
-        """,
+        """
+        + suffix,
         user_a,
         user_b,
     )

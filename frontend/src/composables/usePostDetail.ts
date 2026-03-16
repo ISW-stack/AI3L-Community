@@ -654,19 +654,30 @@ export function usePostDetail(options: UsePostDetailOptions) {
   )
 
   // --- Leave guard (unsaved edits) ---
+  const showLeaveConfirm = ref(false)
+  let pendingLeaveNext: ((val?: boolean) => void) | null = null
+
   onBeforeRouteLeave((_to, _from, next) => {
     if (editing.value) {
-      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?')
-      if (confirmed) {
-        clearEditDraft()
-        next()
-      } else {
-        next(false)
-      }
+      showLeaveConfirm.value = true
+      pendingLeaveNext = next
     } else {
       next()
     }
   })
+
+  function confirmLeave() {
+    showLeaveConfirm.value = false
+    clearEditDraft()
+    pendingLeaveNext?.()
+    pendingLeaveNext = null
+  }
+
+  function cancelLeave() {
+    showLeaveConfirm.value = false
+    pendingLeaveNext?.(false)
+    pendingLeaveNext = null
+  }
 
   const handleBeforeUnload = (e: BeforeUnloadEvent) => {
     if (editing.value) {
@@ -721,6 +732,10 @@ export function usePostDetail(options: UsePostDetailOptions) {
     // Delete modals
     showDeletePostConfirm,
     showDeleteCommentConfirm,
+    // Leave guard
+    showLeaveConfirm,
+    confirmLeave,
+    cancelLeave,
     // Report
     showReportModal,
     reportReason,

@@ -131,7 +131,7 @@ async def update_album(
 
 async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
     """Soft-delete album with cascade cleanup of photos, comments, and members."""
-    from app.core.storage import delete_file
+    from app.core.async_storage import delete_file
     from app.repositories import user_repo
 
     pool = get_pool()
@@ -187,7 +187,7 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
                 key = photo.get(key_field)
                 if key:
                     try:
-                        delete_file(key)
+                        await delete_file(key)
                     except Exception:
                         logger.warning(
                             "Failed to delete photo file from storage during album cleanup",
@@ -241,14 +241,12 @@ async def add_member(
         "Album member added",
         extra={"album_id": album_id, "target_user_id": target_user_id},
     )
-    # Return needs user info, re-fetch
+    # Return with user info via direct lookup
     pool = get_pool()
     async with pool.acquire() as conn:
-        members, _ = await album_repo.find_members(conn, album_uuid, page=1, page_size=1)
-        # Find the specific member we just added
-        for m in members:
-            if str(m["user_id"]) == target_user_id:
-                return to_album_member_response(m)
+        full_row = await album_repo.find_member_by_id_with_user(conn, album_uuid, target_uuid)
+        if full_row:
+            return to_album_member_response(full_row)
     return {"id": str(member_row["id"]), "status": "ACCEPTED"}
 
 
@@ -364,7 +362,8 @@ async def upload_photo(
     content_type: str,
 ) -> dict:
     """Upload a photo to an album."""
-    from app.core.storage import album_photo_key, album_thumbnail_key, upload_file
+    from app.core.async_storage import upload_file as async_upload_file
+    from app.core.storage import album_photo_key, album_thumbnail_key
 
     pool = get_pool()
     album_uuid = uuid.UUID(album_id)
@@ -436,7 +435,7 @@ async def upload_photo(
                 ext = filename.rsplit(".", 1)[-1].lower()
             file_uuid = str(uuid.uuid4())
             storage_key = album_photo_key(album_id, file_uuid, ext)
-            upload_file(file_data, storage_key, content_type)
+            await async_upload_file(file_data, storage_key, content_type)
 
             # 8. Increment storage used (within same transaction)
             await conn.execute(
@@ -489,7 +488,7 @@ async def upload_file_zip(
     content_type: str,
 ) -> dict:
     """Upload a ZIP file to an album (no thumbnail)."""
-    from app.core.storage import album_zip_key, upload_file
+    from app.core.storage import album_zip_key
 
     pool = get_pool()
     album_uuid = uuid.UUID(album_id)
@@ -530,31 +529,46 @@ async def upload_file_zip(
         if not member or member["status"] != "ACCEPTED":
             raise AppError(ErrorCode.SYS_403, 403, "Must be an approved album member to upload.")
 
-        storage_used = await user_repo.get_storage_used(user_uuid)
-        if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
-            raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
+        async with conn.transaction():
+            # Lock user row to prevent concurrent uploads bypassing quota
+            quota_row = await conn.fetchrow(
+                "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
+                user_uuid,
+            )
+            storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
+            if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
+                raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
 
-        ext = ""
-        if "." in filename:
-            ext = filename.rsplit(".", 1)[-1].lower()
-        file_uuid = str(uuid.uuid4())
-        storage_key = album_zip_key(album_id, file_uuid, ext)
-        upload_file(file_data, storage_key, content_type)
+            ext = ""
+            if "." in filename:
+                ext = filename.rsplit(".", 1)[-1].lower()
+            file_uuid = str(uuid.uuid4())
+            storage_key = album_zip_key(album_id, file_uuid, ext)
 
-        await user_repo.increment_storage_used(user_uuid, file_size)
+            # Use async storage to avoid blocking the event loop
+            from app.core.async_storage import upload_file as async_upload_file
 
-        photo_id = uuid.uuid4()
-        row = await album_repo.insert_photo(
-            conn,
-            photo_id,
-            album_uuid,
-            user_uuid,
-            storage_key,
-            filename,
-            file_size,
-            content_type,
-            is_zip=True,
-        )
+            await async_upload_file(file_data, storage_key, content_type)
+
+            # Increment storage within same transaction
+            await conn.execute(
+                "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
+                file_size,
+                user_uuid,
+            )
+
+            photo_id = uuid.uuid4()
+            row = await album_repo.insert_photo(
+                conn,
+                photo_id,
+                album_uuid,
+                user_uuid,
+                storage_key,
+                filename,
+                file_size,
+                content_type,
+                is_zip=True,
+            )
 
     logger.info(
         "Album ZIP uploaded",
@@ -643,7 +657,7 @@ async def delete_photo(
     user_role: str,
 ) -> bool:
     """Delete a photo. Uploader or ADMIN (ADMIN can't delete other ADMIN's uploads)."""
-    from app.core.storage import delete_file
+    from app.core.async_storage import delete_file
 
     pool = get_pool()
     album_uuid = uuid.UUID(album_id)
@@ -676,9 +690,9 @@ async def delete_photo(
         thumbnail_key = photo.get("thumbnail_key")
         try:
             if storage_key:
-                delete_file(storage_key)
+                await delete_file(storage_key)
             if thumbnail_key:
-                delete_file(thumbnail_key)
+                await delete_file(thumbnail_key)
         except Exception:
             logger.warning(
                 "Failed to delete photo files from storage",
@@ -735,12 +749,11 @@ async def create_comment(
         "Album comment created",
         extra={"album_id": album_id, "comment_id": str(comment_id)},
     )
-    # Re-fetch with user JOINs
+    # Re-fetch with user JOINs via direct ID lookup
     async with pool.acquire() as conn:
-        comments, _ = await album_repo.find_comments(conn, album_uuid, page=1, page_size=1)
-        for c in comments:
-            if str(c["id"]) == str(comment_id):
-                return to_album_comment_response(c)
+        full_row = await album_repo.find_comment_by_id_with_user(conn, comment_id)
+        if full_row:
+            return to_album_comment_response(full_row)
 
     # Fallback
     return {

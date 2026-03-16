@@ -15,11 +15,27 @@ from app.schemas.co_author import (
 from app.services.co_author import (
     add_external_co_author,
     invite_co_author,
+    list_co_authored_posts,
     list_co_authors,
     remove_co_author,
 )
 
 router = APIRouter(prefix="/co-authors", tags=["co-authors"])
+
+
+@router.get("/my-posts")
+async def list_my_co_authored_posts(
+    page: int = 1,
+    page_size: int = 20,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> dict:
+    """List posts where the current user is an accepted co-author."""
+    posts, total = await list_co_authored_posts(
+        user_id=current_user["sub"],
+        page=page,
+        page_size=page_size,
+    )
+    return {"posts": posts, "total": total}
 
 
 @router.post(

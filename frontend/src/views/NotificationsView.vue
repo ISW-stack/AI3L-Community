@@ -19,7 +19,9 @@ import { useNotificationStore } from '@/stores/notifications'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -30,6 +32,7 @@ const { page, totalPages, pageSize, setPage, updateFromResponse } = usePaginatio
 const unreadCount = ref(0)
 const loading = ref(false)
 const filter = ref<'all' | 'unread'>('all')
+const showClearAllConfirm = ref(false)
 let fetchId = 0
 
 function changeFilter(f: 'all' | 'unread') {
@@ -109,11 +112,12 @@ async function handleDeleteNotification(id: string) {
   }
 }
 
-async function handleClearAll() {
-  const confirmed = window.confirm(
-    t('notifications.confirmClearAll', { count: notifications.value.length }),
-  )
-  if (!confirmed) return
+function handleClearAll() {
+  showClearAllConfirm.value = true
+}
+
+async function confirmClearAll() {
+  showClearAllConfirm.value = false
   try {
     await bulkDeleteNotifications()
     notifications.value = []
@@ -134,6 +138,12 @@ onMounted(fetchNotifications)
 
 <template>
   <div class="max-w-3xl mx-auto">
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.notifications') },
+      ]"
+    />
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('notifications.title') }}</h1>
       <div class="flex items-center gap-3">
@@ -256,5 +266,24 @@ onMounted(fetchNotifications)
       @update:current-page="goToPage"
       class="mt-6"
     />
+
+    <!-- Clear All Confirmation Modal -->
+    <BaseModal
+      v-model="showClearAllConfirm"
+      :title="t('notifications.clearAllBtn')"
+      size="sm"
+    >
+      <p class="text-sm text-muted">
+        {{ t('notifications.confirmClearAll', { count: notifications.length }) }}
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showClearAllConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="confirmClearAll">{{
+          t('common.confirm')
+        }}</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>

@@ -324,8 +324,14 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     history.pushState(questions.value)
   }
 
+  const showDiscardConfirm = ref(false)
+
   function discardDraft(): void {
-    if (!window.confirm(t('forms.builder.confirmDiscard'))) return
+    showDiscardConfirm.value = true
+  }
+
+  function confirmDiscardDraft(): void {
+    showDiscardConfirm.value = false
     draft.discardDraft()
     showDraftBanner.value = false
   }
@@ -608,6 +614,8 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     // Draft actions
     restoreDraft,
     discardDraft,
+    confirmDiscardDraft,
+    showDiscardConfirm,
     saveDraftNow,
     // Preview
     setPreviewDesktop,

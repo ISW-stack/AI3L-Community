@@ -94,6 +94,13 @@ class StorageQuotaError(ValueError):
         super().__init__(detail)
 
 
+class FormDeadlineError(AppError):
+    """Raised when a form deadline is in the past or has passed."""
+
+    def __init__(self, detail: str = "Deadline must be in the future."):
+        super().__init__(ErrorCode.FORM_001, 400, detail)
+
+
 class ValidationError(AppError):
     def __init__(self, detail: str):
         super().__init__(ErrorCode.SYS_422, 422, detail)

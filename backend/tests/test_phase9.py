@@ -239,7 +239,7 @@ class TestCategoryUpdate:
         current_row = {"id": cat_id, "name": "Old", "description": None}
         updated_row = {"id": cat_id, "name": "New Name", "description": "desc"}
 
-        mock_conn.fetchrow = AsyncMock(side_effect=[current_row, updated_row])
+        mock_conn.fetchrow = AsyncMock(side_effect=[current_row, None, updated_row])
 
         try:
             _override_auth("ADMIN")
@@ -551,6 +551,7 @@ class TestPostSorting:
             _override_auth("MEMBER")
             with (
                 patch("app.repositories.post_repo.get_pool", return_value=mock_pool),
+                patch("app.services.post.get_pool", return_value=mock_pool),
                 patch("app.services.post.get_redis", return_value=mock_redis),
             ):
                 resp = await client.get(

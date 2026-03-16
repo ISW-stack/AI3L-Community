@@ -76,6 +76,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
       @keydown="handleKeydown"
       :aria-expanded="isOpen"
       aria-haspopup="true"
+      aria-label="Select language"
       class="flex items-center gap-2 text-sm transition rounded-lg"
       :class="
         variant === 'form'

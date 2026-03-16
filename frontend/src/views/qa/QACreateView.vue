@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToastStore } from '@/stores/toast'
+import { useLocale } from '@/composables/useLocale'
 import type { Category } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { createPost as apiCreatePost } from '@/api/posts'
@@ -20,6 +21,7 @@ interface QuestionDraft {
   keywords: string[]
 }
 
+const { t } = useLocale()
 const router = useRouter()
 const toast = useToastStore()
 
@@ -82,7 +84,7 @@ async function fetchCategories() {
   try {
     categories.value = await listCategories()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load categories.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.loadCategoriesError')), 'error')
   }
 }
 
@@ -110,15 +112,15 @@ async function submitQuestion() {
   const titleEmpty = !title.value.trim()
   const contentEmpty = isContentEmpty(content.value)
   if (titleEmpty && contentEmpty) {
-    message.value = 'Title and content are required.'
+    message.value = t('qa.titleAndContentRequired')
     return
   }
   if (titleEmpty) {
-    message.value = 'Title is required.'
+    message.value = t('qa.titleRequired')
     return
   }
   if (contentEmpty) {
-    message.value = 'Content is required.'
+    message.value = t('qa.contentRequired')
     return
   }
   saving.value = true
@@ -143,7 +145,7 @@ async function submitQuestion() {
     clearDraft()
     router.push(`/qa/${data.id}`)
   } catch (e: unknown) {
-    message.value = getErrorMessage(e, 'Failed to create question.')
+    message.value = getErrorMessage(e, t('qa.createError'))
   } finally {
     saving.value = false
   }
@@ -165,16 +167,16 @@ onMounted(() => {
         to="/qa"
         class="text-sm text-brand-600 hover:underline flex items-center gap-1"
       >
-        <span>&larr;</span> Back to Q&A
+        <span>&larr;</span> {{ t('qa.backToList') }}
       </router-link>
     </div>
 
-    <h1 class="text-2xl font-bold text-foreground mb-6">Ask a Question</h1>
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('qa.askQuestion') }}</h1>
 
     <BaseAlert v-if="draftRestored" type="info" class="mb-4">
-      A previous draft has been restored.
+      {{ t('qa.draftRestored') }}
       <button class="ml-2 underline text-brand-600" @click="discardDraft">
-        Discard draft
+        {{ t('qa.discardDraft') }}
       </button>
     </BaseAlert>
 
@@ -183,30 +185,30 @@ onMounted(() => {
     <form class="space-y-4" @submit.prevent="submitQuestion">
       <BaseInput
         v-model="title"
-        label="Question Title"
-        placeholder="What is your question?"
+        :label="t('qa.questionTitle')"
+        :placeholder="t('qa.questionTitlePlaceholder')"
         required
       />
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">Category (optional)</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{ t('qa.categoryOptional') }}</label>
         <select
           v-model="categoryId"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
         >
-          <option :value="null">None</option>
+          <option :value="null">{{ t('qa.categoryNone') }}</option>
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">Details</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{ t('qa.details') }}</label>
         <TiptapEditor v-model="content" />
       </div>
 
       <div>
         <label class="block text-sm font-medium text-foreground mb-1">
-          Keywords ({{ keywords.length }}/15)
+          {{ t('qa.keywords') }} ({{ keywords.length }}/15)
         </label>
         <div class="flex gap-2 mb-2 flex-wrap">
           <BaseBadge v-for="(kw, i) in keywords" :key="i" class="gap-1">
@@ -226,22 +228,22 @@ onMounted(() => {
             type="text"
             maxlength="50"
             class="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
-            placeholder="Add a keyword"
+            :placeholder="t('qa.addKeyword')"
             @keydown.enter.prevent="addKeyword"
           />
           <BaseButton type="button" variant="secondary" @click="addKeyword">
-            Add
+            {{ t('qa.addKeywordBtn') }}
           </BaseButton>
         </div>
       </div>
 
       <div class="flex gap-3 pt-2">
         <BaseButton type="submit" size="lg" :loading="saving">
-          Post Question
+          {{ t('qa.postQuestion') }}
         </BaseButton>
         <router-link to="/qa">
           <BaseButton type="button" variant="secondary" size="lg">
-            Cancel
+            {{ t('common.cancel') }}
           </BaseButton>
         </router-link>
       </div>

@@ -205,6 +205,12 @@ async def soft_delete(
                     row["post_id"],
                 )
 
+            # Clear best_answer_id if this comment was the best answer
+            await conn.execute(
+                "UPDATE posts SET best_answer_id = NULL WHERE best_answer_id = $1",
+                comment_id,
+            )
+
             return uuid.UUID(str(row["post_id"]))
 
 

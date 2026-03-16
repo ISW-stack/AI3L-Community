@@ -9,6 +9,7 @@ export interface SigsListResponse {
 export interface SigPostsResponse {
   posts: Post[]
   total: number
+  total_pages?: number
 }
 
 export interface SigMembersResponse {
@@ -46,8 +47,8 @@ export async function deleteSig(sigId: string) {
   await api.delete(`/sigs/${sigId}`)
 }
 
-export async function getSigPosts(sigId: string) {
-  const { data } = await api.get(`/sigs/${sigId}/posts`)
+export async function getSigPosts(sigId: string, params?: { page?: number; page_size?: number }) {
+  const { data } = await api.get(`/sigs/${sigId}/posts`, { params })
   return data as SigPostsResponse
 }
 

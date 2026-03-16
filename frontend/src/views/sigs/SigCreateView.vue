@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { createSig } from '@/api/sigs'
+import { getErrorMessage } from '@/utils/error'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -29,8 +30,7 @@ async function handleCreate() {
     })
     router.push(`/sigs/${sig.id}`)
   } catch (e: unknown) {
-    const err = e as { response?: { data?: { detail?: string } } }
-    message.value = err.response?.data?.detail || t('sigs.create.error')
+    message.value = getErrorMessage(e, t('sigs.create.error'))
   } finally {
     saving.value = false
   }

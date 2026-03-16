@@ -6,10 +6,12 @@ import { getSigPosts } from '@/api/sigs'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
 import { useSigLayout } from '@/composables/useSigLayout'
+import { usePagination } from '@/composables/usePagination'
 import type { Post } from '@/types'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
@@ -21,22 +23,27 @@ const sigId = computed(() => route.params.id as string)
 const { sig, userSigRole } = useSigLayout()
 
 const posts = ref<Post[]>([])
-const total = ref(0)
 const loading = ref(true)
+const { page, total, totalPages, pageSize, setPage, updateFromResponse } = usePagination()
 
 const isMember = computed(() => userSigRole?.value != null)
 
 async function fetchPosts() {
   loading.value = true
   try {
-    const data = await getSigPosts(sigId.value)
+    const data = await getSigPosts(sigId.value, { page: page.value, page_size: pageSize })
     posts.value = data.posts
-    total.value = data.total
+    updateFromResponse(data.total, data.total_pages)
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('sigs.posts.fetchError')), 'error')
   } finally {
     loading.value = false
   }
+}
+
+function goToPage(p: number) {
+  setPage(p)
+  fetchPosts()
 }
 
 onMounted(fetchPosts)
@@ -110,6 +117,16 @@ onMounted(fetchPosts)
         </BaseCard>
       </div>
     </div>
+
+    <BasePagination
+      v-if="totalPages > 1"
+      :current-page="page"
+      :total-pages="totalPages"
+      :page-size="pageSize"
+      :total="total"
+      class="mt-4"
+      @update:current-page="goToPage"
+    />
 
     <FloatingCreateButton v-if="isMember" :to="`/forum/create?sig_id=${sigId}`" />
   </div>

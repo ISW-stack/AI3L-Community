@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
+import { useLocale } from '@/composables/useLocale'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import DOMPurify from 'dompurify'
@@ -27,7 +27,7 @@ import BestAnswerBadge from '@/components/qa/BestAnswerBadge.vue'
 import { ArrowLeft } from 'lucide-vue-next'
 const TiptapEditor = defineAsyncComponent(() => import('@/components/TiptapEditor.vue'))
 
-const { t } = useI18n()
+const { t } = useLocale()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -56,8 +56,8 @@ const isAuthor = computed(() => post.value && auth.user && post.value.author.id 
 const canModify = computed(() => isAuthor.value || auth.isAdmin)
 
 const breadcrumbItems = computed(() => [
-  { label: 'Home', to: '/' },
-  { label: 'Q&A', to: '/qa' },
+  { label: t('breadcrumb.home'), to: '/' },
+  { label: t('qa.title'), to: '/qa' },
   { label: post.value?.title || '...' },
 ])
 
@@ -83,7 +83,7 @@ async function fetchPost() {
     post.value = await getPost(postId.value)
   } catch (e: unknown) {
     post.value = null
-    toast.show(getErrorMessage(e, 'Failed to load question.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.loadQuestionError')), 'error')
   } finally {
     loading.value = false
   }
@@ -106,7 +106,7 @@ async function fetchAnswers() {
       }
     }
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load answers.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.loadAnswersError')), 'error')
   }
 }
 
@@ -125,7 +125,7 @@ async function submitAnswer() {
     await fetchAnswers()
     if (post.value) post.value.answer_count++
   } catch (e: unknown) {
-    answerMessage.value = getErrorMessage(e, 'Failed to post answer.')
+    answerMessage.value = getErrorMessage(e, t('qa.postAnswerError'))
   } finally {
     answerSaving.value = false
   }
@@ -145,7 +145,7 @@ async function handleVote(commentId: string, value: -1 | 0 | 1) {
   } catch (e: unknown) {
     // Rollback
     voteState.value[commentId] = prev
-    toast.show(getErrorMessage(e, 'Failed to vote.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.voteError')), 'error')
   }
 }
 
@@ -154,9 +154,9 @@ async function handleMarkBest(commentId: string) {
   try {
     await markBestAnswer(postId.value, commentId)
     post.value.best_answer_id = commentId
-    toast.show('Best answer marked.', 'success')
+    toast.show(t('qa.bestAnswerMarked'), 'success')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to mark best answer.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.bestAnswerMarkError')), 'error')
   }
 }
 
@@ -165,9 +165,9 @@ async function handleUnmarkBest() {
   try {
     await unmarkBestAnswer(postId.value)
     post.value.best_answer_id = null
-    toast.show('Best answer unmarked.', 'success')
+    toast.show(t('qa.bestAnswerUnmarked'), 'success')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to unmark best answer.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.bestAnswerUnmarkError')), 'error')
   }
 }
 
@@ -176,7 +176,7 @@ async function deleteQuestion() {
     await apiDeletePost(postId.value)
     router.push('/qa')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to delete question.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.deleteError')), 'error')
   } finally {
     showDeleteConfirm.value = false
   }
@@ -242,11 +242,11 @@ onMounted(() => {
               <BaseBadge v-if="post.category_name">{{ post.category_name }}</BaseBadge>
               <BaseBadge
                 v-if="post.best_answer_id"
-                class="!bg-green-100 !text-green-700"
+                class="!bg-success-100 !text-success-700"
               >
-                Answered
+                {{ t('qa.answered') }}
               </BaseBadge>
-              <BaseBadge v-else variant="neutral">Unanswered</BaseBadge>
+              <BaseBadge v-else variant="neutral">{{ t('qa.unanswered') }}</BaseBadge>
             </div>
           </div>
           <div v-if="canModify" class="flex gap-2 shrink-0">
@@ -254,7 +254,7 @@ onMounted(() => {
               class="text-sm text-danger-600 hover:underline"
               @click="showDeleteConfirm = true"
             >
-              Delete
+              {{ t('qa.delete') }}
             </button>
           </div>
         </div>
@@ -271,20 +271,20 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center gap-4 border-t border-border pt-3 text-sm text-muted">
-          <span>{{ post.answer_count }} answer{{ post.answer_count !== 1 ? 's' : '' }}</span>
-          <span>{{ post.view_count }} views</span>
+          <span>{{ t('qa.answerCountLabel', { count: post.answer_count }, post.answer_count) }}</span>
+          <span>{{ t('qa.viewCountLabel', { count: post.view_count }) }}</span>
         </div>
       </BaseCard>
 
       <!-- Answers Section -->
       <BaseCard padding="lg">
         <h3 class="text-lg font-semibold text-foreground mb-4">
-          {{ answersTotal }} Answer{{ answersTotal !== 1 ? 's' : '' }}
+          {{ t('qa.answersSection', { count: answersTotal }, answersTotal) }}
         </h3>
 
         <EmptyState
           v-if="sortedAnswers.length === 0"
-          message="No answers yet. Be the first to answer!"
+          :message="t('qa.noAnswers')"
         />
 
         <div class="space-y-4">
@@ -292,7 +292,7 @@ onMounted(() => {
             v-for="answer in sortedAnswers"
             :key="answer.id"
             class="group border-b border-border last:border-0 pb-4 last:pb-0"
-            :class="answer.id === post.best_answer_id ? 'bg-green-50/50 -mx-4 px-4 py-3 rounded-lg' : ''"
+            :class="answer.id === post.best_answer_id ? 'bg-success-50/50 -mx-4 px-4 py-3 rounded-lg' : ''"
           >
             <div class="flex items-start gap-3">
               <!-- Vote buttons -->
@@ -347,33 +347,30 @@ onMounted(() => {
           v-if="auth.isAuthenticated && !auth.isGuest"
           class="mt-6 border-t border-border pt-4"
         >
-          <h4 class="text-sm font-semibold text-foreground mb-2">Your Answer</h4>
+          <h4 class="text-sm font-semibold text-foreground mb-2">{{ t('qa.yourAnswer') }}</h4>
           <BaseAlert v-if="answerMessage" type="error" class="mb-2">{{ answerMessage }}</BaseAlert>
-          <textarea
-            v-model="newAnswer"
-            rows="4"
-            placeholder="Write your answer..."
-            class="w-full min-h-[100px] px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground mb-2"
-          ></textarea>
+          <div class="mb-2">
+            <TiptapEditor v-model="newAnswer" />
+          </div>
           <BaseButton
             :loading="answerSaving"
             :disabled="!newAnswer.trim()"
             @click="submitAnswer"
           >
-            Post Answer
+            {{ t('qa.postAnswer') }}
           </BaseButton>
         </div>
       </BaseCard>
     </template>
 
     <!-- Delete Confirmation -->
-    <BaseModal v-model="showDeleteConfirm" title="Delete Question" size="sm">
+    <BaseModal v-model="showDeleteConfirm" :title="t('qa.deleteQuestion')" size="sm">
       <p class="text-sm text-muted">
-        Are you sure you want to delete this question? This action cannot be undone.
+        {{ t('qa.deleteQuestionConfirm') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeleteConfirm = false">Cancel</BaseButton>
-        <BaseButton variant="danger" @click="deleteQuestion">Delete</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="danger" @click="deleteQuestion">{{ t('common.delete') }}</BaseButton>
       </template>
     </BaseModal>
   </div>

@@ -139,7 +139,8 @@ async def get_post_by_id(
     # Block check: if the viewer has blocked the author (or vice versa), treat as invisible
     if viewer_id:
         redis = get_redis()
-        blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+        pool = get_pool()
+        blocked_ids = await get_blocked_user_ids(redis, viewer_id, pool=pool)
         if str(row["user_id"]) in blocked_ids:
             return None
 
@@ -324,7 +325,8 @@ async def _get_exclude_user_ids(viewer_id: str | None) -> list[uuid.UUID] | None
     if not viewer_id:
         return None
     redis = get_redis()
-    blocked_ids = await get_blocked_user_ids(redis, viewer_id)
+    pool = get_pool()
+    blocked_ids = await get_blocked_user_ids(redis, viewer_id, pool=pool)
     if not blocked_ids:
         return None
     return [uuid.UUID(uid) for uid in blocked_ids]
@@ -419,9 +421,25 @@ async def toggle_post_reaction(post_id: uuid.UUID, user_id: str, reaction: str) 
 
 
 async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
-    """Soft-delete multiple posts in a single transaction."""
+    """Soft-delete multiple posts in a single transaction.
+
+    Also cleans up related citations, co-authors, and comments.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # Cascade cleanup before soft-deleting posts
+            await conn.execute(
+                "DELETE FROM post_citations WHERE citing_post_id = ANY($1::uuid[]) OR cited_post_id = ANY($1::uuid[])",
+                post_ids,
+            )
+            await conn.execute(
+                "DELETE FROM post_co_authors WHERE post_id = ANY($1::uuid[])",
+                post_ids,
+            )
+            await conn.execute(
+                "UPDATE comments SET is_deleted = true, updated_at = NOW() WHERE post_id = ANY($1::uuid[]) AND is_deleted = false",
+                post_ids,
+            )
             count = await post_repo.bulk_soft_delete(post_ids, conn)
     return count

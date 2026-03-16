@@ -146,11 +146,11 @@ onMounted(() => loadForm())
       <!-- Feature 1: Progress Indicator -->
       <div
         v-if="showForm"
-        class="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-border py-2 px-4 mb-4 rounded-lg shadow-sm"
+        class="sticky top-0 z-30 bg-surface/95 backdrop-blur-sm border-b border-border py-2 px-4 mb-4 rounded-lg shadow-sm"
       >
         <div class="flex items-center gap-3">
           <div class="flex-1">
-            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div class="w-full h-2 bg-surface-alt rounded-full overflow-hidden">
               <div
                 class="h-full bg-brand-600 rounded-full transition-all duration-500 ease-out"
                 :style="{ width: `${progressPercent}%` }"
@@ -384,7 +384,7 @@ onMounted(() => loadForm())
                     ratingCount(q) > 7 ? 'w-8 h-8 text-xs' : 'w-10 h-10',
                     answers[q.id] === n
                       ? 'bg-brand-600 text-white'
-                      : 'bg-surface-alt text-muted hover:bg-gray-100',
+                      : 'bg-surface-alt text-muted hover:bg-surface-alt/80',
                   ]"
                 >
                   {{ n }}

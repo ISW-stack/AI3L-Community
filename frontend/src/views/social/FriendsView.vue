@@ -5,6 +5,7 @@ import { listFriends, listFriendRequests, unfriend, acceptFriendRequest, rejectF
 import { usePagination } from '@/composables/usePagination'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
+import { useLocale } from '@/composables/useLocale'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -12,9 +13,11 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FriendRequestCard from '@/components/social/FriendRequestCard.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import { relativeTime } from '@/utils/datetime'
 import { UserMinus } from 'lucide-vue-next'
 
+const { t } = useLocale()
 const toast = useToastStore()
 
 const activeTab = ref<'friends' | 'requests'>('friends')
@@ -63,7 +66,7 @@ async function fetchFriends() {
     updateFriendsResponse(data.total)
   } catch (e: unknown) {
     if (localId !== friendsFetchId) return
-    toast.show(getErrorMessage(e, 'Failed to load friends'), 'error')
+    toast.show(getErrorMessage(e, t('social.loadFriendsError')), 'error')
   } finally {
     if (localId === friendsFetchId) {
       friendsLoading.value = false
@@ -82,7 +85,7 @@ async function fetchRequests() {
     incomingCount.value = data.requests.filter((r) => r.status === 'pending').length
   } catch (e: unknown) {
     if (localId !== requestsFetchId) return
-    toast.show(getErrorMessage(e, 'Failed to load friend requests'), 'error')
+    toast.show(getErrorMessage(e, t('social.loadRequestsError')), 'error')
   } finally {
     if (localId === requestsFetchId) {
       requestsLoading.value = false
@@ -122,11 +125,11 @@ async function handleUnfriend() {
   try {
     await unfriend(unfriendTarget.value.user_id)
     friends.value = friends.value.filter((f) => f.id !== unfriendTarget.value!.id)
-    toast.show('Unfriended successfully', 'success')
+    toast.show(t('social.unfriendSuccess'), 'success')
     showUnfriendConfirm.value = false
     unfriendTarget.value = null
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to unfriend'), 'error')
+    toast.show(getErrorMessage(e, t('social.unfriendError')), 'error')
   } finally {
     unfriendLoading.value = false
   }
@@ -137,13 +140,13 @@ async function handleAcceptRequest(requestId: string) {
     await acceptFriendRequest(requestId)
     requests.value = requests.value.filter((r) => r.id !== requestId)
     incomingCount.value = Math.max(0, incomingCount.value - 1)
-    toast.show('Friend request accepted', 'success')
+    toast.show(t('social.acceptSuccess'), 'success')
     // Refresh friends list if on friends tab
     if (activeTab.value === 'friends') {
       fetchFriends()
     }
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to accept friend request'), 'error')
+    toast.show(getErrorMessage(e, t('social.acceptError')), 'error')
   }
 }
 
@@ -152,9 +155,9 @@ async function handleRejectRequest(requestId: string) {
     await rejectFriendRequest(requestId)
     requests.value = requests.value.filter((r) => r.id !== requestId)
     incomingCount.value = Math.max(0, incomingCount.value - 1)
-    toast.show('Friend request declined', 'success')
+    toast.show(t('social.declineSuccess'), 'success')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to decline friend request'), 'error')
+    toast.show(getErrorMessage(e, t('social.declineError')), 'error')
   }
 }
 
@@ -166,7 +169,10 @@ onMounted(() => {
 
 <template>
   <div class="max-w-3xl mx-auto">
-    <h1 class="text-2xl font-bold text-foreground mb-6">Friends</h1>
+    <BaseBreadcrumb
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.friends') }]"
+    />
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('social.friends') }}</h1>
 
     <!-- Tabs -->
     <div class="flex gap-1 mb-4 border-b border-border" role="tablist">
@@ -181,7 +187,7 @@ onMounted(() => {
         "
         @click="switchTab('friends')"
       >
-        Friends
+        {{ t('social.friends') }}
       </button>
       <button
         role="tab"
@@ -194,7 +200,7 @@ onMounted(() => {
         "
         @click="switchTab('requests')"
       >
-        Requests
+        {{ t('social.requests') }}
         <span
           v-if="incomingCount > 0"
           class="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5"
@@ -210,8 +216,8 @@ onMounted(() => {
 
       <EmptyState
         v-else-if="friends.length === 0"
-        title="No friends yet"
-        message="Send friend requests to connect with other members."
+        :title="t('social.noFriends')"
+        :message="t('social.noFriendsMessage')"
       />
 
       <div
@@ -242,7 +248,7 @@ onMounted(() => {
 
           <div class="flex items-center gap-2 shrink-0">
             <span class="text-xs text-muted hidden sm:inline">
-              Friends since {{ relativeTime(friend.created_at) }}
+              {{ t('social.friendsSince', { time: relativeTime(friend.created_at) }) }}
             </span>
             <BaseButton
               size="sm"
@@ -250,7 +256,7 @@ onMounted(() => {
               @click="confirmUnfriend(friend)"
             >
               <UserMinus class="w-3.5 h-3.5 mr-1" />
-              Unfriend
+              {{ t('social.unfriend') }}
             </BaseButton>
           </div>
         </div>
@@ -271,14 +277,14 @@ onMounted(() => {
 
       <EmptyState
         v-else-if="requests.length === 0"
-        title="No friend requests"
-        message="You have no pending friend requests."
+        :title="t('social.noRequests')"
+        :message="t('social.noRequestsMessage')"
       />
 
       <div v-else class="space-y-3">
         <!-- Incoming requests section -->
         <div v-if="incomingRequests.length > 0">
-          <h3 class="text-sm font-semibold text-foreground mb-2">Incoming Requests</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-2">{{ t('social.incomingRequests') }}</h3>
           <div class="space-y-2">
             <FriendRequestCard
               v-for="req in incomingRequests"
@@ -295,7 +301,7 @@ onMounted(() => {
         <div
           v-if="requests.filter((r) => r.status !== 'pending' || !incomingRequests.includes(r)).length > 0"
         >
-          <h3 class="text-sm font-semibold text-foreground mb-2 mt-4">Sent Requests</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-2 mt-4">{{ t('social.sentRequests') }}</h3>
           <div class="space-y-2">
             <FriendRequestCard
               v-for="req in requests.filter((r) => !incomingRequests.includes(r))"
@@ -317,15 +323,13 @@ onMounted(() => {
     </div>
 
     <!-- Unfriend confirmation modal -->
-    <BaseModal v-model="showUnfriendConfirm" title="Remove Friend" size="sm">
+    <BaseModal v-model="showUnfriendConfirm" :title="t('social.removeFriend')" size="sm">
       <p class="text-sm text-muted">
-        Are you sure you want to remove
-        <strong class="text-foreground">{{ unfriendTarget?.display_name }}</strong>
-        from your friends list?
+        {{ t('social.removeFriendConfirm', { name: unfriendTarget?.display_name ?? '' }) }}
       </p>
       <template #footer>
         <BaseButton size="sm" variant="secondary" @click="showUnfriendConfirm = false">
-          Cancel
+          {{ t('common.cancel') }}
         </BaseButton>
         <BaseButton
           size="sm"
@@ -333,7 +337,7 @@ onMounted(() => {
           :loading="unfriendLoading"
           @click="handleUnfriend"
         >
-          Unfriend
+          {{ t('social.unfriend') }}
         </BaseButton>
       </template>
     </BaseModal>

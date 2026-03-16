@@ -4,6 +4,11 @@ from typing import Any
 from app.core.database import get_pool
 
 
+def _escape_ilike(s: str) -> str:
+    """Escape ILIKE special characters."""
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 async def find_by_id(user_id: uuid.UUID) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -148,11 +153,11 @@ async def list_all(
     offset = (page - 1) * page_size
     async with pool.acquire() as conn:
         if search:
-            pattern = f"%{search}%"
+            pattern = f"%{_escape_ilike(search)}%"
             rows = await conn.fetch(
                 "SELECT *, COUNT(*) OVER() AS _total FROM users"
                 " WHERE is_deleted = false"
-                " AND (username ILIKE $1 OR display_name ILIKE $1)"
+                " AND (username ILIKE $1 ESCAPE '\\' OR display_name ILIKE $1 ESCAPE '\\')"
                 " ORDER BY created_at DESC OFFSET $2 LIMIT $3",
                 pattern,
                 offset,
@@ -170,6 +175,23 @@ async def list_all(
             total = rows[0]["_total"]
             return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
         return [], 0
+
+
+async def search_users(query: str, limit: int = 20) -> list[dict]:
+    """Search users by username or display_name with proper ILIKE escaping."""
+    pool = get_pool()
+    pattern = f"%{_escape_ilike(query)}%"
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id, username, display_name, avatar_url FROM users"
+            " WHERE is_deleted = false"
+            " AND (username ILIKE $1 ESCAPE '\\' OR display_name ILIKE $1 ESCAPE '\\')"
+            " ORDER BY username ASC"
+            " LIMIT $2",
+            pattern,
+            limit,
+        )
+        return [dict(r) for r in rows]
 
 
 async def update_password_hash(user_id: uuid.UUID, new_hash: str) -> None:

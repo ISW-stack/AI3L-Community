@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
+import { useLocale } from '@/composables/useLocale'
 import type { Post } from '@/types'
 import { listPosts } from '@/api/posts'
 import { getErrorMessage } from '@/utils/error'
@@ -12,11 +12,12 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import QACard from '@/components/qa/QACard.vue'
 
 const PAGE_SIZE = 20
 
-const { t } = useI18n()
+const { t } = useLocale()
 const router = useRouter()
 const toast = useToastStore()
 const auth = useAuthStore()
@@ -64,6 +65,9 @@ onMounted(fetchQuestions)
 
 <template>
   <div class="max-w-4xl mx-auto py-6 px-4">
+    <BaseBreadcrumb
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.qa') }]"
+    />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('qa.title') }}</h1>
       <BaseButton

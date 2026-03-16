@@ -213,6 +213,7 @@ onMounted(() => {
                 type="text"
                 required
                 maxlength="4"
+                aria-label="Captcha"
                 class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
                 :placeholder="t('auth.captchaPlaceholder')"
               />

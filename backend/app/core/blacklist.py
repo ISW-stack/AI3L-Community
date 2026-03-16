@@ -6,12 +6,37 @@ import uuid
 logger = logging.getLogger(__name__)
 
 
-async def get_blocked_user_ids(redis, user_id: str) -> set[str]:
-    """Get bilateral block set from Redis. Falls back to DB on miss."""
+async def get_blocked_user_ids(redis, user_id: str, pool=None) -> set[str]:
+    """Get bilateral block set from Redis. Falls back to DB on miss when pool is provided."""
     key = f"block:set:{user_id}"
     members = await redis.smembers(key)
     if members:
         return {m.decode() if isinstance(m, bytes) else m for m in members}
+
+    # Redis miss — fall back to DB if pool is available
+    if pool is not None:
+        try:
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(
+                    "SELECT blocker_id, blocked_id FROM blocks WHERE blocker_id=$1 OR blocked_id=$1",
+                    uuid.UUID(user_id),
+                )
+            if rows:
+                blocked: set[str] = set()
+                pipe = redis.pipeline()
+                for row in rows:
+                    blocker = str(row["blocker_id"])
+                    blocked_uid = str(row["blocked_id"])
+                    # Add the *other* user to the set
+                    other = blocked_uid if blocker == user_id else blocker
+                    blocked.add(other)
+                    pipe.sadd(key, other)
+                pipe.expire(key, 3600)  # Re-warm cache with 1h TTL
+                await pipe.execute()
+                return blocked
+        except Exception:
+            logger.warning("DB fallback for block cache failed", exc_info=True)
+
     return set()
 
 

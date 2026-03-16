@@ -229,7 +229,6 @@ volumes:
   redis-data:
   minio-data:
   certbot-webroot:
-  backups:
 
 networks:
   ai3l-network:

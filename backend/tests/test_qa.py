@@ -283,6 +283,10 @@ async def test_vote_on_own_answer_blocked():
 
     mock_conn = AsyncMock()
     mock_conn.fetchrow = AsyncMock(return_value=comment_row)
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    mock_conn.transaction = MagicMock(return_value=tx)
 
     mock_pool = MagicMock()
     cm = AsyncMock()
@@ -315,6 +319,10 @@ async def test_vote_on_non_question_blocked():
 
     mock_conn = AsyncMock()
     mock_conn.fetchrow = AsyncMock(return_value=comment_row)
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    mock_conn.transaction = MagicMock(return_value=tx)
 
     mock_pool = MagicMock()
     cm = AsyncMock()
@@ -352,6 +360,10 @@ async def test_vote_comment_not_found():
 
     mock_conn = AsyncMock()
     mock_conn.fetchrow = AsyncMock(return_value=None)
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    mock_conn.transaction = MagicMock(return_value=tx)
 
     mock_pool = MagicMock()
     cm = AsyncMock()

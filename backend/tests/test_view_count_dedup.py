@@ -1,7 +1,7 @@
 """Tests for Bug #6: View count dedup — duplicate views within 5 min don't increment."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -19,6 +19,7 @@ class TestViewCountDedup:
 
         mock_redis = AsyncMock()
         mock_redis.set = AsyncMock(return_value=True)  # nx=True returns True (key was new)
+        mock_redis.smembers = AsyncMock(return_value=set())
 
         with (
             patch(
@@ -30,6 +31,7 @@ class TestViewCountDedup:
                 "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
             ) as mock_incr,
             patch("app.services.post.get_redis", return_value=mock_redis),
+            patch("app.services.post.get_pool", return_value=MagicMock()),
             patch(
                 "app.services.post.async_row_to_post",
                 new_callable=AsyncMock,
@@ -56,6 +58,7 @@ class TestViewCountDedup:
 
         mock_redis = AsyncMock()
         mock_redis.set = AsyncMock(return_value=None)  # nx=True returns None (key exists)
+        mock_redis.smembers = AsyncMock(return_value=set())
 
         with (
             patch(
@@ -67,6 +70,7 @@ class TestViewCountDedup:
                 "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
             ) as mock_incr,
             patch("app.services.post.get_redis", return_value=mock_redis),
+            patch("app.services.post.get_pool", return_value=MagicMock()),
             patch(
                 "app.services.post.async_row_to_post",
                 new_callable=AsyncMock,
@@ -132,6 +136,7 @@ class TestViewCountDedup:
                 "app.services.post.post_repo.increment_view_count", new_callable=AsyncMock
             ) as mock_incr,
             patch("app.services.post.get_redis", return_value=mock_redis),
+            patch("app.services.post.get_pool", return_value=MagicMock()),
             patch(
                 "app.services.post.async_row_to_post",
                 new_callable=AsyncMock,

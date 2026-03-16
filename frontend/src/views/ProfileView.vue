@@ -33,6 +33,7 @@ const affiliation = ref('')
 const orcid = ref('')
 const saving = ref(false)
 const message = ref('')
+const messageType = ref<'success' | 'error' | 'info'>('info')
 
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -179,8 +180,10 @@ async function saveProfile() {
     })
     auth.user = data
     message.value = t('profile.saveSuccess')
+    messageType.value = 'success'
   } catch (e: unknown) {
     message.value = getErrorMessage(e, t('profile.saveError'))
+    messageType.value = 'error'
   } finally {
     saving.value = false
   }
@@ -194,8 +197,10 @@ async function uploadAvatar(event: Event) {
     const data = await apiUploadAvatar(file)
     auth.user = data
     message.value = t('profile.avatarSuccess')
+    messageType.value = 'success'
   } catch (e: unknown) {
     message.value = getErrorMessage(e, t('profile.avatarError'))
+    messageType.value = 'error'
   }
 }
 
@@ -243,6 +248,7 @@ async function handleDeleteAccount() {
     router.push({ name: 'login' })
   } catch (e: unknown) {
     message.value = getErrorMessage(e, t('common.unknownError'))
+    messageType.value = 'error'
   } finally {
     deletingAccount.value = false
     if (dangerZoneRef.value) {
@@ -260,11 +266,13 @@ async function handleDeleteAccount() {
       />
       <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('profile.title') }}</h1>
 
-      <BaseAlert v-if="message" type="info" class="mb-4">{{ message }}</BaseAlert>
+      <BaseAlert v-if="message" :type="messageType" class="mb-4">{{ message }}</BaseAlert>
 
       <!-- Tab Navigation -->
-      <div class="flex gap-1 mb-6 border-b border-border">
+      <div class="flex gap-1 mb-6 border-b border-border" role="tablist">
         <button
+          role="tab"
+          :aria-selected="activeTab === 'general'"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'general'
@@ -277,6 +285,8 @@ async function handleDeleteAccount() {
         </button>
         <button
           v-if="!auth.isGuest"
+          role="tab"
+          :aria-selected="activeTab === 'social'"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'social'
@@ -289,6 +299,8 @@ async function handleDeleteAccount() {
         </button>
         <button
           v-if="!auth.isGuest"
+          role="tab"
+          :aria-selected="activeTab === 'security'"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'security'
@@ -301,6 +313,8 @@ async function handleDeleteAccount() {
         </button>
         <button
           v-if="!auth.isGuest"
+          role="tab"
+          :aria-selected="activeTab === 'danger'"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'danger'
@@ -357,7 +371,7 @@ async function handleDeleteAccount() {
             </router-link>
             <router-link
               to="/blocked-users"
-              class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted bg-surface-alt rounded-lg hover:bg-gray-200 transition"
+              class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted bg-surface-alt rounded-lg hover:bg-border transition"
             >
               {{ t('social.blockedUsers') }}
             </router-link>
@@ -408,7 +422,7 @@ async function handleDeleteAccount() {
                   {{ t('social.acceptRequest') }}
                 </button>
                 <button
-                  class="px-3 py-1 text-xs font-medium text-muted bg-surface rounded border border-border hover:bg-gray-100 transition disabled:opacity-50"
+                  class="px-3 py-1 text-xs font-medium text-muted bg-surface rounded border border-border hover:bg-surface-alt transition disabled:opacity-50"
                   :disabled="coAuthorActionLoading"
                   @click="handleRejectInvitation(inv.id)"
                 >

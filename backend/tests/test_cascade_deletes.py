@@ -88,7 +88,7 @@ class TestAlbumCascadeDelete:
                 new_callable=AsyncMock,
                 return_value=1,
             ) as mock_del_members,
-            patch("app.core.storage.delete_file") as mock_delete_file,
+            patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_delete_file,
         ):
             result = await delete_album(album_id, user_id, "SUPER_ADMIN")
 

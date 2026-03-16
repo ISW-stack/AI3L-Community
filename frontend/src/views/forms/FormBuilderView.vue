@@ -69,6 +69,8 @@ const {
   handleRedo,
   restoreDraft,
   discardDraft,
+  confirmDiscardDraft,
+  showDiscardConfirm,
   setPreviewDesktop,
   setPreviewMobile,
   uploadBanner,
@@ -329,6 +331,25 @@ const {
         @set-desktop="setPreviewDesktop"
         @set-mobile="setPreviewMobile"
       />
+    </BaseModal>
+
+    <!-- Discard Draft Confirmation Modal -->
+    <BaseModal
+      v-model="showDiscardConfirm"
+      :title="t('forms.builder.draftDiscard')"
+      size="sm"
+    >
+      <p class="text-sm text-muted">
+        {{ t('forms.builder.confirmDiscard') }}
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showDiscardConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="confirmDiscardDraft">{{
+          t('common.confirm')
+        }}</BaseButton>
+      </template>
     </BaseModal>
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { useLocale } from '@/composables/useLocale'
 import { listAlbums } from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
 import { usePagination } from '@/composables/usePagination'
@@ -10,8 +11,10 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import AlbumCard from '@/components/albums/AlbumCard.vue'
 
+const { t } = useLocale()
 const auth = useAuthStore()
 const toast = useToastStore()
 
@@ -28,7 +31,7 @@ async function fetchAlbums() {
     albums.value = data.albums
     updateFromResponse(data.total)
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load albums'), 'error')
+    toast.show(getErrorMessage(e, t('albums.loadAlbumsError')), 'error')
   } finally {
     loading.value = false
   }
@@ -44,10 +47,13 @@ watch(page, fetchAlbums)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.albums') }]"
+    />
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Albums</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('albums.title') }}</h1>
       <router-link v-if="auth.isAdmin" to="/albums/create">
-        <BaseButton>Create Album</BaseButton>
+        <BaseButton>{{ t('albums.createAlbum') }}</BaseButton>
       </router-link>
     </div>
 
@@ -55,8 +61,8 @@ watch(page, fetchAlbums)
 
     <EmptyState
       v-else-if="albums.length === 0"
-      title="No albums yet"
-      message="There are no albums available at the moment."
+      :title="t('albums.noAlbums')"
+      :message="t('albums.noAlbumsMessage')"
     />
 
     <template v-else>
@@ -82,6 +88,6 @@ watch(page, fetchAlbums)
       </div>
     </template>
 
-    <p class="mt-4 text-xs text-muted">{{ total }} total albums</p>
+    <p class="mt-4 text-xs text-muted">{{ t('albums.totalAlbums', { count: total }) }}</p>
   </div>
 </template>

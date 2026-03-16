@@ -151,9 +151,12 @@ class TestNotificationRepoExclusion:
 
 
 class TestPostServiceBlockFiltering:
+    @patch("app.services.post.get_pool", return_value=MagicMock())
     @patch("app.services.post.get_redis")
     @patch("app.services.post.post_repo")
-    async def test_get_post_by_id_returns_none_for_blocked_author(self, mock_repo, mock_get_redis):
+    async def test_get_post_by_id_returns_none_for_blocked_author(
+        self, mock_repo, mock_get_redis, mock_get_pool
+    ):
         from app.services.post import get_post_by_id
 
         # Post authored by blocked user
@@ -171,9 +174,12 @@ class TestPostServiceBlockFiltering:
         result = await get_post_by_id(post_row["id"], viewer_id=_VIEWER_ID)
         assert result is None
 
+    @patch("app.services.post.get_pool", return_value=MagicMock())
     @patch("app.services.post.get_redis")
     @patch("app.services.post.post_repo")
-    async def test_get_post_by_id_returns_post_when_not_blocked(self, mock_repo, mock_get_redis):
+    async def test_get_post_by_id_returns_post_when_not_blocked(
+        self, mock_repo, mock_get_redis, mock_get_pool
+    ):
         from app.services.post import get_post_by_id
 
         other_user = str(uuid.uuid4())
@@ -199,9 +205,10 @@ class TestPostServiceBlockFiltering:
             result = await get_post_by_id(post_row["id"], viewer_id=_VIEWER_ID)
             assert result is not None
 
+    @patch("app.services.post.get_pool", return_value=MagicMock())
     @patch("app.services.post.get_redis")
     @patch("app.services.post.post_repo")
-    async def test_list_posts_passes_exclude_ids(self, mock_repo, mock_get_redis):
+    async def test_list_posts_passes_exclude_ids(self, mock_repo, mock_get_redis, mock_get_pool):
         from app.services.post import list_posts
 
         mock_redis = _mock_redis_with_blocks()
@@ -222,9 +229,12 @@ class TestPostServiceBlockFiltering:
         assert call_args.kwargs["exclude_user_ids"] is not None
         assert _BLOCKED_UUID in call_args.kwargs["exclude_user_ids"]
 
+    @patch("app.services.post.get_pool", return_value=MagicMock())
     @patch("app.services.post.get_redis")
     @patch("app.services.post.post_repo")
-    async def test_list_posts_no_exclude_when_no_blocks(self, mock_repo, mock_get_redis):
+    async def test_list_posts_no_exclude_when_no_blocks(
+        self, mock_repo, mock_get_redis, mock_get_pool
+    ):
         from app.services.post import list_posts
 
         mock_redis = AsyncMock()
@@ -307,6 +317,7 @@ class TestEventHandlerBlockCheck:
 
         with (
             patch("app.core.redis.get_redis") as mock_get_redis,
+            patch("app.core.database.get_pool", return_value=MagicMock()),
             patch(
                 "app.core.blacklist.get_blocked_user_ids", new_callable=AsyncMock
             ) as mock_get_blocked,

@@ -14,6 +14,7 @@ import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import ForumLeftSidebar from '@/components/forum/ForumLeftSidebar.vue'
 
 const PAGE_SIZE = 20
@@ -310,6 +311,9 @@ onUnmounted(() => {
 <template>
   <div class="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
     <div class="max-w-[1340px] mx-auto">
+      <BaseBreadcrumb
+        :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.forum') }]"
+      />
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-foreground">{{ t('forum.title') }}</h1>
       </div>

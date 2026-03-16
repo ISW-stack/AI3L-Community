@@ -12,7 +12,7 @@ from app.core.constants import (
     MAX_ACTIVE_STANDALONE_FORMS_PER_USER,
 )
 from app.core.database import get_pool
-from app.core.errors import AppError, ErrorCode
+from app.core.errors import AppError, ErrorCode, FormDeadlineError
 from app.core.redis import get_redis
 from app.repositories import form_repo
 
@@ -79,7 +79,7 @@ async def create_form(
     validate_question_schema(questions)
 
     if deadline and deadline < datetime.now(timezone.utc):
-        raise AppError(ErrorCode.FORM_001, 400, "Deadline must be in the future.")
+        raise FormDeadlineError()
 
     if sig_id is None:
         # Standalone form — enforce per-user limit
@@ -286,7 +286,7 @@ async def update_form(
 
             # Validate deadline is in the future
             if deadline and deadline < datetime.now(timezone.utc):
-                raise AppError(ErrorCode.FORM_001, 400, "Deadline must be in the future.")
+                raise FormDeadlineError()
 
             # Raise error if schema is locked and questions update is attempted
             if current["is_schema_locked"] and questions is not None:
@@ -435,7 +435,7 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
 
             now = datetime.now(timezone.utc)
             if form["deadline"] and form["deadline"] < now:
-                raise AppError(ErrorCode.FORM_001, 400, "This form has passed its deadline.")
+                raise FormDeadlineError("This form has passed its deadline.")
 
             if await form_repo.check_duplicate_response(form_id, uuid.UUID(user_id), conn):
                 raise ValueError("You have already submitted a response to this form.")

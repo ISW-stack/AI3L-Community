@@ -480,3 +480,34 @@ async def find_comment_by_id(conn: Any, comment_id: uuid.UUID) -> dict | None:
         comment_id,
     )
     return dict(row) if row else None
+
+
+async def find_comment_by_id_with_user(conn: Any, comment_id: uuid.UUID) -> dict | None:
+    """Fetch a single comment with user JOIN data (display_name, avatar_url)."""
+    row = await conn.fetchrow(
+        """
+        SELECT c.*, u.display_name, u.avatar_url
+        FROM album_comments c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.id = $1
+        """,
+        comment_id,
+    )
+    return dict(row) if row else None
+
+
+async def find_member_by_id_with_user(
+    conn: Any, album_id: uuid.UUID, user_id: uuid.UUID
+) -> dict | None:
+    """Fetch a single member with user JOIN data (display_name, username, avatar_url)."""
+    row = await conn.fetchrow(
+        """
+        SELECT am.*, u.display_name, u.username, u.avatar_url
+        FROM album_members am
+        JOIN users u ON am.user_id = u.id
+        WHERE am.album_id = $1 AND am.user_id = $2
+        """,
+        album_id,
+        user_id,
+    )
+    return dict(row) if row else None

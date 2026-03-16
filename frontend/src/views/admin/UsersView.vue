@@ -77,12 +77,15 @@ function toggleSelect(userId: string) {
   else selectedIds.value.add(userId)
 }
 
-async function applyBulkRole() {
+const showBulkRoleConfirm = ref(false)
+
+function applyBulkRole() {
   if (selectedIds.value.size === 0) return
-  const confirmed = window.confirm(
-    t('admin.users.confirmBulkRole', { role: bulkRole.value, count: selectedIds.value.size }),
-  )
-  if (!confirmed) return
+  showBulkRoleConfirm.value = true
+}
+
+async function confirmBulkRole() {
+  showBulkRoleConfirm.value = false
   bulkLoading.value = true
   try {
     const data = await apiBulkChangeRole(Array.from(selectedIds.value), bulkRole.value)
@@ -492,6 +495,25 @@ onUnmounted(() => {
           t('common.cancel')
         }}</BaseButton>
         <BaseButton :loading="creating" @click="createAccount">{{ t('common.create') }}</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Bulk Role Confirmation Modal -->
+    <BaseModal
+      v-model="showBulkRoleConfirm"
+      :title="t('admin.users.bulkApplyRole')"
+      size="sm"
+    >
+      <p class="text-sm text-muted">
+        {{ t('admin.users.confirmBulkRole', { role: bulkRole, count: selectedIds.size }) }}
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showBulkRoleConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" :loading="bulkLoading" @click="confirmBulkRole">{{
+          t('common.confirm')
+        }}</BaseButton>
       </template>
     </BaseModal>
 

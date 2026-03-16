@@ -10,6 +10,7 @@ import {
   approveAlbumMember,
   addAlbumMember,
 } from '@/api/albums'
+import { searchUsers } from '@/api/coauthors'
 import { getErrorMessage } from '@/utils/error'
 import type { AlbumMember } from '@/types/album'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -31,6 +32,10 @@ const joining = ref(false)
 const showAddMemberModal = ref(false)
 const addMemberUserId = ref('')
 const addingMember = ref(false)
+const userSearchQuery = ref('')
+const userSearchResults = ref<{ id: string; display_name: string; username: string }[]>([])
+const searchingUsers = ref(false)
+let searchDebounce: ReturnType<typeof setTimeout> | null = null
 
 const isAlbumAdmin = computed(() => userAlbumRole.value === 'ADMIN')
 const isMember = computed(() => userAlbumRole.value !== null)
@@ -106,7 +111,36 @@ async function handleRemove(member: AlbumMember) {
 
 function openAddMember() {
   addMemberUserId.value = ''
+  userSearchQuery.value = ''
+  userSearchResults.value = []
   showAddMemberModal.value = true
+}
+
+function handleSearchInput(value: string) {
+  userSearchQuery.value = value
+  addMemberUserId.value = ''
+  if (searchDebounce) clearTimeout(searchDebounce)
+  if (!value.trim() || value.trim().length < 2) {
+    userSearchResults.value = []
+    return
+  }
+  searchDebounce = setTimeout(async () => {
+    searchingUsers.value = true
+    try {
+      const { data } = await searchUsers(value.trim(), 8)
+      userSearchResults.value = data.users ?? data ?? []
+    } catch {
+      userSearchResults.value = []
+    } finally {
+      searchingUsers.value = false
+    }
+  }, 300)
+}
+
+function selectUser(user: { id: string; display_name: string; username: string }) {
+  addMemberUserId.value = user.id
+  userSearchQuery.value = `${user.display_name} (@${user.username})`
+  userSearchResults.value = []
 }
 
 async function handleAddMember() {
@@ -214,15 +248,36 @@ watch(() => album.value?.id, fetchMembers)
       size="sm"
     >
       <div class="space-y-4">
-        <BaseInput
-          v-model="addMemberUserId"
-          label="User ID"
-          placeholder="Enter user ID"
-        />
+        <div class="relative">
+          <BaseInput
+            :model-value="userSearchQuery"
+            label="Search User"
+            placeholder="Type a name or username to search..."
+            @update:model-value="handleSearchInput"
+          />
+          <p v-if="searchingUsers" class="text-xs text-muted mt-1">Searching...</p>
+          <ul
+            v-if="userSearchResults.length > 0"
+            class="absolute z-10 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          >
+            <li
+              v-for="user in userSearchResults"
+              :key="user.id"
+              class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-surface-alt text-sm"
+              @click="selectUser(user)"
+            >
+              <span class="font-medium text-foreground">{{ user.display_name }}</span>
+              <span class="text-muted">@{{ user.username }}</span>
+            </li>
+          </ul>
+          <p v-if="addMemberUserId" class="text-xs text-success-600 mt-1">
+            User selected: {{ userSearchQuery }}
+          </p>
+        </div>
       </div>
       <template #footer>
         <BaseButton variant="secondary" @click="showAddMemberModal = false">Cancel</BaseButton>
-        <BaseButton :loading="addingMember" @click="handleAddMember">Add</BaseButton>
+        <BaseButton :loading="addingMember" :disabled="!addMemberUserId" @click="handleAddMember">Add</BaseButton>
       </template>
     </BaseModal>
   </div>

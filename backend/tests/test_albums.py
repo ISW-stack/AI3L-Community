@@ -954,7 +954,7 @@ class TestM8StorageQuotaTransaction:
             with (
                 patch("app.core.storage.album_photo_key", return_value="key"),
                 patch("app.core.storage.album_thumbnail_key", return_value="thumb"),
-                patch("app.core.storage.upload_file"),
+                patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             ):
                 from app.services.album import upload_photo
 

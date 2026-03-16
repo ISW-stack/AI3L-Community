@@ -43,12 +43,13 @@ async def client():
 
 
 def _override_auth(role="MEMBER", user_id=None):
-    from app.core.deps import get_current_user
+    from app.core.deps import get_current_user, get_optional_current_user
     from app.main import app
 
     uid = user_id or _USER_A_ID
     payload = {"sub": uid, "role": role, "jti": "jti-perm"}
     app.dependency_overrides[get_current_user] = lambda: payload
+    app.dependency_overrides[get_optional_current_user] = lambda: payload
 
 
 def _clear_overrides():

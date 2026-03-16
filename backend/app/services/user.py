@@ -317,6 +317,25 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                         user_id,
                     )
 
+                    # Album memberships
+                    await conn.execute(
+                        "DELETE FROM album_members WHERE user_id = $1",
+                        user_id,
+                    )
+
+                    # Soft-delete album comments
+                    await conn.execute(
+                        "UPDATE album_comments SET is_deleted = true, updated_at = NOW() "
+                        "WHERE user_id = $1 AND is_deleted = false",
+                        user_id,
+                    )
+
+                    # Disassociate album photos
+                    await conn.execute(
+                        "UPDATE album_photos SET uploaded_by = NULL WHERE uploaded_by = $1",
+                        user_id,
+                    )
+
                     # Soft-delete posts
                     await conn.execute(
                         "UPDATE posts SET is_deleted = true, updated_at = NOW() "

@@ -3,6 +3,7 @@ import uuid
 from loguru import logger
 
 from app.core.database import get_pool
+from app.core.errors import ConflictError
 from app.repositories import category_repo
 
 
@@ -35,6 +36,15 @@ async def update_category(
 
             new_name = name if name is not None else current["name"]
             new_desc = description if description is not None else current["description"]
+
+            # Check for duplicate name (excluding this category)
+            dup = await conn.fetchrow(
+                "SELECT id FROM categories WHERE name = $1 AND id != $2 AND is_deleted = false",
+                new_name,
+                category_id,
+            )
+            if dup:
+                raise ConflictError(f"A category named '{new_name}' already exists.")
 
             row = await conn.fetchrow(
                 "UPDATE categories SET name = $1, description = $2 WHERE id = $3 RETURNING *",

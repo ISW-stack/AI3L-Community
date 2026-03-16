@@ -225,8 +225,10 @@ onMounted(() => {
         <FriendRecommendations v-if="isOwnProfile" class="mb-6" />
 
         <!-- Section Tabs -->
-        <div class="flex gap-1 mb-4 border-b border-border">
+        <div class="flex gap-1 mb-4 border-b border-border" role="tablist">
           <button
+            role="tab"
+            :aria-selected="activeSection === 'posts'"
             class="px-4 py-2 text-sm font-medium border-b-2 transition"
             :class="
               activeSection === 'posts'
@@ -238,6 +240,8 @@ onMounted(() => {
             {{ t('userProfile.postsTitle') }} ({{ postsTotal }})
           </button>
           <button
+            role="tab"
+            :aria-selected="activeSection === 'coauthored'"
             class="px-4 py-2 text-sm font-medium border-b-2 transition"
             :class="
               activeSection === 'coauthored'

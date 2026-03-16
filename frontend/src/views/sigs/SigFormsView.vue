@@ -508,7 +508,7 @@ onMounted(fetchForms)
                     <span class="text-xs text-foreground w-24 shrink-0 truncate" :title="opt.label">
                       {{ opt.label }}
                     </span>
-                    <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                    <div class="flex-1 bg-surface-alt rounded-full h-5 overflow-hidden">
                       <div
                         class="bg-brand-500 h-full rounded-full transition-all duration-500"
                         :style="{ width: opt.percentage + '%' }"
@@ -545,7 +545,7 @@ onMounted(fetchForms)
                     <span class="text-xs text-foreground w-6 text-right shrink-0">
                       {{ item.value }}
                     </span>
-                    <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                    <div class="flex-1 bg-surface-alt rounded-full h-4 overflow-hidden">
                       <div
                         class="bg-amber-400 h-full rounded-full transition-all duration-500"
                         :style="{ width: item.percentage + '%' }"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
@@ -83,13 +83,13 @@ async function handleUpload(file: File) {
   }
 }
 
-onMounted(fetchPhotos)
 watch(
   () => album.value?.id,
   () => {
     resetPage()
     fetchPhotos()
   },
+  { immediate: true },
 )
 watch(page, fetchPhotos)
 </script>

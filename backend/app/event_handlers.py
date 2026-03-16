@@ -13,10 +13,12 @@ async def _is_blocked(user_a: str, user_b: str) -> bool:
     """Check if user_a has user_b in their block set (bilateral)."""
     try:
         from app.core.blacklist import get_blocked_user_ids
+        from app.core.database import get_pool
         from app.core.redis import get_redis
 
         redis = get_redis()
-        blocked = await get_blocked_user_ids(redis, user_a)
+        pool = get_pool()
+        blocked = await get_blocked_user_ids(redis, user_a, pool=pool)
         return user_b in blocked
     except Exception:
         return False  # Redis failure → allow notification
@@ -510,6 +512,59 @@ async def _on_best_answer_marked(
         raise
 
 
+async def _on_friend_request(
+    user_id: str,
+    target_id: str,
+    friendship_id: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify the target user when they receive a friend request."""
+    from app.services.notification import create_notification
+
+    if await _is_blocked(target_id, user_id):
+        return
+    if not await _check_idempotent(target_id, "friendship", friendship_id, "FRIEND_REQUEST"):
+        return
+    try:
+        await create_notification(
+            user_id=target_id,
+            trigger_user_id=user_id,
+            action_type="FRIEND_REQUEST",
+            entity_type="friendship",
+            entity_id=friendship_id,
+            message="You have a new friend request",
+        )
+    except Exception:
+        logger.error("Failed to send friend request notification", exc_info=True)
+        raise
+
+
+async def _on_friend_accepted(
+    user_id: str,
+    friend_id: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify the original requester when their friend request is accepted."""
+    from app.services.notification import create_notification
+
+    if await _is_blocked(user_id, friend_id):
+        return
+    if not await _check_idempotent(user_id, "friendship", None, "FRIEND_ACCEPTED"):
+        return
+    try:
+        await create_notification(
+            user_id=user_id,
+            trigger_user_id=friend_id,
+            action_type="FRIEND_ACCEPTED",
+            entity_type="friendship",
+            entity_id=None,
+            message="Your friend request was accepted",
+        )
+    except Exception:
+        logger.error("Failed to send friend accepted notification", exc_info=True)
+        raise
+
+
 def register_all() -> None:
     """Register all event handlers. Called once at application startup."""
     on("comment.created", _on_comment_created)
@@ -525,3 +580,5 @@ def register_all() -> None:
     on("post.cited", _on_post_cited)
     on("question.created", _on_question_created)
     on("best_answer.marked", _on_best_answer_marked)
+    on("friend.request", _on_friend_request)
+    on("friend.accepted", _on_friend_accepted)

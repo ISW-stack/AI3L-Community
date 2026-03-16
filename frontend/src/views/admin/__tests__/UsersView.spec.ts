@@ -11,6 +11,7 @@ const mockCreateAccount = vi.fn()
 const mockChangeRole = vi.fn()
 const mockBanUser = vi.fn()
 const mockUnbanUser = vi.fn()
+const mockBulkChangeRole = vi.fn()
 const mockApiPut = vi.fn()
 
 vi.mock('@/api/admin', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/api/admin', () => ({
   changeRole: (...args: unknown[]) => mockChangeRole(...args),
   banUser: (...args: unknown[]) => mockBanUser(...args),
   unbanUser: (...args: unknown[]) => mockUnbanUser(...args),
+  bulkChangeRole: (...args: unknown[]) => mockBulkChangeRole(...args),
 }))
 
 vi.mock('@/composables/api', () => ({
@@ -529,96 +531,63 @@ describe('UsersView', () => {
     expect(bulkSelect.length).toBeGreaterThan(0)
   })
 
-  it('calls bulk role API when bulk apply is clicked and confirmed', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
-    mockApiPut.mockResolvedValue({ data: { updated_count: 1 } })
+  it('shows confirmation modal when bulk apply is triggered', async () => {
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
-
     const { wrapper } = await mountUsers()
+    const vm = wrapper.vm as any
 
-    // Select a user checkbox
-    const checkboxes = wrapper.findAll('input[type="checkbox"]')
-    if (checkboxes.length > 1) {
-      await checkboxes[1].setValue(true)
-      await checkboxes[1].trigger('change')
-      await nextTick()
+    // Directly add a user to selectedIds and call applyBulkRole
+    vm.selectedIds.add('user-2')
+    await nextTick()
+    vm.applyBulkRole()
+    await nextTick()
 
-      // Find and click bulk apply button
-      const bulkButtons = wrapper.findAll('button')
-      for (const btn of bulkButtons) {
-        const text = btn.text()
-        if (text && btn.attributes('disabled') === undefined) {
-          await btn.trigger('click')
-          await flushPromises()
-          if (mockApiPut.mock.calls.length > 0) {
-            expect(window.confirm).toHaveBeenCalled()
-            expect(mockApiPut).toHaveBeenCalledWith('/users/bulk-role', expect.any(Object))
-            break
-          }
-        }
-      }
-    }
-    vi.restoreAllMocks()
+    // Modal should be shown, API not yet called
+    expect(vm.showBulkRoleConfirm).toBe(true)
+    expect(mockApiPut).not.toHaveBeenCalled()
   })
 
-  it('does not call bulk role API when confirmation is declined', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
+  it('calls bulk role API after modal confirmation', async () => {
+    mockBulkChangeRole.mockResolvedValue({ updated_count: 1 })
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
-
     const { wrapper } = await mountUsers()
+    const vm = wrapper.vm as any
 
-    // Select a user checkbox
-    const checkboxes = wrapper.findAll('input[type="checkbox"]')
-    if (checkboxes.length > 1) {
-      await checkboxes[1].setValue(true)
-      await checkboxes[1].trigger('change')
-      await nextTick()
+    // Directly add a user to selectedIds and trigger confirmation
+    vm.selectedIds.add('user-2')
+    await nextTick()
+    await vm.confirmBulkRole()
+    await flushPromises()
+    expect(mockBulkChangeRole).toHaveBeenCalledWith(['user-2'], 'MEMBER')
+  })
 
-      // Find and click bulk apply button
-      const bulkButtons = wrapper.findAll('button')
-      for (const btn of bulkButtons) {
-        const text = btn.text()
-        if (text && btn.attributes('disabled') === undefined) {
-          await btn.trigger('click')
-          await flushPromises()
-          // Since confirm returned false, API should NOT be called
-        }
-      }
-      expect(mockApiPut).not.toHaveBeenCalled()
-    }
-    vi.restoreAllMocks()
+  it('does not call bulk role API when modal is cancelled', async () => {
+    mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
+    const { wrapper } = await mountUsers()
+    const vm = wrapper.vm as any
+
+    // Show then cancel the modal
+    vm.selectedIds.add('user-2')
+    vm.showBulkRoleConfirm = true
+    vm.showBulkRoleConfirm = false
+    await flushPromises()
+    expect(mockBulkChangeRole).not.toHaveBeenCalled()
   })
 
   it('uses updated_count from bulk role API response in toast', async () => {
-    mockApiPut.mockResolvedValue({ data: { updated_count: 2 } })
+    mockBulkChangeRole.mockResolvedValue({ updated_count: 2 })
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
 
     const { wrapper } = await mountUsers()
+    const vm = wrapper.vm as any
 
-    // Select two user checkboxes
-    const checkboxes = wrapper.findAll('input[type="checkbox"]')
-    if (checkboxes.length > 2) {
-      await checkboxes[1].setValue(true)
-      await checkboxes[1].trigger('change')
-      await checkboxes[2].setValue(true)
-      await checkboxes[2].trigger('change')
-      await nextTick()
-
-      // Find and click bulk apply button
-      const bulkButtons = wrapper.findAll('button')
-      for (const btn of bulkButtons) {
-        const text = btn.text()
-        if (text && btn.attributes('disabled') === undefined) {
-          await btn.trigger('click')
-          await flushPromises()
-          if (mockApiPut.mock.calls.length > 0) {
-            // The bulk role API was called — verify updated_count is used
-            expect(mockApiPut).toHaveBeenCalledWith('/users/bulk-role', expect.any(Object))
-            break
-          }
-        }
-      }
-    }
+    // Directly add users and confirm bulk role
+    vm.selectedIds.add('user-2')
+    vm.selectedIds.add('user-3')
+    await nextTick()
+    await vm.confirmBulkRole()
+    await flushPromises()
+    expect(mockBulkChangeRole).toHaveBeenCalled()
   })
 
   describe('mobile card view', () => {

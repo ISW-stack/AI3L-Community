@@ -15,12 +15,13 @@ _SVC = "app.services.form"
 
 
 def _override_auth(role="MEMBER", user_id=None):
-    from app.core.deps import get_current_user
+    from app.core.deps import get_current_user, get_optional_current_user
     from app.main import app
 
     uid = user_id or str(uuid.uuid4())
     payload = {"sub": uid, "role": role, "jti": str(uuid.uuid4())}
     app.dependency_overrides[get_current_user] = lambda: payload
+    app.dependency_overrides[get_optional_current_user] = lambda: payload
     return payload, uid
 
 

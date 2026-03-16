@@ -10,6 +10,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
 const { t } = useI18n()
@@ -49,6 +50,12 @@ onMounted(fetchSigs)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.sigsDirectory') },
+      ]"
+    />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('sigs.directory.title') }}</h1>
       <router-link v-if="auth.isAdmin" to="/sigs/create">

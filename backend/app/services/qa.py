@@ -133,26 +133,29 @@ async def vote_on_answer(
         raise AppError(ErrorCode.SYS_429, 429, "Too many votes. Please try again later.")
 
     async with pool.acquire() as conn:
-        # Get comment and verify it belongs to a question post
-        comment = await conn.fetchrow(
-            """
-            SELECT c.id, c.user_id, c.post_id, p.type AS post_type
-            FROM comments c
-            JOIN posts p ON c.post_id = p.id
-            WHERE c.id = $1 AND c.is_deleted = false AND p.is_deleted = false
-            """,
-            comment_id,
-        )
-        if not comment:
-            raise NotFoundError("Comment", str(comment_id))
-        if comment["post_type"] != "question":
-            raise AppError(ErrorCode.SYS_422, 400, "Voting is only available on question answers.")
-
-        # Cannot vote on own answer
-        if str(comment["user_id"]) == user_id:
-            raise AppError(ErrorCode.QA_002, 400, "You cannot vote on your own answer.")
-
         async with conn.transaction():
+            # Get comment with FOR UPDATE to prevent concurrent deletion
+            comment = await conn.fetchrow(
+                """
+                SELECT c.id, c.user_id, c.post_id, p.type AS post_type
+                FROM comments c
+                JOIN posts p ON c.post_id = p.id
+                WHERE c.id = $1 AND c.is_deleted = false AND p.is_deleted = false
+                FOR UPDATE OF c
+                """,
+                comment_id,
+            )
+            if not comment:
+                raise NotFoundError("Comment", str(comment_id))
+            if comment["post_type"] != "question":
+                raise AppError(
+                    ErrorCode.SYS_422, 400, "Voting is only available on question answers."
+                )
+
+            # Cannot vote on own answer
+            if str(comment["user_id"]) == user_id:
+                raise AppError(ErrorCode.QA_002, 400, "You cannot vote on your own answer.")
+
             new_score = await vote_repo.upsert_vote(conn, comment_id, uuid.UUID(user_id), vote)
 
     return {

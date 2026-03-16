@@ -5,13 +5,16 @@ import { listFollowing, listFollowers, unfollowUser, followUser } from '@/api/so
 import { usePagination } from '@/composables/usePagination'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
+import { useLocale } from '@/composables/useLocale'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import { UserPlus, UserMinus } from 'lucide-vue-next'
 
+const { t } = useLocale()
 const toast = useToastStore()
 
 const activeTab = ref<'following' | 'followers'>('following')
@@ -56,7 +59,7 @@ async function fetchFollowing() {
     followingBackSet.value = new Set(data.users.map((u) => u.user_id))
   } catch (e: unknown) {
     if (localId !== followingFetchId) return
-    toast.show(getErrorMessage(e, 'Failed to load following list'), 'error')
+    toast.show(getErrorMessage(e, t('social.loadFollowingError')), 'error')
   } finally {
     if (localId === followingFetchId) {
       followingLoading.value = false
@@ -74,7 +77,7 @@ async function fetchFollowers() {
     updateFollowersResponse(data.total)
   } catch (e: unknown) {
     if (localId !== followersFetchId) return
-    toast.show(getErrorMessage(e, 'Failed to load followers list'), 'error')
+    toast.show(getErrorMessage(e, t('social.loadFollowersError')), 'error')
   } finally {
     if (localId === followersFetchId) {
       followersLoading.value = false
@@ -109,9 +112,9 @@ async function handleUnfollow(userId: string) {
     await unfollowUser(userId)
     following.value = following.value.filter((u) => u.user_id !== userId)
     followingBackSet.value.delete(userId)
-    toast.show('Unfollowed', 'success')
+    toast.show(t('social.unfollowSuccess'), 'success')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to unfollow'), 'error')
+    toast.show(getErrorMessage(e, t('social.unfollowError')), 'error')
   } finally {
     followActionLoading.value.delete(userId)
   }
@@ -122,9 +125,9 @@ async function handleFollowBack(userId: string) {
   try {
     await followUser(userId)
     followingBackSet.value.add(userId)
-    toast.show('Following', 'success')
+    toast.show(t('social.followSuccess'), 'success')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to follow'), 'error')
+    toast.show(getErrorMessage(e, t('social.followError')), 'error')
   } finally {
     followActionLoading.value.delete(userId)
   }
@@ -142,7 +145,10 @@ onMounted(() => {
 
 <template>
   <div class="max-w-3xl mx-auto">
-    <h1 class="text-2xl font-bold text-foreground mb-6">Following</h1>
+    <BaseBreadcrumb
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.following') }]"
+    />
+    <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('social.following') }}</h1>
 
     <!-- Tabs -->
     <div class="flex gap-1 mb-4 border-b border-border" role="tablist">
@@ -157,7 +163,7 @@ onMounted(() => {
         "
         @click="switchTab('following')"
       >
-        Following
+        {{ t('social.following') }}
       </button>
       <button
         role="tab"
@@ -170,7 +176,7 @@ onMounted(() => {
         "
         @click="switchTab('followers')"
       >
-        Followers
+        {{ t('social.followers') }}
       </button>
     </div>
 
@@ -180,8 +186,8 @@ onMounted(() => {
 
       <EmptyState
         v-else-if="following.length === 0"
-        title="Not following anyone"
-        message="Follow other members to stay updated on their activity."
+        :title="t('social.noFollowing')"
+        :message="t('social.noFollowingMessage')"
       />
 
       <div
@@ -214,7 +220,7 @@ onMounted(() => {
             @click="handleUnfollow(user.user_id)"
           >
             <UserMinus class="w-3.5 h-3.5 mr-1" />
-            Unfollow
+            {{ t('social.unfollow') }}
           </BaseButton>
         </div>
       </div>
@@ -234,8 +240,8 @@ onMounted(() => {
 
       <EmptyState
         v-else-if="followers.length === 0"
-        title="No followers yet"
-        message="When other members follow you, they will appear here."
+        :title="t('social.noFollowers')"
+        :message="t('social.noFollowersMessage')"
       />
 
       <div
@@ -268,7 +274,7 @@ onMounted(() => {
             @click="handleFollowBack(user.user_id)"
           >
             <UserPlus class="w-3.5 h-3.5 mr-1" />
-            Follow Back
+            {{ t('social.followBack') }}
           </BaseButton>
           <BaseButton
             v-else
@@ -278,7 +284,7 @@ onMounted(() => {
             @click="handleUnfollow(user.user_id)"
           >
             <UserMinus class="w-3.5 h-3.5 mr-1" />
-            Unfollow
+            {{ t('social.unfollow') }}
           </BaseButton>
         </div>
       </div>

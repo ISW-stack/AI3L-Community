@@ -533,31 +533,35 @@ describe('useFormBuilder', () => {
     })
 
     it('discardDraft clears localStorage and hides banner when confirmed', () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
       localStorage.setItem(
         'form-draft-sig-1',
         JSON.stringify({ title: 'x', savedAt: new Date().toISOString() }),
       )
       const h = createHarness()
       h.showDraftBanner.value = true
+      // discardDraft now shows confirmation modal
       h.discardDraft()
+      expect(h.showDiscardConfirm.value).toBe(true)
+      // confirmDiscardDraft actually clears draft
+      h.confirmDiscardDraft()
       expect(h.showDraftBanner.value).toBe(false)
       expect(localStorage.getItem('form-draft-sig-1')).toBeNull()
-      vi.restoreAllMocks()
     })
 
     it('discardDraft does nothing when confirmation is declined', () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(false)
       localStorage.setItem(
         'form-draft-sig-1',
         JSON.stringify({ title: 'x', savedAt: new Date().toISOString() }),
       )
       const h = createHarness()
       h.showDraftBanner.value = true
+      // discardDraft shows modal but user dismisses it
       h.discardDraft()
+      expect(h.showDiscardConfirm.value).toBe(true)
+      // User cancels — just hide modal, don't clear
+      h.showDiscardConfirm.value = false
       expect(h.showDraftBanner.value).toBe(true)
       expect(localStorage.getItem('form-draft-sig-1')).not.toBeNull()
-      vi.restoreAllMocks()
     })
   })
 

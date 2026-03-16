@@ -19,38 +19,41 @@ async def send_friend_request(pool, requester_id: uuid.UUID, addressee_id: uuid.
         raise AppError(ErrorCode.SYS_422, 400, "Cannot send a friend request to yourself.")
 
     async with pool.acquire() as conn:
-        # Check blocked
+        # Check blocked (read-only, outside transaction is fine)
         if await social_repo.is_blocked(conn, requester_id, addressee_id):
             raise AppError(ErrorCode.SOCIAL_003, 403, "Cannot interact with this user.")
 
-        # Check existing friendship
-        existing = await social_repo.find_friendship_between(conn, requester_id, addressee_id)
-        if existing:
-            if existing["status"] == "ACCEPTED":
-                raise AppError(ErrorCode.SOCIAL_001, 409, "Already friends.")
-            # Reverse pending request → auto-accept
-            if existing["status"] == "PENDING" and existing["addressee_id"] == requester_id:
-                async with conn.transaction():
+        # Wrap check + insert in transaction with FOR UPDATE to prevent
+        # concurrent mutual requests from creating duplicate auto-accepts
+        async with conn.transaction():
+            existing = await social_repo.find_friendship_between(
+                conn, requester_id, addressee_id, for_update=True
+            )
+            if existing:
+                if existing["status"] == "ACCEPTED":
+                    raise AppError(ErrorCode.SOCIAL_001, 409, "Already friends.")
+                # Reverse pending request → auto-accept
+                if existing["status"] == "PENDING" and existing["addressee_id"] == requester_id:
                     friendship = await social_repo.accept_friendship(conn, existing["id"])
                     # Auto-follow both directions
                     await _ensure_follow(conn, requester_id, addressee_id)
                     await _ensure_follow(conn, addressee_id, requester_id)
 
-                await emit(
-                    "friend.accepted",
-                    user_id=str(addressee_id),
-                    friend_id=str(requester_id),
-                )
-                return friendship  # type: ignore[return-value]
+                    await emit(
+                        "friend.accepted",
+                        user_id=str(addressee_id),
+                        friend_id=str(requester_id),
+                    )
+                    return friendship  # type: ignore[return-value]
 
-            # Duplicate pending request
-            raise AppError(ErrorCode.SOCIAL_001, 409, "Friend request already sent.")
+                # Duplicate pending request
+                raise AppError(ErrorCode.SOCIAL_001, 409, "Friend request already sent.")
 
-        # Insert new PENDING friendship
-        friendship_id = uuid.uuid4()
-        friendship = await social_repo.insert_friendship(
-            conn, friendship_id, requester_id, addressee_id
-        )
+            # Insert new PENDING friendship
+            friendship_id = uuid.uuid4()
+            friendship = await social_repo.insert_friendship(
+                conn, friendship_id, requester_id, addressee_id
+            )
 
     await emit(
         "friend.request",
@@ -175,7 +178,7 @@ async def list_followers(
     exclude: list[uuid.UUID] | None = None
     if redis:
         try:
-            blocked_ids = await get_blocked_user_ids(redis, str(user_id))
+            blocked_ids = await get_blocked_user_ids(redis, str(user_id), pool=pool)
             if blocked_ids:
                 exclude = [uuid.UUID(uid) for uid in blocked_ids]
         except Exception:
@@ -196,7 +199,7 @@ async def list_following(
     exclude: list[uuid.UUID] | None = None
     if redis:
         try:
-            blocked_ids = await get_blocked_user_ids(redis, str(user_id))
+            blocked_ids = await get_blocked_user_ids(redis, str(user_id), pool=pool)
             if blocked_ids:
                 exclude = [uuid.UUID(uid) for uid in blocked_ids]
         except Exception:

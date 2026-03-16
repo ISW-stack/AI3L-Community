@@ -55,6 +55,9 @@ const {
   showHistory,
   showDeletePostConfirm,
   showDeleteCommentConfirm,
+  showLeaveConfirm,
+  confirmLeave,
+  cancelLeave,
   showReportModal,
   reportReason,
   reportSaving,
@@ -248,7 +251,7 @@ const breadcrumbItems = computed(() => {
 
           <!-- Co-Authors Display -->
           <div v-if="acceptedCoAuthors.length > 0" class="mb-3">
-            <h4 class="text-xs font-medium text-muted mb-1.5">Co-Authors</h4>
+            <h4 class="text-xs font-medium text-muted mb-1.5">{{ t('post.detail.coAuthors') }}</h4>
             <div class="flex items-center gap-2 flex-wrap">
               <div
                 v-for="ca in acceptedCoAuthors"
@@ -272,7 +275,7 @@ const breadcrumbItems = computed(() => {
                 @click="toggleCitedBy"
               >
                 <Quote class="w-3.5 h-3.5" />
-                Cited by {{ citedBy.length }}
+                {{ t('post.detail.citedByCount', { count: citedBy.length }) }}
                 <ChevronDown v-if="!showCitedBy" class="w-3.5 h-3.5" />
                 <ChevronUp v-else class="w-3.5 h-3.5" />
               </button>
@@ -304,7 +307,7 @@ const breadcrumbItems = computed(() => {
                 @click="toggleReferences"
               >
                 <Quote class="w-3.5 h-3.5" />
-                References ({{ citing.length }})
+                {{ t('post.detail.referencesCount', { count: citing.length }) }}
                 <ChevronDown v-if="!showReferences" class="w-3.5 h-3.5" />
                 <ChevronUp v-else class="w-3.5 h-3.5" />
               </button>
@@ -688,6 +691,26 @@ const breadcrumbItems = computed(() => {
         }}</BaseButton>
         <BaseButton variant="danger" @click="deleteCommentHandler">{{
           t('common.delete')
+        }}</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Leave Page Confirmation (unsaved edits) -->
+    <BaseModal
+      v-model="showLeaveConfirm"
+      :title="t('post.detail.unsavedChangesTitle')"
+      size="sm"
+      persistent
+    >
+      <p class="text-sm text-muted">
+        {{ t('post.detail.unsavedChangesMessage') }}
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="cancelLeave">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton variant="danger" @click="confirmLeave">{{
+          t('post.detail.leaveBtn')
         }}</BaseButton>
       </template>
     </BaseModal>

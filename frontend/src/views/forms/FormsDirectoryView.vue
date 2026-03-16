@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { useLocale } from '@/composables/useLocale'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { listStandaloneForms } from '@/api/forms'
@@ -13,9 +13,10 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
+import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
-const { t } = useI18n()
+const { t } = useLocale()
 const auth = useAuthStore()
 const toast = useToastStore()
 
@@ -54,7 +55,7 @@ async function fetchForms() {
     forms.value = data.forms
     updateFromResponse(data.total)
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load forms'), 'error')
+    toast.show(getErrorMessage(e, t('formsDirectory.loadError')), 'error')
   } finally {
     loading.value = false
   }
@@ -80,6 +81,12 @@ watch(page, fetchForms)
 
 <template>
   <div>
+    <BaseBreadcrumb
+      :items="[
+        { label: t('breadcrumb.home'), to: '/' },
+        { label: t('breadcrumb.formsDirectory') },
+      ]"
+    />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('formsDirectory.title') }}</h1>
       <router-link v-if="canCreate" to="/forms/new">
@@ -99,8 +106,8 @@ watch(page, fetchForms)
 
     <EmptyState
       v-else-if="forms.length === 0"
-      title="No forms yet"
-      message="There are no standalone forms available at the moment."
+      :title="t('formsDirectory.noForms')"
+      :message="t('formsDirectory.noFormsMessage')"
     />
 
     <EmptyState
@@ -121,16 +128,16 @@ watch(page, fetchForms)
             <div class="flex items-start justify-between gap-2 mb-2">
               <h2 class="text-lg font-semibold text-foreground line-clamp-1">{{ form.title }}</h2>
               <BaseBadge :variant="form.is_active ? 'success' : 'danger'" class="shrink-0">
-                {{ form.is_active ? 'Active' : 'Closed' }}
+                {{ form.is_active ? t('formsDirectory.active') : t('formsDirectory.closed') }}
               </BaseBadge>
             </div>
             <p v-if="form.description" class="text-sm text-muted mb-3 line-clamp-2">
               {{ truncateText(form.description, 120) }}
             </p>
             <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-              <span>{{ form.response_count }} responses</span>
-              <span v-if="form.deadline">Due {{ formatDeadline(form.deadline) }}</span>
-              <span>By {{ form.created_by_name }}</span>
+              <span>{{ form.response_count }} {{ t('formsDirectory.responses') }}</span>
+              <span v-if="form.deadline">{{ t('formsDirectory.due', { date: formatDeadline(form.deadline) }) }}</span>
+              <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
             </div>
           </BaseCard>
         </router-link>
@@ -147,6 +154,6 @@ watch(page, fetchForms)
       </div>
     </template>
 
-    <p class="mt-4 text-xs text-muted">{{ total }} {{ t('formsDirectory.totalForms') }}</p>
+    <p class="mt-4 text-xs text-muted">{{ t('formsDirectory.totalForms', { count: total }) }}</p>
   </div>
 </template>

@@ -165,15 +165,6 @@ async def add_external_co_author(
         if str(post["user_id"]) != user_id:
             raise ForbiddenError("Only the post owner can add co-authors.")
 
-        # Check co-author count
-        count = await co_author_repo.count_co_authors(conn, post_id)
-        if count >= MAX_CO_AUTHORS_PER_POST:
-            raise AppError(
-                ErrorCode.COAUTHOR_001,
-                400,
-                f"Maximum co-authors ({MAX_CO_AUTHORS_PER_POST}) reached.",
-            )
-
         # ORCID format validation
         if orcid and not _ORCID_PATTERN.match(orcid):
             raise AppError(
@@ -182,19 +173,36 @@ async def add_external_co_author(
                 "Invalid ORCID format. Expected: XXXX-XXXX-XXXX-XXXX.",
             )
 
-        co_author_id = uuid.uuid4()
-        row = await co_author_repo.insert_co_author(
-            conn,
-            co_author_id,
-            post_id,
-            None,
-            display_name,
-            affiliation,
-            orcid,
-            True,
-            "ACCEPTED",
-            uuid.UUID(user_id),
-        )
+        # Wrap count check + insert in transaction with advisory lock
+        async with conn.transaction():
+            # Advisory lock keyed on post_id to serialise concurrent additions
+            await conn.execute(
+                "SELECT pg_advisory_xact_lock(hashtext($1::text))",
+                str(post_id),
+            )
+
+            # Check co-author count
+            count = await co_author_repo.count_co_authors(conn, post_id)
+            if count >= MAX_CO_AUTHORS_PER_POST:
+                raise AppError(
+                    ErrorCode.COAUTHOR_001,
+                    400,
+                    f"Maximum co-authors ({MAX_CO_AUTHORS_PER_POST}) reached.",
+                )
+
+            co_author_id = uuid.uuid4()
+            row = await co_author_repo.insert_co_author(
+                conn,
+                co_author_id,
+                post_id,
+                None,
+                display_name,
+                affiliation,
+                orcid,
+                True,
+                "ACCEPTED",
+                uuid.UUID(user_id),
+            )
 
     return await to_co_author_response(row)
 
@@ -285,6 +293,18 @@ async def list_co_authors(post_id: uuid.UUID) -> list[dict]:
     async with pool.acquire() as conn:
         rows = await co_author_repo.find_co_authors_by_post(conn, post_id)
     return [await to_co_author_response(r) for r in rows]
+
+
+async def list_co_authored_posts(
+    user_id: str, page: int = 1, page_size: int = 20
+) -> tuple[list[dict], int]:
+    """List posts where the user is an accepted co-author."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows, total = await co_author_repo.find_co_authored_posts(
+            conn, uuid.UUID(user_id), page, page_size
+        )
+    return rows, total
 
 
 async def list_pending_invitations(

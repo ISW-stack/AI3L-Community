@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { useLocale } from '@/composables/useLocale'
 import { getAlbum, listAlbumMembers } from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
 import type { Album, AlbumMember } from '@/types/album'
@@ -11,6 +12,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
+const { t } = useLocale()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -49,7 +51,7 @@ async function fetchAlbumData() {
     const me = membersRes.data.members.find((m: AlbumMember) => m.user_id === auth.user?.id)
     userAlbumRole.value = me?.role ?? null
   } catch (e: unknown) {
-    toastStore.show(getErrorMessage(e, 'Failed to load album'), 'error')
+    toastStore.show(getErrorMessage(e, t('albums.loadAlbumError')), 'error')
   } finally {
     loading.value = false
   }
@@ -58,11 +60,11 @@ async function fetchAlbumData() {
 onMounted(fetchAlbumData)
 watch(albumId, fetchAlbumData)
 
-const navItems = [
-  { label: 'Photos', route: 'album-photos' },
-  { label: 'Members', route: 'album-members' },
-  { label: 'Comments', route: 'album-comments' },
-]
+const navItems = computed(() => [
+  { label: t('albums.photos'), route: 'album-photos' },
+  { label: t('albums.members'), route: 'album-members' },
+  { label: t('albums.comments'), route: 'album-comments' },
+])
 
 const currentRouteName = computed(() => route.name)
 </script>
@@ -75,7 +77,7 @@ const currentRouteName = computed(() => route.name)
         to="/albums"
         class="text-sm text-brand-600 hover:underline flex items-center gap-1"
       >
-        <span>&larr;</span> Back to Albums
+        <span>&larr;</span> {{ t('albums.backToAlbums') }}
       </router-link>
     </div>
 
@@ -94,8 +96,8 @@ const currentRouteName = computed(() => route.name)
 
     <!-- Error State -->
     <div v-else-if="!album" class="text-center py-12">
-      <p class="text-lg text-muted mb-4">Album not found</p>
-      <BaseButton @click="router.push('/albums')">Return to Albums</BaseButton>
+      <p class="text-lg text-muted mb-4">{{ t('albums.albumNotFound') }}</p>
+      <BaseButton @click="router.push('/albums')">{{ t('albums.returnToAlbums') }}</BaseButton>
     </div>
 
     <!-- Content -->
@@ -106,15 +108,15 @@ const currentRouteName = computed(() => route.name)
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-3 mb-2">
                 <h1 class="text-2xl font-bold text-foreground break-words">{{ album.title }}</h1>
-                <BaseBadge v-if="album.is_archived" variant="neutral">Archived</BaseBadge>
+                <BaseBadge v-if="album.is_archived" variant="neutral">{{ t('albums.archived') }}</BaseBadge>
               </div>
               <p v-if="album.description" class="text-sm text-muted mb-3">
                 {{ album.description }}
               </p>
               <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
-                <span>{{ album.photo_count }} photos</span>
-                <span>{{ album.member_count }} members</span>
-                <span>Created {{ new Date(album.created_at).toLocaleDateString() }}</span>
+                <span>{{ t('albums.photosCount', { count: album.photo_count }) }}</span>
+                <span>{{ t('albums.membersCount', { count: album.member_count }) }}</span>
+                <span>{{ t('albums.created', { date: new Date(album.created_at).toLocaleDateString() }) }}</span>
               </div>
             </div>
           </div>
