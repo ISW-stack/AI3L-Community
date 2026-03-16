@@ -18,7 +18,6 @@ async def mark_best_answer_endpoint(
 ) -> dict:
     """Mark a comment as the best answer for a question."""
     return await mark_best_answer(
-        pool=None,
         post_id=post_id,
         comment_id=req.comment_id,
         user_id=current_user["sub"],
@@ -32,7 +31,6 @@ async def unmark_best_answer_endpoint(
 ) -> dict:
     """Remove the best answer mark from a question."""
     await unmark_best_answer(
-        pool=None,
         post_id=post_id,
         user_id=current_user["sub"],
     )
@@ -47,7 +45,6 @@ async def vote_on_answer_endpoint(
 ) -> dict:
     """Vote on an answer (upvote, downvote, or remove vote)."""
     return await vote_on_answer(
-        pool=None,
         comment_id=comment_id,
         user_id=current_user["sub"],
         vote=req.vote,
@@ -61,7 +58,6 @@ async def get_user_votes_endpoint(
 ) -> list[dict]:
     """Get all votes by the current user on comments in a post."""
     return await get_user_votes(
-        pool=None,
         post_id=post_id,
         user_id=current_user["sub"],
     )

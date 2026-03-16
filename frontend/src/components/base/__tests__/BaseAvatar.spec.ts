@@ -12,7 +12,7 @@ describe('BaseAvatar', () => {
       const img = wrapper.find('img')
       expect(img.exists()).toBe(true)
       expect(img.attributes('src')).toBe('https://example.com/avatar.jpg')
-      expect(img.attributes('alt')).toBe('Alice')
+      expect(img.attributes('alt')).toBe("Alice's avatar")
     })
 
     it('should set loading="lazy" on the image', () => {
@@ -61,6 +61,16 @@ describe('BaseAvatar', () => {
         props: { name: 'Bob' },
       })
       expect(wrapper.find('img').exists()).toBe(false)
+    })
+  })
+
+  describe('alt text format', () => {
+    it('should include contextual suffix in alt text', () => {
+      const wrapper = mount(BaseAvatar, {
+        props: { src: 'https://example.com/avatar.jpg', name: 'John Doe' },
+      })
+      const img = wrapper.find('img')
+      expect(img.attributes('alt')).toBe("John Doe's avatar")
     })
   })
 

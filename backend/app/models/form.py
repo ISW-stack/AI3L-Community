@@ -30,6 +30,9 @@ class Form(UUIDPrimaryKeyMixin, Base):
     allow_non_members: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=sa.text("false")
     )
+    is_closed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=sa.text("false")
+    )
     is_deleted: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=sa.text("false")
     )

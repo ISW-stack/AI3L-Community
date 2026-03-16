@@ -163,6 +163,16 @@ onUnmounted(() => {
                   v-if="adminDropdownOpen"
                   class="absolute right-0 sm:left-0 sm:right-auto mt-2 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
                 >
+                  <div class="flex justify-end px-2 pt-1 pb-0">
+                    <button
+                      type="button"
+                      class="p-1 text-muted hover:text-foreground transition"
+                      :aria-label="t('nav.closeDropdown')"
+                      @click="adminDropdownOpen = false"
+                    >
+                      <X class="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
                   <router-link
                     to="/admin"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
@@ -246,6 +256,16 @@ onUnmounted(() => {
                 v-if="userDropdownOpen"
                 class="absolute right-0 mt-2 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
               >
+                <div class="flex justify-end px-2 pt-1 pb-0">
+                  <button
+                    type="button"
+                    class="p-1 text-muted hover:text-foreground transition"
+                    :aria-label="t('nav.closeDropdown')"
+                    @click="userDropdownOpen = false"
+                  >
+                    <X class="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
                 <router-link
                   v-if="!auth.isGuest"
                   to="/profile"
@@ -276,7 +296,7 @@ onUnmounted(() => {
               to="/register"
               class="text-sm bg-brand-600 text-white px-4 py-1.5 rounded-lg hover:bg-brand-700 transition"
             >
-              Sign Up
+              {{ t('nav.signUp') }}
             </router-link>
           </template>
         </div>
@@ -464,7 +484,7 @@ onUnmounted(() => {
                 class="block text-center text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition"
                 @click="mobileMenuOpen = false"
               >
-                Sign Up
+                {{ t('nav.signUp') }}
               </router-link>
             </div>
           </template>

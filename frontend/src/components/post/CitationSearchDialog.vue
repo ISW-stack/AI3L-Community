@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { searchForCitation } from '@/api/citations'
 import { getErrorMessage } from '@/utils/error'
 import BaseModal from '@/components/base/BaseModal.vue'
 import { Search } from 'lucide-vue-next'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   modelValue: boolean
@@ -78,20 +81,20 @@ watch(
 </script>
 
 <template>
-  <BaseModal :model-value="modelValue" title="Insert Citation" size="lg" @update:model-value="closeDialog">
+  <BaseModal :model-value="modelValue" :title="t('citations.insertTitle')" size="lg" @update:model-value="closeDialog">
     <div class="space-y-4">
       <div class="relative">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
         <input
           v-model="query"
           type="text"
-          placeholder="Search posts to cite..."
+          :placeholder="t('citations.searchPlaceholder')"
           class="w-full pl-9 pr-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
           @input="onSearchInput"
         />
       </div>
 
-      <div v-if="loading" class="text-sm text-muted text-center py-4">Searching...</div>
+      <div v-if="loading" class="text-sm text-muted text-center py-4">{{ t('citations.searching') }}</div>
 
       <div v-if="error" class="text-sm text-danger-600 text-center py-2">{{ error }}</div>
 
@@ -115,7 +118,7 @@ watch(
         v-if="query.trim() && !loading && results.length === 0 && !error"
         class="text-sm text-muted text-center py-4"
       >
-        No posts found matching your search.
+        {{ t('citations.noResults') }}
       </div>
     </div>
   </BaseModal>

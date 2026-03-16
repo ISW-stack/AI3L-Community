@@ -173,7 +173,7 @@ describe('TiptapEditor', () => {
     })
   })
 
-  describe('toolbar mobile scrolling', () => {
+  describe('toolbar mobile responsiveness', () => {
     it('should have overflow-x-auto for horizontal scrolling on mobile', () => {
       const wrapper = mount(TiptapEditor, {
         props: { modelValue: '' },
@@ -182,12 +182,20 @@ describe('TiptapEditor', () => {
       expect(toolbar.classes()).toContain('overflow-x-auto')
     })
 
-    it('should not have flex-wrap class on toolbar', () => {
+    it('should have flex-wrap class on toolbar for mobile wrapping', () => {
       const wrapper = mount(TiptapEditor, {
         props: { modelValue: '' },
       })
       const toolbar = wrapper.find('.border-b.border-border.bg-surface-alt')
-      expect(toolbar.classes()).not.toContain('flex-wrap')
+      expect(toolbar.classes()).toContain('flex-wrap')
+    })
+
+    it('should have gap-1 class on toolbar', () => {
+      const wrapper = mount(TiptapEditor, {
+        props: { modelValue: '' },
+      })
+      const toolbar = wrapper.find('.border-b.border-border.bg-surface-alt')
+      expect(toolbar.classes()).toContain('gap-1')
     })
   })
 
@@ -245,6 +253,73 @@ describe('TiptapEditor', () => {
       expect(vm2.scanStatus).toBeNull()
 
       wrapper2.unmount()
+    })
+  })
+
+  describe('upload progress indicator', () => {
+    it('should not show upload indicator when not uploading', () => {
+      const wrapper = mount(TiptapEditor, {
+        props: { modelValue: '' },
+      })
+      expect(wrapper.find('[data-testid="upload-indicator"]').exists()).toBe(false)
+    })
+
+    it('should show upload indicator during file upload', async () => {
+      // Make uploadEditorFile return a promise that never resolves to keep uploading=true
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockReturnValue(new Promise(() => {}))
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'photo.png', { type: 'image/png' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      // Don't await — we want to catch mid-upload state
+      vm.handleFileUpload(fakeEvent)
+      // Wait a tick for the uploading ref to be set
+      await wrapper.vm.$nextTick()
+
+      expect(vm.uploading).toBe(true)
+      expect(wrapper.find('[data-testid="upload-indicator"]').exists()).toBe(true)
+    })
+
+    it('should disable upload button during upload', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockReturnValue(new Promise(() => {}))
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'photo.png', { type: 'image/png' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      vm.handleFileUpload(fakeEvent)
+      await wrapper.vm.$nextTick()
+
+      // The uploading state should be true, which means the button has disabled attribute
+      expect(vm.uploading).toBe(true)
+      // Find the disabled upload button
+      const disabledBtns = wrapper.findAll('button[type="button"][disabled]')
+      expect(disabledBtns.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should hide upload indicator after upload completes', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: '/api/v1/files/content/editor/x/photo.png',
+        key: 'editor/x/photo.png',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'photo.png', { type: 'image/png' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(vm.uploading).toBe(false)
+      expect(wrapper.find('[data-testid="upload-indicator"]').exists()).toBe(false)
     })
   })
 

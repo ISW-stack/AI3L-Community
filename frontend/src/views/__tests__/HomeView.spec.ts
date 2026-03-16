@@ -205,9 +205,24 @@ describe('HomeView', () => {
   })
 
   describe('Authenticated (member) view', () => {
+    it('uses lg breakpoint for grid columns instead of md (M9)', async () => {
+      const { wrapper } = await mountHome()
+      const gridDiv = wrapper.find('.grid.grid-cols-1')
+      expect(gridDiv.exists()).toBe(true)
+      expect(gridDiv.classes()).toContain('lg:grid-cols-3')
+      expect(gridDiv.classes()).not.toContain('md:grid-cols-3')
+    })
+
+    it('uses lg breakpoint for main column span (M9)', async () => {
+      const { wrapper } = await mountHome()
+      const mainColumn = wrapper.find('.lg\\:col-span-2')
+      expect(mainColumn.exists()).toBe(true)
+    })
+
     it('shows welcome message with display name', async () => {
       const { wrapper } = await mountHome()
-      expect(wrapper.text()).toContain('Test User')
+      // i18n t() returns key path in test; verify the welcome section renders
+      expect(wrapper.text()).toContain('Welcome back')
     })
 
     it('fetches recent posts on mount', async () => {
@@ -240,6 +255,26 @@ describe('HomeView', () => {
       const links = wrapper.findAll('a')
       const profileLink = links.find((l) => l.attributes('href')?.includes('/profile'))
       expect(profileLink).toBeTruthy()
+    })
+
+    it('shows "View All Trending" link when trending posts exist', async () => {
+      const { wrapper } = await mountHome()
+      const links = wrapper.findAll('a')
+      const trendingLink = links.find(
+        (l) => l.attributes('href') === '/forum?sort=trending',
+      )
+      expect(trendingLink).toBeTruthy()
+      expect(trendingLink!.text()).toContain('View All Trending')
+    })
+
+    it('hides "View All Trending" link when no trending posts', async () => {
+      mockGetTrendingPosts.mockResolvedValue([])
+      const { wrapper } = await mountHome()
+      const links = wrapper.findAll('a')
+      const trendingLink = links.find(
+        (l) => l.attributes('href') === '/forum?sort=trending',
+      )
+      expect(trendingLink).toBeUndefined()
     })
 
     it('does not show guest alert', async () => {

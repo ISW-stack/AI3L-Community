@@ -147,5 +147,12 @@ describe('BaseInput', () => {
       const wrapper = mount(BaseInput)
       expect(wrapper.find('input').classes()).toContain('text-base')
     })
+
+    it('should use md:text-sm breakpoint instead of sm:text-sm', () => {
+      const wrapper = mount(BaseInput)
+      const input = wrapper.find('input')
+      expect(input.classes()).toContain('md:text-sm')
+      expect(input.classes()).not.toContain('sm:text-sm')
+    })
   })
 })

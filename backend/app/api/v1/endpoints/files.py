@@ -200,11 +200,11 @@ async def delete_editor_file(
     except Exception:
         logger.warning("Failed to delete scan record for key=%s", key, exc_info=True)
 
-    # Emit audit event for admin file deletions
-    if is_admin and not owns_file:
-        try:
-            from app.core.event_bus import emit
+    # Emit audit event for file deletions
+    try:
+        from app.core.event_bus import emit
 
+        if is_admin and not owns_file:
             await emit(
                 "audit.action",
                 action="admin_file_delete",
@@ -213,14 +213,23 @@ async def delete_editor_file(
                 file_size=file_size,
                 owner_user_id=owner_user_id,
             )
-        except Exception:
-            logger.error(
-                "AUDIT FAILURE: Failed to emit audit event for admin file deletion. "
-                "action=admin_file_delete actor=%s target_key=%s",
-                current_user["sub"],
-                key,
-                exc_info=True,
+        else:
+            await emit(
+                "audit.action",
+                action="file_delete",
+                actor_id=current_user["sub"],
+                target_key=key,
+                file_size=file_size,
             )
+    except Exception:
+        logger.error(
+            "AUDIT FAILURE: Failed to emit audit event for file deletion. "
+            "action=%s actor=%s target_key=%s",
+            "admin_file_delete" if (is_admin and not owns_file) else "file_delete",
+            current_user["sub"],
+            key,
+            exc_info=True,
+        )
 
     return {"detail": "File deleted.", "key": key, "freed_bytes": file_size}
 

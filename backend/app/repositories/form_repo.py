@@ -412,6 +412,7 @@ async def soft_delete_with_permission(
     """Permission check + soft delete in one transaction to prevent TOCTOU.
 
     Returns (deleted, banner_url). Raises PermissionError if not authorized.
+    Also cascades deletion of form_responses.
     """
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -427,6 +428,11 @@ async def soft_delete_with_permission(
                 raise PermissionError("Only the form creator or admin can delete this form.")
             await conn.execute(
                 "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",
+                form_id,
+            )
+            # Cascade: delete all form responses
+            await conn.execute(
+                "DELETE FROM form_responses WHERE form_id = $1",
                 form_id,
             )
             return True, form.get("banner_url")

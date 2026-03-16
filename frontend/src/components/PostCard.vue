@@ -279,7 +279,7 @@ function displayTime(dateStr: string): string {
         :class="post.best_answer_id ? 'text-green-600' : 'text-muted'"
       >
         <MessageSquare class="w-3.5 h-3.5" />
-        {{ post.answer_count }} {{ post.answer_count === 1 ? 'answer' : 'answers' }}
+        {{ t('qa.answerCount', { count: post.answer_count }, post.answer_count) }}
       </span>
       <span v-if="post.last_comment_at" class="text-xs text-muted ml-auto">
         {{ t('post.card.lastReply', { time: displayTime(post.last_comment_at) }) }}

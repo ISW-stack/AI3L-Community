@@ -13,7 +13,6 @@ from app.repositories import vote_repo
 
 
 async def mark_best_answer(
-    pool: object,
     post_id: uuid.UUID,
     comment_id: str,
     user_id: str,
@@ -89,7 +88,6 @@ async def mark_best_answer(
 
 
 async def unmark_best_answer(
-    pool: object,
     post_id: uuid.UUID,
     user_id: str,
 ) -> bool:
@@ -123,7 +121,6 @@ async def unmark_best_answer(
 
 
 async def vote_on_answer(
-    pool: object,
     comment_id: uuid.UUID,
     user_id: str,
     vote: int,
@@ -166,7 +163,6 @@ async def vote_on_answer(
 
 
 async def get_user_votes(
-    pool: object,
     post_id: uuid.UUID,
     user_id: str,
 ) -> list[dict]:

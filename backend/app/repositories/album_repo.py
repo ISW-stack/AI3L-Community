@@ -116,6 +116,42 @@ async def soft_delete_album(conn: Any, album_id: uuid.UUID) -> bool:
     return bool(result == "UPDATE 1")
 
 
+async def find_all_photos_for_album(conn: Any, album_id: uuid.UUID) -> list[dict]:
+    """Get all photos for an album (for cascade cleanup)."""
+    rows = await conn.fetch(
+        "SELECT id, storage_key, thumbnail_key, file_size_bytes, uploaded_by FROM album_photos WHERE album_id = $1",
+        album_id,
+    )
+    return [dict(r) for r in rows]
+
+
+async def delete_all_photos_for_album(conn: Any, album_id: uuid.UUID) -> int:
+    """Hard-delete all photos for an album."""
+    result = await conn.execute(
+        "DELETE FROM album_photos WHERE album_id = $1",
+        album_id,
+    )
+    return int(result.split()[-1])
+
+
+async def delete_all_comments_for_album(conn: Any, album_id: uuid.UUID) -> int:
+    """Hard-delete all comments for an album."""
+    result = await conn.execute(
+        "DELETE FROM album_comments WHERE album_id = $1",
+        album_id,
+    )
+    return int(result.split()[-1])
+
+
+async def delete_all_members_for_album(conn: Any, album_id: uuid.UUID) -> int:
+    """Hard-delete all members for an album."""
+    result = await conn.execute(
+        "DELETE FROM album_members WHERE album_id = $1",
+        album_id,
+    )
+    return int(result.split()[-1])
+
+
 async def archive_album(conn: Any, album_id: uuid.UUID, archived: bool) -> bool:
     result = await conn.execute(
         "UPDATE albums SET is_archived = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false",

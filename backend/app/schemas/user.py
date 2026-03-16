@@ -27,6 +27,8 @@ class PublicUserResponse(BaseModel):
     bio: str | None = None
     affiliation: str | None = None
     orcid: str | None = None
+    profile_view_count_unique: int = 0
+    profile_view_count_total: int = 0
     created_at: str
 
 

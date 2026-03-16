@@ -54,7 +54,7 @@ async def get_reports(
     return PostReportListResponse(
         reports=[PostReportResponse(**r) for r in reports],
         total=total,
-        current_page=page,
+        page=page,
         total_pages=total_pages,
     )
 

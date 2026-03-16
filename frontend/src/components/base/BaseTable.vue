@@ -12,8 +12,11 @@ defineProps<{
 </script>
 
 <template>
-  <div class="bg-surface rounded-lg shadow overflow-hidden">
-    <div class="overflow-x-auto">
+  <div class="relative bg-surface rounded-lg shadow overflow-hidden">
+    <div
+      class="table-scroll-container overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0"
+      style="-webkit-overflow-scrolling: touch"
+    >
       <table class="w-full text-sm min-w-[600px]">
         <thead class="bg-surface-alt border-b border-border">
           <tr>
@@ -53,5 +56,9 @@ defineProps<{
         </tbody>
       </table>
     </div>
+    <div
+      class="scroll-hint pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent md:hidden"
+      aria-hidden="true"
+    ></div>
   </div>
 </template>

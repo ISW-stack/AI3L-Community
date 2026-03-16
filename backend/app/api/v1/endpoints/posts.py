@@ -104,7 +104,7 @@ async def get_posts_list(
     return PostListResponse(
         posts=cast(list[Any], result["posts"]),
         total=result["total"],
-        current_page=page,
+        page=page,
         total_pages=result["total_pages"],
         next_cursor=result.get("next_cursor"),
         has_more=result.get("has_more"),
@@ -131,7 +131,7 @@ async def search_posts_endpoint(
     return PostListResponse(
         posts=cast(list[Any], posts),
         total=total,
-        current_page=req.page,
+        page=req.page,
         total_pages=total_pages,
         has_more=req.page < total_pages,
     )

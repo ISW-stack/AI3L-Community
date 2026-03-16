@@ -199,6 +199,20 @@ describe('LanguageSwitcher', () => {
     })
   })
 
+  describe('scrollbar-gutter', () => {
+    it('should have scrollbar-gutter: stable on the dropdown scroll container', async () => {
+      const wrapper = mountSwitcher()
+
+      // Open the dropdown
+      await wrapper.find('button').trigger('click')
+
+      // Find the scrollable container
+      const scrollContainer = wrapper.find('.max-h-80.overflow-y-auto')
+      expect(scrollContainer.exists()).toBe(true)
+      expect(scrollContainer.attributes('style')).toContain('scrollbar-gutter: stable')
+    })
+  })
+
   describe('check icon for current locale', () => {
     it('should show check icon for English when current locale is en', async () => {
       mockCurrentLocale.value = 'en'

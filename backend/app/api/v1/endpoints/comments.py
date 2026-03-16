@@ -47,7 +47,7 @@ async def get_comments(
     return CommentListResponse(
         comments=[CommentResponse(**c) for c in comments],
         total=total,
-        current_page=page,
+        page=page,
         total_pages=total_pages,
     )
 

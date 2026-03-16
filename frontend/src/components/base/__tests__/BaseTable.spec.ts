@@ -116,4 +116,42 @@ describe('BaseTable', () => {
       expect(strong.text()).toBe('Alice')
     })
   })
+
+  describe('mobile scroll container', () => {
+    it('should have a scroll container with overflow-x-auto', () => {
+      const wrapper = mount(BaseTable, {
+        props: { columns, rows },
+      })
+      const scrollContainer = wrapper.find('.table-scroll-container')
+      expect(scrollContainer.exists()).toBe(true)
+      expect(scrollContainer.classes()).toContain('overflow-x-auto')
+    })
+
+    it('should have touch scrolling style on scroll container', () => {
+      const wrapper = mount(BaseTable, {
+        props: { columns, rows },
+      })
+      const scrollContainer = wrapper.find('.table-scroll-container')
+      expect(scrollContainer.attributes('style')).toContain('-webkit-overflow-scrolling: touch')
+    })
+
+    it('should have a scroll hint gradient element', () => {
+      const wrapper = mount(BaseTable, {
+        props: { columns, rows },
+      })
+      const scrollHint = wrapper.find('.scroll-hint')
+      expect(scrollHint.exists()).toBe(true)
+      expect(scrollHint.classes()).toContain('pointer-events-none')
+      expect(scrollHint.classes()).toContain('md:hidden')
+      expect(scrollHint.attributes('aria-hidden')).toBe('true')
+    })
+
+    it('should have a relative outer container for gradient positioning', () => {
+      const wrapper = mount(BaseTable, {
+        props: { columns, rows },
+      })
+      const outerDiv = wrapper.find('div')
+      expect(outerDiv.classes()).toContain('relative')
+    })
+  })
 })

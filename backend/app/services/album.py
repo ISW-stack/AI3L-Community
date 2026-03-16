@@ -130,7 +130,10 @@ async def update_album(
 
 
 async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
-    """Soft-delete album. Creator or SUPER_ADMIN only."""
+    """Soft-delete album with cascade cleanup of photos, comments, and members."""
+    from app.core.storage import delete_file
+    from app.repositories import user_repo
+
     pool = get_pool()
     album_uuid = uuid.UUID(album_id)
 
@@ -145,7 +148,51 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
         if not (is_creator or is_super_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this album.")
 
-        deleted = await album_repo.soft_delete_album(conn, album_uuid)
+        async with conn.transaction():
+            # 1. Collect photo data for storage cleanup and quota refund
+            photos = await album_repo.find_all_photos_for_album(conn, album_uuid)
+
+            # 2. Soft-delete the album
+            deleted = await album_repo.soft_delete_album(conn, album_uuid)
+
+            if deleted:
+                # 3. Delete album comments
+                await album_repo.delete_all_comments_for_album(conn, album_uuid)
+
+                # 4. Refund storage quota per uploader
+                quota_refunds: dict[uuid.UUID, int] = {}
+                for photo in photos:
+                    uploader = photo["uploaded_by"]
+                    size = photo.get("file_size_bytes", 0)
+                    if size > 0:
+                        quota_refunds[uploader] = quota_refunds.get(uploader, 0) + size
+
+                for uploader_id, total_size in quota_refunds.items():
+                    await conn.execute(
+                        "UPDATE users SET storage_used_bytes = GREATEST(storage_used_bytes - $1, 0) WHERE id = $2",
+                        total_size,
+                        uploader_id,
+                    )
+
+                # 5. Delete album photos from DB
+                await album_repo.delete_all_photos_for_album(conn, album_uuid)
+
+                # 6. Delete album members
+                await album_repo.delete_all_members_for_album(conn, album_uuid)
+
+    # 7. Best-effort storage cleanup (outside transaction)
+    if deleted:
+        for photo in photos:
+            for key_field in ("storage_key", "thumbnail_key"):
+                key = photo.get(key_field)
+                if key:
+                    try:
+                        delete_file(key)
+                    except Exception:
+                        logger.warning(
+                            "Failed to delete photo file from storage during album cleanup",
+                            extra={"album_id": album_id, "key": key},
+                        )
 
     logger.info("Album deleted", extra={"album_id": album_id, "user_id": user_id})
     return deleted

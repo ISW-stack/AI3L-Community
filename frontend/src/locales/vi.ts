@@ -161,6 +161,8 @@ export default {
     toggleMenu: 'Chuyển đổi menu',
     sectionAdmin: 'Quản trị',
     sectionAccount: 'Tài khoản',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
@@ -200,6 +202,7 @@ export default {
       title: 'Xu hướng tuần này',
       empty: 'Không có bài đăng xu hướng tuần này.',
       fetchError: 'Không tải được bài đăng xu hướng.',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: 'Cộng đồng',
@@ -286,7 +289,10 @@ export default {
       categoriesTitle: 'Danh mục',
       allPosts: 'Tất cả bài viết',
       trendingTitle: 'Xu hướng (7 ngày)',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: 'Liên kết nhanh',
       home: 'Bảng tin',
@@ -427,6 +433,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: 'Tải tệp lên thất bại.',
     fileTooLarge: 'Tệp quá lớn. Kích thước tối đa là 20 MB.',
     maliciousFile: 'Tệp đã tải lên bị gắn cờ là có thể độc hại.',
@@ -672,6 +679,7 @@ export default {
       draftFound: 'Bạn có một bản nháp chưa lưu từ {time}.',
       draftRestore: 'Khôi phục',
       draftDiscard: 'Bỏ qua',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: 'Máy tính',
       previewMobile: 'Di động',
       uploadBannerError: 'Tải hình ảnh banner lên thất bại.',
@@ -717,6 +725,7 @@ export default {
       noAnswer: 'Không có câu trả lời',
       fileUploaded: 'Tệp đã tải lên',
       backToSig: 'Quay lại SIG',
+      fieldRequired: 'This field is required.',
       alreadySubmitted: 'Bạn đã gửi phản hồi cho biểu mẫu này.',
       fileTypeError: 'Loại tệp không được phép. Loại cho phép: {types}',
       fileSizeError: 'Tệp quá lớn. Kích thước tối đa: {max} MB',
@@ -735,6 +744,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: 'Chung',
       social: 'Social',
@@ -831,6 +841,7 @@ export default {
     },
     emptyTitle: 'Đã cập nhật',
     emptyMessage: 'Chưa có thông báo nào.',
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: 'Đã xóa tất cả thông báo.',
     deleteError: 'Xóa thông báo thất bại.',
     fetchError: 'Không tải được thông báo.',
@@ -883,6 +894,7 @@ export default {
       searchPlaceholder: 'Tìm kiếm theo tên đăng nhập hoặc tên hiển thị...',
       selectedCount: 'Đã chọn {count}',
       bulkApplyRole: 'Áp dụng vai trò',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: 'Xóa',
       table: {
         username: 'Tên đăng nhập',
@@ -1144,6 +1156,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1156,6 +1172,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1191,6 +1219,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1207,6 +1241,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1216,6 +1260,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──

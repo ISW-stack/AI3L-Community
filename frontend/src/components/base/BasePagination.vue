@@ -70,7 +70,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
     >
       <button
         :disabled="currentPage <= 1"
-        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 disabled:cursor-not-allowed transition"
         @click="emit('update:currentPage', currentPage - 1)"
       >
         {{ t('common.prev') }}
@@ -91,7 +91,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
       </button>
       <button
         :disabled="currentPage >= totalPages"
-        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 disabled:cursor-not-allowed transition"
         @click="emit('update:currentPage', currentPage + 1)"
       >
         {{ t('common.next') }}
@@ -102,7 +102,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
     <div class="flex sm:hidden items-center justify-center gap-3" data-testid="mobile-pagination">
       <button
         :disabled="currentPage <= 1"
-        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 disabled:cursor-not-allowed transition"
         @click="emit('update:currentPage', currentPage - 1)"
       >
         {{ t('common.prev') }}
@@ -112,7 +112,7 @@ const showResultCount = computed(() => props.pageSize > 0 && props.total > 0)
       </span>
       <button
         :disabled="currentPage >= totalPages"
-        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 transition"
+        class="px-3 py-2 sm:py-1 text-sm rounded-lg border border-border text-muted hover:bg-surface-alt disabled:opacity-30 disabled:cursor-not-allowed transition"
         @click="emit('update:currentPage', currentPage + 1)"
       >
         {{ t('common.next') }}

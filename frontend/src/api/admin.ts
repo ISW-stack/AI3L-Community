@@ -39,6 +39,11 @@ export async function createAccount(payload: {
   return data
 }
 
+export async function bulkChangeRole(userIds: string[], role: string) {
+  const { data } = await api.put('/users/bulk-role', { user_ids: userIds, role })
+  return data as { updated_count: number }
+}
+
 export async function changeRole(userId: string, role: string) {
   const { data } = await api.put(`/users/${userId}/role`, { role })
   return data as AdminUser

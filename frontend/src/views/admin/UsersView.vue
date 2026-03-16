@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -10,10 +10,10 @@ import {
   listUsers,
   createAccount as apiCreateAccount,
   changeRole as apiChangeRole,
+  bulkChangeRole as apiBulkChangeRole,
   banUser,
   unbanUser as apiUnbanUser,
 } from '@/api/admin'
-import api from '@/composables/api'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
@@ -79,12 +79,13 @@ function toggleSelect(userId: string) {
 
 async function applyBulkRole() {
   if (selectedIds.value.size === 0) return
+  const confirmed = window.confirm(
+    t('admin.users.confirmBulkRole', { role: bulkRole.value, count: selectedIds.value.size }),
+  )
+  if (!confirmed) return
   bulkLoading.value = true
   try {
-    const { data } = await api.put('/users/bulk-role', {
-      user_ids: Array.from(selectedIds.value),
-      role: bulkRole.value,
-    })
+    const data = await apiBulkChangeRole(Array.from(selectedIds.value), bulkRole.value)
     toast.show(
       t('admin.users.message.bulkRoleUpdated', {
         count: data.updated_count ?? selectedIds.value.size,
@@ -208,6 +209,13 @@ async function handleUnban(user: AdminUser) {
 }
 
 onMounted(fetchUsers)
+
+onUnmounted(() => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
+})
 </script>
 
 <template>

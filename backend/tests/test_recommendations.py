@@ -556,3 +556,83 @@ class TestBuildReasons:
         assert len(reasons) == 1
         assert reasons[0]["type"] == "common_sig"
         assert reasons[0]["count"] == 1
+
+
+# ===========================================================================
+# SQL query structure tests
+# ===========================================================================
+
+
+class TestRecommendationSQL:
+    """Tests for the recommendation SQL query structure."""
+
+    def test_sql_has_no_redundant_lateral_join(self):
+        """B1: The third redundant LATERAL JOIN (mutual_id re-check) has been removed."""
+        from app.tasks.recommendations import _RECOMMENDATION_SQL
+
+        # The SQL should have exactly two LATERAL JOINs (my_friends, their_friends)
+        lateral_count = _RECOMMENDATION_SQL.count("LEFT JOIN LATERAL")
+        assert lateral_count == 2, (
+            f"Expected 2 LATERAL JOINs (my_friends + their_friends), found {lateral_count}"
+        )
+
+    def test_sql_counts_my_friend_directly(self):
+        """B1: After removing the redundant join, mutual_friends counts my_friends.my_friend."""
+        from app.tasks.recommendations import _RECOMMENDATION_SQL
+
+        assert "COUNT(DISTINCT my_friends.my_friend)" in _RECOMMENDATION_SQL
+
+    def test_sql_no_mutual_id_alias(self):
+        """B1: The mutual_id alias from the removed third LATERAL JOIN should not exist."""
+        from app.tasks.recommendations import _RECOMMENDATION_SQL
+
+        assert "mutual_id" not in _RECOMMENDATION_SQL
+
+    def test_sql_contains_required_ctes(self):
+        """The recommendation SQL contains all required CTEs."""
+        from app.tasks.recommendations import _RECOMMENDATION_SQL
+
+        assert "active_users AS" in _RECOMMENDATION_SQL
+        assert "user_pairs AS" in _RECOMMENDATION_SQL
+        assert "sig_scores AS" in _RECOMMENDATION_SQL
+        assert "friend_scores AS" in _RECOMMENDATION_SQL
+
+    def test_sql_total_score_formula(self):
+        """The total_score calculation uses correct weights summing to 1.0."""
+        from app.tasks.recommendations import _RECOMMENDATION_SQL
+
+        assert "* 0.30" in _RECOMMENDATION_SQL  # common_sigs weight
+        assert "* 0.25" in _RECOMMENDATION_SQL  # mutual_friends + keyword weights
+        assert "* 0.10" in _RECOMMENDATION_SQL  # affiliation + activity weights
+
+    @pytest.mark.anyio
+    async def test_task_uses_simplified_sql(self):
+        """The task executes the SQL query without error (mock DB)."""
+        mock_conn = AsyncMock()
+        mock_conn.fetchval = AsyncMock(return_value=15)
+        mock_conn.fetch = AsyncMock(return_value=[])  # No rows
+        mock_conn.execute = AsyncMock()
+
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=tx)
+
+        mock_pool = MagicMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+
+        with (
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.core.database.get_pool", return_value=mock_pool),
+        ):
+            from app.tasks.recommendations import _RECOMMENDATION_SQL, _compute_recommendations_async
+
+            result = await _compute_recommendations_async()
+
+        assert result["total"] == 0
+        assert result["skipped"] is False
+        # Verify the correct SQL was passed to conn.fetch
+        mock_conn.fetch.assert_awaited_once_with(_RECOMMENDATION_SQL)

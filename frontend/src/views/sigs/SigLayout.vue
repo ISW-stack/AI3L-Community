@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, provide } from 'vue'
+import { ref, computed, onMounted, watch, provide, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
@@ -167,6 +167,35 @@ const navItems = [
 ]
 
 const currentRouteName = computed(() => route.name)
+
+const showScrollHint = ref(true)
+const tabNavRef = ref<HTMLElement | null>(null)
+const tabOverflowTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+
+function handleTabScroll(event: Event) {
+  const el = event.target as HTMLElement
+  if (!el) return
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4
+  showScrollHint.value = !atEnd
+}
+
+function checkTabOverflow() {
+  if (tabNavRef.value) {
+    showScrollHint.value = tabNavRef.value.scrollWidth > tabNavRef.value.clientWidth
+  }
+}
+
+onMounted(() => {
+  // Check overflow after initial render
+  tabOverflowTimer.value = setTimeout(checkTabOverflow, 100)
+})
+
+onUnmounted(() => {
+  if (tabOverflowTimer.value) {
+    clearTimeout(tabOverflowTimer.value)
+    tabOverflowTimer.value = null
+  }
+})
 </script>
 
 <template>
@@ -353,7 +382,10 @@ const currentRouteName = computed(() => route.name)
           <!-- Mobile Tabs (Horizontal Underline style) -->
           <div class="lg:hidden relative">
             <nav
-              class="flex items-center border-b border-border overflow-x-auto no-scrollbar scroll-smooth"
+              ref="tabNavRef"
+              class="tab-scroll-nav flex items-center border-b border-border overflow-x-auto scroll-smooth"
+              style="-webkit-overflow-scrolling: touch"
+              @scroll="handleTabScroll"
             >
               <router-link
                 v-for="item in navItems"
@@ -370,7 +402,9 @@ const currentRouteName = computed(() => route.name)
               </router-link>
             </nav>
             <div
-              class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none"
+              v-if="showScrollHint"
+              class="scroll-hint absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none"
+              aria-hidden="true"
             ></div>
           </div>
         </aside>

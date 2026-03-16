@@ -22,7 +22,6 @@ _ORCID_PATTERN = re.compile(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$")
 
 
 async def invite_co_author(
-    pool: object,
     post_id: uuid.UUID,
     user_id: str,
     target_user_id: str,
@@ -147,7 +146,6 @@ async def invite_co_author(
 
 
 async def add_external_co_author(
-    pool: object,
     post_id: uuid.UUID,
     user_id: str,
     display_name: str,
@@ -202,7 +200,6 @@ async def add_external_co_author(
 
 
 async def respond_to_invitation(
-    pool: object,
     co_author_id: uuid.UUID,
     user_id: str,
     accept: bool,
@@ -254,7 +251,6 @@ async def respond_to_invitation(
 
 
 async def remove_co_author(
-    pool: object,
     post_id: uuid.UUID,
     co_author_id: uuid.UUID,
     user_id: str,
@@ -283,7 +279,7 @@ async def remove_co_author(
         return await co_author_repo.delete_co_author(conn, co_author_id)
 
 
-async def list_co_authors(pool: object, post_id: uuid.UUID) -> list[dict]:
+async def list_co_authors(post_id: uuid.UUID) -> list[dict]:
     """List accepted co-authors for a post."""
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -292,7 +288,7 @@ async def list_co_authors(pool: object, post_id: uuid.UUID) -> list[dict]:
 
 
 async def list_pending_invitations(
-    pool: object, user_id: str, page: int = 1, page_size: int = 20
+    user_id: str, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     """List pending co-author invitations for a user."""
     pool = get_pool()

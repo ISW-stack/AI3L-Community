@@ -55,7 +55,7 @@ async def test_mark_best_answer_success():
         patch(f"{_SVC}.get_pool", return_value=mock_pool),
         patch(f"{_SVC}.emit", new_callable=AsyncMock),
     ):
-        result = await mark_best_answer(None, post_id, comment_id, user_id)
+        result = await mark_best_answer(post_id, comment_id, user_id)
         assert result["post_id"] == str(post_id)
         assert result["best_answer_id"] == comment_id
 
@@ -91,7 +91,7 @@ async def test_mark_best_answer_not_question():
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
         with pytest.raises(AppError) as exc_info:
-            await mark_best_answer(None, post_id, str(uuid.uuid4()), user_id)
+            await mark_best_answer(post_id, str(uuid.uuid4()), user_id)
         assert exc_info.value.status_code == 400
 
 
@@ -127,7 +127,7 @@ async def test_mark_best_answer_not_author():
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
         with pytest.raises(AppError) as exc_info:
-            await mark_best_answer(None, post_id, str(uuid.uuid4()), user_id)
+            await mark_best_answer(post_id, str(uuid.uuid4()), user_id)
         assert exc_info.value.status_code == 403
 
 
@@ -151,7 +151,7 @@ async def test_mark_best_answer_post_not_found():
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
         with pytest.raises(AppError) as exc_info:
-            await mark_best_answer(None, uuid.uuid4(), str(uuid.uuid4()), str(uuid.uuid4()))
+            await mark_best_answer(uuid.uuid4(), str(uuid.uuid4()), str(uuid.uuid4()))
         assert exc_info.value.status_code == 404
 
 
@@ -188,7 +188,7 @@ async def test_unmark_best_answer_success():
     mock_pool.acquire.return_value = cm
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
-        result = await unmark_best_answer(None, post_id, user_id)
+        result = await unmark_best_answer(post_id, user_id)
         assert result is True
 
 
@@ -220,7 +220,7 @@ async def test_unmark_best_answer_nothing_to_unmark():
     mock_pool.acquire.return_value = cm
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
-        result = await unmark_best_answer(None, post_id, user_id)
+        result = await unmark_best_answer(post_id, user_id)
         assert result is True
 
 
@@ -261,7 +261,7 @@ async def test_vote_on_answer_success():
         patch(f"{_SVC}.check_rate_limit", new_callable=AsyncMock, return_value=True),
         patch(f"{_VOTE_REPO}.upsert_vote", new_callable=AsyncMock, return_value=1),
     ):
-        result = await vote_on_answer(None, comment_id, user_id, 1)
+        result = await vote_on_answer(comment_id, user_id, 1)
         assert result["comment_id"] == str(comment_id)
         assert result["vote_score"] == 1
         assert result["your_vote"] == 1
@@ -295,7 +295,7 @@ async def test_vote_on_own_answer_blocked():
         patch(f"{_SVC}.check_rate_limit", new_callable=AsyncMock, return_value=True),
     ):
         with pytest.raises(AppError) as exc_info:
-            await vote_on_answer(None, comment_id, user_id, 1)
+            await vote_on_answer(comment_id, user_id, 1)
         assert "QA_002" in str(exc_info.value.detail)
 
 
@@ -327,7 +327,7 @@ async def test_vote_on_non_question_blocked():
         patch(f"{_SVC}.check_rate_limit", new_callable=AsyncMock, return_value=True),
     ):
         with pytest.raises(AppError) as exc_info:
-            await vote_on_answer(None, comment_id, user_id, 1)
+            await vote_on_answer(comment_id, user_id, 1)
         assert exc_info.value.status_code == 400
 
 
@@ -342,7 +342,7 @@ async def test_vote_rate_limited():
         patch(f"{_SVC}.check_rate_limit", new_callable=AsyncMock, return_value=False),
     ):
         with pytest.raises(AppError) as exc_info:
-            await vote_on_answer(None, uuid.uuid4(), str(uuid.uuid4()), 1)
+            await vote_on_answer(uuid.uuid4(), str(uuid.uuid4()), 1)
         assert exc_info.value.status_code == 429
 
 
@@ -364,7 +364,7 @@ async def test_vote_comment_not_found():
         patch(f"{_SVC}.check_rate_limit", new_callable=AsyncMock, return_value=True),
     ):
         with pytest.raises(AppError) as exc_info:
-            await vote_on_answer(None, uuid.uuid4(), str(uuid.uuid4()), 1)
+            await vote_on_answer(uuid.uuid4(), str(uuid.uuid4()), 1)
         assert exc_info.value.status_code == 404
 
 
@@ -397,7 +397,7 @@ async def test_get_user_votes():
             return_value=vote_rows,
         ),
     ):
-        result = await get_user_votes(None, post_id, user_id)
+        result = await get_user_votes(post_id, user_id)
         assert len(result) == 2
         assert result[0]["vote"] == 1
         assert result[1]["vote"] == -1
@@ -592,7 +592,7 @@ async def test_answer_count_decremented_on_question_post_delete():
 
     conn = AsyncMock()
     conn.fetchrow = AsyncMock(return_value=delete_row)
-    conn.execute = AsyncMock()
+    conn.execute = AsyncMock(return_value="UPDATE 0")
 
     tx = AsyncMock()
     tx.__aenter__ = AsyncMock(return_value=tx)
@@ -684,3 +684,58 @@ async def test_answer_count_not_affected_for_regular_post():
     assert not any(
         "answer_count" in sql for sql in sql_calls
     ), f"answer_count should NOT be updated for regular posts, got: {sql_calls}"
+
+
+# --- B2: Service functions no longer accept pool parameter ---
+
+
+@pytest.mark.asyncio
+async def test_mark_best_answer_no_pool_parameter():
+    """B2: mark_best_answer works without pool parameter."""
+    import inspect
+
+    from app.services.qa import mark_best_answer
+
+    sig = inspect.signature(mark_best_answer)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+@pytest.mark.asyncio
+async def test_unmark_best_answer_no_pool_parameter():
+    """B2: unmark_best_answer works without pool parameter."""
+    import inspect
+
+    from app.services.qa import unmark_best_answer
+
+    sig = inspect.signature(unmark_best_answer)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+@pytest.mark.asyncio
+async def test_vote_on_answer_no_pool_parameter():
+    """B2: vote_on_answer works without pool parameter."""
+    import inspect
+
+    from app.services.qa import vote_on_answer
+
+    sig = inspect.signature(vote_on_answer)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "comment_id", "First parameter should be comment_id"
+
+
+@pytest.mark.asyncio
+async def test_get_user_votes_no_pool_parameter():
+    """B2: get_user_votes works without pool parameter."""
+    import inspect
+
+    from app.services.qa import get_user_votes
+
+    sig = inspect.signature(get_user_votes)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"

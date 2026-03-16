@@ -40,6 +40,7 @@ vi.mock('lucide-vue-next', async (importOriginal) => {
     Quote: stub,
     ChevronDown: stub,
     ChevronUp: stub,
+    Pin: { name: 'Pin', template: '<svg data-testid="lucide-pin" />', props: ['size'] },
     Users: stub,
     UserPlus: stub,
     X: stub,
@@ -388,6 +389,18 @@ describe('PostDetailView', () => {
   it('renders floating create button', async () => {
     const { wrapper } = await mountPostDetail()
     expect(wrapper.find('.fab').exists()).toBe(true)
+  })
+
+  it('renders lucide Pin icon for pinned posts', async () => {
+    const pinnedPost = { ...fakePost, is_pinned: true }
+    const { wrapper } = await mountPostDetail({ post: pinnedPost })
+    expect(wrapper.find('[data-testid="pin-icon"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="lucide-pin"]').exists()).toBe(true)
+  })
+
+  it('does not render pin icon for non-pinned posts', async () => {
+    const { wrapper } = await mountPostDetail()
+    expect(wrapper.find('[data-testid="pin-icon"]').exists()).toBe(false)
   })
 
   it('calls cancelEdit when cancel button is clicked in edit mode', async () => {

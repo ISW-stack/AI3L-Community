@@ -147,7 +147,11 @@ async def soft_delete(
     user_id: uuid.UUID | None = None,
     is_admin: bool = False,
 ) -> uuid.UUID | None:
-    """Soft-delete and return post_id for count decrement. Returns None if not found."""
+    """Soft-delete and return post_id for count decrement. Returns None if not found.
+
+    When deleting a parent comment (parent_id IS NULL), also soft-deletes all
+    child comments and adjusts comment_count/answer_count accordingly.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -172,8 +176,24 @@ async def soft_delete(
             if not row:
                 return None
 
+            total_deleted = 1  # The parent/target comment itself
+
+            # If this is a top-level comment, also soft-delete all child comments
+            if row["parent_id"] is None:
+                child_result = await conn.execute(
+                    "UPDATE comments SET is_deleted = true, updated_at = NOW() "
+                    "WHERE parent_id = $1 AND post_id = $2 AND is_deleted = false",
+                    comment_id,
+                    post_id,
+                )
+                # Parse "UPDATE N" to get count of deleted children
+                child_count = int(child_result.split()[-1])
+                total_deleted += child_count
+
+            # Decrement comment_count by total deleted (parent + children)
             await conn.execute(
-                "UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE id = $1",
+                "UPDATE posts SET comment_count = GREATEST(comment_count - $1, 0) WHERE id = $2",
+                total_deleted,
                 row["post_id"],
             )
 

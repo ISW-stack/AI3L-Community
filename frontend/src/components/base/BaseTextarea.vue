@@ -36,7 +36,7 @@ const textareaId = computed(
       :maxlength="maxlength"
       :rows="rows || 3"
       :class="[
-        'w-full px-3 py-2 border rounded-lg outline-none transition text-foreground placeholder:text-muted resize-vertical text-base sm:text-sm',
+        'w-full px-3 py-2 border rounded-lg outline-none transition text-foreground placeholder:text-muted resize-vertical text-base md:text-sm',
         error
           ? 'border-danger-500 focus:ring-2 focus:ring-danger-500 focus:border-transparent'
           : 'border-border focus:ring-2 focus:ring-brand-500 focus:border-transparent',

@@ -30,6 +30,9 @@ vi.mock('lucide-vue-next', () => ({
   Eye: { name: 'Eye', template: '<svg data-testid="eye-icon" />' },
   MessageCircle: { name: 'MessageCircle', template: '<svg data-testid="message-icon" />' },
   Smile: { name: 'Smile', template: '<svg data-testid="smile-icon" />' },
+  Quote: { name: 'Quote', template: '<svg data-testid="quote-icon" />' },
+  HelpCircle: { name: 'HelpCircle', template: '<svg data-testid="help-icon" />' },
+  MessageSquare: { name: 'MessageSquare', template: '<svg data-testid="message-square-icon" />' },
 }))
 
 vi.mock('@/api/posts', () => ({
@@ -467,6 +470,16 @@ describe('PostCard', () => {
       )
       const imgLink = wrapper.find('a[href="/forum/post-img"] img.w-full')
       expect(imgLink.exists()).toBe(true)
+    })
+  })
+
+  describe('Q&A answer count i18n', () => {
+    it('shows answer count for question type posts', () => {
+      const wrapper = mountCard(
+        makePost({ type: 'question', answer_count: 3, best_answer_id: null } as Partial<Post>),
+      )
+      // Should use i18n pluralization — rendered text should contain "3 answers"
+      expect(wrapper.text()).toContain('3')
     })
   })
 

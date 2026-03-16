@@ -210,7 +210,7 @@ async function handleFileUpload(event: Event) {
     <!-- Toolbar -->
     <div
       v-if="editor"
-      class="flex gap-1 p-2 border-b border-border bg-surface-alt overflow-x-auto no-scrollbar"
+      class="flex flex-wrap gap-1 p-2 border-b border-border bg-surface-alt overflow-x-auto no-scrollbar"
     >
       <button
         type="button"
@@ -319,8 +319,16 @@ async function handleFileUpload(event: Event) {
         :disabled="uploading"
         :aria-label="t('editor.toolbar.insertFile')"
       >
-        <ImagePlus class="w-4 h-4" aria-hidden="true" />
+        <ImagePlus v-if="!uploading" class="w-4 h-4" aria-hidden="true" />
+        <Loader2 v-else class="w-4 h-4 animate-spin" aria-hidden="true" />
       </button>
+      <span
+        v-if="uploading"
+        class="text-xs text-muted whitespace-nowrap self-center"
+        data-testid="upload-indicator"
+      >
+        {{ t('editor.uploading') }}
+      </span>
       <button
         type="button"
         @click="insertTable"

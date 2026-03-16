@@ -251,10 +251,12 @@ async def get_sig_posts(
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> PostListResponse:
-    result = await list_posts(page=page, page_size=page_size, sig_id=str(sig_id))
+    result = await list_posts(
+        page=page, page_size=page_size, sig_id=str(sig_id), viewer_id=current_user["sub"]
+    )
     return PostListResponse(
         posts=cast(list[Any], result["posts"]),
         total=result["total"],
-        current_page=page,
+        page=page,
         total_pages=result["total_pages"],
     )

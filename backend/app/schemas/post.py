@@ -78,7 +78,7 @@ class PostListResponse(BaseModel):
     posts: list[PostResponse]
     # OFFSET mode fields
     total: int | None = None
-    current_page: int | None = None
+    page: int | None = None
     total_pages: int | None = None
     # Cursor mode fields
     next_cursor: str | None = None

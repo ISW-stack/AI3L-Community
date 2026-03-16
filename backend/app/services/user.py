@@ -234,25 +234,95 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
     if deleted:
         logger.info("User anonymized (GDPR)", extra={"user_id": str(user_id)})
 
-        # Clean up co-author entries, profile views, comment votes
+        # Clean up all related data in dependency-safe order
         pool = get_pool()
         async with pool.acquire() as conn:
             try:
-                from app.repositories import co_author_repo, profile_view_repo, vote_repo
+                async with conn.transaction():
+                    from app.repositories import co_author_repo, profile_view_repo, vote_repo
 
-                await co_author_repo.delete_by_user_id(conn, user_id)
-                await profile_view_repo.delete_by_profile_or_viewer(conn, user_id)
-                await vote_repo.delete_by_user_id(conn, user_id)
+                    # Citations (depends on posts)
+                    await conn.execute(
+                        "DELETE FROM post_citations WHERE citing_post_id IN "
+                        "(SELECT id FROM posts WHERE user_id = $1)",
+                        user_id,
+                    )
+                    await conn.execute(
+                        "DELETE FROM post_citations WHERE cited_post_id IN "
+                        "(SELECT id FROM posts WHERE user_id = $1)",
+                        user_id,
+                    )
 
-                # Clean up friend recommendations and dismissed recommendations
-                await conn.execute(
-                    "DELETE FROM friend_recommendations WHERE user_id = $1 OR recommended_id = $1",
-                    user_id,
-                )
-                await conn.execute(
-                    "DELETE FROM dismissed_recommendations WHERE user_id = $1",
-                    user_id,
-                )
+                    # Co-authors
+                    await co_author_repo.delete_by_user_id(conn, user_id)
+
+                    # Profile views
+                    await profile_view_repo.delete_by_profile_or_viewer(conn, user_id)
+
+                    # Comment votes
+                    await vote_repo.delete_by_user_id(conn, user_id)
+
+                    # Notifications (user as recipient or trigger)
+                    await conn.execute(
+                        "DELETE FROM notifications WHERE user_id = $1 OR trigger_user_id = $1",
+                        user_id,
+                    )
+
+                    # Form responses
+                    await conn.execute(
+                        "DELETE FROM form_responses WHERE user_id = $1",
+                        user_id,
+                    )
+
+                    # Friend recommendations and dismissed recommendations
+                    await conn.execute(
+                        "DELETE FROM friend_recommendations WHERE user_id = $1 OR recommended_user_id = $1",
+                        user_id,
+                    )
+                    await conn.execute(
+                        "DELETE FROM dismissed_recommendations WHERE user_id = $1",
+                        user_id,
+                    )
+
+                    # Social relations
+                    await conn.execute(
+                        "DELETE FROM friendships WHERE requester_id = $1 OR addressee_id = $1",
+                        user_id,
+                    )
+                    await conn.execute(
+                        "DELETE FROM follows WHERE follower_id = $1 OR following_id = $1",
+                        user_id,
+                    )
+                    await conn.execute(
+                        "DELETE FROM blocks WHERE blocker_id = $1 OR blocked_id = $1",
+                        user_id,
+                    )
+
+                    # User preferences
+                    await conn.execute(
+                        "DELETE FROM user_preferences WHERE user_id = $1",
+                        user_id,
+                    )
+
+                    # SIG memberships
+                    await conn.execute(
+                        "DELETE FROM sig_members WHERE user_id = $1",
+                        user_id,
+                    )
+
+                    # Soft-delete comments (before posts, since comments reference posts)
+                    await conn.execute(
+                        "UPDATE comments SET is_deleted = true, updated_at = NOW() "
+                        "WHERE user_id = $1 AND is_deleted = false",
+                        user_id,
+                    )
+
+                    # Soft-delete posts
+                    await conn.execute(
+                        "UPDATE posts SET is_deleted = true, updated_at = NOW() "
+                        "WHERE user_id = $1 AND is_deleted = false",
+                        user_id,
+                    )
             except Exception:
                 logger.warning(
                     "Failed to clean up related data during anonymization",

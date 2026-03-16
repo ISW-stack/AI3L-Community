@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { listStandaloneForms } from '@/api/forms'
@@ -11,18 +12,40 @@ import EmptyState from '@/components/EmptyState.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const toast = useToastStore()
 
 const forms = ref<FormData[]>([])
 const loading = ref(false)
 const PAGE_SIZE = 12
+const searchQuery = ref('')
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 const { page, total, totalPages, setPage, updateFromResponse } = usePagination(PAGE_SIZE)
 
 const canCreate = computed(() => auth.isAuthenticated && !auth.isGuest)
+
+const filteredForms = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return forms.value
+  return forms.value.filter(
+    (f) =>
+      f.title.toLowerCase().includes(q) ||
+      (f.description && f.description.toLowerCase().includes(q)),
+  )
+})
+
+function handleSearchInput(value: string) {
+  searchQuery.value = value
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    setPage(1)
+  }, 300)
+}
 
 async function fetchForms() {
   loading.value = true
@@ -58,10 +81,18 @@ watch(page, fetchForms)
 <template>
   <div>
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Forms</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('formsDirectory.title') }}</h1>
       <router-link v-if="canCreate" to="/forms/new">
-        <BaseButton>Create Form</BaseButton>
+        <BaseButton>{{ t('formsDirectory.createForm') }}</BaseButton>
       </router-link>
+    </div>
+
+    <div class="mb-4">
+      <BaseInput
+        :model-value="searchQuery"
+        :placeholder="t('formsDirectory.searchPlaceholder')"
+        @update:model-value="handleSearchInput"
+      />
     </div>
 
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
@@ -72,10 +103,16 @@ watch(page, fetchForms)
       message="There are no standalone forms available at the moment."
     />
 
+    <EmptyState
+      v-else-if="filteredForms.length === 0"
+      :title="t('formsDirectory.noSearchResults')"
+      :message="t('formsDirectory.noSearchResultsMessage')"
+    />
+
     <template v-else>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <router-link
-          v-for="form in forms"
+          v-for="form in filteredForms"
           :key="form.id"
           :to="`/forms/${form.id}`"
           class="block"
@@ -110,6 +147,6 @@ watch(page, fetchForms)
       </div>
     </template>
 
-    <p class="mt-4 text-xs text-muted">{{ total }} total forms</p>
+    <p class="mt-4 text-xs text-muted">{{ total }} {{ t('formsDirectory.totalForms') }}</p>
   </div>
 </template>

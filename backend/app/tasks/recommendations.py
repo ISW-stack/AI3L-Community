@@ -169,7 +169,7 @@ sig_scores AS (
 ),
 friend_scores AS (
     SELECT up.user_id, up.candidate_id,
-           COUNT(DISTINCT mutual_id) AS mutual_friends
+           COUNT(DISTINCT my_friends.my_friend) AS mutual_friends
     FROM user_pairs up
     LEFT JOIN LATERAL (
         SELECT CASE
@@ -189,10 +189,6 @@ friend_scores AS (
         WHERE f2.status = 'ACCEPTED'
           AND (f2.requester_id = up.candidate_id OR f2.addressee_id = up.candidate_id)
     ) their_friends ON my_friends.my_friend = their_friends.their_friend
-    LEFT JOIN LATERAL (
-        SELECT my_friends.my_friend AS mutual_id
-        WHERE my_friends.my_friend = their_friends.their_friend
-    ) m ON true
     GROUP BY up.user_id, up.candidate_id
 )
 SELECT

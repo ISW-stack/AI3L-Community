@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { Post } from '@/types'
 import { listPosts } from '@/api/posts'
 import { getErrorMessage } from '@/utils/error'
@@ -15,6 +16,7 @@ import QACard from '@/components/qa/QACard.vue'
 
 const PAGE_SIZE = 20
 
+const { t } = useI18n()
 const router = useRouter()
 const toast = useToastStore()
 const auth = useAuthStore()
@@ -42,7 +44,7 @@ async function fetchQuestions() {
     questions.value = data.posts
     updateFromResponse(data.total ?? 0)
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load questions.'), 'error')
+    toast.show(getErrorMessage(e, t('qa.fetchError')), 'error')
   } finally {
     loading.value = false
   }
@@ -63,26 +65,26 @@ onMounted(fetchQuestions)
 <template>
   <div class="max-w-4xl mx-auto py-6 px-4">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Q&A</h1>
+      <h1 class="text-2xl font-bold text-foreground">{{ t('qa.title') }}</h1>
       <BaseButton
         v-if="auth.isAuthenticated && !auth.isGuest"
         @click="goToCreate"
       >
-        Ask a Question
+        {{ t('qa.askQuestion') }}
       </BaseButton>
     </div>
 
     <div v-if="total > 0" class="text-sm text-muted mb-4">
-      {{ total }} question{{ total !== 1 ? 's' : '' }}
+      {{ t('qa.questionCount', { count: total }, total) }}
     </div>
 
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
 
     <EmptyState
       v-else-if="questions.length === 0"
-      title="No questions yet"
-      message="Be the first to ask a question."
-      action-label="Ask a Question"
+      :title="t('qa.noQuestions')"
+      :message="t('qa.emptyMessage')"
+      :action-label="t('qa.askQuestion')"
       action-to="/qa/create"
     />
 

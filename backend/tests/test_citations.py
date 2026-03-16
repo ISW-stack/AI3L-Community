@@ -198,7 +198,7 @@ async def test_search_posts_for_citation_excludes_blocked():
             return_value={blocked_user_id},
         ),
     ):
-        result = await search_posts_for_citation(None, "machine learning", user_id)
+        result = await search_posts_for_citation("machine learning", user_id)
         assert len(result) == 1
         assert result[0]["title"] == "Normal Post"
 
@@ -243,7 +243,7 @@ async def test_search_posts_for_citation_no_blocked():
             return_value=set(),
         ),
     ):
-        result = await search_posts_for_citation(None, "test query", user_id)
+        result = await search_posts_for_citation("test query", user_id)
         assert len(result) == 1
 
         # Verify the query does NOT include the blocked-user exclusion
@@ -331,10 +331,137 @@ async def test_citation_event_includes_citer_id():
         ),
         patch(f"{_SVC}.emit", mock_emit),
     ):
-        await sync_post_citations(None, post_id, html, author_id)
+        await sync_post_citations(post_id, html, author_id)
 
         # Verify emit was called with citer_id
         mock_emit.assert_called_once()
         call_kwargs = mock_emit.call_args[1]
         assert call_kwargs["citer_id"] == author_id
         assert call_kwargs["cited_post_id"] == str(cited_id)
+
+
+# --- B4: Service functions no longer accept pool parameter ---
+
+
+def test_sync_post_citations_no_pool_parameter():
+    """B4: sync_post_citations no longer has pool parameter."""
+    import inspect
+
+    from app.services.citation import sync_post_citations
+
+    sig = inspect.signature(sync_post_citations)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+def test_get_citations_of_no_pool_parameter():
+    """B4: get_citations_of no longer has pool parameter."""
+    import inspect
+
+    from app.services.citation import get_citations_of
+
+    sig = inspect.signature(get_citations_of)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+def test_get_citing_no_pool_parameter():
+    """B4: get_citing no longer has pool parameter."""
+    import inspect
+
+    from app.services.citation import get_citing
+
+    sig = inspect.signature(get_citing)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+def test_search_posts_for_citation_no_pool_parameter():
+    """B4: search_posts_for_citation no longer has pool parameter."""
+    import inspect
+
+    from app.services.citation import search_posts_for_citation
+
+    sig = inspect.signature(search_posts_for_citation)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "query", "First parameter should be query"
+
+
+@pytest.mark.asyncio
+async def test_get_citations_of_service():
+    """B4: get_citations_of works without pool parameter."""
+    from app.services.citation import get_citations_of
+
+    now = datetime.now(timezone.utc)
+    rows = [
+        {
+            "id": uuid.uuid4(),
+            "post_id": uuid.uuid4(),
+            "post_title": "Test Post",
+            "author_name": "Test Author",
+            "is_self_citation": False,
+            "created_at": now,
+        }
+    ]
+
+    conn = AsyncMock()
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+
+    with (
+        patch(f"{_SVC}.get_pool", return_value=pool),
+        patch(
+            f"{_REPO}.find_citations_of_post",
+            new_callable=AsyncMock,
+            return_value=(rows, 1),
+        ),
+    ):
+        result, total = await get_citations_of(post_id=uuid.uuid4())
+        assert total == 1
+        assert len(result) == 1
+        assert result[0]["post_title"] == "Test Post"
+
+
+@pytest.mark.asyncio
+async def test_get_citing_service():
+    """B4: get_citing works without pool parameter."""
+    from app.services.citation import get_citing
+
+    now = datetime.now(timezone.utc)
+    rows = [
+        {
+            "id": uuid.uuid4(),
+            "post_id": uuid.uuid4(),
+            "post_title": "Referenced Post",
+            "author_name": "Author",
+            "is_self_citation": False,
+            "created_at": now,
+        }
+    ]
+
+    conn = AsyncMock()
+    pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    pool.acquire.return_value = cm
+
+    with (
+        patch(f"{_SVC}.get_pool", return_value=pool),
+        patch(
+            f"{_REPO}.find_citations_by_post",
+            new_callable=AsyncMock,
+            return_value=(rows, 1),
+        ),
+    ):
+        result, total = await get_citing(post_id=uuid.uuid4())
+        assert total == 1
+        assert len(result) == 1
+        assert result[0]["post_title"] == "Referenced Post"

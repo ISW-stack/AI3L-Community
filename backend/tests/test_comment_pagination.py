@@ -1,4 +1,4 @@
-"""Tests for Bug #13: CommentListResponse must include current_page and total_pages."""
+"""Tests for Bug #13: CommentListResponse must include page and total_pages."""
 
 import uuid
 from datetime import datetime, timezone
@@ -47,11 +47,11 @@ def _make_comment(post_id=None, user_id=None):
 
 
 class TestCommentPaginationFields:
-    """Verify CommentListResponse includes current_page and total_pages."""
+    """Verify CommentListResponse includes page and total_pages."""
 
     @pytest.mark.anyio
     async def test_response_includes_pagination_fields(self, client):
-        """GET /posts/{pid}/comments → response includes current_page and total_pages."""
+        """GET /posts/{pid}/comments → response includes page and total_pages."""
         post_id = uuid.uuid4()
         comment = _make_comment(post_id=post_id)
 
@@ -69,16 +69,16 @@ class TestCommentPaginationFields:
                 )
                 assert resp.status_code == 200
                 data = resp.json()
-                assert "current_page" in data
+                assert "page" in data
                 assert "total_pages" in data
-                assert data["current_page"] == 1
+                assert data["page"] == 1
                 assert data["total_pages"] == 1
         finally:
             _clear_overrides()
 
     @pytest.mark.anyio
     async def test_pagination_page_2(self, client):
-        """GET /posts/{pid}/comments?page=2&page_size=10 → current_page=2."""
+        """GET /posts/{pid}/comments?page=2&page_size=10 → page=2."""
         post_id = uuid.uuid4()
         comment = _make_comment(post_id=post_id)
 
@@ -96,7 +96,7 @@ class TestCommentPaginationFields:
                 )
                 assert resp.status_code == 200
                 data = resp.json()
-                assert data["current_page"] == 2
+                assert data["page"] == 2
                 assert data["total_pages"] == 3  # ceil(25/10) = 3
                 assert data["total"] == 25
         finally:
@@ -123,7 +123,7 @@ class TestCommentPaginationFields:
                 data = resp.json()
                 # Even with 0 results, total_pages should be 1 (minimum)
                 assert data["total_pages"] == 1
-                assert data["current_page"] == 1
+                assert data["page"] == 1
                 assert data["total"] == 0
         finally:
             _clear_overrides()
@@ -149,7 +149,7 @@ class TestCommentPaginationFields:
                 assert resp.status_code == 200
                 data = resp.json()
                 assert data["total_pages"] == 2  # 20 / 10 = 2
-                assert data["current_page"] == 1
+                assert data["page"] == 1
         finally:
             _clear_overrides()
 
@@ -158,25 +158,25 @@ class TestCommentListResponseSchema:
     """Verify the schema itself has the new fields."""
 
     def test_schema_has_pagination_fields(self):
-        """CommentListResponse schema includes current_page and total_pages."""
+        """CommentListResponse schema includes page and total_pages."""
         from app.schemas.comment import CommentListResponse
 
         fields = CommentListResponse.model_fields
-        assert "current_page" in fields
+        assert "page" in fields
         assert "total_pages" in fields
 
     def test_schema_defaults(self):
-        """CommentListResponse defaults: current_page=1, total_pages=1."""
+        """CommentListResponse defaults: page=1, total_pages=1."""
         from app.schemas.comment import CommentListResponse
 
         resp = CommentListResponse(comments=[], total=0)
-        assert resp.current_page == 1
+        assert resp.page == 1
         assert resp.total_pages == 1
 
     def test_schema_with_explicit_values(self):
-        """CommentListResponse accepts explicit current_page and total_pages."""
+        """CommentListResponse accepts explicit page and total_pages."""
         from app.schemas.comment import CommentListResponse
 
-        resp = CommentListResponse(comments=[], total=50, current_page=3, total_pages=5)
-        assert resp.current_page == 3
+        resp = CommentListResponse(comments=[], total=50, page=3, total_pages=5)
+        assert resp.page == 3
         assert resp.total_pages == 5

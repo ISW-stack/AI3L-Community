@@ -195,7 +195,7 @@ async def test_service_list_co_authors():
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_pool.return_value.acquire.return_value = cm
 
-        result = await list_co_authors(None, post_id)
+        result = await list_co_authors(post_id)
         assert len(result) == 1
         assert result[0]["post_id"] == str(post_id)
 
@@ -222,7 +222,7 @@ async def test_service_list_pending_invitations():
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_pool.return_value.acquire.return_value = cm
 
-        invitations, total = await list_pending_invitations(None, user_id)
+        invitations, total = await list_pending_invitations(user_id)
         assert total == 1
         assert len(invitations) == 1
 
@@ -298,7 +298,7 @@ async def test_invite_co_author_advisory_lock():
         patch(f"{_REPO}.insert_co_author", new_callable=AsyncMock, return_value=co_author_row),
         patch(f"{_SVC}.emit", new_callable=AsyncMock),
     ):
-        result = await invite_co_author(None, post_id, user_id, target_user_id)
+        result = await invite_co_author(post_id, user_id, target_user_id)
         assert result is not None
 
         # Verify advisory lock was called
@@ -338,7 +338,7 @@ async def test_invite_co_author_bilateral_block():
         patch(f"{_SVC}.get_blocked_user_ids", side_effect=mock_get_blocked),
     ):
         with pytest.raises(AppError) as exc_info:
-            await invite_co_author(None, post_id, user_id, target_user_id)
+            await invite_co_author(post_id, user_id, target_user_id)
         assert exc_info.value.status_code == 403
         assert "SOCIAL_003" in str(exc_info.value.detail)
         # Ensure both directions were checked (inviter + target)
@@ -419,7 +419,7 @@ async def test_invite_event_includes_inviter_id():
         patch(f"{_REPO}.insert_co_author", new_callable=AsyncMock, return_value=co_author_row),
         patch(f"{_SVC}.emit", mock_emit),
     ):
-        await invite_co_author(None, post_id, user_id, target_user_id)
+        await invite_co_author(post_id, user_id, target_user_id)
 
         mock_emit.assert_called_once()
         call_kwargs = mock_emit.call_args[1]
@@ -435,3 +435,78 @@ def test_no_dead_code_if_false():
 
     source = inspect.getsource(co_author)
     assert "if False" not in source, "Dead code 'if False' block found in co_author.py"
+
+
+# --- B3: Service functions no longer accept pool parameter ---
+
+
+def test_invite_co_author_no_pool_parameter():
+    """B3: invite_co_author no longer has pool parameter."""
+    import inspect
+
+    from app.services.co_author import invite_co_author
+
+    sig = inspect.signature(invite_co_author)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+def test_add_external_co_author_no_pool_parameter():
+    """B3: add_external_co_author no longer has pool parameter."""
+    import inspect
+
+    from app.services.co_author import add_external_co_author
+
+    sig = inspect.signature(add_external_co_author)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+def test_respond_to_invitation_no_pool_parameter():
+    """B3: respond_to_invitation no longer has pool parameter."""
+    import inspect
+
+    from app.services.co_author import respond_to_invitation
+
+    sig = inspect.signature(respond_to_invitation)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "co_author_id", "First parameter should be co_author_id"
+
+
+def test_remove_co_author_no_pool_parameter():
+    """B3: remove_co_author no longer has pool parameter."""
+    import inspect
+
+    from app.services.co_author import remove_co_author
+
+    sig = inspect.signature(remove_co_author)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+def test_list_co_authors_no_pool_parameter():
+    """B3: list_co_authors no longer has pool parameter."""
+    import inspect
+
+    from app.services.co_author import list_co_authors
+
+    sig = inspect.signature(list_co_authors)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+def test_list_pending_invitations_no_pool_parameter():
+    """B3: list_pending_invitations no longer has pool parameter."""
+    import inspect
+
+    from app.services.co_author import list_pending_invitations
+
+    sig = inspect.signature(list_pending_invitations)
+    param_names = list(sig.parameters.keys())
+    assert "pool" not in param_names, "pool parameter should have been removed"
+    assert param_names[0] == "user_id", "First parameter should be user_id"

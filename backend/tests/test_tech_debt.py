@@ -83,8 +83,8 @@ class TestAdminFileDeletionAuditLogging:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_owner_delete_does_not_emit_audit(self, client) -> None:
-        """When a user deletes their own file, no audit event is emitted."""
+    async def test_owner_delete_emits_file_delete_audit(self, client) -> None:
+        """When a user deletes their own file, a file_delete audit event is emitted."""
         user_id = str(uuid.uuid4())
         _override_auth("MEMBER", user_id=user_id)
         file_key = f"editor/{user_id}/myfile.png"
@@ -120,13 +120,19 @@ class TestAdminFileDeletionAuditLogging:
                 )
 
             assert resp.status_code == 200
-            mock_emit.assert_not_called()
+            mock_emit.assert_called_once_with(
+                "audit.action",
+                action="file_delete",
+                actor_id=user_id,
+                target_key=file_key,
+                file_size=file_size,
+            )
         finally:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_admin_delete_own_file_no_audit(self, client) -> None:
-        """When an admin deletes their own file, no audit event is emitted."""
+    async def test_admin_delete_own_file_emits_file_delete_audit(self, client) -> None:
+        """When an admin deletes their own file, a file_delete (not admin_file_delete) event is emitted."""
         admin_id = str(uuid.uuid4())
         _override_auth("ADMIN", user_id=admin_id)
         file_key = f"editor/{admin_id}/myfile.png"
@@ -162,7 +168,13 @@ class TestAdminFileDeletionAuditLogging:
                 )
 
             assert resp.status_code == 200
-            mock_emit.assert_not_called()
+            mock_emit.assert_called_once_with(
+                "audit.action",
+                action="file_delete",
+                actor_id=admin_id,
+                target_key=file_key,
+                file_size=file_size,
+            )
         finally:
             _clear_overrides()
 

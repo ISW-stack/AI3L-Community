@@ -24,7 +24,6 @@ async def search_for_citation(
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     return await search_posts_for_citation(
-        pool=None,
         query=req.query,
         user_id=current_user["sub"],
         limit=req.limit,
@@ -40,7 +39,7 @@ async def get_cited_by(
 ) -> CitationListResponse:
     """Get posts that cite this post ('Cited by' list)."""
     citations, total = await get_citations_of(
-        pool=None, post_id=post_id, page=page, page_size=page_size
+        post_id=post_id, page=page, page_size=page_size
     )
     return CitationListResponse(citations=citations, total=total)
 
@@ -53,5 +52,5 @@ async def get_citing_endpoint(
     current_user: dict = Depends(get_current_user),
 ) -> CitationListResponse:
     """Get posts this post cites ('References' list)."""
-    citations, total = await get_citing(pool=None, post_id=post_id, page=page, page_size=page_size)
+    citations, total = await get_citing(post_id=post_id, page=page, page_size=page_size)
     return CitationListResponse(citations=citations, total=total)

@@ -83,6 +83,11 @@ function createStubs() {
       template: '<span class="base-badge"><slot /></span>',
       props: ['variant'],
     },
+    BaseInput: {
+      template:
+        '<input class="base-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+      props: ['modelValue', 'placeholder'],
+    },
     BasePagination: {
       template: '<div class="base-pagination" />',
       props: ['currentPage', 'totalPages', 'pageSize', 'total'],
@@ -221,5 +226,37 @@ describe('FormsDirectoryView', () => {
     const { wrapper } = await mountDirectory()
     expect(wrapper.text()).toContain('Alice')
     expect(wrapper.text()).toContain('Bob')
+  })
+
+  it('renders search input', async () => {
+    const { wrapper } = await mountDirectory()
+    const searchInput = wrapper.find('.base-input')
+    expect(searchInput.exists()).toBe(true)
+  })
+
+  it('filters forms by search query (client-side)', async () => {
+    const { wrapper } = await mountDirectory()
+    // Both forms should be visible initially
+    expect(wrapper.text()).toContain('Research Survey')
+    expect(wrapper.text()).toContain('Feedback Form')
+
+    // Set search query via the component's internal state
+    const vm = wrapper.vm as any
+    vm.searchQuery = 'Research'
+    await wrapper.vm.$nextTick()
+
+    // Only "Research Survey" should be visible
+    expect(wrapper.text()).toContain('Research Survey')
+    expect(wrapper.text()).not.toContain('Feedback Form')
+  })
+
+  it('shows empty state when search has no matches', async () => {
+    const { wrapper } = await mountDirectory()
+    const vm = wrapper.vm as any
+    vm.searchQuery = 'nonexistent'
+    await wrapper.vm.$nextTick()
+
+    const emptyStates = wrapper.findAll('.empty-state')
+    expect(emptyStates.length).toBeGreaterThan(0)
   })
 })

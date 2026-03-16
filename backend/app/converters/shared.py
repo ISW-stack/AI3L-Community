@@ -7,7 +7,15 @@ from app.converters.user_converter import async_resolve_avatar_url, resolve_avat
 
 
 async def async_build_author(row: dict) -> dict:
-    """Async version of build_author — does not block the event loop."""
+    """Async version of build_author — does not block the event loop.
+
+    NOTE on banned users: Banned users' historical content (posts, comments)
+    remains visible under their original display_name. The post query does not
+    JOIN user ban status, so masking would require a repository-level change.
+    Current policy: content is preserved; full removal of personal data uses
+    the GDPR anonymize_user flow (which replaces display_name with
+    "Deleted User" and clears avatar).
+    """
     return {
         "id": str(row["author_id"]),
         "username": row["author_username"],

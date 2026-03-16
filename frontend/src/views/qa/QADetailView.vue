@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import DOMPurify from 'dompurify'
@@ -23,8 +24,10 @@ import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import VoteButtons from '@/components/qa/VoteButtons.vue'
 import BestAnswerBadge from '@/components/qa/BestAnswerBadge.vue'
+import { ArrowLeft } from 'lucide-vue-next'
 const TiptapEditor = defineAsyncComponent(() => import('@/components/TiptapEditor.vue'))
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -203,11 +206,18 @@ onMounted(() => {
 
 <template>
   <div class="max-w-4xl mx-auto py-6 px-4">
+    <router-link
+      v-if="loading || !post"
+      to="/qa"
+      class="flex items-center gap-1 text-sm text-muted hover:text-foreground mb-4"
+    >
+      <ArrowLeft :size="16" />
+      {{ t('qa.backToList') }}
+    </router-link>
     <SkeletonLoader v-if="loading" :lines="1" variant="card" />
 
     <div v-else-if="!post" class="text-center py-12">
-      <p class="text-muted mb-4">Question not found.</p>
-      <router-link to="/qa" class="text-brand-600 hover:underline">Back to Q&A</router-link>
+      <p class="text-muted mb-4">{{ t('qa.questionNotFound') }}</p>
     </div>
 
     <template v-else>

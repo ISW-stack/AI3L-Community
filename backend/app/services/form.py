@@ -78,6 +78,9 @@ async def create_form(
 ) -> dict:
     validate_question_schema(questions)
 
+    if deadline and deadline < datetime.now(timezone.utc):
+        raise AppError(ErrorCode.FORM_001, 400, "Deadline must be in the future.")
+
     if sig_id is None:
         # Standalone form — enforce per-user limit
         pool = get_pool()
@@ -281,9 +284,15 @@ async def update_form(
             if not is_admin and str(current["created_by"]) != user_id:
                 raise PermissionError("Only the form creator or admin can update this form.")
 
-            # Silently drop questions if schema is locked (defense-in-depth)
-            if current["is_schema_locked"]:
-                questions = None
+            # Validate deadline is in the future
+            if deadline and deadline < datetime.now(timezone.utc):
+                raise AppError(ErrorCode.FORM_001, 400, "Deadline must be in the future.")
+
+            # Raise error if schema is locked and questions update is attempted
+            if current["is_schema_locked"] and questions is not None:
+                raise AppError(
+                    ErrorCode.FORM_001, 400, "Cannot modify questions: form schema is locked."
+                )
 
             updates: dict = {}
 
@@ -420,6 +429,9 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
                 )
                 if role is None:
                     raise PermissionError("Only SIG members can submit this form.")
+
+            if form.get("is_closed"):
+                raise AppError(ErrorCode.FORM_001, 400, "This form is closed.")
 
             now = datetime.now(timezone.utc)
             if form["deadline"] and form["deadline"] < now:

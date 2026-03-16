@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Copy, Check } from 'lucide-vue-next'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -23,6 +23,7 @@ const statusFilter = ref<string | null>(null)
 const generating = ref(false)
 const message = ref('')
 const copiedId = ref<string | null>(null)
+const copyFeedbackTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const page = ref(1)
 const pageSize = 50
 const totalPages = computed(() => Math.ceil(total.value / pageSize) || 1)
@@ -82,8 +83,10 @@ async function copyCode(code: string, codeId: string) {
     await navigator.clipboard.writeText(code)
     copiedId.value = codeId
     toastStore.show(t('admin.inviteCodes.message.copied'), 'success')
-    setTimeout(() => {
+    if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value)
+    copyFeedbackTimer.value = setTimeout(() => {
       if (copiedId.value === codeId) copiedId.value = null
+      copyFeedbackTimer.value = null
     }, 2000)
   } catch {
     toastStore.show(t('admin.inviteCodes.message.copyFailed'), 'error')
@@ -105,6 +108,13 @@ function formatDate(iso: string): string {
 }
 
 onMounted(fetchCodes)
+
+onUnmounted(() => {
+  if (copyFeedbackTimer.value) {
+    clearTimeout(copyFeedbackTimer.value)
+    copyFeedbackTimer.value = null
+  }
+})
 </script>
 
 <template>

@@ -147,5 +147,12 @@ describe('BaseTextarea', () => {
       const wrapper = mount(BaseTextarea)
       expect(wrapper.find('textarea').classes()).toContain('text-base')
     })
+
+    it('should use md:text-sm breakpoint instead of sm:text-sm', () => {
+      const wrapper = mount(BaseTextarea)
+      const textarea = wrapper.find('textarea')
+      expect(textarea.classes()).toContain('md:text-sm')
+      expect(textarea.classes()).not.toContain('sm:text-sm')
+    })
   })
 })

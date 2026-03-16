@@ -47,6 +47,8 @@ async def async_user_to_public_response(user: dict) -> PublicUserResponse:
         bio=user.get("bio"),
         affiliation=user.get("affiliation"),
         orcid=user.get("orcid"),
+        profile_view_count_unique=user.get("profile_view_count_unique") or 0,
+        profile_view_count_total=user.get("profile_view_count_total") or 0,
         created_at=(
             user["created_at"].isoformat()
             if hasattr(user["created_at"], "isoformat")
@@ -82,6 +84,8 @@ def user_to_public_response(user: dict) -> PublicUserResponse:
         bio=user.get("bio"),
         affiliation=user.get("affiliation"),
         orcid=user.get("orcid"),
+        profile_view_count_unique=user.get("profile_view_count_unique") or 0,
+        profile_view_count_total=user.get("profile_view_count_total") or 0,
         created_at=(
             user["created_at"].isoformat()
             if hasattr(user["created_at"], "isoformat")

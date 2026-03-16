@@ -85,7 +85,7 @@ function toggleSidebar() {
     <Transition name="sidebar-panel">
       <aside
         v-if="sidebarOpen"
-        class="mobile-sidebar fixed inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col z-50 lg:hidden"
+        class="mobile-sidebar fixed inset-y-0 left-0 w-[70vw] max-w-[280px] bg-surface border-r border-border flex flex-col z-50 lg:hidden overflow-y-auto"
       >
         <div class="flex items-center justify-between px-4 py-6 border-b border-border">
           <h2 class="text-sm font-semibold uppercase tracking-wider">
@@ -119,7 +119,7 @@ function toggleSidebar() {
 
     <!-- Main Content -->
     <div
-      class="flex-1 lg:pl-[calc(var(--spacing-layout)+20rem)] lg:pr-layout py-4 [scrollbar-gutter:stable] min-w-0"
+      class="flex-1 lg:pl-[calc(var(--spacing-layout)+18rem)] lg:pr-layout py-4 [scrollbar-gutter:stable] min-w-0"
     >
       <!-- Mobile header -->
       <div class="lg:hidden sticky top-0 z-20 bg-surface border-b border-border px-4 py-3">

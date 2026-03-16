@@ -291,7 +291,6 @@ class TestCoAuthorBlockCheck:
 
         with pytest.raises(AppError) as exc_info:
             await invite_co_author(
-                pool=None,
                 post_id=uuid.uuid4(),
                 user_id=_VIEWER_ID,
                 target_user_id=_BLOCKED_USER_ID,

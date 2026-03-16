@@ -161,6 +161,8 @@ export default {
     toggleMenu: 'मेनू टॉगल करें',
     sectionAdmin: 'व्यवस्थापन',
     sectionAccount: 'खाता',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
@@ -200,6 +202,7 @@ export default {
       title: 'इस सप्ताह ट्रेंडिंग',
       empty: 'इस सप्ताह कोई ट्रेंडिंग पोस्ट नहीं।',
       fetchError: 'ट्रेंडिंग पोस्ट लोड करने में विफल।',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: 'समुदाय',
@@ -285,7 +288,10 @@ export default {
       categoriesTitle: 'श्रेणियाँ',
       allPosts: 'सभी पोस्ट',
       trendingTitle: 'ट्रेंडिंग (7 दिन)',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: 'त्वरित लिंक',
       home: 'होम फ़ीड',
@@ -426,6 +432,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: 'फ़ाइल अपलोड करने में विफल।',
     fileTooLarge: 'फ़ाइल बहुत बड़ी है। अधिकतम आकार 20 MB है।',
     maliciousFile: 'अपलोड की गई फ़ाइल संभावित रूप से दुर्भावनापूर्ण चिह्नित की गई।',
@@ -670,6 +677,7 @@ export default {
       draftFound: 'आपके पास {time} का एक असुरक्षित ड्राफ्ट है।',
       draftRestore: 'पुनर्स्थापित करें',
       draftDiscard: 'छोड़ दें',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: 'डेस्कटॉप',
       previewMobile: 'मोबाइल',
       uploadBannerError: 'बैनर छवि अपलोड करने में विफल।',
@@ -715,6 +723,7 @@ export default {
       noAnswer: 'कोई उत्तर नहीं',
       fileUploaded: 'फ़ाइल अपलोड हुई',
       backToSig: 'SIG पर वापस जाएँ',
+      fieldRequired: 'This field is required.',
       alreadySubmitted: 'आपने इस फ़ॉर्म पर पहले ही प्रतिक्रिया जमा कर दी है।',
       fileTypeError: 'फ़ाइल प्रकार की अनुमति नहीं है। अनुमत प्रकार: {types}',
       fileSizeError: 'फ़ाइल बहुत बड़ी है। अधिकतम आकार: {max} MB',
@@ -733,6 +742,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: 'सामान्य',
       social: 'Social',
@@ -830,6 +840,7 @@ export default {
     },
     emptyTitle: 'सब देख लिया',
     emptyMessage: 'अभी तक कोई अधिसूचना नहीं।',
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: 'सभी अधिसूचनाएँ साफ़ हो गईं।',
     deleteError: 'अधिसूचनाएँ साफ़ करने में विफल।',
     fetchError: 'सूचनाएं लोड करने में विफल।',
@@ -882,6 +893,7 @@ export default {
       searchPlaceholder: 'उपयोगकर्ता नाम या प्रदर्शन नाम से खोजें...',
       selectedCount: '{count} चुने गए',
       bulkApplyRole: 'भूमिका लागू करें',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: 'साफ़ करें',
       table: {
         username: 'उपयोगकर्ता नाम',
@@ -1143,6 +1155,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1155,6 +1171,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1190,6 +1218,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1206,6 +1240,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1215,6 +1259,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──

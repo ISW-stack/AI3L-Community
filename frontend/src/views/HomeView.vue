@@ -127,9 +127,9 @@ onMounted(() => {
   <div class="max-w-5xl mx-auto">
     <!-- Authenticated view -->
     <div v-if="auth.isAuthenticated">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main column -->
-        <div class="md:col-span-2 space-y-6">
+        <div class="lg:col-span-2 space-y-6">
           <!-- Welcome card -->
           <BaseCard padding="lg">
             <h2 class="text-xl font-semibold text-foreground mb-2">
@@ -188,11 +188,20 @@ onMounted(() => {
 
           <!-- Trending Posts -->
           <div v-if="!auth.isGuest">
-            <div class="flex items-center gap-2 mb-3">
-              <TrendingUp class="w-5 h-5 text-brand-600" />
-              <h3 class="text-lg font-semibold text-foreground">
-                {{ t('home.trending.title') }}
-              </h3>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <TrendingUp class="w-5 h-5 text-brand-600" />
+                <h3 class="text-lg font-semibold text-foreground">
+                  {{ t('home.trending.title') }}
+                </h3>
+              </div>
+              <router-link
+                v-if="trendingPosts.length > 0"
+                to="/forum?sort=trending"
+                class="text-sm text-brand-600 hover:underline"
+              >
+                {{ t('home.trending.viewAll') }}
+              </router-link>
             </div>
             <SkeletonLoader v-if="loadingTrending" :lines="3" variant="list" />
             <div v-else-if="trendingPosts.length === 0" class="text-sm text-muted">

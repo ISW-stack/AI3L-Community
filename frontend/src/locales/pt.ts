@@ -161,6 +161,8 @@ export default {
     toggleMenu: 'Alternar menu',
     sectionAdmin: 'Admin',
     sectionAccount: 'Conta',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
@@ -200,6 +202,7 @@ export default {
       title: 'Tendências desta semana',
       empty: 'Nenhuma publicação em tendência esta semana.',
       fetchError: 'Falha ao carregar publicações em tendência.',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: 'Comunidade',
@@ -285,7 +288,10 @@ export default {
       categoriesTitle: 'Categorias',
       allPosts: 'Todas as Publicações',
       trendingTitle: 'Em alta (7d)',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: 'Links Rápidos',
       home: 'Feed Principal',
@@ -426,6 +432,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: 'Falha ao enviar arquivo.',
     fileTooLarge: 'O arquivo é muito grande. O tamanho máximo é 20 MB.',
     maliciousFile: 'O arquivo enviado foi sinalizado como potencialmente malicioso.',
@@ -672,6 +679,7 @@ export default {
       draftFound: 'Você tem um rascunho não salvo de {time}.',
       draftRestore: 'Restaurar',
       draftDiscard: 'Descartar',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: 'Desktop',
       previewMobile: 'Móvel',
       uploadBannerError: 'Falha ao enviar imagem de capa.',
@@ -717,6 +725,7 @@ export default {
       noAnswer: 'Sem resposta',
       fileUploaded: 'Arquivo enviado',
       backToSig: 'Voltar ao SIG',
+      fieldRequired: 'This field is required.',
       alreadySubmitted: 'Você já enviou uma resposta para este formulário.',
       fileTypeError: 'Tipo de arquivo não permitido. Tipos permitidos: {types}',
       fileSizeError: 'Arquivo muito grande. Tamanho máximo: {max} MB',
@@ -735,6 +744,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: 'Geral',
       social: 'Social',
@@ -832,6 +842,7 @@ export default {
     },
     emptyTitle: 'Tudo em Dia',
     emptyMessage: 'Nenhuma notificação ainda.',
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: 'Todas as notificações foram limpas.',
     deleteError: 'Falha ao limpar notificações.',
     fetchError: 'Falha ao carregar notificações.',
@@ -884,6 +895,7 @@ export default {
       searchPlaceholder: 'Pesquisar por nome de usuário ou nome de exibição...',
       selectedCount: '{count} selecionado(s)',
       bulkApplyRole: 'Aplicar Função',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: 'Limpar',
       table: {
         username: 'Nome de usuário',
@@ -1145,6 +1157,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1157,6 +1173,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1192,6 +1220,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1208,6 +1242,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1217,6 +1261,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──

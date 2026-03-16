@@ -163,6 +163,22 @@ describe('BaseModal', () => {
     })
   })
 
+  describe('viewport-safe max-width', () => {
+    it('should have max-w-[calc(100vw-2rem)] class on the modal panel', () => {
+      mountModal()
+      expect(getPanel()?.classList.contains('max-w-[calc(100vw-2rem)]')).toBe(true)
+    })
+  })
+
+  describe('persistent backdrop click', () => {
+    it('does not close on backdrop click when persistent is true', () => {
+      const w = mountModal({ persistent: true })
+      const overlay = getDialog() as HTMLElement
+      overlay.click()
+      expect(w.emitted('update:modelValue')).toBeFalsy()
+    })
+  })
+
   describe('mobile padding', () => {
     it('should have p-4 class for compact mobile padding', () => {
       mountModal()

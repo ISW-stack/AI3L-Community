@@ -160,6 +160,8 @@ export default {
     toggleMenu: 'تبديل القائمة',
     sectionAdmin: 'الإدارة',
     sectionAccount: 'الحساب',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
@@ -199,6 +201,7 @@ export default {
       title: 'الرائج هذا الأسبوع',
       empty: 'لا توجد مشاركات رائجة هذا الأسبوع.',
       fetchError: 'فشل في تحميل المنشورات الرائجة.',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: 'المجتمع',
@@ -284,7 +287,10 @@ export default {
       categoriesTitle: 'الفئات',
       allPosts: 'جميع المشاركات',
       trendingTitle: 'الرائج (7 أيام)',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: 'روابط سريعة',
       home: 'الصفحة الرئيسية',
@@ -425,6 +431,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: 'فشل تحميل الملف.',
     fileTooLarge: 'الملف كبير جدًا. الحد الأقصى 20 ميجابايت.',
     maliciousFile: 'تم تصنيف الملف المُحمَّل كضار محتمل.',
@@ -668,6 +675,7 @@ export default {
       draftFound: 'لديك مسودة غير محفوظة من {time}.',
       draftRestore: 'استعادة',
       draftDiscard: 'تجاهل',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: 'سطح المكتب',
       previewMobile: 'الجوال',
       uploadBannerError: 'فشل تحميل صورة الغلاف.',
@@ -717,6 +725,7 @@ export default {
       noAnswer: 'لا إجابة',
       fileUploaded: 'تم رفع الملف',
       backToSig: 'العودة إلى المجموعة',
+      fieldRequired: 'This field is required.',
     },
   },
 
@@ -731,6 +740,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: 'عام',
       social: 'Social',
@@ -827,6 +837,7 @@ export default {
     },
     emptyTitle: 'لا توجد إشعارات جديدة',
     emptyMessage: 'لا توجد إشعارات بعد.',
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: 'تم مسح جميع الإشعارات.',
     deleteError: 'فشل مسح الإشعارات.',
     fetchError: 'فشل في تحميل الإشعارات.',
@@ -879,6 +890,7 @@ export default {
       searchPlaceholder: 'ابحث باسم المستخدم أو الاسم المعروض...',
       selectedCount: '{count} محدد',
       bulkApplyRole: 'تطبيق الدور',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: 'مسح',
       table: {
         username: 'اسم المستخدم',
@@ -1139,6 +1151,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1151,6 +1167,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1186,6 +1214,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1202,6 +1236,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1211,6 +1255,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──

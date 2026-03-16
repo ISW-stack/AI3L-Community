@@ -532,7 +532,8 @@ describe('useFormBuilder', () => {
       expect(h.showDraftBanner.value).toBe(false)
     })
 
-    it('discardDraft clears localStorage and hides banner', () => {
+    it('discardDraft clears localStorage and hides banner when confirmed', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
       localStorage.setItem(
         'form-draft-sig-1',
         JSON.stringify({ title: 'x', savedAt: new Date().toISOString() }),
@@ -542,6 +543,21 @@ describe('useFormBuilder', () => {
       h.discardDraft()
       expect(h.showDraftBanner.value).toBe(false)
       expect(localStorage.getItem('form-draft-sig-1')).toBeNull()
+      vi.restoreAllMocks()
+    })
+
+    it('discardDraft does nothing when confirmation is declined', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(false)
+      localStorage.setItem(
+        'form-draft-sig-1',
+        JSON.stringify({ title: 'x', savedAt: new Date().toISOString() }),
+      )
+      const h = createHarness()
+      h.showDraftBanner.value = true
+      h.discardDraft()
+      expect(h.showDraftBanner.value).toBe(true)
+      expect(localStorage.getItem('form-draft-sig-1')).not.toBeNull()
+      vi.restoreAllMocks()
     })
   })
 

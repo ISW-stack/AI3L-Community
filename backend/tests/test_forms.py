@@ -609,12 +609,13 @@ class TestExportRateLimit:
             _clear_overrides()
 
 
-class TestSchemaLockingSilentDrop:
-    """Bug 3.5 — locked form silently drops questions instead of error."""
+class TestSchemaLockingRejectsQuestions:
+    """Bug 3.5 — locked form rejects question modifications with an error."""
 
     @pytest.mark.anyio
-    async def test_locked_form_silently_drops_questions(self, mock_pool, mock_conn):
-        """update_form on locked form ignores questions, updates title only."""
+    async def test_locked_form_rejects_question_update(self, mock_pool, mock_conn):
+        """update_form on locked form raises AppError when questions are passed."""
+        from app.core.errors import AppError
         from app.services.form import update_form
 
         form_id = uuid.uuid4()
@@ -637,24 +638,21 @@ class TestSchemaLockingSilentDrop:
             "created_at": now,
             "updated_at": now,
         }
-        updated_row = dict(form_row)
-        updated_row["title"] = "New Title"
-        creator_row = {"display_name": "Test User"}
 
-        mock_conn.fetchrow = AsyncMock(side_effect=[form_row, updated_row, creator_row])
-        mock_conn.fetchval = AsyncMock(return_value=2)
+        mock_conn.fetchrow = AsyncMock(return_value=form_row)
 
         with patch(f"{_SVC}.get_pool", return_value=mock_pool):
-            # This should NOT raise, even though we pass questions
-            result = await update_form(
-                form_id=form_id,
-                user_id=str(creator_id),
-                is_admin=False,
-                title="New Title",
-                questions=[{"id": "q_new", "type": "text", "label": "New Q"}],
-            )
+            with pytest.raises(AppError) as exc_info:
+                await update_form(
+                    form_id=form_id,
+                    user_id=str(creator_id),
+                    is_admin=False,
+                    title="New Title",
+                    questions=[{"id": "q_new", "type": "text", "label": "New Q"}],
+                )
 
-        assert result is not None
+        assert exc_info.value.status_code == 400
+        assert "locked" in str(exc_info.value.detail).lower()
 
 
 class TestDescriptionMaxLength:

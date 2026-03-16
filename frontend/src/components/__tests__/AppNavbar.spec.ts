@@ -386,6 +386,39 @@ describe('AppNavbar', () => {
 
   // ---------- AI3L Community brand ----------
 
+  // ---------- i18n: dropdown close buttons ----------
+
+  describe('dropdown close buttons', () => {
+    it('renders close button in admin dropdown', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('ADMIN', 3600)
+      await nextTick()
+
+      const adminBtn = wrapper.find('.admin-dropdown-wrapper button')
+      await adminBtn.trigger('click')
+      await nextTick()
+
+      // Should have a close button with X icon
+      const closeBtn = wrapper.find('.admin-dropdown-wrapper button[aria-label="Close dropdown"]')
+      expect(closeBtn.exists()).toBe(true)
+    })
+
+    it('renders close button in user dropdown', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      await userBtn.trigger('click')
+      await nextTick()
+
+      const closeBtn = wrapper.find('.user-dropdown-wrapper button[aria-label="Close dropdown"]')
+      expect(closeBtn.exists()).toBe(true)
+    })
+  })
+
+  // ---------- AI3L Community brand ----------
+
   describe('branding', () => {
     it('should display AI3L text', () => {
       const { wrapper } = mountNavbar()

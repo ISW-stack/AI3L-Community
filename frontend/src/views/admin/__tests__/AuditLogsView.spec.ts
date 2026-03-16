@@ -254,6 +254,60 @@ describe('AuditLogsView', () => {
     expect(wrapper.text().length).toBeGreaterThan(0)
   })
 
+  it('shows visible date range error message text when from > to', async () => {
+    const wrapper = await mountAuditLogs()
+
+    // Open filters
+    const toggleBtn = wrapper.find('button')
+    await toggleBtn.trigger('click')
+    await nextTick()
+
+    // Set invalid date range
+    const dateInputs = wrapper.findAll('input[type="date"]')
+    await dateInputs[0].setValue('2026-02-01')
+    await dateInputs[1].setValue('2026-01-01')
+    await nextTick()
+
+    // The error message with text-danger-600 should be visible
+    const errorP = wrapper.find('p.text-danger-600')
+    expect(errorP.exists()).toBe(true)
+    expect(errorP.text()).toContain('Start date must be before end date')
+  })
+
+  it('does not show date range error when range is valid', async () => {
+    const wrapper = await mountAuditLogs()
+
+    // Open filters
+    const toggleBtn = wrapper.find('button')
+    await toggleBtn.trigger('click')
+    await nextTick()
+
+    // Set valid date range
+    const dateInputs = wrapper.findAll('input[type="date"]')
+    await dateInputs[0].setValue('2026-01-01')
+    await dateInputs[1].setValue('2026-02-01')
+    await nextTick()
+
+    // No error message
+    const errorP = wrapper.find('p.text-danger-600')
+    expect(errorP.exists()).toBe(false)
+  })
+
+  it('uses md: breakpoint for filter bar layout', async () => {
+    const wrapper = await mountAuditLogs()
+
+    // Open filters
+    const toggleBtn = wrapper.find('button')
+    await toggleBtn.trigger('click')
+    await nextTick()
+
+    // Find the filter container with flex-col
+    const filterRow = wrapper.find('.flex.flex-col')
+    expect(filterRow.exists()).toBe(true)
+    expect(filterRow.classes()).toContain('md:flex-row')
+    expect(filterRow.classes()).not.toContain('sm:flex-row')
+  })
+
   it('clears filters and re-fetches', async () => {
     const wrapper = await mountAuditLogs()
 

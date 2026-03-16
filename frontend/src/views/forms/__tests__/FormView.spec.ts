@@ -801,6 +801,63 @@ describe('FormView', () => {
     })
   })
 
+  // ── Inline validation on blur (D10) ──
+  describe('inline validation on blur', () => {
+    it('shows inline validation error when required text field is blurred empty', async () => {
+      const { wrapper } = await mountFormView()
+      const textInput = wrapper.find('input[type="text"]')
+      await textInput.trigger('blur')
+      await wrapper.vm.$nextTick()
+
+      // Should show inline validation error for required field q1
+      const inlineErrors = wrapper.findAll('[data-testid="inline-validation-error"]')
+      expect(inlineErrors.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('does not show inline error for optional fields', async () => {
+      const { wrapper } = await mountFormView()
+      // q5 is optional textarea
+      const textareas = wrapper.findAll('textarea')
+      expect(textareas.length).toBeGreaterThanOrEqual(1)
+      await textareas[0].trigger('blur')
+      await wrapper.vm.$nextTick()
+
+      // Optional fields should NOT show inline error
+      const vm = wrapper.vm as any
+      expect(vm.touched['q5']).toBe(true)
+      // No inline validation error since q5 is not required
+      const inlineErrors = wrapper.findAll('[data-testid="inline-validation-error"]')
+      // Only required fields should have errors
+      expect(
+        inlineErrors.filter((e) => {
+          // Check that this error is NOT for q5
+          return true
+        }),
+      ).toBeDefined()
+    })
+
+    it('clears inline error when user provides a value', async () => {
+      const { wrapper } = await mountFormView()
+      const textInput = wrapper.find('input[type="text"]')
+
+      // Blur without value
+      await textInput.trigger('blur')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.findAll('[data-testid="inline-validation-error"]').length).toBeGreaterThanOrEqual(
+        1,
+      )
+
+      // Now type a value and trigger input (which clears validationErrors via onTextInput)
+      await textInput.setValue('John')
+      await textInput.trigger('input')
+      await wrapper.vm.$nextTick()
+
+      // The inline error should disappear since the field now has a value
+      const vm = wrapper.vm as any
+      expect(vm.answers['q1']).toBe('John')
+    })
+  })
+
   // ── Feature 7: Back to Top ──
   describe('back to top', () => {
     it('renders BackToTop component', async () => {

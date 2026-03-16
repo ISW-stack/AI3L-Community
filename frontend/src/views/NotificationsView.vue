@@ -110,6 +110,10 @@ async function handleDeleteNotification(id: string) {
 }
 
 async function handleClearAll() {
+  const confirmed = window.confirm(
+    t('notifications.confirmClearAll', { count: notifications.value.length }),
+  )
+  if (!confirmed) return
   try {
     await bulkDeleteNotifications()
     notifications.value = []

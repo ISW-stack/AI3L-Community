@@ -106,6 +106,33 @@ describe('BaseBreadcrumb', () => {
     })
   })
 
+  describe('aria-current', () => {
+    it('should have aria-current="page" on the last breadcrumb item', () => {
+      const wrapper = mountBreadcrumb([
+        { label: 'Home', to: '/' },
+        { label: 'Admin', to: '/admin' },
+        { label: 'Users' },
+      ])
+
+      const spans = wrapper.findAll('span')
+      const lastSpan = spans.filter((s) => s.text() === 'Users')
+      expect(lastSpan.length).toBeGreaterThan(0)
+      expect(lastSpan[0].attributes('aria-current')).toBe('page')
+    })
+
+    it('should not have aria-current on non-last items', () => {
+      const wrapper = mountBreadcrumb([
+        { label: 'Home', to: '/' },
+        { label: 'Users' },
+      ])
+
+      const links = wrapper.findAll('a')
+      for (const link of links) {
+        expect(link.attributes('aria-current')).toBeUndefined()
+      }
+    })
+  })
+
   describe('styling', () => {
     it('should have mb-4 class for bottom margin', () => {
       const wrapper = mountBreadcrumb([{ label: 'Home', to: '/' }])

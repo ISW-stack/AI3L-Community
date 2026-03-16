@@ -107,14 +107,66 @@ async def soft_delete(sig_id: uuid.UUID) -> bool:
             )
             if result != "UPDATE 1":
                 return False
+
+            # Delete co-authors on SIG posts
+            await conn.execute(
+                "DELETE FROM post_co_authors WHERE post_id IN "
+                "(SELECT id FROM posts WHERE sig_id = $1)",
+                sig_id,
+            )
+
+            # Delete notifications referencing SIG posts
+            await conn.execute(
+                "DELETE FROM notifications WHERE entity_type = 'POST' AND entity_id IN "
+                "(SELECT id FROM posts WHERE sig_id = $1)",
+                sig_id,
+            )
+
+            # Delete form responses before forms
+            await conn.execute(
+                "DELETE FROM form_responses WHERE form_id IN "
+                "(SELECT id FROM forms WHERE sig_id = $1)",
+                sig_id,
+            )
+
+            # Delete citations referencing SIG posts
+            await conn.execute(
+                "DELETE FROM post_citations WHERE citing_post_id IN "
+                "(SELECT id FROM posts WHERE sig_id = $1) "
+                "OR cited_post_id IN "
+                "(SELECT id FROM posts WHERE sig_id = $1)",
+                sig_id,
+            )
+
+            # Delete comment votes on comments of SIG posts
+            await conn.execute(
+                "DELETE FROM comment_votes WHERE comment_id IN "
+                "(SELECT id FROM comments WHERE post_id IN "
+                "(SELECT id FROM posts WHERE sig_id = $1))",
+                sig_id,
+            )
+
+            # Soft-delete comments on SIG posts
+            await conn.execute(
+                "UPDATE comments SET is_deleted = true, updated_at = NOW() "
+                "WHERE post_id IN (SELECT id FROM posts WHERE sig_id = $1) "
+                "AND is_deleted = false",
+                sig_id,
+            )
+
+            # Soft-delete posts
             await conn.execute(
                 "UPDATE posts SET is_deleted = true, updated_at = NOW() WHERE sig_id = $1 AND is_deleted = false",  # noqa: E501
                 sig_id,
             )
+
+            # Soft-delete forms
             await conn.execute(
                 "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE sig_id = $1 AND is_deleted = false",  # noqa: E501
                 sig_id,
             )
+
+            # Delete SIG members
             await conn.execute(
                 "DELETE FROM sig_members WHERE sig_id = $1",
                 sig_id,

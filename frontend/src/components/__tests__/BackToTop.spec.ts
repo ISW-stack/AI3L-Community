@@ -100,4 +100,32 @@ describe('BackToTop', () => {
     wrapper.unmount()
     expect(removeEventSpy).toHaveBeenCalledWith('scroll', expect.any(Function))
   })
+
+  describe('safe area inset support (M12)', () => {
+    it('uses back-to-top-btn class for safe area positioning', async () => {
+      scrollY = 500
+      const wrapper = mount(BackToTop, {
+        global: { plugins: [createPinia()] },
+      })
+      window.dispatchEvent(new Event('scroll'))
+      await wrapper.vm.$nextTick()
+
+      const btn = wrapper.find('button')
+      expect(btn.classes()).toContain('back-to-top-btn')
+    })
+
+    it('does not use inline bottom-8 right-8 positioning', async () => {
+      scrollY = 500
+      const wrapper = mount(BackToTop, {
+        global: { plugins: [createPinia()] },
+      })
+      window.dispatchEvent(new Event('scroll'))
+      await wrapper.vm.$nextTick()
+
+      const btn = wrapper.find('button')
+      // Should not have hardcoded bottom/right classes since CSS handles it
+      expect(btn.classes()).not.toContain('bottom-8')
+      expect(btn.classes()).not.toContain('right-8')
+    })
+  })
 })

@@ -51,7 +51,7 @@ const initial = computed(() => (props.name ? props.name.charAt(0).toUpperCase() 
     <img
       v-if="src && !imgFailed"
       :src="src"
-      :alt="name"
+      :alt="`${name}'s avatar`"
       loading="lazy"
       :width="sizePx"
       :height="sizePx"

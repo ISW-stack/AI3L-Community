@@ -56,4 +56,18 @@ describe('BaseTable', () => {
     expect(wrapper.text()).toContain('Nothing here')
     expect(wrapper.text()).not.toContain('No data')
   })
+
+  it('has a scrollable container with overflow-x-auto for mobile', () => {
+    const wrapper = mountTable()
+    const scrollContainer = wrapper.find('.table-scroll-container')
+    expect(scrollContainer.exists()).toBe(true)
+    expect(scrollContainer.classes()).toContain('overflow-x-auto')
+  })
+
+  it('has a scroll hint gradient visible on mobile', () => {
+    const wrapper = mountTable()
+    const scrollHint = wrapper.find('.scroll-hint')
+    expect(scrollHint.exists()).toBe(true)
+    expect(scrollHint.classes()).toContain('md:hidden')
+  })
 })

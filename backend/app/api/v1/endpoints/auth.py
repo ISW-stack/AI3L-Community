@@ -1,6 +1,7 @@
 import secrets
 
 from fastapi import APIRouter, Depends, Request, Response, status
+from loguru import logger
 
 from app.core.config import settings
 from app.core.constants import (
@@ -178,7 +179,10 @@ async def login_as_guest(
 async def logout(
     request: Request, response: Response, current_user: dict = Depends(get_current_user)
 ) -> MessageResponse:
-    ip = request.client.host if request.client else None
+    ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else None)
+    )
 
     await destroy_session(
         user_id=current_user["sub"],
@@ -191,6 +195,11 @@ async def logout(
         await decrement_guest_counter()
         if ip:
             await decrement_guest_ip_counter(ip)
+        else:
+            logger.warning(
+                "Guest logout with no IP address — per-IP counter not decremented",
+                extra={"user_id": current_user["sub"]},
+            )
 
     _clear_auth_cookies(response)
 

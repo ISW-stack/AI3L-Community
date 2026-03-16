@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
@@ -14,6 +15,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const toast = useToastStore()
 const { album, userAlbumRole } = useAlbumLayout()
@@ -143,7 +145,7 @@ watch(page, fetchComments)
 
 <template>
   <div>
-    <h2 class="text-lg font-semibold text-foreground mb-4">Comments</h2>
+    <h2 class="text-lg font-semibold text-foreground mb-4">{{ t('albums.comments') }}</h2>
 
     <!-- New comment form -->
     <div v-if="canComment" class="mb-6">
@@ -154,12 +156,12 @@ watch(page, fetchComments)
             <textarea
               v-model="newComment"
               rows="2"
-              placeholder="Write a comment..."
+              :placeholder="t('albums.commentPlaceholder')"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
             ></textarea>
             <div class="flex justify-end mt-2">
               <BaseButton size="sm" :loading="submitting" :disabled="!newComment.trim()" @click="handleSubmitComment">
-                Post Comment
+                {{ t('albums.postComment') }}
               </BaseButton>
             </div>
           </div>
@@ -171,8 +173,8 @@ watch(page, fetchComments)
 
     <EmptyState
       v-else-if="topLevelComments.length === 0"
-      title="No comments yet"
-      message="Be the first to leave a comment."
+      :title="t('albums.noCommentsTitle')"
+      :message="t('albums.noCommentsMessage')"
     />
 
     <template v-else>
@@ -194,7 +196,7 @@ watch(page, fetchComments)
                   class="text-xs text-muted hover:text-brand-600"
                   @click="startReply(comment.id)"
                 >
-                  Reply
+                  {{ t('albums.reply') }}
                 </button>
                 <button
                   v-if="canDeleteComment(comment)"
@@ -202,7 +204,7 @@ watch(page, fetchComments)
                   class="text-xs text-muted hover:text-danger-600"
                   @click="handleDelete(comment.id)"
                 >
-                  Delete
+                  {{ t('common.delete') }}
                 </button>
               </div>
             </div>
@@ -213,13 +215,13 @@ watch(page, fetchComments)
             <textarea
               v-model="replyContent"
               rows="2"
-              placeholder="Write a reply..."
+              :placeholder="t('albums.replyPlaceholder')"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
             ></textarea>
             <div class="flex justify-end gap-2 mt-2">
-              <BaseButton size="sm" variant="secondary" @click="cancelReply">Cancel</BaseButton>
+              <BaseButton size="sm" variant="secondary" @click="cancelReply">{{ t('common.cancel') }}</BaseButton>
               <BaseButton size="sm" :loading="submitting" :disabled="!replyContent.trim()" @click="handleSubmitReply">
-                Reply
+                {{ t('albums.reply') }}
               </BaseButton>
             </div>
           </div>
@@ -240,7 +242,7 @@ watch(page, fetchComments)
                   class="text-xs text-muted hover:text-danger-600 mt-1"
                   @click="handleDelete(reply.id)"
                 >
-                  Delete
+                  {{ t('common.delete') }}
                 </button>
               </div>
             </div>

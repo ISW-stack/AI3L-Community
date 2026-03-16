@@ -244,13 +244,28 @@ describe('NotificationsView', () => {
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
-  it('clears all notifications', async () => {
+  it('clears all notifications after confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const { wrapper } = await mountNotifications()
     const clearBtn = wrapper.findAll('button').find((b) => b.text().includes('Clear All'))
     expect(clearBtn).toBeTruthy()
     await clearBtn!.trigger('click')
     await flushPromises()
+    expect(window.confirm).toHaveBeenCalled()
     expect(mockBulkDeleteNotifications).toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+
+  it('does not clear notifications when confirmation is declined', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const { wrapper } = await mountNotifications()
+    const clearBtn = wrapper.findAll('button').find((b) => b.text().includes('Clear All'))
+    expect(clearBtn).toBeTruthy()
+    await clearBtn!.trigger('click')
+    await flushPromises()
+    expect(window.confirm).toHaveBeenCalled()
+    expect(mockBulkDeleteNotifications).not.toHaveBeenCalled()
+    vi.restoreAllMocks()
   })
 
   it('passes unread param to API when unread filter is active', async () => {

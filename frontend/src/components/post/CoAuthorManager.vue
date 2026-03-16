@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { CoAuthor } from '@/types/coauthor'
 import {
   listCoAuthors,
@@ -17,6 +18,7 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import { UserPlus, X, Users } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const MAX_CO_AUTHORS = 10
 
 const props = defineProps<{
@@ -177,7 +179,7 @@ onMounted(fetchCoAuthors)
         <button
           type="button"
           class="p-1 text-muted hover:text-danger-600 transition"
-          aria-label="Remove co-author"
+          :aria-label="t('coauthors.removeAriaLabel')"
           @click="handleRemove(ca.id)"
         >
           <X class="w-3.5 h-3.5" />
@@ -189,12 +191,12 @@ onMounted(fetchCoAuthors)
 
     <!-- Invite internal user -->
     <div v-if="canAddMore" class="space-y-2">
-      <label class="block text-xs font-medium text-muted">Search and invite a user</label>
+      <label class="block text-xs font-medium text-muted">{{ t('coauthors.searchLabel') }}</label>
       <div class="relative">
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search by name..."
+          :placeholder="t('coauthors.searchPlaceholder')"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
           @input="onSearchInput"
         />
@@ -225,24 +227,24 @@ onMounted(fetchCoAuthors)
         class="text-sm text-brand-600 hover:text-brand-700 hover:underline"
         @click="toggleExternalForm"
       >
-        {{ showExternalForm ? 'Cancel' : '+ Add external co-author' }}
+        {{ showExternalForm ? t('common.cancel') : t('coauthors.addExternalCoAuthor') }}
       </button>
 
       <div v-if="showExternalForm" class="mt-2 space-y-2 p-3 border border-border rounded-lg">
         <BaseInput
           v-model="externalName"
-          label="Name"
-          placeholder="Full name"
+          :label="t('coauthors.name')"
+          :placeholder="t('coauthors.fullNamePlaceholder')"
           required
         />
         <BaseInput
           v-model="externalAffiliation"
-          label="Affiliation"
-          placeholder="University or organization"
+          :label="t('coauthors.affiliation')"
+          :placeholder="t('coauthors.affiliationPlaceholder')"
         />
         <BaseInput
           v-model="externalOrcid"
-          label="ORCID"
+          :label="t('coauthors.orcid')"
           placeholder="0000-0000-0000-0000"
         />
         <BaseButton
@@ -251,7 +253,7 @@ onMounted(fetchCoAuthors)
           :disabled="!externalName.trim()"
           @click="handleAddExternal"
         >
-          Add External Co-Author
+          {{ t('coauthors.addExternalBtn') }}
         </BaseButton>
       </div>
     </div>

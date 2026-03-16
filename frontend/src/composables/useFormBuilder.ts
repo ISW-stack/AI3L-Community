@@ -325,6 +325,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   }
 
   function discardDraft(): void {
+    if (!window.confirm(t('forms.builder.confirmDiscard'))) return
     draft.discardDraft()
     showDraftBanner.value = false
   }

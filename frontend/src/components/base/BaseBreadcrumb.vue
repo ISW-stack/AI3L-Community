@@ -22,7 +22,11 @@ defineProps<{
       >
         {{ item.label }}
       </router-link>
-      <span v-else class="text-muted">{{ item.label }}</span>
+      <span
+        v-else
+        class="text-muted"
+        :aria-current="index === items.length - 1 ? 'page' : undefined"
+      >{{ item.label }}</span>
     </template>
   </nav>
 </template>

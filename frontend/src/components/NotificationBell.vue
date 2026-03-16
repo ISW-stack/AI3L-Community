@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { Notification } from '@/types'
@@ -12,6 +12,7 @@ const { t } = useI18n()
 const router = useRouter()
 const notifStore = useNotificationStore()
 const dropdownOpen = ref(false)
+const avatarFailed = reactive<Record<string, boolean>>({})
 
 const { handleDropdownKeydown } = useDropdownKeyNav({
   isOpen: dropdownOpen,
@@ -134,11 +135,16 @@ onUnmounted(() => {
             class="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
           >
             <img
-              v-if="notif.trigger_user?.avatar_url"
+              v-if="notif.trigger_user?.avatar_url && !avatarFailed[notif.id]"
               :src="notif.trigger_user.avatar_url"
               class="w-8 h-8 rounded-full object-cover"
-              alt=""
+              :alt="`${notif.trigger_user.display_name}'s avatar`"
+              @error="avatarFailed[notif.id] = true"
             />
+            <span
+              v-else-if="notif.trigger_user?.display_name && (!notif.trigger_user.avatar_url || avatarFailed[notif.id])"
+              class="text-xs font-semibold text-muted"
+            >{{ notif.trigger_user.display_name.charAt(0).toUpperCase() }}</span>
             <Settings
               v-else-if="notif.action_type === 'SYSTEM'"
               class="w-4 h-4 text-muted"

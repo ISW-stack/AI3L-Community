@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
@@ -85,6 +85,15 @@ function handleStartExport() {
     failed: t('forms.view.exportFailed'),
     error: t('forms.view.exportError'),
   })
+}
+
+const touched = reactive<Record<string, boolean>>({})
+
+function handleBlur(questionId: string, required: boolean | undefined) {
+  touched[questionId] = true
+  if (required && !answers[questionId]) {
+    validationErrors[questionId] = t('forms.view.fieldRequired')
+  }
 }
 
 onMounted(() => loadForm())
@@ -294,6 +303,7 @@ onMounted(() => loadForm())
             :aria-required="q.required"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
             @input="onTextInput(q.id)"
+            @blur="handleBlur(q.id, q.required)"
           />
 
           <!-- Textarea -->
@@ -306,6 +316,7 @@ onMounted(() => loadForm())
             :aria-required="q.required"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
             @input="onTextInput(q.id)"
+            @blur="handleBlur(q.id, q.required)"
           ></textarea>
 
           <!-- Single Choice -->
@@ -350,6 +361,7 @@ onMounted(() => loadForm())
             :aria-required="q.required"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
             @change="onSelectChange(q.id)"
+            @blur="handleBlur(q.id, q.required)"
           >
             <option value="">{{ t('forms.view.selectOptionPlaceholder') }}</option>
             <option v-for="opt in q.options" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
@@ -508,6 +520,14 @@ onMounted(() => loadForm())
           <!-- Feature 2: Per-question validation error -->
           <p v-if="validationErrors[q.id]" class="text-xs text-danger-600 mt-1" role="alert">
             {{ validationErrors[q.id] }}
+          </p>
+          <!-- Inline validation on blur for required fields -->
+          <p
+            v-else-if="touched[q.id] && q.required && !answers[q.id]"
+            class="text-sm text-danger-600 mt-1"
+            data-testid="inline-validation-error"
+          >
+            {{ t('forms.view.fieldRequired') }}
           </p>
         </BaseCard>
 

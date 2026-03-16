@@ -147,6 +147,8 @@ export default {
     toggleMenu: '切換選單',
     sectionAdmin: '管理',
     sectionAccount: '帳號',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
   footer: {
     copyright: '© 2025 AI3L 社群。保留所有權利。',
@@ -182,6 +184,7 @@ export default {
       title: '本週熱門',
       empty: '本週沒有熱門文章。',
       fetchError: '載入熱門文章失敗。',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: '社群',
@@ -264,7 +267,10 @@ export default {
       categoriesTitle: '分類',
       allPosts: '所有文章',
       trendingTitle: '熱門 (7天)',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: '快速連結',
       home: '首頁動態',
@@ -399,6 +405,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: '檔案上傳失敗。',
     fileTooLarge: '檔案太大。最大上限為 20 MB。',
     maliciousFile: '上傳的檔案被標記為潛在惡意檔案。',
@@ -632,6 +639,7 @@ export default {
       draftFound: '您有一份來自 {time} 的未儲存草稿。',
       draftRestore: '恢復',
       draftDiscard: '捨棄',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: '桌面版',
       previewMobile: '行動版',
       uploadBannerError: '橫幅圖片上傳失敗。',
@@ -681,6 +689,7 @@ export default {
       noAnswer: '未回答',
       fileUploaded: '已上傳檔案',
       backToSig: '返回 SIG',
+      fieldRequired: 'This field is required.',
     },
   },
   profile: {
@@ -693,6 +702,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: '一般',
       social: 'Social',
@@ -784,6 +794,7 @@ export default {
     },
     emptyTitle: '全部看完了',
     emptyMessage: '尚無通知。',
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: '所有通知已清除。',
     deleteError: '清除通知失敗。',
     fetchError: '載入通知失敗。',
@@ -832,6 +843,7 @@ export default {
       searchPlaceholder: '搜尋使用者名稱或顯示名稱...',
       selectedCount: '已選 {count} 項',
       bulkApplyRole: '套用角色',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: '清除',
       table: {
         username: '使用者名稱',
@@ -1090,6 +1102,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1102,6 +1118,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1137,6 +1165,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1153,6 +1187,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1162,6 +1206,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──

@@ -160,6 +160,8 @@ export default {
     toggleMenu: 'メニューを切り替え',
     sectionAdmin: '管理',
     sectionAccount: 'アカウント',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
@@ -199,6 +201,7 @@ export default {
       title: '今週のトレンド',
       empty: '今週のトレンド投稿はありません。',
       fetchError: 'トレンド投稿の読み込みに失敗しました。',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: 'コミュニティ',
@@ -284,7 +287,10 @@ export default {
       categoriesTitle: 'カテゴリ',
       allPosts: 'すべての投稿',
       trendingTitle: 'トレンド（7日間）',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: 'クイックリンク',
       home: 'ホームフィード',
@@ -425,6 +431,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: 'ファイルのアップロードに失敗しました。',
     fileTooLarge: 'ファイルが大きすぎます。最大サイズは 20 MB です。',
     maliciousFile: 'アップロードされたファイルが潜在的に悪意のあるものとして検出されました。',
@@ -668,6 +675,7 @@ export default {
       draftFound: '{time} の未保存の下書きがあります。',
       draftRestore: '復元',
       draftDiscard: '破棄',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: 'デスクトップ',
       previewMobile: 'モバイル',
       uploadBannerError: 'バナー画像のアップロードに失敗しました。',
@@ -717,6 +725,7 @@ export default {
       noAnswer: '未回答',
       fileUploaded: 'ファイルアップロード済み',
       backToSig: 'SIG に戻る',
+      fieldRequired: 'This field is required.',
     },
   },
 
@@ -731,6 +740,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: '一般',
       social: 'Social',
@@ -827,6 +837,7 @@ export default {
     },
     emptyTitle: 'すべて確認済み',
     emptyMessage: 'まだ通知はありません。',
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: 'すべての通知がクリアされました。',
     deleteError: '通知のクリアに失敗しました。',
     fetchError: '通知の読み込みに失敗しました。',
@@ -879,6 +890,7 @@ export default {
       searchPlaceholder: 'ユーザー名または表示名で検索...',
       selectedCount: '{count} 件選択中',
       bulkApplyRole: '役割を適用',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: 'クリア',
       table: {
         username: 'ユーザー名',
@@ -1140,6 +1152,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1152,6 +1168,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1187,6 +1215,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1203,6 +1237,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1212,6 +1256,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──

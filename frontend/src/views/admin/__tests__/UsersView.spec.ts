@@ -529,7 +529,8 @@ describe('UsersView', () => {
     expect(bulkSelect.length).toBeGreaterThan(0)
   })
 
-  it('calls bulk role API when bulk apply is clicked', async () => {
+  it('calls bulk role API when bulk apply is clicked and confirmed', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
     mockApiPut.mockResolvedValue({ data: { updated_count: 1 } })
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
 
@@ -550,12 +551,42 @@ describe('UsersView', () => {
           await btn.trigger('click')
           await flushPromises()
           if (mockApiPut.mock.calls.length > 0) {
+            expect(window.confirm).toHaveBeenCalled()
             expect(mockApiPut).toHaveBeenCalledWith('/users/bulk-role', expect.any(Object))
             break
           }
         }
       }
     }
+    vi.restoreAllMocks()
+  })
+
+  it('does not call bulk role API when confirmation is declined', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
+
+    const { wrapper } = await mountUsers()
+
+    // Select a user checkbox
+    const checkboxes = wrapper.findAll('input[type="checkbox"]')
+    if (checkboxes.length > 1) {
+      await checkboxes[1].setValue(true)
+      await checkboxes[1].trigger('change')
+      await nextTick()
+
+      // Find and click bulk apply button
+      const bulkButtons = wrapper.findAll('button')
+      for (const btn of bulkButtons) {
+        const text = btn.text()
+        if (text && btn.attributes('disabled') === undefined) {
+          await btn.trigger('click')
+          await flushPromises()
+          // Since confirm returned false, API should NOT be called
+        }
+      }
+      expect(mockApiPut).not.toHaveBeenCalled()
+    }
+    vi.restoreAllMocks()
   })
 
   it('uses updated_count from bulk role API response in toast', async () => {

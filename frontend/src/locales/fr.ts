@@ -161,6 +161,8 @@ export default {
     toggleMenu: 'Basculer le menu',
     sectionAdmin: 'Administration',
     sectionAccount: 'Compte',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
@@ -201,6 +203,7 @@ export default {
       title: 'Tendances cette semaine',
       empty: 'Aucune publication tendance cette semaine.',
       fetchError: 'Échec du chargement des publications tendances.',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: 'Communauté',
@@ -290,7 +293,10 @@ export default {
       categoriesTitle: 'Catégories',
       allPosts: 'Toutes les publications',
       trendingTitle: 'Tendances (7j)',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: 'Liens rapides',
       home: "Fil d'accueil",
@@ -432,6 +438,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: 'Échec du téléchargement du fichier.',
     fileTooLarge: 'Le fichier est trop volumineux. La taille maximale est de 20 Mo.',
     maliciousFile: 'Le fichier téléchargé a été signalé comme potentiellement malveillant.',
@@ -678,6 +685,7 @@ export default {
       draftFound: 'Vous avez un brouillon non enregistré de {time}.',
       draftRestore: 'Restaurer',
       draftDiscard: 'Supprimer',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: 'Bureau',
       previewMobile: 'Mobile',
       uploadBannerError: "Échec du téléchargement de l'image de bannière.",
@@ -727,6 +735,7 @@ export default {
       noAnswer: 'Pas de réponse',
       fileUploaded: 'Fichier téléchargé',
       backToSig: 'Retour au GIS',
+      fieldRequired: 'This field is required.',
     },
   },
 
@@ -741,6 +750,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: 'Général',
       social: 'Social',
@@ -839,6 +849,7 @@ export default {
     },
     emptyTitle: 'Tout est à jour',
     emptyMessage: "Aucune notification pour l'instant.",
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: 'Toutes les notifications ont été effacées.',
     deleteError: 'Échec de la suppression des notifications.',
     fetchError: 'Échec du chargement des notifications.',
@@ -891,6 +902,7 @@ export default {
       searchPlaceholder: "Rechercher par nom d'utilisateur ou nom d'affichage...",
       selectedCount: '{count} sélectionné(s)',
       bulkApplyRole: 'Appliquer le rôle',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: 'Effacer',
       table: {
         username: "Nom d'utilisateur",
@@ -1152,6 +1164,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1164,6 +1180,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1199,6 +1227,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1215,6 +1249,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1224,6 +1268,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──

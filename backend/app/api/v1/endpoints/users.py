@@ -240,7 +240,7 @@ async def get_my_co_author_invitations(
     from app.services.co_author import list_pending_invitations
 
     invitations, total = await list_pending_invitations(
-        pool=None, user_id=current_user["sub"], page=page, page_size=page_size
+        user_id=current_user["sub"], page=page, page_size=page_size
     )
     return {"invitations": invitations, "total": total}
 
@@ -254,7 +254,7 @@ async def accept_co_author_invitation(
     from app.services.co_author import respond_to_invitation
 
     await respond_to_invitation(
-        pool=None, co_author_id=invitation_id, user_id=current_user["sub"], accept=True
+        co_author_id=invitation_id, user_id=current_user["sub"], accept=True
     )
     return {"message": "Invitation accepted."}
 
@@ -268,7 +268,7 @@ async def reject_co_author_invitation(
     from app.services.co_author import respond_to_invitation
 
     await respond_to_invitation(
-        pool=None, co_author_id=invitation_id, user_id=current_user["sub"], accept=False
+        co_author_id=invitation_id, user_id=current_user["sub"], accept=False
     )
     return {"message": "Invitation rejected."}
 

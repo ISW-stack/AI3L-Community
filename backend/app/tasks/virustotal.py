@@ -53,6 +53,10 @@ async def _decrement_owner_storage(storage_key: str, file_size: int) -> None:
     """Parse user_id from storage key and decrement their storage counter."""
     import uuid
 
+    if not storage_key or "/" not in storage_key:
+        logger.warning("Invalid storage key format", extra={"key": storage_key})
+        return
+
     await _ensure_pool()
     from app.repositories import user_repo
 
@@ -76,6 +80,10 @@ async def _decrement_owner_storage(storage_key: str, file_size: int) -> None:
 @celery.task(bind=True, max_retries=2, default_retry_delay=60)
 def check_virustotal(self: Any, file_hash: str, storage_key: str) -> dict:
     """Query VirusTotal for a file SHA-256 hash; delete if malicious."""
+
+    if not storage_key or "/" not in storage_key:
+        logger.warning("Invalid storage key format: %s", storage_key)
+        return {"status": "error", "reason": "invalid_storage_key"}
 
     # Insert pending scan record
     try:

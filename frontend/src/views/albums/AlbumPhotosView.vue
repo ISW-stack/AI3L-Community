@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
 import { listAlbumPhotos, uploadAlbumPhoto } from '@/api/albums'
@@ -14,6 +15,7 @@ import PhotoGrid from '@/components/albums/PhotoGrid.vue'
 import PhotoLightbox from '@/components/albums/PhotoLightbox.vue'
 import PhotoUploadModal from '@/components/albums/PhotoUploadModal.vue'
 
+const { t } = useI18n()
 const toast = useToastStore()
 const { album, userAlbumRole } = useAlbumLayout()
 
@@ -35,7 +37,7 @@ async function fetchPhotos() {
     photos.value = data.photos
     updateFromResponse(data.total)
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load photos'), 'error')
+    toast.show(getErrorMessage(e, t('albums.fetchPhotosError')), 'error')
   } finally {
     loading.value = false
   }
@@ -72,10 +74,10 @@ async function handleUpload(file: File) {
     const formData = new FormData()
     formData.append('file', file)
     await uploadAlbumPhoto(album.value.id, formData)
-    toast.show('Photo uploaded successfully', 'success')
+    toast.show(t('albums.uploadSuccess'), 'success')
     await fetchPhotos()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to upload photo'), 'error')
+    toast.show(getErrorMessage(e, t('albums.uploadError')), 'error')
   } finally {
     uploading.value = false
   }
@@ -95,14 +97,14 @@ watch(page, fetchPhotos)
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold text-foreground">Photos</h2>
+      <h2 class="text-lg font-semibold text-foreground">{{ t('albums.photos') }}</h2>
       <BaseButton
         v-if="userAlbumRole"
         size="sm"
         :loading="uploading"
         @click="openUploadModal"
       >
-        Upload Photo
+        {{ t('albums.uploadPhoto') }}
       </BaseButton>
     </div>
 
@@ -110,8 +112,8 @@ watch(page, fetchPhotos)
 
     <EmptyState
       v-else-if="photos.length === 0"
-      title="No photos yet"
-      message="Be the first to upload a photo to this album."
+      :title="t('albums.noPhotosTitle')"
+      :message="t('albums.noPhotosMessage')"
     />
 
     <template v-else>

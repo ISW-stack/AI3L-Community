@@ -30,7 +30,7 @@ onUnmounted(() => {
       v-if="visible"
       type="button"
       :aria-label="t('accessibility.backToTop')"
-      class="fixed bottom-8 right-8 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
+      class="back-to-top-btn fixed z-40 flex items-center justify-center w-10 h-10 rounded-full bg-brand-600 text-white shadow-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
       @click="scrollToTop"
     >
       <svg
@@ -51,6 +51,11 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.back-to-top-btn {
+  bottom: max(2rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem));
+  right: max(2rem, calc(env(safe-area-inset-right, 0px) + 0.5rem));
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition:

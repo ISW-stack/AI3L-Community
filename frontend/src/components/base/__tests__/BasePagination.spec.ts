@@ -299,6 +299,46 @@ describe('BasePagination', () => {
     })
   })
 
+  describe('disabled cursor style', () => {
+    it('should have cursor-not-allowed on disabled desktop prev button', () => {
+      const wrapper = mount(BasePagination, {
+        props: { currentPage: 1, totalPages: 5 },
+      })
+      const desktopPag = wrapper.find('[data-testid="desktop-pagination"]')
+      const prevBtn = desktopPag.findAll('button')[0]
+      expect(prevBtn.classes()).toContain('disabled:cursor-not-allowed')
+    })
+
+    it('should have cursor-not-allowed on disabled desktop next button', () => {
+      const wrapper = mount(BasePagination, {
+        props: { currentPage: 5, totalPages: 5 },
+      })
+      const desktopPag = wrapper.find('[data-testid="desktop-pagination"]')
+      const buttons = desktopPag.findAll('button')
+      const nextBtn = buttons[buttons.length - 1]
+      expect(nextBtn.classes()).toContain('disabled:cursor-not-allowed')
+    })
+
+    it('should have cursor-not-allowed on disabled mobile prev button', () => {
+      const wrapper = mount(BasePagination, {
+        props: { currentPage: 1, totalPages: 5 },
+      })
+      const mobilePag = wrapper.find('[data-testid="mobile-pagination"]')
+      const prevBtn = mobilePag.findAll('button')[0]
+      expect(prevBtn.classes()).toContain('disabled:cursor-not-allowed')
+    })
+
+    it('should have cursor-not-allowed on disabled mobile next button', () => {
+      const wrapper = mount(BasePagination, {
+        props: { currentPage: 5, totalPages: 5 },
+      })
+      const mobilePag = wrapper.find('[data-testid="mobile-pagination"]')
+      const buttons = mobilePag.findAll('button')
+      const nextBtn = buttons[buttons.length - 1]
+      expect(nextBtn.classes()).toContain('disabled:cursor-not-allowed')
+    })
+  })
+
   describe('single page edge case', () => {
     it('should not render at all when only one page exists', () => {
       const wrapper = mount(BasePagination, {

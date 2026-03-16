@@ -102,7 +102,7 @@ async def create_post(
     try:
         from app.services.citation import sync_post_citations
 
-        await sync_post_citations(None, post_id, content, user_id)
+        await sync_post_citations(post_id, content, user_id)
     except Exception as e:
         logger.warning(
             "Failed to sync citations after post creation",
@@ -219,7 +219,7 @@ async def update_post(
         try:
             from app.services.citation import sync_post_citations
 
-            await sync_post_citations(None, post_id, content, user_id)
+            await sync_post_citations(post_id, content, user_id)
         except Exception as e:
             logger.warning(
                 "Failed to sync citations after post update",
@@ -288,6 +288,19 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
             await _cleanup_post_files(post_id, actual_user)
         except Exception:
             logger.warning("Post file cleanup failed", extra={"post_id": str(post_id)})
+
+        # Cleanup citations referencing this post (both directions)
+        try:
+            pool = get_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    "DELETE FROM post_citations WHERE citing_post_id = $1 OR cited_post_id = $1",
+                    post_id,
+                )
+        except Exception:
+            logger.warning(
+                "Post citation cleanup failed", extra={"post_id": str(post_id)}
+            )
 
     # Notify post owner when admin deletes their post
     if deleted and is_admin and post_owner_id and post_owner_id != user_id:

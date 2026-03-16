@@ -11,7 +11,8 @@ def row_to_form(row: dict, response_count: int = 0) -> dict:
 
     is_expired = deadline is not None and deadline < now
     is_full = row.get("max_respondents") is not None and response_count >= row["max_respondents"]
-    is_active = not is_expired and not is_full and not row.get("is_deleted", False)
+    is_closed = row.get("is_closed", False)
+    is_active = not is_expired and not is_full and not is_closed and not row.get("is_deleted", False)
 
     return {
         "id": str(row["id"]),

@@ -24,11 +24,23 @@ const mockFetchRecent = vi.fn()
 const mockMarkRead = vi.fn()
 const mockMarkAllRead = vi.fn()
 
+const mockStoreState = {
+  unreadCount: 0,
+  items: [] as Array<Record<string, unknown>>,
+  loading: false,
+}
+
 vi.mock('@/stores/notifications', () => ({
   useNotificationStore: () => ({
-    unreadCount: 0,
-    items: [],
-    loading: false,
+    get unreadCount() {
+      return mockStoreState.unreadCount
+    },
+    get items() {
+      return mockStoreState.items
+    },
+    get loading() {
+      return mockStoreState.loading
+    },
     fetchUnreadCount: mockFetchUnreadCount,
     fetchRecent: mockFetchRecent,
     markRead: mockMarkRead,
@@ -102,6 +114,9 @@ describe('NotificationBell', () => {
     mockFetchRecent.mockReset()
     mockMarkRead.mockReset()
     mockMarkAllRead.mockReset()
+    mockStoreState.unreadCount = 0
+    mockStoreState.items = []
+    mockStoreState.loading = false
   })
 
   afterEach(() => {
@@ -256,6 +271,99 @@ describe('NotificationBell', () => {
       const { wrapper } = mountBell()
 
       expect(mockFetchUnreadCount).toHaveBeenCalledOnce()
+
+      wrapper.unmount()
+    })
+  })
+
+  // ---------- avatar alt text & error handling ----------
+
+  describe('avatar alt text', () => {
+    it('renders avatar img with descriptive alt text including actor name', async () => {
+      mockStoreState.items = [
+        {
+          id: 'n1',
+          action_type: 'COMMENT',
+          entity_type: 'post',
+          entity_id: 'p1',
+          message: 'Alice commented on your post',
+          is_read: false,
+          created_at: '2026-01-01T00:00:00Z',
+          trigger_user: {
+            id: 'u1',
+            display_name: 'Alice',
+            avatar_url: 'https://example.com/alice.jpg',
+          },
+        },
+      ]
+
+      const { wrapper } = mountBell()
+
+      // Open the dropdown
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const img = wrapper.find('img')
+      expect(img.exists()).toBe(true)
+      expect(img.attributes('alt')).toBe("Alice's avatar")
+
+      wrapper.unmount()
+    })
+
+    it('shows initials fallback when avatar image fails to load', async () => {
+      mockStoreState.items = [
+        {
+          id: 'n2',
+          action_type: 'COMMENT',
+          entity_type: 'post',
+          entity_id: 'p1',
+          message: 'Bob commented on your post',
+          is_read: false,
+          created_at: '2026-01-01T00:00:00Z',
+          trigger_user: {
+            id: 'u2',
+            display_name: 'Bob',
+            avatar_url: 'https://example.com/broken.jpg',
+          },
+        },
+      ]
+
+      const { wrapper } = mountBell()
+
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Trigger img error
+      const img = wrapper.find('img')
+      expect(img.exists()).toBe(true)
+      await img.trigger('error')
+      await wrapper.vm.$nextTick()
+
+      // Image should be gone, initials shown
+      expect(wrapper.find('img').exists()).toBe(false)
+      const initials = wrapper.find('.text-xs.font-semibold')
+      expect(initials.exists()).toBe(true)
+      expect(initials.text()).toBe('B')
+
+      wrapper.unmount()
+    })
+  })
+
+  // ---------- dropdown responsive width ----------
+
+  describe('dropdown responsive width', () => {
+    it('has both w-80 and max-w-[calc(100vw-2rem)] for responsive width', async () => {
+      const { wrapper } = mountBell()
+
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const dropdown = wrapper.find('.w-80')
+      expect(dropdown.exists()).toBe(true)
+      expect(dropdown.classes()).toContain('max-w-[calc(100vw-2rem)]')
 
       wrapper.unmount()
     })

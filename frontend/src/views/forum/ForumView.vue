@@ -510,7 +510,7 @@ onUnmounted(() => {
               fill="none"
               viewBox="0 0 24 24"
               role="status"
-              aria-label="Loading more posts"
+              :aria-label="t('forum.loadingMore')"
             >
               <circle
                 class="opacity-25"
@@ -596,8 +596,8 @@ onUnmounted(() => {
                   >
                     <p class="text-sm text-foreground font-medium line-clamp-2">{{ tp.title }}</p>
                     <div class="flex items-center gap-3 mt-1 text-xs text-muted">
-                      <span>{{ tp.comment_count }} comments</span>
-                      <span>{{ tp.view_count }} views</span>
+                      <span>{{ t('forum.sidebar.commentCount', { count: tp.comment_count }) }}</span>
+                      <span>{{ t('forum.sidebar.viewCount', { count: tp.view_count }) }}</span>
                     </div>
                   </router-link>
                 </li>

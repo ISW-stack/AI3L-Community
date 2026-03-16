@@ -71,13 +71,16 @@ const coAuthorInvitations = ref<CoAuthorInvitation[]>([])
 const coAuthorLoading = ref(false)
 const coAuthorActionLoading = ref(false)
 
+const coAuthorError = ref(false)
+
 async function fetchCoAuthorInvitations() {
   coAuthorLoading.value = true
+  coAuthorError.value = false
   try {
     const { data } = await listMyInvitations()
     coAuthorInvitations.value = data.invitations
   } catch {
-    // silently fail — not critical
+    coAuthorError.value = true
   } finally {
     coAuthorLoading.value = false
   }
@@ -367,6 +370,12 @@ async function handleDeleteAccount() {
             {{ t('coauthors.invitations') }}
           </h3>
           <div v-if="coAuthorLoading" class="text-sm text-muted">{{ t('common.loading') }}</div>
+          <div
+            v-else-if="coAuthorError"
+            class="text-sm text-danger-600 py-3 bg-surface-alt rounded-lg px-4"
+          >
+            {{ t('profile.coAuthorFetchError') }}
+          </div>
           <div
             v-else-if="coAuthorInvitations.length === 0"
             class="text-sm text-muted py-3 bg-surface-alt rounded-lg px-4"

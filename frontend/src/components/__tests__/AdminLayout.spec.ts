@@ -187,4 +187,51 @@ describe('AdminLayout', () => {
       expect(contentWrapper.classes()).not.toContain('px-4')
     })
   })
+
+  describe('mobile sidebar responsive width (M3)', () => {
+    it('should use responsive width classes on mobile sidebar', async () => {
+      const { wrapper } = await mountLayout('ADMIN')
+
+      // Open the mobile sidebar
+      const toggleBtn = wrapper.find('button[aria-label="Toggle admin sidebar"]')
+      await toggleBtn.trigger('click')
+      await nextTick()
+
+      const allSidebars = wrapper.findAll('aside')
+      // Mobile sidebar is the second aside
+      const mobileSidebar = allSidebars[1]
+      expect(mobileSidebar.classes()).toContain('w-[70vw]')
+      expect(mobileSidebar.classes()).toContain('max-w-[280px]')
+      expect(mobileSidebar.classes()).toContain('overflow-y-auto')
+    })
+
+    it('should not use fixed w-64 on mobile sidebar', async () => {
+      const { wrapper } = await mountLayout('ADMIN')
+
+      const toggleBtn = wrapper.find('button[aria-label="Toggle admin sidebar"]')
+      await toggleBtn.trigger('click')
+      await nextTick()
+
+      const allSidebars = wrapper.findAll('aside')
+      const mobileSidebar = allSidebars[1]
+      expect(mobileSidebar.classes()).not.toContain('w-64')
+    })
+  })
+
+  describe('main content padding (M11)', () => {
+    it('should use optimized left padding for desktop main content', async () => {
+      const { wrapper } = await mountLayout('ADMIN')
+
+      const contentWrapper = wrapper.find('.flex-1.min-w-0')
+      // Should use 18rem (sidebar 16rem + 2rem gap) instead of 20rem
+      expect(contentWrapper.classes()).toContain('lg:pl-[calc(var(--spacing-layout)+18rem)]')
+    })
+
+    it('should not use the excessive 20rem padding', async () => {
+      const { wrapper } = await mountLayout('ADMIN')
+
+      const contentWrapper = wrapper.find('.flex-1.min-w-0')
+      expect(contentWrapper.classes()).not.toContain('lg:pl-[calc(var(--spacing-layout)+20rem)]')
+    })
+  })
 })

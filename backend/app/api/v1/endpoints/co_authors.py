@@ -39,7 +39,6 @@ async def invite_co_author_endpoint(
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     result = await invite_co_author(
-        pool=None,
         post_id=post_id,
         user_id=current_user["sub"],
         target_user_id=req.user_id,
@@ -60,7 +59,6 @@ async def add_external_co_author_endpoint(
 ) -> CoAuthorResponse:
     """Add an external (non-platform) co-author."""
     result = await add_external_co_author(
-        pool=None,
         post_id=post_id,
         user_id=current_user["sub"],
         display_name=req.display_name,
@@ -76,7 +74,7 @@ async def list_co_authors_endpoint(
     current_user: dict = Depends(get_current_user),
 ) -> CoAuthorListResponse:
     """List accepted co-authors for a post."""
-    result = await list_co_authors(pool=None, post_id=post_id)
+    result = await list_co_authors(post_id=post_id)
     return CoAuthorListResponse(co_authors=result)
 
 
@@ -92,7 +90,6 @@ async def remove_co_author_endpoint(
     """Remove a co-author from a post."""
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     await remove_co_author(
-        pool=None,
         post_id=post_id,
         co_author_id=co_author_id,
         user_id=current_user["sub"],

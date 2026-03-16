@@ -57,7 +57,6 @@ def parse_cited_post_ids(html: str) -> list[uuid.UUID]:
 
 
 async def sync_post_citations(
-    pool: object,
     post_id: uuid.UUID,
     content: str,
     author_id: str,
@@ -144,7 +143,7 @@ async def sync_post_citations(
 
 
 async def get_citations_of(
-    pool: object, post_id: uuid.UUID, page: int = 1, page_size: int = 20
+    post_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     """Get posts that cite this post ('Cited by' list)."""
     pool = get_pool()
@@ -166,7 +165,7 @@ async def get_citations_of(
 
 
 async def get_citing(
-    pool: object, post_id: uuid.UUID, page: int = 1, page_size: int = 20
+    post_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     """Get posts this post cites ('References' list)."""
     pool = get_pool()
@@ -188,7 +187,7 @@ async def get_citing(
 
 
 async def search_posts_for_citation(
-    pool: object, query: str, user_id: str, limit: int = 10
+    query: str, user_id: str, limit: int = 10
 ) -> list[dict]:
     """Search posts for citation insertion (minimal results)."""
     # H6: Get blocked user IDs to exclude from search results

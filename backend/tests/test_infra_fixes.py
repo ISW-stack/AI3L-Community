@@ -117,11 +117,22 @@ class TestSigSoftDeleteCleansUpMembers:
         calls = mock_conn.execute.call_args_list
         sql_statements = [str(c[0][0]) for c in calls]
 
-        assert len(sql_statements) == 4
+        # 10 statements: sigs, co_authors, notifications, form_responses,
+        # citations, comment_votes, comments, posts, forms, sig_members
+        assert len(sql_statements) == 10
         assert "UPDATE sigs" in sql_statements[0]
-        assert "UPDATE posts" in sql_statements[1]
-        assert "UPDATE forms" in sql_statements[2]
-        assert "DELETE FROM sig_members" in sql_statements[3]
+
+        # Verify key ordering constraints:
+        # form_responses before forms, comments before posts, sig_members last
+        form_resp_idx = next(i for i, s in enumerate(sql_statements) if "form_responses" in s)
+        posts_idx = next(i for i, s in enumerate(sql_statements) if "UPDATE posts" in s)
+        forms_idx = next(i for i, s in enumerate(sql_statements) if "UPDATE forms" in s)
+        members_idx = next(i for i, s in enumerate(sql_statements) if "DELETE FROM sig_members" in s)
+
+        assert form_resp_idx < forms_idx, "form_responses cleanup before forms"
+        assert posts_idx < members_idx, "posts soft-delete before member cleanup"
+        assert forms_idx < members_idx, "forms soft-delete before member cleanup"
+        assert "DELETE FROM sig_members" in sql_statements[-1], "sig_members last"
 
 
 # ===========================================================================

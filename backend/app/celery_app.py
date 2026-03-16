@@ -10,6 +10,7 @@ celery = Celery(
         "app.tasks.event_retry",
         "app.tasks.cleanup",
         "app.tasks.form_export",
+        "app.tasks.form_autoclose",
         "app.tasks.virustotal",
         "app.tasks.thumbnail",
         "app.tasks.recommendations",
@@ -65,5 +66,10 @@ celery.conf.beat_schedule = {
         "task": "reconcile_counters",
         "schedule": 21600.0,  # every 6 hours
         "options": {"soft_time_limit": 300, "time_limit": 600},
+    },
+    "auto-close-expired-forms": {
+        "task": "auto_close_expired_forms",
+        "schedule": 300.0,  # every 5 minutes
+        "options": {"soft_time_limit": 30, "time_limit": 60},
     },
 }

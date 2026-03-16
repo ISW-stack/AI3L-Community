@@ -113,7 +113,7 @@ onMounted(fetchLogs)
 
     <!-- Filter bar (collapsible) -->
     <div v-if="showFilters" class="bg-surface rounded-lg border border-border p-4 mb-4 space-y-3">
-      <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+      <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
         <div class="flex items-center gap-2">
           <label class="text-sm text-muted whitespace-nowrap">{{
             t('admin.auditLogs.filter.from')

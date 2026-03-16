@@ -644,4 +644,40 @@ describe('SigLayout', () => {
     // leaveSig should never have been called
     expect(mockLeaveSig).not.toHaveBeenCalled()
   })
+
+  describe('mobile tab scroll indicator (M8)', () => {
+    it('renders a scrollable tab nav for mobile', async () => {
+      const { wrapper } = await mountLayout({
+        sigData: fakeSig,
+        membersData: fakeMembersEmpty,
+      })
+
+      const tabNav = wrapper.find('.tab-scroll-nav')
+      expect(tabNav.exists()).toBe(true)
+      expect(tabNav.classes()).toContain('overflow-x-auto')
+      expect(tabNav.classes()).toContain('scroll-smooth')
+    })
+
+    it('shows a scroll hint gradient element by default', async () => {
+      const { wrapper } = await mountLayout({
+        sigData: fakeSig,
+        membersData: fakeMembersEmpty,
+      })
+
+      const scrollHint = wrapper.find('.scroll-hint')
+      expect(scrollHint.exists()).toBe(true)
+      expect(scrollHint.classes()).toContain('pointer-events-none')
+      expect(scrollHint.attributes('aria-hidden')).toBe('true')
+    })
+
+    it('has touch scrolling style on tab nav', async () => {
+      const { wrapper } = await mountLayout({
+        sigData: fakeSig,
+        membersData: fakeMembersEmpty,
+      })
+
+      const tabNav = wrapper.find('.tab-scroll-nav')
+      expect(tabNav.attributes('style')).toContain('-webkit-overflow-scrolling: touch')
+    })
+  })
 })

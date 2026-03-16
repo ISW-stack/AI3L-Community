@@ -160,6 +160,8 @@ export default {
     toggleMenu: '메뉴 전환',
     sectionAdmin: '관리',
     sectionAccount: '계정',
+    signUp: 'Sign Up',
+    closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
@@ -199,6 +201,7 @@ export default {
       title: '이번 주 인기',
       empty: '이번 주 인기 게시물이 없습니다.',
       fetchError: '인기 게시물을 불러오지 못했습니다.',
+      viewAll: 'View All Trending',
     },
     stats: {
       title: '커뮤니티',
@@ -284,7 +287,10 @@ export default {
       categoriesTitle: '카테고리',
       allPosts: '전체 게시물',
       trendingTitle: '인기 (7일)',
+      commentCount: '{count} comments',
+      viewCount: '{count} views',
     },
+    loadingMore: 'Loading more posts',
     leftSidebar: {
       quickLinks: '빠른 링크',
       home: '홈 피드',
@@ -425,6 +431,7 @@ export default {
       error: 'Scan failed',
       skipped: 'Scan skipped',
     },
+    uploading: 'Uploading...',
     uploadFailed: '파일 업로드에 실패했습니다.',
     fileTooLarge: '파일이 너무 큽니다. 최대 크기는 20 MB입니다.',
     maliciousFile: '업로드된 파일이 잠재적으로 악성일 수 있다고 표시되었습니다.',
@@ -667,6 +674,7 @@ export default {
       draftFound: '{time}의 저장되지 않은 초안이 있습니다.',
       draftRestore: '복원',
       draftDiscard: '삭제',
+      confirmDiscard: 'Are you sure you want to discard this draft? This action cannot be undone.',
       previewDesktop: '데스크톱',
       previewMobile: '모바일',
       uploadBannerError: '배너 이미지 업로드에 실패했습니다.',
@@ -712,6 +720,7 @@ export default {
       noAnswer: '답변 없음',
       fileUploaded: '파일 업로드됨',
       backToSig: 'SIG로 돌아가기',
+      fieldRequired: 'This field is required.',
       alreadySubmitted: '이 양식에 대한 응답을 이미 제출하셨습니다.',
       fileTypeError: '허용되지 않는 파일 형식입니다. 허용 형식: {types}',
       fileSizeError: '파일이 너무 큽니다. 최대 크기: {max} MB',
@@ -730,6 +739,7 @@ export default {
     },
     viewCount: '{unique} unique visitors, {total} total views',
     coAuthoredPosts: 'Co-Authored Posts',
+    coAuthorFetchError: 'Failed to load co-author invitations.',
     tabs: {
       general: '일반',
       social: 'Social',
@@ -826,6 +836,7 @@ export default {
     },
     emptyTitle: '모두 확인했습니다',
     emptyMessage: '아직 알림이 없습니다.',
+    confirmClearAll: 'Are you sure you want to delete {count} notification(s)?',
     deleteSuccess: '모든 알림이 삭제되었습니다.',
     deleteError: '알림 삭제에 실패했습니다.',
     fetchError: '알림을 불러오지 못했습니다.',
@@ -878,6 +889,7 @@ export default {
       searchPlaceholder: '사용자명 또는 표시 이름으로 검색...',
       selectedCount: '{count}개 선택됨',
       bulkApplyRole: '역할 적용',
+      confirmBulkRole: 'Change role to {role} for {count} selected user(s)?',
       bulkClear: '초기화',
       table: {
         username: '사용자명',
@@ -1139,6 +1151,10 @@ export default {
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
+    searchPlaceholder: 'Search forms by title...',
+    noSearchResults: 'No matching forms',
+    noSearchResultsMessage: 'No forms match your search query.',
+    totalForms: 'total forms',
   },
 
   // ── Albums ──
@@ -1151,6 +1167,18 @@ export default {
     noAlbums: 'No albums yet',
     upload: 'Upload Photo',
     archived: 'Archived',
+    uploadPhoto: 'Upload Photo',
+    noPhotosTitle: 'No photos yet',
+    noPhotosMessage: 'Be the first to upload a photo to this album.',
+    noCommentsTitle: 'No comments yet',
+    noCommentsMessage: 'Be the first to leave a comment.',
+    commentPlaceholder: 'Write a comment...',
+    postComment: 'Post Comment',
+    reply: 'Reply',
+    replyPlaceholder: 'Write a reply...',
+    fetchPhotosError: 'Failed to load photos.',
+    uploadSuccess: 'Photo uploaded successfully.',
+    uploadError: 'Failed to upload photo.',
   },
 
   // ── Social ──
@@ -1186,6 +1214,12 @@ export default {
     markBest: 'Mark as Best Answer',
     unmarkBest: 'Unmark Best Answer',
     votes: 'votes',
+    answerCount: '{count} answer | {count} answers',
+    emptyMessage: 'Be the first to ask a question.',
+    fetchError: 'Failed to load questions.',
+    questionCount: '{count} question | {count} questions',
+    backToList: 'Back to Q&A',
+    questionNotFound: 'Question not found.',
   },
 
   // ── Co-Authors ──
@@ -1202,6 +1236,16 @@ export default {
     acceptSuccess: 'Invitation accepted.',
     rejectSuccess: 'Invitation declined.',
     maxReached: 'Maximum co-authors reached (10)',
+    searchLabel: 'Search and invite a user',
+    searchPlaceholder: 'Search by name...',
+    name: 'Name',
+    fullNamePlaceholder: 'Full name',
+    affiliation: 'Affiliation',
+    affiliationPlaceholder: 'University or organization',
+    orcid: 'ORCID',
+    removeAriaLabel: 'Remove co-author',
+    addExternalCoAuthor: '+ Add external co-author',
+    addExternalBtn: 'Add External Co-Author',
   },
 
   // ── Citations ──
@@ -1211,6 +1255,10 @@ export default {
     searchPosts: 'Search posts to cite',
     selfCitation: 'self',
     cite: 'Cite',
+    insertTitle: 'Insert Citation',
+    searchPlaceholder: 'Search posts to cite...',
+    searching: 'Searching...',
+    noResults: 'No posts found matching your search.',
   },
 
   // ── Recommendations ──
