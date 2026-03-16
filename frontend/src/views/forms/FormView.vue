@@ -91,9 +91,9 @@ const touched = reactive<Record<string, boolean>>({})
 
 function handleBlur(questionId: string, required: boolean | undefined) {
   touched[questionId] = true
-  if (required && !answers.value[questionId]) {
-    validationErrors.value[questionId] = t('forms.view.fieldRequired')
-  }
+  // Inline validation is handled by the template condition
+  // (touched && required && !answers[q.id]) — see data-testid="inline-validation-error"
+  void required
 }
 
 onMounted(() => loadForm())
