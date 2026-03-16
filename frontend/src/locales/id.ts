@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Login gagal. Silakan coba lagi.',
     registerFailed: 'Pendaftaran gagal. Silakan coba lagi.',
     guestLoginFailed: 'Login tamu gagal. Silakan coba lagi.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'Nama pengguna atau kata sandi tidak valid.',
+      unauthorized: 'Anda tidak memiliki izin untuk melakukan tindakan ini.',
+      captcha_invalid: 'Captcha salah. Silakan coba lagi.',
+      account_inactive: 'Akun Anda tidak aktif. Silakan hubungi administrator.',
+      unknown: 'Login gagal. Silakan coba lagi.',
+      sessionExpired: 'Sesi telah berakhir. Silakan masuk kembali.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1168,13 +1175,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'Email atau kata sandi tidak valid.',
+    unauthorized: 'Anda tidak memiliki izin untuk melakukan tindakan ini.',
+    captcha_invalid: 'Captcha salah. Silakan coba lagi.',
+    SYS_422: 'Captcha salah. Silakan coba lagi.',
+    account_inactive: 'Akun Anda tidak aktif. Silakan hubungi administrator.',
+    unknown: 'Gagal masuk. Silakan coba lagi.',
+    sessionExpired: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
+    loginFailed: 'Gagal masuk. Silakan coba lagi.',
+    registerFailed: 'Gagal mendaftar. Silakan coba lagi.',
+    guestLoginFailed: 'Gagal masuk tamu. Silakan coba lagi.',
     AUTH_001: 'Sesi kedaluwarsa. Silakan masuk kembali.',
     AUTH_002: 'Sesi tidak valid atau telah dicabut.',
     AUTH_003: 'Kapasitas tamu penuh. Silakan coba lagi nanti.',
     AUTH_004: 'Akun Anda telah diblokir.',
     RATE_LIMIT: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
     RATE_LIMIT_RETRY: 'Terlalu banyak permintaan. Silakan coba lagi setelah {seconds} detik.',
-    unknown: 'Terjadi kesalahan yang tidak terduga.',
   },
 
   // ── Forms Directory ──

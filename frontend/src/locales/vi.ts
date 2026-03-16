@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Đăng nhập thất bại. Vui lòng thử lại.',
     registerFailed: 'Đăng ký thất bại. Vui lòng thử lại.',
     guestLoginFailed: 'Đăng nhập khách thất bại. Vui lòng thử lại.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'Tên người dùng hoặc mật khẩu không hợp lệ.',
+      unauthorized: 'Bạn không có quyền thực hiện hành động này.',
+      captcha_invalid: 'Mã xác thực không chính xác. Vui lòng thử lại.',
+      account_inactive: 'Tài khoản của bạn hiện không hoạt động. Vui lòng liên hệ quản trị viên.',
+      unknown: 'Đăng nhập thất bại. Vui lòng thử lại.',
+      sessionExpired: 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1163,13 +1170,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'Email hoặc mật khẩu không hợp lệ.',
+    unauthorized: 'Bạn không có quyền thực hiện hành động này.',
+    captcha_invalid: 'Mã xác nhận không đúng. Vui lòng thử lại.',
+    SYS_422: 'Mã xác nhận không đúng. Vui lòng thử lại.',
+    account_inactive: 'Tài khoản của bạn chưa được kích hoạt. Vui lòng liên hệ quản trị viên.',
+    unknown: 'Đăng nhập thất bại. Vui lòng thử lại.',
+    sessionExpired: 'Phiên đã hết hạn. Vui lòng đăng nhập lại.',
+    loginFailed: 'Đăng nhập thất bại. Vui lòng thử lại.',
+    registerFailed: 'Đăng ký thất bại. Vui lòng thử lại.',
+    guestLoginFailed: 'Đăng nhập khách thất bại. Vui lòng thử lại.',
     AUTH_001: 'Phiên đã hết hạn. Vui lòng đăng nhập lại.',
     AUTH_002: 'Phiên không hợp lệ hoặc đã bị thu hồi.',
     AUTH_003: 'Đã đạt giới hạn khách. Vui lòng thử lại sau.',
     AUTH_004: 'Tài khoản của bạn đã bị cấm.',
     RATE_LIMIT: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
     RATE_LIMIT_RETRY: 'Quá nhiều yêu cầu. Vui lòng thử lại sau {seconds} giây.',
-    unknown: 'Đã xảy ra lỗi không mong đợi.',
   },
 
   // ── Forms Directory ──

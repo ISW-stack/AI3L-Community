@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Giriş başarısız. Lütfen tekrar deneyin.',
     registerFailed: 'Kayıt başarısız. Lütfen tekrar deneyin.',
     guestLoginFailed: 'Misafir girişi başarısız. Lütfen tekrar deneyin.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'Geçersiz kullanıcı adı veya şifre.',
+      unauthorized: 'Bu işlemi yapmaya yetkiniz yok.',
+      captcha_invalid: 'Geçersiz captcha. Lütfen tekrar deneyin.',
+      account_inactive: 'Hesabınız aktif değil. Lütfen bir yöneticiyle iletişime geçin.',
+      unknown: 'Giriş başarısız. Lütfen tekrar deneyin.',
+      sessionExpired: 'Oturum süresi doldu. Lütfen tekrar giriş yapın.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1165,13 +1172,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'Geçersiz e-posta veya şifre.',
+    unauthorized: 'Bu işlemi gerçekleştirme izniniz yok.',
+    captcha_invalid: 'Geçersiz captcha. Lütfen tekrar deneyin.',
+    SYS_422: 'Geçersiz captcha. Lütfen tekrar deneyin.',
+    account_inactive: 'Hesabınız aktif değil. Lütfen bir yöneticiyle iletişime geçin.',
+    unknown: 'Giriş başarısız. Lütfen tekrar deneyin.',
+    sessionExpired: 'Oturum sona erdi. Lütfen tekrar giriş yapın.',
+    loginFailed: 'Giriş başarısız. Lütfen tekrar deneyin.',
+    registerFailed: 'Kayıt başarısız. Lütfen tekrar deneyin.',
+    guestLoginFailed: 'Misafir girişi başarısız. Lütfen tekrar deneyin.',
     AUTH_001: 'Oturum sona erdi. Lütfen tekrar giriş yapın.',
     AUTH_002: 'Geçersiz veya iptal edilmiş oturum.',
     AUTH_003: 'Misafir kapasitesi doldu. Lütfen daha sonra tekrar deneyin.',
     AUTH_004: 'Hesabınız yasaklanmıştır.',
     RATE_LIMIT: 'Çok fazla istek. Lütfen daha sonra tekrar deneyin.',
     RATE_LIMIT_RETRY: 'Çok fazla istek. Lütfen {seconds} saniye sonra tekrar deneyin.',
-    unknown: 'Beklenmeyen bir hata oluştu.',
   },
 
   // ── Forms Directory ──

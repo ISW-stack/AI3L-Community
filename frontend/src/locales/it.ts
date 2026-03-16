@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Accesso non riuscito. Riprova.',
     registerFailed: 'Registrazione non riuscita. Riprova.',
     guestLoginFailed: 'Accesso ospite non riuscito. Riprova.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'Nome utente o password non validi.',
+      unauthorized: 'Non hai il permesso di eseguire questa azione.',
+      captcha_invalid: 'Captcha errato. Riprova.',
+      account_inactive: 'Il tuo account non è attivo. Contatta un amministratore.',
+      unknown: 'Accesso non riuscito. Riprova.',
+      sessionExpired: 'Sessione scaduta. Effettua nuovamente l’accesso.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1165,13 +1172,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'Email o password non validi.',
+    unauthorized: 'Non hai il permesso di eseguire questa azione.',
+    captcha_invalid: 'Captcha errato. Riprova.',
+    SYS_422: 'Captcha errato. Riprova.',
+    account_inactive: 'Il tuo account non è attivo. Contatta un amministratore.',
+    unknown: 'Accesso fallito. Riprova.',
+    sessionExpired: 'La sessione è scaduta. Accedi di nuovo.',
+    loginFailed: 'Accesso fallito. Riprova.',
+    registerFailed: 'Registrazione fallita. Riprova.',
+    guestLoginFailed: 'Accesso ospite fallito. Riprova.',
     AUTH_001: 'Sessione scaduta. Accedi di nuovo.',
     AUTH_002: 'Sessione non valida o revocata.',
     AUTH_003: 'Capacità ospiti raggiunta. Riprova più tardi.',
     AUTH_004: 'Il tuo account è stato bannato.',
     RATE_LIMIT: 'Troppe richieste. Riprova più tardi.',
     RATE_LIMIT_RETRY: 'Troppe richieste. Riprova dopo {seconds} secondi.',
-    unknown: 'Si è verificato un errore imprevisto.',
   },
 
   // ── Forms Directory ──

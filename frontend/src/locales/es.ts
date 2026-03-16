@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Error al iniciar sesión. Por favor, intente de nuevo.',
     registerFailed: 'Error en el registro. Por favor, intente de nuevo.',
     guestLoginFailed: 'Error al iniciar sesión como invitado. Por favor, intente de nuevo.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'Nombre de usuario o contraseña incorrectos.',
+      unauthorized: 'No tienes permiso para realizar esta acción.',
+      captcha_invalid: 'Código captcha incorrecto, inténtalo de nuevo.',
+      account_inactive: 'Cuenta inactiva, contacta al administrador.',
+      unknown: 'Error al iniciar sesión, inténtalo de nuevo.',
+      sessionExpired: 'Sesión expirada, por favor inicia sesión de nuevo.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1168,13 +1175,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'Correo electrónico o contraseña inválidos.',
+    unauthorized: 'No tienes permiso para realizar esta acción.',
+    captcha_invalid: 'Captcha incorrecto. Por favor, inténtalo de nuevo.',
+    SYS_422: 'Captcha incorrecto. Por favor, inténtalo de nuevo.',
+    account_inactive: 'Tu cuenta está inactiva. Por favor, contacta a un administrador.',
+    unknown: 'Error al iniciar sesión. Por favor, inténtalo de nuevo.',
+    sessionExpired: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+    loginFailed: 'Error al iniciar sesión. Por favor, inténtalo de nuevo.',
+    registerFailed: 'Error al registrarse. Por favor, inténtalo de nuevo.',
+    guestLoginFailed: 'Error al iniciar sesión como invitado. Por favor, inténtalo de nuevo.',
     AUTH_001: 'Sesión expirada. Por favor, inicie sesión de nuevo.',
     AUTH_002: 'Sesión inválida o revocada.',
     AUTH_003: 'Capacidad de invitados alcanzada. Por favor, intente de nuevo más tarde.',
     AUTH_004: 'Su cuenta ha sido bloqueada.',
     RATE_LIMIT: 'Demasiadas solicitudes. Por favor, intente de nuevo más tarde.',
     RATE_LIMIT_RETRY: 'Demasiadas solicitudes. Por favor, reintente después de {seconds} segundos.',
-    unknown: 'Ocurrió un error inesperado.',
   },
 
   // ── Forms Directory ──

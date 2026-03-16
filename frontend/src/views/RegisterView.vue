@@ -27,8 +27,22 @@ const inviteCode = ref('')
 const captchaId = ref('')
 const captchaCode = ref('')
 const captchaImage = ref('')
-const captchaError = ref(false)
-const error = ref('')
+const lastError = ref<unknown>(null)
+const error = computed(() => {
+  // Ensure reactivity on locale change
+  void currentLocale.value
+  if (!lastError.value) return ''
+
+  // If it's a validation key we stored
+  if (typeof lastError.value === 'string' && lastError.value.includes('.')) {
+    return t(lastError.value)
+  }
+
+  // If it's a raw string from backend or previously translated string
+  if (typeof lastError.value === 'string') return lastError.value
+
+  return getErrorMessage(lastError.value, t, 'auth.registerFailed')
+})
 const loading = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
@@ -75,15 +89,15 @@ const passwordsMatch = computed(
 
 async function handleRegister() {
   if (!passwordValid.value) {
-    error.value = t('auth.passwordInvalid')
+    lastError.value = 'auth.passwordInvalid'
     return
   }
   if (!passwordsMatch.value) {
-    error.value = t('auth.passwordMismatch')
+    lastError.value = 'auth.passwordMismatch'
     return
   }
 
-  error.value = ''
+  lastError.value = null
   loading.value = true
   try {
     await auth.register(
@@ -96,7 +110,7 @@ async function handleRegister() {
     )
     router.push('/')
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, t('auth.registerFailed'))
+    lastError.value = e
     await loadCaptcha()
   } finally {
     loading.value = false

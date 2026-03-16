@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Échec de la connexion. Veuillez réessayer.',
     registerFailed: "Échec de l'inscription. Veuillez réessayer.",
     guestLoginFailed: 'Échec de la connexion invité. Veuillez réessayer.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: "Nom d'utilisateur ou mot de passe invalide.",
+      unauthorized: "Vous n'avez pas la permission de faire cela.",
+      captcha_invalid: 'Code captcha incorrect, réessayez.',
+      account_inactive: "Compte inactif, contactez l'administrateur.",
+      unknown: 'Échec de connexion, réessayez.',
+      sessionExpired: 'Session expirée, veuillez vous reconnecter.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1171,13 +1178,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'E-mail ou mot de passe invalide.',
+    unauthorized: "Vous n'avez pas l'autorisation d'effectuer cette action.",
+    captcha_invalid: 'Captcha incorrect. Veuillez réessayer.',
+    SYS_422: 'Captcha incorrect. Veuillez réessayer.',
+    account_inactive: 'Votre compte est inactif. Veuillez contacter un administrateur.',
+    unknown: 'Échec de la connexion. Veuillez réessayer.',
+    sessionExpired: 'Votre session a expiré. Veuillez vous reconnecter.',
+    loginFailed: 'Échec de la connexion. Veuillez réessayer.',
+    registerFailed: "Échec de l'inscription. Veuillez réessayer.",
+    guestLoginFailed: 'Échec de la connexion invité. Veuillez réessayer.',
     AUTH_001: 'Session expirée. Veuillez vous reconnecter.',
     AUTH_002: 'Session invalide ou révoquée.',
     AUTH_003: "Capacité d'invités atteinte. Veuillez réessayer ultérieurement.",
     AUTH_004: 'Votre compte a été banni.',
     RATE_LIMIT: 'Trop de requêtes. Veuillez réessayer ultérieurement.',
     RATE_LIMIT_RETRY: 'Trop de requêtes. Veuillez réessayer après {seconds} secondes.',
-    unknown: "Une erreur inattendue s'est produite.",
   },
 
   // ── Forms Directory ──

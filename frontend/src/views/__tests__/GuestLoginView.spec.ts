@@ -19,12 +19,16 @@ vi.mock('@/stores/auth', () => ({
 }))
 
 vi.mock('@/utils/error', () => ({
-  getErrorMessage: (e: unknown, fallback: string) => {
+  getErrorMessage: (e: unknown, tOrFallback: any, maybeFallbackKey?: string) => {
     if (e && typeof e === 'object' && 'response' in e) {
       const err = e as { response?: { data?: { detail?: string } } }
       if (typeof err.response?.data?.detail === 'string') return err.response.data.detail
     }
-    return fallback
+    // If tOrFallback is a function, we should use it with maybeFallbackKey
+    if (typeof tOrFallback === 'function') {
+      return tOrFallback(maybeFallbackKey || 'auth.guestLoginFailed')
+    }
+    return maybeFallbackKey || (tOrFallback as string) || 'Guest login failed'
   },
 }))
 

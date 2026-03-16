@@ -124,7 +124,14 @@ export default {
     loginFailed: '登入失敗，請再試一擺。',
     registerFailed: '註冊失敗，請再試一擺。',
     guestLoginFailed: '訪客登入失敗，請再試一擺。',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: '使用者名稱 iah-sī 密碼不正確。',
+      unauthorized: '你無權限執行這个動作。',
+      captcha_invalid: '驗證碼錯誤。請再試一擺。',
+      account_inactive: '你ê帳號無佇使用。請聯絡管理員。',
+      unknown: '登入失敗。請再試一擺。',
+      sessionExpired: '連線逾時。請重新登入。',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1148,13 +1155,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: '電子郵件 iah-sī 密碼不正確。',
+    unauthorized: '你無權限執行此項操作。',
+    captcha_invalid: '驗證碼不正確，請閣試看覓。',
+    SYS_422: '驗證碼不正確，請閣試看覓。',
+    account_inactive: '你ê帳號猶未啟用，請聯絡管理員。',
+    unknown: '登入失敗，請閣試看覓。',
+    sessionExpired: 'Session 已過期，請重新登入。',
+    loginFailed: '登入失敗，請閣試看覓。',
+    registerFailed: '註冊失敗，請閣試看覓。',
+    guestLoginFailed: '訪客登入失敗，請閣試看覓。',
     AUTH_001: 'Session 已過期，請重新登入。',
     AUTH_002: 'Session 無效，iah-sī 已撤銷。',
     AUTH_003: '訪客容量已滿，請稍後再試。',
     AUTH_004: '你ê帳號已被封禁。',
     RATE_LIMIT: '要求次數太濟，請稍後再試。',
     RATE_LIMIT_RETRY: '要求次數太濟，請 {seconds} 秒後再試。',
-    unknown: '出現意外ê錯誤。',
   },
 
   // ── Forms Directory ──

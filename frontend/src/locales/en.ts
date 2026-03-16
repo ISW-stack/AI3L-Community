@@ -126,7 +126,18 @@ export default {
     loginFailed: 'Login failed. Please try again.',
     registerFailed: 'Registration failed. Please try again.',
     guestLoginFailed: 'Guest login failed. Please try again.',
+<<<<<<< Updated upstream
     sessionExpired: 'Your session has expired. Please log in again.',
+=======
+    errors: {
+      invalid_credentials: 'Invalid username or password.',
+      unauthorized: 'You do not have permission to perform this action.',
+      captcha_invalid: 'Incorrect captcha. Please try again.',
+      account_inactive: 'Your account is inactive. Please contact an administrator.',
+      unknown: 'Login failed. Please try again.',
+      sessionExpired: 'Your session has expired. Please log in again.',
+    },
+>>>>>>> Stashed changes
   },
 
   // ── Privacy Consent ──
@@ -1165,13 +1176,19 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'Invalid username or password.',
+    unauthorized: 'You do not have permission to perform this action.',
+    captcha_invalid: 'Incorrect captcha. Please try again.',
+    SYS_422: 'Incorrect captcha. Please try again.',
+    account_inactive: 'Your account is inactive. Please contact an administrator.',
+    unknown: 'Login failed. Please try again.',
+    sessionExpired: 'Your session has expired. Please log in again.',
     AUTH_001: 'Session expired. Please log in again.',
     AUTH_002: 'Invalid or revoked session.',
     AUTH_003: 'Guest capacity reached. Please try again later.',
     AUTH_004: 'Your account has been banned.',
     RATE_LIMIT: 'Too many requests. Please try again later.',
     RATE_LIMIT_RETRY: 'Too many requests. Please retry after {seconds} seconds.',
-    unknown: 'An unexpected error occurred.',
   },
 
   // ── Forms Directory ──

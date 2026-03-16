@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Falha no login. Por favor, tente novamente.',
     registerFailed: 'Falha no cadastro. Por favor, tente novamente.',
     guestLoginFailed: 'Falha no acesso como visitante. Por favor, tente novamente.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'Nome de usuário ou senha inválidos.',
+      unauthorized: 'Você não tem permissão para realizar esta ação.',
+      captcha_invalid: 'Captcha incorreto. Por favor, tente novamente.',
+      account_inactive: 'Sua conta está inativa. Por favor, entre em contato com um administrador.',
+      unknown: 'Falha no login. Por favor, tente novamente.',
+      sessionExpired: 'A sessão expirou. Por favor, faça login novamente.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1164,13 +1171,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'E-mail ou senha inválidos.',
+    unauthorized: 'Você não tem permissão para realizar esta ação.',
+    captcha_invalid: 'Captcha incorreto. Por favor, tente novamente.',
+    SYS_422: 'Captcha incorreto. Por favor, tente novamente.',
+    account_inactive: 'Sua conta está inativa. Por favor, contate um administrador.',
+    unknown: 'Falha ao iniciar sessão. Por favor, tente novamente.',
+    sessionExpired: 'Sua sessão expirou. Por favor, faça login novamente.',
+    loginFailed: 'Falha ao iniciar sessão. Por favor, tente novamente.',
+    registerFailed: 'Falha ao registrar-se. Por favor, tente novamente.',
+    guestLoginFailed: 'Falha ao entrar como convidado. Por favor, tente novamente.',
     AUTH_001: 'Sessão expirada. Por favor, faça login novamente.',
     AUTH_002: 'Sessão inválida ou revogada.',
     AUTH_003: 'Capacidade de visitantes atingida. Por favor, tente novamente mais tarde.',
     AUTH_004: 'Sua conta foi banida.',
     RATE_LIMIT: 'Muitas requisições. Por favor, tente novamente mais tarde.',
     RATE_LIMIT_RETRY: 'Muitas requisições. Por favor, tente novamente após {seconds} segundos.',
-    unknown: 'Ocorreu um erro inesperado.',
   },
 
   // ── Forms Directory ──

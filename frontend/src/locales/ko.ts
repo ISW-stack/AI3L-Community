@@ -125,7 +125,14 @@ export default {
     loginFailed: '로그인에 실패했습니다. 다시 시도해 주세요.',
     registerFailed: '회원가입에 실패했습니다. 다시 시도해 주세요.',
     guestLoginFailed: '게스트 로그인에 실패했습니다. 다시 시도해 주세요.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: '사용자 이름 또는 비밀번호가 잘못되었습니다.',
+      unauthorized: '이 작업을 수행할 권한이 없습니다.',
+      captcha_invalid: '캡차가 올바르지 않습니다. 다시 시도해 주세요.',
+      account_inactive: '계정이 비활성 상태입니다. 관리자에게 문의하세요.',
+      unknown: '로그인에 실패했습니다. 다시 시도해 주세요.',
+      sessionExpired: '세션이 만료되었습니다. 다시 로그인해 주세요.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1158,13 +1165,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: '이메일 또는 비밀번호가 잘못되었습니다.',
+    unauthorized: '이 작업을 수행할 권한이 없습니다.',
+    captcha_invalid: '캡차가 올바르지 않습니다. 다시 시도해 주세요.',
+    SYS_422: '캡차가 올바르지 않습니다. 다시 시도해 주세요.',
+    account_inactive: '계정이 비활성 상태입니다. 관리자에게 문의하세요.',
+    unknown: '로그인에 실패했습니다. 다시 시도해 주세요.',
+    sessionExpired: '세션이 만료되었습니다. 다시 로그인해 주세요.',
+    loginFailed: '로그인에 실패했습니다. 다시 시도해 주세요.',
+    registerFailed: '회원가입에 실패했습니다. 다시 시도해 주세요.',
+    guestLoginFailed: '게스트 로그인에 실패했습니다. 다시 시도해 주세요.',
     AUTH_001: '세션이 만료되었습니다. 다시 로그인해 주세요.',
     AUTH_002: '유효하지 않거나 취소된 세션입니다.',
     AUTH_003: '게스트 용량이 초과되었습니다. 잠시 후 다시 시도해 주세요.',
     AUTH_004: '계정이 차단되었습니다.',
     RATE_LIMIT: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
     RATE_LIMIT_RETRY: '요청이 너무 많습니다. {seconds}초 후에 다시 시도해 주세요.',
-    unknown: '예기치 않은 오류가 발생했습니다.',
   },
 
   // ── Forms Directory ──

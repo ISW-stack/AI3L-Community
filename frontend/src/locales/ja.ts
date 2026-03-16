@@ -125,7 +125,14 @@ export default {
     loginFailed: 'ログインに失敗しました。もう一度お試しください。',
     registerFailed: '登録に失敗しました。もう一度お試しください。',
     guestLoginFailed: 'ゲストログインに失敗しました。もう一度お試しください。',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'ユーザー名またはパスワードが正しくありません。',
+      unauthorized: 'この操作を実行する権限がありません。',
+      captcha_invalid: 'キャプチャが正しくありません。もう一度お試しください。',
+      account_inactive: 'アカウントが有効ではありません。管理者にお問い合わせください。',
+      unknown: 'ログインに失敗しました。もう一度お試しください。',
+      sessionExpired: 'セッションの有効期限が切れました。もう一度ログインしてください。',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1159,13 +1166,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'メールアドレスまたはパスワードが正しくありません。',
+    unauthorized: 'この操作を行う権限がありません。',
+    captcha_invalid: '認証コードが正しくありません。',
+    SYS_422: '認証コードが正しくありません。',
+    account_inactive: 'アカウントが無効です。管理者に連絡してください。',
+    unknown: 'ログインに失敗しました。',
+    sessionExpired: 'セッションがタイムアウトしました。再度ログインしてください。',
+    loginFailed: 'ログインに失敗しました。もう一度お試しください。',
+    registerFailed: '登録に失敗しました。もう一度お試しください。',
+    guestLoginFailed: 'ゲストログインに失敗しました。',
     AUTH_001: 'セッションが期限切れです。再度ログインしてください。',
     AUTH_002: 'セッションが無効または失効しています。',
     AUTH_003: 'ゲスト容量に達しました。後でもう一度お試しください。',
     AUTH_004: 'アカウントが BAN されています。',
     RATE_LIMIT: 'リクエストが多すぎます。後でもう一度お試しください。',
     RATE_LIMIT_RETRY: 'リクエストが多すぎます。{seconds} 秒後に再試行してください。',
-    unknown: '予期しないエラーが発生しました。',
   },
 
   // ── Forms Directory ──

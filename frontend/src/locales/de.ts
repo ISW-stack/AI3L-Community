@@ -126,7 +126,14 @@ export default {
     loginFailed: 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.',
     registerFailed: 'Registrierung fehlgeschlagen. Bitte erneut versuchen.',
     guestLoginFailed: 'Gastanmeldung fehlgeschlagen. Bitte erneut versuchen.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: 'Benutzername oder Passwort ungültig.',
+      unauthorized: 'Sie haben keine Berechtigung, diese Aktion auszuführen.',
+      captcha_invalid: 'Falscher Captcha-Code. Bitte erneut versuchen.',
+      account_inactive: 'Ihr Konto ist inaktiv. Bitte kontaktieren Sie den Administrator.',
+      unknown: 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.',
+      sessionExpired: 'Sitzung abgelaufen. Bitte melden Sie sich erneut an.',
+    },
   },
 
   // ── Privacy Consent ──
@@ -1170,13 +1177,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: 'E-Mail oder Passwort ungültig.',
+    unauthorized: 'Sie haben keine Berechtigung, diese Aktion auszuführen.',
+    captcha_invalid: 'Falsches Captcha. Bitte versuchen Sie es erneut.',
+    SYS_422: 'Falsches Captcha. Bitte versuchen Sie es erneut.',
+    account_inactive: 'Ihr Konto ist inaktiv. Bitte kontaktieren Sie einen Administrator.',
+    unknown: 'Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    sessionExpired: 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
+    loginFailed: 'Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    registerFailed: 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.',
+    guestLoginFailed: 'Gast-Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.',
     AUTH_001: 'Sitzung abgelaufen. Bitte erneut anmelden.',
     AUTH_002: 'Ungültige oder widerrufene Sitzung.',
     AUTH_003: 'Gastkapazität erreicht. Bitte später erneut versuchen.',
     AUTH_004: 'Ihr Konto wurde gesperrt.',
     RATE_LIMIT: 'Zu viele Anfragen. Bitte später erneut versuchen.',
-    RATE_LIMIT_RETRY: 'Zu viele Anfragen. Bitte nach {seconds} Sekunden erneut versuchen.',
-    unknown: 'Ein unerwarteter Fehler ist aufgetreten.',
+    RATE_LIMIT_RETRY: 'Zu many Anfragen. Bitte nach {seconds} Sekunden erneut versuchen.',
   },
 
   // ── Forms Directory ──

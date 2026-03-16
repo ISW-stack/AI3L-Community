@@ -93,8 +93,11 @@ function detectInitialLocale(): SupportedLocale {
     return saved as SupportedLocale
   }
   const browserLang = navigator.language
-  if (browserLang.startsWith('zh')) {
-    return browserLang.includes('TW') || browserLang.includes('HK') ? 'zh-TW' : 'zh-CN'
+  if (browserLang.toLowerCase().startsWith('zh')) {
+    if (browserLang.includes('TW') || browserLang.includes('HK') || browserLang.includes('Hant')) {
+      return 'zh-TW'
+    }
+    return 'zh-CN'
   }
   if (browserLang.startsWith('ja')) return 'ja'
   if (browserLang.startsWith('fr')) return 'fr'
@@ -121,6 +124,9 @@ export const i18n = createI18n({
     en,
     'zh-TW': zhTW,
     'zh-CN': zhCN,
+    zh: zhTW,
+    'zh-HK': zhTW,
+    'zh-hans': zhCN,
     ja,
     fr,
     es,

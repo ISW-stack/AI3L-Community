@@ -91,7 +91,7 @@ onUnmounted(() => {
     class="sticky top-0 z-50 backdrop-blur-md bg-surface/80 border-b border-border"
     :aria-label="t('nav.ariaLabel')"
   >
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 [scrollbar-gutter:stable]">
       <div class="flex justify-between h-16 items-center">
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">

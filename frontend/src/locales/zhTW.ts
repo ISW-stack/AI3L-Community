@@ -117,7 +117,14 @@ export default {
     loginFailed: '登入失敗，請重試。',
     registerFailed: '註冊失敗，請重試。',
     guestLoginFailed: '訪客登入失敗，請重試。',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: '帳號或密碼錯誤。',
+      unauthorized: '您沒有權限執行此操作。',
+      captcha_invalid: '驗證碼錯誤，請重試。',
+      account_inactive: '您的帳號已被停用，請聯絡管理員。',
+      unknown: '登入失敗，請重試。',
+      sessionExpired: '您的工作階段已過期，請重新登入。',
+    },
   },
   privacy: {
     title: '隱私與資料存放地同意書',
@@ -1109,13 +1116,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: '使用者名稱或密碼不正確。',
+    unauthorized: '您沒有執行此操作的權限。',
+    captcha_invalid: '驗證碼不正確，請重試。',
+    SYS_422: '驗證碼不正確，請重試。',
+    account_inactive: '您的帳號未啟用，請聯絡管理員。',
+    unknown: '登入失敗，請重試。',
+    sessionExpired: '您的連線已逾期，請重新登入。',
+    loginFailed: '登入失敗，請重試。',
+    registerFailed: '註冊失敗，請重試。',
+    guestLoginFailed: '訪客登入失敗，請重試。',
     AUTH_001: '工作階段已過期，請重新登入。',
     AUTH_002: '無效或已撤銷的工作階段。',
     AUTH_003: '訪客容量已滿，請稍後再試。',
     AUTH_004: '您的帳號已被封禁。',
     RATE_LIMIT: '請求過於頻繁，請稍後再試。',
     RATE_LIMIT_RETRY: '請求過於頻繁，請在 {seconds} 秒後重試。',
-    unknown: '發生未預期的錯誤。',
   },
 
   // ── Forms Directory ──

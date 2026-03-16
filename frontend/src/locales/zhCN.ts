@@ -117,7 +117,14 @@ export default {
     loginFailed: '登录失败，请重试。',
     registerFailed: '注册失败，请重试。',
     guestLoginFailed: '访客登录失败，请重试。',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    errors: {
+      invalid_credentials: '用户名或密码错误。',
+      unauthorized: '您没有权限执行此操作。',
+      captcha_invalid: '验证码错误，请重试。',
+      account_inactive: '您的账号已被停用，请联系管理员。',
+      unknown: '登录失败，请重试。',
+      sessionExpired: '您的会话已过期，请重新登录。',
+    },
   },
   privacy: {
     title: '隐私与数据存放地同意书',
@@ -1109,13 +1116,22 @@ export default {
   },
 
   errors: {
+    invalid_credentials: '用户名或密码不正确。',
+    unauthorized: '您没有执行此操作的权限。',
+    captcha_invalid: '验证码不正确，请重试。',
+    SYS_422: '验证码不正确，请重试。',
+    account_inactive: '您的账号未启用，请联系管理员。',
+    unknown: '登录失败，请重试。',
+    sessionExpired: '您的会话已过期，请重新登入。',
+    loginFailed: '登录失败，请重试。',
+    registerFailed: '注册失败，请重试。',
+    guestLoginFailed: '访客登录失败，请重试。',
     AUTH_001: '会话已过期，请重新登录。',
     AUTH_002: '无效或已撤销的会话。',
     AUTH_003: '访客容量已满，请稍后再试。',
     AUTH_004: '您的账号已被封禁。',
     RATE_LIMIT: '请求过于频繁，请稍后再试。',
     RATE_LIMIT_RETRY: '请求过于频繁，请在 {seconds} 秒后重试。',
-    unknown: '发生意外错误。',
   },
 
   // ── Forms Directory ──
