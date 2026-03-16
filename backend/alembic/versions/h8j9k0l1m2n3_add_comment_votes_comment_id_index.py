@@ -1,14 +1,14 @@
 """Add index on comment_votes.comment_id
 
 Revision ID: h8j9k0l1m2n3
-Revises: g7h8i9j0k1l2
+Revises: g7h8i9j0k1l3
 Create Date: 2026-03-16
 """
 
 from alembic import op
 
 revision = "h8j9k0l1m2n3"
-down_revision = "g7h8i9j0k1l2"
+down_revision = "g7h8i9j0k1l3"
 branch_labels = None
 depends_on = None
 

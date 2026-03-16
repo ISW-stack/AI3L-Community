@@ -1,6 +1,6 @@
 """Q&A post type and notification action_type widening
 
-Revision ID: g7h8i9j0k1l2
+Revision ID: g7h8i9j0k1l3
 Revises: f6g7h8i9j0k1
 Create Date: 2026-03-15
 
@@ -8,7 +8,7 @@ Create Date: 2026-03-15
 
 from alembic import op
 
-revision = "g7h8i9j0k1l2"
+revision = "g7h8i9j0k1l3"
 down_revision = "f6g7h8i9j0k1"
 branch_labels = None
 depends_on = None
