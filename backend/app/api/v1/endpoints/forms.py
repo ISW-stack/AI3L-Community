@@ -38,7 +38,11 @@ from app.services.form import (
     list_forms_by_sig,
 )
 from app.services.form import list_standalone_forms as list_standalone_forms_svc
-from app.services.form import soft_delete_form, submit_response, update_form
+from app.services.form import (
+    soft_delete_form,
+    submit_response,
+    update_form,
+)
 
 router = APIRouter(tags=["forms"])
 
