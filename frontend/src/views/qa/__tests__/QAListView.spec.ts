@@ -105,7 +105,7 @@ async function mountView(
   const pinia = createPinia()
   setActivePinia(pinia)
 
-  const auth = useAuthStore()
+  useAuthStore()
   if (authOverrides.role) {
     localStorage.setItem('role', authOverrides.role)
     localStorage.setItem('expiresAt', String(Date.now() + 3600_000))

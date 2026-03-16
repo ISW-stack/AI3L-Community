@@ -34,12 +34,8 @@ def upgrade() -> None:
         "CREATE UNIQUE INDEX ix_friendships_pair ON friendships "
         "(LEAST(requester_id, addressee_id), GREATEST(requester_id, addressee_id))"
     )
-    op.execute(
-        "CREATE INDEX ix_friendships_requester ON friendships(requester_id, status)"
-    )
-    op.execute(
-        "CREATE INDEX ix_friendships_addressee ON friendships(addressee_id, status)"
-    )
+    op.execute("CREATE INDEX ix_friendships_requester ON friendships(requester_id, status)")
+    op.execute("CREATE INDEX ix_friendships_addressee ON friendships(addressee_id, status)")
 
     # follows
     op.execute("""

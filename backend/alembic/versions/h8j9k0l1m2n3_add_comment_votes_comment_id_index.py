@@ -15,8 +15,7 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_comment_votes_comment_id "
-        "ON comment_votes(comment_id)"
+        "CREATE INDEX IF NOT EXISTS ix_comment_votes_comment_id " "ON comment_votes(comment_id)"
     )
 
 

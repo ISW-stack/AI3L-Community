@@ -73,7 +73,6 @@ const {
   postContentRef,
   goToCommentPage,
   fetchHistory,
-  fetchCoAuthors,
   startEdit,
   saveEdit,
   deletePostHandler,

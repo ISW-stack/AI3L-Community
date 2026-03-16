@@ -31,8 +31,7 @@ def upgrade() -> None:
     """)
     op.execute("CREATE INDEX ix_albums_created_at ON albums(created_at DESC)")
     op.execute(
-        "CREATE INDEX ix_albums_not_deleted ON albums(created_at DESC) "
-        "WHERE is_deleted = false"
+        "CREATE INDEX ix_albums_not_deleted ON albums(created_at DESC) " "WHERE is_deleted = false"
     )
 
     # album_members
@@ -71,10 +70,7 @@ def upgrade() -> None:
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
-    op.execute(
-        "CREATE INDEX ix_album_photos_album "
-        "ON album_photos(album_id, created_at DESC)"
-    )
+    op.execute("CREATE INDEX ix_album_photos_album " "ON album_photos(album_id, created_at DESC)")
     op.execute("CREATE INDEX ix_album_photos_uploader ON album_photos(uploaded_by)")
 
     # album_comments
@@ -91,10 +87,7 @@ def upgrade() -> None:
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
-    op.execute(
-        "CREATE INDEX ix_album_comments_album "
-        "ON album_comments(album_id, created_at)"
-    )
+    op.execute("CREATE INDEX ix_album_comments_album " "ON album_comments(album_id, created_at)")
     op.execute("CREATE INDEX ix_album_comments_photo ON album_comments(photo_id)")
     op.execute("CREATE INDEX ix_album_comments_parent ON album_comments(parent_id)")
 

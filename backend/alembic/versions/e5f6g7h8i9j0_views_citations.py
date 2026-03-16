@@ -27,18 +27,15 @@ def upgrade() -> None:
         )
     """)
     op.execute(
-        "CREATE UNIQUE INDEX idx_profile_views_unique "
-        "ON profile_views (profile_id, viewer_id)"
+        "CREATE UNIQUE INDEX idx_profile_views_unique " "ON profile_views (profile_id, viewer_id)"
     )
 
     # user profile view counters
     op.execute(
-        "ALTER TABLE users ADD COLUMN profile_view_count_unique "
-        "INTEGER NOT NULL DEFAULT 0"
+        "ALTER TABLE users ADD COLUMN profile_view_count_unique " "INTEGER NOT NULL DEFAULT 0"
     )
     op.execute(
-        "ALTER TABLE users ADD COLUMN profile_view_count_total "
-        "INTEGER NOT NULL DEFAULT 0"
+        "ALTER TABLE users ADD COLUMN profile_view_count_total " "INTEGER NOT NULL DEFAULT 0"
     )
 
     # post_citations
@@ -55,14 +52,10 @@ def upgrade() -> None:
         "CREATE UNIQUE INDEX idx_post_citations_unique "
         "ON post_citations (citing_post_id, cited_post_id)"
     )
-    op.execute(
-        "CREATE INDEX idx_post_citations_cited ON post_citations (cited_post_id)"
-    )
+    op.execute("CREATE INDEX idx_post_citations_cited ON post_citations (cited_post_id)")
 
     # post citation counter
-    op.execute(
-        "ALTER TABLE posts ADD COLUMN citation_count INTEGER NOT NULL DEFAULT 0"
-    )
+    op.execute("ALTER TABLE posts ADD COLUMN citation_count INTEGER NOT NULL DEFAULT 0")
 
 
 def downgrade() -> None:

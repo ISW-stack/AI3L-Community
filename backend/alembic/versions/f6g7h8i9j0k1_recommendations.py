@@ -31,8 +31,7 @@ def upgrade() -> None:
         )
     """)
     op.execute(
-        "CREATE INDEX ix_friend_rec_user_score "
-        "ON friend_recommendations (user_id, score DESC)"
+        "CREATE INDEX ix_friend_rec_user_score " "ON friend_recommendations (user_id, score DESC)"
     )
 
     # dismissed_recommendations
@@ -45,9 +44,7 @@ def upgrade() -> None:
             CONSTRAINT uq_dismissed_pair UNIQUE (user_id, dismissed_user_id)
         )
     """)
-    op.execute(
-        "CREATE INDEX ix_dismissed_user ON dismissed_recommendations (user_id)"
-    )
+    op.execute("CREATE INDEX ix_dismissed_user ON dismissed_recommendations (user_id)")
 
 
 def downgrade() -> None:

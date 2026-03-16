@@ -138,8 +138,8 @@ function createStubs() {
   }
 }
 
-async function mountQADetail(options?: { role?: string; postData?: unknown }) {
-  const { role = 'MEMBER', postData = fakePost } = options ?? {}
+async function mountQADetail(options?: { role?: string }) {
+  const { role = 'MEMBER' } = options ?? {}
   const pinia = createPinia()
   setActivePinia(pinia)
   const router = createTestRouter()

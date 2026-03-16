@@ -76,7 +76,8 @@ function createStubs() {
   }
 }
 
-function createTestRouter(initialRoute: string) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function createTestRouter(_initialRoute?: string) {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -156,8 +157,6 @@ describe('i18n gaps — FriendsView', () => {
 
   it('renders page title and tab labels using i18n keys', async () => {
     const wrapper = await mountFriends()
-    const html = wrapper.html()
-
     // The page title should use the i18n key — in test env vue-i18n returns the key path
     // The h1 should contain the translated text (key path in test)
     expect(wrapper.find('h1').exists()).toBe(true)

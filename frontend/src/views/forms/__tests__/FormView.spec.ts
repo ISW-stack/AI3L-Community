@@ -829,7 +829,7 @@ describe('FormView', () => {
       const inlineErrors = wrapper.findAll('[data-testid="inline-validation-error"]')
       // Only required fields should have errors
       expect(
-        inlineErrors.filter((e) => {
+        inlineErrors.filter(() => {
           // Check that this error is NOT for q5
           return true
         }),

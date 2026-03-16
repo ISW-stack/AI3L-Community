@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { ref, provide } from 'vue'
+import { ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AlbumPhotosView from '../AlbumPhotosView.vue'
@@ -202,7 +202,7 @@ describe('AlbumPhotosView', () => {
     const albumRef = ref<Album | null>(fakeAlbum)
     const userAlbumRoleRef = ref<string | null>('MEMBER')
 
-    const wrapper = mount(AlbumPhotosView, {
+    mount(AlbumPhotosView, {
       global: {
         plugins: [pinia, router],
         stubs: createStubs(),

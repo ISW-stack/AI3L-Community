@@ -7,7 +7,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { getErrorMessage } from '@/utils/error'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import { ChevronDown, ChevronUp, UserPlus, X, Users } from 'lucide-vue-next'
 

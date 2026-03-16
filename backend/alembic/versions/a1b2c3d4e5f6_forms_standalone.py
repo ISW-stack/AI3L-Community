@@ -24,8 +24,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute(
-        "DELETE FROM form_responses WHERE form_id IN "
-        "(SELECT id FROM forms WHERE sig_id IS NULL)"
+        "DELETE FROM form_responses WHERE form_id IN " "(SELECT id FROM forms WHERE sig_id IS NULL)"
     )
     op.execute("DELETE FROM forms WHERE sig_id IS NULL")
     op.execute("ALTER TABLE forms ALTER COLUMN sig_id SET NOT NULL")

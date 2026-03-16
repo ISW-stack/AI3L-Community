@@ -34,16 +34,12 @@ def upgrade() -> None:
                 CHECK ((is_external = TRUE) OR (user_id IS NOT NULL))
         )
     """)
-    op.execute(
-        "CREATE INDEX ix_post_co_authors_post_id ON post_co_authors(post_id)"
-    )
+    op.execute("CREATE INDEX ix_post_co_authors_post_id ON post_co_authors(post_id)")
     op.execute(
         "CREATE INDEX ix_post_co_authors_user_id ON post_co_authors(user_id) "
         "WHERE user_id IS NOT NULL"
     )
-    op.execute(
-        "CREATE INDEX ix_post_co_authors_status ON post_co_authors(post_id, status)"
-    )
+    op.execute("CREATE INDEX ix_post_co_authors_status ON post_co_authors(post_id, status)")
     # Partial unique index for external co-authors (audit fix C-09)
     op.execute(
         "CREATE UNIQUE INDEX ix_post_co_author_external "
