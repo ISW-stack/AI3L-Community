@@ -33,7 +33,9 @@ const error = ref('')
 
 // Internal user search
 const searchQuery = ref('')
-const searchResults = ref<Array<{ id: string; display_name: string; avatar_url: string | null }>>([])
+const searchResults = ref<Array<{ id: string; display_name: string; avatar_url: string | null }>>(
+  [],
+)
 const searchLoading = ref(false)
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -142,8 +144,8 @@ function toggleExternalForm() {
   showExternalForm.value = !showExternalForm.value
 }
 
-function statusVariant(status: string): 'default' | 'neutral' {
-  if (status === 'ACCEPTED') return 'default'
+function statusVariant(status: string): 'success' | 'neutral' {
+  if (status === 'ACCEPTED') return 'success'
   return 'neutral'
 }
 
@@ -170,11 +172,17 @@ onMounted(fetchCoAuthors)
       >
         <BaseAvatar :src="ca.avatar_url" :name="ca.display_name" size="sm" />
         <div class="flex-1 min-w-0">
-          <span class="text-sm font-medium text-foreground truncate block">{{ ca.display_name }}</span>
-          <span v-if="ca.affiliation" class="text-xs text-muted truncate block">{{ ca.affiliation }}</span>
+          <span class="text-sm font-medium text-foreground truncate block">{{
+            ca.display_name
+          }}</span>
+          <span v-if="ca.affiliation" class="text-xs text-muted truncate block">{{
+            ca.affiliation
+          }}</span>
         </div>
         <BaseBadge :variant="statusVariant(ca.status)" class="!text-[10px] !px-1.5 !py-0">
-          {{ ca.status === 'ACCEPTED' ? 'Accepted' : ca.status === 'PENDING' ? 'Pending' : 'Rejected' }}
+          {{
+            ca.status === 'ACCEPTED' ? 'Accepted' : ca.status === 'PENDING' ? 'Pending' : 'Rejected'
+          }}
         </BaseBadge>
         <button
           type="button"

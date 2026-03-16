@@ -179,9 +179,8 @@ async def login_as_guest(
 async def logout(
     request: Request, response: Response, current_user: dict = Depends(get_current_user)
 ) -> MessageResponse:
-    ip = (
-        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        or (request.client.host if request.client else None)
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
+        request.client.host if request.client else None
     )
 
     await destroy_session(

@@ -49,8 +49,7 @@ async def find_friendship_between(
         SELECT * FROM friendships
         WHERE (requester_id = $1 AND addressee_id = $2)
            OR (requester_id = $2 AND addressee_id = $1)
-        """
-        + suffix,
+        """ + suffix,
         user_a,
         user_b,
     )

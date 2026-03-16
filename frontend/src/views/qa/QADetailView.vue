@@ -240,10 +240,7 @@ onMounted(() => {
               </router-link>
               <span>{{ formatDate(post.created_at) }}</span>
               <BaseBadge v-if="post.category_name">{{ post.category_name }}</BaseBadge>
-              <BaseBadge
-                v-if="post.best_answer_id"
-                class="!bg-success-100 !text-success-700"
-              >
+              <BaseBadge v-if="post.best_answer_id" class="!bg-success-100 !text-success-700">
                 {{ t('qa.answered') }}
               </BaseBadge>
               <BaseBadge v-else variant="neutral">{{ t('qa.unanswered') }}</BaseBadge>
@@ -271,7 +268,9 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center gap-4 border-t border-border pt-3 text-sm text-muted">
-          <span>{{ t('qa.answerCountLabel', { count: post.answer_count }, post.answer_count) }}</span>
+          <span>{{
+            t('qa.answerCountLabel', { count: post.answer_count }, post.answer_count)
+          }}</span>
           <span>{{ t('qa.viewCountLabel', { count: post.view_count }) }}</span>
         </div>
       </BaseCard>
@@ -282,17 +281,16 @@ onMounted(() => {
           {{ t('qa.answersSection', { count: answersTotal }, answersTotal) }}
         </h3>
 
-        <EmptyState
-          v-if="sortedAnswers.length === 0"
-          :message="t('qa.noAnswers')"
-        />
+        <EmptyState v-if="sortedAnswers.length === 0" :message="t('qa.noAnswers')" />
 
         <div class="space-y-4">
           <div
             v-for="answer in sortedAnswers"
             :key="answer.id"
             class="group border-b border-border last:border-0 pb-4 last:pb-0"
-            :class="answer.id === post.best_answer_id ? 'bg-success-50/50 -mx-4 px-4 py-3 rounded-lg' : ''"
+            :class="
+              answer.id === post.best_answer_id ? 'bg-success-50/50 -mx-4 px-4 py-3 rounded-lg' : ''
+            "
           >
             <div class="flex items-start gap-3">
               <!-- Vote buttons -->
@@ -323,8 +321,15 @@ onMounted(() => {
 
                 <!-- Answer meta -->
                 <div class="flex items-center gap-2 text-xs text-muted">
-                  <router-link :to="`/users/${answer.author.id}`" class="flex items-center gap-1 hover:text-brand-600">
-                    <BaseAvatar :src="answer.author.avatar_url" :name="answer.author.display_name" size="xs" />
+                  <router-link
+                    :to="`/users/${answer.author.id}`"
+                    class="flex items-center gap-1 hover:text-brand-600"
+                  >
+                    <BaseAvatar
+                      :src="answer.author.avatar_url"
+                      :name="answer.author.display_name"
+                      size="xs"
+                    />
                     <span>{{ answer.author.display_name }}</span>
                   </router-link>
                   <span>{{ formatDate(answer.created_at) }}</span>
@@ -343,20 +348,13 @@ onMounted(() => {
         />
 
         <!-- Answer input -->
-        <div
-          v-if="auth.isAuthenticated && !auth.isGuest"
-          class="mt-6 border-t border-border pt-4"
-        >
+        <div v-if="auth.isAuthenticated && !auth.isGuest" class="mt-6 border-t border-border pt-4">
           <h4 class="text-sm font-semibold text-foreground mb-2">{{ t('qa.yourAnswer') }}</h4>
           <BaseAlert v-if="answerMessage" type="error" class="mb-2">{{ answerMessage }}</BaseAlert>
           <div class="mb-2">
             <TiptapEditor v-model="newAnswer" />
           </div>
-          <BaseButton
-            :loading="answerSaving"
-            :disabled="!newAnswer.trim()"
-            @click="submitAnswer"
-          >
+          <BaseButton :loading="answerSaving" :disabled="!newAnswer.trim()" @click="submitAnswer">
             {{ t('qa.postAnswer') }}
           </BaseButton>
         </div>
@@ -369,7 +367,9 @@ onMounted(() => {
         {{ t('qa.deleteQuestionConfirm') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</BaseButton>
+        <BaseButton variant="secondary" @click="showDeleteConfirm = false">{{
+          t('common.cancel')
+        }}</BaseButton>
         <BaseButton variant="danger" @click="deleteQuestion">{{ t('common.delete') }}</BaseButton>
       </template>
     </BaseModal>

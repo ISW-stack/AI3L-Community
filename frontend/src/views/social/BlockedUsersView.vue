@@ -80,10 +80,7 @@ onMounted(fetchBlocks)
 <template>
   <div class="max-w-3xl mx-auto">
     <BaseBreadcrumb
-      :items="[
-        { label: t('breadcrumb.home'), to: '/' },
-        { label: t('breadcrumb.blockedUsers') },
-      ]"
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.blockedUsers') }]"
     />
     <h1 class="text-2xl font-bold text-foreground mb-4">{{ t('social.blockedUsers') }}</h1>
 
@@ -99,15 +96,8 @@ onMounted(fetchBlocks)
       :message="t('social.noBlockedMessage')"
     />
 
-    <div
-      v-else
-      class="bg-surface rounded-lg shadow border border-border divide-y divide-border"
-    >
-      <div
-        v-for="blocked in blocks"
-        :key="blocked.id"
-        class="flex items-center gap-4 px-5 py-4"
-      >
+    <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
+      <div v-for="blocked in blocks" :key="blocked.id" class="flex items-center gap-4 px-5 py-4">
         <BaseAvatar :src="blocked.avatar_url" :name="blocked.display_name" size="md" />
 
         <div class="flex-1 min-w-0">
@@ -118,11 +108,7 @@ onMounted(fetchBlocks)
           </p>
         </div>
 
-        <BaseButton
-          size="sm"
-          variant="secondary"
-          @click="confirmUnblock(blocked)"
-        >
+        <BaseButton size="sm" variant="secondary" @click="confirmUnblock(blocked)">
           <ShieldOff class="w-3.5 h-3.5 mr-1" />
           {{ t('social.unblock') }}
         </BaseButton>
@@ -146,11 +132,7 @@ onMounted(fetchBlocks)
         <BaseButton size="sm" variant="secondary" @click="showUnblockConfirm = false">
           {{ t('common.cancel') }}
         </BaseButton>
-        <BaseButton
-          size="sm"
-          :loading="unblockLoading"
-          @click="handleUnblock"
-        >
+        <BaseButton size="sm" :loading="unblockLoading" @click="handleUnblock">
           {{ t('social.unblock') }}
         </BaseButton>
       </template>

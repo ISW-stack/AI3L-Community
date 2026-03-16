@@ -232,9 +232,7 @@ async def get_form(
                 )
     else:
         # Standalone form — accessible without auth; admin check only if logged in
-        is_admin = (
-            current_user["role"] in ("SUPER_ADMIN", "ADMIN") if current_user else False
-        )
+        is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN") if current_user else False
     form["user_is_sig_admin"] = is_admin
     return FormResponseSchema(**form)
 

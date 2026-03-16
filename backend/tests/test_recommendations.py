@@ -572,9 +572,9 @@ class TestRecommendationSQL:
 
         # The SQL should have exactly two LATERAL JOINs (my_friends, their_friends)
         lateral_count = _RECOMMENDATION_SQL.count("LEFT JOIN LATERAL")
-        assert lateral_count == 2, (
-            f"Expected 2 LATERAL JOINs (my_friends + their_friends), found {lateral_count}"
-        )
+        assert (
+            lateral_count == 2
+        ), f"Expected 2 LATERAL JOINs (my_friends + their_friends), found {lateral_count}"
 
     def test_sql_counts_my_friend_directly(self):
         """B1: After removing the redundant join, mutual_friends counts my_friends.my_friend."""
@@ -628,7 +628,10 @@ class TestRecommendationSQL:
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.core.database.get_pool", return_value=mock_pool),
         ):
-            from app.tasks.recommendations import _RECOMMENDATION_SQL, _compute_recommendations_async
+            from app.tasks.recommendations import (
+                _RECOMMENDATION_SQL,
+                _compute_recommendations_async,
+            )
 
             result = await _compute_recommendations_async()
 

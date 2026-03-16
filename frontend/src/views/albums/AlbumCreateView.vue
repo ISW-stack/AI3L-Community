@@ -70,8 +70,12 @@ async function handleSubmit() {
         :placeholder="t('albums.descriptionPlaceholder')"
       />
       <div class="flex justify-end gap-3">
-        <BaseButton variant="secondary" @click="router.push('/albums')">{{ t('common.cancel') }}</BaseButton>
-        <BaseButton :loading="saving" @click="handleSubmit">{{ t('albums.createAlbum') }}</BaseButton>
+        <BaseButton variant="secondary" @click="router.push('/albums')">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton :loading="saving" @click="handleSubmit">{{
+          t('albums.createAlbum')
+        }}</BaseButton>
       </div>
     </BaseCard>
   </div>

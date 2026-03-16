@@ -35,16 +35,14 @@ async def _close_expired_forms() -> list[str]:
     await _ensure_pool()
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
+        rows = await conn.fetch("""
             UPDATE forms
             SET is_closed = true, updated_at = NOW()
             WHERE deadline < NOW()
               AND is_closed = false
               AND is_deleted = false
             RETURNING id
-            """
-        )
+            """)
         return [str(row["id"]) for row in rows]
 
 

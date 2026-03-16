@@ -81,9 +81,7 @@ function createTestRouter() {
       {
         path: '/albums/:id',
         component: { template: '<router-view />' },
-        children: [
-          { path: 'photos', name: 'album-photos', component: AlbumPhotosView },
-        ],
+        children: [{ path: 'photos', name: 'album-photos', component: AlbumPhotosView }],
       },
     ],
   })

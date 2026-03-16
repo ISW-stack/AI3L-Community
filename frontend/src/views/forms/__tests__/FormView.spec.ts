@@ -843,9 +843,9 @@ describe('FormView', () => {
       // Blur without value
       await textInput.trigger('blur')
       await wrapper.vm.$nextTick()
-      expect(wrapper.findAll('[data-testid="inline-validation-error"]').length).toBeGreaterThanOrEqual(
-        1,
-      )
+      expect(
+        wrapper.findAll('[data-testid="inline-validation-error"]').length,
+      ).toBeGreaterThanOrEqual(1)
 
       // Now type a value and trigger input (which clears validationErrors via onTextInput)
       await textInput.setValue('John')

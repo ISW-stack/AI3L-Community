@@ -299,9 +299,7 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
                     post_id,
                 )
         except Exception:
-            logger.warning(
-                "Post citation cleanup failed", extra={"post_id": str(post_id)}
-            )
+            logger.warning("Post citation cleanup failed", extra={"post_id": str(post_id)})
 
     # Notify post owner when admin deletes their post
     if deleted and is_admin and post_owner_id and post_owner_id != user_id:

@@ -1,5 +1,10 @@
 export interface RecommendationReason {
-  type: 'common_sig' | 'mutual_friends' | 'similar_keywords' | 'same_affiliation' | 'activity_recency'
+  type:
+    | 'common_sig'
+    | 'mutual_friends'
+    | 'similar_keywords'
+    | 'same_affiliation'
+    | 'activity_recency'
   sig_name?: string
   count?: number
   affiliation?: string

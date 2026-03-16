@@ -30,7 +30,8 @@ vi.mock('@/components/base/BaseButton.vue', () => ({
 vi.mock('@/components/base/BaseInput.vue', () => ({
   default: {
     props: ['modelValue', 'label', 'placeholder', 'required'],
-    template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+    template:
+      '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
 }))
 

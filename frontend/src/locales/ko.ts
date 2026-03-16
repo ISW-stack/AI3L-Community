@@ -1239,7 +1239,8 @@ export default {
     noFollowing: 'Not following anyone',
     noFollowingMessage: 'Follow other members to stay updated on their activity.',
     noBlockedMessage: 'You have not blocked anyone.',
-    blockLimitDescription: 'You can block up to 5 users. Blocked users cannot send you friend requests, follow you, or interact with your content.',
+    blockLimitDescription:
+      'You can block up to 5 users. Blocked users cannot send you friend requests, follow you, or interact with your content.',
     requests: 'Requests',
     incomingRequests: 'Incoming Requests',
     sentRequests: 'Sent Requests',
@@ -1262,7 +1263,8 @@ export default {
     removeFriend: 'Remove Friend',
     removeFriendConfirm: 'Are you sure you want to remove {name} from your friends list?',
     unblockUser: 'Unblock User',
-    unblockConfirm: 'Are you sure you want to unblock {name}? They will be able to interact with you again.',
+    unblockConfirm:
+      'Are you sure you want to unblock {name}? They will be able to interact with you again.',
     blocked: 'Blocked {time}',
     loadFriendsError: 'Failed to load friends',
     loadRequestsError: 'Failed to load friend requests',
@@ -1312,7 +1314,8 @@ export default {
     postAnswer: 'Post Answer',
     postAnswerError: 'Failed to post answer.',
     deleteQuestion: 'Delete Question',
-    deleteQuestionConfirm: 'Are you sure you want to delete this question? This action cannot be undone.',
+    deleteQuestionConfirm:
+      'Are you sure you want to delete this question? This action cannot be undone.',
     deleteError: 'Failed to delete question.',
     loadQuestionError: 'Failed to load question.',
     loadAnswersError: 'Failed to load answers.',
@@ -1365,7 +1368,6 @@ export default {
     searching: 'Searching...',
     noResults: 'No posts found matching your search.',
   },
-
 
   // ── Not Found Page ──
   notFoundPage: {

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { Friendship, FriendRequest } from '@/types/social'
-import { listFriends, listFriendRequests, unfriend, acceptFriendRequest, rejectFriendRequest } from '@/api/social'
+import {
+  listFriends,
+  listFriendRequests,
+  unfriend,
+  acceptFriendRequest,
+  rejectFriendRequest,
+} from '@/api/social'
 import { usePagination } from '@/composables/usePagination'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
@@ -52,9 +58,7 @@ const showUnfriendConfirm = ref(false)
 const unfriendTarget = ref<Friendship | null>(null)
 const unfriendLoading = ref(false)
 
-const incomingRequests = computed(() =>
-  requests.value.filter((r) => r.status === 'pending'),
-)
+const incomingRequests = computed(() => requests.value.filter((r) => r.status === 'pending'))
 
 async function fetchFriends() {
   const localId = ++friendsFetchId
@@ -220,15 +224,8 @@ onMounted(() => {
         :message="t('social.noFriendsMessage')"
       />
 
-      <div
-        v-else
-        class="bg-surface rounded-lg shadow border border-border divide-y divide-border"
-      >
-        <div
-          v-for="friend in friends"
-          :key="friend.id"
-          class="flex items-center gap-4 px-5 py-4"
-        >
+      <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
+        <div v-for="friend in friends" :key="friend.id" class="flex items-center gap-4 px-5 py-4">
           <router-link :to="`/users/${friend.user_id}`">
             <BaseAvatar :src="friend.avatar_url" :name="friend.display_name" size="md" />
           </router-link>
@@ -250,11 +247,7 @@ onMounted(() => {
             <span class="text-xs text-muted hidden sm:inline">
               {{ t('social.friendsSince', { time: relativeTime(friend.created_at) }) }}
             </span>
-            <BaseButton
-              size="sm"
-              variant="soft-danger"
-              @click="confirmUnfriend(friend)"
-            >
+            <BaseButton size="sm" variant="soft-danger" @click="confirmUnfriend(friend)">
               <UserMinus class="w-3.5 h-3.5 mr-1" />
               {{ t('social.unfriend') }}
             </BaseButton>
@@ -284,7 +277,9 @@ onMounted(() => {
       <div v-else class="space-y-3">
         <!-- Incoming requests section -->
         <div v-if="incomingRequests.length > 0">
-          <h3 class="text-sm font-semibold text-foreground mb-2">{{ t('social.incomingRequests') }}</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-2">
+            {{ t('social.incomingRequests') }}
+          </h3>
           <div class="space-y-2">
             <FriendRequestCard
               v-for="req in incomingRequests"
@@ -299,9 +294,14 @@ onMounted(() => {
 
         <!-- Outgoing requests section -->
         <div
-          v-if="requests.filter((r) => r.status !== 'pending' || !incomingRequests.includes(r)).length > 0"
+          v-if="
+            requests.filter((r) => r.status !== 'pending' || !incomingRequests.includes(r)).length >
+            0
+          "
         >
-          <h3 class="text-sm font-semibold text-foreground mb-2 mt-4">{{ t('social.sentRequests') }}</h3>
+          <h3 class="text-sm font-semibold text-foreground mb-2 mt-4">
+            {{ t('social.sentRequests') }}
+          </h3>
           <div class="space-y-2">
             <FriendRequestCard
               v-for="req in requests.filter((r) => !incomingRequests.includes(r))"

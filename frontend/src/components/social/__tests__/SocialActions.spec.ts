@@ -98,8 +98,7 @@ function createStubs() {
       props: ['variant', 'size'],
     },
     BaseModal: {
-      template:
-        '<div v-if="modelValue" class="base-modal"><slot /><slot name="footer" /></div>',
+      template: '<div v-if="modelValue" class="base-modal"><slot /><slot name="footer" /></div>',
       props: ['modelValue', 'title', 'size'],
     },
     MoreVertical: { template: '<span class="icon-more" />' },
@@ -111,10 +110,7 @@ function createStubs() {
   }
 }
 
-async function mountSocialActions(
-  initialStatus?: RelationshipStatus,
-  userId = 'target-user',
-) {
+async function mountSocialActions(initialStatus?: RelationshipStatus, userId = 'target-user') {
   const pinia = createPinia()
   setActivePinia(pinia)
   const router = createTestRouter()

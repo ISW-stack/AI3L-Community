@@ -163,10 +163,7 @@ onMounted(() => {
 <template>
   <div class="max-w-3xl mx-auto py-6 px-4">
     <div class="mb-4">
-      <router-link
-        to="/qa"
-        class="text-sm text-brand-600 hover:underline flex items-center gap-1"
-      >
+      <router-link to="/qa" class="text-sm text-brand-600 hover:underline flex items-center gap-1">
         <span>&larr;</span> {{ t('qa.backToList') }}
       </router-link>
     </div>
@@ -191,7 +188,9 @@ onMounted(() => {
       />
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{ t('qa.categoryOptional') }}</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('qa.categoryOptional')
+        }}</label>
         <select
           v-model="categoryId"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"

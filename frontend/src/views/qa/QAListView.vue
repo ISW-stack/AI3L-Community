@@ -25,13 +25,7 @@ const auth = useAuthStore()
 const questions = ref<Post[]>([])
 const loading = ref(false)
 
-const {
-  page,
-  total,
-  totalPages,
-  setPage,
-  updateFromResponse,
-} = usePagination(PAGE_SIZE)
+const { page, total, totalPages, setPage, updateFromResponse } = usePagination(PAGE_SIZE)
 
 async function fetchQuestions() {
   loading.value = true
@@ -70,10 +64,7 @@ onMounted(fetchQuestions)
     />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('qa.title') }}</h1>
-      <BaseButton
-        v-if="auth.isAuthenticated && !auth.isGuest"
-        @click="goToCreate"
-      >
+      <BaseButton v-if="auth.isAuthenticated && !auth.isGuest" @click="goToCreate">
         {{ t('qa.askQuestion') }}
       </BaseButton>
     </div>

@@ -334,11 +334,7 @@ const {
     </BaseModal>
 
     <!-- Discard Draft Confirmation Modal -->
-    <BaseModal
-      v-model="showDiscardConfirm"
-      :title="t('forms.builder.draftDiscard')"
-      size="sm"
-    >
+    <BaseModal v-model="showDiscardConfirm" :title="t('forms.builder.draftDiscard')" size="sm">
       <p class="text-sm text-muted">
         {{ t('forms.builder.confirmDiscard') }}
       </p>

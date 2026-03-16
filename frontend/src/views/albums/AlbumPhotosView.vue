@@ -98,12 +98,7 @@ watch(page, fetchPhotos)
   <div>
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-semibold text-foreground">{{ t('albums.photos') }}</h2>
-      <BaseButton
-        v-if="userAlbumRole"
-        size="sm"
-        :loading="uploading"
-        @click="openUploadModal"
-      >
+      <BaseButton v-if="userAlbumRole" size="sm" :loading="uploading" @click="openUploadModal">
         {{ t('albums.uploadPhoto') }}
       </BaseButton>
     </div>
@@ -138,9 +133,6 @@ watch(page, fetchPhotos)
       @navigate="handleLightboxNavigate"
     />
 
-    <PhotoUploadModal
-      v-model="showUploadModal"
-      @upload="handleUpload"
-    />
+    <PhotoUploadModal v-model="showUploadModal" @upload="handleUpload" />
   </div>
 </template>

@@ -260,9 +260,7 @@ describe('HomeView', () => {
     it('shows "View All Trending" link when trending posts exist', async () => {
       const { wrapper } = await mountHome()
       const links = wrapper.findAll('a')
-      const trendingLink = links.find(
-        (l) => l.attributes('href') === '/forum?sort=trending',
-      )
+      const trendingLink = links.find((l) => l.attributes('href') === '/forum?sort=trending')
       expect(trendingLink).toBeTruthy()
       expect(trendingLink!.text()).toContain('View All Trending')
     })
@@ -271,9 +269,7 @@ describe('HomeView', () => {
       mockGetTrendingPosts.mockResolvedValue([])
       const { wrapper } = await mountHome()
       const links = wrapper.findAll('a')
-      const trendingLink = links.find(
-        (l) => l.attributes('href') === '/forum?sort=trending',
-      )
+      const trendingLink = links.find((l) => l.attributes('href') === '/forum?sort=trending')
       expect(trendingLink).toBeUndefined()
     })
 

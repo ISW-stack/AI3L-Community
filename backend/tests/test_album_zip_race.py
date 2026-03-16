@@ -112,9 +112,7 @@ class TestQuotaExceeded:
     async def test_quota_exceeded_returns_error(self, mock_pool, mock_conn) -> None:
         """upload_file_zip raises error when quota would be exceeded."""
         # User has almost maxed out quota
-        mock_conn.fetchrow.return_value = {
-            "storage_used_bytes": 1_073_741_824 - 10
-        }
+        mock_conn.fetchrow.return_value = {"storage_used_bytes": 1_073_741_824 - 10}
 
         with (
             patch("app.services.album.get_pool", return_value=mock_pool),

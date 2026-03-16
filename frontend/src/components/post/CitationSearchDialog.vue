@@ -81,7 +81,12 @@ watch(
 </script>
 
 <template>
-  <BaseModal :model-value="modelValue" :title="t('citations.insertTitle')" size="lg" @update:model-value="closeDialog">
+  <BaseModal
+    :model-value="modelValue"
+    :title="t('citations.insertTitle')"
+    size="lg"
+    @update:model-value="closeDialog"
+  >
     <div class="space-y-4">
       <div class="relative">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
@@ -94,11 +99,16 @@ watch(
         />
       </div>
 
-      <div v-if="loading" class="text-sm text-muted text-center py-4">{{ t('citations.searching') }}</div>
+      <div v-if="loading" class="text-sm text-muted text-center py-4">
+        {{ t('citations.searching') }}
+      </div>
 
       <div v-if="error" class="text-sm text-danger-600 text-center py-2">{{ error }}</div>
 
-      <div v-if="results.length > 0" class="divide-y divide-border max-h-60 overflow-y-auto rounded-lg border border-border">
+      <div
+        v-if="results.length > 0"
+        class="divide-y divide-border max-h-60 overflow-y-auto rounded-lg border border-border"
+      >
         <button
           v-for="result in results"
           :key="result.id"

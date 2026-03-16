@@ -139,10 +139,7 @@ onMounted(fetchNotifications)
 <template>
   <div class="max-w-3xl mx-auto">
     <BaseBreadcrumb
-      :items="[
-        { label: t('breadcrumb.home'), to: '/' },
-        { label: t('breadcrumb.notifications') },
-      ]"
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.notifications') }]"
     />
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('notifications.title') }}</h1>
@@ -268,11 +265,7 @@ onMounted(fetchNotifications)
     />
 
     <!-- Clear All Confirmation Modal -->
-    <BaseModal
-      v-model="showClearAllConfirm"
-      :title="t('notifications.clearAllBtn')"
-      size="sm"
-    >
+    <BaseModal v-model="showClearAllConfirm" :title="t('notifications.clearAllBtn')" size="sm">
       <p class="text-sm text-muted">
         {{ t('notifications.confirmClearAll', { count: notifications.length }) }}
       </p>
@@ -280,9 +273,7 @@ onMounted(fetchNotifications)
         <BaseButton variant="secondary" @click="showClearAllConfirm = false">{{
           t('common.cancel')
         }}</BaseButton>
-        <BaseButton variant="danger" @click="confirmClearAll">{{
-          t('common.confirm')
-        }}</BaseButton>
+        <BaseButton variant="danger" @click="confirmClearAll">{{ t('common.confirm') }}</BaseButton>
       </template>
     </BaseModal>
   </div>

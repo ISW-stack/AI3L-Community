@@ -77,7 +77,12 @@ function resetState() {
 </script>
 
 <template>
-  <BaseModal :model-value="modelValue" title="Upload Photo" size="md" @update:model-value="handleClose">
+  <BaseModal
+    :model-value="modelValue"
+    title="Upload Photo"
+    size="md"
+    @update:model-value="handleClose"
+  >
     <div class="space-y-4">
       <BaseAlert v-if="error" type="error">{{ error }}</BaseAlert>
 
@@ -89,9 +94,7 @@ function resetState() {
           class="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
           @change="handleFileChange"
         />
-        <p class="text-xs text-muted mt-1">
-          Accepted: JPEG, PNG, GIF, WebP, or ZIP archive
-        </p>
+        <p class="text-xs text-muted mt-1">Accepted: JPEG, PNG, GIF, WebP, or ZIP archive</p>
       </div>
 
       <div v-if="previewUrl" class="rounded-lg overflow-hidden border border-border">

@@ -20,7 +20,9 @@ class TestAutoAcceptMutualRequest:
 
     @pytest.mark.anyio
     async def test_auto_accept_when_mutual_pending_request_exists(
-        self, mock_pool, mock_conn,
+        self,
+        mock_pool,
+        mock_conn,
     ) -> None:
         from app.services.social import send_friend_request
 
@@ -63,7 +65,9 @@ class TestDuplicateRequestConflict:
 
     @pytest.mark.anyio
     async def test_duplicate_pending_request_returns_conflict(
-        self, mock_pool, mock_conn,
+        self,
+        mock_pool,
+        mock_conn,
     ) -> None:
         from app.services.social import send_friend_request
 

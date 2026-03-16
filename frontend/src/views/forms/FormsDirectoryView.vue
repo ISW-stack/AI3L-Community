@@ -82,10 +82,7 @@ watch(page, fetchForms)
 <template>
   <div>
     <BaseBreadcrumb
-      :items="[
-        { label: t('breadcrumb.home'), to: '/' },
-        { label: t('breadcrumb.formsDirectory') },
-      ]"
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.formsDirectory') }]"
     />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('formsDirectory.title') }}</h1>
@@ -136,7 +133,9 @@ watch(page, fetchForms)
             </p>
             <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
               <span>{{ form.response_count }} {{ t('formsDirectory.responses') }}</span>
-              <span v-if="form.deadline">{{ t('formsDirectory.due', { date: formatDeadline(form.deadline) }) }}</span>
+              <span v-if="form.deadline">{{
+                t('formsDirectory.due', { date: formatDeadline(form.deadline) })
+              }}</span>
               <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
             </div>
           </BaseCard>

@@ -97,18 +97,12 @@ onMounted(fetchRecommendations)
     data-testid="friend-recommendations"
   >
     <!-- Header -->
-    <button
-      class="w-full flex items-center justify-between mb-2"
-      @click="toggleCollapsed"
-    >
+    <button class="w-full flex items-center justify-between mb-2" @click="toggleCollapsed">
       <div class="flex items-center gap-2">
         <Users class="w-4 h-4 text-brand-600" />
         <h3 class="text-sm font-semibold text-foreground">People You May Know</h3>
       </div>
-      <component
-        :is="collapsed ? ChevronDown : ChevronUp"
-        class="w-4 h-4 text-muted"
-      />
+      <component :is="collapsed ? ChevronDown : ChevronUp" class="w-4 h-4 text-muted" />
     </button>
 
     <!-- Content -->

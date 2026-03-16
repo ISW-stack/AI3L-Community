@@ -20,15 +20,9 @@ const remaining = props.coAuthors.length - MAX_VISIBLE
       :key="ca.id"
       class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-surface-alt text-xs text-foreground"
     >
-      <BaseAvatar
-        :src="ca.avatar_url"
-        :name="ca.display_name"
-        size="xs"
-      />
+      <BaseAvatar :src="ca.avatar_url" :name="ca.display_name" size="xs" />
       <span class="max-w-[80px] truncate">{{ ca.display_name }}</span>
     </div>
-    <span v-if="remaining > 0" class="text-xs text-muted">
-      and {{ remaining }} more
-    </span>
+    <span v-if="remaining > 0" class="text-xs text-muted"> and {{ remaining }} more </span>
   </div>
 </template>

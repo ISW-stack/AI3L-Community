@@ -175,9 +175,7 @@ describe('QAListView', () => {
 
   it('calls listPosts with type: question', async () => {
     const { mockedListPosts } = await mountView()
-    expect(mockedListPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'question' }),
-    )
+    expect(mockedListPosts).toHaveBeenCalledWith(expect.objectContaining({ type: 'question' }))
   })
 
   it('shows question count when questions exist', async () => {

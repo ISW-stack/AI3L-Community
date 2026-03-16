@@ -32,9 +32,7 @@ const { page, total, totalPages, setPage, resetPage, updateFromResponse } = useP
 
 const canComment = computed(() => auth.isAuthenticated && !auth.isGuest)
 
-const topLevelComments = computed(() =>
-  comments.value.filter((c) => !c.parent_id && !c.is_deleted),
-)
+const topLevelComments = computed(() => comments.value.filter((c) => !c.parent_id && !c.is_deleted))
 
 function getReplies(parentId: string): AlbumComment[] {
   return comments.value.filter((c) => c.parent_id === parentId && !c.is_deleted)
@@ -151,7 +149,11 @@ watch(page, fetchComments)
     <div v-if="canComment" class="mb-6">
       <BaseCard class="!p-3">
         <div class="flex gap-3">
-          <BaseAvatar :src="auth.user?.avatar_url" :name="auth.user?.display_name || ''" size="sm" />
+          <BaseAvatar
+            :src="auth.user?.avatar_url"
+            :name="auth.user?.display_name || ''"
+            size="sm"
+          />
           <div class="flex-1">
             <textarea
               v-model="newComment"
@@ -160,7 +162,12 @@ watch(page, fetchComments)
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
             ></textarea>
             <div class="flex justify-end mt-2">
-              <BaseButton size="sm" :loading="submitting" :disabled="!newComment.trim()" @click="handleSubmitComment">
+              <BaseButton
+                size="sm"
+                :loading="submitting"
+                :disabled="!newComment.trim()"
+                @click="handleSubmitComment"
+              >
                 {{ t('albums.postComment') }}
               </BaseButton>
             </div>
@@ -188,7 +195,9 @@ watch(page, fetchComments)
                 <span class="text-sm font-medium text-foreground">{{ comment.display_name }}</span>
                 <span class="text-xs text-muted">{{ formatTime(comment.created_at) }}</span>
               </div>
-              <p class="text-sm text-foreground whitespace-pre-wrap break-words">{{ comment.content }}</p>
+              <p class="text-sm text-foreground whitespace-pre-wrap break-words">
+                {{ comment.content }}
+              </p>
               <div class="flex items-center gap-3 mt-2">
                 <button
                   v-if="canComment"
@@ -219,8 +228,15 @@ watch(page, fetchComments)
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
             ></textarea>
             <div class="flex justify-end gap-2 mt-2">
-              <BaseButton size="sm" variant="secondary" @click="cancelReply">{{ t('common.cancel') }}</BaseButton>
-              <BaseButton size="sm" :loading="submitting" :disabled="!replyContent.trim()" @click="handleSubmitReply">
+              <BaseButton size="sm" variant="secondary" @click="cancelReply">{{
+                t('common.cancel')
+              }}</BaseButton>
+              <BaseButton
+                size="sm"
+                :loading="submitting"
+                :disabled="!replyContent.trim()"
+                @click="handleSubmitReply"
+              >
                 {{ t('albums.reply') }}
               </BaseButton>
             </div>
@@ -235,7 +251,9 @@ watch(page, fetchComments)
                   <span class="text-sm font-medium text-foreground">{{ reply.display_name }}</span>
                   <span class="text-xs text-muted">{{ formatTime(reply.created_at) }}</span>
                 </div>
-                <p class="text-sm text-foreground whitespace-pre-wrap break-words">{{ reply.content }}</p>
+                <p class="text-sm text-foreground whitespace-pre-wrap break-words">
+                  {{ reply.content }}
+                </p>
                 <button
                   v-if="canDeleteComment(reply)"
                   type="button"

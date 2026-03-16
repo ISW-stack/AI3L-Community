@@ -108,7 +108,9 @@ const currentRouteName = computed(() => route.name)
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-3 mb-2">
                 <h1 class="text-2xl font-bold text-foreground break-words">{{ album.title }}</h1>
-                <BaseBadge v-if="album.is_archived" variant="neutral">{{ t('albums.archived') }}</BaseBadge>
+                <BaseBadge v-if="album.is_archived" variant="neutral">{{
+                  t('albums.archived')
+                }}</BaseBadge>
               </div>
               <p v-if="album.description" class="text-sm text-muted mb-3">
                 {{ album.description }}
@@ -116,7 +118,9 @@ const currentRouteName = computed(() => route.name)
               <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
                 <span>{{ t('albums.photosCount', { count: album.photo_count }) }}</span>
                 <span>{{ t('albums.membersCount', { count: album.member_count }) }}</span>
-                <span>{{ t('albums.created', { date: new Date(album.created_at).toLocaleDateString() }) }}</span>
+                <span>{{
+                  t('albums.created', { date: new Date(album.created_at).toLocaleDateString() })
+                }}</span>
               </div>
             </div>
           </div>

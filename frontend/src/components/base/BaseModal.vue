@@ -135,7 +135,10 @@ onUnmounted(() => {
       >
         <div
           ref="modalRef"
-          :class="['bg-surface rounded-lg shadow-xl p-4 sm:p-6 w-full max-w-[calc(100vw-2rem)]', sizeClass]"
+          :class="[
+            'bg-surface rounded-lg shadow-xl p-4 sm:p-6 w-full max-w-[calc(100vw-2rem)]',
+            sizeClass,
+          ]"
           tabindex="-1"
         >
           <div v-if="title || !persistent" class="flex items-center justify-between mb-4">

@@ -98,8 +98,7 @@ function createStubs() {
       props: ['hoverable', 'padding'],
     },
     BaseButton: {
-      template:
-        '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
+      template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
       props: ['loading', 'variant', 'size'],
     },
     BaseAlert: { template: '<div class="base-alert"><slot /></div>', props: ['type'] },
@@ -108,8 +107,7 @@ function createStubs() {
       props: ['variant'],
     },
     BaseModal: {
-      template:
-        '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
+      template: '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
       props: ['modelValue', 'title', 'size'],
     },
     BaseAvatar: { template: '<span class="base-avatar" />', props: ['src', 'name', 'size'] },
@@ -118,7 +116,8 @@ function createStubs() {
       props: ['currentPage', 'totalPages'],
     },
     BaseBreadcrumb: {
-      template: '<nav class="base-breadcrumb"><span v-for="item in items" :key="item.label">{{ item.label }}</span></nav>',
+      template:
+        '<nav class="base-breadcrumb"><span v-for="item in items" :key="item.label">{{ item.label }}</span></nav>',
       props: ['items'],
     },
     SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
@@ -126,8 +125,14 @@ function createStubs() {
       template: '<div class="empty-state">{{ message }}</div>',
       props: ['title', 'message'],
     },
-    VoteButtons: { template: '<div class="vote-buttons" />', props: ['commentId', 'score', 'userVote', 'disabled'] },
-    BestAnswerBadge: { template: '<div class="best-answer-badge" />', props: ['isOwner', 'isBest'] },
+    VoteButtons: {
+      template: '<div class="vote-buttons" />',
+      props: ['commentId', 'score', 'userVote', 'disabled'],
+    },
+    BestAnswerBadge: {
+      template: '<div class="best-answer-badge" />',
+      props: ['isOwner', 'isBest'],
+    },
     TiptapEditor: { template: '<div class="tiptap-editor" />' },
     ArrowLeft: { template: '<span class="arrow-left" />', props: ['size'] },
   }

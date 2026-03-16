@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ── H6: Friend event handlers ───────────────────────────────────────
 
 
@@ -19,9 +18,7 @@ async def test_friend_request_handler_creates_notification():
     friendship_id = str(uuid.uuid4())
 
     with (
-        patch(
-            "app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False
-        ),
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
         patch(
             "app.event_handlers._check_idempotent",
             new_callable=AsyncMock,
@@ -54,9 +51,7 @@ async def test_friend_request_handler_skips_when_blocked():
     from app.event_handlers import _on_friend_request
 
     with (
-        patch(
-            "app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=True
-        ),
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=True),
         patch(
             "app.services.notification.create_notification",
             new_callable=AsyncMock,
@@ -80,9 +75,7 @@ async def test_friend_accepted_handler_creates_notification():
     friend_id = str(uuid.uuid4())
 
     with (
-        patch(
-            "app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False
-        ),
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
         patch(
             "app.event_handlers._check_idempotent",
             new_callable=AsyncMock,
@@ -114,9 +107,7 @@ async def test_friend_accepted_handler_skips_when_blocked():
     from app.event_handlers import _on_friend_accepted
 
     with (
-        patch(
-            "app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=True
-        ),
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=True),
         patch(
             "app.services.notification.create_notification",
             new_callable=AsyncMock,
@@ -136,9 +127,7 @@ async def test_friend_accepted_handler_skips_duplicate():
     from app.event_handlers import _on_friend_accepted
 
     with (
-        patch(
-            "app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False
-        ),
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
         patch(
             "app.event_handlers._check_idempotent",
             new_callable=AsyncMock,

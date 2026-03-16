@@ -41,13 +41,9 @@ const isAlbumAdmin = computed(() => userAlbumRole.value === 'ADMIN')
 const isMember = computed(() => userAlbumRole.value !== null)
 const canJoin = computed(() => auth.isAuthenticated && !auth.isGuest && !isMember.value)
 
-const acceptedMembers = computed(() =>
-  members.value.filter((m) => m.status === 'ACCEPTED'),
-)
+const acceptedMembers = computed(() => members.value.filter((m) => m.status === 'ACCEPTED'))
 
-const pendingMembers = computed(() =>
-  members.value.filter((m) => m.status === 'PENDING'),
-)
+const pendingMembers = computed(() => members.value.filter((m) => m.status === 'PENDING'))
 
 async function fetchMembers() {
   if (!album.value) return
@@ -178,9 +174,7 @@ watch(() => album.value?.id, fetchMembers)
         >
           Leave
         </BaseButton>
-        <BaseButton v-if="isAlbumAdmin" size="sm" @click="openAddMember">
-          Add Member
-        </BaseButton>
+        <BaseButton v-if="isAlbumAdmin" size="sm" @click="openAddMember"> Add Member </BaseButton>
       </div>
     </div>
 
@@ -204,13 +198,17 @@ watch(() => album.value?.id, fetchMembers)
               <div class="flex items-center gap-3 min-w-0">
                 <BaseAvatar :src="member.avatar_url" :name="member.display_name" size="sm" />
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-foreground truncate">{{ member.display_name }}</p>
+                  <p class="text-sm font-medium text-foreground truncate">
+                    {{ member.display_name }}
+                  </p>
                   <p class="text-xs text-muted">@{{ member.username }}</p>
                 </div>
               </div>
               <div class="flex gap-2 shrink-0">
                 <BaseButton size="sm" @click="handleApprove(member)">Approve</BaseButton>
-                <BaseButton size="sm" variant="soft-danger" @click="handleRemove(member)">Reject</BaseButton>
+                <BaseButton size="sm" variant="soft-danger" @click="handleRemove(member)"
+                  >Reject</BaseButton
+                >
               </div>
             </div>
           </BaseCard>
@@ -224,7 +222,9 @@ watch(() => album.value?.id, fetchMembers)
             <div class="flex items-center gap-3 min-w-0">
               <BaseAvatar :src="member.avatar_url" :name="member.display_name" size="sm" />
               <div class="min-w-0">
-                <p class="text-sm font-medium text-foreground truncate">{{ member.display_name }}</p>
+                <p class="text-sm font-medium text-foreground truncate">
+                  {{ member.display_name }}
+                </p>
                 <p class="text-xs text-muted">@{{ member.username }}</p>
               </div>
               <BaseBadge v-if="member.role === 'ADMIN'" variant="brand">Admin</BaseBadge>
@@ -242,11 +242,7 @@ watch(() => album.value?.id, fetchMembers)
       </div>
     </template>
 
-    <BaseModal
-      v-model="showAddMemberModal"
-      title="Add Member"
-      size="sm"
-    >
+    <BaseModal v-model="showAddMemberModal" title="Add Member" size="sm">
       <div class="space-y-4">
         <div class="relative">
           <BaseInput
@@ -277,7 +273,9 @@ watch(() => album.value?.id, fetchMembers)
       </div>
       <template #footer>
         <BaseButton variant="secondary" @click="showAddMemberModal = false">Cancel</BaseButton>
-        <BaseButton :loading="addingMember" :disabled="!addMemberUserId" @click="handleAddMember">Add</BaseButton>
+        <BaseButton :loading="addingMember" :disabled="!addMemberUserId" @click="handleAddMember"
+          >Add</BaseButton
+        >
       </template>
     </BaseModal>
   </div>

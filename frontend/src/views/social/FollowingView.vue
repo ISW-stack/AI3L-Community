@@ -190,15 +190,8 @@ onMounted(() => {
         :message="t('social.noFollowingMessage')"
       />
 
-      <div
-        v-else
-        class="bg-surface rounded-lg shadow border border-border divide-y divide-border"
-      >
-        <div
-          v-for="user in following"
-          :key="user.id"
-          class="flex items-center gap-4 px-5 py-4"
-        >
+      <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
+        <div v-for="user in following" :key="user.id" class="flex items-center gap-4 px-5 py-4">
           <router-link :to="`/users/${user.user_id}`">
             <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="md" />
           </router-link>
@@ -244,15 +237,8 @@ onMounted(() => {
         :message="t('social.noFollowersMessage')"
       />
 
-      <div
-        v-else
-        class="bg-surface rounded-lg shadow border border-border divide-y divide-border"
-      >
-        <div
-          v-for="user in followers"
-          :key="user.id"
-          class="flex items-center gap-4 px-5 py-4"
-        >
+      <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
+        <div v-for="user in followers" :key="user.id" class="flex items-center gap-4 px-5 py-4">
           <router-link :to="`/users/${user.user_id}`">
             <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="md" />
           </router-link>

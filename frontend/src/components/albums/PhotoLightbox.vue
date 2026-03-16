@@ -83,8 +83,20 @@ onUnmounted(() => {
           aria-label="Close"
           @click="handleClose"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
 
@@ -96,8 +108,20 @@ onUnmounted(() => {
           aria-label="Previous photo"
           @click="goToPrev"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
 
@@ -108,8 +132,13 @@ onUnmounted(() => {
             :alt="currentPhoto.description || currentPhoto.original_filename || 'Photo'"
             class="max-w-full max-h-[80vh] object-contain rounded"
           />
-          <div v-if="currentPhoto.description || currentPhoto.original_filename" class="mt-3 text-center">
-            <p v-if="currentPhoto.description" class="text-white text-sm">{{ currentPhoto.description }}</p>
+          <div
+            v-if="currentPhoto.description || currentPhoto.original_filename"
+            class="mt-3 text-center"
+          >
+            <p v-if="currentPhoto.description" class="text-white text-sm">
+              {{ currentPhoto.description }}
+            </p>
             <p class="text-white/60 text-xs mt-1">
               {{ currentPhoto.original_filename }}
               <span v-if="photos.length > 1" class="ml-2">
@@ -127,8 +156,20 @@ onUnmounted(() => {
           aria-label="Next photo"
           @click="goToNext"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
       </div>

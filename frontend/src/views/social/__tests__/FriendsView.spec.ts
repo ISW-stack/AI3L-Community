@@ -103,8 +103,7 @@ function createStubs() {
       props: ['src', 'name', 'size'],
     },
     BaseModal: {
-      template:
-        '<div v-if="modelValue" class="base-modal"><slot /><slot name="footer" /></div>',
+      template: '<div v-if="modelValue" class="base-modal"><slot /><slot name="footer" /></div>',
       props: ['modelValue', 'title', 'size'],
     },
     FriendRequestCard: {
@@ -176,9 +175,7 @@ describe('FriendsView', () => {
 
   it('shows unfriend button for each friend', async () => {
     const { wrapper } = await mountFriendsView()
-    const unfriendButtons = wrapper
-      .findAll('button')
-      .filter((b) => b.text().includes('Unfriend'))
+    const unfriendButtons = wrapper.findAll('button').filter((b) => b.text().includes('Unfriend'))
     expect(unfriendButtons.length).toBe(2)
   })
 
@@ -243,9 +240,7 @@ describe('FriendsView', () => {
   it('unfriends a user after confirmation', async () => {
     const { wrapper } = await mountFriendsView()
     // Click unfriend button for first friend
-    const unfriendButtons = wrapper
-      .findAll('button')
-      .filter((b) => b.text().includes('Unfriend'))
+    const unfriendButtons = wrapper.findAll('button').filter((b) => b.text().includes('Unfriend'))
     await unfriendButtons[0].trigger('click')
     await flushPromises()
 

@@ -140,9 +140,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   const isAuthor = computed(() => post.value && auth.user && post.value.author.id === auth.user.id)
   const isCoAuthor = computed(() => {
     if (!auth.user) return false
-    return coAuthors.value.some(
-      (ca) => ca.user_id === auth.user!.id && ca.status === 'ACCEPTED',
-    )
+    return coAuthors.value.some((ca) => ca.user_id === auth.user!.id && ca.status === 'ACCEPTED')
   })
   const canModify = computed(() => isAuthor.value || auth.isAdmin || isCoAuthor.value)
 

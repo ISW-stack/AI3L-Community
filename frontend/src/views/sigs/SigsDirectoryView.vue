@@ -51,10 +51,7 @@ onMounted(fetchSigs)
 <template>
   <div>
     <BaseBreadcrumb
-      :items="[
-        { label: t('breadcrumb.home'), to: '/' },
-        { label: t('breadcrumb.sigsDirectory') },
-      ]"
+      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.sigsDirectory') }]"
     />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('sigs.directory.title') }}</h1>

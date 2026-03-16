@@ -62,9 +62,7 @@ function createTestRouter() {
       {
         path: '/albums/:id',
         component: { template: '<router-view />' },
-        children: [
-          { path: 'comments', name: 'album-comments', component: AlbumCommentsView },
-        ],
+        children: [{ path: 'comments', name: 'album-comments', component: AlbumCommentsView }],
       },
     ],
   })

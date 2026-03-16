@@ -121,10 +121,7 @@ describe('BaseBreadcrumb', () => {
     })
 
     it('should not have aria-current on non-last items', () => {
-      const wrapper = mountBreadcrumb([
-        { label: 'Home', to: '/' },
-        { label: 'Users' },
-      ])
+      const wrapper = mountBreadcrumb([{ label: 'Home', to: '/' }, { label: 'Users' }])
 
       const links = wrapper.findAll('a')
       for (const link of links) {

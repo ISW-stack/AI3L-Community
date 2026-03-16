@@ -276,11 +276,7 @@ onMounted(() => {
 
         <!-- No relationship -->
         <template v-else>
-          <BaseButton
-            size="sm"
-            :disabled="actionLoading"
-            @click="handleSendFriendRequest"
-          >
+          <BaseButton size="sm" :disabled="actionLoading" @click="handleSendFriendRequest">
             <UserPlus class="w-3.5 h-3.5 mr-1" />
             Add Friend
           </BaseButton>

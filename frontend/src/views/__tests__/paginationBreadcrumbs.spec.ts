@@ -112,7 +112,10 @@ describe('SigPostsView pagination', () => {
           userSigRole: ref(null),
         },
         stubs: {
-          BaseCard: { template: '<div class="base-card"><slot /></div>', props: ['hoverable', 'padding'] },
+          BaseCard: {
+            template: '<div class="base-card"><slot /></div>',
+            props: ['hoverable', 'padding'],
+          },
           BaseAvatar: { template: '<span />', props: ['src', 'name', 'size'] },
           SkeletonLoader: { template: '<div class="skeleton" />', props: ['variant', 'lines'] },
           EmptyState: { template: '<div />', props: ['title', 'message'] },

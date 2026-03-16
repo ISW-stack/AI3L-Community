@@ -499,11 +499,7 @@ onUnmounted(() => {
     </BaseModal>
 
     <!-- Bulk Role Confirmation Modal -->
-    <BaseModal
-      v-model="showBulkRoleConfirm"
-      :title="t('admin.users.bulkApplyRole')"
-      size="sm"
-    >
+    <BaseModal v-model="showBulkRoleConfirm" :title="t('admin.users.bulkApplyRole')" size="sm">
       <p class="text-sm text-muted">
         {{ t('admin.users.confirmBulkRole', { role: bulkRole, count: selectedIds.size }) }}
       </p>

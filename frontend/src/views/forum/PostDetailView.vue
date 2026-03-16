@@ -98,9 +98,7 @@ const {
 const showCitedBy = ref(false)
 const showReferences = ref(false)
 
-const acceptedCoAuthors = computed(() =>
-  coAuthors.value.filter((ca) => ca.status === 'ACCEPTED'),
-)
+const acceptedCoAuthors = computed(() => coAuthors.value.filter((ca) => ca.status === 'ACCEPTED'))
 
 function toggleCitedBy() {
   showCitedBy.value = !showCitedBy.value
@@ -706,9 +704,7 @@ const breadcrumbItems = computed(() => {
         {{ t('post.detail.unsavedChangesMessage') }}
       </p>
       <template #footer>
-        <BaseButton variant="secondary" @click="cancelLeave">{{
-          t('common.cancel')
-        }}</BaseButton>
+        <BaseButton variant="secondary" @click="cancelLeave">{{ t('common.cancel') }}</BaseButton>
         <BaseButton variant="danger" @click="confirmLeave">{{
           t('post.detail.leaveBtn')
         }}</BaseButton>

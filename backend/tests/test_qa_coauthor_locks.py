@@ -21,9 +21,7 @@ _OWNER_ID = str(uuid.uuid4())
 
 class TestVoteOnAnswerTransaction:
     @pytest.mark.anyio
-    async def test_vote_on_answer_uses_transaction_with_for_update(
-        self, mock_pool, mock_conn
-    ):
+    async def test_vote_on_answer_uses_transaction_with_for_update(self, mock_pool, mock_conn):
         """vote_on_answer must SELECT the comment inside a transaction with FOR UPDATE."""
         comment_row = {
             "id": _COMMENT_ID,
@@ -52,7 +50,9 @@ class TestVoteOnAnswerTransaction:
         # The first fetchrow call (comment SELECT) must contain FOR UPDATE
         first_call = mock_conn.fetchrow.call_args_list[0]
         sql = first_call[0][0]
-        assert "FOR UPDATE" in sql, "Comment SELECT must use FOR UPDATE to prevent concurrent deletion"
+        assert (
+            "FOR UPDATE" in sql
+        ), "Comment SELECT must use FOR UPDATE to prevent concurrent deletion"
 
     @pytest.mark.anyio
     async def test_vote_on_answer_rejects_deleted_comment(self, mock_pool, mock_conn):
@@ -78,9 +78,7 @@ class TestVoteOnAnswerTransaction:
 
 class TestAddExternalCoAuthorLock:
     @pytest.mark.anyio
-    async def test_add_external_co_author_uses_advisory_lock(
-        self, mock_pool, mock_conn
-    ):
+    async def test_add_external_co_author_uses_advisory_lock(self, mock_pool, mock_conn):
         """add_external_co_author must acquire pg_advisory_xact_lock before count check."""
         post_row = {"id": _POST_ID, "user_id": uuid.UUID(_OWNER_ID)}
         co_author_row = {
@@ -120,27 +118,19 @@ class TestAddExternalCoAuthorLock:
         ):
             from app.services.co_author import add_external_co_author
 
-            await add_external_co_author(
-                _POST_ID, _OWNER_ID, "External Author"
-            )
+            await add_external_co_author(_POST_ID, _OWNER_ID, "External Author")
 
         # Transaction must have been opened
         mock_conn.transaction.assert_called_once()
 
         # Advisory lock must have been called with the post_id
         execute_calls = mock_conn.execute.call_args_list
-        advisory_calls = [
-            c
-            for c in execute_calls
-            if "pg_advisory_xact_lock" in str(c)
-        ]
+        advisory_calls = [c for c in execute_calls if "pg_advisory_xact_lock" in str(c)]
         assert len(advisory_calls) == 1, "Must acquire pg_advisory_xact_lock inside transaction"
         assert str(_POST_ID) in str(advisory_calls[0]), "Advisory lock must use post_id"
 
     @pytest.mark.anyio
-    async def test_add_external_co_author_enforces_count_limit(
-        self, mock_pool, mock_conn
-    ):
+    async def test_add_external_co_author_enforces_count_limit(self, mock_pool, mock_conn):
         """add_external_co_author raises when MAX_CO_AUTHORS_PER_POST is reached."""
         post_row = {"id": _POST_ID, "user_id": uuid.UUID(_OWNER_ID)}
         mock_conn.fetchrow = AsyncMock(return_value=post_row)
@@ -156,17 +146,13 @@ class TestAddExternalCoAuthorLock:
             from app.services.co_author import add_external_co_author
 
             with pytest.raises(AppError) as exc_info:
-                await add_external_co_author(
-                    _POST_ID, _OWNER_ID, "External Author"
-                )
+                await add_external_co_author(_POST_ID, _OWNER_ID, "External Author")
 
             assert exc_info.value.status_code == 400
             assert "Maximum co-authors" in str(exc_info.value.detail)
 
     @pytest.mark.anyio
-    async def test_advisory_lock_acquired_before_count_check(
-        self, mock_pool, mock_conn
-    ):
+    async def test_advisory_lock_acquired_before_count_check(self, mock_pool, mock_conn):
         """Advisory lock must be acquired before the count check to prevent races."""
         post_row = {"id": _POST_ID, "user_id": uuid.UUID(_OWNER_ID)}
         mock_conn.fetchrow = AsyncMock(return_value=post_row)
@@ -195,9 +181,7 @@ class TestAddExternalCoAuthorLock:
             from app.services.co_author import add_external_co_author
 
             with pytest.raises(AppError):
-                await add_external_co_author(
-                    _POST_ID, _OWNER_ID, "External Author"
-                )
+                await add_external_co_author(_POST_ID, _OWNER_ID, "External Author")
 
         assert call_order == [
             "advisory_lock",

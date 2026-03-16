@@ -52,10 +52,10 @@ const props = withDefaults(
 )
 
 const isQuestion = computed(() => props.post.type === 'question')
-const postLink = computed(() => isQuestion.value ? `/qa/${props.post.id}` : `/forum/${props.post.id}`)
-const acceptedCoAuthors = computed(() =>
-  props.coAuthors.filter((ca) => ca.status === 'ACCEPTED'),
+const postLink = computed(() =>
+  isQuestion.value ? `/qa/${props.post.id}` : `/forum/${props.post.id}`,
 )
+const acceptedCoAuthors = computed(() => props.coAuthors.filter((ca) => ca.status === 'ACCEPTED'))
 
 const emit = defineEmits<{
   (e: 'reactionToggled', post: Post): void

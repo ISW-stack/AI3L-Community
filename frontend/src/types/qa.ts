@@ -1,6 +1,6 @@
 import type { Post } from './post'
 
-export interface Question extends Post {
+export interface QAQuestion extends Post {
   type: 'question'
   best_answer_id: string | null
   answer_count: number

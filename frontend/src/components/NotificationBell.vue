@@ -142,9 +142,13 @@ onUnmounted(() => {
               @error="avatarFailed[notif.id] = true"
             />
             <span
-              v-else-if="notif.trigger_user?.display_name && (!notif.trigger_user.avatar_url || avatarFailed[notif.id])"
+              v-else-if="
+                notif.trigger_user?.display_name &&
+                (!notif.trigger_user.avatar_url || avatarFailed[notif.id])
+              "
               class="text-xs font-semibold text-muted"
-            >{{ notif.trigger_user.display_name.charAt(0).toUpperCase() }}</span>
+              >{{ notif.trigger_user.display_name.charAt(0).toUpperCase() }}</span
+            >
             <Settings
               v-else-if="notif.action_type === 'SYSTEM'"
               class="w-4 h-4 text-muted"

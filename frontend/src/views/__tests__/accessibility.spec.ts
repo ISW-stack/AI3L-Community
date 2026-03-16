@@ -57,9 +57,7 @@ vi.mock('@/composables/useLocale', () => ({
 }))
 
 vi.mock('@/locales', () => ({
-  LOCALE_GROUPS: [
-    { id: 'europe', labelKey: 'language.region.europe', locales: ['fr'] },
-  ],
+  LOCALE_GROUPS: [{ id: 'europe', labelKey: 'language.region.europe', locales: ['fr'] }],
   LOCALE_OPTIONS: [
     { value: 'en', label: 'English' },
     { value: 'fr', label: 'Fran\u00e7ais' },
@@ -80,8 +78,40 @@ function createProfileStubs() {
       props: ['modelValue', 'label', 'maxlength', 'placeholder', 'type', 'disabled'],
     },
     BaseBreadcrumb: { template: '<nav />', props: ['items'] },
-    ProfileEditForm: { template: '<div class="profile-edit-form" />', props: { displayName: String, bio: String, affiliation: String, orcid: String, username: String, avatarUrl: [String, null], role: String, storageUsed: Number, storageQuota: Number, storagePercent: Number, storageLoading: Boolean, storageError: Boolean, isGuest: Boolean, saving: Boolean, displayNameInitial: String } },
-    PasswordChangeForm: { template: '<div />', props: { currentPassword: String, newPassword: String, confirmPassword: String, passwordMessage: String, passwordError: Boolean, changingPassword: Boolean, generatedCode: String, generatingCode: Boolean, codeCopied: Boolean } },
+    ProfileEditForm: {
+      template: '<div class="profile-edit-form" />',
+      props: {
+        displayName: String,
+        bio: String,
+        affiliation: String,
+        orcid: String,
+        username: String,
+        avatarUrl: [String, null],
+        role: String,
+        storageUsed: Number,
+        storageQuota: Number,
+        storagePercent: Number,
+        storageLoading: Boolean,
+        storageError: Boolean,
+        isGuest: Boolean,
+        saving: Boolean,
+        displayNameInitial: String,
+      },
+    },
+    PasswordChangeForm: {
+      template: '<div />',
+      props: {
+        currentPassword: String,
+        newPassword: String,
+        confirmPassword: String,
+        passwordMessage: String,
+        passwordError: Boolean,
+        changingPassword: Boolean,
+        generatedCode: String,
+        generatingCode: Boolean,
+        codeCopied: Boolean,
+      },
+    },
     DangerZone: { template: '<div />', props: { deletingAccount: Boolean } },
   }
 }

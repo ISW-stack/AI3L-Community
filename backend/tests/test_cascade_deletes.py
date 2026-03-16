@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ── Album cascade delete (D3) ───────────────────────────────────────────────
 
 
@@ -14,9 +13,7 @@ class TestAlbumCascadeDelete:
     """D3: Album deletion should clean up photos, comments, members, and storage."""
 
     @pytest.mark.anyio
-    async def test_delete_album_cascades_photos_comments_members(
-        self, mock_pool, mock_conn
-    ):
+    async def test_delete_album_cascades_photos_comments_members(self, mock_pool, mock_conn):
         """delete_album cleans up photos, comments, members, and refunds storage."""
         from app.services.album import delete_album
 
@@ -104,11 +101,7 @@ class TestAlbumCascadeDelete:
             # Verify storage quota refund was called via conn.execute
             # (3072 bytes total for uploader_id)
             execute_calls = mock_conn.execute.call_args_list
-            quota_calls = [
-                c
-                for c in execute_calls
-                if "storage_used_bytes" in str(c)
-            ]
+            quota_calls = [c for c in execute_calls if "storage_used_bytes" in str(c)]
             assert len(quota_calls) == 1
             # Total refund: 1024 + 2048 = 3072
             assert quota_calls[0].args[1] == 3072
@@ -172,9 +165,7 @@ class TestFormCascadeDelete:
     """D4: Form soft-delete should also delete form_responses."""
 
     @pytest.mark.anyio
-    async def test_soft_delete_with_permission_deletes_responses(
-        self, mock_pool, mock_conn
-    ):
+    async def test_soft_delete_with_permission_deletes_responses(self, mock_pool, mock_conn):
         """soft_delete_with_permission deletes form_responses inside transaction."""
         from app.repositories.form_repo import soft_delete_with_permission
 
@@ -203,9 +194,7 @@ class TestFormCascadeDelete:
         assert len(response_delete_call) >= 1
 
     @pytest.mark.anyio
-    async def test_soft_delete_with_permission_not_found(
-        self, mock_pool, mock_conn
-    ):
+    async def test_soft_delete_with_permission_not_found(self, mock_pool, mock_conn):
         """Returns (False, None) when form not found."""
         from app.repositories.form_repo import soft_delete_with_permission
 
@@ -220,9 +209,7 @@ class TestFormCascadeDelete:
         assert banner_url is None
 
     @pytest.mark.anyio
-    async def test_soft_delete_with_permission_denied(
-        self, mock_pool, mock_conn
-    ):
+    async def test_soft_delete_with_permission_denied(self, mock_pool, mock_conn):
         """Raises PermissionError when non-admin non-creator tries to delete."""
         from app.repositories.form_repo import soft_delete_with_permission
 
@@ -237,9 +224,7 @@ class TestFormCascadeDelete:
 
         with patch("app.repositories.form_repo.get_pool", return_value=mock_pool):
             with pytest.raises(PermissionError):
-                await soft_delete_with_permission(
-                    uuid.uuid4(), other_user, is_admin=False
-                )
+                await soft_delete_with_permission(uuid.uuid4(), other_user, is_admin=False)
 
 
 # ── Post citation cleanup (D5) ──────────────────────────────────────────────
@@ -339,9 +324,7 @@ class TestCommentChildCascade:
     """D6: Deleting a parent comment should soft-delete all children."""
 
     @pytest.mark.anyio
-    async def test_parent_comment_delete_cascades_children(
-        self, mock_pool, mock_conn
-    ):
+    async def test_parent_comment_delete_cascades_children(self, mock_pool, mock_conn):
         """Deleting a top-level comment soft-deletes children and adjusts counts."""
         from app.repositories.comment_repo import soft_delete
 
@@ -367,22 +350,16 @@ class TestCommentChildCascade:
 
         execute_calls = mock_conn.execute.call_args_list
         # Should have: soft-delete children, decrement comment_count by 4, decrement answer_count
-        child_delete_calls = [
-            c for c in execute_calls if "parent_id = $1" in str(c)
-        ]
+        child_delete_calls = [c for c in execute_calls if "parent_id = $1" in str(c)]
         assert len(child_delete_calls) == 1
 
         # comment_count should be decremented by 4 (1 parent + 3 children)
-        comment_count_calls = [
-            c for c in execute_calls if "comment_count" in str(c)
-        ]
+        comment_count_calls = [c for c in execute_calls if "comment_count" in str(c)]
         assert len(comment_count_calls) == 1
         assert comment_count_calls[0].args[1] == 4  # total_deleted
 
     @pytest.mark.anyio
-    async def test_child_comment_delete_does_not_cascade(
-        self, mock_pool, mock_conn
-    ):
+    async def test_child_comment_delete_does_not_cascade(self, mock_pool, mock_conn):
         """Deleting a child comment does NOT cascade to siblings."""
         from app.repositories.comment_repo import soft_delete
 
@@ -407,22 +384,16 @@ class TestCommentChildCascade:
 
         execute_calls = mock_conn.execute.call_args_list
         # No child cascade for child comments
-        child_cascade_calls = [
-            c for c in execute_calls if "parent_id = $1" in str(c)
-        ]
+        child_cascade_calls = [c for c in execute_calls if "parent_id = $1" in str(c)]
         assert len(child_cascade_calls) == 0
 
         # comment_count decremented by 1 only
-        comment_count_calls = [
-            c for c in execute_calls if "comment_count" in str(c)
-        ]
+        comment_count_calls = [c for c in execute_calls if "comment_count" in str(c)]
         assert len(comment_count_calls) == 1
         assert comment_count_calls[0].args[1] == 1
 
         # No answer_count decrement for child
-        answer_count_calls = [
-            c for c in execute_calls if "answer_count" in str(c)
-        ]
+        answer_count_calls = [c for c in execute_calls if "answer_count" in str(c)]
         assert len(answer_count_calls) == 0
 
     @pytest.mark.anyio
@@ -448,9 +419,7 @@ class TestCommentChildCascade:
         assert result == post_id
 
         execute_calls = mock_conn.execute.call_args_list
-        comment_count_calls = [
-            c for c in execute_calls if "comment_count" in str(c)
-        ]
+        comment_count_calls = [c for c in execute_calls if "comment_count" in str(c)]
         assert len(comment_count_calls) == 1
         # 1 parent + 0 children = 1
         assert comment_count_calls[0].args[1] == 1
@@ -513,13 +482,9 @@ class TestFormDeadlineValidation:
         }
 
         mock_conn.fetchrow.side_effect = [
-            MagicMock(
-                __getitem__=lambda s, k: {"cnt": 0}[k]
-            ),  # count_active_standalone
+            MagicMock(__getitem__=lambda s, k: {"cnt": 0}[k]),  # count_active_standalone
             form_row,  # insert RETURNING
-            MagicMock(
-                __getitem__=lambda s, k: {"display_name": "Test User"}[k]
-            ),  # creator lookup
+            MagicMock(__getitem__=lambda s, k: {"display_name": "Test User"}[k]),  # creator lookup
         ]
 
         with (
@@ -568,9 +533,7 @@ class TestFormDeadlineValidation:
             ),
         ):
             with pytest.raises(AppError) as exc_info:
-                await update_form(
-                    form_id, user_id, is_admin=False, deadline=past
-                )
+                await update_form(form_id, user_id, is_admin=False, deadline=past)
 
             assert exc_info.value.status_code == 400
             assert "future" in str(exc_info.value.detail).lower()
@@ -583,9 +546,7 @@ class TestLockedFormSchemaError:
     """B5: Updating questions on a locked form should raise an error."""
 
     @pytest.mark.anyio
-    async def test_locked_form_questions_update_raises_error(
-        self, mock_pool, mock_conn
-    ):
+    async def test_locked_form_questions_update_raises_error(self, mock_pool, mock_conn):
         """update_form raises AppError when questions are modified on a locked form."""
         from app.core.errors import AppError
         from app.services.form import update_form
@@ -622,9 +583,7 @@ class TestLockedFormSchemaError:
             assert "locked" in str(exc_info.value.detail).lower()
 
     @pytest.mark.anyio
-    async def test_locked_form_non_question_update_allowed(
-        self, mock_pool, mock_conn
-    ):
+    async def test_locked_form_non_question_update_allowed(self, mock_pool, mock_conn):
         """update_form allows updating title on a locked form."""
         from app.services.form import update_form
 
@@ -659,9 +618,7 @@ class TestLockedFormSchemaError:
                 return_value=(updated_form, 5),
             ),
         ):
-            result = await update_form(
-                form_id, user_id, is_admin=False, title="New Title"
-            )
+            result = await update_form(form_id, user_id, is_admin=False, title="New Title")
 
         assert result is not None
         assert result["title"] == "New Title"

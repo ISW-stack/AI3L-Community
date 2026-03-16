@@ -600,7 +600,9 @@ onUnmounted(() => {
                   >
                     <p class="text-sm text-foreground font-medium line-clamp-2">{{ tp.title }}</p>
                     <div class="flex items-center gap-3 mt-1 text-xs text-muted">
-                      <span>{{ t('forum.sidebar.commentCount', { count: tp.comment_count }) }}</span>
+                      <span>{{
+                        t('forum.sidebar.commentCount', { count: tp.comment_count })
+                      }}</span>
                       <span>{{ t('forum.sidebar.viewCount', { count: tp.view_count }) }}</span>
                     </div>
                   </router-link>

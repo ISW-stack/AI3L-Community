@@ -127,7 +127,9 @@ class TestSigSoftDeleteCleansUpMembers:
         form_resp_idx = next(i for i, s in enumerate(sql_statements) if "form_responses" in s)
         posts_idx = next(i for i, s in enumerate(sql_statements) if "UPDATE posts" in s)
         forms_idx = next(i for i, s in enumerate(sql_statements) if "UPDATE forms" in s)
-        members_idx = next(i for i, s in enumerate(sql_statements) if "DELETE FROM sig_members" in s)
+        members_idx = next(
+            i for i, s in enumerate(sql_statements) if "DELETE FROM sig_members" in s
+        )
 
         assert form_resp_idx < forms_idx, "form_responses cleanup before forms"
         assert posts_idx < members_idx, "posts soft-delete before member cleanup"

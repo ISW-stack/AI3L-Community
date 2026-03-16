@@ -31,9 +31,9 @@ async def test_anonymize_cleans_album_data(mock_pool, mock_conn):
     executed_sqls = [call.args[0] for call in mock_conn.execute.call_args_list]
 
     # Verify album cleanup SQL was executed
-    assert any("DELETE FROM album_members" in sql for sql in executed_sqls), (
-        "Expected DELETE FROM album_members"
-    )
+    assert any(
+        "DELETE FROM album_members" in sql for sql in executed_sqls
+    ), "Expected DELETE FROM album_members"
     assert any(
         "UPDATE album_comments SET is_deleted = true" in sql for sql in executed_sqls
     ), "Expected album_comments soft-delete"
@@ -97,10 +97,11 @@ async def test_sig_soft_delete_no_album_cascade():
     sig_repo.soft_delete correctly omits album-related cascade operations.
     """
     # Verify by checking the soft_delete function source does not reference albums
-    from app.repositories import sig_repo
     import inspect
 
+    from app.repositories import sig_repo
+
     source = inspect.getsource(sig_repo.soft_delete)
-    assert "album" not in source.lower(), (
-        "sig_repo.soft_delete should not reference albums — albums have no sig_id FK"
-    )
+    assert (
+        "album" not in source.lower()
+    ), "sig_repo.soft_delete should not reference albums — albums have no sig_id FK"

@@ -57,7 +57,10 @@ function createStubs() {
       template: '<button @click="$emit(\'click\')"><slot /></button>',
       props: ['loading', 'variant', 'size', 'disabled'],
     },
-    BaseModal: { template: '<div><slot /><slot name="footer" /></div>', props: ['modelValue', 'title', 'size'] },
+    BaseModal: {
+      template: '<div><slot /><slot name="footer" /></div>',
+      props: ['modelValue', 'title', 'size'],
+    },
     BasePagination: { template: '<div />', props: ['currentPage', 'totalPages'] },
     SkeletonLoader: { template: '<div class="skeleton" />', props: ['lines', 'variant'] },
     EmptyState: {

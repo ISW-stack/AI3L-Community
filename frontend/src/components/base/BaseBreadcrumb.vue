@@ -26,7 +26,8 @@ defineProps<{
         v-else
         class="text-muted"
         :aria-current="index === items.length - 1 ? 'page' : undefined"
-      >{{ item.label }}</span>
+        >{{ item.label }}</span
+      >
     </template>
   </nav>
 </template>

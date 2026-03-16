@@ -29,7 +29,9 @@ function formatDate(dateStr: string): string {
       <div class="flex items-start gap-4 p-4">
         <!-- Vote count (left side) -->
         <div class="flex flex-col items-center justify-center min-w-[50px] py-1">
-          <span class="text-lg font-bold text-foreground tabular-nums">{{ question.view_count }}</span>
+          <span class="text-lg font-bold text-foreground tabular-nums">{{
+            question.view_count
+          }}</span>
           <span class="text-[10px] text-muted uppercase tracking-wide">views</span>
         </div>
 
@@ -56,13 +58,7 @@ function formatDate(dateStr: string): string {
             >
               Answered
             </BaseBadge>
-            <BaseBadge
-              v-else
-              variant="neutral"
-              class="!text-[10px]"
-            >
-              Unanswered
-            </BaseBadge>
+            <BaseBadge v-else variant="neutral" class="!text-[10px]"> Unanswered </BaseBadge>
             <BaseBadge v-if="question.category_name" variant="neutral" class="!text-[10px]">
               {{ question.category_name }}
             </BaseBadge>

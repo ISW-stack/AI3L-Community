@@ -91,8 +91,8 @@ const touched = reactive<Record<string, boolean>>({})
 
 function handleBlur(questionId: string, required: boolean | undefined) {
   touched[questionId] = true
-  if (required && !answers[questionId]) {
-    validationErrors[questionId] = t('forms.view.fieldRequired')
+  if (required && !answers.value[questionId]) {
+    validationErrors.value[questionId] = t('forms.view.fieldRequired')
   }
 }
 

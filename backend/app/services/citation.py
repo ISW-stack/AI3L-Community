@@ -186,9 +186,7 @@ async def get_citing(
     return result, total
 
 
-async def search_posts_for_citation(
-    query: str, user_id: str, limit: int = 10
-) -> list[dict]:
+async def search_posts_for_citation(query: str, user_id: str, limit: int = 10) -> list[dict]:
     """Search posts for citation insertion (minimal results)."""
     # H6: Get blocked user IDs to exclude from search results
     blocked_ids: set[str] = set()

@@ -42,7 +42,9 @@ class TestGuestLogoutNoneIP:
         app.dependency_overrides[get_current_user] = lambda: payload
         try:
             # Simulate request.client being None by patching the Request
-            with patch("starlette.requests.Request.client", new_callable=lambda: property(lambda s: None)):
+            with patch(
+                "starlette.requests.Request.client", new_callable=lambda: property(lambda s: None)
+            ):
                 resp = await client.post(
                     "/api/v1/auth/logout",
                     headers={"Authorization": "Bearer fake"},
@@ -204,7 +206,10 @@ class TestVirusTotalKeyValidation:
         with (
             patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.virustotal.user_repo", mock_user_repo, create=True),
-            patch("app.repositories.user_repo.increment_storage_used", mock_user_repo.increment_storage_used),
+            patch(
+                "app.repositories.user_repo.increment_storage_used",
+                mock_user_repo.increment_storage_used,
+            ),
         ):
             # The function imports user_repo lazily, so we patch the import
             with patch.dict("sys.modules", {}):

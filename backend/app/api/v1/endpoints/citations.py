@@ -38,9 +38,7 @@ async def get_cited_by(
     current_user: dict = Depends(get_current_user),
 ) -> CitationListResponse:
     """Get posts that cite this post ('Cited by' list)."""
-    citations, total = await get_citations_of(
-        post_id=post_id, page=page, page_size=page_size
-    )
+    citations, total = await get_citations_of(post_id=post_id, page=page, page_size=page_size)
     return CitationListResponse(citations=citations, total=total)
 
 
