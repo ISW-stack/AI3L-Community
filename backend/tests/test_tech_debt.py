@@ -132,7 +132,8 @@ class TestAdminFileDeletionAuditLogging:
 
     @pytest.mark.anyio
     async def test_admin_delete_own_file_emits_file_delete_audit(self, client) -> None:
-        """When an admin deletes their own file, a file_delete (not admin_file_delete) event is emitted."""
+        """When an admin deletes their own file, a file_delete
+        (not admin_file_delete) event is emitted."""
         admin_id = str(uuid.uuid4())
         _override_auth("ADMIN", user_id=admin_id)
         file_key = f"editor/{admin_id}/myfile.png"

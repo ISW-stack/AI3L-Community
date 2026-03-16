@@ -233,7 +233,6 @@ async def test_service_list_pending_invitations():
 @pytest.mark.asyncio
 async def test_invite_co_author_advisory_lock():
     """H3: invite_co_author wraps count+insert in transaction with pg_advisory_xact_lock."""
-    from app.core.errors import AppError
     from app.services.co_author import invite_co_author
 
     post_id = uuid.uuid4()
@@ -246,7 +245,7 @@ async def test_invite_co_author_advisory_lock():
 
     # Track calls to verify advisory lock is called
     execute_calls: list[str] = []
-    original_execute = AsyncMock(return_value="SELECT 1")
+    _original_execute = AsyncMock(return_value="SELECT 1")  # noqa: F841
 
     async def tracking_execute(query, *args):
         execute_calls.append(query)
@@ -291,7 +290,7 @@ async def test_invite_co_author_advisory_lock():
 
     with (
         patch(f"{_SVC}.get_pool", side_effect=get_pool_side_effect),
-        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_redis") as _mock_redis,  # noqa: F841
         patch(f"{_SVC}.get_blocked_user_ids", new_callable=AsyncMock, return_value=set()),
         patch(f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0),
         patch(f"{_REPO}.find_existing_by_user", new_callable=AsyncMock, return_value=None),
@@ -334,7 +333,7 @@ async def test_invite_co_author_bilateral_block():
         return set()
 
     with (
-        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_redis") as _mock_redis,  # noqa: F841
         patch(f"{_SVC}.get_blocked_user_ids", side_effect=mock_get_blocked),
     ):
         with pytest.raises(AppError) as exc_info:
@@ -412,7 +411,7 @@ async def test_invite_event_includes_inviter_id():
 
     with (
         patch(f"{_SVC}.get_pool", side_effect=get_pool_side_effect),
-        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_redis") as _mock_redis,  # noqa: F841
         patch(f"{_SVC}.get_blocked_user_ids", new_callable=AsyncMock, return_value=set()),
         patch(f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0),
         patch(f"{_REPO}.find_existing_by_user", new_callable=AsyncMock, return_value=None),

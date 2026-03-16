@@ -175,7 +175,6 @@ async def test_search_posts_for_citation_excludes_blocked():
 
     # Two rows returned: one from blocked user, one from normal user
     normal_post_id = uuid.uuid4()
-    blocked_post_id = uuid.uuid4()
     all_rows = [
         {"id": normal_post_id, "title": "Normal Post", "author_name": "Normal User"},
     ]
@@ -191,7 +190,7 @@ async def test_search_posts_for_citation_excludes_blocked():
 
     with (
         patch(f"{_SVC}.get_pool", return_value=pool),
-        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_redis") as _mock_redis,  # noqa: F841
         patch(
             f"{_SVC}.get_blocked_user_ids",
             new_callable=AsyncMock,
@@ -236,7 +235,7 @@ async def test_search_posts_for_citation_no_blocked():
 
     with (
         patch(f"{_SVC}.get_pool", return_value=pool),
-        patch(f"{_SVC}.get_redis") as mock_redis,
+        patch(f"{_SVC}.get_redis") as _mock_redis,  # noqa: F841
         patch(
             f"{_SVC}.get_blocked_user_ids",
             new_callable=AsyncMock,

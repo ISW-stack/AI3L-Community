@@ -68,7 +68,8 @@ async def test_bulk_soft_delete_soft_deletes_comments(mock_pool, mock_conn):
 
 @pytest.mark.anyio
 async def test_comment_soft_delete_clears_best_answer_id(mock_pool, mock_conn):
-    """M1: comment soft_delete should clear best_answer_id when the deleted comment was the best answer."""
+    """M1: comment soft_delete should clear best_answer_id
+    when the deleted comment was the best answer."""
     comment_id = uuid.uuid4()
     post_id = uuid.uuid4()
     user_id = uuid.uuid4()

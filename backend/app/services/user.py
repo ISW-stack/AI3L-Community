@@ -276,7 +276,8 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
 
                     # Friend recommendations and dismissed recommendations
                     await conn.execute(
-                        "DELETE FROM friend_recommendations WHERE user_id = $1 OR recommended_user_id = $1",
+                        "DELETE FROM friend_recommendations "
+                        "WHERE user_id = $1 OR recommended_user_id = $1",
                         user_id,
                     )
                     await conn.execute(

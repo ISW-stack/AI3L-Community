@@ -3,7 +3,6 @@ import uuid
 from fastapi import APIRouter, Depends, status
 
 from app.core.deps import get_current_user, require_role
-from app.core.errors import AppError, ErrorCode
 from app.schemas.qa import MarkBestAnswerRequest, VoteRequest
 from app.services.qa import get_user_votes, mark_best_answer, unmark_best_answer, vote_on_answer
 

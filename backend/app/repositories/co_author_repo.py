@@ -2,8 +2,6 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from app.core.database import get_pool
-
 
 async def insert_co_author(
     conn: Any,
@@ -87,7 +85,8 @@ async def is_accepted_co_author(conn: Any, post_id: uuid.UUID, user_id: uuid.UUI
 
 async def count_co_authors(conn: Any, post_id: uuid.UUID) -> int:
     count = await conn.fetchval(
-        "SELECT COUNT(*) FROM post_co_authors WHERE post_id = $1 AND status IN ('PENDING', 'ACCEPTED')",
+        "SELECT COUNT(*) FROM post_co_authors "
+        "WHERE post_id = $1 AND status IN ('PENDING', 'ACCEPTED')",
         post_id,
     )
     return count or 0

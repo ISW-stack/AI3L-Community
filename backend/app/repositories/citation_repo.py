@@ -1,8 +1,5 @@
-import math
 import uuid
 from typing import Any
-
-from app.core.database import get_pool
 
 
 async def find_citations_of_post(

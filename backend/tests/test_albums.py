@@ -763,7 +763,7 @@ class TestC1StatusEnum:
             # Verify status="ACCEPTED" was passed (not "APPROVED")
             call_kwargs = mock_insert_member.call_args
             assert call_kwargs is not None
-            # insert_member is called with positional args: conn, member_id, album_id, user_id, role=, status=
+            # insert_member: positional args conn, member_id, album_id, user_id, role, status
             assert call_kwargs.kwargs.get("status") == "ACCEPTED" or (
                 len(call_kwargs.args) >= 6 and call_kwargs.args[5] == "ACCEPTED"
             )

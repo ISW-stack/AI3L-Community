@@ -2,8 +2,6 @@
 
 import uuid
 
-from app.core.database import get_pool
-
 # ── Friendship ──────────────────────────────────────────────────────
 
 

@@ -1,7 +1,7 @@
 """Tests for QA vote transaction safety and co-author advisory locks."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -42,7 +42,7 @@ class TestVoteOnAnswerTransaction:
         ):
             from app.services.qa import vote_on_answer
 
-            result = await vote_on_answer(_COMMENT_ID, _USER_ID, 1)
+            await vote_on_answer(_COMMENT_ID, _USER_ID, 1)
 
         # Transaction must have been opened
         mock_conn.transaction.assert_called_once()

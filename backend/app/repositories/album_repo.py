@@ -110,7 +110,8 @@ async def update_album(conn: Any, album_id: uuid.UUID, **fields: Any) -> dict | 
 
 async def soft_delete_album(conn: Any, album_id: uuid.UUID) -> bool:
     result = await conn.execute(
-        "UPDATE albums SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
+        "UPDATE albums SET is_deleted = true, updated_at = NOW() "
+        "WHERE id = $1 AND is_deleted = false",
         album_id,
     )
     return bool(result == "UPDATE 1")
@@ -119,7 +120,8 @@ async def soft_delete_album(conn: Any, album_id: uuid.UUID) -> bool:
 async def find_all_photos_for_album(conn: Any, album_id: uuid.UUID) -> list[dict]:
     """Get all photos for an album (for cascade cleanup)."""
     rows = await conn.fetch(
-        "SELECT id, storage_key, thumbnail_key, file_size_bytes, uploaded_by FROM album_photos WHERE album_id = $1",
+        "SELECT id, storage_key, thumbnail_key, file_size_bytes, uploaded_by "
+        "FROM album_photos WHERE album_id = $1",
         album_id,
     )
     return [dict(r) for r in rows]
@@ -154,7 +156,8 @@ async def delete_all_members_for_album(conn: Any, album_id: uuid.UUID) -> int:
 
 async def archive_album(conn: Any, album_id: uuid.UUID, archived: bool) -> bool:
     result = await conn.execute(
-        "UPDATE albums SET is_archived = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false",
+        "UPDATE albums SET is_archived = $1, updated_at = NOW() "
+        "WHERE id = $2 AND is_deleted = false",
         archived,
         album_id,
     )
@@ -163,7 +166,8 @@ async def archive_album(conn: Any, album_id: uuid.UUID, archived: bool) -> bool:
 
 async def set_cover_photo(conn: Any, album_id: uuid.UUID, url: str | None) -> bool:
     result = await conn.execute(
-        "UPDATE albums SET cover_photo_url = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false",
+        "UPDATE albums SET cover_photo_url = $1, updated_at = NOW() "
+        "WHERE id = $2 AND is_deleted = false",
         url,
         album_id,
     )
@@ -468,7 +472,8 @@ async def find_comments(
 
 async def delete_comment(conn: Any, comment_id: uuid.UUID) -> bool:
     result = await conn.execute(
-        "UPDATE album_comments SET is_deleted = true, updated_at = NOW() WHERE id = $1 AND is_deleted = false",
+        "UPDATE album_comments SET is_deleted = true, updated_at = NOW() "
+        "WHERE id = $1 AND is_deleted = false",
         comment_id,
     )
     return bool(result == "UPDATE 1")

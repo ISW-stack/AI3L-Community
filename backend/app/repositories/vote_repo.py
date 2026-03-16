@@ -1,8 +1,6 @@
 import uuid
 from typing import Any
 
-from app.core.database import get_pool
-
 
 async def upsert_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote: int) -> int:
     """Atomic upsert of a vote and update of comment vote_score.

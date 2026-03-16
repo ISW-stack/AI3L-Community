@@ -10,7 +10,7 @@ from app.converters.post_converter import async_row_to_post, row_to_history
 from app.core.blacklist import get_blocked_user_ids
 from app.core.constants import MAX_POSTS_PER_DAY, POST_VIEW_DEDUP_TTL
 from app.core.database import get_pool
-from app.core.errors import NotFoundError, RateLimitError
+from app.core.errors import RateLimitError
 from app.core.event_bus import emit
 from app.core.redis import get_redis
 from app.repositories import post_repo
@@ -428,7 +428,8 @@ async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
         async with conn.transaction():
             # Cascade cleanup before soft-deleting posts
             await conn.execute(
-                "DELETE FROM post_citations WHERE citing_post_id = ANY($1::uuid[]) OR cited_post_id = ANY($1::uuid[])",
+                "DELETE FROM post_citations "
+                "WHERE citing_post_id = ANY($1::uuid[]) OR cited_post_id = ANY($1::uuid[])",
                 post_ids,
             )
             await conn.execute(
@@ -436,7 +437,8 @@ async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
                 post_ids,
             )
             await conn.execute(
-                "UPDATE comments SET is_deleted = true, updated_at = NOW() WHERE post_id = ANY($1::uuid[]) AND is_deleted = false",
+                "UPDATE comments SET is_deleted = true, updated_at = NOW() "
+                "WHERE post_id = ANY($1::uuid[]) AND is_deleted = false",
                 post_ids,
             )
             count = await post_repo.bulk_soft_delete(post_ids, conn)

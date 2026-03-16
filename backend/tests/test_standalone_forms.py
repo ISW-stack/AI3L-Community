@@ -318,8 +318,6 @@ class TestStandaloneFormServiceLayer:
             "created_at": now,
             "updated_at": now,
         }
-        fake_creator = {"display_name": "Test User"}
-
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(
@@ -328,7 +326,7 @@ class TestStandaloneFormServiceLayer:
                 return_value={**fake_row, "creator_display_name": "Test User"},
             ) as mock_insert,
         ):
-            result = await create_form(
+            await create_form(
                 sig_id=None,
                 user_id=user_id,
                 title="Test",

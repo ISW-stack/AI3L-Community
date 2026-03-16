@@ -1,8 +1,6 @@
 import uuid
 from typing import Any
 
-from app.core.database import get_pool
-
 
 async def upsert_view(conn: Any, profile_id: uuid.UUID, viewer_id: uuid.UUID) -> bool:
     """Insert or update a profile view. Returns True if this is a new viewer."""

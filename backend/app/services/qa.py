@@ -6,7 +6,7 @@ from loguru import logger
 
 from app.core.constants import RATE_LIMIT_VOTE
 from app.core.database import get_pool
-from app.core.errors import AppError, ErrorCode, ForbiddenError, NotFoundError
+from app.core.errors import AppError, ErrorCode, NotFoundError
 from app.core.event_bus import emit
 from app.core.rate_limit import check_rate_limit
 from app.repositories import vote_repo

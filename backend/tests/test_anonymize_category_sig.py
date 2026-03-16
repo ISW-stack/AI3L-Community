@@ -1,7 +1,8 @@
-"""Tests for M3 (anonymize album cleanup), M7 (category duplicate name), M11 (SIG album cascade N/A)."""
+"""Tests for M3 (anonymize album cleanup), M7 (category duplicate name),
+M11 (SIG album cascade N/A)."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

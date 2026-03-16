@@ -18,7 +18,7 @@ async def get_blocked_user_ids(redis, user_id: str, pool=None) -> set[str]:
         try:
             async with pool.acquire() as conn:
                 rows = await conn.fetch(
-                    "SELECT blocker_id, blocked_id FROM blocks WHERE blocker_id=$1 OR blocked_id=$1",
+                    "SELECT blocker_id, blocked_id FROM blocks WHERE blocker_id=$1 OR blocked_id=$1",  # noqa: E501
                     uuid.UUID(user_id),
                 )
             if rows:

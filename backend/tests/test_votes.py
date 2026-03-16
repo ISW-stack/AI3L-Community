@@ -1,7 +1,7 @@
 """Tests for vote repository: upsert, remove, score calculation."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 

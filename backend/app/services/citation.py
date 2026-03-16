@@ -27,7 +27,8 @@ class CitationParser(HTMLParser):
                 href = attrs_dict.get("href", "")
                 # Extract UUID from /forum/{id} or /posts/{id} patterns
                 match = re.search(
-                    r"/(?:forum|posts)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})",
+                    r"/(?:forum|posts)/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}"
+                    r"-[0-9a-f]{4}-[0-9a-f]{12})",
                     href or "",
                     re.IGNORECASE,
                 )

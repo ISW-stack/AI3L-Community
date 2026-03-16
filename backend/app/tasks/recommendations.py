@@ -7,7 +7,6 @@ from typing import Any
 from loguru import logger
 
 from app.celery_app import celery
-from app.core.config import settings
 from app.core.constants import (
     RECOMMENDATION_MAX_PER_USER,
     RECOMMENDATION_MIN_SCORE,

@@ -44,7 +44,8 @@ async def insert(
 async def find_post_for_comment(post_id: uuid.UUID, conn: Any) -> dict | None:
     """Check post exists and get comment-relevant fields."""
     row = await conn.fetchrow(
-        "SELECT id, allow_comments, comment_count, type FROM posts WHERE id = $1 AND is_deleted = false",
+        "SELECT id, allow_comments, comment_count, type "
+        "FROM posts WHERE id = $1 AND is_deleted = false",
         post_id,
     )
     return dict(row) if row else None
@@ -107,7 +108,8 @@ async def find_many(
                 count_clause = " AND user_id != ALL($2::uuid[])"
                 count_params.append(exclude_user_ids)
             total = await conn.fetchval(
-                f"SELECT COUNT(*) FROM comments WHERE post_id = $1 AND is_deleted = false{count_clause}",
+                "SELECT COUNT(*) FROM comments"
+                f" WHERE post_id = $1 AND is_deleted = false{count_clause}",
                 *count_params,
             )
             result = []

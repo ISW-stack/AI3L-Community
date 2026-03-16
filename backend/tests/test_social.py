@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -270,7 +270,7 @@ class TestFollowUser:
     ):
         from app.services.social import follow_user
 
-        result = await follow_user(mock_pool, uuid.uuid4(), uuid.uuid4())
+        await follow_user(mock_pool, uuid.uuid4(), uuid.uuid4())
         mock_insert.assert_called_once()
 
     async def test_follow_self_error(self, mock_pool):
@@ -329,7 +329,7 @@ class TestBlockUser:
         block_row = _make_block_row()
         mock_insert_block.return_value = block_row
 
-        result = await block_user(mock_pool, mock_redis, uuid.uuid4(), uuid.uuid4())
+        await block_user(mock_pool, mock_redis, uuid.uuid4(), uuid.uuid4())
         mock_del_friend.assert_called_once()
         mock_del_follow.assert_called_once()
         mock_insert_block.assert_called_once()

@@ -3,7 +3,7 @@ plus the SIG posts viewer_id fix.
 """
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

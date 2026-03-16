@@ -1,7 +1,7 @@
 """Tests for app.core.blacklist — Redis block cache helpers."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

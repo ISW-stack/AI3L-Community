@@ -132,7 +132,6 @@ async def update_album(
 async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
     """Soft-delete album with cascade cleanup of photos, comments, and members."""
     from app.core.async_storage import delete_file
-    from app.repositories import user_repo
 
     pool = get_pool()
     album_uuid = uuid.UUID(album_id)
@@ -169,7 +168,8 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
 
                 for uploader_id, total_size in quota_refunds.items():
                     await conn.execute(
-                        "UPDATE users SET storage_used_bytes = GREATEST(storage_used_bytes - $1, 0) WHERE id = $2",
+                        "UPDATE users SET storage_used_bytes = "
+                        "GREATEST(storage_used_bytes - $1, 0) WHERE id = $2",
                         total_size,
                         uploader_id,
                     )
