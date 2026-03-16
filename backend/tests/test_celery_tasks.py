@@ -1659,7 +1659,8 @@ class TestCleanupOldFileScans:
 
             import asyncio
 
-            mock_run.side_effect = lambda coro: asyncio.get_event_loop().run_until_complete(coro)
+            loop = asyncio.new_event_loop()
+            mock_run.side_effect = lambda coro: loop.run_until_complete(coro)
 
             from app.tasks.cleanup import cleanup_old_file_scans
 
