@@ -1,6 +1,7 @@
 """Service layer for profile view tracking."""
 
 import uuid
+from typing import Any
 
 from loguru import logger
 
@@ -9,8 +10,8 @@ from app.repositories import profile_view_repo
 
 
 async def record_profile_view(
-    pool: object,
-    redis: object,
+    pool: Any,
+    redis: Any,
     profile_id: str,
     viewer_id: str,
 ) -> None:

@@ -8,10 +8,11 @@ import asyncpg
 
 async def find_recommendations(
     conn: asyncpg.Connection, user_id: uuid.UUID, limit: int = 10
-) -> list[asyncpg.Record]:
+) -> list[Any]:
     """Get precomputed recommendations for a user, excluding dismissed."""
-    return await conn.fetch(
-        """
+    return list(
+        await conn.fetch(
+            """
         SELECT fr.*, u.display_name, u.username, u.avatar_url, u.affiliation
         FROM friend_recommendations fr
         JOIN users u ON fr.recommended_user_id = u.id
@@ -23,8 +24,9 @@ async def find_recommendations(
         ORDER BY fr.score DESC
         LIMIT $2
         """,
-        user_id,
-        limit,
+            user_id,
+            limit,
+        )
     )
 
 

@@ -6,11 +6,12 @@ from typing import Any
 from app.core.database import get_pool
 
 
-async def find_standalone(conn: Any, page: int, page_size: int) -> list:
+async def find_standalone(conn: Any, page: int, page_size: int) -> list[Any]:
     """List standalone forms (sig_id IS NULL, not deleted)."""
     offset = (page - 1) * page_size
-    return await conn.fetch(
-        """
+    return list(
+        await conn.fetch(
+            """
         SELECT f.*, COUNT(*) OVER() AS total_count,
                u.display_name AS creator_display_name,
                COALESCE(rc.cnt, 0) AS response_count
@@ -25,8 +26,9 @@ async def find_standalone(conn: Any, page: int, page_size: int) -> list:
         ORDER BY f.created_at DESC
         LIMIT $1 OFFSET $2
         """,
-        page_size,
-        offset,
+            page_size,
+            offset,
+        )
     )
 
 
@@ -39,7 +41,7 @@ async def count_active_standalone_by_user(conn: Any, user_id: uuid.UUID) -> int:
         """,
         user_id,
     )
-    return row["cnt"]
+    return int(row["cnt"])
 
 
 async def insert(

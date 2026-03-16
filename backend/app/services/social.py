@@ -1,7 +1,9 @@
 """Social service — friendships, follows, blocks business logic."""
 
 import uuid
+from typing import Any
 
+import asyncpg
 from loguru import logger
 
 from app.core.blacklist import get_blocked_user_ids, update_block_cache
@@ -13,7 +15,9 @@ from app.repositories import social_repo
 # ── Friend Request Flow ─────────────────────────────────────────────
 
 
-async def send_friend_request(pool, requester_id: uuid.UUID, addressee_id: uuid.UUID) -> dict:
+async def send_friend_request(
+    pool: asyncpg.Pool, requester_id: uuid.UUID, addressee_id: uuid.UUID
+) -> dict:
     """Send a friend request. Auto-accepts if reverse pending request exists."""
     if requester_id == addressee_id:
         raise AppError(ErrorCode.SYS_422, 400, "Cannot send a friend request to yourself.")
@@ -64,7 +68,9 @@ async def send_friend_request(pool, requester_id: uuid.UUID, addressee_id: uuid.
     return friendship
 
 
-async def accept_friend_request(pool, friendship_id: uuid.UUID, user_id: uuid.UUID) -> dict:
+async def accept_friend_request(
+    pool: asyncpg.Pool, friendship_id: uuid.UUID, user_id: uuid.UUID
+) -> dict:
     """Accept a friend request. Only the addressee can accept.
 
     Uses SELECT ... FOR UPDATE inside a transaction to prevent TOCTOU races
@@ -101,7 +107,9 @@ async def accept_friend_request(pool, friendship_id: uuid.UUID, user_id: uuid.UU
     return updated
 
 
-async def reject_friend_request(pool, friendship_id: uuid.UUID, user_id: uuid.UUID) -> None:
+async def reject_friend_request(
+    pool: asyncpg.Pool, friendship_id: uuid.UUID, user_id: uuid.UUID
+) -> None:
     """Reject (delete) a friend request. Only the addressee can reject.
 
     Uses SELECT ... FOR UPDATE inside a transaction to prevent TOCTOU races
@@ -120,7 +128,7 @@ async def reject_friend_request(pool, friendship_id: uuid.UUID, user_id: uuid.UU
             await social_repo.reject_friendship(conn, friendship_id)
 
 
-async def unfriend(pool, user_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
+async def unfriend(pool: asyncpg.Pool, user_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
     """Remove a friendship. Does NOT auto-unfollow."""
     async with pool.acquire() as conn:
         deleted = await social_repo.delete_friendship_between(conn, user_id, target_user_id)
@@ -129,14 +137,14 @@ async def unfriend(pool, user_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
 
 
 async def list_friends(
-    pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    pool: asyncpg.Pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     async with pool.acquire() as conn:
         return await social_repo.find_friends(conn, user_id, page, page_size)
 
 
 async def list_friend_requests(
-    pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    pool: asyncpg.Pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     async with pool.acquire() as conn:
         return await social_repo.find_pending_requests(conn, user_id, page, page_size)
@@ -145,7 +153,7 @@ async def list_friend_requests(
 # ── Follow ──────────────────────────────────────────────────────────
 
 
-async def follow_user(pool, follower_id: uuid.UUID, following_id: uuid.UUID) -> dict:
+async def follow_user(pool: asyncpg.Pool, follower_id: uuid.UUID, following_id: uuid.UUID) -> dict:
     """Follow a user."""
     if follower_id == following_id:
         raise AppError(ErrorCode.SYS_422, 400, "Cannot follow yourself.")
@@ -160,7 +168,9 @@ async def follow_user(pool, follower_id: uuid.UUID, following_id: uuid.UUID) -> 
         return await social_repo.insert_follow(conn, follow_id, follower_id, following_id)
 
 
-async def unfollow_user(pool, follower_id: uuid.UUID, following_id: uuid.UUID) -> None:
+async def unfollow_user(
+    pool: asyncpg.Pool, follower_id: uuid.UUID, following_id: uuid.UUID
+) -> None:
     """Unfollow a user."""
     async with pool.acquire() as conn:
         deleted = await social_repo.delete_follow(conn, follower_id, following_id)
@@ -169,11 +179,11 @@ async def unfollow_user(pool, follower_id: uuid.UUID, following_id: uuid.UUID) -
 
 
 async def list_followers(
-    pool,
+    pool: asyncpg.Pool,
     user_id: uuid.UUID,
     page: int = 1,
     page_size: int = 20,
-    redis=None,
+    redis: Any = None,
 ) -> tuple[list[dict], int]:
     exclude: list[uuid.UUID] | None = None
     if redis:
@@ -190,11 +200,11 @@ async def list_followers(
 
 
 async def list_following(
-    pool,
+    pool: asyncpg.Pool,
     user_id: uuid.UUID,
     page: int = 1,
     page_size: int = 20,
-    redis=None,
+    redis: Any = None,
 ) -> tuple[list[dict], int]:
     exclude: list[uuid.UUID] | None = None
     if redis:
@@ -213,7 +223,9 @@ async def list_following(
 # ── Block (cascade logic) ──────────────────────────────────────────
 
 
-async def block_user(pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> dict:
+async def block_user(
+    pool: asyncpg.Pool, redis: Any, blocker_id: uuid.UUID, blocked_id: uuid.UUID
+) -> dict:
     """Block a user. Cascades: removes friendship + follows between them."""
     if blocker_id == blocked_id:
         raise AppError(ErrorCode.SYS_422, 400, "Cannot block yourself.")
@@ -247,7 +259,9 @@ async def block_user(pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID) 
     return block
 
 
-async def unblock_user(pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> None:
+async def unblock_user(
+    pool: asyncpg.Pool, redis: Any, blocker_id: uuid.UUID, blocked_id: uuid.UUID
+) -> None:
     """Unblock a user."""
     async with pool.acquire() as conn:
         deleted = await social_repo.delete_block(conn, blocker_id, blocked_id)
@@ -264,7 +278,7 @@ async def unblock_user(pool, redis, blocker_id: uuid.UUID, blocked_id: uuid.UUID
 
 
 async def list_blocks(
-    pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    pool: asyncpg.Pool, user_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     async with pool.acquire() as conn:
         return await social_repo.find_blocks(conn, user_id, page, page_size)
@@ -273,7 +287,9 @@ async def list_blocks(
 # ── Relationship Status ─────────────────────────────────────────────
 
 
-async def get_relationship_status(pool, user_id: uuid.UUID, target_id: uuid.UUID) -> dict:
+async def get_relationship_status(
+    pool: asyncpg.Pool, user_id: uuid.UUID, target_id: uuid.UUID
+) -> dict:
     async with pool.acquire() as conn:
         return await social_repo.get_relationship_status(conn, user_id, target_id)
 
@@ -281,7 +297,9 @@ async def get_relationship_status(pool, user_id: uuid.UUID, target_id: uuid.UUID
 # ── Internal helpers ─────────────────────────────────────────────────
 
 
-async def _ensure_follow(conn, follower_id: uuid.UUID, following_id: uuid.UUID) -> None:
+async def _ensure_follow(
+    conn: asyncpg.Connection, follower_id: uuid.UUID, following_id: uuid.UUID
+) -> None:
     """Insert follow if it doesn't already exist. Used for auto-follow on accept."""
     already = await social_repo.is_following(conn, follower_id, following_id)
     if not already:

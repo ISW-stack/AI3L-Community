@@ -6,7 +6,7 @@ from app.core.constants import RATE_LIMIT_CITATION_SEARCH
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
-from app.schemas.citation import CitationListResponse, CitationSearchRequest
+from app.schemas.citation import CitationEntryResponse, CitationListResponse, CitationSearchRequest
 from app.services.citation import get_citations_of, get_citing, search_posts_for_citation
 
 router = APIRouter(prefix="/citations", tags=["citations"])
@@ -39,7 +39,9 @@ async def get_cited_by(
 ) -> CitationListResponse:
     """Get posts that cite this post ('Cited by' list)."""
     citations, total = await get_citations_of(post_id=post_id, page=page, page_size=page_size)
-    return CitationListResponse(citations=citations, total=total)
+    return CitationListResponse(
+        citations=[CitationEntryResponse(**c) for c in citations], total=total
+    )
 
 
 @router.get("/posts/{post_id}/citing", response_model=CitationListResponse)
@@ -51,4 +53,6 @@ async def get_citing_endpoint(
 ) -> CitationListResponse:
     """Get posts this post cites ('References' list)."""
     citations, total = await get_citing(post_id=post_id, page=page, page_size=page_size)
-    return CitationListResponse(citations=citations, total=total)
+    return CitationListResponse(
+        citations=[CitationEntryResponse(**c) for c in citations], total=total
+    )

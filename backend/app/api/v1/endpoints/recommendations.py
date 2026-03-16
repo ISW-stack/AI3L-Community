@@ -17,7 +17,8 @@ async def get_friend_recommendations(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> RecommendationsListResponse:
     """Get precomputed friend recommendations."""
-    return await recommendation_service.get_recommendations(current_user["sub"])
+    result = await recommendation_service.get_recommendations(current_user["sub"])
+    return RecommendationsListResponse(**result)
 
 
 @router.post("/friends/dismiss")

@@ -106,7 +106,7 @@ async def delete_citations(conn: Any, citation_ids: list[uuid.UUID]) -> int:
 
 async def update_citation_count(conn: Any, post_id: uuid.UUID) -> int:
     """Recalculate citation_count from post_citations table."""
-    count = await conn.fetchval(
+    count: int = await conn.fetchval(
         """
         SELECT COUNT(*) FROM post_citations pc
         JOIN posts p ON pc.citing_post_id = p.id

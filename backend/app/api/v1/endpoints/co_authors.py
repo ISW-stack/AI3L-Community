@@ -91,7 +91,7 @@ async def list_co_authors_endpoint(
 ) -> CoAuthorListResponse:
     """List accepted co-authors for a post."""
     result = await list_co_authors(post_id=post_id)
-    return CoAuthorListResponse(co_authors=result)
+    return CoAuthorListResponse(co_authors=[CoAuthorResponse(**r) for r in result])
 
 
 @router.delete(

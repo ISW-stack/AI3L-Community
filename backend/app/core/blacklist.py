@@ -2,11 +2,16 @@
 
 import logging
 import uuid
+from typing import Any
+
+import asyncpg
 
 logger = logging.getLogger(__name__)
 
 
-async def get_blocked_user_ids(redis, user_id: str, pool=None) -> set[str]:
+async def get_blocked_user_ids(
+    redis: Any, user_id: str, pool: asyncpg.Pool | None = None
+) -> set[str]:
     """Get bilateral block set from Redis. Falls back to DB on miss when pool is provided."""
     key = f"block:set:{user_id}"
     members = await redis.smembers(key)
@@ -40,7 +45,7 @@ async def get_blocked_user_ids(redis, user_id: str, pool=None) -> set[str]:
     return set()
 
 
-async def warmup_block_cache(pool, redis) -> None:
+async def warmup_block_cache(pool: asyncpg.Pool, redis: Any) -> None:
     """Load all block relationships into Redis on app startup."""
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT blocker_id, blocked_id FROM blocks")
@@ -58,7 +63,7 @@ async def warmup_block_cache(pool, redis) -> None:
     logger.info("Block cache warmed: %d block records", len(rows))
 
 
-async def update_block_cache(redis, blocker_id: str, blocked_id: str, *, added: bool) -> None:
+async def update_block_cache(redis: Any, blocker_id: str, blocked_id: str, *, added: bool) -> None:
     """Update Redis block sets when a block is added/removed."""
     if added:
         pipe = redis.pipeline()

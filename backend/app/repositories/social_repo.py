@@ -2,11 +2,13 @@
 
 import uuid
 
+import asyncpg
+
 # ── Friendship ──────────────────────────────────────────────────────
 
 
 async def insert_friendship(
-    conn,
+    conn: asyncpg.Connection,
     friendship_id: uuid.UUID,
     requester_id: uuid.UUID,
     addressee_id: uuid.UUID,
@@ -27,19 +29,21 @@ async def insert_friendship(
     return dict(row)
 
 
-async def find_friendship_by_id(conn, friendship_id: uuid.UUID) -> dict | None:
+async def find_friendship_by_id(conn: asyncpg.Connection, friendship_id: uuid.UUID) -> dict | None:
     row = await conn.fetchrow("SELECT * FROM friendships WHERE id = $1", friendship_id)
     return dict(row) if row else None
 
 
-async def find_friendship_by_id_for_update(conn, friendship_id: uuid.UUID) -> dict | None:
+async def find_friendship_by_id_for_update(
+    conn: asyncpg.Connection, friendship_id: uuid.UUID
+) -> dict | None:
     """Fetch friendship with FOR UPDATE lock. Must be called within a transaction."""
     row = await conn.fetchrow("SELECT * FROM friendships WHERE id = $1 FOR UPDATE", friendship_id)
     return dict(row) if row else None
 
 
 async def find_friendship_between(
-    conn, user_a: uuid.UUID, user_b: uuid.UUID, *, for_update: bool = False
+    conn: asyncpg.Connection, user_a: uuid.UUID, user_b: uuid.UUID, *, for_update: bool = False
 ) -> dict | None:
     suffix = " FOR UPDATE" if for_update else ""
     row = await conn.fetchrow(
@@ -54,7 +58,7 @@ async def find_friendship_between(
     return dict(row) if row else None
 
 
-async def accept_friendship(conn, friendship_id: uuid.UUID) -> dict | None:
+async def accept_friendship(conn: asyncpg.Connection, friendship_id: uuid.UUID) -> dict | None:
     row = await conn.fetchrow(
         """
         UPDATE friendships
@@ -67,13 +71,15 @@ async def accept_friendship(conn, friendship_id: uuid.UUID) -> dict | None:
     return dict(row) if row else None
 
 
-async def reject_friendship(conn, friendship_id: uuid.UUID) -> bool:
-    result = await conn.execute("DELETE FROM friendships WHERE id = $1", friendship_id)
+async def reject_friendship(conn: asyncpg.Connection, friendship_id: uuid.UUID) -> bool:
+    result: str = await conn.execute("DELETE FROM friendships WHERE id = $1", friendship_id)
     return result == "DELETE 1"
 
 
-async def delete_friendship_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> bool:
-    result = await conn.execute(
+async def delete_friendship_between(
+    conn: asyncpg.Connection, user_a: uuid.UUID, user_b: uuid.UUID
+) -> bool:
+    result: str = await conn.execute(
         """
         DELETE FROM friendships
         WHERE (requester_id = $1 AND addressee_id = $2)
@@ -86,7 +92,7 @@ async def delete_friendship_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) 
 
 
 async def find_friends(
-    conn, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    conn: asyncpg.Connection, user_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     offset = (page - 1) * page_size
     rows = await conn.fetch(
@@ -136,7 +142,7 @@ async def find_friends(
 
 
 async def find_pending_requests(
-    conn, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    conn: asyncpg.Connection, user_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     offset = (page - 1) * page_size
     rows = await conn.fetch(
@@ -172,7 +178,7 @@ async def find_pending_requests(
     return [], 0
 
 
-async def count_friends(conn, user_id: uuid.UUID) -> int:
+async def count_friends(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
         """
         SELECT COUNT(*) FROM friendships
@@ -188,7 +194,7 @@ async def count_friends(conn, user_id: uuid.UUID) -> int:
 
 
 async def insert_follow(
-    conn, follow_id: uuid.UUID, follower_id: uuid.UUID, following_id: uuid.UUID
+    conn: asyncpg.Connection, follow_id: uuid.UUID, follower_id: uuid.UUID, following_id: uuid.UUID
 ) -> dict:
     row = await conn.fetchrow(
         """
@@ -203,8 +209,10 @@ async def insert_follow(
     return dict(row)
 
 
-async def delete_follow(conn, follower_id: uuid.UUID, following_id: uuid.UUID) -> bool:
-    result = await conn.execute(
+async def delete_follow(
+    conn: asyncpg.Connection, follower_id: uuid.UUID, following_id: uuid.UUID
+) -> bool:
+    result: str = await conn.execute(
         "DELETE FROM follows WHERE follower_id = $1 AND following_id = $2",
         follower_id,
         following_id,
@@ -212,7 +220,9 @@ async def delete_follow(conn, follower_id: uuid.UUID, following_id: uuid.UUID) -
     return result == "DELETE 1"
 
 
-async def delete_follows_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> None:
+async def delete_follows_between(
+    conn: asyncpg.Connection, user_a: uuid.UUID, user_b: uuid.UUID
+) -> None:
     await conn.execute(
         """
         DELETE FROM follows
@@ -225,7 +235,7 @@ async def delete_follows_between(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> 
 
 
 async def find_followers(
-    conn,
+    conn: asyncpg.Connection,
     user_id: uuid.UUID,
     page: int = 1,
     page_size: int = 20,
@@ -273,7 +283,7 @@ async def find_followers(
 
 
 async def find_following(
-    conn,
+    conn: asyncpg.Connection,
     user_id: uuid.UUID,
     page: int = 1,
     page_size: int = 20,
@@ -320,7 +330,9 @@ async def find_following(
     return [], int(count)
 
 
-async def is_following(conn, follower_id: uuid.UUID, following_id: uuid.UUID) -> bool:
+async def is_following(
+    conn: asyncpg.Connection, follower_id: uuid.UUID, following_id: uuid.UUID
+) -> bool:
     result = await conn.fetchval(
         "SELECT COUNT(*) FROM follows WHERE follower_id = $1 AND following_id = $2",
         follower_id,
@@ -329,7 +341,7 @@ async def is_following(conn, follower_id: uuid.UUID, following_id: uuid.UUID) ->
     return int(result) > 0
 
 
-async def count_followers(conn, user_id: uuid.UUID) -> int:
+async def count_followers(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
         "SELECT COUNT(*) FROM follows WHERE following_id = $1",
         user_id,
@@ -337,7 +349,7 @@ async def count_followers(conn, user_id: uuid.UUID) -> int:
     return int(result)
 
 
-async def count_following(conn, user_id: uuid.UUID) -> int:
+async def count_following(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
         "SELECT COUNT(*) FROM follows WHERE follower_id = $1",
         user_id,
@@ -349,7 +361,7 @@ async def count_following(conn, user_id: uuid.UUID) -> int:
 
 
 async def insert_block(
-    conn, block_id: uuid.UUID, blocker_id: uuid.UUID, blocked_id: uuid.UUID
+    conn: asyncpg.Connection, block_id: uuid.UUID, blocker_id: uuid.UUID, blocked_id: uuid.UUID
 ) -> dict:
     row = await conn.fetchrow(
         """
@@ -364,8 +376,10 @@ async def insert_block(
     return dict(row)
 
 
-async def delete_block(conn, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> bool:
-    result = await conn.execute(
+async def delete_block(
+    conn: asyncpg.Connection, blocker_id: uuid.UUID, blocked_id: uuid.UUID
+) -> bool:
+    result: str = await conn.execute(
         "DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2",
         blocker_id,
         blocked_id,
@@ -374,7 +388,7 @@ async def delete_block(conn, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> bo
 
 
 async def find_blocks(
-    conn, user_id: uuid.UUID, page: int = 1, page_size: int = 20
+    conn: asyncpg.Connection, user_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[dict], int]:
     offset = (page - 1) * page_size
     rows = await conn.fetch(
@@ -414,7 +428,7 @@ async def find_blocks(
     return [], int(count)
 
 
-async def count_blocks(conn, user_id: uuid.UUID) -> int:
+async def count_blocks(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
         "SELECT COUNT(*) FROM blocks WHERE blocker_id = $1",
         user_id,
@@ -422,7 +436,7 @@ async def count_blocks(conn, user_id: uuid.UUID) -> int:
     return int(result)
 
 
-async def is_blocked(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> bool:
+async def is_blocked(conn: asyncpg.Connection, user_a: uuid.UUID, user_b: uuid.UUID) -> bool:
     """Check if EITHER user has blocked the other."""
     result = await conn.fetchval(
         """
@@ -436,7 +450,7 @@ async def is_blocked(conn, user_a: uuid.UUID, user_b: uuid.UUID) -> bool:
     return int(result) > 0
 
 
-async def find_all_blocks_raw(conn) -> list[dict]:
+async def find_all_blocks_raw(conn: asyncpg.Connection) -> list[dict]:
     rows = await conn.fetch("SELECT blocker_id, blocked_id FROM blocks")
     return [dict(r) for r in rows]
 
@@ -444,7 +458,9 @@ async def find_all_blocks_raw(conn) -> list[dict]:
 # ── Relationship status ─────────────────────────────────────────────
 
 
-async def get_relationship_status(conn, user_id: uuid.UUID, target_id: uuid.UUID) -> dict:
+async def get_relationship_status(
+    conn: asyncpg.Connection, user_id: uuid.UUID, target_id: uuid.UUID
+) -> dict:
     """Return a dict with is_friend, is_following, is_followed_by, is_blocked,
     pending_request (null | 'sent' | 'received'), and friendship_id."""
 
