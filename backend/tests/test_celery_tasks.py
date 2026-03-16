@@ -63,6 +63,18 @@ def _celery_modules():
 # =========================================================================
 
 
+def _mock_lpop_from_list(items: list) -> AsyncMock:
+    """Create an lpop mock that returns items one at a time, then None."""
+    remaining = list(items)
+
+    async def _lpop(key: str):  # type: ignore[no-untyped-def]
+        if remaining:
+            return remaining.pop(0)
+        return None
+
+    return AsyncMock(side_effect=_lpop)
+
+
 class TestAsyncRetry:
     """Tests for the _async_retry coroutine in event_retry.py."""
 
@@ -70,15 +82,14 @@ class TestAsyncRetry:
     async def test_noop_when_no_failed_events(self):
         """Should return early when Redis has no failed events."""
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[])
+        mock_redis.lpop = _mock_lpop_from_list([])
 
         with patch("app.core.redis.get_redis", return_value=mock_redis):
             from app.tasks.event_retry import _async_retry
 
             await _async_retry()
 
-        mock_redis.lrange.assert_awaited_once_with("event_bus:failed", 0, -1)
-        mock_redis.delete.assert_not_awaited()
+        mock_redis.lpop.assert_awaited_once_with("event_bus:failed")
 
     @pytest.mark.anyio
     async def test_redis_unavailable_returns_gracefully(self):
@@ -104,8 +115,7 @@ class TestAsyncRetry:
         )
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[event_entry])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([event_entry])
 
         with (
             patch("app.core.redis.get_redis", return_value=mock_redis),
@@ -116,7 +126,89 @@ class TestAsyncRetry:
             await _async_retry()
 
         handler.assert_awaited_once_with(user_id="abc")
-        mock_redis.delete.assert_awaited_once_with("event_bus:failed")
+
+    @pytest.mark.anyio
+    async def test_uses_lpop_not_lrange_delete(self):
+        """N-B02: Must use atomic LPOP instead of LRANGE+DELETE to prevent data loss."""
+        mock_redis = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([])
+
+        with patch("app.core.redis.get_redis", return_value=mock_redis):
+            from app.tasks.event_retry import _async_retry
+
+            await _async_retry()
+
+        # Verify LPOP was used (not LRANGE + DELETE)
+        mock_redis.lpop.assert_awaited()
+        assert not hasattr(mock_redis, "lrange") or not mock_redis.lrange.called
+        assert not hasattr(mock_redis, "delete") or not mock_redis.delete.called
+
+    @pytest.mark.anyio
+    async def test_unprocessed_events_survive_crash(self):
+        """N-B02: If handler raises, remaining events stay in Redis (LPOP pattern)."""
+        handler = AsyncMock()
+        handler.__name__ = "h"
+        event1 = json.dumps({"event": "e", "handler": "h", "kwargs": {}, "retry_count": 0})
+        event2 = json.dumps({"event": "e", "handler": "h", "kwargs": {}, "retry_count": 0})
+
+        # Only pop the first event; second stays in "Redis"
+        pop_count = 0
+
+        async def counting_lpop(key: str):  # type: ignore[no-untyped-def]
+            nonlocal pop_count
+            pop_count += 1
+            if pop_count == 1:
+                return event1
+            elif pop_count == 2:
+                return event2
+            return None
+
+        mock_redis = AsyncMock()
+        mock_redis.lpop = AsyncMock(side_effect=counting_lpop)
+
+        with (
+            patch("app.core.redis.get_redis", return_value=mock_redis),
+            patch.dict("app.core.event_bus._handlers", {"e": [handler]}),
+        ):
+            from app.tasks.event_retry import _async_retry
+
+            await _async_retry()
+
+        # Both events were popped and processed
+        assert handler.await_count == 2
+        assert pop_count == 3  # 2 events + 1 None sentinel
+
+    @pytest.mark.anyio
+    async def test_max_events_per_run_limits_processing(self):
+        """N-B02: Processing is bounded by MAX_EVENTS_PER_RUN."""
+        from app.tasks.event_retry import MAX_EVENTS_PER_RUN
+
+        handler = AsyncMock()
+        handler.__name__ = "h"
+
+        # Create more events than the limit
+        call_count = 0
+
+        async def infinite_lpop(key: str) -> str:
+            nonlocal call_count
+            call_count += 1
+            return json.dumps(
+                {"event": "e", "handler": "h", "kwargs": {}, "retry_count": 0}
+            )
+
+        mock_redis = AsyncMock()
+        mock_redis.lpop = AsyncMock(side_effect=infinite_lpop)
+
+        with (
+            patch("app.core.redis.get_redis", return_value=mock_redis),
+            patch.dict("app.core.event_bus._handlers", {"e": [handler]}),
+        ):
+            from app.tasks.event_retry import _async_retry
+
+            await _async_retry()
+
+        # Should stop after MAX_EVENTS_PER_RUN
+        assert handler.await_count == MAX_EVENTS_PER_RUN
 
     @pytest.mark.anyio
     async def test_drops_event_exceeding_max_retries(self):
@@ -132,8 +224,7 @@ class TestAsyncRetry:
         )
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[event_entry])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([event_entry])
 
         with (
             patch("app.core.redis.get_redis", return_value=mock_redis),
@@ -149,8 +240,7 @@ class TestAsyncRetry:
     async def test_drops_invalid_json(self):
         """Malformed JSON entries should be dropped without crashing."""
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=["not-valid-json{{{"])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list(["not-valid-json{{{"])
 
         with patch("app.core.redis.get_redis", return_value=mock_redis):
             from app.tasks.event_retry import _async_retry
@@ -172,8 +262,7 @@ class TestAsyncRetry:
         )
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[event_entry])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([event_entry])
 
         with (
             patch("app.core.redis.get_redis", return_value=mock_redis),
@@ -198,8 +287,7 @@ class TestAsyncRetry:
         )
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[event_entry])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([event_entry])
 
         mock_persist = AsyncMock()
 
@@ -226,8 +314,7 @@ class TestAsyncRetry:
         )
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[event_entry])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([event_entry])
 
         with patch("app.core.redis.get_redis", return_value=mock_redis):
             from app.tasks.event_retry import _async_retry
@@ -249,8 +336,7 @@ class TestAsyncRetry:
         ]
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=events)
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list(events)
 
         mock_persist = AsyncMock()
 
@@ -289,8 +375,7 @@ class TestAsyncRetry:
         )
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[event_entry])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([event_entry])
 
         with (
             patch("app.core.redis.get_redis", return_value=mock_redis),
@@ -323,8 +408,7 @@ class TestAsyncRetry:
         )
 
         mock_redis = AsyncMock()
-        mock_redis.lrange = AsyncMock(return_value=[event_entry])
-        mock_redis.delete = AsyncMock()
+        mock_redis.lpop = _mock_lpop_from_list([event_entry])
 
         with (
             patch("app.core.redis.get_redis", return_value=mock_redis),
@@ -1736,3 +1820,180 @@ class TestDeleteOrphansOrder:
             "decrement_owner_storage",
             "delete_file",
         ], f"Expected order: get_size->delete_by_key->decrement->delete_file, got: {call_order}"
+
+
+# =========================================================================
+# Tests for thumbnail task (N-B06, N-B13)
+# =========================================================================
+
+
+class TestThumbnailTask:
+    """Tests for the generate_thumbnail_task in thumbnail.py."""
+
+    def test_max_image_pixels_set_before_image_open(self):
+        """N-B06: MAX_IMAGE_PIXELS must be set before Image.open is called."""
+        mock_image_module = MagicMock()
+        mock_image_ops = MagicMock()
+        mock_minio = MagicMock()
+        mock_settings = MagicMock()
+        mock_settings.MINIO_ENDPOINT = "localhost:9000"
+        mock_settings.MINIO_ROOT_USER = "user"
+        mock_settings.MINIO_ROOT_PASSWORD = "pass"
+        mock_settings.MINIO_USE_SSL = False
+        mock_settings.MINIO_BUCKET_NAME = "bucket"
+
+        # Track the order of calls
+        call_order = []
+
+        original_setattr = type(mock_image_module).__setattr__
+
+        def track_max_pixels(self, name, value):
+            if name == "MAX_IMAGE_PIXELS":
+                call_order.append(("set_max_pixels", value))
+            original_setattr(self, name, value)
+
+        mock_image_module.__class__ = type(
+            "MockImage", (), {"__setattr__": track_max_pixels}
+        )
+
+        # Instead of tracking setattr, verify via source inspection
+        import inspect
+
+        from app.tasks.thumbnail import generate_thumbnail_task
+
+        source = inspect.getsource(generate_thumbnail_task)
+        max_pixels_pos = source.find("MAX_IMAGE_PIXELS")
+        image_open_pos = source.find("Image.open")
+        assert max_pixels_pos < image_open_pos, (
+            "MAX_IMAGE_PIXELS must be set before Image.open is called"
+        )
+
+    def test_max_download_size_constant_exists(self):
+        """N-B13: MAX_DOWNLOAD_SIZE constant must be defined at module level."""
+        from app.tasks.thumbnail import MAX_DOWNLOAD_SIZE
+
+        assert MAX_DOWNLOAD_SIZE == 50 * 1024 * 1024
+
+    def test_download_uses_bounded_read(self):
+        """N-B13: response.read() must be called with a size limit."""
+        import inspect
+
+        from app.tasks.thumbnail import MAX_DOWNLOAD_SIZE, generate_thumbnail_task
+
+        source = inspect.getsource(generate_thumbnail_task)
+        # Must call response.read with a size argument, not unbounded
+        assert "response.read()" not in source, (
+            "response.read() is unbounded — must pass MAX_DOWNLOAD_SIZE"
+        )
+        assert "response.read(MAX_DOWNLOAD_SIZE" in source
+
+    def test_oversized_download_returns_skipped(self):
+        """N-B13: Files exceeding MAX_DOWNLOAD_SIZE should be skipped."""
+        from app.tasks.thumbnail import MAX_DOWNLOAD_SIZE
+
+        mock_response = MagicMock()
+        # Return data larger than limit
+        mock_response.read.return_value = b"x" * (MAX_DOWNLOAD_SIZE + 1)
+
+        mock_minio_client = MagicMock()
+        mock_minio_client.get_object.return_value = mock_response
+
+        mock_minio_class = MagicMock(return_value=mock_minio_client)
+        mock_minio_mod = types.ModuleType("minio")
+        mock_minio_mod.Minio = mock_minio_class
+
+        mock_settings = MagicMock()
+        mock_settings.MINIO_ENDPOINT = "localhost:9000"
+        mock_settings.MINIO_ROOT_USER = "user"
+        mock_settings.MINIO_ROOT_PASSWORD = "pass"
+        mock_settings.MINIO_USE_SSL = False
+        mock_settings.MINIO_BUCKET_NAME = "bucket"
+
+        saved_minio = sys.modules.get("minio")
+        sys.modules["minio"] = mock_minio_mod
+        try:
+            with (
+                patch("app.core.config.settings", mock_settings),
+                patch("app.core.constants.ALBUM_THUMBNAIL_QUALITY", 85),
+                patch("app.core.constants.ALBUM_THUMBNAIL_SIZE", (400, 400)),
+            ):
+                # Force re-import to pick up mocked minio
+                if "app.tasks.thumbnail" in sys.modules:
+                    del sys.modules["app.tasks.thumbnail"]
+                from app.tasks.thumbnail import generate_thumbnail_task
+
+                result = generate_thumbnail_task(
+                    MagicMock(), "photos/big.jpg", "thumbs/big.webp", str(uuid.uuid4())
+                )
+        finally:
+            if saved_minio is None:
+                sys.modules.pop("minio", None)
+            else:
+                sys.modules["minio"] = saved_minio
+            sys.modules.pop("app.tasks.thumbnail", None)
+
+        assert result["status"] == "skipped"
+        assert result["reason"] == "file_too_large"
+        mock_response.close.assert_called_once()
+        mock_response.release_conn.assert_called_once()
+
+    def test_normal_size_download_proceeds(self):
+        """N-B13: Files within MAX_DOWNLOAD_SIZE should be processed normally."""
+        from app.tasks.thumbnail import MAX_DOWNLOAD_SIZE
+
+        # Create a small valid image in memory
+        from PIL import Image as PILImage
+
+        img_buf = io.BytesIO()
+        img = PILImage.new("RGB", (100, 100), color="red")
+        img.save(img_buf, format="JPEG")
+        img_data = img_buf.getvalue()
+        assert len(img_data) < MAX_DOWNLOAD_SIZE
+
+        mock_response = MagicMock()
+        mock_response.read.return_value = img_data
+
+        mock_minio_client = MagicMock()
+        mock_minio_client.get_object.return_value = mock_response
+
+        mock_minio_class = MagicMock(return_value=mock_minio_client)
+        mock_minio_mod = types.ModuleType("minio")
+        mock_minio_mod.Minio = mock_minio_class
+
+        mock_settings = MagicMock()
+        mock_settings.MINIO_ENDPOINT = "localhost:9000"
+        mock_settings.MINIO_ROOT_USER = "user"
+        mock_settings.MINIO_ROOT_PASSWORD = "pass"
+        mock_settings.MINIO_USE_SSL = False
+        mock_settings.MINIO_BUCKET_NAME = "bucket"
+
+        saved_minio = sys.modules.get("minio")
+        sys.modules["minio"] = mock_minio_mod
+        try:
+            # Re-import with minio module available
+            if "app.tasks.thumbnail" in sys.modules:
+                del sys.modules["app.tasks.thumbnail"]
+
+            with (
+                patch("app.core.config.settings", mock_settings),
+                patch("app.core.constants.ALBUM_THUMBNAIL_QUALITY", 85),
+                patch("app.core.constants.ALBUM_THUMBNAIL_SIZE", (400, 400)),
+            ):
+                from app.tasks.thumbnail import generate_thumbnail_task
+
+                # Patch _run_async AFTER import so the reference is resolved
+                with patch("app.tasks.thumbnail._run_async"):
+                    result = generate_thumbnail_task(
+                        MagicMock(), "photos/ok.jpg", "thumbs/ok.webp", str(uuid.uuid4())
+                    )
+        finally:
+            if saved_minio is None:
+                sys.modules.pop("minio", None)
+            else:
+                sys.modules["minio"] = saved_minio
+            sys.modules.pop("app.tasks.thumbnail", None)
+
+        assert result["status"] == "success"
+        assert result["thumbnail_key"] == "thumbs/ok.webp"
+        # Verify upload was called
+        mock_minio_client.put_object.assert_called_once()

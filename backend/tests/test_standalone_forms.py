@@ -203,7 +203,7 @@ class TestListStandaloneForms:
         ):
             resp = await client.get("/api/v1/forms?page=2&page_size=1")
             assert resp.status_code == 200
-            mock_list.assert_called_once_with(page=2, page_size=1)
+            mock_list.assert_called_once_with(page=2, page_size=1, q=None)
 
     @pytest.mark.anyio
     async def test_list_standalone_forms_empty(self, client):

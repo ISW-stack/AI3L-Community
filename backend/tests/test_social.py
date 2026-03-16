@@ -682,3 +682,103 @@ class TestRelationshipStatus:
         result = await get_relationship_status(mock_pool, uuid.uuid4(), uuid.uuid4())
         assert result["is_friend"] is True
         assert result["is_following"] is True
+
+
+# ── N-B09: follow_user TOCTOU — transaction atomicity ──────────────
+
+
+class TestFollowUserTransaction:
+    """N-B09: Verify follow_user wraps block check + follow insert in a transaction."""
+
+    @patch(f"{_REPO}.insert_follow", new_callable=AsyncMock, return_value={})
+    @patch(f"{_REPO}.is_following", new_callable=AsyncMock, return_value=False)
+    @patch(f"{_REPO}.is_blocked", new_callable=AsyncMock, return_value=False)
+    async def test_follow_uses_transaction(
+        self, mock_blocked, mock_is_follow, mock_insert, mock_pool, mock_conn
+    ):
+        """Block check + duplicate check + insert must run inside a transaction."""
+        from app.services.social import follow_user
+
+        await follow_user(mock_pool, uuid.uuid4(), uuid.uuid4())
+
+        # Transaction was opened
+        mock_conn.transaction.assert_called_once()
+        # All three repo calls happened inside the same connection
+        mock_blocked.assert_called_once()
+        mock_is_follow.assert_called_once()
+        mock_insert.assert_called_once()
+
+    @patch(f"{_REPO}.is_blocked", new_callable=AsyncMock, return_value=True)
+    async def test_follow_blocked_inside_transaction(
+        self, mock_blocked, mock_pool, mock_conn
+    ):
+        """Block check failure should still happen inside the transaction."""
+        from app.services.social import follow_user
+
+        with pytest.raises(Exception, match="Cannot interact"):
+            await follow_user(mock_pool, uuid.uuid4(), uuid.uuid4())
+
+        # Transaction was opened even for the error path
+        mock_conn.transaction.assert_called_once()
+
+    @patch(f"{_REPO}.is_following", new_callable=AsyncMock, return_value=True)
+    @patch(f"{_REPO}.is_blocked", new_callable=AsyncMock, return_value=False)
+    async def test_follow_duplicate_inside_transaction(
+        self, mock_blocked, mock_is_follow, mock_pool, mock_conn
+    ):
+        """Duplicate check failure should happen inside the transaction."""
+        from app.services.social import follow_user
+
+        with pytest.raises(Exception, match="Already following"):
+            await follow_user(mock_pool, uuid.uuid4(), uuid.uuid4())
+
+        mock_conn.transaction.assert_called_once()
+
+
+# ── N-B16: block_user count check inside transaction ───────────────
+
+
+class TestBlockUserCountInTransaction:
+    """N-B16: Verify block count check is inside the transaction."""
+
+    @patch("app.services.social.update_block_cache", new_callable=AsyncMock)
+    @patch(f"{_REPO}.insert_block", new_callable=AsyncMock)
+    @patch(f"{_REPO}.delete_follows_between", new_callable=AsyncMock)
+    @patch(f"{_REPO}.delete_friendship_between", new_callable=AsyncMock)
+    @patch(f"{_REPO}.count_blocks", new_callable=AsyncMock, return_value=0)
+    async def test_count_check_inside_transaction(
+        self,
+        mock_count,
+        mock_del_friend,
+        mock_del_follow,
+        mock_insert_block,
+        mock_cache,
+        mock_pool,
+        mock_conn,
+        mock_redis,
+    ):
+        """count_blocks must run inside the same transaction as the insert."""
+        from app.services.social import block_user
+
+        block_row = _make_block_row()
+        mock_insert_block.return_value = block_row
+
+        await block_user(mock_pool, mock_redis, uuid.uuid4(), uuid.uuid4())
+
+        # Only one transaction should be opened (count + deletes + insert all inside)
+        mock_conn.transaction.assert_called_once()
+        # count_blocks was called with the transactional connection
+        mock_count.assert_called_once_with(mock_conn, mock_count.call_args[0][1])
+
+    @patch(f"{_REPO}.count_blocks", new_callable=AsyncMock, return_value=5)
+    async def test_count_limit_inside_transaction(
+        self, mock_count, mock_pool, mock_conn, mock_redis
+    ):
+        """Block limit error should be raised inside the transaction."""
+        from app.services.social import block_user
+
+        with pytest.raises(Exception, match="limit"):
+            await block_user(mock_pool, mock_redis, uuid.uuid4(), uuid.uuid4())
+
+        # Transaction was opened before count_blocks was checked
+        mock_conn.transaction.assert_called_once()

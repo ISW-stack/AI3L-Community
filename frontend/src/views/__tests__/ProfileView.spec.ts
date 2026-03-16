@@ -172,6 +172,47 @@ describe('ProfileView', () => {
     expect(mockUpdateProfile).toHaveBeenCalled()
   })
 
+  it('sends null for cleared bio/affiliation/orcid fields (N-U15)', async () => {
+    const { wrapper } = await mountProfile()
+    const vm = wrapper.vm as any
+
+    // Clear all optional fields by setting them to empty strings
+    vm.bio = ''
+    vm.affiliation = ''
+    vm.orcid = ''
+    await nextTick()
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(mockUpdateProfile).toHaveBeenCalled()
+    const payload = mockUpdateProfile.mock.calls[0][0]
+    // Empty strings should be sent as null, not undefined/omitted
+    expect(payload.bio).toBeNull()
+    expect(payload.affiliation).toBeNull()
+    expect(payload.orcid).toBeNull()
+  })
+
+  it('sends trimmed values for non-empty fields', async () => {
+    const { wrapper } = await mountProfile()
+    const vm = wrapper.vm as any
+
+    vm.bio = '  Updated bio  '
+    vm.affiliation = '  MIT  '
+    vm.orcid = '  0000-0001-2345-6789  '
+    await nextTick()
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    const payload = mockUpdateProfile.mock.calls[0][0]
+    expect(payload.bio).toBe('Updated bio')
+    expect(payload.affiliation).toBe('MIT')
+    expect(payload.orcid).toBe('0000-0001-2345-6789')
+  })
+
   it('shows success message after save', async () => {
     const { wrapper } = await mountProfile()
     const form = wrapper.find('form')

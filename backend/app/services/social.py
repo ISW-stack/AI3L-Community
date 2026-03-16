@@ -154,18 +154,24 @@ async def list_friend_requests(
 
 
 async def follow_user(pool: asyncpg.Pool, follower_id: uuid.UUID, following_id: uuid.UUID) -> dict:
-    """Follow a user."""
+    """Follow a user.
+
+    Uses a transaction to make block check + duplicate check + insert atomic,
+    preventing TOCTOU races that could bypass the block restriction or create
+    duplicate follows.
+    """
     if follower_id == following_id:
         raise AppError(ErrorCode.SYS_422, 400, "Cannot follow yourself.")
 
     async with pool.acquire() as conn:
-        if await social_repo.is_blocked(conn, follower_id, following_id):
-            raise AppError(ErrorCode.SOCIAL_003, 403, "Cannot interact with this user.")
-        if await social_repo.is_following(conn, follower_id, following_id):
-            raise AppError(ErrorCode.SYS_409, 409, "Already following this user.")
+        async with conn.transaction():
+            if await social_repo.is_blocked(conn, follower_id, following_id):
+                raise AppError(ErrorCode.SOCIAL_003, 403, "Cannot interact with this user.")
+            if await social_repo.is_following(conn, follower_id, following_id):
+                raise AppError(ErrorCode.SYS_409, 409, "Already following this user.")
 
-        follow_id = uuid.uuid4()
-        return await social_repo.insert_follow(conn, follow_id, follower_id, following_id)
+            follow_id = uuid.uuid4()
+            return await social_repo.insert_follow(conn, follow_id, follower_id, following_id)
 
 
 async def unfollow_user(
@@ -231,17 +237,18 @@ async def block_user(
         raise AppError(ErrorCode.SYS_422, 400, "Cannot block yourself.")
 
     async with pool.acquire() as conn:
-        # Check block limit
-        block_count = await social_repo.count_blocks(conn, blocker_id)
-        if block_count >= MAX_BLOCKS_PER_USER:
-            raise AppError(
-                ErrorCode.SOCIAL_002,
-                400,
-                f"Block limit reached (max {MAX_BLOCKS_PER_USER}).",
-            )
-
-        # Single transaction: delete friendship + follows + insert block
+        # Single transaction: count check + delete friendship + follows + insert block
+        # Count check must be inside the transaction to prevent concurrent blocks
+        # from both passing the limit check.
         async with conn.transaction():
+            block_count = await social_repo.count_blocks(conn, blocker_id)
+            if block_count >= MAX_BLOCKS_PER_USER:
+                raise AppError(
+                    ErrorCode.SOCIAL_002,
+                    400,
+                    f"Block limit reached (max {MAX_BLOCKS_PER_USER}).",
+                )
+
             await social_repo.delete_friendship_between(conn, blocker_id, blocked_id)
             await social_repo.delete_follows_between(conn, blocker_id, blocked_id)
             block_id = uuid.uuid4()

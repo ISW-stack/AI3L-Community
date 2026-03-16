@@ -70,13 +70,17 @@ async def update_my_profile(
     req: UserUpdateRequest,
     current_user: dict = Depends(get_current_user),
 ) -> UserResponse:
+    # Only pass fields that the client explicitly included in the request.
+    # This lets the backend distinguish "not provided" (omitted) from
+    # "explicitly set to null" (user wants to clear the field).
+    provided = {
+        k: getattr(req, k)
+        for k in ("display_name", "bio", "affiliation", "orcid", "preferred_language")
+        if k in req.model_fields_set
+    }
     user = await update_user_profile(
         user_id=uuid.UUID(current_user["sub"]),
-        display_name=req.display_name,
-        bio=req.bio,
-        affiliation=req.affiliation,
-        orcid=req.orcid,
-        preferred_language=req.preferred_language,
+        **provided,
     )
     if user is None:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")

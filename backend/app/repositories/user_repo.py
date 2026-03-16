@@ -63,7 +63,12 @@ async def insert(
 
 
 async def update_profile(user_id: uuid.UUID, **fields: Any) -> dict | None:
-    """Dynamic update of user profile fields."""
+    """Dynamic update of user profile fields.
+
+    Only fields explicitly passed as keyword arguments are updated.
+    A value of ``None`` means "clear this field" (set to NULL in the database).
+    Fields not present in *fields* are left unchanged.
+    """
     _ALLOWED_FIELDS = {
         "display_name",
         "bio",
@@ -78,10 +83,10 @@ async def update_profile(user_id: uuid.UUID, **fields: Any) -> dict | None:
     for field_name, value in fields.items():
         if field_name not in _ALLOWED_FIELDS:
             continue
-        if value is not None:
-            set_parts.append(f"{field_name} = ${idx}")
-            values.append(value)
-            idx += 1
+        # Include the field whether the value is a string or None (clear).
+        set_parts.append(f"{field_name} = ${idx}")
+        values.append(value)
+        idx += 1
 
     if not set_parts:
         return await find_by_id(user_id)

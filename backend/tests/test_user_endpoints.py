@@ -563,3 +563,117 @@ class TestBanUserNotFound:
                 assert resp.status_code == 404
         finally:
             _clear_overrides()
+
+
+# ── N-B10: update_profile clear fields via null ────────────────────
+
+
+class TestUpdateProfileClearFields:
+    """N-B10: Verify endpoint passes only explicitly-set fields to the service."""
+
+    @pytest.mark.anyio
+    async def test_clear_bio_sends_null(self, client):
+        """PUT /users/me with bio=null should pass bio=None to service."""
+        user_id = str(uuid.uuid4())
+        user = make_user_dict(user_id=user_id)
+        user["bio"] = None
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.update_user_profile", new_callable=AsyncMock, return_value=user
+            ) as mock_update:
+                resp = await client.put(
+                    "/api/v1/users/me",
+                    json={"bio": None},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                # bio=None must be passed to the service
+                mock_update.assert_called_once()
+                call_kwargs = mock_update.call_args[1]
+                assert "bio" in call_kwargs
+                assert call_kwargs["bio"] is None
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_omitted_fields_not_passed(self, client):
+        """PUT /users/me with only display_name should NOT pass bio/orcid."""
+        user_id = str(uuid.uuid4())
+        user = make_user_dict(user_id=user_id)
+        user["display_name"] = "New Name"
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.update_user_profile", new_callable=AsyncMock, return_value=user
+            ) as mock_update:
+                resp = await client.put(
+                    "/api/v1/users/me",
+                    json={"display_name": "New Name"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                call_kwargs = mock_update.call_args[1]
+                # Only display_name should be passed, not bio/affiliation/orcid
+                assert "display_name" in call_kwargs
+                assert "bio" not in call_kwargs
+                assert "affiliation" not in call_kwargs
+                assert "orcid" not in call_kwargs
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_clear_all_optional_fields(self, client):
+        """PUT /users/me clearing bio, affiliation, orcid simultaneously."""
+        user_id = str(uuid.uuid4())
+        user = make_user_dict(user_id=user_id)
+        user["bio"] = None
+        user["affiliation"] = None
+        user["orcid"] = None
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.update_user_profile", new_callable=AsyncMock, return_value=user
+            ) as mock_update:
+                resp = await client.put(
+                    "/api/v1/users/me",
+                    json={"bio": None, "affiliation": None, "orcid": None},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                call_kwargs = mock_update.call_args[1]
+                assert call_kwargs["bio"] is None
+                assert call_kwargs["affiliation"] is None
+                assert call_kwargs["orcid"] is None
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_set_and_clear_mixed(self, client):
+        """PUT /users/me setting display_name while clearing bio."""
+        user_id = str(uuid.uuid4())
+        user = make_user_dict(user_id=user_id)
+        user["display_name"] = "Updated"
+        user["bio"] = None
+
+        try:
+            _override_auth("MEMBER", user_id=user_id)
+            with patch(
+                f"{_EP}.update_user_profile", new_callable=AsyncMock, return_value=user
+            ) as mock_update:
+                resp = await client.put(
+                    "/api/v1/users/me",
+                    json={"display_name": "Updated", "bio": None},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                call_kwargs = mock_update.call_args[1]
+                assert call_kwargs["display_name"] == "Updated"
+                assert call_kwargs["bio"] is None
+                # Omitted fields should not be in kwargs
+                assert "affiliation" not in call_kwargs
+        finally:
+            _clear_overrides()

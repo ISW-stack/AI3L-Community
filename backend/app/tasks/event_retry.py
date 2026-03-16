@@ -5,19 +5,16 @@ from celery import shared_task
 from loguru import logger
 
 MAX_EVENT_RETRIES = 3
+# Maximum events to process per invocation (prevents unbounded loops)
+MAX_EVENTS_PER_RUN = 500
 
 
 @shared_task(name="retry_failed_events")
 def retry_failed_events() -> None:
     """Periodic task: retry failed events from Redis with bounded retries."""
-    import asyncio
-    from concurrent.futures import ThreadPoolExecutor
+    from app.tasks.async_runner import run_async
 
-    def _run() -> None:
-        asyncio.run(_async_retry())
-
-    with ThreadPoolExecutor(1) as pool:
-        pool.submit(_run).result()
+    run_async(_async_retry())
 
 
 async def _async_retry() -> None:
@@ -30,19 +27,16 @@ async def _async_retry() -> None:
         logger.warning("Redis not available for event retry")
         return
 
-    raw_events: list[Any] = await cast(
-        Awaitable[list[Any]], redis.lrange("event_bus:failed", 0, -1)
-    )
-    if not raw_events:
-        return
-
-    await redis.delete("event_bus:failed")
-
     retried = 0
     dropped = 0
     re_failed = 0
 
-    for raw in raw_events:
+    # Pop one event at a time — unprocessed events stay in Redis if worker crashes
+    for _ in range(MAX_EVENTS_PER_RUN):
+        raw: Any = await cast(Awaitable[Any], redis.lpop("event_bus:failed"))
+        if raw is None:
+            break
+
         try:
             entry = json.loads(raw)
         except json.JSONDecodeError:

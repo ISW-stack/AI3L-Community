@@ -3,8 +3,6 @@
 Periodically checks for forms whose deadline has passed and marks them as closed.
 """
 
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from loguru import logger
@@ -12,12 +10,7 @@ from loguru import logger
 from app.celery_app import celery
 from app.core.config import settings
 from app.core.database import get_pool, init_db_pool
-
-
-def _run_async(coro: Any) -> Any:
-    """Run an async coroutine from a sync Celery task context."""
-    with ThreadPoolExecutor(1) as pool:
-        return pool.submit(asyncio.run, coro).result()
+from app.tasks.async_runner import run_async as _run_async
 
 
 async def _ensure_pool() -> None:

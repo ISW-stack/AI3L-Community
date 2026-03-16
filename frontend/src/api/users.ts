@@ -8,9 +8,9 @@ export async function getProfile() {
 
 export async function updateProfile(payload: {
   display_name?: string
-  bio?: string
-  affiliation?: string
-  orcid?: string
+  bio?: string | null
+  affiliation?: string | null
+  orcid?: string | null
   preferred_language?: string
 }) {
   const { data } = await api.put('/users/me', payload)

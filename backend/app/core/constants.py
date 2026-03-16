@@ -124,6 +124,8 @@ RATE_LIMIT_CITATION_SEARCH = _rate_limit("CITATION_SEARCH", 20, 60)
 RECOMMENDATION_MAX_PER_USER = 10
 RECOMMENDATION_MIN_SCORE = 0.05
 RECOMMENDATION_MIN_USERS = 10
+RECOMMENDATION_MAX_USERS = 2000  # Skip full CROSS JOIN if user count exceeds this
+RECOMMENDATION_BATCH_SIZE = 200  # Process users in batches to limit memory usage
 RECOMMENDATION_WEIGHTS = {
     "common_sigs": 0.30,
     "mutual_friends": 0.25,

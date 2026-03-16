@@ -1,10 +1,8 @@
-import asyncio
 import csv
 import io
 import json
 import re
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from loguru import logger
@@ -18,6 +16,7 @@ from app.core.storage import (
     init_storage,
     upload_file,
 )
+from app.tasks.async_runner import run_async as _run_async
 
 _CSV_FORMULA_CHARS = frozenset("=+-@\t\r")
 
@@ -52,6 +51,9 @@ async def _async_export(form_id: str, task_id: str) -> dict:
         if not form:
             raise ValueError(f"Form {form_id} not found.")
 
+        # Extract values while still inside the connection context to avoid
+        # accessing the record after the connection is released (N-B07).
+        form_title: str = form["title"] or ""
         questions = (
             json.loads(form["questions"])
             if isinstance(form["questions"], str)
@@ -134,7 +136,7 @@ async def _async_export(form_id: str, task_id: str) -> dict:
     upload_file(csv_bytes, storage_key, "text/csv")
 
     # Build a safe filename from the form title for the browser download prompt
-    raw_title = (form["title"] or "export").strip()
+    raw_title = (form_title or "export").strip()
     safe_title = (
         re.sub(r"[^a-zA-Z0-9_\s\-]", "", raw_title).strip().replace(" ", "_")[:80] or "export"
     )
@@ -145,13 +147,6 @@ async def _async_export(form_id: str, task_id: str) -> dict:
 
     logger.info("Form CSV export completed", extra={"form_id": form_id, "rows": total_rows})
     return {"download_url": download_url}
-
-
-def _run_async(coro: Any) -> dict:
-    """Run an async coroutine from sync Celery task, cross-platform safe."""
-    with ThreadPoolExecutor(1) as pool:
-        result: dict = pool.submit(asyncio.run, coro).result()
-        return result
 
 
 @celery.task(bind=True, name="tasks.export_form_csv", max_retries=2, default_retry_delay=60)

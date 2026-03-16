@@ -1,7 +1,7 @@
 """Celery task: Orphan editor file cleanup.
 
 Deletes files under the editor/ prefix in MinIO that are:
-1. Not referenced in any post content or form description.
+1. Not referenced in any post content, comment content, or form description.
 2. Older than 7 days (to avoid deleting in-progress draft files).
 
 Also removes their corresponding file_scans records.
@@ -9,7 +9,6 @@ Also removes their corresponding file_scans records.
 
 import asyncio
 import re
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator
 
@@ -19,18 +18,13 @@ from app.celery_app import celery
 from app.core.config import settings
 from app.core.database import get_pool, init_db_pool
 from app.core.redis import get_redis, init_redis
+from app.tasks.async_runner import run_async as _run_async
 
 # Matches /api/v1/files/content/editor/<user_id>/<filename>
 _FILE_KEY_RE = re.compile(r"/api/v1/files/content/(editor/[^\s\"'<>]+)")
 
 _ORPHAN_MAX_AGE_DAYS = 7
 _ORPHAN_BATCH_SIZE = 1000
-
-
-def _run_async(coro: Any) -> Any:
-    """Run an async coroutine from a sync Celery task context."""
-    with ThreadPoolExecutor(1) as pool:
-        return pool.submit(asyncio.run, coro).result()
 
 
 async def _ensure_pool() -> None:
@@ -48,7 +42,7 @@ async def _ensure_redis() -> None:
 
 
 async def _get_referenced_keys() -> set[str]:
-    """Return all editor file keys referenced in active posts or form descriptions."""
+    """Return all editor file keys referenced in posts, comments, or form descriptions."""
     await _ensure_pool()
     pool = get_pool()
     keys: set[str] = set()
@@ -60,6 +54,26 @@ async def _get_referenced_keys() -> set[str]:
         while True:
             rows = await conn.fetch(
                 "SELECT content AS html FROM posts "
+                "WHERE is_deleted = FALSE AND content IS NOT NULL AND content <> '' "
+                "ORDER BY id LIMIT $1 OFFSET $2",
+                _BATCH_SIZE,
+                offset,
+            )
+            if not rows:
+                break
+            for row in rows:
+                html = row["html"] or ""
+                for match in _FILE_KEY_RE.finditer(html):
+                    keys.add(match.group(1))
+            if len(rows) < _BATCH_SIZE:
+                break
+            offset += _BATCH_SIZE
+
+        # Process comments in batches
+        offset = 0
+        while True:
+            rows = await conn.fetch(
+                "SELECT content AS html FROM comments "
                 "WHERE is_deleted = FALSE AND content IS NOT NULL AND content <> '' "
                 "ORDER BY id LIMIT $1 OFFSET $2",
                 _BATCH_SIZE,

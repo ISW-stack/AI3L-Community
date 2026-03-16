@@ -8,11 +8,14 @@ from loguru import logger
 
 from app.celery_app import celery
 from app.core.constants import (
+    RECOMMENDATION_BATCH_SIZE,
     RECOMMENDATION_MAX_PER_USER,
+    RECOMMENDATION_MAX_USERS,
     RECOMMENDATION_MIN_SCORE,
     RECOMMENDATION_MIN_USERS,
 )
-from app.tasks.cleanup import _ensure_pool, _run_async
+from app.tasks.async_runner import run_async as _run_async
+from app.tasks.cleanup import _ensure_pool
 
 
 async def _compute_recommendations_async() -> dict[str, int]:
@@ -38,54 +41,86 @@ async def _compute_recommendations_async() -> dict[str, int]:
                 logger.info("Not enough users (%d) for recommendations", count)
                 return {"total": 0, "users": 0, "skipped": True}
 
-            # Compute recommendations using CTE-based SQL
-            rows = await conn.fetch(_RECOMMENDATION_SQL)
+            if count > RECOMMENDATION_MAX_USERS:
+                logger.warning(
+                    "Too many users (%d > %d) for CROSS JOIN recommendations, "
+                    "processing in batches",
+                    count,
+                    RECOMMENDATION_MAX_USERS,
+                )
 
-            # Group by user, take top N
-            user_recs: dict[uuid.UUID, list[dict[str, Any]]] = {}
-            for row in rows:
-                uid = row["user_id"]
-                if uid not in user_recs:
-                    user_recs[uid] = []
-                if len(user_recs[uid]) < RECOMMENDATION_MAX_PER_USER:
-                    score = float(row["total_score"])
-                    if score >= RECOMMENDATION_MIN_SCORE:
-                        reasons = _build_reasons(row)
-                        user_recs[uid].append(
-                            {
-                                "id": uuid.uuid4(),
-                                "user_id": uid,
-                                "recommended_user_id": row["candidate_id"],
-                                "score": score,
-                                "reasons": json.dumps(reasons),
-                            }
+            # Clear old recommendations before writing new ones
+            await conn.execute("DELETE FROM friend_recommendations")
+
+            # Fetch all active user IDs for batching
+            user_ids = [
+                row["id"]
+                for row in await conn.fetch(
+                    "SELECT id FROM users "
+                    "WHERE is_deleted = false AND is_banned = false AND role != 'GUEST' "
+                    "ORDER BY id"
+                )
+            ]
+
+            total = 0
+            users_with_recs = 0
+
+            # Process users in batches to avoid O(N^2) memory usage
+            for batch_start in range(0, len(user_ids), RECOMMENDATION_BATCH_SIZE):
+                batch = user_ids[batch_start : batch_start + RECOMMENDATION_BATCH_SIZE]
+
+                rows = await conn.fetch(
+                    _RECOMMENDATION_BATCH_SQL,
+                    batch,
+                    RECOMMENDATION_MAX_PER_USER,
+                )
+
+                # Group by user, take top N
+                user_recs: dict[uuid.UUID, list[dict[str, Any]]] = {}
+                for row in rows:
+                    uid = row["user_id"]
+                    if uid not in user_recs:
+                        user_recs[uid] = []
+                    if len(user_recs[uid]) < RECOMMENDATION_MAX_PER_USER:
+                        score = float(row["total_score"])
+                        if score >= RECOMMENDATION_MIN_SCORE:
+                            reasons = _build_reasons(row)
+                            user_recs[uid].append(
+                                {
+                                    "id": uuid.uuid4(),
+                                    "user_id": uid,
+                                    "recommended_user_id": row["candidate_id"],
+                                    "score": score,
+                                    "reasons": json.dumps(reasons),
+                                }
+                            )
+
+                for recs in user_recs.values():
+                    if recs:
+                        await conn.executemany(
+                            """
+                            INSERT INTO friend_recommendations
+                                (id, user_id, recommended_user_id, score, reasons)
+                            VALUES ($1, $2, $3, $4, $5::jsonb)
+                            """,
+                            [
+                                (
+                                    r["id"],
+                                    r["user_id"],
+                                    r["recommended_user_id"],
+                                    r["score"],
+                                    r["reasons"],
+                                )
+                                for r in recs
+                            ],
                         )
 
-            # Write results (already inside the advisory-locked transaction)
-            await conn.execute("DELETE FROM friend_recommendations")
-            for recs in user_recs.values():
-                if recs:
-                    await conn.executemany(
-                        """
-                        INSERT INTO friend_recommendations
-                            (id, user_id, recommended_user_id, score, reasons)
-                        VALUES ($1, $2, $3, $4, $5::jsonb)
-                        """,
-                        [
-                            (
-                                r["id"],
-                                r["user_id"],
-                                r["recommended_user_id"],
-                                r["score"],
-                                r["reasons"],
-                            )
-                            for r in recs
-                        ],
-                    )
+                batch_total = sum(len(r) for r in user_recs.values())
+                total += batch_total
+                users_with_recs += len(user_recs)
 
-            total = sum(len(r) for r in user_recs.values())
-            logger.info("Computed %d recommendations for %d users", total, len(user_recs))
-            return {"total": total, "users": len(user_recs), "skipped": False}
+            logger.info("Computed %d recommendations for %d users", total, users_with_recs)
+            return {"total": total, "users": users_with_recs, "skipped": False}
 
 
 def _build_reasons(row: Any) -> list[dict[str, Any]]:
@@ -114,7 +149,8 @@ def compute_friend_recommendations(self: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Large CTE query — compute all signals between all user pairs
+# Batched CTE query — compute signals for a batch of users ($1) against
+# all other active users. Uses LIMIT $2 per user to cap result set.
 # ---------------------------------------------------------------------------
 # Signals:
 #   S1: Common SIG membership (weight 0.30) — min(count / 3.0, 1.0)
@@ -123,7 +159,7 @@ def compute_friend_recommendations(self: Any) -> dict[str, Any]:
 #   S4: Same affiliation (weight 0.10) — binary match on LOWER(TRIM(affiliation))
 #   S5: Activity recency (weight 0.10) — exp(-0.05 * days_since_last_activity)
 # ---------------------------------------------------------------------------
-_RECOMMENDATION_SQL = """
+_RECOMMENDATION_BATCH_SQL = """
 WITH active_users AS (
     SELECT id, affiliation,
            EXTRACT(EPOCH FROM (NOW() - COALESCE(
@@ -133,11 +169,16 @@ WITH active_users AS (
     FROM users u
     WHERE u.is_deleted = false AND u.is_banned = false AND u.role != 'GUEST'
 ),
+batch_users AS (
+    SELECT id, affiliation, days_inactive
+    FROM active_users
+    WHERE id = ANY($1::uuid[])
+),
 user_pairs AS (
     SELECT a.id AS user_id, b.id AS candidate_id,
            a.affiliation AS user_aff, b.affiliation AS cand_aff,
            b.days_inactive AS cand_days_inactive
-    FROM active_users a
+    FROM batch_users a
     CROSS JOIN active_users b
     WHERE a.id != b.id
       -- Exclude existing friends
@@ -189,39 +230,57 @@ friend_scores AS (
           AND (f2.requester_id = up.candidate_id OR f2.addressee_id = up.candidate_id)
     ) their_friends ON my_friends.my_friend = their_friends.their_friend
     GROUP BY up.user_id, up.candidate_id
-)
-SELECT
-    up.user_id,
-    up.candidate_id,
-    COALESCE(ss.common_sigs, 0) AS common_sigs,
-    COALESCE(fs.mutual_friends, 0) AS mutual_friends,
-    0.0 AS keyword_similarity,
-    CASE
-        WHEN LOWER(TRIM(COALESCE(up.user_aff, ''))) = LOWER(TRIM(COALESCE(up.cand_aff, '')))
-             AND COALESCE(up.user_aff, '') != ''
-        THEN 1.0 ELSE 0.0
-    END AS same_affiliation,
-    CASE
-        WHEN LOWER(TRIM(COALESCE(up.user_aff, ''))) = LOWER(TRIM(COALESCE(up.cand_aff, '')))
-             AND COALESCE(up.user_aff, '') != ''
-        THEN up.cand_aff ELSE ''
-    END AS affiliation_value,
-    EXP(-0.05 * up.cand_days_inactive) AS activity_score,
-    (
-        LEAST(COALESCE(ss.common_sigs, 0) / 3.0, 1.0) * 0.30 +
-        LEAST(COALESCE(fs.mutual_friends, 0) / 5.0, 1.0) * 0.25 +
-        0.0 * 0.25 +
+),
+scored AS (
+    SELECT
+        up.user_id,
+        up.candidate_id,
+        COALESCE(ss.common_sigs, 0) AS common_sigs,
+        COALESCE(fs.mutual_friends, 0) AS mutual_friends,
+        0.0 AS keyword_similarity,
         CASE
             WHEN LOWER(TRIM(COALESCE(up.user_aff, ''))) = LOWER(TRIM(COALESCE(up.cand_aff, '')))
                  AND COALESCE(up.user_aff, '') != ''
             THEN 1.0 ELSE 0.0
-        END * 0.10 +
-        EXP(-0.05 * up.cand_days_inactive) * 0.10
-    ) AS total_score
-FROM user_pairs up
-LEFT JOIN sig_scores ss
-    ON ss.user_id = up.user_id AND ss.candidate_id = up.candidate_id
-LEFT JOIN friend_scores fs
-    ON fs.user_id = up.user_id AND fs.candidate_id = up.candidate_id
-ORDER BY up.user_id, total_score DESC
+        END AS same_affiliation,
+        CASE
+            WHEN LOWER(TRIM(COALESCE(up.user_aff, ''))) = LOWER(TRIM(COALESCE(up.cand_aff, '')))
+                 AND COALESCE(up.user_aff, '') != ''
+            THEN up.cand_aff ELSE ''
+        END AS affiliation_value,
+        EXP(-0.05 * up.cand_days_inactive) AS activity_score,
+        (
+            LEAST(COALESCE(ss.common_sigs, 0) / 3.0, 1.0) * 0.30 +
+            LEAST(COALESCE(fs.mutual_friends, 0) / 5.0, 1.0) * 0.25 +
+            0.0 * 0.25 +
+            CASE
+                WHEN LOWER(TRIM(COALESCE(up.user_aff, ''))) = LOWER(TRIM(COALESCE(up.cand_aff, '')))
+                     AND COALESCE(up.user_aff, '') != ''
+                THEN 1.0 ELSE 0.0
+            END * 0.10 +
+            EXP(-0.05 * up.cand_days_inactive) * 0.10
+        ) AS total_score,
+        ROW_NUMBER() OVER (PARTITION BY up.user_id ORDER BY (
+            LEAST(COALESCE(ss.common_sigs, 0) / 3.0, 1.0) * 0.30 +
+            LEAST(COALESCE(fs.mutual_friends, 0) / 5.0, 1.0) * 0.25 +
+            0.0 * 0.25 +
+            CASE
+                WHEN LOWER(TRIM(COALESCE(up.user_aff, ''))) = LOWER(TRIM(COALESCE(up.cand_aff, '')))
+                     AND COALESCE(up.user_aff, '') != ''
+                THEN 1.0 ELSE 0.0
+            END * 0.10 +
+            EXP(-0.05 * up.cand_days_inactive) * 0.10
+        ) DESC) AS rn
+    FROM user_pairs up
+    LEFT JOIN sig_scores ss
+        ON ss.user_id = up.user_id AND ss.candidate_id = up.candidate_id
+    LEFT JOIN friend_scores fs
+        ON fs.user_id = up.user_id AND fs.candidate_id = up.candidate_id
+)
+SELECT user_id, candidate_id, common_sigs, mutual_friends,
+       keyword_similarity, same_affiliation, affiliation_value,
+       activity_score, total_score
+FROM scored
+WHERE rn <= $2
+ORDER BY user_id, total_score DESC
 """

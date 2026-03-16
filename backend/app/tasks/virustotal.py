@@ -1,8 +1,6 @@
 """Celery task: VirusTotal hash-only file check."""
 
-import asyncio
 import hashlib
-from concurrent.futures import ThreadPoolExecutor
 from typing import IO, Any, Union
 
 import requests  # type: ignore[import-untyped]
@@ -11,12 +9,7 @@ from loguru import logger
 from app.celery_app import celery
 from app.core.config import settings
 from app.core.database import get_pool, init_db_pool
-
-
-def _run_async(coro: Any) -> Any:
-    """Run an async coroutine from sync Celery task, cross-platform safe."""
-    with ThreadPoolExecutor(1) as pool:
-        return pool.submit(asyncio.run, coro).result()
+from app.tasks.async_runner import run_async as _run_async
 
 
 async def _ensure_pool() -> None:

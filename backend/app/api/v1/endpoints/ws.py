@@ -105,6 +105,21 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                 await ws.close(code=4004, reason="Message too large")
                 return
 
+            # Parse JSON before rate-limit accounting so invalid
+            # payloads don't consume the budget.
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                logger.debug(
+                    "Invalid JSON from WebSocket client",
+                    extra={"user_id": user_id},
+                )
+                try:
+                    await ws.send_json({"error": "invalid_json"})
+                except Exception:
+                    pass
+                continue
+
             # Message rate limiting
             now = asyncio.get_event_loop().time()
             if now - msg_window_start > WS_MSG_RATE_WINDOW:
@@ -115,7 +130,6 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                 await ws.close(code=4005, reason="Rate limit exceeded")
                 return
 
-            msg = json.loads(data)
             activity["last"] = now
 
             if msg.get("type") == "PONG":

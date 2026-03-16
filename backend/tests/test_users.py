@@ -65,6 +65,68 @@ class TestUpdateUserProfile:
         result = await update_user_profile(updated["id"], display_name="Alice Updated")
         assert result["display_name"] == "Alice Updated"
 
+    @patch("app.repositories.user_repo.get_pool")
+    async def test_update_profile_clears_bio_with_none(self, mock_get_pool, mock_pool, mock_conn):
+        """N-B10: Passing bio=None should SET bio to NULL (clear the field)."""
+        from app.services.user import update_user_profile
+
+        user = make_user_dict(username="alice")
+        user["bio"] = None
+        mock_conn.fetchrow.return_value = user
+        mock_get_pool.return_value = mock_pool
+
+        result = await update_user_profile(user["id"], bio=None)
+        assert result is not None
+        # Verify fetchrow was called (UPDATE query, not just find_by_id)
+        mock_conn.fetchrow.assert_called_once()
+        # The SQL should include bio = $1 with None value
+        call_args = mock_conn.fetchrow.call_args
+        query = call_args[0][0]
+        assert "bio" in query
+        assert "UPDATE" in query
+
+    @patch("app.repositories.user_repo.get_pool")
+    async def test_update_profile_clears_multiple_fields(
+        self, mock_get_pool, mock_pool, mock_conn
+    ):
+        """N-B10: Clearing bio, affiliation, orcid simultaneously."""
+        from app.services.user import update_user_profile
+
+        user = make_user_dict(username="alice")
+        user["bio"] = None
+        user["affiliation"] = None
+        user["orcid"] = None
+        mock_conn.fetchrow.return_value = user
+        mock_get_pool.return_value = mock_pool
+
+        result = await update_user_profile(
+            user["id"], bio=None, affiliation=None, orcid=None
+        )
+        assert result is not None
+        call_args = mock_conn.fetchrow.call_args
+        query = call_args[0][0]
+        assert "bio" in query
+        assert "affiliation" in query
+        assert "orcid" in query
+
+    @patch("app.repositories.user_repo.get_pool")
+    async def test_update_profile_via_repo_no_fields_returns_existing(
+        self, mock_get_pool, mock_pool, mock_conn
+    ):
+        """N-B10: Repo update_profile with no kwargs returns existing user (SELECT)."""
+        from app.repositories.user_repo import update_profile
+
+        user = make_user_dict(username="alice")
+        mock_conn.fetchrow.return_value = user
+        mock_get_pool.return_value = mock_pool
+
+        result = await update_profile(user["id"])
+        assert result is not None
+        # No fields provided → should call find_by_id (SELECT), not UPDATE
+        call_args = mock_conn.fetchrow.call_args
+        query = call_args[0][0]
+        assert "SELECT" in query
+
 
 class TestBanUser:
     @patch("app.services.user.emit", new_callable=AsyncMock)

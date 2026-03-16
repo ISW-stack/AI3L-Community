@@ -519,17 +519,17 @@ class TestSigMemberBatchNotification:
         member_id_1 = str(uuid.uuid4())
         member_id_2 = str(uuid.uuid4())
 
-        # Simulate two pages: first returns 1 member with total=2, second returns 1 with total=2
-        page1_members = [{"user_id": uuid.UUID(member_id_1)}]
-        page2_members = [{"user_id": uuid.UUID(member_id_2)}]
+        # First batch must be full (len == BATCH_SIZE) so the loop continues;
+        # second batch is partial (< BATCH_SIZE) so the loop terminates.
+        page1_members = [
+            {"user_id": uuid.UUID(member_id_1)}
+        ] * _SIG_MEMBER_BATCH_SIZE  # full batch
+        page2_members = [{"user_id": uuid.UUID(member_id_2)}]  # partial batch
 
-        # total must be > _SIG_MEMBER_BATCH_SIZE (200) so the loop continues after
-        # the first call (offset becomes 200, and 200 < 201 → second call fires).
         find_members_mock = AsyncMock(
             side_effect=[
-                (page1_members, 201),  # first batch: 1 member, total=201
-                (page2_members, 201),  # second batch: 1 member, total=201
-                ([], 201),  # third call: empty → loop ends
+                (page1_members, 201),  # first batch: full → loop continues
+                (page2_members, 201),  # second batch: partial → loop ends
             ]
         )
 

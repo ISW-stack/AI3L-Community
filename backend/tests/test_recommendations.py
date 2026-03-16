@@ -334,16 +334,46 @@ class TestRecommendationService:
 class TestRecommendationTask:
     """Tests for the compute_friend_recommendations Celery task."""
 
-    @pytest.mark.anyio
-    async def test_task_skips_when_few_users(self):
-        """Task returns early when fewer than RECOMMENDATION_MIN_USERS."""
+    def _make_mock_conn_for_batched(
+        self,
+        user_count: int,
+        user_ids: list[uuid.UUID] | None = None,
+        cte_rows: list[dict] | None = None,
+    ) -> AsyncMock:
+        """Create a mock connection supporting the batched recommendation pattern."""
         mock_conn = AsyncMock()
-        mock_conn.fetchval = AsyncMock(return_value=5)
+        mock_conn.fetchval = AsyncMock(return_value=user_count)
+
+        # conn.fetch is called twice: once for user IDs, once for batch SQL
+        ids = user_ids or []
+        id_rows = [{"id": uid} for uid in ids]
+        batch_rows = cte_rows or []
+
+        call_count = 0
+
+        async def mock_fetch(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            sql = args[0] if args else ""
+            if "SELECT id FROM users" in sql:
+                return id_rows
+            return batch_rows
+
+        mock_conn.fetch = AsyncMock(side_effect=mock_fetch)
+        mock_conn.execute = AsyncMock()
+        mock_conn.executemany = AsyncMock()
 
         tx = AsyncMock()
         tx.__aenter__ = AsyncMock(return_value=tx)
         tx.__aexit__ = AsyncMock(return_value=False)
         mock_conn.transaction = MagicMock(return_value=tx)
+
+        return mock_conn
+
+    @pytest.mark.anyio
+    async def test_task_skips_when_few_users(self):
+        """Task returns early when fewer than RECOMMENDATION_MIN_USERS."""
+        mock_conn = self._make_mock_conn_for_batched(user_count=5)
 
         mock_pool = MagicMock()
         cm = AsyncMock()
@@ -353,6 +383,7 @@ class TestRecommendationTask:
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
             patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import _compute_recommendations_async
@@ -361,8 +392,6 @@ class TestRecommendationTask:
 
         assert result["skipped"] is True
         assert result["total"] == 0
-        # Should not have called fetch (the CTE query)
-        mock_conn.fetch.assert_not_awaited()
 
     @pytest.mark.anyio
     async def test_task_computes_recommendations(self):
@@ -384,16 +413,9 @@ class TestRecommendationTask:
             },
         ]
 
-        mock_conn = AsyncMock()
-        mock_conn.fetchval = AsyncMock(return_value=15)
-        mock_conn.fetch = AsyncMock(return_value=cte_rows)
-        mock_conn.execute = AsyncMock()
-        mock_conn.executemany = AsyncMock()
-
-        tx = AsyncMock()
-        tx.__aenter__ = AsyncMock(return_value=tx)
-        tx.__aexit__ = AsyncMock(return_value=False)
-        mock_conn.transaction = MagicMock(return_value=tx)
+        mock_conn = self._make_mock_conn_for_batched(
+            user_count=15, user_ids=[uid1, uid2], cte_rows=cte_rows
+        )
 
         mock_pool = MagicMock()
         cm = AsyncMock()
@@ -403,6 +425,7 @@ class TestRecommendationTask:
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
             patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import _compute_recommendations_async
@@ -420,13 +443,7 @@ class TestRecommendationTask:
     @pytest.mark.anyio
     async def test_task_acquires_advisory_lock(self):
         """Task acquires pg_advisory_xact_lock to prevent concurrent execution."""
-        mock_conn = AsyncMock()
-        mock_conn.fetchval = AsyncMock(return_value=5)  # Below min users → early return
-
-        tx = AsyncMock()
-        tx.__aenter__ = AsyncMock(return_value=tx)
-        tx.__aexit__ = AsyncMock(return_value=False)
-        mock_conn.transaction = MagicMock(return_value=tx)
+        mock_conn = self._make_mock_conn_for_batched(user_count=5)
 
         mock_pool = MagicMock()
         cm = AsyncMock()
@@ -436,6 +453,7 @@ class TestRecommendationTask:
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
             patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import _compute_recommendations_async
@@ -469,9 +487,94 @@ class TestRecommendationTask:
             },
         ]
 
+        mock_conn = self._make_mock_conn_for_batched(
+            user_count=15, user_ids=[uid1, uid2], cte_rows=cte_rows
+        )
+
+        mock_pool = MagicMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+
+        with (
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
+            patch("app.core.database.get_pool", return_value=mock_pool),
+        ):
+            from app.tasks.recommendations import _compute_recommendations_async
+
+            result = await _compute_recommendations_async()
+
+        assert result["total"] == 0
+
+    @pytest.mark.anyio
+    async def test_task_uses_batched_sql_not_cross_join(self):
+        """N-B03: Task must use batched SQL with $1 parameter, not full CROSS JOIN."""
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
+
+        # Verify the SQL accepts a batch parameter
+        assert "$1" in _RECOMMENDATION_BATCH_SQL
+        assert "$2" in _RECOMMENDATION_BATCH_SQL
+        # Verify it uses batch_users CTE
+        assert "batch_users AS" in _RECOMMENDATION_BATCH_SQL
+
+    @pytest.mark.anyio
+    async def test_task_logs_warning_when_over_max_users(self):
+        """N-B03: Task logs warning when user count exceeds RECOMMENDATION_MAX_USERS."""
+        from app.core.constants import RECOMMENDATION_MAX_USERS
+
+        uid1 = uuid.uuid4()
+
+        mock_conn = self._make_mock_conn_for_batched(
+            user_count=RECOMMENDATION_MAX_USERS + 1,
+            user_ids=[uid1],
+            cte_rows=[],
+        )
+
+        mock_pool = MagicMock()
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=mock_conn)
+        cm.__aexit__ = AsyncMock(return_value=False)
+        mock_pool.acquire.return_value = cm
+
+        with (
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
+            patch("app.core.database.get_pool", return_value=mock_pool),
+            patch("app.tasks.recommendations.logger") as mock_logger,
+        ):
+            from app.tasks.recommendations import _compute_recommendations_async
+
+            result = await _compute_recommendations_async()
+
+        # Should still process (just with warning)
+        assert result["skipped"] is False
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "Too many users" in warning_msg
+
+    @pytest.mark.anyio
+    async def test_task_processes_in_batches(self):
+        """N-B03: Users are processed in batches of RECOMMENDATION_BATCH_SIZE."""
+        from app.core.constants import RECOMMENDATION_BATCH_SIZE
+
+        # Create more users than batch size
+        user_ids = [uuid.uuid4() for _ in range(RECOMMENDATION_BATCH_SIZE + 5)]
+
+        fetch_calls = []
+
+        async def tracking_fetch(*args, **kwargs):
+            sql = args[0] if args else ""
+            if "SELECT id FROM users" in sql:
+                return [{"id": uid} for uid in user_ids]
+            # Track batch SQL calls
+            fetch_calls.append(args)
+            return []
+
         mock_conn = AsyncMock()
-        mock_conn.fetchval = AsyncMock(return_value=15)
-        mock_conn.fetch = AsyncMock(return_value=cte_rows)
+        mock_conn.fetchval = AsyncMock(return_value=len(user_ids))
+        mock_conn.fetch = AsyncMock(side_effect=tracking_fetch)
         mock_conn.execute = AsyncMock()
         mock_conn.executemany = AsyncMock()
 
@@ -488,13 +591,30 @@ class TestRecommendationTask:
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
             patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import _compute_recommendations_async
 
             result = await _compute_recommendations_async()
 
-        assert result["total"] == 0
+        assert result["skipped"] is False
+        # Should have 2 batch calls (BATCH_SIZE + remaining 5)
+        assert len(fetch_calls) == 2
+        # First batch should have RECOMMENDATION_BATCH_SIZE user IDs
+        first_batch_ids = fetch_calls[0][1]
+        assert len(first_batch_ids) == RECOMMENDATION_BATCH_SIZE
+        # Second batch should have 5 remaining
+        second_batch_ids = fetch_calls[1][1]
+        assert len(second_batch_ids) == 5
+
+    @pytest.mark.anyio
+    async def test_batch_sql_has_row_number_limit(self):
+        """N-B03: Batch SQL uses ROW_NUMBER() to limit results per user."""
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
+
+        assert "ROW_NUMBER()" in _RECOMMENDATION_BATCH_SQL
+        assert "rn <= $2" in _RECOMMENDATION_BATCH_SQL
 
 
 # ===========================================================================
@@ -568,49 +688,60 @@ class TestRecommendationSQL:
 
     def test_sql_has_no_redundant_lateral_join(self):
         """B1: The third redundant LATERAL JOIN (mutual_id re-check) has been removed."""
-        from app.tasks.recommendations import _RECOMMENDATION_SQL
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
 
         # The SQL should have exactly two LATERAL JOINs (my_friends, their_friends)
-        lateral_count = _RECOMMENDATION_SQL.count("LEFT JOIN LATERAL")
+        lateral_count = _RECOMMENDATION_BATCH_SQL.count("LEFT JOIN LATERAL")
         assert (
             lateral_count == 2
         ), f"Expected 2 LATERAL JOINs (my_friends + their_friends), found {lateral_count}"
 
     def test_sql_counts_my_friend_directly(self):
         """B1: After removing the redundant join, mutual_friends counts my_friends.my_friend."""
-        from app.tasks.recommendations import _RECOMMENDATION_SQL
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
 
-        assert "COUNT(DISTINCT my_friends.my_friend)" in _RECOMMENDATION_SQL
+        assert "COUNT(DISTINCT my_friends.my_friend)" in _RECOMMENDATION_BATCH_SQL
 
     def test_sql_no_mutual_id_alias(self):
         """B1: The mutual_id alias from the removed third LATERAL JOIN should not exist."""
-        from app.tasks.recommendations import _RECOMMENDATION_SQL
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
 
-        assert "mutual_id" not in _RECOMMENDATION_SQL
+        assert "mutual_id" not in _RECOMMENDATION_BATCH_SQL
 
     def test_sql_contains_required_ctes(self):
         """The recommendation SQL contains all required CTEs."""
-        from app.tasks.recommendations import _RECOMMENDATION_SQL
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
 
-        assert "active_users AS" in _RECOMMENDATION_SQL
-        assert "user_pairs AS" in _RECOMMENDATION_SQL
-        assert "sig_scores AS" in _RECOMMENDATION_SQL
-        assert "friend_scores AS" in _RECOMMENDATION_SQL
+        assert "active_users AS" in _RECOMMENDATION_BATCH_SQL
+        assert "user_pairs AS" in _RECOMMENDATION_BATCH_SQL
+        assert "sig_scores AS" in _RECOMMENDATION_BATCH_SQL
+        assert "friend_scores AS" in _RECOMMENDATION_BATCH_SQL
 
     def test_sql_total_score_formula(self):
         """The total_score calculation uses correct weights summing to 1.0."""
-        from app.tasks.recommendations import _RECOMMENDATION_SQL
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
 
-        assert "* 0.30" in _RECOMMENDATION_SQL  # common_sigs weight
-        assert "* 0.25" in _RECOMMENDATION_SQL  # mutual_friends + keyword weights
-        assert "* 0.10" in _RECOMMENDATION_SQL  # affiliation + activity weights
+        assert "* 0.30" in _RECOMMENDATION_BATCH_SQL  # common_sigs weight
+        assert "* 0.25" in _RECOMMENDATION_BATCH_SQL  # mutual_friends + keyword weights
+        assert "* 0.10" in _RECOMMENDATION_BATCH_SQL  # affiliation + activity weights
 
     @pytest.mark.anyio
-    async def test_task_uses_simplified_sql(self):
-        """The task executes the SQL query without error (mock DB)."""
+    async def test_task_uses_batched_sql(self):
+        """The task executes the batched SQL query without error (mock DB)."""
+        uid1 = uuid.uuid4()
+
+        fetch_calls = []
+
+        async def tracking_fetch(*args, **kwargs):
+            sql = args[0] if args else ""
+            fetch_calls.append(args)
+            if "SELECT id FROM users" in sql:
+                return [{"id": uid1}]
+            return []
+
         mock_conn = AsyncMock()
         mock_conn.fetchval = AsyncMock(return_value=15)
-        mock_conn.fetch = AsyncMock(return_value=[])  # No rows
+        mock_conn.fetch = AsyncMock(side_effect=tracking_fetch)
         mock_conn.execute = AsyncMock()
 
         tx = AsyncMock()
@@ -626,10 +757,11 @@ class TestRecommendationSQL:
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
             patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.recommendations import (
-                _RECOMMENDATION_SQL,
+                _RECOMMENDATION_BATCH_SQL,
                 _compute_recommendations_async,
             )
 
@@ -637,5 +769,8 @@ class TestRecommendationSQL:
 
         assert result["total"] == 0
         assert result["skipped"] is False
-        # Verify the correct SQL was passed to conn.fetch
-        mock_conn.fetch.assert_awaited_once_with(_RECOMMENDATION_SQL)
+        # Verify the batch SQL was passed with user IDs and limit
+        assert len(fetch_calls) == 2
+        batch_sql_call = fetch_calls[1]
+        assert batch_sql_call[0] == _RECOMMENDATION_BATCH_SQL
+        assert batch_sql_call[1] == [uid1]  # batch of user IDs

@@ -77,23 +77,34 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
 
-        # Cache JSON responses (success and error) to prevent duplicate side effects
+        # Cache JSON responses to prevent duplicate side effects.
+        # Only cache 2xx and 4xx (excluding 429) — transient 5xx and 429
+        # errors must NOT be cached so retries can succeed.
         content_type = response.headers.get("content-type", "")
         if "application/json" in content_type:
             body = b""
             async for chunk in response.body_iterator:  # type: ignore[attr-defined]
                 body += chunk if isinstance(chunk, bytes) else chunk.encode()
 
-            cache_data = json.dumps(
-                {
-                    "body": body.decode("utf-8", errors="replace"),
-                    "status_code": response.status_code,
-                }
-            )
-            try:
-                await redis.set(redis_key, cache_data, ex=IDEMPOTENCY_TTL)
-            except Exception:
-                logger.warning("Failed to cache idempotency response", exc_info=True)
+            status = response.status_code
+            cacheable = (200 <= status <= 299) or (400 <= status <= 499 and status != 429)
+            if cacheable:
+                cache_data = json.dumps(
+                    {
+                        "body": body.decode("utf-8", errors="replace"),
+                        "status_code": status,
+                    }
+                )
+                try:
+                    await redis.set(redis_key, cache_data, ex=IDEMPOTENCY_TTL)
+                except Exception:
+                    logger.warning("Failed to cache idempotency response", exc_info=True)
+            else:
+                # Non-cacheable status — remove the processing marker
+                try:
+                    await redis.delete(redis_key)
+                except Exception:
+                    pass
 
             return Response(
                 content=body,

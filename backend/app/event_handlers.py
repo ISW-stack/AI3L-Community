@@ -300,7 +300,7 @@ async def _on_post_created_in_sig(
 
     offset = 0
     while True:
-        members, total = await sig_repo.find_members(
+        members, _total = await sig_repo.find_members(
             uuid.UUID(sig_id), offset=offset, limit=_SIG_MEMBER_BATCH_SIZE
         )
         if not members:
@@ -328,13 +328,15 @@ async def _on_post_created_in_sig(
         if cap_reached:
             logger.warning(
                 "SIG notification cap reached",
-                extra={"sig_id": sig_id, "cap": _SIG_NOTIFICATION_MAX, "total": total},
+                extra={"sig_id": sig_id, "cap": _SIG_NOTIFICATION_MAX},
             )
             break
 
-        offset += _SIG_MEMBER_BATCH_SIZE
-        if offset >= total:
+        # Stop when the batch is smaller than page size (last page)
+        if len(members) < _SIG_MEMBER_BATCH_SIZE:
             break
+
+        offset += _SIG_MEMBER_BATCH_SIZE
 
     if failed:
         logger.error(

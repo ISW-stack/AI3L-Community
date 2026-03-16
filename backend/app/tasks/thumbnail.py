@@ -1,18 +1,16 @@
 """Thumbnail generation Celery task for album photos."""
 
-import asyncio
 import io
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
+
+from app.tasks.async_runner import run_async as _run_async
 
 logger = logging.getLogger(__name__)
 
-
-def _run_async(coro: Any) -> Any:
-    """Run an async coroutine from a sync Celery task context."""
-    with ThreadPoolExecutor(1) as pool:
-        return pool.submit(asyncio.run, coro).result()
+# Maximum download size for images (50 MB) — prevents memory exhaustion
+# from crafted/oversized files
+MAX_DOWNLOAD_SIZE = 50 * 1024 * 1024
 
 
 async def _update_thumbnail_key(photo_id: str, thumbnail_key: str) -> None:
@@ -52,6 +50,9 @@ def generate_thumbnail_task(
     from minio import Minio
     from PIL import Image, ImageOps
 
+    # Safety check — limit decompression bomb risk (set once per import)
+    Image.MAX_IMAGE_PIXELS = 50_000_000  # 50MP limit
+
     from app.core.config import settings
     from app.core.constants import ALBUM_THUMBNAIL_QUALITY, ALBUM_THUMBNAIL_SIZE
 
@@ -64,16 +65,21 @@ def generate_thumbnail_task(
     bucket = settings.MINIO_BUCKET_NAME
 
     try:
-        # 1. Download original
+        # 1. Download original with size limit
         response = client.get_object(bucket, storage_key)
-        data = response.read()
+        data = response.read(MAX_DOWNLOAD_SIZE + 1)
         response.close()
         response.release_conn()
 
-        # 2. Safety check — limit decompression bomb risk
-        Image.MAX_IMAGE_PIXELS = 50_000_000  # 50MP limit
+        if len(data) > MAX_DOWNLOAD_SIZE:
+            logger.warning(
+                "Image exceeds max download size (%d bytes), skipping thumbnail: %s",
+                MAX_DOWNLOAD_SIZE,
+                storage_key,
+            )
+            return {"status": "skipped", "reason": "file_too_large"}
 
-        # 3. Resize
+        # 2. Resize
         img: Any = Image.open(io.BytesIO(data))
         img = ImageOps.exif_transpose(img)  # fix orientation
         img.thumbnail(ALBUM_THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
