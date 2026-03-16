@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { formatDate, formatDateTime } from '@/utils/date'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
@@ -20,7 +21,7 @@ import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import SocialActions from '@/components/social/SocialActions.vue'
 import FriendRecommendations from '@/components/social/FriendRecommendations.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -129,7 +130,7 @@ function goToPage(page: number) {
 }
 
 function toLocaleTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString()
+  return formatDateTime(dateStr, locale.value)
 }
 
 watch(userId, () => {
@@ -176,7 +177,7 @@ onMounted(() => {
               </div>
               <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
               <p class="text-xs text-muted">
-                {{ t('userProfile.joined') }} {{ new Date(user.created_at).toLocaleDateString() }}
+                {{ t('userProfile.joined') }} {{ formatDate(user.created_at, locale.value) }}
               </p>
             </div>
             <div class="shrink-0 flex flex-col items-end gap-2">
@@ -227,8 +228,10 @@ onMounted(() => {
         <!-- Section Tabs -->
         <div class="flex gap-1 mb-4 border-b border-border" role="tablist">
           <button
+            id="tab-posts"
             role="tab"
             :aria-selected="activeSection === 'posts'"
+            aria-controls="panel-posts"
             class="px-4 py-2 text-sm font-medium border-b-2 transition"
             :class="
               activeSection === 'posts'
@@ -240,8 +243,10 @@ onMounted(() => {
             {{ t('userProfile.postsTitle') }} ({{ postsTotal }})
           </button>
           <button
+            id="tab-coauthored"
             role="tab"
             :aria-selected="activeSection === 'coauthored'"
+            aria-controls="panel-coauthored"
             class="px-4 py-2 text-sm font-medium border-b-2 transition"
             :class="
               activeSection === 'coauthored'
@@ -255,7 +260,7 @@ onMounted(() => {
         </div>
 
         <!-- Posts Feed -->
-        <template v-if="activeSection === 'posts'">
+        <template v-if="activeSection === 'posts'" id="panel-posts" role="tabpanel" aria-labelledby="tab-posts">
           <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
           <EmptyState
             v-else-if="posts.length === 0"
@@ -280,7 +285,7 @@ onMounted(() => {
         </template>
 
         <!-- Co-Authored Posts -->
-        <template v-if="activeSection === 'coauthored'">
+        <template v-if="activeSection === 'coauthored'" id="panel-coauthored" role="tabpanel" aria-labelledby="tab-coauthored">
           <SkeletonLoader v-if="coAuthoredLoading" :lines="3" variant="card" />
           <EmptyState
             v-else-if="coAuthoredPosts.length === 0"

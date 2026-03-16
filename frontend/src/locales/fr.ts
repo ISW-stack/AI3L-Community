@@ -41,6 +41,7 @@ export default {
     optional: 'Facultatif',
     noData: 'Aucune donnée',
     noResults: 'Aucun résultat trouvé.',
+    question: 'Question',
     unknownError: "Une erreur inattendue s'est produite.",
     role: {
       superAdmin: 'Super Administrateur',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Captcha',
     captchaPlaceholder: 'Entrez le code captcha',
     captchaRefresh: 'Cliquez pour actualiser le captcha',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Afficher le mot de passe',
     hidePassword: 'Masquer le mot de passe',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Échec de la connexion. Veuillez réessayer.',
     registerFailed: "Échec de l'inscription. Veuillez réessayer.",
     guestLoginFailed: 'Échec de la connexion invité. Veuillez réessayer.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -492,6 +496,7 @@ export default {
         message:
           "Cela supprimera de manière réversible ce groupe d'intérêt spécial et toutes ses publications. Cette action ne peut pas être facilement annulée.",
         confirmBtn: 'Confirmer la suppression',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'Quitter le SIG ?',
@@ -931,6 +936,11 @@ export default {
         displayNamePlaceholder: "Nom d'affichage",
         passwordLabel: 'Mot de passe',
         passwordPlaceholder: '8+ caractères, majuscule/minuscule/chiffre',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Rôle',
         roleMember: 'Membre',
         roleAdmin: 'Administrateur',
@@ -1398,5 +1408,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

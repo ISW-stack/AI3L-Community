@@ -9,6 +9,7 @@ from app.core.constants import (
     DEFAULT_PAGE_SIZE_ALBUM_COMMENTS,
     DEFAULT_PAGE_SIZE_ALBUM_PHOTOS,
     DEFAULT_PAGE_SIZE_ALBUMS,
+    MAX_ALBUM_UPLOAD_BYTES,
     MAX_PAGE_NUMBER,
     MAX_PAGE_SIZE,
     RATE_LIMIT_ALBUM_COMMENT,
@@ -214,7 +215,14 @@ async def upload_photo_endpoint(
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Upload rate limit exceeded.")
 
-    file_data = await file.read()
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(8192):
+        total += len(chunk)
+        if total > MAX_ALBUM_UPLOAD_BYTES:
+            raise AppError(ErrorCode.SYS_422, 413, "File too large.")
+        chunks.append(chunk)
+    file_data = b"".join(chunks)
     content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "unknown"
 
@@ -241,7 +249,14 @@ async def upload_file_endpoint(
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Upload rate limit exceeded.")
 
-    file_data = await file.read()
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(8192):
+        total += len(chunk)
+        if total > MAX_ALBUM_UPLOAD_BYTES:
+            raise AppError(ErrorCode.SYS_422, 413, "File too large.")
+        chunks.append(chunk)
+    file_data = b"".join(chunks)
     content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "unknown.zip"
 

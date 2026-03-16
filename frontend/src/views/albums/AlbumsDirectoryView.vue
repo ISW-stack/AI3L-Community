@@ -27,9 +27,9 @@ const { page, total, totalPages, setPage, updateFromResponse } = usePagination(P
 async function fetchAlbums() {
   loading.value = true
   try {
-    const { data } = await listAlbums(page.value, PAGE_SIZE)
-    albums.value = data.albums
-    updateFromResponse(data.total)
+    const result = await listAlbums(page.value, PAGE_SIZE)
+    albums.value = result.albums
+    updateFromResponse(result.total)
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('albums.loadAlbumsError')), 'error')
   } finally {

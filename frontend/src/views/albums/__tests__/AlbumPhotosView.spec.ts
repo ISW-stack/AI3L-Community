@@ -147,7 +147,8 @@ describe('AlbumPhotosView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockListAlbumPhotos.mockResolvedValue({
-      data: { photos: fakePhotos, total: 2 },
+      photos: fakePhotos,
+      total: 2,
     })
   })
 
@@ -176,7 +177,7 @@ describe('AlbumPhotosView', () => {
   })
 
   it('shows empty state when no photos', async () => {
-    mockListAlbumPhotos.mockResolvedValue({ data: { photos: [], total: 0 } })
+    mockListAlbumPhotos.mockResolvedValue({ photos: [], total: 0 })
     const { wrapper } = await mountPhotosView()
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
@@ -189,7 +190,8 @@ describe('AlbumPhotosView', () => {
   it('resets pagination to page 1 when album changes', async () => {
     // Return enough items to indicate we're on page 2
     mockListAlbumPhotos.mockResolvedValue({
-      data: { photos: fakePhotos, total: 50 },
+      photos: fakePhotos,
+      total: 50,
     })
 
     const pinia = createPinia()

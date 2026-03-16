@@ -238,12 +238,22 @@ function clearSearch() {
   fetchPosts()
 }
 
+async function performSearch() {
+  isSearchLoading.value = true
+  try {
+    await doSearch()
+  } finally {
+    isSearchLoading.value = false
+  }
+}
+
 function immediateSearch() {
   if (searchDebounceTimer) {
     clearTimeout(searchDebounceTimer)
     searchDebounceTimer = null
   }
-  doSearch()
+  isSearchLoading.value = false
+  performSearch()
 }
 
 function onSearchInput() {
@@ -251,9 +261,7 @@ function onSearchInput() {
   isSearchLoading.value = true
   searchDebounceTimer = setTimeout(() => {
     searchDebounceTimer = null
-    doSearch().finally(() => {
-      isSearchLoading.value = false
-    })
+    performSearch()
   }, 300)
 }
 

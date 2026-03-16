@@ -17,7 +17,7 @@ _EP = "app.api.v1.endpoints.auth"
 class TestLoginEndpoint:
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.has_consent", new_callable=AsyncMock, return_value=True)
-    @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
+    @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", "jti-login", 3600))
     @patch(f"{_EP}.authenticate_user", new_callable=AsyncMock)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     async def test_login_success(
@@ -107,7 +107,7 @@ class TestLoginEndpoint:
 
 class TestGuestLoginEndpoint:
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
-    @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("gtok", 2700))
+    @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("gtok", "jti-guest", 2700))
     @patch(f"{_EP}.increment_guest_ip_counter", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
@@ -191,7 +191,7 @@ class TestGuestLoginEndpoint:
 
 class TestRegisterEndpoint:
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
-    @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
+    @patch(f"{_EP}.create_session", new_callable=AsyncMock, return_value=("tok", "jti-reg", 3600))
     @patch(f"{_EP}.register_new_user", new_callable=AsyncMock)
     @patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=False)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
@@ -213,7 +213,7 @@ class TestRegisterEndpoint:
             "/api/v1/auth/register",
             json={
                 "username": "newuser",
-                "password": "Password1",
+                "password": "Password1!",
                 "display_name": "New User",
                 "invite_code": "VALID-CODE",
                 "captcha_id": "cap-1",
@@ -231,7 +231,7 @@ class TestRegisterEndpoint:
         # Verify register_new_user was called with the correct arguments
         mock_register.assert_called_once_with(
             username="newuser",
-            password="Password1",
+            password="Password1!",
             display_name="New User",
             invite_code="VALID-CODE",
         )
@@ -283,7 +283,7 @@ class TestRegisterEndpoint:
             "/api/v1/auth/register",
             json={
                 "username": "existing",
-                "password": "Password1",
+                "password": "Password1!",
                 "display_name": "Existing",
                 "invite_code": "VALID-CODE",
                 "captcha_id": "cap-1",
@@ -356,8 +356,9 @@ class TestLogoutEndpoint:
 
 
 class TestHeartbeatEndpoint:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.refresh_session_ttl", new_callable=AsyncMock, return_value=True)
-    async def test_heartbeat_success(self, mock_refresh, client: AsyncClient):
+    async def test_heartbeat_success(self, mock_refresh, mock_rl, client: AsyncClient):
         from app.core.deps import get_current_user
         from app.main import app
 
@@ -373,8 +374,9 @@ class TestHeartbeatEndpoint:
 
 
 class TestWsTicket:
+    @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.create_ws_ticket", new_callable=AsyncMock, return_value="test-ticket-abc")
-    async def test_get_ws_ticket(self, mock_create_ticket, client: AsyncClient):
+    async def test_get_ws_ticket(self, mock_create_ticket, mock_rl, client: AsyncClient):
         """POST /auth/ws-ticket → 200 with ticket."""
         from app.core.deps import get_current_user
         from app.main import app
@@ -485,7 +487,10 @@ class TestCSRFMiddleware:
         payload = {"sub": str(uuid.uuid4()), "role": "MEMBER", "jti": "jti-1"}
         app.dependency_overrides[get_current_user] = lambda: payload
 
-        with patch(f"{_EP}.refresh_session_ttl", new_callable=AsyncMock, return_value=True):
+        with (
+            patch(f"{_EP}.refresh_session_ttl", new_callable=AsyncMock, return_value=True),
+            patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+        ):
             try:
                 resp = await client.post(
                     "/api/v1/auth/heartbeat",

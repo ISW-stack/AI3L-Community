@@ -3,6 +3,13 @@ from typing import Any
 
 from app.core.database import get_pool
 
+# Columns safe to return from user queries (excludes password_hash).
+_USER_COLUMNS = (
+    "id, username, display_name, role, bio, affiliation, orcid, "
+    "avatar_url, preferred_language, is_banned, ban_reason, is_deleted, "
+    "created_at, updated_at"
+)
+
 
 def _escape_ilike(s: str) -> str:
     """Escape ILIKE special characters."""
@@ -12,11 +19,19 @@ def _escape_ilike(s: str) -> str:
 async def find_by_id(user_id: uuid.UUID) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+        row = await conn.fetchrow(
+            f"SELECT {_USER_COLUMNS} FROM users WHERE id = $1", user_id
+        )
         return dict(row) if row else None
 
 
 async def find_by_username(username: str) -> dict | None:
+    """Return the full user row **including password_hash**.
+
+    This is intentional — the function is used by authenticate_user which
+    needs the hash to verify credentials.  All other lookup functions use
+    the restricted _USER_COLUMNS projection.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM users WHERE username = $1", username)
@@ -33,10 +48,10 @@ async def insert(
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            """
+            f"""
             INSERT INTO users (id, username, password_hash, role, display_name)
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING *
+            RETURNING {_USER_COLUMNS}
             """,
             user_id,
             username,
@@ -73,7 +88,8 @@ async def update_profile(user_id: uuid.UUID, **fields: Any) -> dict | None:
 
     values.append(user_id)
     query = (
-        f"UPDATE users SET {', '.join(set_parts)}, updated_at = NOW() WHERE id = ${idx} RETURNING *"
+        f"UPDATE users SET {', '.join(set_parts)}, updated_at = NOW() "
+        f"WHERE id = ${idx} RETURNING {_USER_COLUMNS}"
     )
 
     pool = get_pool()
@@ -93,7 +109,7 @@ async def update_role(user_id: uuid.UUID, new_role: str) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false RETURNING *",  # noqa: E501
+            f"UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false RETURNING {_USER_COLUMNS}",  # noqa: E501
             new_role,
             user_id,
         )
@@ -187,6 +203,27 @@ async def search_users(query: str, limit: int = 20) -> list[dict]:
             " WHERE is_deleted = false"
             " AND (username ILIKE $1 ESCAPE '\\' OR display_name ILIKE $1 ESCAPE '\\')"
             " ORDER BY username ASC"
+            " LIMIT $2",
+            pattern,
+            limit,
+        )
+        return [dict(r) for r in rows]
+
+
+async def search_users_for_coauthor(query: str, limit: int = 5) -> list[dict]:
+    """Search active, non-banned users for co-author invitation.
+
+    Uses _escape_ilike to neutralise ILIKE wildcards (%, _) in user input
+    and ESCAPE '\\' so the database applies the escaping correctly.
+    """
+    pool = get_pool()
+    pattern = f"%{_escape_ilike(query)}%"
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id, username, display_name, avatar_url FROM users"
+            " WHERE is_deleted = false AND is_banned = false"
+            " AND (display_name ILIKE $1 ESCAPE '\\' OR username ILIKE $1 ESCAPE '\\')"
+            " ORDER BY display_name"
             " LIMIT $2",
             pattern,
             limit,

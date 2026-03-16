@@ -41,6 +41,7 @@ export default {
     optional: 'Optional',
     noData: 'No data',
     noResults: 'No results found.',
+    question: 'Question',
     unknownError: 'An unexpected error occurred.',
     role: {
       superAdmin: 'Super Admin',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Captcha',
     captchaPlaceholder: 'Enter captcha code',
     captchaRefresh: 'Click to refresh captcha',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Login failed. Please try again.',
     registerFailed: 'Registration failed. Please try again.',
     guestLoginFailed: 'Guest login failed. Please try again.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -486,6 +490,7 @@ export default {
         message:
           'This will soft-delete this Special Interest Group and all its posts. This action cannot be easily undone.',
         confirmBtn: 'Confirm Delete',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'Leave SIG?',
@@ -921,6 +926,11 @@ export default {
         displayNamePlaceholder: 'Display Name',
         passwordLabel: 'Password',
         passwordPlaceholder: '8+ chars, upper/lower/digit',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Role',
         roleMember: 'Member',
         roleAdmin: 'Admin',
@@ -1393,5 +1403,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

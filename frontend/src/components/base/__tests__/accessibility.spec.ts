@@ -56,7 +56,7 @@ describe('BaseModal accessibility', () => {
       attachTo: document.body,
     })
     const dialog = getDialog()
-    expect(dialog?.getAttribute('aria-labelledby')).toBe('modal-title')
+    expect(dialog?.getAttribute('aria-labelledby')).toMatch(/^modal-title-/)
     expect(dialog?.getAttribute('aria-label')).toBeNull()
   })
 

@@ -104,6 +104,13 @@ const reactionsData = computed(() => localReactions.value ?? props.post.reaction
 async function handleReaction(reaction: string) {
   if (!auth.user?.id || auth.isGuest) return
 
+  // Snapshot pre-click state for rollback
+  const previousReactions = localReactions.value
+    ? { ...localReactions.value }
+    : props.post.reactions
+      ? { ...props.post.reactions }
+      : null
+
   // Optimistic update
   const current = { ...(reactionsData.value ?? {}) }
   const list = [...(current[reaction] ?? [])]
@@ -125,8 +132,8 @@ async function handleReaction(reaction: string) {
     localReactions.value = updated.reactions
     emit('reactionToggled', updated)
   } catch {
-    // Rollback on error
-    localReactions.value = null
+    // Rollback to pre-click state on error
+    localReactions.value = previousReactions
   }
 }
 
@@ -193,7 +200,7 @@ function displayTime(dateStr: string): string {
             class="!text-[10px] !px-1.5 !py-0 !bg-purple-100 !text-purple-700"
           >
             <HelpCircle class="w-3 h-3 mr-0.5 inline" />
-            Question
+            {{ t('common.question') }}
           </BaseBadge>
         </div>
         <div class="flex items-center gap-2 text-xs text-muted">
@@ -235,7 +242,9 @@ function displayTime(dateStr: string): string {
         :src="thumbnailUrl"
         :alt="post.title || 'Post image'"
         loading="lazy"
-        class="w-full max-h-80 object-cover bg-surface-alt"
+        width="320"
+        height="180"
+        class="w-full max-h-80 object-cover bg-surface-alt aspect-video"
       />
     </router-link>
 

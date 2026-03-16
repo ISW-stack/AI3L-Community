@@ -86,15 +86,18 @@ describe('AboutView', () => {
     expect(githubLinks.length).toBe(0)
   })
 
-  it('shows loading state initially', () => {
+  it('shows loading skeleton initially', () => {
     mockGet.mockReturnValue(new Promise(() => {})) // never resolves
     const pinia = createPinia()
     setActivePinia(pinia)
     const router = createTestRouter()
     const wrapper = mount(AboutView, {
-      global: { plugins: [pinia, router] },
+      global: {
+        plugins: [pinia, router],
+        stubs: { SkeletonLoader: { template: '<div class="skeleton-loader" />' } },
+      },
     })
-    expect(wrapper.text()).toContain('Loading contributors...')
+    expect(wrapper.find('.skeleton-loader').exists()).toBe(true)
   })
 
   it('handles API error gracefully', async () => {

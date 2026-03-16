@@ -9,6 +9,7 @@ export function _resetModalCount() {
 
 <script setup lang="ts">
 import { computed, watch, onUnmounted, ref, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(
   defineProps<{
@@ -26,6 +27,9 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
+
+const { t } = useI18n()
+const modalTitleId = `modal-title-${Math.random().toString(36).slice(2, 9)}`
 
 const sizeClass = computed(() => {
   const map: Record<string, string> = {
@@ -129,7 +133,7 @@ onUnmounted(() => {
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
         role="dialog"
         aria-modal="true"
-        :aria-labelledby="title ? 'modal-title' : undefined"
+        :aria-labelledby="title ? modalTitleId : undefined"
         :aria-label="title ? undefined : 'Dialog'"
         @click.self="close"
       >
@@ -142,13 +146,13 @@ onUnmounted(() => {
           tabindex="-1"
         >
           <div v-if="title || !persistent" class="flex items-center justify-between mb-4">
-            <h3 v-if="title" id="modal-title" class="text-lg font-semibold text-foreground">
+            <h3 v-if="title" :id="modalTitleId" class="text-lg font-semibold text-foreground">
               {{ title }}
             </h3>
             <button
               v-if="!persistent"
               class="p-1 -m-1 text-muted hover:text-foreground text-xl leading-none transition ml-auto"
-              aria-label="Close"
+              :aria-label="t('aria.close')"
               @click="close"
             >
               &times;

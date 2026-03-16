@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from loguru import logger
 
 from app.core.constants import MAX_GUESTS, MAX_GUESTS_PER_IP
+from app.core.logging_utils import mask_pii
 from app.core.redis import get_redis
 from app.core.security import ROLE_TTL_MAP, async_verify_password, create_access_token
 from app.models.user import UserRole
@@ -28,18 +29,46 @@ async def authenticate_user(username: str, password: str) -> dict | None:
     return user
 
 
-async def create_session(user_id: str, role: str) -> tuple[str, int]:
-    """Create JWT + Redis session. Returns (token, expires_in_seconds)."""
+async def create_session(user_id: str, role: str) -> tuple[str, str, int]:
+    """Create JWT + Redis session. Returns (token, jti, expires_in_seconds).
+
+    If an existing session is found for the same user+role, publishes a
+    FORCE_LOGOUT message via Redis Pub/Sub so the old session's WebSocket
+    can inform the user and close gracefully.
+    """
     ttl = ROLE_TTL_MAP.get(role, timedelta(hours=3))
     token, jti, expires_at = create_access_token(user_id, role, ttl)
     ttl_seconds = int(ttl.total_seconds())
 
     redis = get_redis()
     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
+
+    # Check for existing session before overwriting
+    old_jti = await redis.get(session_key)
+    if old_jti:
+        old_jti_str = old_jti.decode() if isinstance(old_jti, bytes) else old_jti
+        # Notify the old session via WebSocket Pub/Sub
+        await redis.publish(
+            f"ws:user:{user_id}",
+            json.dumps(
+                {
+                    "type": "FORCE_LOGOUT",
+                    "reason": "logged_in_from_another_device",
+                }
+            ),
+        )
+        # Blacklist the old JTI so it cannot be reused
+        old_blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=old_jti_str)
+        await redis.set(old_blacklist_key, "1", ex=28800)
+        logger.info(
+            "Session overridden — old session invalidated",
+            extra={"user_id": user_id, "role": role},
+        )
+
     await redis.set(session_key, jti, ex=ttl_seconds)
 
     logger.info("Session created", extra={"user_id": user_id, "role": role})
-    return token, ttl_seconds
+    return token, jti, ttl_seconds
 
 
 async def destroy_session(user_id: str, role: str, jti: str) -> None:
@@ -120,8 +149,8 @@ async def _get_guest_count() -> int:
     return int(val) if val is not None else 0
 
 
-async def guest_login(display_name: str) -> tuple[str, int] | None:
-    """Create guest session. Returns (token, expires_in) or None if limit reached.
+async def guest_login(display_name: str) -> tuple[str, str, int] | None:
+    """Create guest session. Returns (token, jti, expires_in) or None if limit reached.
 
     Uses Redis INCR for atomic counting to prevent TOCTOU race conditions.
     """
@@ -137,16 +166,16 @@ async def guest_login(display_name: str) -> tuple[str, int] | None:
         return None
 
     guest_id = str(uuid.uuid4())
-    token, ttl_seconds = await create_session(guest_id, "GUEST")
+    token, jti, ttl_seconds = await create_session(guest_id, "GUEST")
 
     # Store display_name in Redis so WebSocket and API can retrieve it
     await redis.set(f"guest:display_name:{guest_id}", display_name, ex=ttl_seconds)
 
     logger.info(
         "Guest login",
-        extra={"guest_id": guest_id, "display_name": display_name, "online_guests": new_count},
+        extra={"guest_id": guest_id, "display_name": mask_pii(display_name), "online_guests": new_count},
     )
-    return token, ttl_seconds
+    return token, jti, ttl_seconds
 
 
 # Lua: atomically decrement guest counter, clamping to zero.
@@ -236,7 +265,7 @@ async def get_invite_code(invite_code: str) -> dict | None:
 async def consume_invite_code(code: str, user_id: str) -> None:
     """Mark an invite code as consumed by the given user."""
     await auth_repo.consume_invite_code(code, uuid.UUID(user_id))
-    logger.info("Invite code consumed", extra={"code": code, "user_id": user_id})
+    logger.info("Invite code consumed", extra={"code": mask_pii(code, 4), "user_id": user_id})
 
 
 async def create_invite_code(user_id: str) -> tuple[str, datetime]:
@@ -244,7 +273,7 @@ async def create_invite_code(user_id: str) -> tuple[str, datetime]:
     code = f"INV-{uuid.uuid4().hex[:8].upper()}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await auth_repo.insert_invite_code(uuid.uuid4(), code, uuid.UUID(user_id), expires_at)
-    logger.info("Invite code created", extra={"user_id": user_id, "code": code})
+    logger.info("Invite code created", extra={"user_id": user_id, "code": mask_pii(code, 4)})
     return code, expires_at
 
 
@@ -312,12 +341,12 @@ async def register_new_user(
             )
             result = await conn.execute(
                 "UPDATE invite_codes SET consumed_at = NOW(), consumed_by = $1 "
-                "WHERE code = $2 AND consumed_at IS NULL",
+                "WHERE code = $2 AND consumed_at IS NULL AND expires_at > NOW()",
                 user_id,
                 invite_code,
             )
             if result != "UPDATE 1":
-                raise ValueError("Invite code already consumed.")
+                raise ValueError("Invite code already consumed or expired.")
     user = dict(row)
-    logger.info("User registered", extra={"user_id": str(user_id), "invite_code": invite_code})
+    logger.info("User registered", extra={"user_id": str(user_id), "invite_code": mask_pii(invite_code, 4)})
     return user

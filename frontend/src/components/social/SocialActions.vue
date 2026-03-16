@@ -41,7 +41,7 @@ const pendingRequest = computed(() => status.value?.pending_request ?? null)
 async function fetchStatus() {
   loading.value = true
   try {
-    const { data } = await getRelationshipStatus(props.userId)
+    const data = await getRelationshipStatus(props.userId)
     status.value = data
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, 'Failed to load relationship status'), 'error')

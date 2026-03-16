@@ -37,6 +37,7 @@ export default {
     optional: '選填',
     noData: '暫無資料',
     noResults: '沒有找到結果。',
+    question: 'Question',
     unknownError: '發生未預期的錯誤。',
     role: {
       superAdmin: '超級管理員',
@@ -87,6 +88,8 @@ export default {
     captcha: '驗證碼',
     captchaPlaceholder: '輸入驗證碼',
     captchaRefresh: '點擊重新整理驗證碼',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: '顯示密碼',
     hidePassword: '隱藏密碼',
     validation: {
@@ -114,6 +117,7 @@ export default {
     loginFailed: '登入失敗，請重試。',
     registerFailed: '註冊失敗，請重試。',
     guestLoginFailed: '訪客登入失敗，請重試。',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
   privacy: {
     title: '隱私與資料存放地同意書',
@@ -456,6 +460,7 @@ export default {
         title: '刪除 SIG？',
         message: '此操作將軟刪除此特殊興趣群組及其所有文章。此操作不容易復原。',
         confirmBtn: '確認刪除',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: '離開 SIG？',
@@ -872,6 +877,11 @@ export default {
         displayNamePlaceholder: '顯示名稱',
         passwordLabel: '密碼',
         passwordPlaceholder: '8+ 字元，大小寫字母和數字',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: '角色',
         roleMember: '成員',
         roleAdmin: '管理員',
@@ -1336,5 +1346,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

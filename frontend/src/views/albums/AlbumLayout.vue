@@ -30,8 +30,8 @@ provide('userAlbumRole', userAlbumRole)
 
 async function refreshAlbumRole() {
   try {
-    const { data } = await listAlbumMembers(albumId.value)
-    const me = data.members.find((m: AlbumMember) => m.user_id === auth.user?.id)
+    const membersData = await listAlbumMembers(albumId.value)
+    const me = membersData.members.find((m: AlbumMember) => m.user_id === auth.user?.id)
     userAlbumRole.value = me?.role ?? null
   } catch {
     // Silently fail
@@ -43,12 +43,12 @@ provide('refreshAlbumRole', refreshAlbumRole)
 async function fetchAlbumData() {
   loading.value = true
   try {
-    const [albumRes, membersRes] = await Promise.all([
+    const [albumData, membersData] = await Promise.all([
       getAlbum(albumId.value),
       listAlbumMembers(albumId.value),
     ])
-    album.value = albumRes.data
-    const me = membersRes.data.members.find((m: AlbumMember) => m.user_id === auth.user?.id)
+    album.value = albumData
+    const me = membersData.members.find((m: AlbumMember) => m.user_id === auth.user?.id)
     userAlbumRole.value = me?.role ?? null
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('albums.loadAlbumError')), 'error')

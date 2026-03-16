@@ -51,7 +51,7 @@ function goToPage(p: number) {
 }
 
 function goToCreate() {
-  router.push('/qa/create')
+  router.push('/qa/ask')
 }
 
 onMounted(fetchQuestions)
@@ -80,7 +80,7 @@ onMounted(fetchQuestions)
       :title="t('qa.noQuestions')"
       :message="t('qa.emptyMessage')"
       :action-label="t('qa.askQuestion')"
-      action-to="/qa/create"
+      action-to="/qa/ask"
     />
 
     <div v-else class="space-y-3">

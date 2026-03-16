@@ -53,12 +53,15 @@ class TestCreateSession:
 
         mock_create_token.return_value = ("token123", "jti-abc", None)
         redis = AsyncMock()
+        redis.get = AsyncMock(return_value=None)  # No existing session
         mock_get_redis.return_value = redis
 
-        token, ttl = await create_session("user-id-1", "MEMBER")
+        token, jti, ttl = await create_session("user-id-1", "MEMBER")
         assert token == "token123"
+        assert jti == "jti-abc"
         assert ttl > 0
         redis.set.assert_called_once()
+        redis.publish.assert_not_called()
 
 
 class TestDestroySession:
@@ -131,12 +134,13 @@ class TestGuestLogin:
         redis = AsyncMock()
         redis.eval = AsyncMock(return_value=6)
         mock_get_redis.return_value = redis
-        mock_create_session.return_value = ("token-guest", 2700)
+        mock_create_session.return_value = ("token-guest", "jti-guest", 2700)
 
         result = await guest_login("Guest User")
         assert result is not None
-        token, ttl = result
+        token, jti, ttl = result
         assert token == "token-guest"
+        assert jti == "jti-guest"
         assert ttl == 2700
         # Lua eval was called atomically
         redis.eval.assert_called_once()
@@ -163,7 +167,7 @@ class TestGuestLogin:
         redis = AsyncMock()
         redis.eval = AsyncMock(return_value=5)
         mock_get_redis.return_value = redis
-        mock_create_session.return_value = ("tok", 2700)
+        mock_create_session.return_value = ("tok", "jti-test", 2700)
 
         await guest_login("Guest")
 
@@ -317,7 +321,7 @@ class TestGuestLogin:
         redis = AsyncMock()
         redis.eval = AsyncMock(side_effect=_atomic_eval)
         mock_get_redis.return_value = redis
-        mock_create_session.return_value = ("tok", 2700)
+        mock_create_session.return_value = ("tok", "jti-test", 2700)
 
         # Two concurrent guest_login calls — only one should succeed
         results = await asyncio.gather(

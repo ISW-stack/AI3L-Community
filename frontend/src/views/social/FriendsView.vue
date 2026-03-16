@@ -64,7 +64,7 @@ async function fetchFriends() {
   const localId = ++friendsFetchId
   friendsLoading.value = true
   try {
-    const { data } = await listFriends(friendsPage.value, friendsPageSize)
+    const data = await listFriends(friendsPage.value, friendsPageSize)
     if (localId !== friendsFetchId) return
     friends.value = data.friends
     updateFriendsResponse(data.total)
@@ -82,7 +82,7 @@ async function fetchRequests() {
   const localId = ++requestsFetchId
   requestsLoading.value = true
   try {
-    const { data } = await listFriendRequests(requestsPage.value, requestsPageSize)
+    const data = await listFriendRequests(requestsPage.value, requestsPageSize)
     if (localId !== requestsFetchId) return
     requests.value = data.requests
     updateRequestsResponse(data.total)
@@ -181,8 +181,10 @@ onMounted(() => {
     <!-- Tabs -->
     <div class="flex gap-1 mb-4 border-b border-border" role="tablist">
       <button
+        id="tab-friends"
         role="tab"
         :aria-selected="activeTab === 'friends'"
+        aria-controls="panel-friends"
         class="px-4 py-2 text-sm font-medium border-b-2 transition"
         :class="
           activeTab === 'friends'
@@ -194,8 +196,10 @@ onMounted(() => {
         {{ t('social.friends') }}
       </button>
       <button
+        id="tab-requests"
         role="tab"
         :aria-selected="activeTab === 'requests'"
+        aria-controls="panel-requests"
         class="px-4 py-2 text-sm font-medium border-b-2 transition"
         :class="
           activeTab === 'requests'
@@ -215,7 +219,7 @@ onMounted(() => {
     </div>
 
     <!-- Friends Tab -->
-    <div v-if="activeTab === 'friends'">
+    <div v-if="activeTab === 'friends'" id="panel-friends" role="tabpanel" aria-labelledby="tab-friends">
       <SkeletonLoader v-if="friendsLoading" :lines="5" variant="list" />
 
       <EmptyState
@@ -265,7 +269,7 @@ onMounted(() => {
     </div>
 
     <!-- Requests Tab -->
-    <div v-if="activeTab === 'requests'">
+    <div v-if="activeTab === 'requests'" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests">
       <SkeletonLoader v-if="requestsLoading" :lines="4" variant="list" />
 
       <EmptyState

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, getCurrentInstance } from 'vue'
 
 const props = defineProps<{
   modelValue?: string | number
@@ -10,16 +10,16 @@ const props = defineProps<{
   placeholder?: string
   maxlength?: number
   id?: string
+  autocomplete?: string
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
+const instance = getCurrentInstance()
 const inputId = computed(
-  () =>
-    props.id ||
-    (props.label ? `input-${props.label.toLowerCase().replace(/\s+/g, '-')}` : undefined),
+  () => props.id || `input-${instance?.uid ?? Math.random().toString(36).slice(2)}`,
 )
 </script>
 
@@ -35,6 +35,7 @@ const inputId = computed(
       :placeholder="placeholder"
       :disabled="disabled"
       :maxlength="maxlength"
+      :autocomplete="autocomplete"
       :class="[
         'w-full px-3 py-2 border rounded-lg outline-none transition text-foreground placeholder:text-muted text-base md:text-sm',
         error

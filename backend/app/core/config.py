@@ -41,9 +41,9 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = True
 
     # Cookie settings
-    # COOKIE_SECURE must be True in production (requires HTTPS).
-    # Startup will abort if this is False in a non-development environment.
-    COOKIE_SECURE: bool = False
+    # COOKIE_SECURE defaults to True in production, False otherwise.
+    # Can always be overridden by the COOKIE_SECURE env var.
+    COOKIE_SECURE: bool | None = None  # None means "auto-derive from FASTAPI_ENV"
     COOKIE_SAMESITE: str = "lax"
     COOKIE_DOMAIN: str = ""  # Empty = browser default (current domain)
 
@@ -115,6 +115,9 @@ class Settings(BaseSettings):
                 f"Treating as non-development.",
                 stacklevel=1,
             )
+        # Auto-derive COOKIE_SECURE from FASTAPI_ENV when not explicitly set
+        if self.COOKIE_SECURE is None:
+            self.COOKIE_SECURE = self.FASTAPI_ENV == "production"
         return self
 
     @property

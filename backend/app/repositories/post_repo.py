@@ -31,6 +31,7 @@ _SEARCH_SORT_MAP = {
     "newest": "p.created_at DESC",
     "oldest": "p.created_at ASC",
     "most_comments": "p.comment_count DESC, p.created_at DESC",
+    "popular": "p.like_count DESC, p.created_at DESC",
 }
 
 # Sorts that support cursor pagination and the comparison direction they use
@@ -212,15 +213,29 @@ async def find_content_by_id(post_id: uuid.UUID) -> str | None:
         return row["content"] if row else None
 
 
-async def find_history(post_id: uuid.UUID, limit: int = 50) -> list[dict]:
+async def find_history(
+    post_id: uuid.UUID, limit: int = 50
+) -> tuple[list[dict], int]:
+    """Return (history_rows, total_count). Rows are capped by *limit*."""
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT * FROM post_history WHERE post_id = $1 ORDER BY version DESC LIMIT $2",
+            "SELECT *, COUNT(*) OVER() AS _total_count "
+            "FROM post_history WHERE post_id = $1 "
+            "ORDER BY version DESC LIMIT $2",
             post_id,
             limit,
         )
-        return [dict(r) for r in rows]
+        if rows:
+            total = rows[0]["_total_count"]
+            result = [
+                {k: v for k, v in dict(r).items() if k != "_total_count"}
+                for r in rows
+            ]
+        else:
+            total = 0
+            result = []
+        return result, total
 
 
 async def find_many(
@@ -294,18 +309,18 @@ async def find_many(
         if cursor_sort == "popular":
             # primary key is like_count (integer)
             like_count_val = int(primary_val)
-            where += f" AND (p.like_count, p.id::text) {cmp} (${idx}, ${idx + 1})"
-            params.extend([like_count_val, str(cursor_id)])
+            where += f" AND (p.like_count, p.id) {cmp} (${idx}, ${idx + 1})"
+            params.extend([like_count_val, cursor_id])
         elif cursor_sort == "most_comments":
             # primary key is comment_count (integer)
             comment_count_val = int(primary_val)
-            where += f" AND (p.comment_count, p.id::text) {cmp} (${idx}, ${idx + 1})"
-            params.extend([comment_count_val, str(cursor_id)])
+            where += f" AND (p.comment_count, p.id) {cmp} (${idx}, ${idx + 1})"
+            params.extend([comment_count_val, cursor_id])
         else:
             # primary key is created_at (timestamptz)
             created_at_val = datetime.fromisoformat(primary_val)
-            where += f" AND (p.created_at, p.id::text) {cmp} (${idx}, ${idx + 1})"
-            params.extend([created_at_val, str(cursor_id)])
+            where += f" AND (p.created_at, p.id) {cmp} (${idx}, ${idx + 1})"
+            params.extend([created_at_val, cursor_id])
         idx += 2
 
         fetch_limit = page_size + 1

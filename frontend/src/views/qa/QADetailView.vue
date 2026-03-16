@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLocale } from '@/composables/useLocale'
+import { formatDateTime } from '@/utils/date'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import DOMPurify from 'dompurify'
@@ -26,7 +27,7 @@ import BestAnswerBadge from '@/components/qa/BestAnswerBadge.vue'
 import { ArrowLeft } from 'lucide-vue-next'
 const TiptapEditor = defineAsyncComponent(() => import('@/components/TiptapEditor.vue'))
 
-const { t } = useLocale()
+const { t, currentLocale: locale } = useLocale()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -182,7 +183,7 @@ async function deleteQuestion() {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString()
+  return formatDateTime(dateStr, locale.value)
 }
 
 function getUserVote(commentId: string): -1 | 0 | 1 {

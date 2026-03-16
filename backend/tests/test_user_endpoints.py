@@ -270,7 +270,7 @@ class TestAdminCreateAccount:
                     "/api/v1/users/admin/create-account",
                     json={
                         "username": "newadmin",
-                        "password": "StrongPass1",
+                        "password": "StrongPass1!",
                         "display_name": "New Admin",
                         "role": "ADMIN",
                     },
@@ -410,7 +410,7 @@ class TestAdminCreateAccountRestrictions:
                 "/api/v1/users/admin/create-account",
                 json={
                     "username": "newadmin",
-                    "password": "StrongPass1",
+                    "password": "StrongPass1!",
                     "display_name": "New Admin",
                     "role": "ADMIN",
                 },
@@ -431,7 +431,7 @@ class TestAdminCreateAccountRestrictions:
                     "/api/v1/users/admin/create-account",
                     json={
                         "username": "existing",
-                        "password": "StrongPass1",
+                        "password": "StrongPass1!",
                         "display_name": "Dup User",
                         "role": "MEMBER",
                     },

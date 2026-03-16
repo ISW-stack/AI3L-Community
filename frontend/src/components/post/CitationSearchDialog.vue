@@ -46,7 +46,7 @@ function onSearchInput() {
   debounceTimer = setTimeout(async () => {
     try {
       const res = await searchForCitation(query.value.trim())
-      results.value = res.data as SearchResult[]
+      results.value = res as SearchResult[]
     } catch (e: unknown) {
       error.value = getErrorMessage(e, 'Search failed.')
       results.value = []

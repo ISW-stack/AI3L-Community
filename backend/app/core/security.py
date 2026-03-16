@@ -32,6 +32,9 @@ async def async_verify_password(plain_password: str, hashed_password: str) -> bo
     return await run_in_threadpool(verify_password, plain_password, hashed_password)
 
 
+_SPECIAL_CHARS = r"""!@#$%^&*()_+\-=\[\]{}|;:,.<>?/~"""
+
+
 def validate_password_policy(password: str) -> str | None:
     """Return error message if password doesn't meet policy, None if valid."""
     if len(password) < 8:
@@ -42,6 +45,8 @@ def validate_password_policy(password: str) -> str | None:
         return "Password must contain at least one lowercase letter."
     if not re.search(r"[0-9]", password):
         return "Password must contain at least one digit."
+    if not re.search(rf"[{_SPECIAL_CHARS}]", password):
+        return "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?/~)."
     return None
 
 

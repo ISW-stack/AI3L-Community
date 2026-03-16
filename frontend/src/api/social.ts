@@ -8,71 +8,80 @@ import type {
 } from '@/types/social'
 
 // Friends
-export function sendFriendRequest(userId: string) {
-  return api.post('/social/friends/request', { user_id: userId })
+export async function sendFriendRequest(userId: string): Promise<void> {
+  await api.post('/social/friends/request', { user_id: userId })
 }
 
-export function acceptFriendRequest(friendshipId: string) {
-  return api.put(`/social/friends/${friendshipId}/accept`)
+export async function acceptFriendRequest(friendshipId: string): Promise<void> {
+  await api.put(`/social/friends/${friendshipId}/accept`)
 }
 
-export function rejectFriendRequest(friendshipId: string) {
-  return api.put(`/social/friends/${friendshipId}/reject`)
+export async function rejectFriendRequest(friendshipId: string): Promise<void> {
+  await api.put(`/social/friends/${friendshipId}/reject`)
 }
 
-export function unfriend(userId: string) {
-  return api.delete(`/social/friends/${userId}`)
+export async function unfriend(userId: string): Promise<void> {
+  await api.delete(`/social/friends/${userId}`)
 }
 
-export function listFriends(page = 1, pageSize = 20) {
-  return api.get<FriendListResponse>('/social/friends', {
+export async function listFriends(page = 1, pageSize = 20): Promise<FriendListResponse> {
+  const { data } = await api.get<FriendListResponse>('/social/friends', {
     params: { page, page_size: pageSize },
   })
+  return data
 }
 
-export function listFriendRequests(page = 1, pageSize = 20) {
-  return api.get<FriendRequestListResponse>('/social/friends/requests', {
+export async function listFriendRequests(
+  page = 1,
+  pageSize = 20,
+): Promise<FriendRequestListResponse> {
+  const { data } = await api.get<FriendRequestListResponse>('/social/friends/requests', {
     params: { page, page_size: pageSize },
   })
+  return data
 }
 
 // Follow
-export function followUser(userId: string) {
-  return api.post(`/social/follow/${userId}`)
+export async function followUser(userId: string): Promise<void> {
+  await api.post(`/social/follow/${userId}`)
 }
 
-export function unfollowUser(userId: string) {
-  return api.delete(`/social/follow/${userId}`)
+export async function unfollowUser(userId: string): Promise<void> {
+  await api.delete(`/social/follow/${userId}`)
 }
 
-export function listFollowers(page = 1, pageSize = 20) {
-  return api.get<FollowUserListResponse>('/social/followers', {
+export async function listFollowers(page = 1, pageSize = 20): Promise<FollowUserListResponse> {
+  const { data } = await api.get<FollowUserListResponse>('/social/followers', {
     params: { page, page_size: pageSize },
   })
+  return data
 }
 
-export function listFollowing(page = 1, pageSize = 20) {
-  return api.get<FollowUserListResponse>('/social/following', {
+export async function listFollowing(page = 1, pageSize = 20): Promise<FollowUserListResponse> {
+  const { data } = await api.get<FollowUserListResponse>('/social/following', {
     params: { page, page_size: pageSize },
   })
+  return data
 }
 
 // Block
-export function blockUser(userId: string) {
-  return api.post(`/social/block/${userId}`)
+export async function blockUser(userId: string): Promise<void> {
+  await api.post(`/social/block/${userId}`)
 }
 
-export function unblockUser(userId: string) {
-  return api.delete(`/social/block/${userId}`)
+export async function unblockUser(userId: string): Promise<void> {
+  await api.delete(`/social/block/${userId}`)
 }
 
-export function listBlocks(page = 1, pageSize = 20) {
-  return api.get<BlockListResponse>('/social/blocks', {
+export async function listBlocks(page = 1, pageSize = 20): Promise<BlockListResponse> {
+  const { data } = await api.get<BlockListResponse>('/social/blocks', {
     params: { page, page_size: pageSize },
   })
+  return data
 }
 
 // Relationship status
-export function getRelationshipStatus(userId: string) {
-  return api.get<RelationshipStatus>(`/social/status/${userId}`)
+export async function getRelationshipStatus(userId: string): Promise<RelationshipStatus> {
+  const { data } = await api.get<RelationshipStatus>(`/social/status/${userId}`)
+  return data
 }

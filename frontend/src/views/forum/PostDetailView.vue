@@ -24,8 +24,9 @@ import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import ReactionPicker from '@/components/ReactionPicker.vue'
 import CoAuthorManager from '@/components/post/CoAuthorManager.vue'
 import { Quote, ChevronDown, ChevronUp, Pin } from 'lucide-vue-next'
+import { formatDateTime } from '@/utils/date'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -175,7 +176,7 @@ const breadcrumbItems = computed(() => {
                 >
                   {{ post.author.display_name }}
                 </router-link>
-                <span>{{ new Date(post.created_at).toLocaleString() }}</span>
+                <span>{{ formatDateTime(post.created_at, locale) }}</span>
                 <BaseBadge v-if="post.category_name">{{ post.category_name }}</BaseBadge>
                 <span
                   v-if="post.is_pinned"
@@ -284,13 +285,13 @@ const breadcrumbItems = computed(() => {
                   >
                     {{ c.post_title }}
                   </router-link>
-                  <span class="text-xs text-muted ml-1">by {{ c.author_name }}</span>
+                  <span class="text-xs text-muted ml-1">{{ t('common.by') }} {{ c.author_name }}</span>
                   <BaseBadge
                     v-if="c.is_self_citation"
                     variant="neutral"
                     class="!text-[10px] !px-1 !py-0 ml-1"
                   >
-                    self
+                    {{ t('citations.selfCitation') }}
                   </BaseBadge>
                 </div>
               </div>
@@ -316,13 +317,13 @@ const breadcrumbItems = computed(() => {
                   >
                     {{ c.post_title }}
                   </router-link>
-                  <span class="text-xs text-muted ml-1">by {{ c.author_name }}</span>
+                  <span class="text-xs text-muted ml-1">{{ t('common.by') }} {{ c.author_name }}</span>
                   <BaseBadge
                     v-if="c.is_self_citation"
                     variant="neutral"
                     class="!text-[10px] !px-1 !py-0 ml-1"
                   >
-                    self
+                    {{ t('citations.selfCitation') }}
                   </BaseBadge>
                 </div>
               </div>
@@ -343,7 +344,7 @@ const breadcrumbItems = computed(() => {
           <div class="flex items-center justify-between border-t border-border pt-3">
             <div class="flex items-center gap-4">
               <span class="text-sm text-muted">
-                {{ post.comment_count }} comment{{ post.comment_count !== 1 ? 's' : '' }}
+                {{ t('post.detail.commentCount', post.comment_count, { count: post.comment_count }) }}
               </span>
               <span class="text-sm text-muted flex items-center gap-1">
                 <svg
@@ -417,7 +418,7 @@ const breadcrumbItems = computed(() => {
                       {{ node.root.author.display_name }}
                     </router-link>
                     <span class="text-xs text-muted">{{
-                      new Date(node.root.created_at).toLocaleString()
+                      formatDateTime(node.root.created_at, locale)
                     }}</span>
                   </div>
                   <template v-if="editingComment === node.root.id">
@@ -525,7 +526,7 @@ const breadcrumbItems = computed(() => {
                         {{ reply.author.display_name }}
                       </router-link>
                       <span class="text-xs text-muted">{{
-                        new Date(reply.created_at).toLocaleString()
+                        formatDateTime(reply.created_at, locale)
                       }}</span>
                     </div>
                     <template v-if="editingComment === reply.id">
@@ -625,7 +626,7 @@ const breadcrumbItems = computed(() => {
           <span class="text-sm font-medium text-foreground/80">{{
             t('post.history.version', { version: item.version })
           }}</span>
-          <span class="text-xs text-muted">{{ new Date(item.edited_at).toLocaleString() }}</span>
+          <span class="text-xs text-muted">{{ formatDateTime(item.edited_at, locale) }}</span>
         </div>
         <h4 class="text-sm font-semibold text-foreground mb-1">{{ item.title }}</h4>
         <div

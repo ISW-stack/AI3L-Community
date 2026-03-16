@@ -235,6 +235,8 @@ async def update_existing_post(
         raise AppError(ErrorCode.SYS_422, 400, "Title cannot be empty.")
 
     content = sanitize_html(req.content) if req.content else None
+    if content is not None and not content.strip():
+        raise AppError(ErrorCode.SYS_422, 422, "Content cannot be empty after sanitization.")
     if content:
         from app.core.file_validation import post_process_citations
 
@@ -322,5 +324,5 @@ async def get_post_edit_history(
     ):
         raise AppError(ErrorCode.SYS_403, 403, "Not authorized to view edit history.")
 
-    history = await get_post_history(post_id)
-    return PostHistoryResponse(history=cast(list[Any], history), total=len(history))
+    history, total = await get_post_history(post_id)
+    return PostHistoryResponse(history=cast(list[Any], history), total=total)

@@ -142,7 +142,7 @@ class TestAuthStructuredErrors:
             "/api/v1/auth/register",
             json={
                 "username": "duplicate",
-                "password": "StrongPassword1",
+                "password": "StrongPassword1!",
                 "display_name": "Dup User",
                 "invite_code": "VALID-CODE",
                 "captcha_id": "cap-1",
@@ -230,7 +230,7 @@ class TestAuthCookiesNoTypeIgnore:
 
     @patch(f"{_AUTH_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.has_consent", new_callable=AsyncMock, return_value=True)
-    @patch(f"{_AUTH_EP}.create_session", new_callable=AsyncMock, return_value=("tok", 3600))
+    @patch(f"{_AUTH_EP}.create_session", new_callable=AsyncMock, return_value=("tok", "jti-se", 3600))
     @patch(f"{_AUTH_EP}.authenticate_user", new_callable=AsyncMock)
     @patch(f"{_AUTH_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     async def test_login_sets_cookies_correctly(

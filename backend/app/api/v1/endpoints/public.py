@@ -1,22 +1,28 @@
-import time
+import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
+from app.core.errors import AppError, ErrorCode
+from app.core.rate_limit import check_rate_limit
+from app.core.redis import get_redis
 from app.repositories import dashboard_repo
 
 router = APIRouter(prefix="/public", tags=["public"])
 
-# Simple in-memory cache (5 minutes)
-_stats_cache: dict = {}
+_CACHE_KEY = "public:stats"
 _CACHE_TTL = 300  # 5 minutes
 
 
 @router.get("/stats")
-async def get_public_stats() -> dict:
-    global _stats_cache
-    now = time.monotonic()
-    if _stats_cache and now - _stats_cache.get("_ts", 0) < _CACHE_TTL:
-        return {k: v for k, v in _stats_cache.items() if k != "_ts"}
+async def get_public_stats(request: Request) -> dict:
+    ip = request.client.host if request.client else "unknown"
+    if not await check_rate_limit(f"rl:public_stats:{ip}", 30, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
+
+    redis = get_redis()
+    cached = await redis.get(_CACHE_KEY)
+    if cached:
+        return json.loads(cached)
 
     member_count = await dashboard_repo.count_users()
     post_count = await dashboard_repo.count_posts()
@@ -27,6 +33,5 @@ async def get_public_stats() -> dict:
         "post_count": post_count,
         "sig_count": sig_count,
     }
-    # Atomic reference swap — avoids brief inconsistency window
-    _stats_cache = {**stats, "_ts": now}
+    await redis.set(_CACHE_KEY, json.dumps(stats), ex=_CACHE_TTL)
     return stats

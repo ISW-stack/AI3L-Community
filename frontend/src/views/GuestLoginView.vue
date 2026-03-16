@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { getCaptcha } from '@/api/auth'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -15,20 +16,28 @@ const { t, currentLocale, localeOptions, setLocale } = useLocale()
 
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const inviteCode = ref('')
 const displayName = ref('')
 const captchaId = ref('')
 const captchaCode = ref('')
 const captchaImage = ref('')
+const captchaError = ref(false)
 const error = ref('')
 const loading = ref(false)
 
 async function loadCaptcha() {
-  const data = await getCaptcha()
-  captchaId.value = data.captcha_id
-  captchaImage.value = data.image_base64
-  captchaCode.value = ''
+  captchaError.value = false
+  try {
+    const data = await getCaptcha()
+    captchaId.value = data.captcha_id
+    captchaImage.value = data.image_base64
+    captchaCode.value = ''
+  } catch (e: unknown) {
+    captchaError.value = true
+    toast.show(getErrorMessage(e, t('auth.captchaLoadError')), 'error')
+  }
 }
 
 async function handleGuestLogin() {
@@ -52,7 +61,7 @@ onMounted(() => {
 
 <template>
   <div class="flex min-h-[70vh]">
-    <div class="absolute top-4 right-4 z-10">
+    <div class="fixed top-20 right-4 z-40">
       <select
         :value="currentLocale"
         class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
@@ -89,15 +98,19 @@ onMounted(() => {
 
         <form @submit.prevent="handleGuestLogin" class="space-y-4">
           <BaseInput
+            id="input-invite-code"
             v-model="inviteCode"
             :label="t('auth.inviteCode')"
             :placeholder="t('auth.inviteCodePlaceholder')"
+            autocomplete="off"
             required
           />
           <BaseInput
+            id="input-display-name"
             v-model="displayName"
             :label="t('auth.displayName')"
             :placeholder="t('auth.displayName')"
+            autocomplete="nickname"
             required
           />
 
@@ -105,12 +118,23 @@ onMounted(() => {
             <label class="block text-sm font-medium text-foreground mb-1">{{
               t('auth.captcha')
             }}</label>
+            <div v-if="captchaError" class="text-danger-600 text-sm mb-2">
+              {{ t('auth.captchaLoadError') }}
+              <button
+                type="button"
+                class="ml-2 underline text-brand-600"
+                @click="loadCaptcha"
+              >
+                {{ t('auth.captchaRetry') }}
+              </button>
+            </div>
             <div class="flex gap-3 items-center">
               <input
                 v-model="captchaCode"
                 type="text"
                 required
                 maxlength="4"
+                autocomplete="off"
                 aria-label="Captcha"
                 class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
                 :placeholder="t('auth.captchaPlaceholder')"

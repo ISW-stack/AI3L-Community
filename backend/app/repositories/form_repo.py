@@ -6,9 +6,36 @@ from typing import Any
 from app.core.database import get_pool
 
 
-async def find_standalone(conn: Any, page: int, page_size: int) -> list[Any]:
-    """List standalone forms (sig_id IS NULL, not deleted)."""
+async def find_standalone(
+    conn: Any, page: int, page_size: int, q: str | None = None
+) -> list[Any]:
+    """List standalone forms (sig_id IS NULL, not deleted), optionally filtered by search."""
     offset = (page - 1) * page_size
+    if q:
+        search_pattern = f"%{q}%"
+        return list(
+            await conn.fetch(
+                """
+            SELECT f.*, COUNT(*) OVER() AS total_count,
+                   u.display_name AS creator_display_name,
+                   COALESCE(rc.cnt, 0) AS response_count
+            FROM forms f
+            JOIN users u ON f.created_by = u.id
+            LEFT JOIN (
+                SELECT form_id, COUNT(*) AS cnt
+                FROM form_responses
+                GROUP BY form_id
+            ) rc ON rc.form_id = f.id
+            WHERE f.sig_id IS NULL AND f.is_deleted = false
+              AND (f.title ILIKE $3 OR f.description ILIKE $3)
+            ORDER BY f.created_at DESC
+            LIMIT $1 OFFSET $2
+            """,
+                page_size,
+                offset,
+                search_pattern,
+            )
+        )
     return list(
         await conn.fetch(
             """
@@ -362,6 +389,70 @@ async def find_all_responses(form_id: uuid.UUID) -> list[dict]:
                 d["answers"] = json.loads(d["answers"])
             results.append(d)
         return results
+
+
+async def count_total_responses(form_id: uuid.UUID) -> int:
+    """Count total responses for a form (lightweight, no data transfer)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        return int(
+            await conn.fetchval(
+                "SELECT COUNT(*) FROM form_responses WHERE form_id = $1",
+                form_id,
+            )
+        )
+
+
+async def iter_responses_batched(
+    form_id: uuid.UUID, batch_size: int = 500
+) -> list[dict]:
+    """Fetch all responses in batches using keyset pagination to bound memory.
+
+    Returns the full list but fetches from DB in chunks of *batch_size*
+    using cursor-based iteration so only one batch is in-flight at a time.
+    """
+    pool = get_pool()
+    results: list[dict] = []
+    last_id: uuid.UUID | None = None
+
+    async with pool.acquire() as conn:
+        while True:
+            if last_id is None:
+                rows = await conn.fetch(
+                    """
+                    SELECT id, form_id, user_id, answers, created_at
+                    FROM form_responses
+                    WHERE form_id = $1
+                    ORDER BY id
+                    LIMIT $2
+                    """,
+                    form_id,
+                    batch_size,
+                )
+            else:
+                rows = await conn.fetch(
+                    """
+                    SELECT id, form_id, user_id, answers, created_at
+                    FROM form_responses
+                    WHERE form_id = $1 AND id > $2
+                    ORDER BY id
+                    LIMIT $3
+                    """,
+                    form_id,
+                    last_id,
+                    batch_size,
+                )
+            if not rows:
+                break
+            for r in rows:
+                d = dict(r)
+                if isinstance(d.get("answers"), str):
+                    d["answers"] = json.loads(d["answers"])
+                results.append(d)
+            last_id = rows[-1]["id"]
+            if len(rows) < batch_size:
+                break
+    return results
 
 
 async def count_responses(form_id: uuid.UUID, conn: Any) -> int:

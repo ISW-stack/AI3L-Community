@@ -259,6 +259,10 @@ async def _redis_subscriber() -> None:
                     message = json.loads(data)
                     await _local_send(user_id, message)
 
+                    # If the message is a FORCE_LOGOUT, also close connections
+                    if message.get("type") == "FORCE_LOGOUT":
+                        await _local_force_logout(user_id)
+
                 elif channel.startswith("ws:logout:"):
                     user_id = channel[len("ws:logout:") :]
                     await _local_force_logout(user_id)

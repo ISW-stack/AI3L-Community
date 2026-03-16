@@ -7,6 +7,8 @@ import {
   onUnmounted,
   type Ref,
   type ComputedRef,
+  type MaybeRefOrGetter,
+  toValue,
 } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import type { Post, HistoryItem, Comment } from '@/types'
@@ -54,20 +56,28 @@ export const FILE_CONTENT_RE = /\/api\/v1\/files\/content\/(.+)/
 
 const domParser = new DOMParser()
 
+export interface AuthLike {
+  user: { id: string } | null
+  isAdmin: MaybeRefOrGetter<boolean>
+  isAuthenticated: MaybeRefOrGetter<boolean>
+  isGuest: MaybeRefOrGetter<boolean>
+}
+
 export interface UsePostDetailOptions {
   postId: Ref<string> | ComputedRef<string>
-  auth: {
-    user: { id: string } | null
-    isAdmin: boolean
-    isAuthenticated: boolean
-    isGuest: boolean
-  }
+  auth: AuthLike
   router: { push: (path: string) => void }
 }
 
 export function usePostDetail(options: UsePostDetailOptions) {
   const { postId, auth, router } = options
   const toastStore = useToastStore()
+
+  // Wrap auth fields in computed so they stay reactive even if the caller passes
+  // a plain Pinia store (where properties are getters, not plain booleans).
+  const authIsAdmin = computed(() => toValue(auth.isAdmin))
+  const authIsAuthenticated = computed(() => toValue(auth.isAuthenticated))
+  const authIsGuest = computed(() => toValue(auth.isGuest))
 
   // --- Post state ---
   const post = ref<Post | null>(null)
@@ -142,10 +152,10 @@ export function usePostDetail(options: UsePostDetailOptions) {
     if (!auth.user) return false
     return coAuthors.value.some((ca) => ca.user_id === auth.user!.id && ca.status === 'ACCEPTED')
   })
-  const canModify = computed(() => isAuthor.value || auth.isAdmin || isCoAuthor.value)
+  const canModify = computed(() => isAuthor.value || authIsAdmin.value || isCoAuthor.value)
 
   const canReport = computed(() => {
-    if (!auth.isAuthenticated || auth.isGuest) return false
+    if (!authIsAuthenticated.value || authIsGuest.value) return false
     if (!post.value || !auth.user) return false
     return post.value.author.id !== auth.user.id
   })
@@ -268,7 +278,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   async function fetchCoAuthors() {
     try {
       const res = await listCoAuthors(postId.value)
-      coAuthors.value = res.data.co_authors
+      coAuthors.value = res.co_authors
     } catch {
       // Silently fail — co-authors section is non-critical
     }
@@ -277,7 +287,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   async function fetchCitedBy() {
     try {
       const res = await getCitedBy(postId.value)
-      citedBy.value = res.data.citations
+      citedBy.value = res.citations
     } catch {
       // Silently fail
     }
@@ -286,7 +296,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   async function fetchCiting() {
     try {
       const res = await getCiting(postId.value)
-      citing.value = res.data.citations
+      citing.value = res.citations
     } catch {
       // Silently fail
     }
@@ -446,7 +456,11 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       await apiDeleteComment(postId.value, deleteTargetCommentId.value)
       await fetchComments()
-      if (post.value && post.value.comment_count > 0) post.value.comment_count--
+      // Re-fetch post to get accurate comment_count after cascade deletion
+      const updatedPost = await getPost(postId.value)
+      if (post.value && updatedPost) {
+        post.value.comment_count = updatedPost.comment_count
+      }
     } catch (e: unknown) {
       toastStore.show(getErrorMessage(e, 'Failed to delete comment.'), 'error')
     } finally {
@@ -456,7 +470,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   }
 
   function canDeleteComment(comment: Comment): boolean {
-    if (auth.isAdmin) return true
+    if (authIsAdmin.value) return true
     return !!(auth.user && comment.author.id === auth.user.id)
   }
 

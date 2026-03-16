@@ -313,9 +313,10 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
     return deleted
 
 
-async def get_post_history(post_id: uuid.UUID) -> list[dict]:
-    rows = await post_repo.find_history(post_id)
-    return [row_to_history(r) for r in rows]
+async def get_post_history(post_id: uuid.UUID) -> tuple[list[dict], int]:
+    """Return (history_items, total_count)."""
+    rows, total = await post_repo.find_history(post_id)
+    return [row_to_history(r) for r in rows], total
 
 
 async def _get_exclude_user_ids(viewer_id: str | None) -> list[uuid.UUID] | None:

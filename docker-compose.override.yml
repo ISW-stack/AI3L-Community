@@ -67,16 +67,16 @@ services:
 
   postgres:
     ports:
-      - "15432:5432"
+      - "127.0.0.1:15432:5432"
 
   redis:
     ports:
-      - "16379:6379"
+      - "127.0.0.1:16379:6379"
 
   minio:
     ports:
-      - "19000:9000"
-      - "19001:9001"
+      - "127.0.0.1:19000:9000"
+      - "127.0.0.1:19001:9001"
 
 volumes:
   nginx-html:   # shared volume: build-frontend writes here, nginx reads from it

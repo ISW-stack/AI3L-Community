@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 
+const { t } = useI18n()
 const toastStore = useToastStore()
 
 const typeClasses: Record<string, string> = {
@@ -28,7 +30,7 @@ const typeClasses: Record<string, string> = {
         <button
           @click="toastStore.dismiss(toast.id)"
           class="shrink-0 opacity-60 hover:opacity-100 transition text-current leading-none text-lg"
-          aria-label="Dismiss notification"
+          :aria-label="t('aria.dismissNotification')"
         >
           &times;
         </button>

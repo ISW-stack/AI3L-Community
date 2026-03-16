@@ -1273,7 +1273,7 @@ class TestServeFileFailClose:
     async def test_allows_pending_files(
         self, mock_session, mock_user, client: AsyncClient, auth_headers
     ):
-        """Files with 'pending' scan status should be served (scan still in progress)."""
+        """Files with 'pending' scan status should be blocked (B03 fix)."""
         headers, user_id, _ = auth_headers("MEMBER")
         file_key = f"editor/{user_id}/test.png"
 
@@ -1283,18 +1283,13 @@ class TestServeFileFailClose:
                 new_callable=AsyncMock,
                 return_value={"status": "pending", "positives": None, "total": None},
             ),
-            patch(
-                "app.api.v1.endpoints.files.async_download_file",
-                new_callable=AsyncMock,
-                return_value=(b"fake-image-data", "image/png"),
-            ),
         ):
             resp = await client.get(
                 f"/api/v1/files/content/{file_key}",
                 headers=headers,
             )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 202
 
 
 class TestUploadStorageCounterFailure:

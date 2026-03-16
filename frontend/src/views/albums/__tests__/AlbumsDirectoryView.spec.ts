@@ -115,7 +115,7 @@ async function mountDirectory(options?: { role?: string }) {
 describe('AlbumsDirectoryView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockListAlbums.mockResolvedValue({ data: { albums: fakeAlbums, total: 2 } })
+    mockListAlbums.mockResolvedValue({ albums: fakeAlbums, total: 2 })
   })
 
   it('renders page title "Albums"', async () => {
@@ -154,7 +154,7 @@ describe('AlbumsDirectoryView', () => {
   })
 
   it('shows empty state when no albums exist', async () => {
-    mockListAlbums.mockResolvedValue({ data: { albums: [], total: 0 } })
+    mockListAlbums.mockResolvedValue({ albums: [], total: 0 })
     const { wrapper } = await mountDirectory()
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })

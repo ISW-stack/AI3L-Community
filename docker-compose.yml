@@ -213,6 +213,9 @@ services:
       DD_LOGS_ENABLED: "true"
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
     volumes:
+      # SECURITY WARNING: Docker socket gives read access to all container env vars.
+      # In production, consider using Datadog's alternative collection methods
+      # (e.g., cgroup-based monitoring) or restrict with a socket proxy.
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc/:/host/proc/:ro
       - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro

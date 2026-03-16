@@ -1,8 +1,10 @@
 import api from '@/composables/api'
 import type { FormData, FormResponse, FormStatsResponse } from '@/types'
 
-export async function listStandaloneForms(page = 1, pageSize = 20) {
-  const { data } = await api.get('/forms', { params: { page, page_size: pageSize } })
+export async function listStandaloneForms(page = 1, pageSize = 20, q?: string) {
+  const params: Record<string, unknown> = { page, page_size: pageSize }
+  if (q?.trim()) params.q = q.trim()
+  const { data } = await api.get('/forms', { params })
   return data as { forms: FormData[]; total: number }
 }
 

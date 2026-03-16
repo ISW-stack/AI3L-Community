@@ -41,6 +41,7 @@ export default {
     optional: 'Необязательно',
     noData: 'Нет данных',
     noResults: 'Результаты не найдены.',
+    question: 'Question',
     unknownError: 'Произошла непредвиденная ошибка.',
     role: {
       superAdmin: 'Суперадминистратор',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Капча',
     captchaPlaceholder: 'Введите код с картинки',
     captchaRefresh: 'Нажмите, чтобы обновить капчу',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Показать пароль',
     hidePassword: 'Скрыть пароль',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Ошибка входа. Попробуйте снова.',
     registerFailed: 'Ошибка регистрации. Попробуйте снова.',
     guestLoginFailed: 'Гостевой вход не выполнен. Попробуйте снова.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -487,6 +491,7 @@ export default {
         message:
           'Это действие мягко удалит данную группу по интересам и все её записи. Отменить его будет непросто.',
         confirmBtn: 'Подтвердить удаление',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'Покинуть SIG?',
@@ -924,6 +929,11 @@ export default {
         displayNamePlaceholder: 'Отображаемое имя',
         passwordLabel: 'Пароль',
         passwordPlaceholder: '8+ символов, заглавные/строчные/цифры',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Роль',
         roleMember: 'Участник',
         roleAdmin: 'Администратор',
@@ -1391,5 +1401,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

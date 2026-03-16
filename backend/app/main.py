@@ -31,6 +31,7 @@ from app.core.csrf import CSRFMiddleware
 from app.core.database import close_db_pool, init_db_pool
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
+from app.core.logging_utils import mask_pii
 from app.core.storage import close_storage, init_storage
 
 
@@ -50,7 +51,7 @@ async def bootstrap_super_admin() -> None:
             role="SUPER_ADMIN",
             display_name="Super Admin",
         )
-        logger.info("Super Admin bootstrapped from .env", extra={"username": username})
+        logger.info("Super Admin bootstrapped from .env", extra={"username": mask_pii(username)})
     else:
         # Sync password so .env credentials are always authoritative
         user = await user_repo.find_by_username(username)
@@ -59,11 +60,11 @@ async def bootstrap_super_admin() -> None:
             if not await async_verify_password(password, user["password_hash"]):
                 new_hash = await async_hash_password(password)
                 await user_repo.update_password_hash(user["id"], new_hash)
-                logger.info("Super Admin password synced from .env", extra={"username": username})
+                logger.info("Super Admin password synced from .env", extra={"username": mask_pii(username)})
             else:
                 logger.debug(
                     "Super Admin password unchanged, skipping rehash",
-                    extra={"username": username},
+                    extra={"username": mask_pii(username)},
                 )
 
 
@@ -125,6 +126,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning(f"WebSocket Redis subscriber start skipped: {e}")
 
     logger.info("All dependencies initialized")
+
+    # Development warning — nudge developer if JWT secret is still the default
+    if settings.is_development:
+        _dev_defaults = {
+            "JWT_SECRET_KEY": "changeme_jwt_secret_key",
+            "SECRET_KEY": "changeme_secret_key_at_least_32_characters_long",
+        }
+        for key, default in _dev_defaults.items():
+            if getattr(settings, key) == default:
+                logger.warning(
+                    f"SECURITY: {key} is still using the default value. "
+                    f"Generate a strong random secret with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+                )
 
     # Production security checks — abort startup on insecure defaults
     if not settings.is_development:

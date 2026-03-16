@@ -121,6 +121,7 @@ async function pollScanStatus() {
 
 onUnmounted(() => {
   clearScanTimers()
+  editor.value?.destroy?.()
 })
 
 const citationDialogOpen = ref(false)

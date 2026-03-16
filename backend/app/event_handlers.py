@@ -48,12 +48,17 @@ async def _on_comment_created(
     commenter_name: str,
     mention_targets: list[tuple[str, str]],
     reply_target: tuple[str, str] | None,
+    post_owner_id: str | None = None,
+    post_id: str | None = None,
     **_kwargs: Any,
 ) -> None:
     from app.services.notification import create_notification
 
     succeeded = 0
     failed = 0
+
+    # Collect UIDs already notified via mention/reply to avoid duplicate post-owner notification
+    notified_uids: set[str] = set()
 
     for target_uid, cid in mention_targets:
         if await _is_blocked(target_uid, user_id):
@@ -70,6 +75,7 @@ async def _on_comment_created(
                 message=f"{commenter_name} mentioned you in a comment",
             )
             succeeded += 1
+            notified_uids.add(target_uid)
         except (ConnectionError, OSError, TimeoutError) as e:
             failed += 1
             logger.warning(
@@ -96,6 +102,7 @@ async def _on_comment_created(
                     message=f"{commenter_name} replied to your comment",
                 )
                 succeeded += 1
+                notified_uids.add(reply_target[0])
             except (ConnectionError, OSError, TimeoutError) as e:
                 failed += 1
                 logger.warning(
@@ -105,6 +112,37 @@ async def _on_comment_created(
             except Exception:
                 failed += 1
                 logger.error("Failed to send reply notification", exc_info=True)
+
+    # Notify post owner about new comment (unless they are the commenter or already notified)
+    if (
+        post_owner_id
+        and post_owner_id != user_id
+        and post_owner_id not in notified_uids
+        and post_id
+    ):
+        if not await _is_blocked(post_owner_id, user_id):
+            if await _check_idempotent(post_owner_id, "post", post_id, "NEW_COMMENT"):
+                try:
+                    await create_notification(
+                        user_id=post_owner_id,
+                        trigger_user_id=user_id,
+                        action_type="NEW_COMMENT",
+                        entity_type="post",
+                        entity_id=post_id,
+                        message=f"{commenter_name} commented on your post",
+                    )
+                    succeeded += 1
+                except (ConnectionError, OSError, TimeoutError) as e:
+                    failed += 1
+                    logger.warning(
+                        "Transient error sending post owner comment notification (retryable)",
+                        extra={"target_uid": post_owner_id, "error": str(e)},
+                    )
+                except Exception:
+                    failed += 1
+                    logger.error(
+                        "Failed to send post owner comment notification", exc_info=True
+                    )
 
     if failed:
         logger.error(

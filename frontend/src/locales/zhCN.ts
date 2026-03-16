@@ -37,6 +37,7 @@ export default {
     optional: '选填',
     noData: '暂无数据',
     noResults: '没有找到结果。',
+    question: 'Question',
     unknownError: '发生意外错误。',
     role: {
       superAdmin: '超级管理员',
@@ -87,6 +88,8 @@ export default {
     captcha: '验证码',
     captchaPlaceholder: '输入验证码',
     captchaRefresh: '点击刷新验证码',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: '显示密码',
     hidePassword: '隐藏密码',
     validation: {
@@ -114,6 +117,7 @@ export default {
     loginFailed: '登录失败，请重试。',
     registerFailed: '注册失败，请重试。',
     guestLoginFailed: '访客登录失败，请重试。',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
   privacy: {
     title: '隐私与数据存放地同意书',
@@ -456,6 +460,7 @@ export default {
         title: '删除 SIG？',
         message: '此操作将软删除此特殊兴趣组及其所有文章。此操作不容易撤销。',
         confirmBtn: '确认删除',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: '退出 SIG？',
@@ -872,6 +877,11 @@ export default {
         displayNamePlaceholder: '显示名称',
         passwordLabel: '密码',
         passwordPlaceholder: '8+ 字符，大小写字母和数字',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: '角色',
         roleMember: '成员',
         roleAdmin: '管理员',
@@ -1336,5 +1346,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

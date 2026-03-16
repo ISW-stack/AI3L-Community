@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/composables/api'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 interface Contributor {
   id: number
@@ -62,7 +63,9 @@ onMounted(() => {
         {{ t('about.contributors.title') }}
       </h2>
 
-      <div v-if="loading" class="text-muted">{{ t('about.contributors.loading') }}</div>
+      <div v-if="loading">
+        <SkeletonLoader variant="list" :lines="4" />
+      </div>
 
       <div v-else-if="contributors.length === 0" class="text-muted">
         {{ t('about.contributors.empty') }}

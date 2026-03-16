@@ -49,8 +49,8 @@ async function fetchMembers() {
   if (!album.value) return
   loading.value = true
   try {
-    const { data } = await listAlbumMembers(album.value.id)
-    members.value = data.members
+    const result = await listAlbumMembers(album.value.id)
+    members.value = result.members
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, 'Failed to load members'), 'error')
   } finally {
@@ -123,8 +123,13 @@ function handleSearchInput(value: string) {
   searchDebounce = setTimeout(async () => {
     searchingUsers.value = true
     try {
-      const { data } = await searchUsers(value.trim(), 8)
-      userSearchResults.value = data.users ?? data ?? []
+      const result = (await searchUsers(value.trim(), 8)) as
+        | { users?: { id: string; display_name: string; username: string }[] }
+        | { id: string; display_name: string; username: string }[]
+      userSearchResults.value =
+        (result as { users?: { id: string; display_name: string; username: string }[] }).users ??
+        (result as { id: string; display_name: string; username: string }[]) ??
+        []
     } catch {
       userSearchResults.value = []
     } finally {

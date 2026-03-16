@@ -421,8 +421,8 @@ class TestFindHistory:
         assert call_args[0][2] == 10
 
     @patch("app.repositories.post_repo.get_pool")
-    async def test_find_history_returns_dicts(self, mock_get_pool, mock_pool, mock_conn):
-        """find_history() should return list of dicts from rows."""
+    async def test_find_history_returns_dicts_and_total(self, mock_get_pool, mock_pool, mock_conn):
+        """find_history() should return (list of dicts, total_count)."""
         from app.repositories.post_repo import find_history
 
         fake_row = {
@@ -431,13 +431,16 @@ class TestFindHistory:
             "version": 1,
             "title": "V1",
             "content": "body",
+            "_total_count": 1,
         }
         mock_conn.fetch.return_value = [fake_row]
         mock_get_pool.return_value = mock_pool
 
-        result = await find_history(uuid.uuid4())
+        result, total = await find_history(uuid.uuid4())
         assert len(result) == 1
         assert result[0]["title"] == "V1"
+        assert "_total_count" not in result[0]
+        assert total == 1
 
 
 # ---------------------------------------------------------------------------

@@ -219,9 +219,9 @@ describe('PostCreateView', () => {
   })
 
   it('restores draft from localStorage on mount', async () => {
-    // Key for route without sig_id is ai3l_post_draft_general
+    // Key for route without sig_id is ai3l_post_draft_general_anon
     localStorage.setItem(
-      'ai3l_post_draft_general',
+      'ai3l_post_draft_general_anon',
       JSON.stringify({
         title: 'Draft Title',
         content: '<p>Draft content</p>',
@@ -238,7 +238,7 @@ describe('PostCreateView', () => {
 
   it('discards draft when discard button clicked', async () => {
     localStorage.setItem(
-      'ai3l_post_draft_general',
+      'ai3l_post_draft_general_anon',
       JSON.stringify({ title: 'Draft', content: '<p>Draft</p>' }),
     )
 
@@ -248,12 +248,12 @@ describe('PostCreateView', () => {
     await discardBtn!.trigger('click')
     await flushPromises()
 
-    expect(localStorage.getItem('ai3l_post_draft_general')).toBeNull()
+    expect(localStorage.getItem('ai3l_post_draft_general_anon')).toBeNull()
   })
 
   it('uses sig-specific draft key when posting from SIG', async () => {
     localStorage.setItem(
-      'ai3l_post_draft_sig1',
+      'ai3l_post_draft_sig1_anon',
       JSON.stringify({ title: 'SIG Draft', content: '<p>SIG content</p>' }),
     )
 
@@ -393,7 +393,7 @@ describe('PostCreateView', () => {
   describe('draft integration with useDraft', () => {
     it('clears draft from localStorage after successful submit', async () => {
       localStorage.setItem(
-        'ai3l_post_draft_general',
+        'ai3l_post_draft_general_anon',
         JSON.stringify({
           title: 'Draft Title',
           content: '<p>Draft content</p>',
@@ -413,12 +413,12 @@ describe('PostCreateView', () => {
       await flushPromises()
 
       expect(mockCreatePost).toHaveBeenCalled()
-      expect(localStorage.getItem('ai3l_post_draft_general')).toBeNull()
+      expect(localStorage.getItem('ai3l_post_draft_general_anon')).toBeNull()
     })
 
     it('does not show draft restored when draft has no title or content', async () => {
       localStorage.setItem(
-        'ai3l_post_draft_general',
+        'ai3l_post_draft_general_anon',
         JSON.stringify({
           title: '',
           content: '',
@@ -434,7 +434,7 @@ describe('PostCreateView', () => {
 
     it('discard draft resets all form fields', async () => {
       localStorage.setItem(
-        'ai3l_post_draft_general',
+        'ai3l_post_draft_general_anon',
         JSON.stringify({
           title: 'Draft Title',
           content: '<p>Some content</p>',

@@ -58,13 +58,13 @@ class TestInviteCodeConsumption:
                 f"{_EP}.auth.user_exists_by_username", new_callable=AsyncMock, return_value=False
             ),
             patch(f"{_EP}.auth.register_new_user", new_callable=AsyncMock, return_value=user_row),
-            patch(f"{_EP}.auth.create_session", new_callable=AsyncMock, return_value=("tok", 3600)),
+            patch(f"{_EP}.auth.create_session", new_callable=AsyncMock, return_value=("tok", "jti-ph9", 3600)),
         ):
             resp1 = await client.post(
                 "/api/v1/auth/register",
                 json={
                     "username": "newuser1",
-                    "password": "Password1",
+                    "password": "Password1!",
                     "display_name": "New User",
                     "invite_code": "INV-TEST1234",
                     "captcha_id": "cap1",
@@ -395,7 +395,7 @@ class TestPasswordChange:
         """PUT /users/me/password → 200 with correct old password."""
         from app.core.security import hash_password
 
-        pw_hash = hash_password("OldPass1")
+        pw_hash = hash_password("OldPass1!")
 
         mock_conn.fetchrow = AsyncMock(return_value={"password_hash": pw_hash})
         mock_conn.execute = AsyncMock(return_value="UPDATE 1")
@@ -408,7 +408,7 @@ class TestPasswordChange:
             ):
                 resp = await client.put(
                     "/api/v1/users/me/password",
-                    json={"current_password": "OldPass1", "new_password": "NewPass1"},
+                    json={"current_password": "OldPass1!", "new_password": "NewPass1!"},
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200

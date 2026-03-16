@@ -2,7 +2,19 @@ import json
 import uuid as _uuid
 from typing import Any
 
-_ALLOWED_TABLES = frozenset({"posts", "comments"})
+# Pre-built query dictionary keyed by table name.
+# Eliminates f-string interpolation of table names into SQL, making the
+# allowlist check structural rather than just a runtime guard.
+_QUERIES: dict[str, dict[str, str]] = {
+    "posts": {
+        "select": "SELECT reactions FROM posts WHERE id = $1 FOR UPDATE",
+        "update": "UPDATE posts SET reactions = $1::jsonb, updated_at = NOW() WHERE id = $2",
+    },
+    "comments": {
+        "select": "SELECT reactions FROM comments WHERE id = $1 FOR UPDATE",
+        "update": "UPDATE comments SET reactions = $1::jsonb, updated_at = NOW() WHERE id = $2",
+    },
+}
 
 
 async def toggle_reaction_jsonb(
@@ -18,11 +30,12 @@ async def toggle_reaction_jsonb(
     Explicitly converts row_id to uuid.UUID to avoid relying on PostgreSQL
     implicit casting from text to UUID.
     """
-    if table not in _ALLOWED_TABLES:
+    if table not in _QUERIES:
         raise ValueError(f"Invalid table: {table}")
+    queries = _QUERIES[table]
     row_uuid = row_id if isinstance(row_id, _uuid.UUID) else _uuid.UUID(row_id)
     row = await conn.fetchrow(
-        f"SELECT reactions FROM {table} WHERE id = $1 FOR UPDATE",
+        queries["select"],
         row_uuid,
     )
     if row is None:
@@ -50,7 +63,7 @@ async def toggle_reaction_jsonb(
         del reactions[reaction_type]
 
     await conn.execute(
-        f"UPDATE {table} SET reactions = $1::jsonb, updated_at = NOW() WHERE id = $2",
+        queries["update"],
         json.dumps(reactions),
         row_uuid,
     )

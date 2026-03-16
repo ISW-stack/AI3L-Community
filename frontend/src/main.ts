@@ -15,10 +15,14 @@ app.use(pinia)
 app.use(i18n)
 app.use(router)
 
-app.config.errorHandler = (err) => {
-  const message = err instanceof Error ? err.message : i18n.global.t('common.unknownError')
-  useToastStore().show(message, 'error')
-  console.error('[Vue Error]', err)
+app.config.errorHandler = (err, _instance, info) => {
+  console.error('[Vue Error]', err, info)
+  try {
+    const toastStore = useToastStore()
+    toastStore.show('An unexpected error occurred.', 'error')
+  } catch {
+    // Toast store not yet available
+  }
 }
 
 app.mount('#app')

@@ -41,6 +41,7 @@ export default {
     optional: 'Tùy chọn',
     noData: 'Không có dữ liệu',
     noResults: 'Không tìm thấy kết quả.',
+    question: 'Question',
     unknownError: 'Đã xảy ra lỗi không mong đợi.',
     role: {
       superAdmin: 'Quản trị viên cấp cao',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Mã xác thực',
     captchaPlaceholder: 'Nhập mã xác thực',
     captchaRefresh: 'Nhấn để làm mới mã xác thực',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Hiện mật khẩu',
     hidePassword: 'Ẩn mật khẩu',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Đăng nhập thất bại. Vui lòng thử lại.',
     registerFailed: 'Đăng ký thất bại. Vui lòng thử lại.',
     guestLoginFailed: 'Đăng nhập khách thất bại. Vui lòng thử lại.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -487,6 +491,7 @@ export default {
         message:
           'Thao tác này sẽ xóa mềm Nhóm Quan tâm Đặc biệt này và tất cả bài viết của nó. Hành động này không dễ hoàn tác.',
         confirmBtn: 'Xác nhận xóa',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'Rời khỏi SIG?',
@@ -923,6 +928,11 @@ export default {
         displayNamePlaceholder: 'Tên hiển thị',
         passwordLabel: 'Mật khẩu',
         passwordPlaceholder: '8+ ký tự, chữ hoa/thường/số',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Vai trò',
         roleMember: 'Thành viên',
         roleAdmin: 'Quản trị viên',
@@ -1390,5 +1400,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

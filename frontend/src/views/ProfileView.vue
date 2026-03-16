@@ -78,8 +78,8 @@ async function fetchCoAuthorInvitations() {
   coAuthorLoading.value = true
   coAuthorError.value = false
   try {
-    const { data } = await listMyInvitations()
-    coAuthorInvitations.value = data.invitations
+    const result = await listMyInvitations()
+    coAuthorInvitations.value = result.invitations
   } catch {
     coAuthorError.value = true
   } finally {
@@ -173,10 +173,10 @@ async function saveProfile() {
   message.value = ''
   try {
     const data = await updateProfile({
-      display_name: displayName.value || undefined,
-      bio: bio.value || undefined,
-      affiliation: affiliation.value || undefined,
-      orcid: orcid.value || undefined,
+      display_name: displayName.value.trim() || undefined,
+      bio: bio.value.trim() === '' ? null : bio.value.trim(),
+      affiliation: affiliation.value.trim() === '' ? null : affiliation.value.trim(),
+      orcid: orcid.value.trim() === '' ? null : orcid.value.trim(),
     })
     auth.user = data
     message.value = t('profile.saveSuccess')
@@ -271,8 +271,10 @@ async function handleDeleteAccount() {
       <!-- Tab Navigation -->
       <div class="flex gap-1 mb-6 border-b border-border" role="tablist">
         <button
+          id="tab-general"
           role="tab"
           :aria-selected="activeTab === 'general'"
+          aria-controls="panel-general"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'general'
@@ -285,8 +287,10 @@ async function handleDeleteAccount() {
         </button>
         <button
           v-if="!auth.isGuest"
+          id="tab-social"
           role="tab"
           :aria-selected="activeTab === 'social'"
+          aria-controls="panel-social"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'social'
@@ -299,8 +303,10 @@ async function handleDeleteAccount() {
         </button>
         <button
           v-if="!auth.isGuest"
+          id="tab-security"
           role="tab"
           :aria-selected="activeTab === 'security'"
+          aria-controls="panel-security"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'security'
@@ -313,8 +319,10 @@ async function handleDeleteAccount() {
         </button>
         <button
           v-if="!auth.isGuest"
+          id="tab-danger"
           role="tab"
           :aria-selected="activeTab === 'danger'"
+          aria-controls="panel-danger"
           class="px-4 py-2 text-sm font-medium border-b-2 transition"
           :class="
             activeTab === 'danger'
@@ -330,6 +338,9 @@ async function handleDeleteAccount() {
       <!-- General Tab -->
       <ProfileEditForm
         v-if="activeTab === 'general'"
+        id="panel-general"
+        role="tabpanel"
+        aria-labelledby="tab-general"
         v-model:display-name="displayName"
         v-model:bio="bio"
         v-model:affiliation="affiliation"
@@ -350,7 +361,7 @@ async function handleDeleteAccount() {
       />
 
       <!-- Social Tab -->
-      <div v-if="activeTab === 'social' && !auth.isGuest" class="space-y-6">
+      <div v-if="activeTab === 'social' && !auth.isGuest" id="panel-social" role="tabpanel" aria-labelledby="tab-social" class="space-y-6">
         <!-- Quick Links -->
         <div class="space-y-3">
           <h3 class="text-sm font-semibold text-foreground">
@@ -437,6 +448,9 @@ async function handleDeleteAccount() {
       <!-- Security Tab -->
       <PasswordChangeForm
         v-if="activeTab === 'security' && !auth.isGuest"
+        id="panel-security"
+        role="tabpanel"
+        aria-labelledby="tab-security"
         v-model:current-password="currentPassword"
         v-model:new-password="newPassword"
         v-model:confirm-password="confirmPassword"
@@ -454,6 +468,9 @@ async function handleDeleteAccount() {
       <!-- Danger Zone Tab -->
       <DangerZone
         v-if="activeTab === 'danger' && !auth.isGuest"
+        id="panel-danger"
+        role="tabpanel"
+        aria-labelledby="tab-danger"
         ref="dangerZoneRef"
         :deleting-account="deletingAccount"
         @delete-account="handleDeleteAccount"

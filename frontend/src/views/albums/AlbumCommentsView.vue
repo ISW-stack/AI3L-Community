@@ -56,9 +56,9 @@ async function fetchComments() {
   if (!album.value) return
   loading.value = true
   try {
-    const { data } = await listAlbumComments(album.value.id, page.value, PAGE_SIZE)
-    comments.value = data.comments
-    updateFromResponse(data.total)
+    const result = await listAlbumComments(album.value.id, page.value, PAGE_SIZE)
+    comments.value = result.comments
+    updateFromResponse(result.total)
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, 'Failed to load comments'), 'error')
   } finally {

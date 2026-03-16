@@ -498,4 +498,15 @@ describe('TiptapEditor', () => {
       expect(vm.scanStatus).toBeNull()
     })
   })
+
+  describe('editor lifecycle — destroy on unmount (N-U09)', () => {
+    it('TiptapEditor source calls editor.value?.destroy() in onUnmounted', async () => {
+      // Verify at the source level that destroy is called on unmount
+      const source = await import('../TiptapEditor.vue?raw')
+      const code = (source as { default: string }).default
+      // The onUnmounted hook must call editor.value?.destroy()
+      expect(code).toMatch(/onUnmounted\s*\(/)
+      expect(code).toMatch(/editor\.value\?\.destroy\??\.?\(\)/)
+    })
+  })
 })

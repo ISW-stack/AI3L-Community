@@ -656,6 +656,48 @@ describe('usePostDetail', () => {
     ).toBe(true)
   })
 
+  // B06: deleteCommentHandler re-fetches post for accurate comment_count
+  it('deleteCommentHandler re-fetches post comment_count instead of decrementing locally', async () => {
+    // Post starts with comment_count 5 (1 root comment with 4 replies)
+    const testPost = makePost({ comment_count: 5 })
+    mockGetPost.mockResolvedValue(testPost)
+    mockDeleteComment.mockResolvedValue(undefined)
+    mockListComments.mockResolvedValue({ comments: [], total: 0 })
+
+    const harness = createHarness()
+    await harness.fetchPost()
+    expect(harness.post.value!.comment_count).toBe(5)
+
+    // Backend cascade-deletes the root + 4 replies, returning count=0
+    mockGetPost.mockResolvedValue(makePost({ comment_count: 0 }))
+
+    harness.confirmDeleteComment('c1')
+    await harness.deleteCommentHandler()
+
+    // Should be 0 (from server), not 4 (local decrement by 1)
+    expect(harness.post.value!.comment_count).toBe(0)
+    // getPost should have been called to re-fetch the accurate count
+    expect(mockGetPost).toHaveBeenCalledTimes(2) // once for fetchPost, once for deleteCommentHandler
+  })
+
+  it('deleteCommentHandler gets accurate count even for single comment deletion', async () => {
+    const testPost = makePost({ comment_count: 3 })
+    mockGetPost.mockResolvedValue(testPost)
+    mockDeleteComment.mockResolvedValue(undefined)
+    mockListComments.mockResolvedValue({ comments: [], total: 0 })
+
+    const harness = createHarness()
+    await harness.fetchPost()
+
+    // Backend deletes only 1 comment, returns count=2
+    mockGetPost.mockResolvedValue(makePost({ comment_count: 2 }))
+
+    harness.confirmDeleteComment('c1')
+    await harness.deleteCommentHandler()
+
+    expect(harness.post.value!.comment_count).toBe(2)
+  })
+
   it('handleTogglePin failure shows toast error', async () => {
     const testPost = makePost({ is_pinned: false })
     mockGetPost.mockResolvedValue(testPost)
@@ -681,5 +723,96 @@ describe('usePostDetail', () => {
     expect(
       toast.toasts.some((t: { message: string }) => t.message === 'Failed to toggle reaction.'),
     ).toBe(true)
+  })
+})
+
+describe('usePostDetail — auth reactivity (N-U16)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    onMountedCallbacks.length = 0
+    localStorage.clear()
+    setActivePinia(createPinia())
+    mockGetPost.mockResolvedValue({
+      id: 'post1',
+      title: 'Test Post',
+      content: '<p>Hello</p>',
+      author: { id: 'other-user', username: 'other', display_name: 'Other', avatar_url: null },
+      category_id: null,
+      category_name: null,
+      sig_id: null,
+      sig_name: null,
+      keywords: null,
+      allow_comments: true,
+      version: 1,
+      comment_count: 0,
+      is_pinned: false,
+      view_count: 5,
+      last_comment_at: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    })
+    mockListComments.mockResolvedValue({ comments: [], total: 0 })
+  })
+
+  it('canModify reflects reactive isAdmin updates via MaybeRefOrGetter', () => {
+    const isAdminRef = ref(false)
+    const postId = ref('post1')
+    const mockRouter = { push: vi.fn() }
+    onMountedCallbacks.length = 0
+
+    const result = usePostDetail({
+      postId,
+      auth: {
+        user: { id: 'user1' },
+        isAdmin: isAdminRef,
+        isAuthenticated: true,
+        isGuest: false,
+      },
+      router: mockRouter,
+    })
+
+    // Initially user is not author (post author is 'other-user'), not coAuthor, not admin
+    expect(result.canModify.value).toBe(false)
+
+    // Simulate admin privileges being granted reactively
+    isAdminRef.value = true
+    expect(result.canModify.value).toBe(true)
+
+    // Revoke admin
+    isAdminRef.value = false
+    expect(result.canModify.value).toBe(false)
+  })
+
+  it('canReport reflects reactive isAuthenticated/isGuest updates', async () => {
+    const isAuthenticatedRef = ref(false)
+    const isGuestRef = ref(false)
+    const postId = ref('post1')
+    const mockRouter = { push: vi.fn() }
+    onMountedCallbacks.length = 0
+
+    const result = usePostDetail({
+      postId,
+      auth: {
+        user: { id: 'user1' },
+        isAdmin: false,
+        isAuthenticated: isAuthenticatedRef,
+        isGuest: isGuestRef,
+      },
+      router: mockRouter,
+    })
+
+    // Load the post so canReport has a non-null post.value (author is 'other-user')
+    await result.fetchPost()
+
+    // Not authenticated => canReport false
+    expect(result.canReport.value).toBe(false)
+
+    // Authenticate the user — post author is 'other-user', user is 'user1' => true
+    isAuthenticatedRef.value = true
+    expect(result.canReport.value).toBe(true)
+
+    // Downgrade to guest => canReport false
+    isGuestRef.value = true
+    expect(result.canReport.value).toBe(false)
   })
 })

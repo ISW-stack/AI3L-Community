@@ -30,28 +30,19 @@ const { page, total, totalPages, setPage, updateFromResponse } = usePagination(P
 
 const canCreate = computed(() => auth.isAuthenticated && !auth.isGuest)
 
-const filteredForms = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return forms.value
-  return forms.value.filter(
-    (f) =>
-      f.title.toLowerCase().includes(q) ||
-      (f.description && f.description.toLowerCase().includes(q)),
-  )
-})
-
 function handleSearchInput(value: string) {
   searchQuery.value = value
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     setPage(1)
+    fetchForms()
   }, 300)
 }
 
 async function fetchForms() {
   loading.value = true
   try {
-    const data = await listStandaloneForms(page.value, PAGE_SIZE)
+    const data = await listStandaloneForms(page.value, PAGE_SIZE, searchQuery.value || undefined)
     forms.value = data.forms
     updateFromResponse(data.total)
   } catch (e: unknown) {
@@ -102,13 +93,13 @@ watch(page, fetchForms)
     <SkeletonLoader v-if="loading" :lines="3" variant="card" />
 
     <EmptyState
-      v-else-if="forms.length === 0"
+      v-else-if="forms.length === 0 && !searchQuery"
       :title="t('formsDirectory.noForms')"
       :message="t('formsDirectory.noFormsMessage')"
     />
 
     <EmptyState
-      v-else-if="filteredForms.length === 0"
+      v-else-if="forms.length === 0 && searchQuery"
       :title="t('formsDirectory.noSearchResults')"
       :message="t('formsDirectory.noSearchResultsMessage')"
     />
@@ -116,7 +107,7 @@ watch(page, fetchForms)
     <template v-else>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <router-link
-          v-for="form in filteredForms"
+          v-for="form in forms"
           :key="form.id"
           :to="`/forms/${form.id}`"
           class="block"

@@ -326,7 +326,7 @@ class TestAppErrorFormatUsers:
                     "/api/v1/users/admin/create-account",
                     json={
                         "username": "existing",
-                        "password": "StrongPass1",
+                        "password": "StrongPass1!",
                         "display_name": "User",
                         "role": "MEMBER",
                     },

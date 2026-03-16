@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { formatDateTime } from '@/utils/date'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
 import { useFormSubmit } from '@/composables/useFormSubmit'
@@ -15,7 +16,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 import BackToTop from '@/components/BackToTop.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -191,7 +192,7 @@ onMounted(() => loadForm())
           <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
           <span>{{ form.response_count }} {{ t('forms.view.response') }}</span>
           <span v-if="form.deadline"
-            >{{ t('forms.view.deadline') }} {{ new Date(form.deadline).toLocaleString() }}</span
+            >{{ t('forms.view.deadline') }} {{ formatDateTime(form.deadline, locale.value) }}</span
           >
           <span v-if="form.max_respondents"
             >{{ t('forms.view.max') }} {{ form.max_respondents }}</span

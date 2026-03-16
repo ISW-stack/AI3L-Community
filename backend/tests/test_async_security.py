@@ -74,10 +74,10 @@ class TestChangePasswordUsesAsync:
         mock_repo.find_password_hash = AsyncMock(return_value="$argon2id$old")
         mock_repo.update_password_hash = AsyncMock()
 
-        result = await change_password(user_id, "OldPass123", "NewPass123")
+        result = await change_password(user_id, "OldPass123!", "NewPass123!")
         assert result is True
-        mock_verify.assert_called_once_with("OldPass123", "$argon2id$old")
-        mock_hash.assert_called_once_with("NewPass123")
+        mock_verify.assert_called_once_with("OldPass123!", "$argon2id$old")
+        mock_hash.assert_called_once_with("NewPass123!")
 
     @patch("app.services.user.user_repo")
     @patch(

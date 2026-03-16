@@ -40,6 +40,7 @@ export default {
     optional: 'اختياري',
     noData: 'لا توجد بيانات',
     noResults: 'لا توجد نتائج.',
+    question: 'Question',
     unknownError: 'حدث خطأ غير متوقع.',
     role: {
       superAdmin: 'مشرف عام',
@@ -95,6 +96,8 @@ export default {
     captcha: 'رمز التحقق',
     captchaPlaceholder: 'أدخل رمز التحقق',
     captchaRefresh: 'انقر لتحديث رمز التحقق',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'إظهار كلمة المرور',
     hidePassword: 'إخفاء كلمة المرور',
     validation: {
@@ -122,6 +125,7 @@ export default {
     loginFailed: 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.',
     registerFailed: 'فشل التسجيل. يرجى المحاولة مرة أخرى.',
     guestLoginFailed: 'فشل تسجيل دخول الضيف. يرجى المحاولة مرة أخرى.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -485,6 +489,7 @@ export default {
         message:
           'سيؤدي هذا إلى حذف مجموعة الاهتمام الخاصة وجميع مشاركاتها. لا يمكن التراجع عن هذا الإجراء بسهولة.',
         confirmBtn: 'تأكيد الحذف',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'مغادرة المجموعة؟',
@@ -919,6 +924,11 @@ export default {
         displayNamePlaceholder: 'الاسم المعروض',
         passwordLabel: 'كلمة المرور',
         passwordPlaceholder: '8+ أحرف، كبيرة/صغيرة/أرقام',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'الدور',
         roleMember: 'عضو',
         roleAdmin: 'مشرف',
@@ -1385,5 +1395,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

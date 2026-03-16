@@ -3,11 +3,11 @@ import { mount, flushPromises } from '@vue/test-utils'
 import CoAuthorManager from '../CoAuthorManager.vue'
 
 vi.mock('@/api/coauthors', () => ({
-  listCoAuthors: vi.fn().mockResolvedValue({ data: { co_authors: [] } }),
+  listCoAuthors: vi.fn().mockResolvedValue({ co_authors: [] }),
   inviteCoAuthor: vi.fn(),
   addExternalCoAuthor: vi.fn(),
   removeCoAuthor: vi.fn(),
-  searchUsers: vi.fn().mockResolvedValue({ data: [] }),
+  searchUsers: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('@/utils/error', () => ({
@@ -109,9 +109,7 @@ describe('CoAuthorManager — timer cleanup', () => {
   it('search debounce fires normally when component is not unmounted', async () => {
     const { searchUsers } = await import('@/api/coauthors')
     const mockSearchUsers = searchUsers as ReturnType<typeof vi.fn>
-    mockSearchUsers.mockResolvedValue({
-      data: [{ id: 'u1', display_name: 'Alice', avatar_url: null }],
-    })
+    mockSearchUsers.mockResolvedValue([{ id: 'u1', display_name: 'Alice', avatar_url: null }])
 
     const wrapper = mount(CoAuthorManager, {
       props: { postId: 'post-1' },

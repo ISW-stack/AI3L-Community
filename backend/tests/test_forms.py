@@ -1876,7 +1876,12 @@ class TestFormStatsService:
                 return_value=(form_row, 3),
             ),
             patch(
-                "app.services.form.form_repo.find_all_responses",
+                "app.services.form.form_repo.count_total_responses",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+            patch(
+                "app.services.form.form_repo.iter_responses_batched",
                 new_callable=AsyncMock,
                 return_value=responses,
             ),
@@ -1951,7 +1956,12 @@ class TestFormStatsService:
                 return_value=(form_row, 2),
             ),
             patch(
-                "app.services.form.form_repo.find_all_responses",
+                "app.services.form.form_repo.count_total_responses",
+                new_callable=AsyncMock,
+                return_value=2,
+            ),
+            patch(
+                "app.services.form.form_repo.iter_responses_batched",
                 new_callable=AsyncMock,
                 return_value=responses,
             ),
@@ -2021,7 +2031,12 @@ class TestFormStatsService:
                 return_value=(form_row, 3),
             ),
             patch(
-                "app.services.form.form_repo.find_all_responses",
+                "app.services.form.form_repo.count_total_responses",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+            patch(
+                "app.services.form.form_repo.iter_responses_batched",
                 new_callable=AsyncMock,
                 return_value=responses,
             ),
@@ -2090,7 +2105,12 @@ class TestFormStatsService:
                 return_value=(form_row, 3),
             ),
             patch(
-                "app.services.form.form_repo.find_all_responses",
+                "app.services.form.form_repo.count_total_responses",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+            patch(
+                "app.services.form.form_repo.iter_responses_batched",
                 new_callable=AsyncMock,
                 return_value=responses,
             ),
@@ -2147,7 +2167,12 @@ class TestFormStatsService:
                 return_value=(form_row, 2),
             ),
             patch(
-                "app.services.form.form_repo.find_all_responses",
+                "app.services.form.form_repo.count_total_responses",
+                new_callable=AsyncMock,
+                return_value=2,
+            ),
+            patch(
+                "app.services.form.form_repo.iter_responses_batched",
                 new_callable=AsyncMock,
                 return_value=responses,
             ),
@@ -2199,7 +2224,12 @@ class TestFormStatsService:
                 return_value=(form_row, 0),
             ),
             patch(
-                "app.services.form.form_repo.find_all_responses",
+                "app.services.form.form_repo.count_total_responses",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch(
+                "app.services.form.form_repo.iter_responses_batched",
                 new_callable=AsyncMock,
                 return_value=[],
             ),
@@ -2577,7 +2607,12 @@ class TestFormStatsDropdownType:
                 return_value=(form_row, 1),
             ),
             patch(
-                "app.services.form.form_repo.find_all_responses",
+                "app.services.form.form_repo.count_total_responses",
+                new_callable=AsyncMock,
+                return_value=1,
+            ),
+            patch(
+                "app.services.form.form_repo.iter_responses_batched",
                 new_callable=AsyncMock,
                 return_value=responses,
             ),

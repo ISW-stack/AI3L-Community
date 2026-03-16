@@ -54,7 +54,7 @@ describe('BaseModal', () => {
 
     it('should set aria-labelledby when title is provided', () => {
       mountModal({ title: 'Test Title' })
-      expect(getDialog()?.getAttribute('aria-labelledby')).toBe('modal-title')
+      expect(getDialog()?.getAttribute('aria-labelledby')).toMatch(/^modal-title-/)
     })
 
     it('should not set aria-labelledby when no title', () => {

@@ -26,6 +26,7 @@ MAX_KEYWORDS = 15
 # File sizes
 MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2 MB
 MAX_EDITOR_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
+MAX_ALBUM_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB hard limit at endpoint
 
 # Allowed types
 AVATAR_ALLOWED_TYPES = {"image/png", "image/jpeg"}

@@ -81,6 +81,7 @@ async function markAllRead() {
     await apiMarkAllRead()
     notifications.value.forEach((n) => (n.is_read = true))
     unreadCount.value = 0
+    notificationStore.unreadCount = 0
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('notifications.markReadError')), 'error')
   }
@@ -165,8 +166,10 @@ onMounted(fetchNotifications)
     <!-- Filter Tabs -->
     <div class="flex gap-1 mb-4 border-b border-border" role="tablist">
       <button
+        id="tab-all"
         role="tab"
         :aria-selected="filter === 'all'"
+        aria-controls="panel-notifications"
         class="px-4 py-2 text-sm font-medium border-b-2 transition"
         :class="
           filter === 'all'
@@ -178,8 +181,10 @@ onMounted(fetchNotifications)
         {{ t('notifications.filter.all') }}
       </button>
       <button
+        id="tab-unread"
         role="tab"
         :aria-selected="filter === 'unread'"
+        aria-controls="panel-notifications"
         class="px-4 py-2 text-sm font-medium border-b-2 transition"
         :class="
           filter === 'unread'
@@ -197,6 +202,11 @@ onMounted(fetchNotifications)
       </button>
     </div>
 
+    <div
+      id="panel-notifications"
+      role="tabpanel"
+      :aria-labelledby="filter === 'all' ? 'tab-all' : 'tab-unread'"
+    >
     <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
     <EmptyState
@@ -263,6 +273,7 @@ onMounted(fetchNotifications)
       @update:current-page="goToPage"
       class="mt-6"
     />
+    </div>
 
     <!-- Clear All Confirmation Modal -->
     <BaseModal v-model="showClearAllConfirm" :title="t('notifications.clearAllBtn')" size="sm">

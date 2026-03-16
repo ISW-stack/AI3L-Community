@@ -185,6 +185,88 @@ describe('useFetchPaginated', () => {
     expect(fetchFn).toHaveBeenCalledWith(5, 20)
   })
 
+  // ---------- B17: page restoration on fetch failure ----------
+
+  describe('page restoration on failure', () => {
+    it('reverts page to previous value on fetch failure', async () => {
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ items: [{ id: '1' }], total: 100 })
+        .mockRejectedValueOnce(new Error('Server error'))
+
+      const { page, setPage, fetchPage } = useFetchPaginated(fetchFn, 20)
+
+      // Successfully fetch page 1
+      await fetchPage()
+      expect(page.value).toBe(1)
+
+      // Navigate to page 3, then fetch fails
+      setPage(3)
+      await fetchPage()
+
+      // Page should revert to 3 (the value at the time fetchPage was called)
+      // since setPage(3) happened before fetchPage()
+      expect(page.value).toBe(3)
+    })
+
+    it('reverts page when fetch fails after setPage during fetchPage', async () => {
+      // First fetch succeeds at page 1
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ items: [{ id: '1' }], total: 100 })
+        .mockRejectedValueOnce(new Error('Network error'))
+
+      const { page, setPage, fetchPage } = useFetchPaginated(fetchFn, 20)
+
+      // Successfully load page 1
+      await fetchPage()
+      expect(page.value).toBe(1)
+
+      // User clicks page 5 — setPage then fetchPage
+      setPage(5)
+      await fetchPage()
+
+      // On failure, page should stay at 5 (previousPage captured at start of fetchPage)
+      expect(page.value).toBe(5)
+    })
+
+    it('keeps items from previous successful fetch on failure', async () => {
+      const oldItems = [{ id: 'old1' }, { id: 'old2' }]
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ items: oldItems, total: 50 })
+        .mockRejectedValueOnce(new Error('fail'))
+
+      const { items, setPage, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      await fetchPage()
+      expect(items.value).toEqual(oldItems)
+
+      setPage(2)
+      await fetchPage()
+
+      // Old items should still be visible (not cleared on failure)
+      expect(items.value).toEqual(oldItems)
+    })
+
+    it('error message is set on failure even with page restoration', async () => {
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ items: [], total: 0 })
+        .mockRejectedValueOnce({
+          response: { data: { detail: 'Page not found' } },
+        })
+
+      const { error, setPage, fetchPage } = useFetchPaginated(fetchFn, 20)
+
+      await fetchPage()
+      setPage(999)
+      await fetchPage()
+
+      expect(error.value).toBe('Page not found')
+    })
+  })
+
   // ---------- fetchId race condition guard ----------
 
   describe('fetchId race condition guard', () => {

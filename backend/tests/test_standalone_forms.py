@@ -174,10 +174,13 @@ class TestListStandaloneForms:
     async def test_list_standalone_forms_no_auth(self, client):
         """GET /forms → 200 without authentication."""
         form = _make_standalone_form()
-        with patch(
-            f"{_EP}.list_standalone_forms_svc",
-            new_callable=AsyncMock,
-            return_value=([form], 1),
+        with (
+            patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            patch(
+                f"{_EP}.list_standalone_forms_svc",
+                new_callable=AsyncMock,
+                return_value=([form], 1),
+            ),
         ):
             resp = await client.get("/api/v1/forms")
             assert resp.status_code == 200
@@ -190,11 +193,14 @@ class TestListStandaloneForms:
     async def test_list_standalone_forms_pagination(self, client):
         """GET /forms?page=2&page_size=1 → correct pagination."""
         form = _make_standalone_form()
-        with patch(
-            f"{_EP}.list_standalone_forms_svc",
-            new_callable=AsyncMock,
-            return_value=([form], 3),
-        ) as mock_list:
+        with (
+            patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            patch(
+                f"{_EP}.list_standalone_forms_svc",
+                new_callable=AsyncMock,
+                return_value=([form], 3),
+            ) as mock_list,
+        ):
             resp = await client.get("/api/v1/forms?page=2&page_size=1")
             assert resp.status_code == 200
             mock_list.assert_called_once_with(page=2, page_size=1)
@@ -202,10 +208,13 @@ class TestListStandaloneForms:
     @pytest.mark.anyio
     async def test_list_standalone_forms_empty(self, client):
         """GET /forms → 200 with empty list when no standalone forms."""
-        with patch(
-            f"{_EP}.list_standalone_forms_svc",
-            new_callable=AsyncMock,
-            return_value=([], 0),
+        with (
+            patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            patch(
+                f"{_EP}.list_standalone_forms_svc",
+                new_callable=AsyncMock,
+                return_value=([], 0),
+            ),
         ):
             resp = await client.get("/api/v1/forms")
             assert resp.status_code == 200

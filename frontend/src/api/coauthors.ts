@@ -1,39 +1,51 @@
 import api from '@/composables/api'
 import type { CoAuthorListResponse, CoAuthorInvitationListResponse } from '@/types/coauthor'
 
-export function listCoAuthors(postId: string) {
-  return api.get<CoAuthorListResponse>(`/posts/${postId}/co-authors`)
+export async function listCoAuthors(postId: string): Promise<CoAuthorListResponse> {
+  const { data } = await api.get<CoAuthorListResponse>(`/posts/${postId}/co-authors`)
+  return data
 }
 
-export function inviteCoAuthor(postId: string, data: { user_id: string; display_name?: string }) {
-  return api.post(`/posts/${postId}/co-authors/invite`, data)
-}
-
-export function addExternalCoAuthor(
+export async function inviteCoAuthor(
   postId: string,
-  data: { display_name: string; affiliation?: string; orcid?: string },
-) {
-  return api.post(`/posts/${postId}/co-authors/external`, data)
+  inviteData: { user_id: string; display_name?: string },
+): Promise<void> {
+  await api.post(`/posts/${postId}/co-authors/invite`, inviteData)
 }
 
-export function removeCoAuthor(postId: string, coAuthorId: string) {
-  return api.delete(`/posts/${postId}/co-authors/${coAuthorId}`)
+export async function addExternalCoAuthor(
+  postId: string,
+  authorData: { display_name: string; affiliation?: string; orcid?: string },
+): Promise<void> {
+  await api.post(`/posts/${postId}/co-authors/external`, authorData)
 }
 
-export function listMyInvitations(page = 1, pageSize = 20) {
-  return api.get<CoAuthorInvitationListResponse>('/users/me/co-author-invitations', {
-    params: { page, page_size: pageSize },
-  })
+export async function removeCoAuthor(postId: string, coAuthorId: string): Promise<void> {
+  await api.delete(`/posts/${postId}/co-authors/${coAuthorId}`)
 }
 
-export function acceptInvitation(invitationId: string) {
-  return api.put(`/users/me/co-author-invitations/${invitationId}/accept`)
+export async function listMyInvitations(
+  page = 1,
+  pageSize = 20,
+): Promise<CoAuthorInvitationListResponse> {
+  const { data } = await api.get<CoAuthorInvitationListResponse>(
+    '/users/me/co-author-invitations',
+    {
+      params: { page, page_size: pageSize },
+    },
+  )
+  return data
 }
 
-export function rejectInvitation(invitationId: string) {
-  return api.put(`/users/me/co-author-invitations/${invitationId}/reject`)
+export async function acceptInvitation(invitationId: string): Promise<void> {
+  await api.put(`/users/me/co-author-invitations/${invitationId}/accept`)
 }
 
-export function searchUsers(query: string, limit = 5) {
-  return api.get('/users/search', { params: { q: query, limit } })
+export async function rejectInvitation(invitationId: string): Promise<void> {
+  await api.put(`/users/me/co-author-invitations/${invitationId}/reject`)
+}
+
+export async function searchUsers(query: string, limit = 5): Promise<unknown> {
+  const { data } = await api.get('/users/search', { params: { q: query, limit } })
+  return data
 }

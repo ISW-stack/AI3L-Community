@@ -80,10 +80,17 @@ class TestCSRFValidToken:
         """Request with matching cookie and header tokens passes CSRF check."""
         _override_auth("MEMBER")
         try:
-            with patch(
-                "app.api.v1.endpoints.auth.refresh_session_ttl",
-                new_callable=AsyncMock,
-                return_value=True,
+            with (
+                patch(
+                    "app.api.v1.endpoints.auth.refresh_session_ttl",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.auth.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 resp = await csrf_client.post("/api/v1/auth/heartbeat")
             # Should get 200 (heartbeat success), not 403

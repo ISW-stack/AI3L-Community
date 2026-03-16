@@ -218,7 +218,7 @@ class TestPostHistory:
             _override_auth("MEMBER", user_id=owner_id)
             with (
                 patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
-                patch(f"{_EP}.get_post_history", new_callable=AsyncMock, return_value=history),
+                patch(f"{_EP}.get_post_history", new_callable=AsyncMock, return_value=(history, 1)),
             ):
                 resp = await client.get(
                     f"/api/v1/posts/{post_id}/history",
@@ -768,7 +768,7 @@ class TestPostHistoryForbiddenNonOwner:
             _override_auth("ADMIN", user_id=admin_id)
             with (
                 patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
-                patch(f"{_EP}.get_post_history", new_callable=AsyncMock, return_value=history),
+                patch(f"{_EP}.get_post_history", new_callable=AsyncMock, return_value=(history, 1)),
             ):
                 resp = await client.get(
                     f"/api/v1/posts/{post_id}/history",

@@ -143,7 +143,8 @@ describe('AlbumCommentsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockListAlbumComments.mockResolvedValue({
-      data: { comments: fakeComments, total: 1 },
+      comments: fakeComments,
+      total: 1,
     })
   })
 
@@ -158,14 +159,15 @@ describe('AlbumCommentsView', () => {
   })
 
   it('shows empty state when no comments', async () => {
-    mockListAlbumComments.mockResolvedValue({ data: { comments: [], total: 0 } })
+    mockListAlbumComments.mockResolvedValue({ comments: [], total: 0 })
     const { wrapper } = await mountCommentsView()
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
   it('resets pagination to page 1 when album changes', async () => {
     mockListAlbumComments.mockResolvedValue({
-      data: { comments: fakeComments, total: 50 },
+      comments: fakeComments,
+      total: 50,
     })
 
     const pinia = createPinia()

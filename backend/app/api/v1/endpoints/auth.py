@@ -1,5 +1,3 @@
-import secrets
-
 from fastapi import APIRouter, Depends, Request, Response, status
 from loguru import logger
 
@@ -12,6 +10,7 @@ from app.core.constants import (
     RATE_LIMIT_LOGIN,
     RATE_LIMIT_REGISTER,
 )
+from app.core.csrf import generate_csrf_token
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
@@ -116,13 +115,13 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
         reason = user.get("ban_reason") or "No reason provided"
         raise AppError(ErrorCode.AUTH_004, 403, f"Account is banned: {reason}")
 
-    token, expires_in = await create_session(str(user["id"]), user["role"])
+    token, jti, expires_in = await create_session(str(user["id"]), user["role"])
 
     # Check privacy consent
     needs_consent = not await has_consent(str(user["id"]))
 
-    # Set cookies
-    csrf_token = secrets.token_urlsafe(32)
+    # Set cookies — CSRF token bound to session JTI
+    csrf_token = generate_csrf_token(jti)
     _set_auth_cookies(response, token, csrf_token, expires_in)
 
     # Audit log (best-effort, via event bus)
@@ -165,10 +164,10 @@ async def login_as_guest(
         await decrement_guest_ip_counter(ip)
         raise AppError(ErrorCode.AUTH_003, 429, "Guest capacity reached. Please try again later.")
 
-    token, expires_in = result
+    token, jti, expires_in = result
 
-    # Set cookies
-    csrf_token = secrets.token_urlsafe(32)
+    # Set cookies — CSRF token bound to session JTI
+    csrf_token = generate_csrf_token(jti)
     _set_auth_cookies(response, token, csrf_token, expires_in)
 
     # Guests always see consent modal on each session
@@ -250,10 +249,10 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
             ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
         )
 
-    token, expires_in = await create_session(str(user["id"]), user["role"])
+    token, jti, expires_in = await create_session(str(user["id"]), user["role"])
 
-    # Set cookies
-    csrf_token = secrets.token_urlsafe(32)
+    # Set cookies — CSRF token bound to session JTI
+    csrf_token = generate_csrf_token(jti)
     _set_auth_cookies(response, token, csrf_token, expires_in)
 
     # New user always requires consent
@@ -262,6 +261,8 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
 
 @router.post("/heartbeat", response_model=MessageResponse)
 async def heartbeat(current_user: dict = Depends(get_current_user)) -> MessageResponse:
+    if not await check_rate_limit(f"rl:heartbeat:{current_user['sub']}", 20, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
     refreshed = await refresh_session_ttl(current_user["sub"], current_user["role"])
     if not refreshed:
         raise AppError(ErrorCode.AUTH_001, 401, "Session not found.")
@@ -271,6 +272,8 @@ async def heartbeat(current_user: dict = Depends(get_current_user)) -> MessageRe
 @router.post("/ws-ticket", response_model=WsTicketResponse)
 async def get_ws_ticket(current_user: dict = Depends(get_current_user)) -> WsTicketResponse:
     """Generate a one-time WebSocket authentication ticket (30s TTL)."""
+    if not await check_rate_limit(f"rl:ws_ticket:{current_user['sub']}", 10, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
     ticket = await create_ws_ticket(current_user)
     return WsTicketResponse(ticket=ticket)
 

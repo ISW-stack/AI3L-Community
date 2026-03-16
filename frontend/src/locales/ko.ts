@@ -40,6 +40,7 @@ export default {
     optional: '선택',
     noData: '데이터 없음',
     noResults: '결과를 찾을 수 없습니다.',
+    question: 'Question',
     unknownError: '예기치 않은 오류가 발생했습니다.',
     role: {
       superAdmin: '최고 관리자',
@@ -95,6 +96,8 @@ export default {
     captcha: '캡차',
     captchaPlaceholder: '캡차 코드를 입력하세요',
     captchaRefresh: '클릭하여 캡차를 새로 고침',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: '비밀번호 표시',
     hidePassword: '비밀번호 숨기기',
     validation: {
@@ -122,6 +125,7 @@ export default {
     loginFailed: '로그인에 실패했습니다. 다시 시도해 주세요.',
     registerFailed: '회원가입에 실패했습니다. 다시 시도해 주세요.',
     guestLoginFailed: '게스트 로그인에 실패했습니다. 다시 시도해 주세요.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -485,6 +489,7 @@ export default {
         message:
           '이 특별 관심 그룹과 모든 게시물이 소프트 삭제됩니다. 이 작업은 쉽게 취소할 수 없습니다.',
         confirmBtn: '삭제 확인',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'SIG를 떠나시겠습니까?',
@@ -918,6 +923,11 @@ export default {
         displayNamePlaceholder: '표시 이름',
         passwordLabel: '비밀번호',
         passwordPlaceholder: '8자 이상, 대/소문자/숫자 포함',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: '역할',
         roleMember: '회원',
         roleAdmin: '관리자',
@@ -1385,5 +1395,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

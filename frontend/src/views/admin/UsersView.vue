@@ -107,9 +107,19 @@ async function confirmBulkRole() {
 const showCreateModal = ref(false)
 const newUsername = ref('')
 const newPassword = ref('')
+const newPasswordError = ref<string | null>(null)
 const newDisplayName = ref('')
 const newRole = ref('MEMBER')
 const creating = ref(false)
+
+function validatePassword(pw: string): string | null {
+  if (pw.length < 8) return t('admin.users.createModal.passwordTooShort')
+  if (!/[A-Z]/.test(pw)) return t('admin.users.createModal.passwordNeedsUpper')
+  if (!/[a-z]/.test(pw)) return t('admin.users.createModal.passwordNeedsLower')
+  if (!/[0-9]/.test(pw)) return t('admin.users.createModal.passwordNeedsDigit')
+  if (!/[^A-Za-z0-9]/.test(pw)) return t('admin.users.createModal.passwordNeedsSpecial')
+  return null
+}
 
 const showBanModal = ref(false)
 const banTargetUser = ref<AdminUser | null>(null)
@@ -157,6 +167,8 @@ async function changeRole(userId: string, newRole: string) {
 }
 
 async function createAccount() {
+  newPasswordError.value = validatePassword(newPassword.value)
+  if (newPasswordError.value) return
   creating.value = true
   message.value = ''
   try {
@@ -468,13 +480,17 @@ onUnmounted(() => {
           required
           :placeholder="t('admin.users.createModal.displayNamePlaceholder')"
         />
-        <BaseInput
-          v-model="newPassword"
-          :label="t('admin.users.createModal.passwordLabel')"
-          type="password"
-          required
-          :placeholder="t('admin.users.createModal.passwordPlaceholder')"
-        />
+        <div>
+          <BaseInput
+            v-model="newPassword"
+            :label="t('admin.users.createModal.passwordLabel')"
+            type="password"
+            required
+            :placeholder="t('admin.users.createModal.passwordPlaceholder')"
+            :error="newPasswordError ?? undefined"
+            @update:model-value="newPasswordError = null"
+          />
+        </div>
         <div>
           <label class="block text-sm font-medium text-foreground mb-1">{{
             t('admin.users.createModal.roleLabel')

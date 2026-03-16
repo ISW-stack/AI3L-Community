@@ -92,6 +92,8 @@ async def create_comment(
         await emit(
             "comment.created",
             user_id=user_id,
+            post_owner_id=post_owner_id,
+            post_id=str(post_id),
             commenter_name=commenter_name,
             mention_targets=mention_targets,
             reply_target=reply_target,

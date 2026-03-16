@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { getCaptcha } from '@/api/auth'
 import { Eye, EyeOff } from 'lucide-vue-next'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -16,6 +17,7 @@ const { t, currentLocale, localeOptions, setLocale } = useLocale()
 
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const username = ref('')
 const password = ref('')
@@ -25,6 +27,7 @@ const inviteCode = ref('')
 const captchaId = ref('')
 const captchaCode = ref('')
 const captchaImage = ref('')
+const captchaError = ref(false)
 const error = ref('')
 const loading = ref(false)
 const showPassword = ref(false)
@@ -39,10 +42,16 @@ function toggleConfirmPassword() {
 }
 
 async function loadCaptcha() {
-  const data = await getCaptcha()
-  captchaId.value = data.captcha_id
-  captchaImage.value = data.image_base64
-  captchaCode.value = ''
+  captchaError.value = false
+  try {
+    const data = await getCaptcha()
+    captchaId.value = data.captcha_id
+    captchaImage.value = data.image_base64
+    captchaCode.value = ''
+  } catch (e: unknown) {
+    captchaError.value = true
+    toast.show(getErrorMessage(e, t('auth.captchaLoadError')), 'error')
+  }
 }
 
 const passwordChecks = computed(() => ({
@@ -101,7 +110,7 @@ onMounted(() => {
 
 <template>
   <div class="flex min-h-[70vh]">
-    <div class="absolute top-4 right-4 z-10">
+    <div class="fixed top-20 right-4 z-40">
       <select
         :value="currentLocale"
         class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
@@ -135,16 +144,26 @@ onMounted(() => {
 
         <form @submit.prevent="handleRegister" class="space-y-4">
           <BaseInput
+            id="input-username"
             v-model="username"
             :label="t('auth.username')"
             :placeholder="t('auth.usernameHelper')"
+            autocomplete="username"
             required
           />
-          <BaseInput v-model="displayName" :label="t('auth.displayName')" required />
           <BaseInput
+            id="input-display-name"
+            v-model="displayName"
+            :label="t('auth.displayName')"
+            autocomplete="nickname"
+            required
+          />
+          <BaseInput
+            id="input-invite-code"
             v-model="inviteCode"
             :label="t('auth.inviteCode')"
             :placeholder="t('auth.inviteCodePlaceholder')"
+            autocomplete="off"
             required
           />
 
@@ -154,11 +173,12 @@ onMounted(() => {
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 :label="t('auth.password')"
+                autocomplete="new-password"
                 required
               />
               <button
                 type="button"
-                class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+                class="absolute right-3 top-1/2 -translate-y-1/2 mt-3 text-muted hover:text-foreground"
                 @click="togglePassword"
                 :aria-label="showPassword ? t('auth.hidePassword') : t('auth.showPassword')"
               >
@@ -187,11 +207,12 @@ onMounted(() => {
                 v-model="confirmPassword"
                 :type="showConfirmPassword ? 'text' : 'password'"
                 :label="t('auth.confirmPassword')"
+                autocomplete="new-password"
                 required
               />
               <button
                 type="button"
-                class="absolute right-3 top-[34px] text-muted hover:text-foreground"
+                class="absolute right-3 top-1/2 -translate-y-1/2 mt-3 text-muted hover:text-foreground"
                 @click="toggleConfirmPassword"
                 :aria-label="showConfirmPassword ? t('auth.hidePassword') : t('auth.showPassword')"
               >
@@ -207,12 +228,23 @@ onMounted(() => {
             <label class="block text-sm font-medium text-foreground mb-1">{{
               t('auth.captcha')
             }}</label>
+            <div v-if="captchaError" class="text-danger-600 text-sm mb-2">
+              {{ t('auth.captchaLoadError') }}
+              <button
+                type="button"
+                class="ml-2 underline text-brand-600"
+                @click="loadCaptcha"
+              >
+                {{ t('auth.captchaRetry') }}
+              </button>
+            </div>
             <div class="flex gap-3 items-center">
               <input
                 v-model="captchaCode"
                 type="text"
                 required
                 maxlength="4"
+                autocomplete="off"
                 aria-label="Captcha"
                 class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
                 :placeholder="t('auth.captchaPlaceholder')"

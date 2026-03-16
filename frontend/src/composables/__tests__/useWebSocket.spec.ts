@@ -579,6 +579,57 @@ describe('useWebSocket', () => {
       expect(MockWebSocket.instances).toHaveLength(2)
     })
 
+    // B10: concurrent connect() calls should not create duplicate WebSocket instances
+    it('concurrent connect() calls do not create duplicate WebSocket instances', async () => {
+      // Make getWsUrl take some time to simulate the race window
+      let resolveTicket: (value: { data: { ticket: string } }) => void
+      mockApiPost.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveTicket = resolve
+          }),
+      )
+
+      const { connect } = useWebSocket()
+
+      // Fire two connect() calls concurrently (simulating rapid tab switch)
+      const first = connect()
+      const second = connect() // should be skipped due to connecting guard
+
+      // Resolve the ticket for the first call
+      resolveTicket!({ data: { ticket: 'only-ticket' } })
+      await first
+      await second
+
+      // Only one WebSocket should have been created
+      expect(MockWebSocket.instances).toHaveLength(1)
+      expect(mockApiPost).toHaveBeenCalledTimes(1)
+    })
+
+    it('connecting flag is reset after connect completes, allowing subsequent calls', async () => {
+      const { connect } = useWebSocket()
+
+      await connect()
+      expect(MockWebSocket.instances).toHaveLength(1)
+
+      // Second sequential call should work (connecting flag was reset)
+      await connect()
+      expect(MockWebSocket.instances).toHaveLength(2)
+    })
+
+    it('connecting flag is reset even when getWsUrl fails', async () => {
+      mockApiPost.mockRejectedValueOnce(new Error('fail'))
+
+      const { connect } = useWebSocket()
+      await connect() // fails, but connecting should be reset
+
+      // Next call should proceed
+      mockApiPost.mockResolvedValue({ data: { ticket: 'retry-ticket' } })
+      await connect()
+
+      expect(MockWebSocket.instances).toHaveLength(1)
+    })
+
     it('is safe to call cleanup when no WebSocket exists', () => {
       const { cleanup } = useWebSocket()
 

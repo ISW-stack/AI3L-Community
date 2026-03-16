@@ -2,14 +2,20 @@
 
 Compares the `csrf_token` cookie with the `X-CSRF-Token` header for
 state-changing requests (POST/PUT/PATCH/DELETE).
+The CSRF token is bound to the session JTI via HMAC.
 """
 
+import hashlib
+import hmac
 import secrets
 from typing import Any
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+
+from app.core.config import settings
+from app.core.security import decode_access_token
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
@@ -27,6 +33,15 @@ _EXEMPT_EXACT = frozenset(
 # Only matches the exact guest login route pattern: /api/v1/auth/guest/{invite_code}
 # Rejects deeper sub-paths like /api/v1/auth/guest/{code}/foo.
 _EXEMPT_GUEST_PREFIX = "/api/v1/auth/guest/"
+
+
+def generate_csrf_token(jti: str) -> str:
+    """Generate a CSRF token bound to the session JTI."""
+    return hmac.new(
+        settings.SECRET_KEY.encode(),
+        jti.encode(),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
@@ -76,6 +91,18 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 status_code=403,
                 content={"detail": "CSRF token missing or mismatched."},
             )
+
+        # Verify the CSRF token is bound to the current session JTI
+        jwt_token = request.cookies.get("access_token")
+        if jwt_token:
+            payload = decode_access_token(jwt_token)
+            if payload and payload.get("jti"):
+                expected = generate_csrf_token(payload["jti"])
+                if not secrets.compare_digest(expected, header_token):
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "CSRF token not bound to session."},
+                    )
 
         response = await call_next(request)
         return response

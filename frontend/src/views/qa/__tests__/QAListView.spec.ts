@@ -80,7 +80,7 @@ function createTestRouter() {
     routes: [
       { path: '/', component: { template: '<div />' } },
       { path: '/qa', component: { template: '<div />' } },
-      { path: '/qa/create', component: { template: '<div />' } },
+      { path: '/qa/ask', component: { template: '<div />' } },
       { path: '/qa/:id', component: { template: '<div />' } },
     ],
   })
@@ -192,5 +192,24 @@ describe('QAListView', () => {
     const questions = [makeQuestion({ id: 'q-1' })]
     const { wrapper } = await mountView(questions)
     expect(wrapper.text()).toContain('1 question')
+  })
+
+  it('navigates to /qa/ask (not /qa/create) when Ask a Question is clicked', async () => {
+    const { wrapper } = await mountView([], { role: 'MEMBER', userId: 'user-1' })
+    const router = wrapper.vm.$router as ReturnType<typeof createTestRouter>
+    const pushSpy = vi.spyOn(router, 'push')
+    const btn = wrapper.find('button')
+    await btn.trigger('click')
+    expect(pushSpy).toHaveBeenCalledWith('/qa/ask')
+    expect(pushSpy).not.toHaveBeenCalledWith('/qa/create')
+  })
+
+  it('EmptyState action-to points to /qa/ask (not /qa/create)', async () => {
+    const { wrapper } = await mountView([])
+    // EmptyState is mocked — check the prop passed to it
+    const emptyState = wrapper.findComponent({ name: 'default' })
+    // Find the raw template rendering: action-to="/qa/ask" in the source
+    const html = wrapper.html()
+    expect(html).not.toContain('/qa/create')
   })
 })

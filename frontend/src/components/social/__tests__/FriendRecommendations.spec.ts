@@ -135,7 +135,7 @@ describe('FriendRecommendations', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetRecommendations.mockResolvedValue({
-      data: { recommendations: fakeRecommendations.map((r) => ({ ...r })) },
+      recommendations: fakeRecommendations.map((r) => ({ ...r })),
     })
     mockDismissRecommendation.mockResolvedValue({})
     mockSendFriendRequest.mockResolvedValue({})
@@ -235,7 +235,7 @@ describe('FriendRecommendations', () => {
 
   it('shows empty state when no recommendations', async () => {
     mockGetRecommendations.mockResolvedValue({
-      data: { recommendations: [] },
+      recommendations: [],
     })
     const { wrapper } = await mountRecommendations()
     expect(wrapper.text()).toContain('No recommendations right now')
@@ -276,7 +276,7 @@ describe('FriendRecommendations', () => {
       created_at: '2026-01-01T00:00:00Z',
     }))
     mockGetRecommendations.mockResolvedValue({
-      data: { recommendations: manyRecs },
+      recommendations: manyRecs,
     })
     const { wrapper } = await mountRecommendations()
     const items = wrapper.findAll('[data-testid="recommendation-item"]')

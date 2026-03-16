@@ -68,14 +68,64 @@ function escapeHtml(str: string): string {
 
 export function renderMentions(html: string, mentions: string[] | null): string {
   if (!mentions || mentions.length === 0) return html
-  let result = html
-  for (const username of mentions) {
-    const escaped = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const pattern = new RegExp(`@${escaped}(?![\\w-])`, 'g')
-    result = result.replace(
-      pattern,
-      `<span class="text-brand-600 font-semibold">@${escapeHtml(username)}</span>`,
-    )
+
+  // SSR / test environments without a DOM: fall back to regex on raw HTML string
+  if (typeof document === 'undefined') {
+    let result = html
+    for (const username of mentions) {
+      const escaped = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const pattern = new RegExp(`@${escaped}(?![\\w-])`, 'g')
+      result = result.replace(
+        pattern,
+        `<span class="text-brand-600 font-semibold">@${escapeHtml(username)}</span>`,
+      )
+    }
+    return result
   }
-  return result
+
+  // Build a combined pattern to match any listed mention in text nodes only
+  const escapedNames = mentions.map((u) => u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const combinedPattern = new RegExp(`@(${escapedNames.join('|')})(?![\\w-])`, 'g')
+
+  const container = document.createElement('div')
+  container.innerHTML = html
+
+  function walkTextNodes(node: Node): void {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent ?? ''
+      if (!combinedPattern.test(text)) return
+      combinedPattern.lastIndex = 0
+
+      const frag = document.createDocumentFragment()
+      let lastIndex = 0
+      let match: RegExpExecArray | null
+
+      while ((match = combinedPattern.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+          frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)))
+        }
+        const span = document.createElement('span')
+        span.className = 'text-brand-600 font-semibold'
+        span.textContent = `@${match[1]}`
+        frag.appendChild(span)
+        lastIndex = match.index + match[0].length
+      }
+
+      if (lastIndex < text.length) {
+        frag.appendChild(document.createTextNode(text.slice(lastIndex)))
+      }
+
+      node.parentNode?.replaceChild(frag, node)
+      return
+    }
+
+    // Walk child nodes (clone list to avoid mutation during iteration)
+    const children = Array.from(node.childNodes)
+    for (const child of children) {
+      walkTextNodes(child)
+    }
+  }
+
+  walkTextNodes(container)
+  return container.innerHTML
 }

@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from app.repositories.reaction_helpers import _ALLOWED_TABLES, toggle_reaction_jsonb
+from app.repositories.reaction_helpers import _QUERIES, toggle_reaction_jsonb
 from app.schemas.auth import GuestLoginRequest
 
 # ---------------------------------------------------------------------------
@@ -82,9 +82,9 @@ class TestReactionHelpersTableWhitelist:
         assert "like" in result
 
     async def test_allowed_tables_is_frozen(self) -> None:
-        """_ALLOWED_TABLES is a frozenset (immutable)."""
-        assert isinstance(_ALLOWED_TABLES, frozenset)
-        assert _ALLOWED_TABLES == {"posts", "comments"}
+        """_QUERIES is a dict keyed by allowed table names."""
+        assert isinstance(_QUERIES, dict)
+        assert set(_QUERIES.keys()) == {"posts", "comments"}
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ class TestGuestCounterAtomicInit:
         mock_get_redis.return_value = redis
 
         with patch("app.services.auth.create_session", new_callable=AsyncMock) as mock_session:
-            mock_session.return_value = ("token", 3600)
+            mock_session.return_value = ("token", "fake-jti", 3600)
             result = await guest_login("TestGuest")
 
         assert result is not None
@@ -120,7 +120,7 @@ class TestGuestCounterAtomicInit:
         mock_get_redis.return_value = redis
 
         with patch("app.services.auth.create_session", new_callable=AsyncMock) as mock_session:
-            mock_session.return_value = ("token", 3600)
+            mock_session.return_value = ("token", "fake-jti", 3600)
             await guest_login("TestGuest")
 
         redis.eval.assert_called_once_with(_GUEST_INCR_LUA, 1, "meta:guest_counter", MAX_GUESTS)

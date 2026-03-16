@@ -24,6 +24,7 @@ from app.core.redis import get_redis, init_redis
 _FILE_KEY_RE = re.compile(r"/api/v1/files/content/(editor/[^\s\"'<>]+)")
 
 _ORPHAN_MAX_AGE_DAYS = 7
+_ORPHAN_BATCH_SIZE = 1000
 
 
 def _run_async(coro: Any) -> Any:
@@ -194,23 +195,41 @@ def cleanup_orphan_files(self: Any) -> dict[str, Any]:
         referenced = await _get_referenced_keys()
         logger.info("Orphan cleanup: %d referenced file keys found", len(referenced))
 
-        loop = asyncio.get_running_loop()
-        all_files = await loop.run_in_executor(None, list, _iter_editor_files())
-
         cutoff = datetime.now(timezone.utc) - timedelta(days=_ORPHAN_MAX_AGE_DAYS)
-        orphans = [
-            key for key, modified in all_files if key not in referenced and modified < cutoff
-        ]
+
+        def _find_orphans() -> tuple[list[str], int]:
+            """Process S3 files in batches to avoid loading all keys into memory."""
+            orphan_keys: list[str] = []
+            total = 0
+            batch: list[tuple[str, Any]] = []
+            for item in _iter_editor_files():
+                batch.append(item)
+                total += 1
+                if len(batch) >= _ORPHAN_BATCH_SIZE:
+                    orphan_keys.extend(
+                        key for key, modified in batch
+                        if key not in referenced and modified < cutoff
+                    )
+                    batch = []
+            if batch:
+                orphan_keys.extend(
+                    key for key, modified in batch
+                    if key not in referenced and modified < cutoff
+                )
+            return orphan_keys, total
+
+        loop = asyncio.get_running_loop()
+        orphans, total_files = await loop.run_in_executor(None, _find_orphans)
 
         logger.info(
             "Orphan cleanup: %d total files, %d orphans queued for deletion",
-            len(all_files),
+            total_files,
             len(orphans),
         )
 
         deleted = await _delete_orphans(orphans)
         return {
-            "total_files": len(all_files),
+            "total_files": total_files,
             "orphans_found": len(orphans),
             "deleted": deleted,
         }

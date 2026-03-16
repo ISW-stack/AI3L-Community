@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import type { Category, Sig } from '@/types'
 import { getErrorMessage } from '@/utils/error'
@@ -26,6 +27,7 @@ interface PostDraft {
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const toast = useToastStore()
 
 const querySigId = (route.query.sig_id as string) || null
@@ -39,12 +41,16 @@ const saving = ref(false)
 const message = ref('')
 const draftRestored = ref(false)
 
+const draftKey = computed(
+  () => `ai3l_post_draft_${querySigId || 'general'}_${authStore.user?.id ?? 'anon'}`,
+)
+
 const {
   data: draftData,
   loadDraft,
   clearDraft,
 } = useDraft<PostDraft>({
-  key: `ai3l_post_draft_${querySigId || 'general'}`,
+  key: draftKey.value,
   defaultValue: {
     title: '',
     content: '',
@@ -182,6 +188,12 @@ onMounted(() => {
   }
   fetchCategories()
   fetchMySigs()
+})
+
+onBeforeRouteLeave(() => {
+  if (title.value?.trim() || content.value?.trim()) {
+    return window.confirm('You have unsaved changes. Are you sure you want to leave?')
+  }
 })
 </script>
 

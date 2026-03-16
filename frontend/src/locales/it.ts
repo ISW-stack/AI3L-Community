@@ -41,6 +41,7 @@ export default {
     optional: 'Facoltativo',
     noData: 'Nessun dato',
     noResults: 'Nessun risultato trovato.',
+    question: 'Question',
     unknownError: 'Si è verificato un errore imprevisto.',
     role: {
       superAdmin: 'Super Admin',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Captcha',
     captchaPlaceholder: 'Inserisci il codice captcha',
     captchaRefresh: 'Clicca per aggiornare il captcha',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Mostra password',
     hidePassword: 'Nascondi password',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Accesso non riuscito. Riprova.',
     registerFailed: 'Registrazione non riuscita. Riprova.',
     guestLoginFailed: 'Accesso ospite non riuscito. Riprova.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -488,6 +492,7 @@ export default {
         message:
           'Questa operazione eliminerà temporaneamente questo gruppo di interesse speciale e tutti i suoi post. Non è facile annullare questa azione.',
         confirmBtn: 'Conferma eliminazione',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'Abbandonare il SIG?',
@@ -925,6 +930,11 @@ export default {
         displayNamePlaceholder: 'Nome visualizzato',
         passwordLabel: 'Password',
         passwordPlaceholder: '8+ caratteri, maiusc./minusc./cifra',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Ruolo',
         roleMember: 'Membro',
         roleAdmin: 'Admin',
@@ -1392,5 +1402,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

@@ -290,7 +290,7 @@ describe('UsersView', () => {
     if (inputs.length >= 3) {
       await inputs[0].setValue('newuser')
       await inputs[1].setValue('New User')
-      await inputs[2].setValue('password123')
+      await inputs[2].setValue('Password123!')
       await nextTick()
 
       // Submit
@@ -634,7 +634,7 @@ describe('UsersView', () => {
     if (inputs.length >= 3) {
       await inputs[0].setValue('newuser')
       await inputs[1].setValue('New User')
-      await inputs[2].setValue('password123')
+      await inputs[2].setValue('Password123!')
       await nextTick()
 
       // Click the Create button in modal footer

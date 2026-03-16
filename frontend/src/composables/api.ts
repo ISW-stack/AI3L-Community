@@ -5,7 +5,8 @@ import { i18n } from '@/locales'
 import router from '@/router'
 
 function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = document.cookie.match(new RegExp('(^| )' + escapedName + '=([^;]+)'))
   return match ? decodeURIComponent(match[2]) : null
 }
 

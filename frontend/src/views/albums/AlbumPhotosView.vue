@@ -33,9 +33,9 @@ async function fetchPhotos() {
   if (!album.value) return
   loading.value = true
   try {
-    const { data } = await listAlbumPhotos(album.value.id, page.value, PAGE_SIZE)
-    photos.value = data.photos
-    updateFromResponse(data.total)
+    const result = await listAlbumPhotos(album.value.id, page.value, PAGE_SIZE)
+    photos.value = result.photos
+    updateFromResponse(result.total)
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('albums.fetchPhotosError')), 'error')
   } finally {

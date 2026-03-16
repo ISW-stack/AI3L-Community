@@ -381,19 +381,31 @@ onMounted(() => {
       <!-- Community stats section — real numbers from API -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-8">
         <div class="text-center">
-          <p class="text-2xl font-bold text-foreground">
+          <div
+            v-if="loadingStats"
+            class="h-8 w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
+          ></div>
+          <p v-else class="text-2xl font-bold text-foreground">
             {{ publicStats ? publicStats.member_count : '—' }}
           </p>
           <p class="text-sm text-muted">{{ t('home.stats.members') }}</p>
         </div>
         <div class="text-center">
-          <p class="text-2xl font-bold text-foreground">
+          <div
+            v-if="loadingStats"
+            class="h-8 w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
+          ></div>
+          <p v-else class="text-2xl font-bold text-foreground">
             {{ publicStats ? publicStats.post_count : '—' }}
           </p>
           <p class="text-sm text-muted">{{ t('home.stats.posts') }}</p>
         </div>
         <div class="text-center">
-          <p class="text-2xl font-bold text-foreground">
+          <div
+            v-if="loadingStats"
+            class="h-8 w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
+          ></div>
+          <p v-else class="text-2xl font-bold text-foreground">
             {{ publicStats ? publicStats.sig_count : '—' }}
           </p>
           <p class="text-sm text-muted">{{ t('home.stats.sigs') }}</p>

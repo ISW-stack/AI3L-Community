@@ -1,9 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import AdminLayout from '@/components/AdminLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior: (to) => (to.hash ? { el: to.hash } : { top: 0 }),
   routes: [
     {
       path: '/',
@@ -251,6 +253,7 @@ const router = createRouter({
       path: '/forms/:formId',
       name: 'form-view',
       component: () => import('@/views/forms/FormView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/forms/:formId/edit',
@@ -268,6 +271,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+  const toast = useToastStore()
 
   // Redirect authenticated users away from guest-only pages
   if (to.meta.guest && auth.isAuthenticated) {
@@ -281,16 +285,19 @@ router.beforeEach((to) => {
 
   // Block guest users from member-only pages
   if (to.meta.requiresMember && auth.isGuest) {
+    toast.show('You must be a full member to access that page.', 'error')
     return { name: 'home' }
   }
 
   // Check admin access
   if (to.meta.requiresAdmin && !auth.isAdmin) {
+    toast.show('You do not have permission to access that page.', 'error')
     return { name: 'home' }
   }
 
   // Check super admin access
   if (to.meta.requiresSuperAdmin && !auth.isSuperAdmin) {
+    toast.show('You do not have permission to access that page.', 'error')
     return { name: 'home' }
   }
 })

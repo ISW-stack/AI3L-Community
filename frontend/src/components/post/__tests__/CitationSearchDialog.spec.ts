@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import CitationSearchDialog from '../CitationSearchDialog.vue'
 
 vi.mock('@/api/citations', () => ({
-  searchForCitation: vi.fn().mockResolvedValue({ data: [] }),
+  searchForCitation: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock('@/utils/error', () => ({
@@ -63,9 +63,9 @@ describe('CitationSearchDialog — timer cleanup', () => {
   it('debounce timer fires normally when component is not unmounted', async () => {
     const { searchForCitation } = await import('@/api/citations')
     const mockSearch = searchForCitation as ReturnType<typeof vi.fn>
-    mockSearch.mockResolvedValue({
-      data: [{ id: '1', title: 'Post 1', author_name: 'Alice', created_at: '2026-01-01' }],
-    })
+    mockSearch.mockResolvedValue([
+      { id: '1', title: 'Post 1', author_name: 'Alice', created_at: '2026-01-01' },
+    ])
 
     const wrapper = mount(CitationSearchDialog, {
       props: { modelValue: true },

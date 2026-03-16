@@ -144,7 +144,7 @@ describe('FormsDirectoryView', () => {
 
   it('fetches standalone forms on mount', async () => {
     await mountDirectory()
-    expect(mockListStandaloneForms).toHaveBeenCalledWith(1, 12)
+    expect(mockListStandaloneForms).toHaveBeenCalledWith(1, 12, undefined)
   })
 
   it('renders form cards', async () => {
@@ -234,16 +234,21 @@ describe('FormsDirectoryView', () => {
     expect(searchInput.exists()).toBe(true)
   })
 
-  it('filters forms by search query (client-side)', async () => {
+  it('filters forms by search query (server-side)', async () => {
     const { wrapper } = await mountDirectory()
     // Both forms should be visible initially
     expect(wrapper.text()).toContain('Research Survey')
     expect(wrapper.text()).toContain('Feedback Form')
 
-    // Set search query via the component's internal state
+    // Mock API to return only Research Survey when searching
+    mockListStandaloneForms.mockResolvedValue({ forms: [fakeForms[0]], total: 1 })
+
+    // Trigger search via the component API
     const vm = wrapper.vm as any
     vm.searchQuery = 'Research'
-    await wrapper.vm.$nextTick()
+    // Call fetchForms directly since debounce won't trigger in tests
+    await vm.fetchForms()
+    await flushPromises()
 
     // Only "Research Survey" should be visible
     expect(wrapper.text()).toContain('Research Survey')
@@ -251,10 +256,12 @@ describe('FormsDirectoryView', () => {
   })
 
   it('shows empty state when search has no matches', async () => {
+    mockListStandaloneForms.mockResolvedValue({ forms: [], total: 0 })
     const { wrapper } = await mountDirectory()
     const vm = wrapper.vm as any
     vm.searchQuery = 'nonexistent'
-    await wrapper.vm.$nextTick()
+    await vm.fetchForms()
+    await flushPromises()
 
     const emptyStates = wrapper.findAll('.empty-state')
     expect(emptyStates.length).toBeGreaterThan(0)

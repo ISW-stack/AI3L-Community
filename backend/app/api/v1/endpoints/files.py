@@ -260,7 +260,7 @@ async def serve_file(
                 "You do not have permission to access this file.",
             )
 
-    # Block files that are malicious, unverified, or had scan errors (fail-close)
+    # Block files that are malicious, pending, unverified, or had scan errors (fail-close)
     try:
         scan = await file_scan_repo.find_by_key(key)
         if scan and scan["status"] == "malicious":
@@ -268,6 +268,12 @@ async def serve_file(
                 ErrorCode.FILE_001,
                 451,
                 "This file has been flagged as potentially malicious.",
+            )
+        if scan and scan["status"] == "pending":
+            raise AppError(
+                ErrorCode.SYS_422,
+                202,
+                "File is being scanned. Please try again shortly.",
             )
         if scan and scan["status"] in ("unknown", "error"):
             raise AppError(

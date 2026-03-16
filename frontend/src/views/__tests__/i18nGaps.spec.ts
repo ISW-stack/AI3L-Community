@@ -15,11 +15,11 @@ vi.mock('@/api/social', () => ({
   unfriend: vi.fn(),
   acceptFriendRequest: vi.fn(),
   rejectFriendRequest: vi.fn(),
-  listFollowing: vi.fn().mockResolvedValue({ data: { users: [], total: 0 } }),
-  listFollowers: vi.fn().mockResolvedValue({ data: { users: [], total: 0 } }),
+  listFollowing: vi.fn().mockResolvedValue({ users: [], total: 0 }),
+  listFollowers: vi.fn().mockResolvedValue({ users: [], total: 0 }),
   unfollowUser: vi.fn(),
   followUser: vi.fn(),
-  listBlocks: vi.fn().mockResolvedValue({ data: { blocks: [], total: 0 } }),
+  listBlocks: vi.fn().mockResolvedValue({ blocks: [], total: 0 }),
   unblockUser: vi.fn(),
   blockUser: vi.fn(),
 }))
@@ -151,8 +151,8 @@ async function mountQAList() {
 describe('i18n gaps — FriendsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockListFriends.mockResolvedValue({ data: { friends: [], total: 0 } })
-    mockListFriendRequests.mockResolvedValue({ data: { requests: [], total: 0 } })
+    mockListFriends.mockResolvedValue({ friends: [], total: 0 })
+    mockListFriendRequests.mockResolvedValue({ requests: [], total: 0 })
   })
 
   it('renders page title and tab labels using i18n keys', async () => {

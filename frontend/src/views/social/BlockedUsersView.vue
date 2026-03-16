@@ -34,10 +34,10 @@ async function fetchBlocks() {
   const localId = ++fetchId
   loading.value = true
   try {
-    const { data } = await listBlocks(page.value, pageSize)
+    const result = await listBlocks(page.value, pageSize)
     if (localId !== fetchId) return
-    blocks.value = data.blocks
-    updateFromResponse(data.total)
+    blocks.value = result.blocks
+    updateFromResponse(result.total)
   } catch (e: unknown) {
     if (localId !== fetchId) return
     toast.show(getErrorMessage(e, t('social.loadBlockedError')), 'error')

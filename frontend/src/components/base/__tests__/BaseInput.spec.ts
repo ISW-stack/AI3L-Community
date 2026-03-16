@@ -23,13 +23,15 @@ describe('BaseInput', () => {
       expect(wrapper.find('label').exists()).toBe(false)
     })
 
-    it('should generate id from label', () => {
+    it('should generate a unique id when no explicit id is provided', () => {
       const wrapper = mount(BaseInput, {
         props: { label: 'First Name' },
       })
       const input = wrapper.find('input')
-      expect(input.attributes('id')).toBe('input-first-name')
-      expect(wrapper.find('label').attributes('for')).toBe('input-first-name')
+      const generatedId = input.attributes('id')
+      expect(generatedId).toBeTruthy()
+      expect(generatedId).toMatch(/^input-/)
+      expect(wrapper.find('label').attributes('for')).toBe(generatedId)
     })
 
     it('should use custom id when provided', () => {

@@ -41,6 +41,7 @@ export default {
     optional: 'वैकल्पिक',
     noData: 'कोई डेटा नहीं',
     noResults: 'कोई परिणाम नहीं मिला।',
+    question: 'Question',
     unknownError: 'एक अप्रत्याशित त्रुटि हुई।',
     role: {
       superAdmin: 'सुपर व्यवस्थापक',
@@ -96,6 +97,8 @@ export default {
     captcha: 'कैप्चा',
     captchaPlaceholder: 'कैप्चा कोड दर्ज करें',
     captchaRefresh: 'कैप्चा ताज़ा करने के लिए क्लिक करें',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'पासवर्ड दिखाएँ',
     hidePassword: 'पासवर्ड छिपाएँ',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'लॉग इन विफल। कृपया पुनः प्रयास करें।',
     registerFailed: 'पंजीकरण विफल। कृपया पुनः प्रयास करें।',
     guestLoginFailed: 'अतिथि लॉग इन विफल। कृपया पुनः प्रयास करें।',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -486,6 +490,7 @@ export default {
         message:
           'यह इस विशेष रुचि समूह और उसकी सभी पोस्ट को सॉफ्ट-डिलीट कर देगा। इस क्रिया को आसानी से पूर्ववत नहीं किया जा सकता।',
         confirmBtn: 'हटाने की पुष्टि करें',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'SIG छोड़ें?',
@@ -922,6 +927,11 @@ export default {
         displayNamePlaceholder: 'प्रदर्शन नाम',
         passwordLabel: 'पासवर्ड',
         passwordPlaceholder: '8+ अक्षर, बड़े/छोटे/अंक',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'भूमिका',
         roleMember: 'सदस्य',
         roleAdmin: 'व्यवस्थापक',
@@ -1389,5 +1399,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

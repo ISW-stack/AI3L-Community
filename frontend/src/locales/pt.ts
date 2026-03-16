@@ -41,6 +41,7 @@ export default {
     optional: 'Opcional',
     noData: 'Sem dados',
     noResults: 'Nenhum resultado encontrado.',
+    question: 'Question',
     unknownError: 'Ocorreu um erro inesperado.',
     role: {
       superAdmin: 'Superadministrador',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Captcha',
     captchaPlaceholder: 'Digite o código do captcha',
     captchaRefresh: 'Clique para atualizar o captcha',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Mostrar senha',
     hidePassword: 'Ocultar senha',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Falha no login. Por favor, tente novamente.',
     registerFailed: 'Falha no cadastro. Por favor, tente novamente.',
     guestLoginFailed: 'Falha no acesso como visitante. Por favor, tente novamente.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -486,6 +490,7 @@ export default {
         message:
           'Isso irá excluir de forma suave este Grupo de Interesse Especial e todas as suas publicações. Esta ação não pode ser facilmente desfeita.',
         confirmBtn: 'Confirmar Exclusão',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'Sair do SIG?',
@@ -924,6 +929,11 @@ export default {
         displayNamePlaceholder: 'Nome de exibição',
         passwordLabel: 'Senha',
         passwordPlaceholder: '8+ chars, maiúsc/minúsc/número',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Função',
         roleMember: 'Membro',
         roleAdmin: 'Admin',
@@ -1391,5 +1401,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

@@ -44,8 +44,8 @@ async function fetchRecommendations() {
   if (!auth.isAuthenticated || auth.isGuest) return
   loading.value = true
   try {
-    const { data } = await getRecommendations()
-    recommendations.value = data.recommendations.slice(0, 10)
+    const result = await getRecommendations()
+    recommendations.value = result.recommendations.slice(0, 10)
   } catch (e: unknown) {
     console.error('Failed to fetch recommendations:', getErrorMessage(e))
   } finally {

@@ -41,6 +41,7 @@ export default {
     optional: 'İsteğe bağlı',
     noData: 'Veri yok',
     noResults: 'Sonuç bulunamadı.',
+    question: 'Question',
     unknownError: 'Beklenmeyen bir hata oluştu.',
     role: {
       superAdmin: 'Süper Yönetici',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Captcha',
     captchaPlaceholder: 'Captcha kodunu girin',
     captchaRefresh: 'Captcha yenilemek için tıklayın',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Şifreyi göster',
     hidePassword: 'Şifreyi gizle',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Giriş başarısız. Lütfen tekrar deneyin.',
     registerFailed: 'Kayıt başarısız. Lütfen tekrar deneyin.',
     guestLoginFailed: 'Misafir girişi başarısız. Lütfen tekrar deneyin.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -488,6 +492,7 @@ export default {
         message:
           'Bu, Özel İlgi Grubunu ve tüm gönderilerini silecektir. Bu işlem kolayca geri alınamaz.',
         confirmBtn: 'Silmeyi Onayla',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: "SIG'den Ayrıl?",
@@ -925,6 +930,11 @@ export default {
         displayNamePlaceholder: 'Görünen Ad',
         passwordLabel: 'Şifre',
         passwordPlaceholder: '8+ karakter, büyük/küçük harf/rakam',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Rol',
         roleMember: 'Üye',
         roleAdmin: 'Yönetici',
@@ -1392,5 +1402,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

@@ -154,8 +154,8 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
     else:
         questions = questions_raw or []
 
-    responses = await form_repo.find_all_responses(form_id)
-    total_responses = len(responses)
+    total_responses = await form_repo.count_total_responses(form_id)
+    responses = await form_repo.iter_responses_batched(form_id)
 
     question_stats = []
     for q in questions:
@@ -329,12 +329,12 @@ async def update_form(
 
 
 async def list_standalone_forms(
-    page: int = 1, page_size: int = DEFAULT_PAGE_SIZE_STANDALONE_FORMS
+    page: int = 1, page_size: int = DEFAULT_PAGE_SIZE_STANDALONE_FORMS, q: str | None = None
 ) -> tuple[list[dict], int]:
     """List standalone forms (sig_id IS NULL)."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await form_repo.find_standalone(conn, page, page_size)
+        rows = await form_repo.find_standalone(conn, page, page_size, q=q)
     if not rows:
         return [], 0
     total = rows[0]["total_count"]

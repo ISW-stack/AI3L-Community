@@ -41,6 +41,7 @@ export default {
     optional: 'Opsional',
     noData: 'Tidak ada data',
     noResults: 'Tidak ada hasil ditemukan.',
+    question: 'Question',
     unknownError: 'Terjadi kesalahan yang tidak terduga.',
     role: {
       superAdmin: 'Admin Super',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Captcha',
     captchaPlaceholder: 'Masukkan kode captcha',
     captchaRefresh: 'Klik untuk memuat ulang captcha',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Tampilkan kata sandi',
     hidePassword: 'Sembunyikan kata sandi',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Login gagal. Silakan coba lagi.',
     registerFailed: 'Pendaftaran gagal. Silakan coba lagi.',
     guestLoginFailed: 'Login tamu gagal. Silakan coba lagi.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -490,6 +494,7 @@ export default {
         message:
           'Ini akan menghapus sementara Kelompok Minat Khusus ini beserta semua postingannya. Tindakan ini tidak mudah dibatalkan.',
         confirmBtn: 'Konfirmasi Hapus',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'Tinggalkan SIG?',
@@ -928,6 +933,11 @@ export default {
         displayNamePlaceholder: 'Nama Tampilan',
         passwordLabel: 'Kata Sandi',
         passwordPlaceholder: '8+ karakter, kapital/kecil/angka',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Peran',
         roleMember: 'Anggota',
         roleAdmin: 'Admin',
@@ -1395,5 +1405,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

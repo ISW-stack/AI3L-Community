@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { formatDateTime } from '@/utils/date'
 import { useFormBuilder } from '@/composables/useFormBuilder'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
@@ -13,7 +14,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import QuestionEditor from '@/components/forms/QuestionEditor.vue'
 import FormPreview from '@/components/forms/FormPreview.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -122,7 +123,7 @@ const {
         <div class="flex flex-wrap items-center gap-2">
           <span>{{
             t('forms.builder.draftFound', {
-              time: new Date(draftTime).toLocaleString(),
+              time: formatDateTime(draftTime, locale.value),
             })
           }}</span>
           <button class="text-sm font-medium text-brand-600 hover:underline" @click="restoreDraft">

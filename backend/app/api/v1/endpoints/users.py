@@ -1,4 +1,5 @@
 import uuid
+from datetime import date as DateType
 
 from fastapi import APIRouter, Depends, Query, Request, UploadFile, status
 
@@ -201,23 +202,10 @@ async def search_users(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> list[dict]:
     """Search users by display name or username for co-author invitation."""
-    from app.core.database import get_pool
-
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT id, username, display_name, avatar_url
-            FROM users
-            WHERE is_deleted = false AND is_banned = false
-              AND (display_name ILIKE $1 OR username ILIKE $1)
-            ORDER BY display_name
-            LIMIT $2
-            """,
-            f"%{q}%",
-            limit,
-        )
     from app.converters.user_converter import async_resolve_avatar_url
+    from app.repositories.user_repo import search_users_for_coauthor
+
+    rows = await search_users_for_coauthor(q, limit)
 
     return [
         {
@@ -484,15 +472,17 @@ async def get_audit_logs(
     page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=50),
     user_id: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
+    date_from: DateType | None = Query(None),
+    date_to: DateType | None = Query(None),
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
 ) -> dict:
+    if date_from and date_to and date_from > date_to:
+        raise AppError(ErrorCode.SYS_422, 422, "date_from must not be after date_to.")
     logs, total = await list_audit_logs(
         page=page,
         page_size=page_size,
         user_id_filter=user_id,
-        date_from=date_from,
-        date_to=date_to,
+        date_from=date_from.isoformat() if date_from else None,
+        date_to=date_to.isoformat() if date_to else None,
     )
     return {"logs": logs, "total": total, "page": page, "page_size": page_size}

@@ -5,7 +5,14 @@ export interface QuestionOption {
 
 export interface Question {
   id: string
-  type: string
+  type:
+    | 'text'
+    | 'textarea'
+    | 'single_choice'
+    | 'multiple_choice'
+    | 'dropdown'
+    | 'rating'
+    | 'file_upload'
   label: string
   required?: boolean
   placeholder?: string

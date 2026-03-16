@@ -29,12 +29,12 @@ async function handleSubmit() {
   }
   saving.value = true
   try {
-    const { data } = await createAlbum({
+    const album = await createAlbum({
       title: title.value.trim(),
       description: description.value.trim() || undefined,
     })
     toast.show(t('albums.createSuccess'), 'success')
-    router.push(`/albums/${data.id}`)
+    router.push(`/albums/${album.id}`)
   } catch (e: unknown) {
     error.value = getErrorMessage(e, t('albums.createError'))
   } finally {

@@ -23,7 +23,7 @@ import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -39,6 +39,7 @@ const editName = ref('')
 const editDescription = ref('')
 const editSaving = ref(false)
 const showDeleteConfirm = ref(false)
+const deletingGroup = ref(false)
 const joining = ref(false)
 
 const showLeaveConfirm = ref(false)
@@ -117,6 +118,7 @@ async function saveEdit() {
 }
 
 async function handleDeleteSig() {
+  deletingGroup.value = true
   try {
     await deleteSigApi(sigId.value)
     router.push('/sigs')
@@ -124,6 +126,7 @@ async function handleDeleteSig() {
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.detail.deleteError')), 'error')
   } finally {
+    deletingGroup.value = false
     showDeleteConfirm.value = false
   }
 }
@@ -255,7 +258,7 @@ onUnmounted(() => {
                   >
                   <span
                     >{{ t('sigs.detail.established') }}
-                    {{ new Date(sig.created_at).toLocaleDateString() }}</span
+                    {{ new Date(sig.created_at).toLocaleDateString(locale) }}</span
                   >
                 </div>
               </div>
@@ -330,9 +333,10 @@ onUnmounted(() => {
             <BaseButton variant="secondary" @click="showDeleteConfirm = false">{{
               t('common.cancel')
             }}</BaseButton>
-            <BaseButton variant="danger" @click="handleDeleteSig">{{
-              t('sigs.detail.deleteConfirm.confirmBtn')
-            }}</BaseButton>
+            <BaseButton variant="danger" :loading="deletingGroup" :disabled="deletingGroup" @click="handleDeleteSig">
+              <span v-if="deletingGroup">{{ t('sigs.detail.deleteConfirm.deletingBtn') }}</span>
+              <span v-else>{{ t('sigs.detail.deleteConfirm.confirmBtn') }}</span>
+            </BaseButton>
           </template>
         </BaseModal>
 

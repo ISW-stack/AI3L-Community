@@ -13,6 +13,7 @@ import type { UserProfile } from '@/types/user'
 import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
 import router from '@/router'
+import { i18n } from '@/locales'
 
 export const useAuthStore = defineStore('auth', () => {
   // Role is non-sensitive — kept in localStorage for UI state across page reloads
@@ -155,7 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
         heartbeatFailures++
         if (heartbeatFailures >= MAX_HEARTBEAT_FAILURES) {
           const toast = useToastStore()
-          toast.show('Your session has expired. Please log in again.', 'warning')
+          toast.show(i18n.global.t('auth.sessionExpired'), 'warning')
           clearSession()
           router.push({ name: 'login' })
         }

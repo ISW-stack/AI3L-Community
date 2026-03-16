@@ -41,6 +41,7 @@ export default {
     optional: 'Optional',
     noData: 'Keine Daten',
     noResults: 'Keine Ergebnisse gefunden.',
+    question: 'Question',
     unknownError: 'Ein unerwarteter Fehler ist aufgetreten.',
     role: {
       superAdmin: 'Super-Administrator',
@@ -96,6 +97,8 @@ export default {
     captcha: 'Captcha',
     captchaPlaceholder: 'Captcha-Code eingeben',
     captchaRefresh: 'Zum Aktualisieren klicken',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'Passwort anzeigen',
     hidePassword: 'Passwort verbergen',
     validation: {
@@ -123,6 +126,7 @@ export default {
     loginFailed: 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.',
     registerFailed: 'Registrierung fehlgeschlagen. Bitte erneut versuchen.',
     guestLoginFailed: 'Gastanmeldung fehlgeschlagen. Bitte erneut versuchen.',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -492,6 +496,7 @@ export default {
         message:
           'Diese Arbeitsgruppe und alle zugehörigen Beiträge werden als gelöscht markiert. Diese Aktion kann nur schwer rückgängig gemacht werden.',
         confirmBtn: 'Löschen bestätigen',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'SIG verlassen?',
@@ -930,6 +935,11 @@ export default {
         displayNamePlaceholder: 'Anzeigename',
         passwordLabel: 'Passwort',
         passwordPlaceholder: 'Mind. 8 Zeichen, Groß-/Kleinbuchst./Ziffer',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: 'Rolle',
         roleMember: 'Mitglied',
         roleAdmin: 'Administrator',
@@ -1397,5 +1407,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

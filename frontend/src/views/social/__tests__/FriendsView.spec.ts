@@ -135,10 +135,12 @@ describe('FriendsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockListFriends.mockResolvedValue({
-      data: { friends: fakeFriends.map((f) => ({ ...f })), total: 2 },
+      friends: fakeFriends.map((f) => ({ ...f })),
+      total: 2,
     })
     mockListFriendRequests.mockResolvedValue({
-      data: { requests: fakeRequests.map((r) => ({ ...r })), total: 1 },
+      requests: fakeRequests.map((r) => ({ ...r })),
+      total: 1,
     })
     mockUnfriend.mockResolvedValue({})
     mockAcceptFriendRequest.mockResolvedValue({})
@@ -225,7 +227,8 @@ describe('FriendsView', () => {
 
   it('shows empty state when no friends', async () => {
     mockListFriends.mockResolvedValue({
-      data: { friends: [], total: 0 },
+      friends: [],
+      total: 0,
     })
     const { wrapper } = await mountFriendsView()
     expect(wrapper.find('.empty-state').exists()).toBe(true)

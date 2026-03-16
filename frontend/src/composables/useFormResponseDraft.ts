@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { ref, watch, onUnmounted, type Ref } from 'vue'
 
 const DRAFT_PREFIX = 'form-response-draft-'
 const DEBOUNCE_MS = 2000
@@ -95,6 +95,10 @@ export function useFormResponseDraft(options: FormDraftOptions) {
       stopWatcher = null
     }
   }
+
+  onUnmounted(() => {
+    stopAutoSave()
+  })
 
   return {
     draftRestored,

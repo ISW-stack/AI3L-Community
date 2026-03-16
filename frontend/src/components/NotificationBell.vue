@@ -22,7 +22,7 @@ const { handleDropdownKeydown } = useDropdownKeyNav({
   },
   onClose: () => (dropdownOpen.value = false),
   wrapperClass: 'notification-bell-wrapper',
-  triggerSelector: 'button[aria-label="Notifications"]',
+  triggerSelector: 'button[data-notification-trigger]',
 })
 
 function toggleDropdown() {
@@ -80,9 +80,10 @@ onUnmounted(() => {
 <template>
   <div class="relative notification-bell-wrapper" @keydown="handleDropdownKeydown">
     <button
+      data-notification-trigger
       @click="toggleDropdown"
       class="relative p-2 text-muted hover:text-foreground focus:outline-none transition"
-      aria-label="Notifications"
+      :aria-label="t('aria.notifications')"
       :aria-expanded="dropdownOpen"
     >
       <Bell class="w-5 h-5" aria-hidden="true" />

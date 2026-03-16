@@ -40,6 +40,7 @@ export default {
     optional: '任意',
     noData: 'データなし',
     noResults: '結果が見つかりませんでした。',
+    question: 'Question',
     unknownError: '予期しないエラーが発生しました。',
     role: {
       superAdmin: 'スーパー管理者',
@@ -95,6 +96,8 @@ export default {
     captcha: 'キャプチャ',
     captchaPlaceholder: 'キャプチャコードを入力してください',
     captchaRefresh: 'クリックしてキャプチャを更新',
+    captchaLoadError: 'Failed to load captcha.',
+    captchaRetry: 'Try again',
     showPassword: 'パスワードを表示',
     hidePassword: 'パスワードを非表示',
     validation: {
@@ -122,6 +125,7 @@ export default {
     loginFailed: 'ログインに失敗しました。もう一度お試しください。',
     registerFailed: '登録に失敗しました。もう一度お試しください。',
     guestLoginFailed: 'ゲストログインに失敗しました。もう一度お試しください。',
+    sessionExpired: 'Your session has expired. Please log in again.',
   },
 
   // ── Privacy Consent ──
@@ -485,6 +489,7 @@ export default {
         message:
           'この特別興味グループとそのすべての投稿をソフト削除します。この操作は簡単に元に戻せません。',
         confirmBtn: '削除を確認',
+        deletingBtn: 'Deleting...',
       },
       leaveConfirm: {
         title: 'SIGを退出しますか？',
@@ -919,6 +924,11 @@ export default {
         displayNamePlaceholder: '表示名',
         passwordLabel: 'パスワード',
         passwordPlaceholder: '8 文字以上、大文字・小文字・数字を含む',
+        passwordTooShort: 'Password must be at least 8 characters',
+        passwordNeedsUpper: 'Must contain an uppercase letter',
+        passwordNeedsLower: 'Must contain a lowercase letter',
+        passwordNeedsDigit: 'Must contain a digit',
+        passwordNeedsSpecial: 'Must contain a special character',
         roleLabel: '役割',
         roleMember: 'メンバー',
         roleAdmin: '管理者',
@@ -1386,5 +1396,12 @@ export default {
     similarInterests: 'Similar interests',
     sameAffiliation: 'Same affiliation',
     recentlyActive: 'Recently active',
+  },
+
+  // ── Aria Labels ──
+  aria: {
+    dismissNotification: 'Dismiss notification',
+    close: 'Close',
+    notifications: 'Notifications',
   },
 }

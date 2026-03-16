@@ -31,6 +31,7 @@ export function useWebSocket() {
   let ws: WebSocket | null = null
   let backoff = WS_INITIAL_BACKOFF_MS
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let connecting = false
   const connected = ref(false)
 
   async function getWsUrl(): Promise<string | null> {
@@ -46,50 +47,56 @@ export function useWebSocket() {
 
   async function connect() {
     if (!auth.isAuthenticated) return
-    cleanup()
+    if (connecting) return // Already connecting, skip duplicate call
+    connecting = true
+    try {
+      cleanup()
 
-    const url = await getWsUrl()
-    if (!url) {
-      scheduleReconnect()
-      return
-    }
-
-    ws = new WebSocket(url)
-
-    ws.onopen = () => {
-      connected.value = true
-      backoff = WS_INITIAL_BACKOFF_MS
-    }
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        if (msg.type === 'PING') {
-          ws?.send(JSON.stringify({ type: 'PONG' }))
-          return
-        }
-        // Guard: don't process non-PING messages after auth is cleared
-        if (!auth.isAuthenticated) return
-
-        if (msg.type === 'FORCE_LOGOUT') {
-          auth.clearSession()
-          router.push({ name: 'login' })
-        } else if (msg.type === 'NEW_NOTIFICATION') {
-          notificationStore.addFromWebSocket(msg.notification)
-          toastStore.show(msg.notification?.message || 'New notification', 'info')
-        }
-      } catch {
-        // ignore parse errors
+      const url = await getWsUrl()
+      if (!url) {
+        scheduleReconnect()
+        return
       }
-    }
 
-    ws.onclose = () => {
-      connected.value = false
-      scheduleReconnect()
-    }
+      ws = new WebSocket(url)
 
-    ws.onerror = () => {
-      ws?.close()
+      ws.onopen = () => {
+        connected.value = true
+        backoff = WS_INITIAL_BACKOFF_MS
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'PING') {
+            ws?.send(JSON.stringify({ type: 'PONG' }))
+            return
+          }
+          // Guard: don't process non-PING messages after auth is cleared
+          if (!auth.isAuthenticated) return
+
+          if (msg.type === 'FORCE_LOGOUT') {
+            auth.clearSession()
+            router.push({ name: 'login' })
+          } else if (msg.type === 'NEW_NOTIFICATION') {
+            notificationStore.addFromWebSocket(msg.notification)
+            toastStore.show(msg.notification?.message || 'New notification', 'info')
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+
+      ws.onclose = () => {
+        connected.value = false
+        scheduleReconnect()
+      }
+
+      ws.onerror = () => {
+        ws?.close()
+      }
+    } finally {
+      connecting = false
     }
   }
 

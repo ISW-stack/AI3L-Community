@@ -129,7 +129,7 @@ async function mountSocialActions(initialStatus?: RelationshipStatus, userId = '
 describe('SocialActions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetRelationshipStatus.mockResolvedValue({ data: noRelationship })
+    mockGetRelationshipStatus.mockResolvedValue(noRelationship)
     mockSendFriendRequest.mockResolvedValue({})
     mockAcceptFriendRequest.mockResolvedValue({})
     mockRejectFriendRequest.mockResolvedValue({})

@@ -51,12 +51,12 @@ async function fetchFollowing() {
   const localId = ++followingFetchId
   followingLoading.value = true
   try {
-    const { data } = await listFollowing(followingPage.value, followingPageSize)
+    const result = await listFollowing(followingPage.value, followingPageSize)
     if (localId !== followingFetchId) return
-    following.value = data.users
-    updateFollowingResponse(data.total)
+    following.value = result.users
+    updateFollowingResponse(result.total)
     // Build the set of user IDs we are following for cross-reference
-    followingBackSet.value = new Set(data.users.map((u) => u.user_id))
+    followingBackSet.value = new Set(result.users.map((u) => u.user_id))
   } catch (e: unknown) {
     if (localId !== followingFetchId) return
     toast.show(getErrorMessage(e, t('social.loadFollowingError')), 'error')
@@ -71,10 +71,10 @@ async function fetchFollowers() {
   const localId = ++followersFetchId
   followersLoading.value = true
   try {
-    const { data } = await listFollowers(followersPage.value, followersPageSize)
+    const result = await listFollowers(followersPage.value, followersPageSize)
     if (localId !== followersFetchId) return
-    followers.value = data.users
-    updateFollowersResponse(data.total)
+    followers.value = result.users
+    updateFollowersResponse(result.total)
   } catch (e: unknown) {
     if (localId !== followersFetchId) return
     toast.show(getErrorMessage(e, t('social.loadFollowersError')), 'error')

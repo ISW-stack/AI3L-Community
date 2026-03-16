@@ -25,7 +25,7 @@ vi.mock('@/api/files', () => ({
 }))
 
 vi.mock('@/api/coauthors', () => ({
-  listMyInvitations: vi.fn().mockResolvedValue({ data: { invitations: [] } }),
+  listMyInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
   acceptInvitation: vi.fn().mockResolvedValue({}),
   rejectInvitation: vi.fn().mockResolvedValue({}),
 }))

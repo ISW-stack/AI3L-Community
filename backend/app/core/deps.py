@@ -70,7 +70,7 @@ async def get_optional_current_user(
     """Try to get current user, return None if not authenticated."""
     try:
         return await get_current_user(request, credentials)
-    except (AppError, Exception):
+    except AppError:
         return None
 
 

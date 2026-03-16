@@ -56,7 +56,7 @@ async function fetchCoAuthors() {
   loading.value = true
   try {
     const res = await listCoAuthors(props.postId)
-    coAuthors.value = res.data.co_authors
+    coAuthors.value = res.co_authors
   } catch (e: unknown) {
     error.value = getErrorMessage(e, 'Failed to load co-authors.')
   } finally {
@@ -74,7 +74,7 @@ function onSearchInput() {
   searchDebounceTimer = setTimeout(async () => {
     try {
       const res = await searchUsers(searchQuery.value.trim())
-      searchResults.value = res.data as Array<{
+      searchResults.value = res as Array<{
         id: string
         display_name: string
         avatar_url: string | null

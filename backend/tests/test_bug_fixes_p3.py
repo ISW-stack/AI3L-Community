@@ -516,7 +516,7 @@ class TestGuestDisplayNameStored:
         redis = AsyncMock()
         redis.eval = AsyncMock(return_value=5)
         mock_get_redis.return_value = redis
-        mock_create_session.return_value = ("token-guest", 2700)
+        mock_create_session.return_value = ("token-guest", "jti-guest", 2700)
 
         result = await guest_login("Test Guest")
         assert result is not None
@@ -541,7 +541,7 @@ class TestGuestDisplayNameStored:
         redis = AsyncMock()
         redis.eval = AsyncMock(return_value=1)
         mock_get_redis.return_value = redis
-        mock_create_session.return_value = ("tok", 2700)
+        mock_create_session.return_value = ("tok", "jti-alice", 2700)
 
         await guest_login("Alice")
 
