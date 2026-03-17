@@ -26,7 +26,7 @@ const typeClasses: Record<string, string> = {
         :class="typeClasses[toast.type]"
         role="alert"
       >
-        <span class="flex-1">{{ toast.message }}</span>
+        <span class="flex-1">{{ toast.messageKey ? t(toast.messageKey) : toast.message }}</span>
         <button
           @click="toastStore.dismiss(toast.id)"
           class="shrink-0 opacity-60 hover:opacity-100 transition text-current leading-none text-lg"

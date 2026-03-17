@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Accesso non riuscito. Riprova.',
     registerFailed: 'Registrazione non riuscita. Riprova.',
     guestLoginFailed: 'Accesso ospite non riuscito. Riprova.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'La sessione è scaduta. Accedi di nuovo.',
   },
 
   // ── Privacy Consent ──
@@ -1169,6 +1169,12 @@ export default {
     AUTH_002: 'Sessione non valida o revocata.',
     AUTH_003: 'Capacità ospiti raggiunta. Riprova più tardi.',
     AUTH_004: 'Il tuo account è stato bannato.',
+    AUTH_005: 'Captcha non valido o scaduto.',
+    AUTH_006: 'Codice di invito non valido o scaduto.',
+    AUTH_007: 'La password non soddisfa i requisiti.',
+    AUTH_008: 'Il nome utente è già in uso.',
+    AUTH_010: 'Nome utente o password non validi.',
+    sessionExpired: 'La sessione è scaduta. Accedi di nuovo.',
     RATE_LIMIT: 'Troppe richieste. Riprova più tardi.',
     RATE_LIMIT_RETRY: 'Troppe richieste. Riprova dopo {seconds} secondi.',
     unknown: 'Si è verificato un errore imprevisto.',

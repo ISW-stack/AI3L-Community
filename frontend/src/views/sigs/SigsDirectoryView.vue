@@ -10,7 +10,6 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
-import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
 const { t } = useI18n()
@@ -39,7 +38,7 @@ async function fetchSigs() {
     sigs.value = data.sigs
     total.value = data.total
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('sigs.directory.fetchError')), 'error')
+    toast.show(getErrorMessage(e, t, 'sigs.directory.fetchError'), 'error')
   } finally {
     loading.value = false
   }
@@ -49,41 +48,45 @@ onMounted(fetchSigs)
 </script>
 
 <template>
-  <div>
-    <BaseBreadcrumb
-      :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.sigsDirectory') }]"
-    />
-    <div class="flex justify-between items-center mb-6">
+  <div class="w-full flex flex-col justify-start">
+    <div class="flex justify-between items-center mb-6 shrink-0">
       <h1 class="text-2xl font-bold text-foreground">{{ t('sigs.directory.title') }}</h1>
       <router-link v-if="auth.isAdmin" to="/sigs/create">
         <BaseButton>{{ t('sigs.directory.createBtn') }}</BaseButton>
       </router-link>
     </div>
 
-    <div class="mb-4">
+    <div class="mb-4 shrink-0">
       <BaseInput v-model="searchQuery" :placeholder="t('sigs.directory.searchPlaceholder')" />
     </div>
 
-    <SkeletonLoader v-if="loading" :lines="3" variant="card" />
-    <EmptyState
-      v-else-if="filteredSigs.length === 0"
-      :message="searchQuery ? t('sigs.directory.searchEmpty') : t('sigs.directory.emptyMessage')"
-      :title="searchQuery ? t('common.noResults') : t('sigs.directory.emptyTitle')"
-    />
+    <div class="flex-1 w-full flex flex-col min-h-[400px]">
+      <SkeletonLoader v-if="loading" :lines="3" variant="card" />
+      <EmptyState
+        v-else-if="filteredSigs.length === 0"
+        :message="searchQuery ? t('sigs.directory.searchEmpty') : t('sigs.directory.emptyMessage')"
+        :title="searchQuery ? t('common.noResults') : t('sigs.directory.emptyTitle')"
+      />
 
-    <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <router-link v-for="sig in filteredSigs" :key="sig.id" :to="`/sigs/${sig.id}`" class="block">
-        <BaseCard hoverable class="h-full">
-          <h2 class="text-lg font-semibold text-foreground mb-1">{{ sig.name }}</h2>
-          <p v-if="sig.description" class="text-sm text-muted mb-3 line-clamp-2">
-            {{ sig.description }}
-          </p>
-          <div class="flex items-center justify-between text-xs text-muted">
-            <span>{{ sig.member_count }} {{ t('sigs.directory.memberCount') }}</span>
-            <span>{{ new Date(sig.created_at).toLocaleDateString() }}</span>
-          </div>
-        </BaseCard>
-      </router-link>
+      <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 content-start">
+        <router-link
+          v-for="sig in filteredSigs"
+          :key="sig.id"
+          :to="`/sigs/${sig.id}`"
+          class="block"
+        >
+          <BaseCard hoverable class="h-full">
+            <h2 class="text-lg font-semibold text-foreground mb-1">{{ sig.name }}</h2>
+            <p v-if="sig.description" class="text-sm text-muted mb-3 line-clamp-2">
+              {{ sig.description }}
+            </p>
+            <div class="flex items-center justify-between text-xs text-muted">
+              <span>{{ sig.member_count }} {{ t('sigs.directory.memberCount') }}</span>
+              <span>{{ new Date(sig.created_at).toLocaleDateString() }}</span>
+            </div>
+          </BaseCard>
+        </router-link>
+      </div>
     </div>
 
     <p class="mt-4 text-xs text-muted">{{ total }} {{ t('sigs.directory.totalCount') }}</p>

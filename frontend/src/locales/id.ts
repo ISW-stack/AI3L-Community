@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Login gagal. Silakan coba lagi.',
     registerFailed: 'Pendaftaran gagal. Silakan coba lagi.',
     guestLoginFailed: 'Login tamu gagal. Silakan coba lagi.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
   },
 
   // ── Privacy Consent ──
@@ -1172,6 +1172,12 @@ export default {
     AUTH_002: 'Sesi tidak valid atau telah dicabut.',
     AUTH_003: 'Kapasitas tamu penuh. Silakan coba lagi nanti.',
     AUTH_004: 'Akun Anda telah diblokir.',
+    AUTH_005: 'Captcha tidak valid atau sudah kedaluwarsa.',
+    AUTH_006: 'Kode undangan tidak valid atau sudah kedaluwarsa.',
+    AUTH_007: 'Kata sandi tidak memenuhi persyaratan.',
+    AUTH_008: 'Nama pengguna sudah digunakan.',
+    AUTH_010: 'Nama pengguna atau kata sandi salah.',
+    sessionExpired: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
     RATE_LIMIT: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
     RATE_LIMIT_RETRY: 'Terlalu banyak permintaan. Silakan coba lagi setelah {seconds} detik.',
     unknown: 'Terjadi kesalahan yang tidak terduga.',

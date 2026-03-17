@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Échec de la connexion. Veuillez réessayer.',
     registerFailed: "Échec de l'inscription. Veuillez réessayer.",
     guestLoginFailed: 'Échec de la connexion invité. Veuillez réessayer.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Votre session a expiré. Veuillez vous reconnecter.',
   },
 
   // ── Privacy Consent ──
@@ -1175,6 +1175,12 @@ export default {
     AUTH_002: 'Session invalide ou révoquée.',
     AUTH_003: "Capacité d'invités atteinte. Veuillez réessayer ultérieurement.",
     AUTH_004: 'Votre compte a été banni.',
+    AUTH_005: 'Captcha invalide ou expiré.',
+    AUTH_006: "Code d'invitation invalide ou expiré.",
+    AUTH_007: 'Le mot de passe ne respecte pas les exigences.',
+    AUTH_008: "Ce nom d'utilisateur est déjà pris.",
+    AUTH_010: "Nom d'utilisateur ou mot de passe incorrect.",
+    sessionExpired: 'Votre session a expiré. Veuillez vous reconnecter.',
     RATE_LIMIT: 'Trop de requêtes. Veuillez réessayer ultérieurement.',
     RATE_LIMIT_RETRY: 'Trop de requêtes. Veuillez réessayer après {seconds} secondes.',
     unknown: "Une erreur inattendue s'est produite.",

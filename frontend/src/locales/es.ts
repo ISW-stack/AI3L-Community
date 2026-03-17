@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Error al iniciar sesión. Por favor, intente de nuevo.',
     registerFailed: 'Error en el registro. Por favor, intente de nuevo.',
     guestLoginFailed: 'Error al iniciar sesión como invitado. Por favor, intente de nuevo.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
   },
 
   // ── Privacy Consent ──
@@ -1172,6 +1172,12 @@ export default {
     AUTH_002: 'Sesión inválida o revocada.',
     AUTH_003: 'Capacidad de invitados alcanzada. Por favor, intente de nuevo más tarde.',
     AUTH_004: 'Su cuenta ha sido bloqueada.',
+    AUTH_005: 'Captcha no válido o expirado.',
+    AUTH_006: 'Código de invitación no válido o expirado.',
+    AUTH_007: 'La contraseña no cumple los requisitos.',
+    AUTH_008: 'El nombre de usuario ya existe.',
+    AUTH_010: 'Nombre de usuario o contraseña incorrectos.',
+    sessionExpired: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
     RATE_LIMIT: 'Demasiadas solicitudes. Por favor, intente de nuevo más tarde.',
     RATE_LIMIT_RETRY: 'Demasiadas solicitudes. Por favor, reintente después de {seconds} segundos.',
     unknown: 'Ocurrió un error inesperado.',

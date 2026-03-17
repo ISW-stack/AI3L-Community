@@ -156,7 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
         heartbeatFailures++
         if (heartbeatFailures >= MAX_HEARTBEAT_FAILURES) {
           const toast = useToastStore()
-          toast.show(i18n.global.t('auth.sessionExpired'), 'warning')
+          toast.showKey('errors.sessionExpired', 'warning')
           clearSession()
           router.push({ name: 'login' })
         }

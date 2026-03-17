@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -26,7 +26,12 @@ const captchaId = ref('')
 const captchaCode = ref('')
 const captchaImage = ref('')
 const captchaError = ref(false)
-const error = ref('')
+const lastError = ref<unknown>(null)
+const error = computed(() => {
+  void currentLocale.value
+  if (!lastError.value) return ''
+  return getErrorMessage(lastError.value, t, 'auth.loginFailed')
+})
 const loading = ref(false)
 const showPassword = ref(false)
 
@@ -48,7 +53,7 @@ async function loadCaptcha() {
 }
 
 async function handleLogin() {
-  error.value = ''
+  lastError.value = null
   loading.value = true
   try {
     await auth.login(username.value, password.value, captchaId.value, captchaCode.value)
@@ -64,7 +69,7 @@ async function handleLogin() {
     }
     router.push(safeRedirect)
   } catch (e: unknown) {
-    error.value = getErrorMessage(e, t('auth.loginFailed'))
+    lastError.value = e
     await loadCaptcha()
   } finally {
     loading.value = false

@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Falha no login. Por favor, tente novamente.',
     registerFailed: 'Falha no cadastro. Por favor, tente novamente.',
     guestLoginFailed: 'Falha no acesso como visitante. Por favor, tente novamente.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Sua sessão expirou. Por favor, faça login novamente.',
   },
 
   // ── Privacy Consent ──
@@ -1168,6 +1168,12 @@ export default {
     AUTH_002: 'Sessão inválida ou revogada.',
     AUTH_003: 'Capacidade de visitantes atingida. Por favor, tente novamente mais tarde.',
     AUTH_004: 'Sua conta foi banida.',
+    AUTH_005: 'Captcha inválido ou expirado.',
+    AUTH_006: 'Código de convite inválido ou expirado.',
+    AUTH_007: 'A senha não atende aos requisitos.',
+    AUTH_008: 'Nome de usuário já existe.',
+    AUTH_010: 'Nome de usuário ou senha incorretos.',
+    sessionExpired: 'Sua sessão expirou. Por favor, faça login novamente.',
     RATE_LIMIT: 'Muitas requisições. Por favor, tente novamente mais tarde.',
     RATE_LIMIT_RETRY: 'Muitas requisições. Por favor, tente novamente após {seconds} segundos.',
     unknown: 'Ocorreu um erro inesperado.',

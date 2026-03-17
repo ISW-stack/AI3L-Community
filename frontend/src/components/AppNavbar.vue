@@ -127,6 +127,7 @@ onUnmounted(() => {
             >{{ t('nav.albums') }}</router-link
           >
           <router-link
+            v-if="auth.isAuthenticated && !auth.isGuest"
             to="/about"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.about') }}</router-link
@@ -360,6 +361,7 @@ onUnmounted(() => {
             {{ t('nav.albums') }}
           </router-link>
           <router-link
+            v-if="auth.isAuthenticated && !auth.isGuest"
             to="/about"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"

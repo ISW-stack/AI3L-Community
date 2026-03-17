@@ -125,7 +125,7 @@ export default {
     loginFailed: 'ログインに失敗しました。もう一度お試しください。',
     registerFailed: '登録に失敗しました。もう一度お試しください。',
     guestLoginFailed: 'ゲストログインに失敗しました。もう一度お試しください。',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'セッションが切れました。再度ログインしてください。',
   },
 
   // ── Privacy Consent ──
@@ -1163,6 +1163,12 @@ export default {
     AUTH_002: 'セッションが無効または失効しています。',
     AUTH_003: 'ゲスト容量に達しました。後でもう一度お試しください。',
     AUTH_004: 'アカウントが BAN されています。',
+    AUTH_005: 'キャプチャが無効または期限切れです。',
+    AUTH_006: '招待コードが無効または期限切れです。',
+    AUTH_007: 'パスワードが要件を満たしていません。',
+    AUTH_008: 'ユーザー名は既に使用されています。',
+    AUTH_010: 'ユーザー名またはパスワードが正しくありません。',
+    sessionExpired: 'セッションが切れました。再度ログインしてください。',
     RATE_LIMIT: 'リクエストが多すぎます。後でもう一度お試しください。',
     RATE_LIMIT_RETRY: 'リクエストが多すぎます。{seconds} 秒後に再試行してください。',
     unknown: '予期しないエラーが発生しました。',

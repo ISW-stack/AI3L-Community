@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Giriş başarısız. Lütfen tekrar deneyin.',
     registerFailed: 'Kayıt başarısız. Lütfen tekrar deneyin.',
     guestLoginFailed: 'Misafir girişi başarısız. Lütfen tekrar deneyin.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.',
   },
 
   // ── Privacy Consent ──
@@ -1169,6 +1169,12 @@ export default {
     AUTH_002: 'Geçersiz veya iptal edilmiş oturum.',
     AUTH_003: 'Misafir kapasitesi doldu. Lütfen daha sonra tekrar deneyin.',
     AUTH_004: 'Hesabınız yasaklanmıştır.',
+    AUTH_005: 'Geçersiz veya süresi dolmuş doğrulama kodu.',
+    AUTH_006: 'Geçersiz veya süresi dolmuş davet kodu.',
+    AUTH_007: 'Şifre gereksinimleri karşılamıyor.',
+    AUTH_008: 'Kullanıcı adı zaten mevcut.',
+    AUTH_010: 'Geçersiz kullanıcı adı veya şifre.',
+    sessionExpired: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.',
     RATE_LIMIT: 'Çok fazla istek. Lütfen daha sonra tekrar deneyin.',
     RATE_LIMIT_RETRY: 'Çok fazla istek. Lütfen {seconds} saniye sonra tekrar deneyin.',
     unknown: 'Beklenmeyen bir hata oluştu.',

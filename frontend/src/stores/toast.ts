@@ -5,7 +5,8 @@ export type ToastType = 'info' | 'warning' | 'error' | 'success'
 
 export interface Toast {
   id: number
-  message: string
+  message: string | null
+  messageKey: string | null
   type: ToastType
 }
 
@@ -18,7 +19,16 @@ export const useToastStore = defineStore('toast', () => {
 
   function show(message: string, type: ToastType = 'info') {
     const id = nextId++
-    toasts.value.push({ id, message, type })
+    toasts.value.push({ id, message, messageKey: null, type })
+    const timer = setTimeout(() => {
+      dismiss(id)
+    }, TOAST_DURATION_MS)
+    timers.set(id, timer)
+  }
+
+  function showKey(messageKey: string, type: ToastType = 'info') {
+    const id = nextId++
+    toasts.value.push({ id, message: null, messageKey, type })
     const timer = setTimeout(() => {
       dismiss(id)
     }, TOAST_DURATION_MS)
@@ -40,5 +50,5 @@ export const useToastStore = defineStore('toast', () => {
     toasts.value = []
   }
 
-  return { toasts, show, dismiss, clearAll }
+  return { toasts, show, showKey, dismiss, clearAll }
 })

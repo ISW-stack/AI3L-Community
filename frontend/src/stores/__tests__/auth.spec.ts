@@ -28,10 +28,12 @@ vi.mock('@/stores/notifications', () => ({
 // Mock toast store
 const mockToastClearAll = vi.fn()
 const mockToastShow = vi.fn()
+const mockToastShowKey = vi.fn()
 vi.mock('@/stores/toast', () => ({
   useToastStore: () => ({
     clearAll: mockToastClearAll,
     show: mockToastShow,
+    showKey: mockToastShowKey,
   }),
 }))
 
@@ -57,6 +59,7 @@ describe('useAuthStore', () => {
     mockNotifResetState.mockReset()
     mockToastClearAll.mockReset()
     mockToastShow.mockReset()
+    mockToastShowKey.mockReset()
     mockRouterPush.mockReset()
     mockSyncLocaleFromProfile.mockReset()
   })
@@ -416,10 +419,7 @@ describe('useAuthStore', () => {
         await Promise.resolve()
       }
 
-      expect(mockToastShow).toHaveBeenCalledWith(
-        'Your session has expired. Please log in again.',
-        'warning',
-      )
+      expect(mockToastShowKey).toHaveBeenCalledWith('errors.sessionExpired', 'warning')
       expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
       expect(auth.role).toBeNull()
     })

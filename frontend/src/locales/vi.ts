@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Đăng nhập thất bại. Vui lòng thử lại.',
     registerFailed: 'Đăng ký thất bại. Vui lòng thử lại.',
     guestLoginFailed: 'Đăng nhập khách thất bại. Vui lòng thử lại.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.',
   },
 
   // ── Privacy Consent ──
@@ -1167,6 +1167,12 @@ export default {
     AUTH_002: 'Phiên không hợp lệ hoặc đã bị thu hồi.',
     AUTH_003: 'Đã đạt giới hạn khách. Vui lòng thử lại sau.',
     AUTH_004: 'Tài khoản của bạn đã bị cấm.',
+    AUTH_005: 'Mã captcha không hợp lệ hoặc đã hết hạn.',
+    AUTH_006: 'Mã mời không hợp lệ hoặc đã hết hạn.',
+    AUTH_007: 'Mật khẩu không đáp ứng yêu cầu.',
+    AUTH_008: 'Tên người dùng đã tồn tại.',
+    AUTH_010: 'Tên người dùng hoặc mật khẩu không đúng.',
+    sessionExpired: 'Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.',
     RATE_LIMIT: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
     RATE_LIMIT_RETRY: 'Quá nhiều yêu cầu. Vui lòng thử lại sau {seconds} giây.',
     unknown: 'Đã xảy ra lỗi không mong đợi.',

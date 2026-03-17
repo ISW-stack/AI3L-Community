@@ -126,7 +126,7 @@ export default {
     loginFailed: 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.',
     registerFailed: 'Registrierung fehlgeschlagen. Bitte erneut versuchen.',
     guestLoginFailed: 'Gastanmeldung fehlgeschlagen. Bitte erneut versuchen.',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
   },
 
   // ── Privacy Consent ──
@@ -1174,6 +1174,12 @@ export default {
     AUTH_002: 'Ungültige oder widerrufene Sitzung.',
     AUTH_003: 'Gastkapazität erreicht. Bitte später erneut versuchen.',
     AUTH_004: 'Ihr Konto wurde gesperrt.',
+    AUTH_005: 'Captcha ungültig oder abgelaufen.',
+    AUTH_006: 'Einladungscode ungültig oder abgelaufen.',
+    AUTH_007: 'Passwort erfüllt nicht die Anforderungen.',
+    AUTH_008: 'Benutzername ist bereits vergeben.',
+    AUTH_010: 'Benutzername oder Passwort ungültig.',
+    sessionExpired: 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
     RATE_LIMIT: 'Zu viele Anfragen. Bitte später erneut versuchen.',
     RATE_LIMIT_RETRY: 'Zu viele Anfragen. Bitte nach {seconds} Sekunden erneut versuchen.',
     unknown: 'Ein unerwarteter Fehler ist aufgetreten.',

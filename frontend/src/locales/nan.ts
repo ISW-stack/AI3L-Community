@@ -124,7 +124,7 @@ export default {
     loginFailed: '登入失敗，請再試一擺。',
     registerFailed: '註冊失敗，請再試一擺。',
     guestLoginFailed: '訪客登入失敗，請再試一擺。',
-    sessionExpired: 'Your session has expired. Please log in again.',
+    sessionExpired: 'Session 已過期，請重新登入。',
   },
 
   // ── Privacy Consent ──
@@ -1152,6 +1152,12 @@ export default {
     AUTH_002: 'Session 無效，iah-sī 已撤銷。',
     AUTH_003: '訪客容量已滿，請稍後再試。',
     AUTH_004: '你ê帳號已被封禁。',
+    AUTH_005: '驗證碼無效抑是已經過期。',
+    AUTH_006: '邀請碼無效抑是已經過期。',
+    AUTH_007: '密碼無符合要求。',
+    AUTH_008: '使用者名稱已經有人使用。',
+    AUTH_010: '使用者名稱抑是密碼毋著。',
+    sessionExpired: 'Session 已過期，請重新登入。',
     RATE_LIMIT: '要求次數太濟，請稍後再試。',
     RATE_LIMIT_RETRY: '要求次數太濟，請 {seconds} 秒後再試。',
     unknown: '出現意外ê錯誤。',

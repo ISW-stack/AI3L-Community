@@ -58,7 +58,9 @@
   --color-foreground: #111827;
 }
 
-html {
+html,
+body {
+  overflow-y: scroll;
   scrollbar-gutter: stable;
 }
 

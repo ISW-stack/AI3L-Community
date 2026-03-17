@@ -83,12 +83,14 @@ describe('AppNavbar', () => {
       expect(wrapper.text()).toContain('Sign Up')
     })
 
-    it('should show Forum, SIGs and About links', () => {
+    it('should show Forum and SIGs links but not About', () => {
       const { wrapper } = mountNavbar()
 
       expect(wrapper.text()).toContain('Forum')
       expect(wrapper.text()).toContain('SIGs')
-      expect(wrapper.text()).toContain('About')
+      // About requires authentication + non-guest role
+      const html = wrapper.html()
+      expect(html).not.toContain('href="/about"')
     })
 
     it('should not show admin links', () => {
@@ -115,6 +117,15 @@ describe('AppNavbar', () => {
 
       expect(wrapper.text()).toContain('Forum')
       expect(wrapper.text()).toContain('SIGs')
+    })
+
+    it('should show About link', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      await nextTick()
+
+      const html = wrapper.html()
+      expect(html).toContain('href="/about"')
     })
 
     it('should not show Log In / Sign Up links', async () => {
@@ -280,6 +291,24 @@ describe('AppNavbar', () => {
 
       expect(wrapper.text()).not.toContain('Dashboard')
       expect(wrapper.text()).not.toContain('Audit Logs')
+    })
+
+    it('should not show About link', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('GUEST', 3600)
+      await nextTick()
+
+      const html = wrapper.html()
+      expect(html).not.toContain('href="/about"')
+    })
+
+    it('should not show Friends link', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('GUEST', 3600)
+      await nextTick()
+
+      const html = wrapper.html()
+      expect(html).not.toContain('href="/friends"')
     })
   })
 
