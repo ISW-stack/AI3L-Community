@@ -1,5 +1,6 @@
 import uuid
 
+import asyncpg
 from loguru import logger
 
 from app.core.event_bus import emit
@@ -8,7 +9,10 @@ from app.repositories import application_repo
 
 async def create_application(user_id: uuid.UUID, description: str) -> dict:
     app_id = uuid.uuid4()
-    row = await application_repo.insert(app_id, user_id, description)
+    try:
+        row = await application_repo.insert(app_id, user_id, description)
+    except asyncpg.ForeignKeyViolationError:
+        raise ValueError("Guest account is not eligible to apply. Please register a full account first.")
     if row is None:
         raise ValueError("You already have a pending application.")
     logger.info("Membership application created", extra={"user_id": str(user_id)})

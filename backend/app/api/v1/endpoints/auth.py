@@ -103,12 +103,12 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
     # Verify captcha first
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise AppError(
-            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
+            ErrorCode.AUTH_005, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
         )
 
     user = await authenticate_user(req.username, req.password)
     if user is None:
-        raise AppError(ErrorCode.AUTH_001, 401, "Invalid username or password.")
+        raise AppError(ErrorCode.AUTH_010, 401, "Invalid username or password.")
 
     # Check banned
     if user.get("is_banned"):
@@ -142,12 +142,12 @@ async def login_as_guest(
     invite = await get_invite_code(invite_code)
     if invite is None:
         raise AppError(
-            ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Invalid or expired invite code."
+            ErrorCode.AUTH_006, status.HTTP_404_NOT_FOUND, "Invalid or expired invite code."
         )
 
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise AppError(
-            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
+            ErrorCode.AUTH_005, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
         )
 
     # Per-IP guest session limit (atomic via Lua script)
@@ -217,24 +217,24 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
     # Verify captcha
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise AppError(
-            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
+            ErrorCode.AUTH_005, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
         )
 
     # Validate invite code
     invite = await get_invite_code(req.invite_code)
     if invite is None:
         raise AppError(
-            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
+            ErrorCode.AUTH_006, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
         )
 
     # Validate password policy
     error = validate_password_policy(req.password)
     if error:
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, error)
+        raise AppError(ErrorCode.AUTH_007, status.HTTP_400_BAD_REQUEST, error)
 
     # Check username uniqueness
     if await user_exists_by_username(req.username):
-        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, "Username already exists.")
+        raise AppError(ErrorCode.AUTH_008, status.HTTP_409_CONFLICT, "Username already exists.")
 
     # Create user and consume invite code in a single transaction
     try:
@@ -246,7 +246,7 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
         )
     except ValueError:
         raise AppError(
-            ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
+            ErrorCode.AUTH_006, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
         )
 
     token, jti, expires_in = await create_session(str(user["id"]), user["role"])

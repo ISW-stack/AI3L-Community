@@ -66,7 +66,7 @@ class TestAuthStructuredErrors:
 
     @patch(f"{_AUTH_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.verify_captcha", new_callable=AsyncMock, return_value=False)
-    async def test_login_bad_captcha_returns_sys_422(
+    async def test_login_bad_captcha_returns_auth_005(
         self, mock_captcha, mock_rl, client: AsyncClient
     ):
         resp = await client.post(
@@ -78,12 +78,12 @@ class TestAuthStructuredErrors:
                 "captcha_code": "x",
             },
         )
-        _assert_structured_error(resp, "SYS_422", 400)
+        _assert_structured_error(resp, "AUTH_005", 400)
 
     @patch(f"{_AUTH_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.authenticate_user", new_callable=AsyncMock, return_value=None)
     @patch(f"{_AUTH_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_login_bad_credentials_returns_auth_001(
+    async def test_login_bad_credentials_returns_auth_010(
         self, mock_captcha, mock_auth, mock_rl, client: AsyncClient
     ):
         resp = await client.post(
@@ -95,7 +95,7 @@ class TestAuthStructuredErrors:
                 "captcha_code": "x",
             },
         )
-        _assert_structured_error(resp, "AUTH_001", 401)
+        _assert_structured_error(resp, "AUTH_010", 401)
 
     @patch(f"{_AUTH_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.authenticate_user", new_callable=AsyncMock)
@@ -134,7 +134,7 @@ class TestAuthStructuredErrors:
     @patch(f"{_AUTH_EP}.get_invite_code", new_callable=AsyncMock)
     @patch(f"{_AUTH_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_duplicate_username_returns_sys_409(
+    async def test_register_duplicate_username_returns_auth_008(
         self, mock_captcha, mock_exists, mock_invite, mock_rl, client: AsyncClient
     ):
         mock_invite.return_value = {"code": "VALID-CODE", "id": uuid.uuid4()}
@@ -149,12 +149,12 @@ class TestAuthStructuredErrors:
                 "captcha_code": "ABCD",
             },
         )
-        _assert_structured_error(resp, "SYS_409", 409)
+        _assert_structured_error(resp, "AUTH_008", 409)
 
     @patch(f"{_AUTH_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
     @patch(f"{_AUTH_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
-    async def test_register_bad_invite_returns_sys_422(
+    async def test_register_bad_invite_returns_auth_006(
         self, mock_captcha, mock_invite, mock_rl, client: AsyncClient
     ):
         resp = await client.post(
@@ -168,7 +168,7 @@ class TestAuthStructuredErrors:
                 "captcha_code": "ABCD",
             },
         )
-        _assert_structured_error(resp, "SYS_422", 400)
+        _assert_structured_error(resp, "AUTH_006", 400)
 
     @patch(f"{_AUTH_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
@@ -193,14 +193,14 @@ class TestAuthStructuredErrors:
 
     @patch(f"{_AUTH_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_AUTH_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)
-    async def test_guest_invalid_invite_returns_sys_404(
+    async def test_guest_invalid_invite_returns_auth_006(
         self, mock_invite, mock_rl, client: AsyncClient
     ):
         resp = await client.post(
             "/api/v1/auth/guest/BAD",
             json={"display_name": "V", "captcha_id": "x", "captcha_code": "x"},
         )
-        _assert_structured_error(resp, "SYS_404", 404)
+        _assert_structured_error(resp, "AUTH_006", 404)
 
     @patch(
         f"{_INVITE_REPO}.count_active_by_user",

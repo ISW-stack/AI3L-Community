@@ -464,6 +464,48 @@ class TestApplicationApprovalRoleGuard:
         mock_conn.execute.assert_not_called()
 
 
+class TestCreateApplicationFKViolation:
+    """Guest without a user row triggers FK violation → ValueError."""
+
+    @pytest.mark.anyio
+    async def test_fk_violation_raises_value_error(self):
+        """create_application catches ForeignKeyViolationError and raises ValueError."""
+        import asyncpg
+
+        from app.services.application import create_application
+
+        user_id = uuid.uuid4()
+
+        with patch(
+            f"{_REPO}.insert",
+            new_callable=AsyncMock,
+            side_effect=asyncpg.ForeignKeyViolationError("insert on membership_applications violates fk"),
+        ):
+            with pytest.raises(ValueError, match="not eligible"):
+                await create_application(user_id, "I want to join")
+
+    @pytest.mark.anyio
+    async def test_guest_apply_endpoint_returns_409_on_fk_violation(self, client):
+        """POST /users/apply-member → 409 when guest has no user row."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            with patch(
+                f"{_EP}.create_application",
+                new_callable=AsyncMock,
+                side_effect=ValueError("Guest account is not eligible to apply."),
+            ):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json={"description": "I'd like to join"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+        finally:
+            _clear_overrides()
+
+
 class TestReviewApplicationActionValidation:
     """Bug fix: review_application must reject invalid action strings."""
 

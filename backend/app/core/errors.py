@@ -8,6 +8,11 @@ class ErrorCode(str, Enum):
     AUTH_002 = "AUTH_002"  # Token in blacklist (revoked)
     AUTH_003 = "AUTH_003"  # Guest limit reached
     AUTH_004 = "AUTH_004"  # Account banned
+    AUTH_005 = "AUTH_005"  # Invalid or expired captcha
+    AUTH_006 = "AUTH_006"  # Invalid or expired invite code
+    AUTH_007 = "AUTH_007"  # Password policy violation
+    AUTH_008 = "AUTH_008"  # Username already exists
+    AUTH_010 = "AUTH_010"  # Invalid credentials (login failed)
     SYS_403 = "SYS_403"  # Forbidden
     SYS_404 = "SYS_404"  # Not found
     SYS_422 = "SYS_422"  # Validation error

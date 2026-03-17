@@ -82,7 +82,7 @@ class TestLoginEndpoint:
         )
         assert resp.status_code == 401
         data = resp.json()
-        assert data["detail"]["code"] == "AUTH_001"
+        assert data["detail"]["code"] == "AUTH_010"
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.authenticate_user", new_callable=AsyncMock)
