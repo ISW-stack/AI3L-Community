@@ -266,4 +266,19 @@ describe('FormsDirectoryView', () => {
     const emptyStates = wrapper.findAll('.empty-state')
     expect(emptyStates.length).toBeGreaterThan(0)
   })
+
+  it('clears search timeout on unmount', async () => {
+    const { wrapper } = await mountDirectory()
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+
+    // Trigger a search to start the debounce timer
+    const vm = wrapper.vm as any
+    vm.handleSearchInput('test')
+
+    // Unmount should clear the pending timer
+    wrapper.unmount()
+
+    expect(clearTimeoutSpy).toHaveBeenCalled()
+    clearTimeoutSpy.mockRestore()
+  })
 })

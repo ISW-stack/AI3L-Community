@@ -388,6 +388,8 @@ class TestAppErrorFormatCategories:
     @pytest.mark.anyio
     async def test_category_duplicate_returns_sys_409(self, client):
         """POST /categories with duplicate name -> 409 with SYS_409 code."""
+        import asyncpg
+
         try:
             _override_auth("ADMIN")
             with (
@@ -397,9 +399,9 @@ class TestAppErrorFormatCategories:
                     return_value=True,
                 ),
                 patch(
-                    f"{_EP_CATEGORIES}.category_exists",
+                    f"{_EP_CATEGORIES}.create_category",
                     new_callable=AsyncMock,
-                    return_value=True,
+                    side_effect=asyncpg.UniqueViolationError(),
                 ),
             ):
                 resp = await client.post(

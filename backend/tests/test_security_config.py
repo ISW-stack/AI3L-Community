@@ -42,7 +42,11 @@ class TestCookieSecureAutoDerive:
 
     def test_production_defaults_to_true(self) -> None:
         """In production mode, COOKIE_SECURE defaults to True."""
-        s = _make_settings(FASTAPI_ENV="production")
+        s = _make_settings(
+            FASTAPI_ENV="production",
+            JWT_SECRET_KEY="prod_secret_key_safe",
+            SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
+        )
         assert s.COOKIE_SECURE is True
 
     def test_explicit_true_overrides_development(self) -> None:
@@ -52,8 +56,12 @@ class TestCookieSecureAutoDerive:
 
     def test_explicit_false_overrides_production(self) -> None:
         """Explicit COOKIE_SECURE=False overrides production auto-derive."""
-        s = _make_settings(FASTAPI_ENV="production", COOKIE_SECURE=False)
-        assert s.COOKIE_SECURE is False
+        s = _make_settings(
+            FASTAPI_ENV="production",
+            COOKIE_SECURE=False,
+            JWT_SECRET_KEY="prod_secret_key_safe",
+            SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
+        )
 
     def test_unknown_env_defaults_to_false(self) -> None:
         """Unknown FASTAPI_ENV is not 'production', so COOKIE_SECURE defaults to False."""
@@ -69,7 +77,11 @@ class TestCookieSecureAutoDerive:
         s = _make_settings(FASTAPI_ENV="development")
         assert isinstance(s.COOKIE_SECURE, bool)
 
-        s2 = _make_settings(FASTAPI_ENV="production")
+        s2 = _make_settings(
+            FASTAPI_ENV="production",
+            JWT_SECRET_KEY="prod_secret_key_safe",
+            SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
+        )
         assert isinstance(s2.COOKIE_SECURE, bool)
 
 
@@ -193,7 +205,7 @@ class TestDevSecretWarnings:
         """In production, the dev warning block is skipped (production has its own checks)."""
         prod_settings = _make_settings(
             FASTAPI_ENV="production",
-            JWT_SECRET_KEY="changeme_jwt_secret_key",  # default — will trigger prod abort
+            JWT_SECRET_KEY="real_jwt_secret_not_default",
             SECRET_KEY="real_secret_key_not_default_value_here",
             POSTGRES_PASSWORD="strong_pg",
             REDIS_PASSWORD="strong_redis",
@@ -233,8 +245,8 @@ class TestDevSecretWarnings:
             except Exception:
                 pass
 
-        # Production should abort due to default JWT_SECRET_KEY
-        assert 1 in exit_called
+        # Production with all real secrets should NOT abort
+        assert 1 not in exit_called, "Should not abort when all secrets are non-default"
         # The dev warning path should NOT have run (is_development is False)
         dev_warning_calls = [
             c

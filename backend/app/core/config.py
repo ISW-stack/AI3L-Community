@@ -115,6 +115,18 @@ class Settings(BaseSettings):
                 f"Treating as non-development.",
                 stacklevel=1,
             )
+        # Block production startup with default/insecure secrets
+        if self.FASTAPI_ENV == "production":
+            if "changeme" in self.JWT_SECRET_KEY:
+                raise ValueError(
+                    "JWT_SECRET_KEY contains 'changeme' — refusing to start in production. "
+                    "Set a strong, unique secret."
+                )
+            if "changeme" in self.SUPER_ADMIN_PASSWORD:
+                raise ValueError(
+                    "SUPER_ADMIN_PASSWORD contains 'changeme' — refusing to start in production. "
+                    "Set a strong, unique password."
+                )
         # Auto-derive COOKIE_SECURE from FASTAPI_ENV when not explicitly set
         if self.COOKIE_SECURE is None:
             self.COOKIE_SECURE = self.FASTAPI_ENV == "production"

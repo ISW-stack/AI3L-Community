@@ -251,7 +251,7 @@ describe('admin API', () => {
   })
 
   describe('listInviteCodes', () => {
-    it('calls GET /admin/invite-codes with params', async () => {
+    it('calls GET /admin/invite-codes with status param', async () => {
       const mockData = { codes: [], total: 0 }
       mockGet.mockResolvedValue({ data: mockData })
 
@@ -261,6 +261,17 @@ describe('admin API', () => {
         params: { status: 'active' },
       })
       expect(result).toEqual(mockData)
+    })
+
+    it('converts page/page_size to offset/limit', async () => {
+      const mockData = { codes: [], total: 0 }
+      mockGet.mockResolvedValue({ data: mockData })
+
+      await listInviteCodes({ status: 'active', page: 3, page_size: 50 })
+
+      expect(mockGet).toHaveBeenCalledWith('/admin/invite-codes', {
+        params: { status: 'active', offset: 100, limit: 50 },
+      })
     })
   })
 

@@ -159,13 +159,18 @@ class TestCreateCategory:
 
     @pytest.mark.anyio
     async def test_create_category_duplicate(self, client):
-        """POST /categories with existing name → 409."""
+        """POST /categories with existing name → 409 via UniqueViolationError."""
+        import asyncpg
+
         try:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-                patch(f"{_EP}.category_exists", new_callable=AsyncMock, return_value=True),
-                patch(f"{_EP}.create_category", new_callable=AsyncMock),
+                patch(
+                    f"{_EP}.create_category",
+                    new_callable=AsyncMock,
+                    side_effect=asyncpg.UniqueViolationError(),
+                ),
             ):
                 resp = await client.post(
                     "/api/v1/categories",

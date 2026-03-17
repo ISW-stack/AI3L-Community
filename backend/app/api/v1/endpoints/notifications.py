@@ -90,5 +90,7 @@ async def delete_notification_endpoint(
 async def read_all_notifications(
     current_user: dict = Depends(get_current_user),
 ) -> MessageResponse:
+    if not await check_rate_limit(f"rl:notif_read_all:{current_user['sub']}", 10, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     count = await mark_all_as_read(current_user["sub"])
     return MessageResponse(message=f"{count} notifications marked as read.")

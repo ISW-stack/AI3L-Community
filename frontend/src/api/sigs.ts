@@ -52,8 +52,18 @@ export async function getSigPosts(sigId: string, params?: { page?: number; page_
   return data as SigPostsResponse
 }
 
-export async function getSigMembers(sigId: string, params?: { offset?: number; limit?: number }) {
-  const { data } = await api.get(`/sigs/${sigId}/members`, { params })
+export async function getSigMembers(
+  sigId: string,
+  params?: { page?: number; page_size?: number },
+) {
+  let query: Record<string, number> | undefined
+  if (params?.page != null && params?.page_size != null) {
+    query = {
+      offset: (params.page - 1) * params.page_size,
+      limit: params.page_size,
+    }
+  }
+  const { data } = await api.get(`/sigs/${sigId}/members`, { params: query })
   return data as SigMembersResponse
 }
 

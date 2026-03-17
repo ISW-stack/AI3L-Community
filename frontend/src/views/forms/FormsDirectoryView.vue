@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useLocale } from '@/composables/useLocale'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -67,6 +67,9 @@ function formatDeadline(deadline: string | null): string {
 }
 
 onMounted(fetchForms)
+onUnmounted(() => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+})
 watch(page, fetchForms)
 </script>
 

@@ -121,10 +121,16 @@ export interface InviteCodesResponse {
 
 export async function listInviteCodes(params?: {
   status?: string
-  offset?: number
-  limit?: number
+  page?: number
+  page_size?: number
 }) {
-  const { data } = await api.get('/admin/invite-codes', { params })
+  const query: Record<string, string | number | undefined> = {}
+  if (params?.status) query.status = params.status
+  if (params?.page != null && params?.page_size != null) {
+    query.offset = (params.page - 1) * params.page_size
+    query.limit = params.page_size
+  }
+  const { data } = await api.get('/admin/invite-codes', { params: query })
   return data as InviteCodesResponse
 }
 

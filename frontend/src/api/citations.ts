@@ -11,7 +11,19 @@ export async function getCiting(postId: string): Promise<CitationListResponse> {
   return data
 }
 
-export async function searchForCitation(query: string, limit = 10): Promise<unknown> {
-  const { data } = await api.post('/citations/posts/search-for-citation', { query, limit })
+export interface CitationSearchResult {
+  id: string
+  title: string
+  author_name: string
+}
+
+export async function searchForCitation(
+  query: string,
+  limit = 10,
+): Promise<CitationSearchResult[]> {
+  const { data } = await api.post<CitationSearchResult[]>(
+    '/citations/posts/search-for-citation',
+    { query, limit },
+  )
   return data
 }

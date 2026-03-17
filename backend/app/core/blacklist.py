@@ -54,11 +54,18 @@ async def warmup_block_cache(pool: asyncpg.Pool, redis: Any) -> None:
         return
 
     pipe = redis.pipeline()
+    seen_keys: set[str] = set()
     for row in rows:
         blocker = str(row["blocker_id"])
         blocked = str(row["blocked_id"])
-        pipe.sadd(f"block:set:{blocker}", blocked)
-        pipe.sadd(f"block:set:{blocked}", blocker)
+        key_blocker = f"block:set:{blocker}"
+        key_blocked = f"block:set:{blocked}"
+        pipe.sadd(key_blocker, blocked)
+        pipe.sadd(key_blocked, blocker)
+        seen_keys.add(key_blocker)
+        seen_keys.add(key_blocked)
+    for key in seen_keys:
+        pipe.expire(key, 86400)  # 24h TTL
     await pipe.execute()
     logger.info("Block cache warmed: %d block records", len(rows))
 

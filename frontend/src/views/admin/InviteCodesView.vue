@@ -31,11 +31,10 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize) || 1)
 async function fetchCodes() {
   loading.value = true
   try {
-    const offset = (page.value - 1) * pageSize
     const data = await listInviteCodes({
       status: statusFilter.value || undefined,
-      offset,
-      limit: pageSize,
+      page: page.value,
+      page_size: pageSize,
     })
     codes.value = data.codes
     total.value = data.total

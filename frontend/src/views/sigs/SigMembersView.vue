@@ -61,8 +61,7 @@ const memberRoleBadge: Record<string, 'orange' | 'purple' | 'brand'> = {
 async function fetchMembers() {
   loading.value = true
   try {
-    const offset = (page.value - 1) * pageSize
-    const data = await getSigMembers(sigId.value, { offset, limit: pageSize })
+    const data = await getSigMembers(sigId.value, { page: page.value, page_size: pageSize })
     members.value = data.members
     updateFromResponse(data.total)
   } catch (e: unknown) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
@@ -160,6 +160,9 @@ async function handleAddMember() {
 }
 
 onMounted(fetchMembers)
+onUnmounted(() => {
+  if (searchDebounce) clearTimeout(searchDebounce)
+})
 watch(() => album.value?.id, fetchMembers)
 </script>
 

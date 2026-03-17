@@ -45,7 +45,16 @@ export async function rejectInvitation(invitationId: string): Promise<void> {
   await api.put(`/users/me/co-author-invitations/${invitationId}/reject`)
 }
 
-export async function searchUsers(query: string, limit = 5): Promise<unknown> {
-  const { data } = await api.get('/users/search', { params: { q: query, limit } })
+export interface UserSearchResult {
+  id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
+}
+
+export async function searchUsers(query: string, limit = 5): Promise<UserSearchResult[]> {
+  const { data } = await api.get<UserSearchResult[]>('/users/search', {
+    params: { q: query, limit },
+  })
   return data
 }

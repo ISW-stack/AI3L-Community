@@ -168,7 +168,11 @@ class TestSettings:
         assert s.is_development is True
 
     def test_is_development_false_production(self):
-        s = self._make_settings(FASTAPI_ENV="production")
+        s = self._make_settings(
+            FASTAPI_ENV="production",
+            JWT_SECRET_KEY="a_real_production_secret_key_here",
+            SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+        )
         assert s.is_development is False
 
     # -- FASTAPI_ENV validation --
@@ -200,7 +204,11 @@ class TestSettings:
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            self._make_settings(FASTAPI_ENV="production")
+            self._make_settings(
+                FASTAPI_ENV="production",
+                JWT_SECRET_KEY="a_real_production_secret_key_here",
+                SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+            )
         env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
         assert len(env_warnings) == 0
 

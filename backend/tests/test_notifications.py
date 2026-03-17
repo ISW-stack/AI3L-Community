@@ -97,7 +97,10 @@ class TestMarkAllRead:
         """PUT /notifications/read-all → 200."""
         try:
             _override_auth("MEMBER")
-            with patch(f"{_EP}.mark_all_as_read", new_callable=AsyncMock, return_value=5):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.mark_all_as_read", new_callable=AsyncMock, return_value=5),
+            ):
                 resp = await client.put(
                     "/api/v1/notifications/read-all",
                     headers={"Authorization": "Bearer fake"},

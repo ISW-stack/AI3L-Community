@@ -121,6 +121,18 @@ describe('sigs API', () => {
       expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/members`, { params: undefined })
       expect(result).toEqual(mockData)
     })
+
+    it('converts page/page_size to offset/limit', async () => {
+      const sigId = 'sig-members'
+      const mockData = { members: [], total: 0 }
+      mockGet.mockResolvedValue({ data: mockData })
+
+      await getSigMembers(sigId, { page: 2, page_size: 20 })
+
+      expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/members`, {
+        params: { offset: 20, limit: 20 },
+      })
+    })
   })
 
   describe('getSigForms', () => {

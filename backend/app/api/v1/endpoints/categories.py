@@ -1,5 +1,6 @@
 import uuid
 
+import asyncpg
 from fastapi import APIRouter, Depends, Response, status
 
 from app.core.constants import RATE_LIMIT_CATEGORY_CRUD
@@ -13,7 +14,6 @@ from app.schemas.category import (
     CategoryUpdateRequest,
 )
 from app.services.category import (
-    category_exists,
     create_category,
     delete_category,
     get_category_by_id,
@@ -68,10 +68,12 @@ async def create_new_category(
         f"rl:category_crud:{current_user['sub']}", *RATE_LIMIT_CATEGORY_CRUD
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
-    if await category_exists(req.name):
+
+    try:
+        cat = await create_category(name=req.name, description=req.description)
+    except asyncpg.UniqueViolationError:
         raise AppError(ErrorCode.SYS_409, 409, "Category already exists.")
 
-    cat = await create_category(name=req.name, description=req.description)
     return CategoryResponse(
         id=str(cat["id"]),
         name=cat["name"],

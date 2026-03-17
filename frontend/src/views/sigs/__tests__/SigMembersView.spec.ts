@@ -636,10 +636,10 @@ describe('SigMembersView', () => {
       await mountComponent()
       await flushPromises()
 
-      // Should be called with offset and limit params
+      // Should be called with page and page_size params
       expect(mockGetSigMembers).toHaveBeenCalledWith('sig-1', {
-        offset: 0,
-        limit: 20,
+        page: 1,
+        page_size: 20,
       })
     })
 
@@ -661,8 +661,8 @@ describe('SigMembersView', () => {
       await flushPromises()
 
       expect(mockGetSigMembers).toHaveBeenCalledWith('sig-1', {
-        offset: 20,
-        limit: 20,
+        page: 2,
+        page_size: 20,
       })
     })
 
