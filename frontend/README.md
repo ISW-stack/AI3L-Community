@@ -70,6 +70,7 @@ frontend/src/
 │   ├── forms.ts
 │   ├── files.ts
 │   ├── notifications.ts
+│   ├── dm.ts
 │   ├── reports.ts
 │   ├── tasks.ts
 │   └── admin.ts
@@ -87,13 +88,17 @@ frontend/src/
 │   │   ├── BaseSelect.vue
 │   │   ├── BaseTable.vue
 │   │   └── BaseTextarea.vue
-│   ├── AppNavbar.vue    Top navigation bar
+│   ├── AppNavbar.vue    Top navigation bar (includes DM unread badge)
 │   ├── NotificationBell.vue
 │   ├── ToastNotification.vue
 │   ├── TiptapEditor.vue Rich text editor wrapper
 │   ├── SkeletonLoader.vue
 │   ├── EmptyState.vue
-│   └── PrivacyConsentModal.vue
+│   ├── PrivacyConsentModal.vue
+│   └── dm/
+│       ├── ConversationList.vue   Left-panel list of conversations with unread badges
+│       ├── MessageThread.vue      Chat bubble thread with edit/recall actions and read receipts
+│       └── MessageInput.vue       Auto-resize textarea with file attach, char counter, edit banner
 ├── composables/
 │   ├── api.ts              Axios instance factory
 │   ├── useWebSocket.ts     WebSocket connection composable
@@ -107,6 +112,7 @@ frontend/src/
 ├── stores/
 │   ├── auth.ts          Authentication state (Pinia)
 │   ├── notifications.ts Notification state (Pinia)
+│   ├── dm.ts            Direct message state — conversations, messages, unread count, WebSocket handlers (Pinia)
 │   └── toast.ts         Toast message queue (Pinia)
 ├── style.css            Global styles and design tokens (@theme)
 ├── types/               TypeScript type definitions
@@ -117,6 +123,7 @@ frontend/src/
 │   ├── sig.ts
 │   ├── form.ts
 │   ├── notification.ts
+│   ├── dm.ts
 │   └── common.ts
 ├── locales/             vue-i18n translation files (one per language)
 │   ├── en.ts
@@ -148,6 +155,7 @@ frontend/src/
     ├── GuestLoginView.vue
     ├── NotFoundView.vue
     ├── NotificationsView.vue
+    ├── DMView.vue            Split-panel DM interface (/messages, /messages/:userId)
     ├── ProfileView.vue
     ├── UserProfileView.vue
     ├── AboutView.vue

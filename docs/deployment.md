@@ -188,6 +188,7 @@ docker compose exec fastapi alembic current
 | `v3w4x5y6z7a8` | Add storage_used_bytes column to users |
 | `w4x5y6z7a8b9` | Add user_preferences table |
 | `x5y6z7a8b9c0` | Add like_count column to posts |
+| `a1b2c3d4e5f6` | Add conversations and dm_messages tables; add dm_friends_only to user_preferences |
 
 ---
 

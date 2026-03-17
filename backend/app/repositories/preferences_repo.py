@@ -3,7 +3,7 @@ import uuid
 from app.core.database import get_pool
 
 _ALLOWED_PREFERENCE_COLUMNS = frozenset(
-    {"theme", "notify_mentions", "notify_replies", "notify_sig_posts"}
+    {"theme", "notify_mentions", "notify_replies", "notify_sig_posts", "dm_friends_only"}
 )
 
 
@@ -12,7 +12,7 @@ async def get_preferences(user_id: uuid.UUID) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT theme, notify_mentions, notify_replies, notify_sig_posts "
+            "SELECT theme, notify_mentions, notify_replies, notify_sig_posts, dm_friends_only "
             "FROM user_preferences WHERE user_id = $1",
             user_id,
         )
@@ -41,6 +41,7 @@ async def upsert_preferences(user_id: uuid.UUID, data: dict) -> dict:
             "notify_mentions": True,
             "notify_replies": True,
             "notify_sig_posts": True,
+            "dm_friends_only": False,
         }
 
     columns = list(fields.keys())
@@ -59,7 +60,7 @@ async def upsert_preferences(user_id: uuid.UUID, data: dict) -> dict:
         f"INSERT INTO user_preferences ({', '.join(insert_cols)}) "
         f"VALUES ({insert_placeholders}) "
         f"ON CONFLICT (user_id) DO UPDATE SET {set_clause} "
-        "RETURNING theme, notify_mentions, notify_replies, notify_sig_posts"
+        "RETURNING theme, notify_mentions, notify_replies, notify_sig_posts, dm_friends_only"
     )
 
     async with pool.acquire() as conn:

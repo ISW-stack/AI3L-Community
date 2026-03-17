@@ -7,9 +7,11 @@ import { useLocale } from '@/composables/useLocale'
 import NotificationBell from '@/components/NotificationBell.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
-import { Menu, X, ChevronDown, GraduationCap } from 'lucide-vue-next'
+import { Menu, X, ChevronDown, GraduationCap, MessageSquare } from 'lucide-vue-next'
+import { useDMStore } from '@/stores/dm'
 
 const auth = useAuthStore()
+const dmStore = useDMStore()
 const router = useRouter()
 const { t } = useLocale()
 const mobileMenuOpen = ref(false)
@@ -78,6 +80,9 @@ function handleEscapeKey(e: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEscapeKey)
+  if (auth.isAuthenticated && !auth.isGuest) {
+    dmStore.fetchUnreadCount()
+  }
 })
 
 onUnmounted(() => {
@@ -237,6 +242,22 @@ onUnmounted(() => {
 
             <LanguageSwitcher />
 
+            <!-- DM Badge -->
+            <router-link
+              v-if="!auth.isGuest"
+              to="/messages"
+              class="relative p-2 text-muted hover:text-foreground transition"
+              aria-label="Messages"
+            >
+              <MessageSquare class="w-5 h-5" aria-hidden="true" />
+              <span
+                v-if="dmStore.unreadCount > 0"
+                class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-danger-500 rounded-full"
+              >
+                {{ dmStore.unreadCount > 99 ? '99+' : dmStore.unreadCount }}
+              </span>
+            </router-link>
+
             <NotificationBell />
 
             <!-- User dropdown -->
@@ -304,6 +325,20 @@ onUnmounted(() => {
 
         <!-- Mobile right side: notification bell + hamburger -->
         <div class="flex items-center gap-3 lg:hidden">
+          <router-link
+            v-if="auth.isAuthenticated && !auth.isGuest"
+            to="/messages"
+            class="relative p-2 text-muted hover:text-foreground transition"
+            aria-label="Messages"
+          >
+            <MessageSquare class="w-5 h-5" aria-hidden="true" />
+            <span
+              v-if="dmStore.unreadCount > 0"
+              class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-danger-500 rounded-full"
+            >
+              {{ dmStore.unreadCount > 99 ? '99+' : dmStore.unreadCount }}
+            </span>
+          </router-link>
           <NotificationBell v-if="auth.isAuthenticated" />
           <button
             @click="mobileMenuOpen = !mobileMenuOpen"

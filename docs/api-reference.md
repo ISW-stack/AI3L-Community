@@ -30,7 +30,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | PUT | `/users/me/password` | Required | Change own password |
 | POST | `/users/me/consent` | Required | Record privacy policy consent |
 | GET | `/users/me/preferences` | Required | Get user preferences (theme, language, notifications) |
-| PUT | `/users/me/preferences` | Required | Update user preferences (partial upsert) |
+| PUT | `/users/me/preferences` | Required | Update user preferences (partial upsert); includes `dm_friends_only` to restrict DMs to friends only |
 | DELETE | `/users/me` | Required | Self-delete account (GDPR Right to Erasure) |
 | POST | `/users/apply-member` | Guest | Submit membership application |
 | GET | `/users/{user_id}` | Required | Get any user's public profile |
@@ -117,6 +117,33 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | PUT | `/notifications/read-all` | Required | Mark all notifications as read |
 | DELETE | `/notifications/{notif_id}` | Required | Delete a single notification |
 | DELETE | `/notifications` | Required | Bulk-delete notifications (body: list of IDs; omit to delete all) |
+
+---
+
+## Direct Messages
+
+All DM endpoints require **Member** role or higher. Guests cannot use DMs.
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/dm/unread-count` | Member+ | Total unread DM count across all conversations |
+| GET | `/dm/conversations` | Member+ | List conversations (paginated, ordered by latest message) |
+| GET | `/dm/conversations/{user_id}/messages` | Member+ | List messages in the conversation with `user_id` (cursor-paginated) |
+| POST | `/dm/conversations/{user_id}/messages` | Member+ | Send a message to `user_id` (multipart/form-data: `content` text + optional `file`) |
+| PUT | `/dm/messages/{message_id}` | Member+ | Edit a sent message (within 12-hour window, sender only) |
+| DELETE | `/dm/messages/{message_id}` | Member+ | Recall a sent message (within 12-hour window; both parties see "Message recalled") |
+| PUT | `/dm/conversations/{user_id}/read` | Member+ | Mark all unread messages in the conversation as read |
+
+### Constraints
+
+- **Self-messaging** is not allowed (`DM_003`).
+- **Blocked users** cannot message each other (`DM_001`).
+- If the recipient has `dm_friends_only = true`, only friends may send messages (`DM_001`).
+- Edit and recall are only available within **12 hours** of sending (`DM_002`).
+- Each conversation has a **50,000-character cap**; oldest messages are deleted automatically when the cap is exceeded.
+- File attachments: max **1 file per message**, max **50 MB**, counts toward the sender's **1 GB** per-user storage quota. Files expire after **3 days**.
+- Message text is retained for **30 days**.
+- The `dm_friends_only` preference is toggled via `PUT /users/me/preferences`.
 
 ---
 

@@ -164,11 +164,38 @@ export default {
     toggleMenu: '메뉴 전환',
     sectionAdmin: '관리',
     sectionAccount: '계정',
+    messages: 'Messages',
     signUp: 'Sign Up',
     closeDropdown: 'Close dropdown',
   },
 
   // ── Footer ──
+
+  // ── DM (Direct Messages) ──
+  dm: {
+    title: 'Messages',
+    noConversations: 'No conversations yet',
+    noConversationsDesc: "Start a conversation by visiting a user's profile.",
+    selectConversation: 'Select a conversation',
+    selectConversationDesc: 'Choose a conversation from the list to start messaging.',
+    typeMessage: 'Type a message...',
+    send: 'Send',
+    attachFile: 'Attach file',
+    removeFile: 'Remove file',
+    messageRecalled: 'Message recalled',
+    edited: 'edited',
+    fileExpiresSoon: 'File expires soon',
+    fileExpired: 'File expired',
+    loadMore: 'Load older messages',
+    recallConfirm: 'Recall this message? The other party will see "Message recalled".',
+    editMessage: 'Edit message',
+    recallMessage: 'Recall message',
+    charsRemaining: '{count} characters remaining',
+    sendMessage: 'Send Message',
+    fileTooLarge: 'File too large (max 50 MB)',
+    today: 'Today',
+    yesterday: 'Yesterday',
+  },
   footer: {
     copyright: '© 2025 AI3L Community. All rights reserved.',
     tagline: '언어 학습과 리터러시를 위한 AI',

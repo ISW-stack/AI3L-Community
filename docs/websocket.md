@@ -49,19 +49,26 @@ Connections that do not respond within **90 seconds** are closed by the server.
 | Type | Trigger | Description |
 |---|---|---|
 | `PING` | Every 30 seconds | Keepalive ping — client must respond with `PONG` |
-| `NOTIFICATION` | New activity | A comment, reaction, or mention on content the user is subscribed to |
+| `NEW_NOTIFICATION` | New activity | A comment, reaction, or mention on content the user is subscribed to |
 | `FORCE_LOGOUT` | Admin action | Server-initiated session termination (e.g., account banned). Client must clear local session state and redirect to login. |
+| `NEW_DM` | Incoming DM | A new direct message was sent to the current user |
+| `DM_EDITED` | DM edited | A DM the current user received was edited by the sender |
+| `DM_RECALLED` | DM recalled | A DM was recalled by the sender (both parties are notified) |
+| `DM_READ` | DM read | The recipient read messages in a conversation |
 
-### `NOTIFICATION` payload
+### `NEW_NOTIFICATION` payload
 
 ```json
 {
-  "type": "NOTIFICATION",
-  "id": "uuid",
-  "kind": "comment",
-  "post_id": "uuid",
-  "actor_display_name": "Jane",
-  "created_at": "2026-01-01T00:00:00Z"
+  "type": "NEW_NOTIFICATION",
+  "notification": {
+    "id": "uuid",
+    "kind": "comment",
+    "post_id": "uuid",
+    "actor_display_name": "Jane",
+    "message": "Jane commented on your post.",
+    "created_at": "2026-01-01T00:00:00Z"
+  }
 }
 ```
 
@@ -71,6 +78,66 @@ Connections that do not respond within **90 seconds** are closed by the server.
 {
   "type": "FORCE_LOGOUT",
   "reason": "account_banned"
+}
+```
+
+### `NEW_DM` payload
+
+```json
+{
+  "type": "NEW_DM",
+  "message": {
+    "id": "uuid",
+    "conversation_id": "uuid",
+    "sender": {
+      "id": "uuid",
+      "display_name": "Jane",
+      "avatar_url": "https://..."
+    },
+    "content": "Hello!",
+    "attachment_url": null,
+    "attachment_filename": null,
+    "attachment_expires_at": null,
+    "is_recalled": false,
+    "is_edited": false,
+    "read_at": null,
+    "created_at": "2026-01-01T00:00:00Z"
+  }
+}
+```
+
+### `DM_EDITED` payload
+
+```json
+{
+  "type": "DM_EDITED",
+  "message": {
+    "id": "uuid",
+    "conversation_id": "uuid",
+    "content": "Edited content",
+    "is_edited": true,
+    "created_at": "2026-01-01T00:00:00Z"
+  }
+}
+```
+
+### `DM_RECALLED` payload
+
+```json
+{
+  "type": "DM_RECALLED",
+  "message_id": "uuid",
+  "conversation_id": "uuid"
+}
+```
+
+### `DM_READ` payload
+
+```json
+{
+  "type": "DM_READ",
+  "conversation_id": "uuid",
+  "read_at": "2026-01-01T00:00:00Z"
 }
 ```
 

@@ -69,6 +69,7 @@ backend/
 │   │       │   ├── forms.py
 │   │       │   ├── files.py
 │   │       │   ├── notifications.py
+│   │       │   ├── dm.py
 │   │       │   ├── reports.py
 │   │       │   ├── applications.py
 │   │       │   ├── categories.py
@@ -99,6 +100,7 @@ backend/
 │   │   ├── sig_converter.py
 │   │   ├── form_converter.py
 │   │   ├── notification_converter.py
+│   │   ├── dm_converter.py
 │   │   ├── application_converter.py
 │   │   └── report_converter.py
 │   ├── repositories/            Database query functions (asyncpg)
@@ -110,6 +112,7 @@ backend/
 │   │   ├── sig_repo.py
 │   │   ├── form_repo.py
 │   │   ├── notification_repo.py
+│   │   ├── dm_repo.py
 │   │   ├── report_repo.py
 │   │   ├── application_repo.py
 │   │   ├── audit_repo.py
@@ -124,6 +127,7 @@ backend/
 │   │   ├── sig.py
 │   │   ├── form.py
 │   │   ├── notification.py
+│   │   ├── dm.py
 │   │   ├── report.py
 │   │   ├── application.py
 │   │   ├── audit.py
@@ -135,7 +139,7 @@ backend/
 │   ├── schemas/                 Pydantic request and response models
 │   ├── models/                  SQLAlchemy table definitions (for Alembic)
 │   ├── middleware/              Custom Starlette middleware
-│   ├── tasks/                   Celery task definitions
+│   ├── tasks/                   Celery task definitions (including dm_cleanup.py)
 │   ├── celery_app.py            Celery application instance
 │   ├── event_handlers.py        Event bus subscriber registrations
 │   └── main.py                  FastAPI app factory and lifespan
@@ -160,6 +164,7 @@ backend/
 │   ├── test_converters.py       All converter layer unit tests
 │   ├── test_core_modules.py     Core module tests (config, security, rate limiting)
 │   ├── test_celery_tasks.py     Celery task unit tests
+│   ├── test_dm.py               Direct message tests (repo, service, endpoints, Celery, events, converters)
 │   └── integration/             Integration tests (require INTEGRATION_TEST=1 + Docker)
 ├── Dockerfile
 ├── alembic.ini
@@ -416,6 +421,8 @@ The application-level rate limiter (`app/core/rate_limit.py`) uses a Redis count
 | `POST /forms/{id}/submit` | 5 / min | per user |
 | `GET /notifications` | 60 / min | per user |
 | `DELETE /notifications` | 30 / min | per user |
+| `POST /dm/conversations/{id}/messages` | 30 / min | per user |
+| `GET /dm/conversations` | 60 / min | per user |
 
 Post creation is additionally limited to 50 posts per user per day (error code `SYS_429`).
 
@@ -444,7 +451,13 @@ PDF files undergo additional sanitization via pikepdf (backed by the C++ qpdf en
 
 Celery workers are defined in `app/celery_app.py`. Tasks are located in `app/tasks/`.
 
-The only currently configured task is `form_export`, which serializes all responses for a given form to CSV and stores the result in Redis. The frontend polls `GET /api/v1/tasks/{task_id}` for completion.
+Configured tasks:
+
+| Task | Schedule | Description |
+|---|---|---|
+| `form_export` | On-demand | Serializes all form responses to CSV and stores the result in Redis. The frontend polls `GET /api/v1/tasks/{task_id}` for completion. |
+| `cleanup_dm_expired_files` | Hourly (Beat) | Deletes MinIO DM file attachments older than 3 days and refunds each sender's storage quota. |
+| `cleanup_dm_expired_text` | Hourly (Beat) | Deletes DM message text older than 30 days and adjusts each conversation's `total_chars` counter. |
 
 To add a new task:
 

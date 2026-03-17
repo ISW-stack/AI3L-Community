@@ -1,0 +1,99 @@
+"""DM cleanup tasks -- expired files and messages."""
+
+import asyncio
+from datetime import datetime, timedelta, timezone
+
+from loguru import logger
+
+from app.celery_app import celery
+
+
+def _run_async(coro):  # type: ignore[no-untyped-def]
+    """Run async code in a sync Celery task."""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
+@celery.task(name="cleanup_dm_expired_files")
+def cleanup_dm_expired_files() -> dict:
+    """Delete DM file attachments past their expiry. Refund storage quota."""
+    return _run_async(_cleanup_files())
+
+
+async def _cleanup_files() -> dict:
+    from app.core.async_storage import delete_file
+    from app.core.constants import DM_FILE_EXPIRY_DAYS
+    from app.repositories import dm_repo, user_repo
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=DM_FILE_EXPIRY_DAYS)
+
+    expired = await dm_repo.find_expired_file_messages(cutoff)
+    deleted = 0
+    errors = 0
+
+    for msg in expired:
+        try:
+            if msg.get("attachment_key"):
+                await delete_file(msg["attachment_key"])
+                if msg.get("attachment_size") and msg.get("sender_id"):
+                    await user_repo.decrement_storage_used(
+                        msg["sender_id"], msg["attachment_size"]
+                    )
+            await dm_repo.clear_message_attachment(msg["id"])
+            deleted += 1
+        except Exception:
+            errors += 1
+            logger.error(
+                "Failed to clean up DM attachment",
+                exc_info=True,
+                extra={"msg_id": str(msg["id"])},
+            )
+
+    logger.info("DM file cleanup complete", extra={"deleted": deleted, "errors": errors})
+    return {"deleted": deleted, "errors": errors}
+
+
+@celery.task(name="cleanup_dm_expired_text")
+def cleanup_dm_expired_text() -> dict:
+    """Delete DM text messages older than the retention period."""
+    return _run_async(_cleanup_text())
+
+
+async def _cleanup_text() -> dict:
+    from app.core.constants import DM_TEXT_EXPIRY_DAYS
+    from app.repositories import dm_repo
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=DM_TEXT_EXPIRY_DAYS)
+    expired = await dm_repo.find_expired_text_messages(cutoff)
+
+    if not expired:
+        return {"deleted": 0}
+
+    # Group by conversation for char count adjustment
+    conv_chars: dict = {}
+    msg_ids = []
+    for msg in expired:
+        msg_ids.append(msg["id"])
+        cid = msg["conversation_id"]
+        content_len = len(msg.get("content") or "")
+        conv_chars[cid] = conv_chars.get(cid, 0) + content_len
+
+    deleted = await dm_repo.delete_messages_by_ids(msg_ids)
+
+    # Decrement char counts
+    for cid, chars in conv_chars.items():
+        if chars > 0:
+            try:
+                await dm_repo.increment_char_count(cid, -chars)
+            except Exception:
+                logger.warning(
+                    "Failed to decrement char count after text cleanup",
+                    exc_info=True,
+                    extra={"conversation_id": str(cid)},
+                )
+
+    logger.info("DM text cleanup complete", extra={"deleted": deleted})
+    return {"deleted": deleted}

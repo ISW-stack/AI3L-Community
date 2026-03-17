@@ -605,6 +605,68 @@ async def _on_friend_accepted(
         raise
 
 
+async def _on_dm_message_sent(recipient_id: str, message: dict, **_kwargs: Any) -> None:
+    """Push new DM via WebSocket."""
+    try:
+        from app.api.v1.endpoints.ws import send_to_user
+
+        await send_to_user(recipient_id, {"type": "NEW_DM", "message": message})
+    except Exception:
+        logger.error("Failed to push DM via WebSocket", exc_info=True)
+        raise
+
+
+async def _on_dm_message_edited(recipient_id: str, message: dict, **_kwargs: Any) -> None:
+    """Push edited DM via WebSocket."""
+    try:
+        from app.api.v1.endpoints.ws import send_to_user
+
+        await send_to_user(recipient_id, {"type": "DM_EDITED", "message": message})
+    except Exception:
+        logger.error("Failed to push DM edit via WebSocket", exc_info=True)
+        raise
+
+
+async def _on_dm_message_recalled(
+    recipient_id: str, message_id: str, conversation_id: str, **_kwargs: Any
+) -> None:
+    """Push recalled DM via WebSocket."""
+    try:
+        from app.api.v1.endpoints.ws import send_to_user
+
+        await send_to_user(
+            recipient_id,
+            {
+                "type": "DM_RECALLED",
+                "message_id": message_id,
+                "conversation_id": conversation_id,
+            },
+        )
+    except Exception:
+        logger.error("Failed to push DM recall via WebSocket", exc_info=True)
+        raise
+
+
+async def _on_dm_messages_read(
+    sender_id: str, conversation_id: str, read_at: str, **_kwargs: Any
+) -> None:
+    """Push read receipt via WebSocket."""
+    try:
+        from app.api.v1.endpoints.ws import send_to_user
+
+        await send_to_user(
+            sender_id,
+            {
+                "type": "DM_READ",
+                "conversation_id": conversation_id,
+                "read_at": read_at,
+            },
+        )
+    except Exception:
+        logger.error("Failed to push DM read receipt via WebSocket", exc_info=True)
+        raise
+
+
 def register_all() -> None:
     """Register all event handlers. Called once at application startup."""
     on("comment.created", _on_comment_created)
@@ -622,3 +684,7 @@ def register_all() -> None:
     on("best_answer.marked", _on_best_answer_marked)
     on("friend.request", _on_friend_request)
     on("friend.accepted", _on_friend_accepted)
+    on("dm.message_sent", _on_dm_message_sent)
+    on("dm.message_edited", _on_dm_message_edited)
+    on("dm.message_recalled", _on_dm_message_recalled)
+    on("dm.messages_read", _on_dm_messages_read)

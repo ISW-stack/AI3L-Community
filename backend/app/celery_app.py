@@ -15,6 +15,7 @@ celery = Celery(
         "app.tasks.thumbnail",
         "app.tasks.recommendations",
         "app.tasks.view_sync",
+        "app.tasks.dm_cleanup",
     ],
 )
 
@@ -71,5 +72,15 @@ celery.conf.beat_schedule = {
         "task": "auto_close_expired_forms",
         "schedule": 300.0,  # every 5 minutes
         "options": {"soft_time_limit": 30, "time_limit": 60},
+    },
+    "cleanup-dm-expired-files": {
+        "task": "cleanup_dm_expired_files",
+        "schedule": 3600.0,  # every hour
+        "options": {"soft_time_limit": 300, "time_limit": 600},
+    },
+    "cleanup-dm-expired-text": {
+        "task": "cleanup_dm_expired_text",
+        "schedule": 3600.0,  # every hour
+        "options": {"soft_time_limit": 300, "time_limit": 600},
     },
 }

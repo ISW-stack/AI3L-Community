@@ -33,6 +33,9 @@ class ErrorCode(str, Enum):
     QA_001 = "QA_001"  # Not question author (best answer)
     QA_002 = "QA_002"  # Cannot vote on own answer
     QA_003 = "QA_003"  # Question not found
+    DM_001 = "DM_001"  # Cannot message this user (blocked / friends-only)
+    DM_002 = "DM_002"  # Edit/recall window expired (12 hours)
+    DM_003 = "DM_003"  # Cannot message yourself
 
 
 class AppError(HTTPException):

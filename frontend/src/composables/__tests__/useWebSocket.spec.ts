@@ -12,6 +12,11 @@ const {
   mockToastShow,
   mockRouterPush,
   mockApiPost,
+  mockDmAddFromWebSocket,
+  mockDmUpdateFromWebSocket,
+  mockDmRecallFromWebSocket,
+  mockDmReadReceiptFromWebSocket,
+  mockDmActiveConversationId,
 } = vi.hoisted(() => ({
   onUnmountedCallbacks: [] as (() => void)[],
   mockClearSession: vi.fn(),
@@ -20,6 +25,11 @@ const {
   mockToastShow: vi.fn(),
   mockRouterPush: vi.fn(),
   mockApiPost: vi.fn(),
+  mockDmAddFromWebSocket: vi.fn(),
+  mockDmUpdateFromWebSocket: vi.fn(),
+  mockDmRecallFromWebSocket: vi.fn(),
+  mockDmReadReceiptFromWebSocket: vi.fn(),
+  mockDmActiveConversationId: { value: null as string | null },
 }))
 
 // ---------------------------------------------------------------------------
@@ -53,6 +63,18 @@ vi.mock('@/stores/auth', () => ({
 vi.mock('@/stores/notifications', () => ({
   useNotificationStore: () => ({
     addFromWebSocket: mockAddFromWebSocket,
+  }),
+}))
+
+vi.mock('@/stores/dm', () => ({
+  useDMStore: () => ({
+    addFromWebSocket: mockDmAddFromWebSocket,
+    updateFromWebSocket: mockDmUpdateFromWebSocket,
+    recallFromWebSocket: mockDmRecallFromWebSocket,
+    readReceiptFromWebSocket: mockDmReadReceiptFromWebSocket,
+    get activeConversationId() {
+      return mockDmActiveConversationId.value
+    },
   }),
 }))
 

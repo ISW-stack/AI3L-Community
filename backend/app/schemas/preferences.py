@@ -6,6 +6,7 @@ class UserPreferencesResponse(BaseModel):
     notify_mentions: bool = True
     notify_replies: bool = True
     notify_sig_posts: bool = True
+    dm_friends_only: bool = False
 
 
 class UserPreferencesUpdate(BaseModel):
@@ -13,6 +14,7 @@ class UserPreferencesUpdate(BaseModel):
     notify_mentions: bool | None = None
     notify_replies: bool | None = None
     notify_sig_posts: bool | None = None
+    dm_friends_only: bool | None = None
 
     @field_validator("theme")
     @classmethod

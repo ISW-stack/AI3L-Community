@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useDMStore } from '@/stores/dm'
 import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
@@ -24,6 +25,7 @@ export function _resetVisibilityState(): void {
 
 export function useWebSocket() {
   const auth = useAuthStore()
+  const dmStore = useDMStore()
   const notificationStore = useNotificationStore()
   const toastStore = useToastStore()
   const router = useRouter()
@@ -81,6 +83,20 @@ export function useWebSocket() {
           } else if (msg.type === 'NEW_NOTIFICATION') {
             notificationStore.addFromWebSocket(msg.notification)
             toastStore.show(msg.notification?.message || 'New notification', 'info')
+          } else if (msg.type === 'NEW_DM') {
+            dmStore.addFromWebSocket(msg.message)
+            if (dmStore.activeConversationId !== msg.message.conversation_id) {
+              toastStore.show(
+                `New message from ${msg.message.sender.display_name}`,
+                'info',
+              )
+            }
+          } else if (msg.type === 'DM_EDITED') {
+            dmStore.updateFromWebSocket(msg.message)
+          } else if (msg.type === 'DM_RECALLED') {
+            dmStore.recallFromWebSocket(msg.message_id, msg.conversation_id)
+          } else if (msg.type === 'DM_READ') {
+            dmStore.readReceiptFromWebSocket(msg.conversation_id, msg.read_at)
           }
         } catch {
           // ignore parse errors
