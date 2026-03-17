@@ -6,11 +6,13 @@ const props = defineProps<{
   photos: AlbumPhoto[]
   currentIndex: number
   visible: boolean
+  canDelete?: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
   navigate: [index: number]
+  delete: [photo: AlbumPhoto]
 }>()
 
 const currentPhoto = computed(() => {
@@ -76,29 +78,54 @@ onUnmounted(() => {
         aria-label="Photo viewer"
         @click="handleOverlayClick"
       >
-        <!-- Close button -->
-        <button
-          type="button"
-          class="absolute top-4 right-4 z-10 text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
-          aria-label="Close"
-          @click="handleClose"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-6 h-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
+        <!-- Top-right actions -->
+        <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <button
+            v-if="canDelete && currentPhoto"
+            type="button"
+            class="text-white/80 hover:text-red-400 p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
+            aria-label="Delete photo"
+            @click="emit('delete', currentPhoto)"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
+            aria-label="Close"
+            @click="handleClose"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         <!-- Previous button -->
         <button

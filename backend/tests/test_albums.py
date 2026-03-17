@@ -287,7 +287,8 @@ class TestAddMember:
             _override_auth("ADMIN")
             with patch(f"{_EP}.add_member", new_callable=AsyncMock, return_value=member):
                 resp = await client.post(
-                    f"/api/v1/albums/{album_id}/members?target_user_id={target_user_id}",
+                    f"/api/v1/albums/{album_id}/members",
+                    json={"user_id": target_user_id},
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 201

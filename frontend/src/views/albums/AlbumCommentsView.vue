@@ -60,7 +60,7 @@ async function fetchComments() {
     comments.value = result.comments
     updateFromResponse(result.total)
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load comments'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedLoadComments')), 'error')
   } finally {
     loading.value = false
   }
@@ -76,10 +76,10 @@ async function handleSubmitComment() {
   try {
     await createAlbumComment(album.value.id, { content: newComment.value.trim() })
     newComment.value = ''
-    toast.show('Comment posted', 'success')
+    toast.show(t('albums.commentPosted'), 'success')
     await fetchComments()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to post comment'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedPostComment')), 'error')
   } finally {
     submitting.value = false
   }
@@ -105,10 +105,10 @@ async function handleSubmitReply() {
     })
     replyingTo.value = null
     replyContent.value = ''
-    toast.show('Reply posted', 'success')
+    toast.show(t('albums.replyPosted'), 'success')
     await fetchComments()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to post reply'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedPostReply')), 'error')
   } finally {
     submitting.value = false
   }
@@ -118,10 +118,10 @@ async function handleDelete(commentId: string) {
   if (!album.value) return
   try {
     await deleteAlbumComment(album.value.id, commentId)
-    toast.show('Comment deleted', 'info')
+    toast.show(t('albums.commentDeleted'), 'info')
     await fetchComments()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to delete comment'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedDeleteComment')), 'error')
   }
 }
 

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { useLocale } from '@/composables/useLocale'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
 import {
   listAlbumMembers,
@@ -22,6 +23,7 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
+const { t } = useLocale()
 const auth = useAuthStore()
 const toast = useToastStore()
 const { album, userAlbumRole } = useAlbumLayout()
@@ -52,7 +54,7 @@ async function fetchMembers() {
     const result = await listAlbumMembers(album.value.id)
     members.value = result.members
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to load members'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedLoadMembers')), 'error')
   } finally {
     loading.value = false
   }
@@ -63,10 +65,10 @@ async function handleJoin() {
   joining.value = true
   try {
     await joinAlbum(album.value.id)
-    toast.show('Join request sent', 'success')
+    toast.show(t('albums.joinRequestSent'), 'success')
     await fetchMembers()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to join album'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedJoinAlbum')), 'error')
   } finally {
     joining.value = false
   }
@@ -76,10 +78,10 @@ async function handleLeave() {
   if (!album.value || !auth.user) return
   try {
     await removeAlbumMember(album.value.id, auth.user.id)
-    toast.show('Left album', 'info')
+    toast.show(t('albums.leftAlbum'), 'info')
     await fetchMembers()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to leave album'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedLeaveAlbum')), 'error')
   }
 }
 
@@ -87,10 +89,10 @@ async function handleApprove(member: AlbumMember) {
   if (!album.value) return
   try {
     await approveAlbumMember(album.value.id, member.id)
-    toast.show('Member approved', 'success')
+    toast.show(t('albums.memberApproved'), 'success')
     await fetchMembers()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to approve member'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedApproveMember')), 'error')
   }
 }
 
@@ -98,10 +100,10 @@ async function handleRemove(member: AlbumMember) {
   if (!album.value) return
   try {
     await removeAlbumMember(album.value.id, member.user_id)
-    toast.show('Member removed', 'info')
+    toast.show(t('albums.memberRemoved'), 'info')
     await fetchMembers()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to remove member'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedRemoveMember')), 'error')
   }
 }
 
@@ -149,11 +151,11 @@ async function handleAddMember() {
   addingMember.value = true
   try {
     await addAlbumMember(album.value.id, addMemberUserId.value.trim())
-    toast.show('Member added', 'success')
+    toast.show(t('albums.memberAdded'), 'success')
     showAddMemberModal.value = false
     await fetchMembers()
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to add member'), 'error')
+    toast.show(getErrorMessage(e, t('albums.failedAddMember')), 'error')
   } finally {
     addingMember.value = false
   }
@@ -169,10 +171,10 @@ watch(() => album.value?.id, fetchMembers)
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold text-foreground">Members</h2>
+      <h2 class="text-lg font-semibold text-foreground">{{ t('albums.members') }}</h2>
       <div class="flex gap-2">
         <BaseButton v-if="canJoin" size="sm" :loading="joining" @click="handleJoin">
-          Join Album
+          {{ t('albums.joinAlbum') }}
         </BaseButton>
         <BaseButton
           v-if="isMember && !isAlbumAdmin"
@@ -180,9 +182,9 @@ watch(() => album.value?.id, fetchMembers)
           variant="secondary"
           @click="handleLeave"
         >
-          Leave
+          {{ t('albums.leave') }}
         </BaseButton>
-        <BaseButton v-if="isAlbumAdmin" size="sm" @click="openAddMember"> Add Member </BaseButton>
+        <BaseButton v-if="isAlbumAdmin" size="sm" @click="openAddMember"> {{ t('albums.addMember') }} </BaseButton>
       </div>
     </div>
 
@@ -190,15 +192,15 @@ watch(() => album.value?.id, fetchMembers)
 
     <EmptyState
       v-else-if="members.length === 0"
-      title="No members"
-      message="This album has no members yet."
+      :title="t('albums.noMembers')"
+      :message="t('albums.noMembersMessage')"
     />
 
     <template v-else>
       <!-- Pending requests (admin only) -->
       <div v-if="isAlbumAdmin && pendingMembers.length > 0" class="mb-6">
         <h3 class="text-sm font-semibold text-foreground mb-3">
-          Pending Requests ({{ pendingMembers.length }})
+          {{ t('albums.pendingRequests') }} ({{ pendingMembers.length }})
         </h3>
         <div class="space-y-2">
           <BaseCard v-for="member in pendingMembers" :key="member.id" class="!p-3">
@@ -213,9 +215,9 @@ watch(() => album.value?.id, fetchMembers)
                 </div>
               </div>
               <div class="flex gap-2 shrink-0">
-                <BaseButton size="sm" @click="handleApprove(member)">Approve</BaseButton>
+                <BaseButton size="sm" @click="handleApprove(member)">{{ t('albums.approve') }}</BaseButton>
                 <BaseButton size="sm" variant="soft-danger" @click="handleRemove(member)"
-                  >Reject</BaseButton
+                  >{{ t('albums.reject') }}</BaseButton
                 >
               </div>
             </div>
@@ -235,7 +237,7 @@ watch(() => album.value?.id, fetchMembers)
                 </p>
                 <p class="text-xs text-muted">@{{ member.username }}</p>
               </div>
-              <BaseBadge v-if="member.role === 'ADMIN'" variant="brand">Admin</BaseBadge>
+              <BaseBadge v-if="member.role === 'ADMIN'" variant="brand">{{ t('albums.admin') }}</BaseBadge>
             </div>
             <BaseButton
               v-if="isAlbumAdmin && member.user_id !== auth.user?.id"
@@ -243,23 +245,23 @@ watch(() => album.value?.id, fetchMembers)
               variant="soft-danger"
               @click="handleRemove(member)"
             >
-              Remove
+              {{ t('albums.remove') }}
             </BaseButton>
           </div>
         </BaseCard>
       </div>
     </template>
 
-    <BaseModal v-model="showAddMemberModal" title="Add Member" size="sm">
+    <BaseModal v-model="showAddMemberModal" :title="t('albums.addMember')" size="sm">
       <div class="space-y-4">
         <div class="relative">
           <BaseInput
             :model-value="userSearchQuery"
-            label="Search User"
-            placeholder="Type a name or username to search..."
+            :label="t('albums.searchUser')"
+            :placeholder="t('albums.searchUserPlaceholder')"
             @update:model-value="handleSearchInput"
           />
-          <p v-if="searchingUsers" class="text-xs text-muted mt-1">Searching...</p>
+          <p v-if="searchingUsers" class="text-xs text-muted mt-1">{{ t('albums.searching') }}</p>
           <ul
             v-if="userSearchResults.length > 0"
             class="absolute z-10 left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto"
@@ -280,9 +282,9 @@ watch(() => album.value?.id, fetchMembers)
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" @click="showAddMemberModal = false">Cancel</BaseButton>
+        <BaseButton variant="secondary" @click="showAddMemberModal = false">{{ t('common.cancel') }}</BaseButton>
         <BaseButton :loading="addingMember" :disabled="!addMemberUserId" @click="handleAddMember"
-          >Add</BaseButton
+          >{{ t('albums.add') }}</BaseButton
         >
       </template>
     </BaseModal>

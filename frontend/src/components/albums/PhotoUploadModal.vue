@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useLocale } from '@/composables/useLocale'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
+
+const { t } = useLocale()
 
 defineProps<{
   modelValue: boolean
@@ -53,7 +56,7 @@ function handleFileChange(event: Event) {
 
 function handleUpload() {
   if (!selectedFile.value) {
-    error.value = 'Please select a file first.'
+    error.value = t('albums.selectFileFirst')
     return
   }
   emit('upload', selectedFile.value)
@@ -79,7 +82,7 @@ function resetState() {
 <template>
   <BaseModal
     :model-value="modelValue"
-    title="Upload Photo"
+    :title="t('albums.uploadPhotoTitle')"
     size="md"
     @update:model-value="handleClose"
   >
@@ -87,14 +90,14 @@ function resetState() {
       <BaseAlert v-if="error" type="error">{{ error }}</BaseAlert>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">Select file</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{ t('albums.selectFile') }}</label>
         <input
           type="file"
           :accept="ACCEPTED_TYPES"
           class="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
           @change="handleFileChange"
         />
-        <p class="text-xs text-muted mt-1">Accepted: JPEG, PNG, GIF, WebP, or ZIP archive</p>
+        <p class="text-xs text-muted mt-1">{{ t('albums.acceptedFormats') }}</p>
       </div>
 
       <div v-if="previewUrl" class="rounded-lg overflow-hidden border border-border">
@@ -106,14 +109,14 @@ function resetState() {
       </div>
 
       <div v-if="fileInfo" class="text-sm text-muted">
-        <p><span class="font-medium text-foreground">File:</span> {{ fileInfo.name }}</p>
-        <p><span class="font-medium text-foreground">Size:</span> {{ fileInfo.size }}</p>
+        <p><span class="font-medium text-foreground">{{ t('albums.fileLabel') }}</span> {{ fileInfo.name }}</p>
+        <p><span class="font-medium text-foreground">{{ t('albums.sizeLabel') }}</span> {{ fileInfo.size }}</p>
       </div>
     </div>
 
     <template #footer>
-      <BaseButton variant="secondary" @click="handleClose">Cancel</BaseButton>
-      <BaseButton :disabled="!selectedFile" @click="handleUpload">Upload</BaseButton>
+      <BaseButton variant="secondary" @click="handleClose">{{ t('common.cancel') }}</BaseButton>
+      <BaseButton :disabled="!selectedFile" @click="handleUpload">{{ t('albums.upload') }}</BaseButton>
     </template>
   </BaseModal>
 </template>

@@ -152,7 +152,7 @@ const router = createRouter({
       component: () => import('@/views/albums/AlbumLayout.vue'),
       meta: { requiresAuth: true, fullWidth: true },
       children: [
-        { path: '', redirect: 'photos' },
+        { path: '', redirect: { name: 'album-photos' } },
         {
           path: 'photos',
           name: 'album-photos',

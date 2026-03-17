@@ -656,7 +656,7 @@ async def delete_photo(
     user_id: str,
     user_role: str,
 ) -> bool:
-    """Delete a photo. Uploader or ADMIN (ADMIN can't delete other ADMIN's uploads)."""
+    """Delete a photo. Album creator, uploader, or site ADMIN/SUPER_ADMIN."""
     from app.core.async_storage import delete_file
 
     pool = get_pool()
@@ -668,21 +668,12 @@ async def delete_photo(
         if not photo or str(photo["album_id"]) != album_id:
             raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found.")
 
+        album = await album_repo.find_album_by_id(conn, album_uuid)
         is_uploader = str(photo["uploaded_by"]) == user_id
+        is_creator = album and str(album["created_by"]) == user_id
         is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
-        member = await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id))
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
-        # ADMIN can't delete other ADMIN's uploads
-        if not is_uploader and (is_site_admin or is_album_admin):
-            uploader_member = await album_repo.find_member(conn, album_uuid, photo["uploaded_by"])
-            if uploader_member and uploader_member["role"] == "ADMIN":
-                raise AppError(
-                    ErrorCode.SYS_403,
-                    403,
-                    "Cannot delete another admin's photo.",
-                )
-        elif not is_uploader and not is_site_admin and not is_album_admin:
+        if not (is_uploader or is_creator or is_site_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this photo.")
 
         # Delete from MinIO (best-effort)

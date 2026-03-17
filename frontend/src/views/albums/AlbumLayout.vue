@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLocale } from '@/composables/useLocale'
-import { getAlbum, listAlbumMembers } from '@/api/albums'
+import { getAlbum, listAlbumMembers, deleteAlbum, updateAlbum } from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
 import type { Album, AlbumMember } from '@/types/album'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -39,6 +39,71 @@ async function refreshAlbumRole() {
 }
 
 provide('refreshAlbumRole', refreshAlbumRole)
+
+const canEditAlbum = computed(() => {
+  if (!album.value || !auth.user) return false
+  return (
+    album.value.created_by === auth.user.id ||
+    auth.isSuperAdmin ||
+    auth.isAdmin ||
+    userAlbumRole.value === 'ADMIN'
+  )
+})
+
+const canDeleteAlbum = computed(() => {
+  if (!album.value || !auth.user) return false
+  return album.value.created_by === auth.user.id || auth.isSuperAdmin
+})
+
+const editing = ref(false)
+const editTitle = ref('')
+const editDescription = ref('')
+const saving = ref(false)
+
+function startEditing() {
+  if (!album.value) return
+  editTitle.value = album.value.title
+  editDescription.value = album.value.description || ''
+  editing.value = true
+}
+
+function cancelEditing() {
+  editing.value = false
+}
+
+async function handleSaveEdit() {
+  if (!album.value || !editTitle.value.trim()) return
+  saving.value = true
+  try {
+    const updated = await updateAlbum(album.value.id, {
+      title: editTitle.value.trim(),
+      description: editDescription.value.trim() || undefined,
+    })
+    album.value = updated
+    editing.value = false
+    toastStore.show(t('albums.editAlbumSuccess'), 'success')
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('albums.editAlbumError')), 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const deleting = ref(false)
+
+async function handleDeleteAlbum() {
+  if (!album.value || !confirm(t('albums.confirmDeleteAlbum'))) return
+  deleting.value = true
+  try {
+    await deleteAlbum(album.value.id)
+    toastStore.show(t('albums.deleteAlbumSuccess'), 'success')
+    router.push('/albums')
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('albums.deleteAlbumError')), 'error')
+  } finally {
+    deleting.value = false
+  }
+}
 
 async function fetchAlbumData() {
   loading.value = true
@@ -106,23 +171,93 @@ const currentRouteName = computed(() => route.name)
         <BaseCard padding="lg" class="mb-6">
           <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-3 mb-2">
-                <h1 class="text-2xl font-bold text-foreground break-words">{{ album.title }}</h1>
-                <BaseBadge v-if="album.is_archived" variant="neutral">{{
-                  t('albums.archived')
-                }}</BaseBadge>
-              </div>
-              <p v-if="album.description" class="text-sm text-muted mb-3">
-                {{ album.description }}
-              </p>
-              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
-                <span>{{ t('albums.photosCount', { count: album.photo_count }) }}</span>
-                <span>{{ t('albums.membersCount', { count: album.member_count }) }}</span>
-                <span>{{
-                  t('albums.created', { date: new Date(album.created_at).toLocaleDateString() })
-                }}</span>
-              </div>
+              <!-- Edit mode -->
+              <template v-if="editing">
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-sm font-medium text-foreground mb-1">{{
+                      t('albums.titleLabel')
+                    }}</label>
+                    <input
+                      v-model="editTitle"
+                      type="text"
+                      class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
+                      :placeholder="t('albums.titlePlaceholder')"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-foreground mb-1">{{
+                      t('albums.descriptionLabel')
+                    }}</label>
+                    <textarea
+                      v-model="editDescription"
+                      rows="3"
+                      class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
+                      :placeholder="t('albums.descriptionPlaceholder')"
+                    ></textarea>
+                  </div>
+                  <div class="flex gap-2">
+                    <BaseButton
+                      size="sm"
+                      :loading="saving"
+                      :disabled="!editTitle.trim()"
+                      @click="handleSaveEdit"
+                    >
+                      {{ t('common.save') }}
+                    </BaseButton>
+                    <BaseButton size="sm" variant="secondary" @click="cancelEditing">
+                      {{ t('common.cancel') }}
+                    </BaseButton>
+                  </div>
+                </div>
+              </template>
+              <!-- Display mode -->
+              <template v-else>
+                <div class="flex items-center gap-3 mb-2">
+                  <h1 class="text-2xl font-bold text-foreground break-words">{{ album.title }}</h1>
+                  <BaseBadge v-if="album.is_archived" variant="neutral">{{
+                    t('albums.archived')
+                  }}</BaseBadge>
+                  <button
+                    v-if="canEditAlbum"
+                    type="button"
+                    class="text-muted hover:text-brand-600 transition-colors"
+                    :title="t('albums.editAlbum')"
+                    @click="startEditing"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <p v-if="album.description" class="text-sm text-muted mb-3">
+                  {{ album.description }}
+                </p>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
+                  <span>{{ t('albums.photosCount', { count: album.photo_count }) }}</span>
+                  <span>{{ t('albums.membersCount', { count: album.member_count }) }}</span>
+                  <span>{{
+                    t('albums.created', { date: new Date(album.created_at).toLocaleDateString() })
+                  }}</span>
+                </div>
+              </template>
             </div>
+            <BaseButton
+              v-if="canDeleteAlbum && !editing"
+              variant="danger"
+              size="sm"
+              :loading="deleting"
+              @click="handleDeleteAlbum"
+            >
+              {{ t('albums.deleteAlbum') }}
+            </BaseButton>
           </div>
         </BaseCard>
       </div>

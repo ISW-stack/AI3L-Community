@@ -76,6 +76,10 @@ class AlbumPhotoUpdateRequest(BaseModel):
     description: str | None = Field(None, max_length=2000)
 
 
+class AlbumAddMemberRequest(BaseModel):
+    user_id: str = Field(..., min_length=1, max_length=200)
+
+
 class AlbumCommentCreateRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
     photo_id: str | None = None

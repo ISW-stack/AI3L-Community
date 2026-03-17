@@ -19,6 +19,7 @@ from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
 from app.schemas.album import (
+    AlbumAddMemberRequest,
     AlbumCommentCreateRequest,
     AlbumCommentListResponse,
     AlbumCommentResponse,
@@ -127,13 +128,13 @@ async def delete_album_endpoint(
 @router.post("/{album_id}/members", status_code=status.HTTP_201_CREATED)
 async def add_member_endpoint(
     album_id: uuid.UUID,
-    target_user_id: str = Query(..., description="User ID to add"),
+    req: AlbumAddMemberRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     result = await add_member(
         album_id=str(album_id),
         user_id=current_user["sub"],
-        target_user_id=target_user_id,
+        target_user_id=req.user_id,
         user_role=current_user["role"],
     )
     return result
@@ -220,7 +221,7 @@ async def upload_photo_endpoint(
     while chunk := await file.read(8192):
         total += len(chunk)
         if total > MAX_ALBUM_UPLOAD_BYTES:
-            raise AppError(ErrorCode.SYS_422, 413, "File too large.")
+            raise AppError(ErrorCode.SYS_422, 422, "File too large.")
         chunks.append(chunk)
     file_data = b"".join(chunks)
     content_type = file.content_type or "application/octet-stream"
@@ -254,7 +255,7 @@ async def upload_file_endpoint(
     while chunk := await file.read(8192):
         total += len(chunk)
         if total > MAX_ALBUM_UPLOAD_BYTES:
-            raise AppError(ErrorCode.SYS_422, 413, "File too large.")
+            raise AppError(ErrorCode.SYS_422, 422, "File too large.")
         chunks.append(chunk)
     file_data = b"".join(chunks)
     content_type = file.content_type or "application/octet-stream"

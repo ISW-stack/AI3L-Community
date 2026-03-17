@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
-import { listAlbumPhotos, uploadAlbumPhoto } from '@/api/albums'
+import { listAlbumPhotos, uploadAlbumPhoto, deleteAlbumPhoto } from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
 import { usePagination } from '@/composables/usePagination'
+import { useAuthStore } from '@/stores/auth'
 import type { AlbumPhoto } from '@/types/album'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -17,6 +18,7 @@ import PhotoUploadModal from '@/components/albums/PhotoUploadModal.vue'
 
 const { t } = useI18n()
 const toast = useToastStore()
+const auth = useAuthStore()
 const { album, userAlbumRole } = useAlbumLayout()
 
 const photos = ref<AlbumPhoto[]>([])
@@ -83,6 +85,33 @@ async function handleUpload(file: File) {
   }
 }
 
+const canDeletePhoto = computed(() => {
+  if (!album.value || !auth.user) return false
+  return (
+    album.value.created_by === auth.user.id ||
+    auth.isAdmin ||
+    userAlbumRole.value === 'ADMIN'
+  )
+})
+
+function canDeleteThisPhoto(photo: AlbumPhoto): boolean {
+  if (!auth.user) return false
+  if (photo.uploaded_by === auth.user.id) return true
+  return canDeletePhoto.value
+}
+
+async function handleDeletePhoto(photo: AlbumPhoto) {
+  if (!album.value || !confirm(t('albums.confirmDeletePhoto'))) return
+  try {
+    await deleteAlbumPhoto(album.value.id, photo.id)
+    toast.show(t('albums.deletePhotoSuccess'), 'success')
+    closeLightbox()
+    await fetchPhotos()
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('albums.deletePhotoError')), 'error')
+  }
+}
+
 watch(
   () => album.value?.id,
   () => {
@@ -129,8 +158,10 @@ watch(page, fetchPhotos)
       :photos="photos"
       :current-index="lightboxIndex"
       :visible="lightboxVisible"
+      :can-delete="photos[lightboxIndex] ? canDeleteThisPhoto(photos[lightboxIndex]) : false"
       @close="closeLightbox"
       @navigate="handleLightboxNavigate"
+      @delete="handleDeletePhoto"
     />
 
     <PhotoUploadModal v-model="showUploadModal" @upload="handleUpload" />

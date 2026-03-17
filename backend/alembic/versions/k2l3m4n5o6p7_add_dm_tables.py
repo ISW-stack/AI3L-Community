@@ -1,7 +1,7 @@
 """add DM conversations and messages tables
 
-Revision ID: a1b2c3d4e5f6
-Revises: z7a8b9c0d1e2
+Revision ID: k2l3m4n5o6p7
+Revises: j1k2l3m4n5o6
 Create Date: 2026-03-17
 
 """
@@ -9,8 +9,8 @@ Create Date: 2026-03-17
 import sqlalchemy as sa
 from alembic import op
 
-revision = "a1b2c3d4e5f6"
-down_revision = "z7a8b9c0d1e2"
+revision = "k2l3m4n5o6p7"
+down_revision = "j1k2l3m4n5o6"
 branch_labels = None
 depends_on = None
 
