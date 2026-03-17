@@ -318,6 +318,11 @@ class TestBulkChangeRole:
                     return_value=2,
                 ),
                 patch("app.services.audit.log_action", new_callable=AsyncMock),
+                patch(f"{_EP}.emit", new_callable=AsyncMock),
+                patch(
+                    "app.services.auth.revoke_user_sessions",
+                    new_callable=AsyncMock,
+                ),
             ):
                 resp = await client.put(
                     "/api/v1/users/bulk-role",
@@ -326,6 +331,49 @@ class TestBulkChangeRole:
                 )
                 assert resp.status_code == 200
                 assert resp.json()["updated_count"] == 2
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_bulk_change_role_revokes_sessions_and_emits(self, client):
+        """PUT /users/bulk-role revokes sessions and emits event per user."""
+        user_ids = [str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())]
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch(
+                    "app.services.user.bulk_change_role",
+                    new_callable=AsyncMock,
+                    return_value=3,
+                ),
+                patch("app.services.audit.log_action", new_callable=AsyncMock),
+                patch(
+                    f"{_EP}.emit", new_callable=AsyncMock
+                ) as mock_emit,
+                patch(
+                    "app.services.auth.revoke_user_sessions",
+                    new_callable=AsyncMock,
+                ) as mock_revoke,
+            ):
+                resp = await client.put(
+                    "/api/v1/users/bulk-role",
+                    json={"user_ids": user_ids, "role": "MEMBER"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["updated_count"] == 3
+
+                # emit called once per user with correct args
+                assert mock_emit.call_count == len(user_ids)
+                for uid in user_ids:
+                    mock_emit.assert_any_call(
+                        "user.role_changed", user_id=uid, new_role="MEMBER"
+                    )
+
+                # revoke_user_sessions called once per user
+                assert mock_revoke.call_count == len(user_ids)
+                for uid in user_ids:
+                    mock_revoke.assert_any_call(uid)
         finally:
             _clear_overrides()
 

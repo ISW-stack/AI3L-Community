@@ -49,7 +49,8 @@ const showConfirmModal = computed({
 const isSigAdmin = computed(
   () => userSigRole?.value === 'ADMIN' || userSigRole?.value === 'SUB_ADMIN',
 )
-const canEdit = computed(() => auth.isAdmin || isSigAdmin.value)
+const isSigOwner = computed(() => userSigRole?.value === 'ADMIN')
+const canEdit = computed(() => auth.isAdmin || isSigOwner.value)
 
 const memberRoleBadge: Record<string, 'orange' | 'purple' | 'brand'> = {
   ADMIN: 'orange',
@@ -82,7 +83,13 @@ function canRemoveMember(m: SigMember) {
   if (m.role === 'ADMIN') {
     return auth.isAdmin // Only platform admin can remove SIG admin
   }
-  return auth.isAdmin || isSigAdmin.value
+  return auth.isAdmin || isSigOwner.value
+}
+
+function canAssignSubAdmin(m: SigMember) {
+  if (m.role !== 'MEMBER') return false
+  if (m.user_id === auth.user?.id) return false
+  return auth.isAdmin || isSigOwner.value
 }
 
 function promptRemoveMember(user: SigMember) {
@@ -227,7 +234,7 @@ onMounted(fetchMembers)
               </td>
               <td v-if="canEdit" class="px-6 py-4 whitespace-nowrap text-right space-x-3 text-xs">
                 <button
-                  v-if="(auth.isAdmin || userSigRole === 'ADMIN') && m.role === 'MEMBER'"
+                  v-if="canAssignSubAdmin(m)"
                   @click="handleAssignSubAdmin(m.user_id)"
                   class="text-brand-600 hover:text-brand-700 font-medium hover:underline"
                 >
@@ -282,7 +289,7 @@ onMounted(fetchMembers)
 
             <div v-if="canEdit" class="flex gap-3">
               <button
-                v-if="(auth.isAdmin || userSigRole === 'ADMIN') && m.role === 'MEMBER'"
+                v-if="canAssignSubAdmin(m)"
                 @click="handleAssignSubAdmin(m.user_id)"
                 class="text-xs text-brand-600 font-medium"
               >

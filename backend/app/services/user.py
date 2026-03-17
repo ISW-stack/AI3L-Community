@@ -201,15 +201,26 @@ async def user_exists_by_username(username: str) -> bool:
 
 
 async def update_user_role(user_id: uuid.UUID, new_role: str) -> dict | None:
-    # Prevent orphaning the system by demoting the last SUPER_ADMIN
-    if new_role != "SUPER_ADMIN":
-        current = await user_repo.find_by_id(user_id)
-        if current and current["role"] == "SUPER_ADMIN":
-            count = await user_repo.count_by_role("SUPER_ADMIN")
-            if count <= 1:
-                raise ValueError("Cannot demote: this is the last Super Admin in the system.")
+    from app.core.database import get_pool
 
-    result = await user_repo.update_role(user_id, new_role)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            if new_role != "SUPER_ADMIN":
+                # Lock all SUPER_ADMIN rows to prevent concurrent demotions
+                count = await user_repo.count_super_admins_for_update(conn)
+                # Check if the target user is currently a SUPER_ADMIN
+                current = await conn.fetchrow(
+                    "SELECT role FROM users WHERE id = $1 AND is_deleted = false FOR UPDATE",
+                    user_id,
+                )
+                if current and current["role"] == "SUPER_ADMIN" and count <= 1:
+                    raise ValueError(
+                        "Cannot demote: this is the last Super Admin in the system."
+                    )
+
+            result = await user_repo.update_role_in_conn(user_id, new_role, conn)
+
     if result:
         logger.info("User role updated", extra={"user_id": str(user_id), "new_role": new_role})
     return result

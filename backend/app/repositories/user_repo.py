@@ -121,6 +121,24 @@ async def update_role(user_id: uuid.UUID, new_role: str) -> dict | None:
         return dict(row) if row else None
 
 
+async def update_role_in_conn(user_id: uuid.UUID, new_role: str, conn: Any) -> dict | None:
+    """Update role within an existing connection/transaction."""
+    row = await conn.fetchrow(
+        f"UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = false RETURNING {_USER_COLUMNS}",  # noqa: E501
+        new_role,
+        user_id,
+    )
+    return dict(row) if row else None
+
+
+async def count_super_admins_for_update(conn: Any) -> int:
+    """Count SUPER_ADMIN users with FOR UPDATE lock to prevent TOCTOU races."""
+    result = await conn.fetchval(
+        "SELECT COUNT(*) FROM users WHERE role = 'SUPER_ADMIN' AND is_deleted = false FOR UPDATE",
+    )
+    return int(result)
+
+
 async def anonymize(user_id: uuid.UUID, anon_name: str) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:

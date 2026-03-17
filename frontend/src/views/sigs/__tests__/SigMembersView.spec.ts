@@ -573,7 +573,7 @@ describe('SigMembersView', () => {
     expect(toast.toasts[0].type).toBe('error')
   })
 
-  it('SUB_ADMIN cannot see Remove button for ADMIN members', async () => {
+  it('SUB_ADMIN cannot see Remove button for any members', async () => {
     const { wrapper } = await mountComponent({
       role: 'MEMBER',
       userSigRole: 'SUB_ADMIN',
@@ -589,9 +589,9 @@ describe('SigMembersView', () => {
     const adminRow = tableRows[0]
     expect(adminRow.text()).not.toContain('Remove')
 
-    // Row 2 = user-3 (MEMBER role) — SUB_ADMIN should see Remove for MEMBER
+    // Row 2 = user-3 (MEMBER role) — SUB_ADMIN should NOT see Remove (backend rejects it)
     const memberRow = tableRows[2]
-    expect(memberRow.text()).toContain('Remove')
+    expect(memberRow.text()).not.toContain('Remove')
   })
 
   it('platform admin can see Remove button for ADMIN members', async () => {

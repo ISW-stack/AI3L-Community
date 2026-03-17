@@ -59,11 +59,11 @@ class AdminCreateAccountRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., max_length=100)
-    role: str = Field(default="MEMBER")
+    role: str = Field(default="MEMBER", pattern="^(MEMBER|ADMIN)$")
 
 
 class RoleUpdateRequest(BaseModel):
-    role: str
+    role: str = Field(..., pattern="^(SUPER_ADMIN|ADMIN|MEMBER)$")
 
 
 class BanRequest(BaseModel):
