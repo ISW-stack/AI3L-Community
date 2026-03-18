@@ -344,7 +344,7 @@ describe('useWebSocket', () => {
       expect(mockToastShow).toHaveBeenCalledWith('New notification', 'info')
     })
 
-    it('shows fallback toast when notification is null', async () => {
+    it('does not call addFromWebSocket when notification is null', async () => {
       const { connect } = useWebSocket()
       await connect()
       const ws = MockWebSocket.instances[0]
@@ -352,7 +352,19 @@ describe('useWebSocket', () => {
 
       ws.simulateMessage({ type: 'NEW_NOTIFICATION', notification: null })
 
-      expect(mockAddFromWebSocket).toHaveBeenCalledWith(null)
+      expect(mockAddFromWebSocket).not.toHaveBeenCalled()
+      expect(mockToastShow).toHaveBeenCalledWith('New notification', 'info')
+    })
+
+    it('does not call addFromWebSocket when notification is undefined', async () => {
+      const { connect } = useWebSocket()
+      await connect()
+      const ws = MockWebSocket.instances[0]
+      ws.simulateOpen()
+
+      ws.simulateMessage({ type: 'NEW_NOTIFICATION' })
+
+      expect(mockAddFromWebSocket).not.toHaveBeenCalled()
       expect(mockToastShow).toHaveBeenCalledWith('New notification', 'info')
     })
 

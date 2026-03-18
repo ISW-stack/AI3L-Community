@@ -94,6 +94,38 @@ describe('useNotificationStore', () => {
       expect(store.unreadCount).toBe(1)
     })
 
+    it('should not crash and not modify state when called with null', () => {
+      const store = useNotificationStore()
+      store.addFromWebSocket(null as unknown as Notification)
+
+      expect(store.items).toHaveLength(0)
+      expect(store.unreadCount).toBe(0)
+    })
+
+    it('should not crash and not modify state when called with undefined', () => {
+      const store = useNotificationStore()
+      store.addFromWebSocket(undefined as unknown as Notification)
+
+      expect(store.items).toHaveLength(0)
+      expect(store.unreadCount).toBe(0)
+    })
+
+    it('should not increment unreadCount when notification.is_read is true', () => {
+      const store = useNotificationStore()
+      store.addFromWebSocket(makeNotification({ id: 'read-1', is_read: true }))
+
+      expect(store.items).toHaveLength(1)
+      expect(store.unreadCount).toBe(0)
+    })
+
+    it('should increment unreadCount when notification.is_read is false', () => {
+      const store = useNotificationStore()
+      store.addFromWebSocket(makeNotification({ id: 'unread-1', is_read: false }))
+
+      expect(store.items).toHaveLength(1)
+      expect(store.unreadCount).toBe(1)
+    })
+
     it('should allow different notifications with different ids', () => {
       const store = useNotificationStore()
       store.addFromWebSocket(makeNotification({ id: 'a', message: 'First' }))

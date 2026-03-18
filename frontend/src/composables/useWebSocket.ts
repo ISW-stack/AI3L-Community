@@ -81,7 +81,9 @@ export function useWebSocket() {
             auth.clearSession()
             router.push({ name: 'login' })
           } else if (msg.type === 'NEW_NOTIFICATION') {
-            notificationStore.addFromWebSocket(msg.notification)
+            if (msg.notification) {
+              notificationStore.addFromWebSocket(msg.notification)
+            }
             toastStore.show(msg.notification?.message || 'New notification', 'info')
           } else if (msg.type === 'NEW_DM') {
             dmStore.addFromWebSocket(msg.message)

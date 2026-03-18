@@ -59,7 +59,7 @@ async def list_notifications(
         if blocked_ids:
             exclude = [uuid.UUID(uid) for uid in blocked_ids]
     except Exception:
-        pass  # Redis failure → show all notifications
+        logger.warning("Failed to fetch blocked user IDs for notification filtering", exc_info=True)
 
     offset = (page - 1) * page_size
     rows, total, unread_count = await notification_repo.find_many(

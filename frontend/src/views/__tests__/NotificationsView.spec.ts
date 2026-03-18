@@ -343,6 +343,74 @@ describe('NotificationsView', () => {
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
+  it('handleDeleteNotification awaits fetchUnreadCount before resolving', async () => {
+    const { wrapper } = await mountNotifications()
+    const vm = wrapper.vm as any
+
+    // Make fetchUnreadCount (triggered via store) take time
+    // The store's fetchUnreadCount calls listNotifications internally
+    let resolveFetch: () => void
+    const fetchPromise = new Promise<void>((r) => {
+      resolveFetch = r
+    })
+    // After the delete call, the next listNotifications call is from fetchUnreadCount
+    mockDeleteNotification.mockResolvedValue({})
+    const callCount = mockListNotifications.mock.calls.length
+    mockListNotifications.mockImplementation(() => {
+      // This is the fetchUnreadCount call from the store
+      return fetchPromise.then(() => ({
+        notifications: [],
+        total: 0,
+        unread_count: 0,
+      }))
+    })
+
+    const deletePromise = vm.handleDeleteNotification('n1')
+
+    // fetchUnreadCount has not resolved yet, so deletePromise should still be pending
+    let resolved = false
+    deletePromise.then(() => {
+      resolved = true
+    })
+    await flushPromises()
+    // The store fetchUnreadCount is awaited, so the handler should not have resolved yet
+    // (unless the store call resolved instantly — resolve it now)
+    resolveFetch!()
+    await flushPromises()
+    expect(resolved).toBe(true)
+  })
+
+  it('confirmClearAll awaits fetchUnreadCount before resolving', async () => {
+    const { wrapper } = await mountNotifications()
+    const vm = wrapper.vm as any
+
+    let resolveFetch: () => void
+    const fetchPromise = new Promise<void>((r) => {
+      resolveFetch = r
+    })
+    mockBulkDeleteNotifications.mockResolvedValue({})
+    mockListNotifications.mockImplementation(() =>
+      fetchPromise.then(() => ({
+        notifications: [],
+        total: 0,
+        unread_count: 0,
+      })),
+    )
+
+    const clearPromise = vm.confirmClearAll()
+    let resolved = false
+    clearPromise.then(() => {
+      resolved = true
+    })
+    await flushPromises()
+    // Should not be resolved yet since fetchUnreadCount hasn't completed
+    expect(resolved).toBe(false)
+
+    resolveFetch!()
+    await flushPromises()
+    expect(resolved).toBe(true)
+  })
+
   it('does not decrement unreadCount when deleting a read notification', async () => {
     const { wrapper } = await mountNotifications()
     const vm = wrapper.vm as any

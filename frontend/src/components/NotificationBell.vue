@@ -14,21 +14,26 @@ const notifStore = useNotificationStore()
 const dropdownOpen = ref(false)
 const avatarFailed = reactive<Record<string, boolean>>({})
 
-const { handleDropdownKeydown } = useDropdownKeyNav({
-  isOpen: dropdownOpen,
-  onOpen: () => {
+function openDropdown() {
+  if (!dropdownOpen.value) {
     dropdownOpen.value = true
     notifStore.fetchRecent()
-  },
+  }
+}
+
+const { handleDropdownKeydown } = useDropdownKeyNav({
+  isOpen: dropdownOpen,
+  onOpen: openDropdown,
   onClose: () => (dropdownOpen.value = false),
   wrapperClass: 'notification-bell-wrapper',
   triggerSelector: 'button[data-notification-trigger]',
 })
 
 function toggleDropdown() {
-  dropdownOpen.value = !dropdownOpen.value
   if (dropdownOpen.value) {
-    notifStore.fetchRecent()
+    dropdownOpen.value = false
+  } else {
+    openDropdown()
   }
 }
 

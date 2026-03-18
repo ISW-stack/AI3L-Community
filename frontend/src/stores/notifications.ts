@@ -60,10 +60,13 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   function addFromWebSocket(notification: Notification) {
+    if (!notification) return
     if (items.value.some((n) => n.id === notification.id)) {
       return
     }
-    unreadCount.value++
+    if (!notification.is_read) {
+      unreadCount.value++
+    }
     items.value.unshift(notification)
     if (items.value.length > 10) {
       items.value.pop()

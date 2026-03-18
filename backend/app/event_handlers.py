@@ -60,18 +60,18 @@ async def _on_comment_created(
     # Collect UIDs already notified via mention/reply to avoid duplicate post-owner notification
     notified_uids: set[str] = set()
 
-    for target_uid, cid in mention_targets:
+    for target_uid, pid in mention_targets:
         if await _is_blocked(target_uid, user_id):
             continue  # Skip notification for blocked users
-        if not await _check_idempotent(target_uid, "comment", cid, "MENTION"):
+        if not await _check_idempotent(target_uid, "post", pid, "MENTION"):
             continue
         try:
             await create_notification(
                 user_id=target_uid,
                 trigger_user_id=user_id,
                 action_type="MENTION",
-                entity_type="comment",
-                entity_id=cid,
+                entity_type="post",
+                entity_id=pid,
                 message=f"{commenter_name} mentioned you in a comment",
             )
             succeeded += 1
@@ -89,7 +89,7 @@ async def _on_comment_created(
     if reply_target:
         if await _is_blocked(reply_target[0], user_id):
             pass  # Skip notification for blocked users
-        elif not await _check_idempotent(reply_target[0], "comment", reply_target[1], "REPLY"):
+        elif not await _check_idempotent(reply_target[0], "post", reply_target[1], "REPLY"):
             pass
         else:
             try:
@@ -97,7 +97,7 @@ async def _on_comment_created(
                     user_id=reply_target[0],
                     trigger_user_id=user_id,
                     action_type="REPLY",
-                    entity_type="comment",
+                    entity_type="post",
                     entity_id=reply_target[1],
                     message=f"{commenter_name} replied to your comment",
                 )

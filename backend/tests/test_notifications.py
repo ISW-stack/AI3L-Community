@@ -170,17 +170,25 @@ class TestDeleteNotificationNotFound:
 
 class TestBulkDeleteNotifications:
     @pytest.mark.anyio
-    async def test_bulk_delete_no_body_returns_400(self, client):
-        """DELETE /notifications without body → 400 (notification_ids required)."""
+    async def test_bulk_delete_no_body_deletes_all(self, client):
+        """DELETE /notifications without body → 204 (deletes all user notifications)."""
         try:
             _override_auth("MEMBER")
-            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.repositories.notification_repo.bulk_delete",
+                    new_callable=AsyncMock,
+                    return_value=3,
+                ) as mock_bulk,
+            ):
                 resp = await client.delete(
                     "/api/v1/notifications",
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 400
-                assert "notification_ids" in resp.json()["detail"]["message"]
+                assert resp.status_code == 204
+                mock_bulk.assert_awaited_once()
+                assert mock_bulk.call_args[0][1] is None
         finally:
             _clear_overrides()
 

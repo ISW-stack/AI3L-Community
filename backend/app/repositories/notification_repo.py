@@ -60,18 +60,6 @@ async def find_many(
             params.append(exclude_user_ids)
             idx += 1
 
-        if page_size == 0:
-            row = await conn.fetchrow(
-                f"""
-                SELECT COUNT(*) AS total,
-                       COUNT(*) FILTER (WHERE NOT n.is_read) AS unread_count
-                FROM notifications n
-                {where}
-                """,
-                *params,
-            )
-            return [], row["total"], row["unread_count"]
-
         # Save params before extending with LIMIT/OFFSET for potential fallback count query
         count_params = list(params)
 
@@ -102,10 +90,15 @@ async def find_many(
             )
             result = []
 
-        # Get unread count in same connection
+        # Get unread count in same connection (respecting blocked-user filter)
+        unread_where = "WHERE n.user_id = $1 AND n.is_read = false"
+        unread_params: list = [user_id]
+        if exclude_user_ids:
+            unread_where += " AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL($2::uuid[]))"
+            unread_params.append(exclude_user_ids)
         unread_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false",
-            user_id,
+            f"SELECT COUNT(*) FROM notifications n {unread_where}",
+            *unread_params,
         )
         return result, total, unread_count
 

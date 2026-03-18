@@ -107,7 +107,7 @@ async function handleDeleteNotification(id: string) {
       unreadCount.value = Math.max(0, unreadCount.value - 1)
     }
     notifications.value = notifications.value.filter((n) => n.id !== id)
-    notificationStore.fetchUnreadCount()
+    await notificationStore.fetchUnreadCount()
   } catch {
     toast.show(t('notifications.deleteError'), 'error')
   }
@@ -122,7 +122,7 @@ async function confirmClearAll() {
   try {
     await bulkDeleteNotifications()
     notifications.value = []
-    notificationStore.fetchUnreadCount()
+    await notificationStore.fetchUnreadCount()
     toast.show(t('notifications.deleteSuccess'), 'success')
   } catch {
     toast.show(t('notifications.deleteError'), 'error')
