@@ -49,6 +49,8 @@ vi.mock('lucide-vue-next', () => ({
   Globe: { name: 'Globe', template: '<span class="icon-globe" />' },
   ChevronDown: { name: 'ChevronDown', template: '<span class="icon-chevron-down" />' },
   ChevronRight: { name: 'ChevronRight', template: '<span class="icon-chevron-right" />' },
+  Lock: { name: 'Lock', template: '<span class="icon-lock" />' },
+  Unlock: { name: 'Unlock', template: '<span class="icon-unlock" />' },
 }))
 
 vi.mock('@/utils/datetime', () => ({
@@ -134,7 +136,6 @@ vi.mock('@/composables/usePagination', () => ({
 
 // --------------- Imports ---------------
 
-import ProfileEditForm from '@/components/profile/ProfileEditForm.vue'
 import DMView from '@/views/DMView.vue'
 
 // --------------- parseDMError re-implementation for unit testing ---------------
@@ -168,40 +169,24 @@ function parseDMError(e: unknown, fallback: string): string {
   return getErrorMessage(e, fallback)
 }
 
-// --------------- ProfileEditForm tests ---------------
+// --------------- DMView — dm_friends_only toggle tests ---------------
 
-describe('ProfileEditForm — dm_friends_only toggle', () => {
-  function mountForm(propsOverrides: Record<string, unknown> = {}) {
+describe('DMView — dm_friends_only toggle', () => {
+  function mountDMView() {
     const pinia = createPinia()
     setActivePinia(pinia)
-    return mount(ProfileEditForm, {
-      props: {
-        username: 'bob',
-        avatarUrl: null,
-        role: 'MEMBER',
-        storageUsed: 0,
-        storageQuota: 1_073_741_824,
-        storagePercent: 0,
-        storageLoading: false,
-        storageError: false,
-        isGuest: false,
-        saving: false,
-        displayNameInitial: 'B',
-        displayName: 'Bob',
-        bio: '',
-        affiliation: '',
-        orcid: '',
-        ...propsOverrides,
-      },
+    return mount(DMView, {
       global: {
         plugins: [pinia],
+        stubs: {
+          'router-link': { template: '<a><slot /></a>' },
+        },
       },
     })
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // Default: getPreferences returns dm_friends_only: false
     mockGet.mockImplementation((url: string) => {
       if (url === '/users/me/preferences') {
         return Promise.resolve({
@@ -227,25 +212,16 @@ describe('ProfileEditForm — dm_friends_only toggle', () => {
     })
   })
 
-  it('renders the Privacy section with friends-only checkbox for non-guest users', async () => {
-    const wrapper = mountForm()
+  it('renders friends-only toggle button showing "Open to all" by default', async () => {
+    const wrapper = mountDMView()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Privacy')
-    expect(wrapper.text()).toContain('Friends-only messages')
-    expect(wrapper.text()).toContain('Only friends can send you direct messages')
-    expect(wrapper.find('input[type="checkbox"]').exists()).toBe(true)
+    const btn = wrapper.find('[data-testid="dm-friends-only-toggle"]')
+    expect(btn.exists()).toBe(true)
+    expect(btn.text()).toContain('Open to all')
   })
 
-  it('does not render Privacy section for guest users', async () => {
-    const wrapper = mountForm({ isGuest: true })
-    await flushPromises()
-
-    expect(wrapper.text()).not.toContain('Privacy')
-    expect(wrapper.text()).not.toContain('Friends-only messages')
-  })
-
-  it('initializes checkbox from preferences API on mount', async () => {
+  it('shows "Friends only" when preference is true', async () => {
     mockGet.mockImplementation((url: string) => {
       if (url === '/users/me/preferences') {
         return Promise.resolve({
@@ -261,19 +237,19 @@ describe('ProfileEditForm — dm_friends_only toggle', () => {
       return Promise.resolve({ data: {} })
     })
 
-    const wrapper = mountForm()
+    const wrapper = mountDMView()
     await flushPromises()
 
-    const checkbox = wrapper.find('input[type="checkbox"]')
-    expect((checkbox.element as HTMLInputElement).checked).toBe(true)
+    const btn = wrapper.find('[data-testid="dm-friends-only-toggle"]')
+    expect(btn.text()).toContain('Friends only')
   })
 
-  it('calls PATCH /users/me/preferences on checkbox change', async () => {
-    const wrapper = mountForm()
+  it('calls PATCH /users/me/preferences when toggle is clicked', async () => {
+    const wrapper = mountDMView()
     await flushPromises()
 
-    const checkbox = wrapper.find('input[type="checkbox"]')
-    await checkbox.setValue(true)
+    const btn = wrapper.find('[data-testid="dm-friends-only-toggle"]')
+    await btn.trigger('click')
     await flushPromises()
 
     expect(mockPatch).toHaveBeenCalledWith('/users/me/preferences', {
@@ -281,32 +257,20 @@ describe('ProfileEditForm — dm_friends_only toggle', () => {
     })
   })
 
-  it('reverts checkbox on API failure', async () => {
+  it('reverts toggle on API failure', async () => {
     mockPatch.mockRejectedValue(new Error('Network error'))
 
-    const wrapper = mountForm()
+    const wrapper = mountDMView()
     await flushPromises()
 
-    const checkbox = wrapper.find('input[type="checkbox"]')
-    expect((checkbox.element as HTMLInputElement).checked).toBe(false)
+    const btn = wrapper.find('[data-testid="dm-friends-only-toggle"]')
+    expect(btn.text()).toContain('Open to all')
 
-    // Check the box (triggers change -> toggleDmFriendsOnly)
-    await checkbox.setValue(true)
+    await btn.trigger('click')
     await flushPromises()
 
     // Should revert since API failed
-    expect((checkbox.element as HTMLInputElement).checked).toBe(false)
-  })
-
-  it('does not fetch preferences for guest users', async () => {
-    mockGet.mockClear()
-    mountForm({ isGuest: true })
-    await flushPromises()
-
-    const prefsCalls = mockGet.mock.calls.filter(
-      (call: unknown[]) => call[0] === '/users/me/preferences',
-    )
-    expect(prefsCalls.length).toBe(0)
+    expect(btn.text()).toContain('Open to all')
   })
 })
 

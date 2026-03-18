@@ -1,4 +1,4 @@
-"""Tests for user preferences endpoints — GET and PUT /users/me/preferences."""
+"""Tests for user preferences endpoints — GET and PATCH /users/me/preferences."""
 
 import uuid
 from unittest.mock import AsyncMock, patch
@@ -90,7 +90,7 @@ class TestGetPreferences:
 class TestUpdatePreferences:
     @pytest.mark.anyio
     async def test_upsert_creates_new_row(self, client):
-        """PUT /users/me/preferences → 200, creates row via upsert."""
+        """PATCH /users/me/preferences → 200, creates row via upsert."""
         try:
             _override_auth("MEMBER")
             with (
@@ -106,7 +106,7 @@ class TestUpdatePreferences:
                     },
                 ),
             ):
-                resp = await client.put(
+                resp = await client.patch(
                     "/api/v1/users/me/preferences",
                     json={"theme": "dark"},
                     headers={"Authorization": "Bearer fake"},
@@ -118,7 +118,7 @@ class TestUpdatePreferences:
 
     @pytest.mark.anyio
     async def test_upsert_updates_existing_row(self, client):
-        """PUT /users/me/preferences → 200, updates existing row."""
+        """PATCH /users/me/preferences → 200, updates existing row."""
         try:
             _override_auth("MEMBER")
             with (
@@ -134,7 +134,7 @@ class TestUpdatePreferences:
                     },
                 ),
             ):
-                resp = await client.put(
+                resp = await client.patch(
                     "/api/v1/users/me/preferences",
                     json={"theme": "dark", "notify_mentions": False},
                     headers={"Authorization": "Bearer fake"},
@@ -148,10 +148,10 @@ class TestUpdatePreferences:
 
     @pytest.mark.anyio
     async def test_invalid_theme_returns_422(self, client):
-        """PUT /users/me/preferences with invalid theme → 422."""
+        """PATCH /users/me/preferences with invalid theme → 422."""
         try:
             _override_auth("MEMBER")
-            resp = await client.put(
+            resp = await client.patch(
                 "/api/v1/users/me/preferences",
                 json={"theme": "neon"},
                 headers={"Authorization": "Bearer fake"},
@@ -162,7 +162,7 @@ class TestUpdatePreferences:
 
     @pytest.mark.anyio
     async def test_partial_update_only_updates_provided_fields(self, client):
-        """PUT /users/me/preferences with partial data only updates those fields."""
+        """PATCH /users/me/preferences with partial data only updates those fields."""
         try:
             payload, uid = _override_auth("MEMBER")
             mock_update = AsyncMock(
@@ -177,7 +177,7 @@ class TestUpdatePreferences:
                 patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP_PREFS}.update_user_preferences", mock_update),
             ):
-                resp = await client.put(
+                resp = await client.patch(
                     "/api/v1/users/me/preferences",
                     json={"notify_replies": False},
                     headers={"Authorization": "Bearer fake"},
@@ -194,8 +194,8 @@ class TestUpdatePreferences:
 
     @pytest.mark.anyio
     async def test_unauthenticated_returns_401(self, client):
-        """PUT /users/me/preferences without auth → 401."""
-        resp = await client.put(
+        """PATCH /users/me/preferences without auth → 401."""
+        resp = await client.patch(
             "/api/v1/users/me/preferences",
             json={"theme": "dark"},
         )
@@ -205,11 +205,11 @@ class TestUpdatePreferences:
 class TestUpdatePreferencesRateLimit:
     @pytest.mark.anyio
     async def test_update_preferences_rate_limited(self, client):
-        """PUT /users/me/preferences → 429 when rate limited."""
+        """PATCH /users/me/preferences → 429 when rate limited."""
         try:
             _override_auth("MEMBER")
             with patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=False):
-                resp = await client.put(
+                resp = await client.patch(
                     "/api/v1/users/me/preferences",
                     json={"theme": "dark"},
                     headers={"Authorization": "Bearer fake"},

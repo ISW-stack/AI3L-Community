@@ -95,6 +95,20 @@ vi.mock('@/composables/usePagination', () => ({
 
 vi.mock('@/api/users', () => ({
   getPublicProfile: vi.fn(),
+  getPreferences: vi.fn().mockResolvedValue({
+    theme: 'light',
+    notify_mentions: true,
+    notify_replies: true,
+    notify_sig_posts: true,
+    dm_friends_only: false,
+  }),
+  updatePreferences: vi.fn().mockResolvedValue({
+    theme: 'light',
+    notify_mentions: true,
+    notify_replies: true,
+    notify_sig_posts: true,
+    dm_friends_only: true,
+  }),
 }))
 
 vi.mock('@/api/posts', () => ({
@@ -138,6 +152,7 @@ vi.mock('vue-i18n', () => ({
 vi.mock('lucide-vue-next', () => ({
   MessageSquare: { name: 'MessageSquare', template: '<span class="icon-message-square" />' },
   Lock: { name: 'Lock', template: '<span class="icon-lock" />' },
+  Unlock: { name: 'Unlock', template: '<span class="icon-unlock" />' },
   ArrowLeft: { name: 'ArrowLeft', template: '<span class="icon-arrow-left" />' },
   UserPlus: { name: 'UserPlus', template: '<span />' },
   UserMinus: { name: 'UserMinus', template: '<span />' },

@@ -130,7 +130,7 @@ All application-layer rate limits can be tuned per environment without a code ch
 | `SIG_MANAGE` | `20` | `60` | SIG member management |
 | `SIG_CRUD` | `10` | `60` | SIG create/update/delete |
 | `CATEGORY_CRUD` | `10` | `60` | Category create/update/delete |
-| `PREFERENCES` | `10` | `60` | `PUT /users/me/preferences` |
+| `PREFERENCES` | `10` | `60` | `PATCH /users/me/preferences` |
 | `DM_SEND` | `30` | `60` | `POST /dm/conversations/{user_id}/messages` |
 | `DM_LIST` | `60` | `60` | `GET /dm/conversations`, `GET /dm/conversations/{id}/messages` |
 

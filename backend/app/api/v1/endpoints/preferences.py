@@ -21,7 +21,7 @@ async def get_preferences(
     return UserPreferencesResponse(**prefs)
 
 
-@router.put("", response_model=UserPreferencesResponse)
+@router.patch("", response_model=UserPreferencesResponse)
 async def update_preferences(
     req: UserPreferencesUpdate,
     current_user: dict = Depends(get_current_user),

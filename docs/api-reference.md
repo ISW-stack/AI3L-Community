@@ -30,7 +30,7 @@ All endpoints are prefixed with `/api/v1/`. Full interactive documentation (Swag
 | PUT | `/users/me/password` | Required | Change own password |
 | POST | `/users/me/consent` | Required | Record privacy policy consent |
 | GET | `/users/me/preferences` | Required | Get user preferences (theme, language, notifications) |
-| PUT | `/users/me/preferences` | Required | Update user preferences (partial upsert); includes `dm_friends_only` to restrict DMs to friends only |
+| PATCH | `/users/me/preferences` | Required | Update user preferences (partial upsert); includes `dm_friends_only` to restrict DMs to friends only |
 | DELETE | `/users/me` | Required | Self-delete account (GDPR Right to Erasure) |
 | POST | `/users/apply-member` | Guest | Submit membership application |
 | GET | `/users/{user_id}` | Required | Get any user's public profile |
@@ -143,7 +143,7 @@ All DM endpoints require **Member** role or higher. Guests cannot use DMs.
 - Each conversation has a **50,000-character cap**; oldest messages are deleted automatically when the cap is exceeded.
 - File attachments: max **1 file per message**, max **50 MB**, counts toward the sender's **1 GB** per-user storage quota. Files expire after **3 days**.
 - Message text is retained for **30 days**.
-- The `dm_friends_only` preference is toggled via `PUT /users/me/preferences`.
+- The `dm_friends_only` preference is toggled via `PATCH /users/me/preferences`.
 
 ---
 

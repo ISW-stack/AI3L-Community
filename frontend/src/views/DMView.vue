@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
 import { getErrorMessage } from '@/utils/error'
+import { getPreferences, updatePreferences } from '@/api/users'
 import * as dmApi from '@/api/dm'
 import ConversationList from '@/components/dm/ConversationList.vue'
 import MessageThread from '@/components/dm/MessageThread.vue'
@@ -13,7 +14,7 @@ import MessageInput from '@/components/dm/MessageInput.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { MessageSquare, ArrowLeft } from 'lucide-vue-next'
+import { MessageSquare, ArrowLeft, Lock, Unlock } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,11 +37,36 @@ const hasMoreMessages = computed(
   () => dmStore.messages.length < dmStore.messagesTotal,
 )
 
+const dmFriendsOnly = ref(false)
+const dmFriendsOnlyLoading = ref(false)
+
+async function toggleDmFriendsOnly() {
+  const newValue = !dmFriendsOnly.value
+  dmFriendsOnly.value = newValue
+  dmFriendsOnlyLoading.value = true
+  try {
+    await updatePreferences({ dm_friends_only: newValue })
+  } catch {
+    dmFriendsOnly.value = !newValue
+  } finally {
+    dmFriendsOnlyLoading.value = false
+  }
+}
+
 const breadcrumbs = [{ label: 'Home', to: '/' }, { label: 'Messages' }]
 
 // Load conversations on mount
 onMounted(async () => {
   dmStore.setCurrentUserId(auth.user?.id ?? '')
+
+  // Load DM privacy preference
+  try {
+    const prefs = await getPreferences()
+    dmFriendsOnly.value = prefs.dm_friends_only
+  } catch {
+    // Non-critical
+  }
+
   await dmStore.fetchConversations(1, convPagination.pageSize)
   convPagination.updateFromResponse(dmStore.conversationsTotal)
 
@@ -259,7 +285,25 @@ const activeConvUser = computed(() => {
 <template>
   <div class="max-w-6xl mx-auto px-4 py-6">
     <BaseBreadcrumb :items="breadcrumbs" />
-    <h1 class="text-2xl font-bold text-foreground mb-6">Messages</h1>
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-foreground">Messages</h1>
+      <button
+        :disabled="dmFriendsOnlyLoading"
+        :title="dmFriendsOnly ? 'Friends-only mode ON — only friends can message you' : 'Anyone can message you'"
+        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border transition"
+        :class="
+          dmFriendsOnly
+            ? 'border-brand-300 bg-brand-50 text-brand-700 hover:bg-brand-100'
+            : 'border-border text-muted hover:bg-surface-alt'
+        "
+        @click="toggleDmFriendsOnly"
+        data-testid="dm-friends-only-toggle"
+      >
+        <Lock v-if="dmFriendsOnly" class="w-4 h-4" aria-hidden="true" />
+        <Unlock v-else class="w-4 h-4" aria-hidden="true" />
+        {{ dmFriendsOnly ? 'Friends only' : 'Open to all' }}
+      </button>
+    </div>
 
     <div
       class="flex bg-surface border border-border rounded-lg shadow overflow-hidden"

@@ -797,11 +797,11 @@ class TestPreferencesAppError:
 
     @pytest.mark.anyio
     async def test_preferences_rate_limited_returns_sys_429(self, client):
-        """PUT /users/me/preferences -> 429 with SYS_429 code."""
+        """PATCH /users/me/preferences -> 429 with SYS_429 code."""
         try:
             _override_auth("MEMBER")
             with patch(f"{_EP_PREFS}.check_rate_limit", new_callable=AsyncMock, return_value=False):
-                resp = await client.put(
+                resp = await client.patch(
                     "/api/v1/users/me/preferences",
                     json={"theme": "dark"},
                     headers={"Authorization": "Bearer fake"},
