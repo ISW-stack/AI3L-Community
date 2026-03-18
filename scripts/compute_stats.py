@@ -81,14 +81,23 @@ def git_additions_deletions() -> tuple[int, int]:
 # 2. Per-author commit counts
 # ---------------------------------------------------------------------------
 
+# Aliases: map alternate names → canonical display name.
+# Add entries here whenever the same person commits under different identities.
+_AUTHOR_ALIASES: dict[str, str] = {
+    "Leo": "Isaries",
+}
+
+
 def git_author_commits() -> list[tuple[int, str]]:
     output = _run("git shortlog -sn HEAD")
-    result: list[tuple[int, str]] = []
+    counts: defaultdict[str, int] = defaultdict(int)
     for line in output.splitlines():
         m = re.match(r"\s*(\d+)\s+(.+)", line)
         if m:
-            result.append((int(m.group(1)), m.group(2).strip()))
-    return result
+            name = m.group(2).strip()
+            canonical = _AUTHOR_ALIASES.get(name, name)
+            counts[canonical] += int(m.group(1))
+    return sorted(((c, n) for n, c in counts.items()), reverse=True)
 
 
 # ---------------------------------------------------------------------------
