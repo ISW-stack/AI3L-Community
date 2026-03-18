@@ -106,6 +106,7 @@ export default {
       upper: 'Contains an uppercase letter',
       lower: 'Contains a lowercase letter',
       digit: 'Contains a digit',
+      special: "Contains a special character (!{'@'}#$...)",
     },
     passwordMismatch: 'Passwords do not match.',
     passwordInvalid: 'Password does not meet the security requirements.',

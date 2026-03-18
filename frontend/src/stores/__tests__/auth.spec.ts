@@ -37,6 +37,14 @@ vi.mock('@/stores/toast', () => ({
   }),
 }))
 
+// Mock DM store
+const mockDMResetState = vi.fn()
+vi.mock('@/stores/dm', () => ({
+  useDMStore: () => ({
+    resetState: mockDMResetState,
+  }),
+}))
+
 // Mock router
 const mockRouterPush = vi.fn()
 vi.mock('@/router', () => ({
@@ -60,6 +68,7 @@ describe('useAuthStore', () => {
     mockToastClearAll.mockReset()
     mockToastShow.mockReset()
     mockToastShowKey.mockReset()
+    mockDMResetState.mockReset()
     mockRouterPush.mockReset()
     mockSyncLocaleFromProfile.mockReset()
   })
@@ -147,6 +156,14 @@ describe('useAuthStore', () => {
       auth.clearSession()
 
       expect(mockToastClearAll).toHaveBeenCalledOnce()
+    })
+
+    it('clearSession resets DM store', () => {
+      const auth = useAuthStore()
+      auth.setSession('MEMBER', 3600)
+      auth.clearSession()
+
+      expect(mockDMResetState).toHaveBeenCalledOnce()
     })
   })
 

@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, type Ref } from 'vue'
+import { onMounted, onUnmounted, watch, type Ref } from 'vue'
 
 export interface InfiniteScrollOptions {
   threshold?: number
@@ -12,9 +12,11 @@ export function useInfiniteScroll(
 ) {
   const { threshold = 0.1, rootMargin = '0px' } = options
   let observer: IntersectionObserver | null = null
+  let observedElement: HTMLElement | null = null
 
-  onMounted(() => {
-    if (!sentinelRef.value) return
+  function createObserver(el: HTMLElement) {
+    if (observedElement === el) return
+    observer?.disconnect()
     observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -23,11 +25,32 @@ export function useInfiniteScroll(
       },
       { threshold, rootMargin },
     )
-    observer.observe(sentinelRef.value)
+    observer.observe(el)
+    observedElement = el
+  }
+
+  function destroyObserver() {
+    observer?.disconnect()
+    observer = null
+    observedElement = null
+  }
+
+  onMounted(() => {
+    if (sentinelRef.value) {
+      createObserver(sentinelRef.value)
+    }
+  })
+
+  // Watch for sentinel becoming available after mount (e.g. inside v-if)
+  watch(sentinelRef, (newEl) => {
+    if (newEl) {
+      createObserver(newEl)
+    } else {
+      destroyObserver()
+    }
   })
 
   onUnmounted(() => {
-    observer?.disconnect()
-    observer = null
+    destroyObserver()
   })
 }

@@ -291,11 +291,21 @@ async def serve_file(
     except ClientError:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "File not found.")
 
+    # Extract filename from key for Content-Disposition header
+    safe_filename = key.rsplit("/", 1)[-1] if "/" in key else key
+    # Sanitize filename: remove anything that's not alphanumeric, dot, hyphen, or underscore
+    safe_filename = re.sub(r"[^\w.\-]", "_", safe_filename) or "download"
+
+    # Images can be viewed inline; everything else forces download
+    disposition = "inline" if content_type and content_type.startswith("image/") else "attachment"
+
     return Response(
         content=data,
         media_type=content_type,
         headers={
             "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Disposition": f'{disposition}; filename="{safe_filename}"',
+            "Content-Security-Policy": "sandbox",
         },
     )
 

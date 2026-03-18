@@ -12,6 +12,7 @@ import { HEARTBEAT_INTERVAL_MS } from '@/constants'
 import type { UserProfile } from '@/types/user'
 import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
+import { useDMStore } from '@/stores/dm'
 import router from '@/router'
 import { i18n } from '@/locales'
 
@@ -57,8 +58,10 @@ export const useAuthStore = defineStore('auth', () => {
     // Use lazy calls inside clearSession to avoid circular dependency at module level.
     const notifStore = useNotificationStore()
     const toastStore = useToastStore()
+    const dmStore = useDMStore()
     notifStore.resetState()
     toastStore.clearAll()
+    dmStore.resetState()
   }
 
   async function login(username: string, password: string, captchaId: string, captchaCode: string) {

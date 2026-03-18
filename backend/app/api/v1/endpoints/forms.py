@@ -14,7 +14,7 @@ from app.core.constants import (
 from app.core.deps import get_current_user, get_optional_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
-from app.core.rate_limit import check_rate_limit
+from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.dependencies.sig_admin import require_sig_admin
 from app.repositories import sig_repo
 from app.schemas.form import (
@@ -138,7 +138,7 @@ async def list_standalone_forms_endpoint(
     q: str | None = Query(None, max_length=200),
 ) -> FormListResponse:
     """List standalone forms (public, no auth required)."""
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:forms_list:{ip}", 30, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
     forms, total = await list_standalone_forms_svc(page=page, page_size=page_size, q=q)

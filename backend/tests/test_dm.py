@@ -698,8 +698,9 @@ class TestSendMessageService:
             patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
             patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
-            patch("app.core.storage.upload_file"),
+            patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://minio/presigned"),
+            patch(f"{_SVC}._validate_dm_file"),
         ):
             from app.services.dm import send_message
 
@@ -737,8 +738,9 @@ class TestSendMessageService:
             patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
             patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
-            patch("app.core.storage.upload_file"),
+            patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}._validate_dm_file"),
         ):
             from app.services.dm import send_message
 
@@ -874,6 +876,7 @@ class TestSendMessageService:
                 new_callable=AsyncMock,
                 return_value=1_073_741_824,  # 1 GB already used
             ),
+            patch(f"{_SVC}._validate_dm_file"),
         ):
             from app.services.dm import send_message
 
@@ -1123,14 +1126,14 @@ class TestRecallMessageService:
         mock_convert.return_value = _make_msg_response(content=None)
 
         with (
-            patch("app.core.storage.delete_file") as mock_delete,
+            patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_delete,
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock) as mock_decrement,
         ):
             from app.services.dm import recall_message
 
             await recall_message(str(_MSG_ID), _SENDER_ID)
 
-        mock_delete.assert_called_once_with("dm/test/file.pdf")
+        mock_delete.assert_awaited_once_with("dm/test/file.pdf")
         mock_decrement.assert_called_once_with(uuid.UUID(_SENDER_ID), 2048)
 
     @pytest.mark.anyio
@@ -1153,7 +1156,7 @@ class TestRecallMessageService:
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response()
 
-        with patch("app.core.storage.delete_file") as mock_delete:
+        with patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_delete:
             from app.services.dm import recall_message
 
             await recall_message(str(_MSG_ID), _SENDER_ID)
@@ -1659,7 +1662,10 @@ class TestEditMessageEndpoint:
         msg = _make_msg_response(content="Edited!")
         msg["is_edited"] = True
         try:
-            with patch(f"{_EP}.dm_service.edit_message", new_callable=AsyncMock, return_value=msg):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.dm_service.edit_message", new_callable=AsyncMock, return_value=msg),
+            ):
                 resp = await client.put(
                     f"/api/v1/dm/messages/{msg_id}",
                     json={"content": "Edited!"},
@@ -1676,10 +1682,13 @@ class TestEditMessageEndpoint:
         payload, uid = _override_auth("MEMBER")
         msg_id = uuid.uuid4()
         try:
-            with patch(
-                f"{_EP}.dm_service.edit_message",
-                new_callable=AsyncMock,
-                side_effect=AppError(ErrorCode.DM_002, 403, "Edit window has expired."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.dm_service.edit_message",
+                    new_callable=AsyncMock,
+                    side_effect=AppError(ErrorCode.DM_002, 403, "Edit window has expired."),
+                ),
             ):
                 resp = await client.put(
                     f"/api/v1/dm/messages/{msg_id}",
@@ -1700,7 +1709,10 @@ class TestRecallMessageEndpoint:
         msg["is_recalled"] = True
         msg["content"] = None
         try:
-            with patch(f"{_EP}.dm_service.recall_message", new_callable=AsyncMock, return_value=msg):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.dm_service.recall_message", new_callable=AsyncMock, return_value=msg),
+            ):
                 resp = await client.delete(f"/api/v1/dm/messages/{msg_id}")
             assert resp.status_code == 200
             assert resp.json()["is_recalled"] is True
@@ -1713,10 +1725,13 @@ class TestRecallMessageEndpoint:
         payload, uid = _override_auth("MEMBER")
         msg_id = uuid.uuid4()
         try:
-            with patch(
-                f"{_EP}.dm_service.recall_message",
-                new_callable=AsyncMock,
-                side_effect=AppError(ErrorCode.DM_002, 403, "Recall window has expired."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.dm_service.recall_message",
+                    new_callable=AsyncMock,
+                    side_effect=AppError(ErrorCode.DM_002, 403, "Recall window has expired."),
+                ),
             ):
                 resp = await client.delete(f"/api/v1/dm/messages/{msg_id}")
             assert resp.status_code == 403
@@ -1731,10 +1746,13 @@ class TestMarkReadEndpoint:
         payload, uid = _override_auth("MEMBER")
         conv_id = uuid.uuid4()
         try:
-            with patch(
-                f"{_EP}.dm_service.mark_read",
-                new_callable=AsyncMock,
-                return_value=_NOW.isoformat(),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.dm_service.mark_read",
+                    new_callable=AsyncMock,
+                    return_value=_NOW.isoformat(),
+                ),
             ):
                 resp = await client.put(f"/api/v1/dm/conversations/{conv_id}/read")
             assert resp.status_code == 200
@@ -1748,10 +1766,13 @@ class TestMarkReadEndpoint:
         payload, uid = _override_auth("MEMBER")
         conv_id = uuid.uuid4()
         try:
-            with patch(
-                f"{_EP}.dm_service.mark_read",
-                new_callable=AsyncMock,
-                side_effect=AppError(ErrorCode.SYS_404, 404, "Conversation not found."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.dm_service.mark_read",
+                    new_callable=AsyncMock,
+                    side_effect=AppError(ErrorCode.SYS_404, 404, "Conversation not found."),
+                ),
             ):
                 resp = await client.put(f"/api/v1/dm/conversations/{conv_id}/read")
             assert resp.status_code == 404
@@ -2482,11 +2503,11 @@ class TestRecallMessageOrder:
 
         mock_dm_repo.recall_message = AsyncMock(side_effect=track_recall)
 
-        def track_delete(*a, **kw):
+        async def track_delete(*a, **kw):
             call_order.append("minio_delete")
 
         with (
-            patch("app.core.storage.delete_file", side_effect=track_delete),
+            patch("app.core.async_storage.delete_file", side_effect=track_delete),
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
         ):
             from app.services.dm import recall_message
@@ -2523,7 +2544,7 @@ class TestRecallMessageOrder:
         mock_convert.return_value = _make_msg_response(content=None)
 
         with (
-            patch("app.core.storage.delete_file", side_effect=Exception("S3 down")),
+            patch("app.core.async_storage.delete_file", new_callable=AsyncMock, side_effect=Exception("S3 down")),
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
         ):
             from app.services.dm import recall_message
@@ -2586,6 +2607,7 @@ class TestNewDMErrorCodes:
                 new_callable=AsyncMock,
                 return_value=1_073_741_824,
             ),
+            patch(f"{_SVC}._validate_dm_file"),
         ):
             from app.services.dm import send_message
 
@@ -2630,3 +2652,935 @@ class TestNewDMErrorCodes:
 
         assert exc.value.status_code == 404
         assert exc.value.detail["code"] == "DM_006"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# B-09: Rate limiting on edit/recall/mark_read endpoints
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestEditMessageRateLimit:
+    @pytest.mark.anyio
+    async def test_429_when_rate_limited(self, client):
+        """PUT /dm/messages/{id} returns 429 when rate limited."""
+        payload, uid = _override_auth("MEMBER")
+        msg_id = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.put(
+                    f"/api/v1/dm/messages/{msg_id}",
+                    json={"content": "Edited!"},
+                )
+            assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_rate_limit_called_with_correct_key(self, client):
+        """PUT /dm/messages/{id} calls check_rate_limit with rl:dm:edit:{user_id}."""
+        payload, uid = _override_auth("MEMBER")
+        msg_id = uuid.uuid4()
+        msg = _make_msg_response(content="Edited!")
+        msg["is_edited"] = True
+        try:
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True) as mock_rl,
+                patch(f"{_EP}.dm_service.edit_message", new_callable=AsyncMock, return_value=msg),
+            ):
+                await client.put(
+                    f"/api/v1/dm/messages/{msg_id}",
+                    json={"content": "Edited!"},
+                )
+            mock_rl.assert_called_once()
+            assert mock_rl.call_args[0][0] == f"rl:dm:edit:{uid}"
+        finally:
+            _clear_overrides()
+
+
+class TestRecallMessageRateLimit:
+    @pytest.mark.anyio
+    async def test_429_when_rate_limited(self, client):
+        """DELETE /dm/messages/{id} returns 429 when rate limited."""
+        payload, uid = _override_auth("MEMBER")
+        msg_id = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.delete(f"/api/v1/dm/messages/{msg_id}")
+            assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_rate_limit_called_with_correct_key(self, client):
+        """DELETE /dm/messages/{id} calls check_rate_limit with rl:dm:recall:{user_id}."""
+        payload, uid = _override_auth("MEMBER")
+        msg_id = uuid.uuid4()
+        msg = _make_msg_response()
+        msg["is_recalled"] = True
+        msg["content"] = None
+        try:
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True) as mock_rl,
+                patch(f"{_EP}.dm_service.recall_message", new_callable=AsyncMock, return_value=msg),
+            ):
+                await client.delete(f"/api/v1/dm/messages/{msg_id}")
+            mock_rl.assert_called_once()
+            assert mock_rl.call_args[0][0] == f"rl:dm:recall:{uid}"
+        finally:
+            _clear_overrides()
+
+
+class TestMarkReadRateLimit:
+    @pytest.mark.anyio
+    async def test_429_when_rate_limited(self, client):
+        """PUT /dm/conversations/{id}/read returns 429 when rate limited."""
+        payload, uid = _override_auth("MEMBER")
+        conv_id = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=False):
+                resp = await client.put(f"/api/v1/dm/conversations/{conv_id}/read")
+            assert resp.status_code == 429
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_rate_limit_called_with_correct_key(self, client):
+        """PUT /dm/conversations/{id}/read calls check_rate_limit with rl:dm:markread:{user_id}."""
+        payload, uid = _override_auth("MEMBER")
+        conv_id = uuid.uuid4()
+        try:
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True) as mock_rl,
+                patch(
+                    f"{_EP}.dm_service.mark_read",
+                    new_callable=AsyncMock,
+                    return_value=_NOW.isoformat(),
+                ),
+            ):
+                await client.put(f"/api/v1/dm/conversations/{conv_id}/read")
+            mock_rl.assert_called_once()
+            assert mock_rl.call_args[0][0] == f"rl:dm:markread:{uid}"
+        finally:
+            _clear_overrides()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# S-09: DM file upload blocked extension check
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSendMessageBlockedExtensions:
+    @pytest.mark.anyio
+    async def test_400_blocked_exe(self, client):
+        """POST /dm/conversations/{user_id}/messages returns 400 for .exe file."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("malware.exe", b"MZdata", "application/octet-stream")},
+                )
+            assert resp.status_code == 400
+            assert ".exe" in resp.json()["detail"]["message"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_400_blocked_bat(self, client):
+        """POST /dm/conversations/{user_id}/messages returns 400 for .bat file."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("script.bat", b"echo hi", "application/octet-stream")},
+                )
+            assert resp.status_code == 400
+            assert ".bat" in resp.json()["detail"]["message"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_400_blocked_html(self, client):
+        """POST /dm/conversations/{user_id}/messages returns 400 for .html file."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("page.html", b"<html>", "text/html")},
+                )
+            assert resp.status_code == 400
+            assert ".html" in resp.json()["detail"]["message"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_400_blocked_svg(self, client):
+        """POST /dm/conversations/{user_id}/messages returns 400 for .svg file."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("image.svg", b"<svg>", "image/svg+xml")},
+                )
+            assert resp.status_code == 400
+            assert ".svg" in resp.json()["detail"]["message"]
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_400_blocked_case_insensitive(self, client):
+        """POST /dm/conversations/{user_id}/messages blocks .EXE (case-insensitive)."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        try:
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("MALWARE.EXE", b"MZdata", "application/octet-stream")},
+                )
+            assert resp.status_code == 400
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_allowed_pdf_passes(self, client):
+        """POST /dm/conversations/{user_id}/messages allows .pdf files."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        msg = _make_msg_response()
+        msg["attachment_url"] = "http://presigned"
+        msg["attachment_name"] = "doc.pdf"
+        msg["attachment_size"] = 1024
+        try:
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.dm_service.send_message", new_callable=AsyncMock, return_value=msg),
+            ):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("doc.pdf", b"pdfdata", "application/pdf")},
+                )
+            assert resp.status_code == 201
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_allowed_png_passes(self, client):
+        """POST /dm/conversations/{user_id}/messages allows .png files."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        msg = _make_msg_response()
+        msg["attachment_url"] = "http://presigned"
+        msg["attachment_name"] = "image.png"
+        msg["attachment_size"] = 2048
+        try:
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.dm_service.send_message", new_callable=AsyncMock, return_value=msg),
+            ):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("image.png", b"pngdata", "image/png")},
+                )
+            assert resp.status_code == 201
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_allowed_txt_passes(self, client):
+        """POST /dm/conversations/{user_id}/messages allows .txt files."""
+        payload, uid = _override_auth("MEMBER")
+        target = uuid.uuid4()
+        msg = _make_msg_response()
+        msg["attachment_url"] = "http://presigned"
+        msg["attachment_name"] = "notes.txt"
+        msg["attachment_size"] = 512
+        try:
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.dm_service.send_message", new_callable=AsyncMock, return_value=msg),
+            ):
+                resp = await client.post(
+                    f"/api/v1/dm/conversations/{target}/messages",
+                    files={"file": ("notes.txt", b"text", "text/plain")},
+                )
+            assert resp.status_code == 201
+        finally:
+            _clear_overrides()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BUG FIX TESTS (B-04, B-07, B-11, B-12, B-27, S-01, S-02, S-03)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestB04S01SanitizeHtmlContent:
+    """B-04/S-01: DM messages must be sanitized via sanitize_html()."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_message_sanitizes_content(self, mock_dm_repo, mock_emit, mock_convert):
+        """send_message calls sanitize_html on content before DB insert."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        mock_convert.return_value = _make_msg_response()
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(f"{_SVC}.sanitize_html", return_value="clean content") as mock_sanitize,
+        ):
+            from app.services.dm import send_message
+
+            await send_message(
+                sender_id=_SENDER_ID,
+                recipient_id=_RECIPIENT_ID,
+                content="<script>alert('xss')</script>Hello",
+            )
+
+        mock_sanitize.assert_called_once_with("<script>alert('xss')</script>Hello")
+        # Verify sanitized content was passed to the atomic insert
+        call_kwargs = mock_dm_repo.send_message_atomic.call_args[1]
+        assert call_kwargs["content"] == "clean content"
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_edit_message_sanitizes_content(self, mock_dm_repo, mock_emit, mock_convert):
+        """edit_message calls sanitize_html on new_content before DB update."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID, created_at=_NOW)
+        updated_row = _make_message_row(
+            sender_id=_SENDER_ID, content="sanitized", is_edited=True
+        )
+        conv = _make_conversation(
+            conv_id=msg_row["conversation_id"],
+            user_a=_SENDER_ID,
+            user_b=_RECIPIENT_ID,
+        )
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+        mock_dm_repo.update_message_content = AsyncMock(return_value=updated_row)
+        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
+        mock_convert.return_value = _make_msg_response(content="sanitized")
+
+        with patch(f"{_SVC}.sanitize_html", return_value="sanitized") as mock_sanitize:
+            from app.services.dm import edit_message
+
+            await edit_message(str(_MSG_ID), _SENDER_ID, "<img onerror=alert(1)>text")
+
+        mock_sanitize.assert_called_once_with("<img onerror=alert(1)>text")
+        # Verify sanitized content was passed to the update
+        mock_dm_repo.update_message_content.assert_called_once_with(_MSG_ID, "sanitized")
+
+
+class TestB07AsyncStorageOps:
+    """B-07: File upload/delete must use async wrappers (not sync)."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_uses_async_upload(self, mock_dm_repo, mock_emit, mock_convert):
+        """send_message uses async_upload_file instead of sync upload_file."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(sender_id=_SENDER_ID, attachment_key="dm/test/abc.png")
+        msg_dict = _make_msg_response()
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        mock_convert.return_value = msg_dict
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
+            patch(
+                "app.core.async_storage.upload_file", new_callable=AsyncMock
+            ) as mock_async_upload,
+            patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
+            patch(f"{_SVC}._validate_dm_file"),
+        ):
+            from app.services.dm import send_message
+
+            await send_message(
+                sender_id=_SENDER_ID,
+                recipient_id=_RECIPIENT_ID,
+                file_data=b"\x89PNG\r\n\x1a\ndata",
+                file_name="photo.png",
+                file_size=1024,
+                file_content_type="image/png",
+            )
+
+        mock_async_upload.assert_called_once()
+        assert mock_async_upload.await_count == 1
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_uses_async_delete(self, mock_dm_repo, mock_emit, mock_convert):
+        """recall_message uses async_delete_file instead of sync delete_file."""
+        msg_row = _make_message_row(
+            sender_id=_SENDER_ID,
+            content="With file",
+            attachment_key="dm/test/file.pdf",
+            attachment_size=2048,
+        )
+        recalled_row = _make_message_row(
+            sender_id=_SENDER_ID, is_recalled=True, content=None
+        )
+        conv = _make_conversation(
+            conv_id=msg_row["conversation_id"],
+            user_a=_SENDER_ID,
+            user_b=_RECIPIENT_ID,
+        )
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
+        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
+        mock_convert.return_value = _make_msg_response(content=None)
+
+        with (
+            patch(
+                "app.core.async_storage.delete_file", new_callable=AsyncMock
+            ) as mock_async_delete,
+            patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
+        ):
+            from app.services.dm import recall_message
+
+            await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        mock_async_delete.assert_awaited_once_with("dm/test/file.pdf")
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_deleted_msgs_use_async_delete(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """send_message uses async_delete_file for deleted attachment cleanup."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        deleted_msg = {
+            "id": uuid.uuid4(),
+            "attachment_key": "dm/old/file.pdf",
+            "attachment_size": 500,
+            "sender_id": uuid.UUID(_SENDER_ID),
+        }
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, [deleted_msg]))
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        mock_convert.return_value = _make_msg_response()
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.core.async_storage.delete_file", new_callable=AsyncMock
+            ) as mock_async_del,
+            patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
+            patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
+        ):
+            from app.services.dm import send_message
+
+            await send_message(
+                sender_id=_SENDER_ID,
+                recipient_id=_RECIPIENT_ID,
+                content="New msg",
+            )
+
+        mock_async_del.assert_awaited_once_with("dm/old/file.pdf")
+
+
+class TestB11RecallCharCountAfterSuccess:
+    """B-11: Char count decrement must happen AFTER successful recall_message()."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_failure_does_not_decrement_char_count(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """When dm_repo.recall_message returns None, char count is NOT decremented."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID, content="Some content")
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+        mock_dm_repo.recall_message = AsyncMock(return_value=None)
+        mock_dm_repo.increment_char_count = AsyncMock()
+
+        from app.services.dm import recall_message
+
+        with pytest.raises(AppError) as exc:
+            await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        assert exc.value.status_code == 404
+        mock_dm_repo.increment_char_count.assert_not_called()
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_success_decrements_char_count(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """When dm_repo.recall_message succeeds, char count IS decremented."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID, content="12345")
+        recalled_row = _make_message_row(
+            sender_id=_SENDER_ID, is_recalled=True, content=None
+        )
+        conv = _make_conversation(
+            conv_id=msg_row["conversation_id"],
+            user_a=_SENDER_ID,
+            user_b=_RECIPIENT_ID,
+        )
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
+        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
+        mock_convert.return_value = _make_msg_response(content=None)
+
+        from app.services.dm import recall_message
+
+        await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        mock_dm_repo.increment_char_count.assert_called_once_with(
+            msg_row["conversation_id"], -5
+        )
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_exception_does_not_decrement_char_count(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """When dm_repo.recall_message raises an exception, char count is NOT decremented."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID, content="Some content")
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+        mock_dm_repo.recall_message = AsyncMock(side_effect=RuntimeError("DB error"))
+        mock_dm_repo.increment_char_count = AsyncMock()
+
+        from app.services.dm import recall_message
+
+        with pytest.raises(RuntimeError):
+            await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        mock_dm_repo.increment_char_count.assert_not_called()
+
+
+class TestB12StorageQuotaAfterInsert:
+    """B-12: Storage quota must be incremented AFTER successful message insert."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_insert_failure_does_not_increment_quota(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """When send_message_atomic raises, storage quota is NOT incremented."""
+        pool, conn = _mock_pool_context()
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        conv = _make_conversation(conv_id=_CONV_ID)
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(
+            side_effect=RuntimeError("DB insert failed")
+        )
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch(
+                "app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock
+            ) as mock_increment,
+            patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
+            patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
+            patch(f"{_SVC}._validate_dm_file"),
+        ):
+            from app.services.dm import send_message
+
+            with pytest.raises(RuntimeError):
+                await send_message(
+                    sender_id=_SENDER_ID,
+                    recipient_id=_RECIPIENT_ID,
+                    file_data=b"\x89PNG\r\n\x1a\ndata",
+                    file_name="photo.png",
+                    file_size=2048,
+                    file_content_type="image/png",
+                )
+
+        mock_increment.assert_not_called()
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_insert_success_increments_quota(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """When send_message_atomic succeeds, storage quota IS incremented."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(
+            sender_id=_SENDER_ID,
+            attachment_key="dm/test/abc.png",
+            attachment_size=2048,
+        )
+        msg_dict = _make_msg_response()
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        mock_convert.return_value = msg_dict
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch(
+                "app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock
+            ) as mock_increment,
+            patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
+            patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
+            patch(f"{_SVC}._validate_dm_file"),
+        ):
+            from app.services.dm import send_message
+
+            await send_message(
+                sender_id=_SENDER_ID,
+                recipient_id=_RECIPIENT_ID,
+                file_data=b"\x89PNG\r\n\x1a\ndata",
+                file_name="photo.png",
+                file_size=2048,
+                file_content_type="image/png",
+            )
+
+        mock_increment.assert_called_once_with(uuid.UUID(_SENDER_ID), 2048)
+
+
+class TestB27S03SanitizedFilename:
+    """B-27/S-03: Storage key must only use file extension, not the full filename."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_storage_key_uses_only_extension(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """Storage key is dm/{sender_id}/{hex}{ext}, not dm/{sender_id}/{uuid}_{filename}."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(sender_id=_SENDER_ID, attachment_key="dm/test/abc.pdf")
+        msg_dict = _make_msg_response()
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        mock_convert.return_value = msg_dict
+
+        captured_key = None
+
+        async def capture_upload(data, key, ct):
+            nonlocal captured_key
+            captured_key = key
+            return key
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
+            patch("app.core.async_storage.upload_file", side_effect=capture_upload),
+            patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
+            patch(f"{_SVC}._validate_dm_file"),
+        ):
+            from app.services.dm import send_message
+
+            await send_message(
+                sender_id=_SENDER_ID,
+                recipient_id=_RECIPIENT_ID,
+                file_data=b"%PDF-data",
+                file_name="../../etc/passwd.pdf",
+                file_size=500,
+                file_content_type="application/pdf",
+            )
+
+        assert captured_key is not None
+        assert "passwd" not in captured_key
+        assert "etc" not in captured_key
+        assert ".." not in captured_key
+        assert captured_key.endswith(".pdf")
+        assert captured_key.startswith(f"dm/{_SENDER_ID}/")
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_storage_key_handles_no_extension(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """Storage key works when filename has no extension."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        msg_dict = _make_msg_response()
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        mock_convert.return_value = msg_dict
+
+        captured_key = None
+
+        async def capture_upload(data, key, ct):
+            nonlocal captured_key
+            captured_key = key
+            return key
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
+            patch("app.core.async_storage.upload_file", side_effect=capture_upload),
+            patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
+            patch(f"{_SVC}._validate_dm_file"),
+        ):
+            from app.services.dm import send_message
+
+            await send_message(
+                sender_id=_SENDER_ID,
+                recipient_id=_RECIPIENT_ID,
+                file_data=b"binary data",
+                file_name="noextension",
+                file_size=100,
+                file_content_type="application/octet-stream",
+            )
+
+        assert captured_key is not None
+        assert "noextension" not in captured_key
+        assert captured_key.startswith(f"dm/{_SENDER_ID}/")
+
+
+class TestS02FileTypeValidation:
+    """S-02: DM uploads must validate file type (extension + magic bytes for images)."""
+
+    def test_allowed_image_extensions_pass(self):
+        """Allowed image extensions pass validation."""
+        from app.services.dm import _validate_dm_file
+
+        _validate_dm_file("photo.png", b"\x89PNG\r\n\x1a\n" + b"rest of data")
+        _validate_dm_file("photo.jpg", b"\xff\xd8\xff" + b"rest of data")
+        _validate_dm_file("photo.jpeg", b"\xff\xd8\xff" + b"rest of data")
+        _validate_dm_file("anim.gif", b"GIF89a" + b"rest of data")
+        _validate_dm_file("photo.webp", b"RIFF\x00\x00\x00\x00WEBP" + b"rest")
+
+    def test_allowed_document_extensions_pass(self):
+        """Allowed document extensions pass validation (no magic check for docs)."""
+        from app.services.dm import _validate_dm_file
+
+        _validate_dm_file("doc.txt", b"text content")
+        _validate_dm_file("data.csv", b"a,b,c\n1,2,3")
+        _validate_dm_file("archive.zip", b"PK\x03\x04data")
+        _validate_dm_file("sheet.xls", b"binary data")
+        _validate_dm_file("slide.pptx", b"PK\x03\x04data")
+
+    def test_disallowed_exe_raises_error(self):
+        """Executable files (.exe) are rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("malware.exe", b"MZ\x90\x00")
+        assert exc.value.status_code == 400
+
+    def test_disallowed_bat_raises_error(self):
+        """Batch files (.bat) are rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("script.bat", b"@echo off")
+        assert exc.value.status_code == 400
+
+    def test_disallowed_html_raises_error(self):
+        """HTML files (.html) are rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("page.html", b"<html>xss</html>")
+        assert exc.value.status_code == 400
+
+    def test_disallowed_js_raises_error(self):
+        """JavaScript files (.js) are rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("script.js", b"alert(1)")
+        assert exc.value.status_code == 400
+
+    def test_disallowed_sh_raises_error(self):
+        """Shell scripts (.sh) are rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("exploit.sh", b"#!/bin/bash")
+        assert exc.value.status_code == 400
+
+    def test_image_with_wrong_magic_bytes_raises_error(self):
+        """Image extension with wrong magic bytes is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("fake.png", b"NOT_A_PNG_FILE")
+        assert exc.value.status_code == 400
+        assert "magic number" in exc.value.detail["message"].lower()
+
+    def test_jpeg_with_wrong_magic_bytes_raises_error(self):
+        """JPEG extension with wrong magic bytes is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("fake.jpg", b"\x00\x00\x00NOT_JPEG")
+        assert exc.value.status_code == 400
+
+    def test_pdf_with_wrong_magic_bytes_raises_error(self):
+        """PDF extension with wrong magic bytes is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("fake.pdf", b"NOT_A_PDF")
+        assert exc.value.status_code == 400
+
+    def test_pdf_with_correct_magic_bytes_passes(self):
+        """PDF extension with correct magic bytes passes."""
+        from app.services.dm import _validate_dm_file
+
+        _validate_dm_file("document.pdf", b"%PDF-1.5 rest of data")
+
+    def test_case_insensitive_extension(self):
+        """Extension check is case-insensitive."""
+        from app.services.dm import _validate_dm_file
+
+        _validate_dm_file("PHOTO.PNG", b"\x89PNG\r\n\x1a\n" + b"rest")
+        _validate_dm_file("Doc.PDF", b"%PDF-1.5 rest")
+
+    def test_no_extension_raises_error(self):
+        """File without extension is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("noextension", b"some data")
+        assert exc.value.status_code == 400
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_message_validates_file_type(self, mock_dm_repo):
+        """send_message rejects disallowed file types before upload."""
+        pool, conn = _mock_pool_context()
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+        ):
+            from app.services.dm import send_message
+
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID,
+                    recipient_id=_RECIPIENT_ID,
+                    file_data=b"MZ\x90\x00executable",
+                    file_name="malware.exe",
+                    file_size=100,
+                    file_content_type="application/x-executable",
+                )
+
+        assert exc.value.status_code == 400

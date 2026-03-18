@@ -11,7 +11,7 @@ import { getPost, deletePost as apiDeletePost } from '@/api/posts'
 import { listComments, createComment } from '@/api/comments'
 import { markBestAnswer, unmarkBestAnswer, voteOnAnswer } from '@/api/qa'
 import { getErrorMessage } from '@/utils/error'
-import { renderMentions } from '@/utils/html'
+import { renderMentions, isContentEmpty } from '@/utils/html'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
@@ -116,7 +116,7 @@ function goToAnswersPage(p: number) {
 }
 
 async function submitAnswer() {
-  if (!newAnswer.value.trim()) return
+  if (isContentEmpty(newAnswer.value)) return
   answerSaving.value = true
   answerMessage.value = ''
   try {
@@ -354,7 +354,7 @@ onMounted(() => {
           <div class="mb-2">
             <TiptapEditor v-model="newAnswer" />
           </div>
-          <BaseButton :loading="answerSaving" :disabled="!newAnswer.trim()" @click="submitAnswer">
+          <BaseButton :loading="answerSaving" :disabled="isContentEmpty(newAnswer)" @click="submitAnswer">
             {{ t('qa.postAnswer') }}
           </BaseButton>
         </div>

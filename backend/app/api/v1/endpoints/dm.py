@@ -1,5 +1,6 @@
 """Direct messaging endpoints."""
 
+import os
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -10,7 +11,10 @@ from app.core.constants import (
     DM_MAX_MESSAGE_LENGTH,
     MAX_PAGE_NUMBER,
     MAX_PAGE_SIZE,
+    RATE_LIMIT_DM_EDIT,
     RATE_LIMIT_DM_LIST,
+    RATE_LIMIT_DM_MARK_READ,
+    RATE_LIMIT_DM_RECALL,
     RATE_LIMIT_DM_SEND,
 )
 from app.core.deps import require_role
@@ -26,6 +30,13 @@ from app.schemas.dm import (
     MessageListResponse,
 )
 from app.services import dm as dm_service
+
+# File extensions blocked at the endpoint level (defense-in-depth).
+_DM_BLOCKED_EXTENSIONS: set[str] = {
+    ".exe", ".bat", ".ps1", ".sh", ".cmd", ".vbs",
+    ".js", ".html", ".htm", ".svg", ".msi", ".dll",
+    ".scr", ".com",
+}
 
 router = APIRouter(prefix="/dm", tags=["dm"])
 
@@ -123,6 +134,14 @@ async def send_message(
     file_size: int | None = None
     file_content_type: str | None = None
     if file:
+        # Block dangerous file extensions early (defense-in-depth)
+        fname = file.filename or ""
+        ext = os.path.splitext(fname)[1].lower()
+        if ext in _DM_BLOCKED_EXTENSIONS:
+            raise AppError(
+                ErrorCode.SYS_422, 400, f"File type '{ext}' is not allowed."
+            )
+
         file_data = await file.read()
         file_size = len(file_data)
         if file_size > DM_MAX_ATTACHMENT_SIZE:
@@ -152,6 +171,11 @@ async def edit_message(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> DMMessageResponse:
     """Edit a previously sent message (within the edit window)."""
+    if not await check_rate_limit(
+        f"rl:dm:edit:{current_user['sub']}", *RATE_LIMIT_DM_EDIT
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
+
     msg = await dm_service.edit_message(
         str(message_id), current_user["sub"], req.content
     )
@@ -164,6 +188,11 @@ async def recall_message(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> DMMessageResponse:
     """Recall (unsend) a message (within the recall window)."""
+    if not await check_rate_limit(
+        f"rl:dm:recall:{current_user['sub']}", *RATE_LIMIT_DM_RECALL
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
+
     msg = await dm_service.recall_message(str(message_id), current_user["sub"])
     return DMMessageResponse(**msg)
 
@@ -174,5 +203,10 @@ async def mark_read(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> MessageResponse:
     """Mark all unread messages in a conversation as read."""
+    if not await check_rate_limit(
+        f"rl:dm:markread:{current_user['sub']}", *RATE_LIMIT_DM_MARK_READ
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
+
     await dm_service.mark_read(current_user["sub"], str(conversation_id))
     return MessageResponse(message="Marked as read.")

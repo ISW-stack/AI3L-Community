@@ -1,20 +1,12 @@
 """DM cleanup tasks -- expired files and messages."""
 
-import asyncio
 from datetime import datetime, timedelta, timezone
 
 from loguru import logger
 
 from app.celery_app import celery
-
-
-def _run_async(coro):  # type: ignore[no-untyped-def]
-    """Run async code in a sync Celery task."""
-    loop = asyncio.new_event_loop()
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
+from app.tasks.async_runner import run_async as _run_async
+from app.tasks.cleanup import _ensure_pool
 
 
 @celery.task(name="cleanup_dm_expired_files")
@@ -24,6 +16,8 @@ def cleanup_dm_expired_files() -> dict:
 
 
 async def _cleanup_files() -> dict:
+    await _ensure_pool()
+
     from app.core.async_storage import delete_file
     from app.core.constants import DM_FILE_EXPIRY_DAYS
     from app.repositories import dm_repo, user_repo
@@ -63,6 +57,8 @@ def cleanup_dm_expired_text() -> dict:
 
 
 async def _cleanup_text() -> dict:
+    await _ensure_pool()
+
     from app.core.constants import DM_TEXT_EXPIRY_DAYS
     from app.repositories import dm_repo
 

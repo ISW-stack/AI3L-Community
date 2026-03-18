@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Paperclip, Send, X } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -17,6 +17,14 @@ const MAX_CHARS = 5000
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
 
 const content = ref(props.editContent ?? '')
+
+watch(
+  () => props.editContent,
+  (val) => {
+    if (val !== undefined) content.value = val
+  },
+)
+
 const file = ref<File | null>(null)
 const fileError = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -136,6 +144,7 @@ function formatFileSize(bytes: number): string {
         ref="fileInput"
         type="file"
         class="hidden"
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
         @change="handleFileChange"
       />
 

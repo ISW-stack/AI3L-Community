@@ -659,6 +659,10 @@ class TestQuestionSchemaValidation:
                 [{"id": "q1", "type": "single_choice", "label": "Pick", "options": "bad"}]
             )
 
+    def test_valid_file_upload_question_passes(self):
+        """B-03: file_upload must be accepted as a valid question type."""
+        self._validate([{"id": "q1", "type": "file_upload", "label": "Upload your CV"}])
+
 
 # ===========================================================================
 # C8: User profile field length validation

@@ -1051,6 +1051,342 @@ class TestL3ListCommentsAlbumNotFound:
             assert exc_info.value.status_code == 404
 
 
+# ── B-10: delete_album ADMIN authorization ─────────────────────────────────
+
+
+class TestB10DeleteAlbumAdminAuth:
+    """B-10: ADMIN role (not just SUPER_ADMIN) should be able to delete albums."""
+
+    @pytest.mark.anyio
+    async def test_admin_can_delete_album(self):
+        """delete_album allows platform ADMIN to delete any album."""
+        user_id = str(uuid.uuid4())
+        other_creator = str(uuid.uuid4())
+        album_uuid = uuid.uuid4()
+        album = _fake_album_row(album_id=album_uuid, user_id=other_creator)
+
+        mock_conn = AsyncMock()
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
+        mock_conn.execute = AsyncMock()
+
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=album,
+            ),
+            patch(
+                "app.repositories.album_repo.find_all_photos_for_album",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "app.repositories.album_repo.soft_delete_album",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "app.repositories.album_repo.delete_all_comments_for_album",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch(
+                "app.repositories.album_repo.delete_all_photos_for_album",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+            patch(
+                "app.repositories.album_repo.delete_all_members_for_album",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
+        ):
+            from app.services.album import delete_album
+
+            result = await delete_album(
+                album_id=str(album_uuid),
+                user_id=user_id,
+                user_role="ADMIN",
+            )
+            assert result is True
+
+    @pytest.mark.anyio
+    async def test_member_cannot_delete_album(self):
+        """delete_album denies MEMBER role (non-creator) from deleting."""
+        from app.core.errors import AppError
+
+        user_id = str(uuid.uuid4())
+        other_creator = str(uuid.uuid4())
+        album_uuid = uuid.uuid4()
+        album = _fake_album_row(album_id=album_uuid, user_id=other_creator)
+
+        mock_conn = AsyncMock()
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=album,
+            ),
+        ):
+            from app.services.album import delete_album
+
+            with pytest.raises(AppError) as exc_info:
+                await delete_album(
+                    album_id=str(album_uuid),
+                    user_id=user_id,
+                    user_role="MEMBER",
+                )
+            assert exc_info.value.status_code == 403
+
+
+# ── B-16: approve_member IDOR — album_id verification ─────────────────────
+
+
+class TestB16ApproveMemberIDOR:
+    """B-16: approve_member must verify member belongs to the specified album."""
+
+    @pytest.mark.anyio
+    async def test_approve_member_wrong_album_raises_404(self):
+        """approve_member raises 404 when member_id does not belong to the album."""
+        from app.core.errors import AppError
+
+        admin_id = str(uuid.uuid4())
+        album_a_uuid = uuid.uuid4()
+        member_id_from_album_b = uuid.uuid4()
+        album_a = _fake_album_row(album_id=album_a_uuid, user_id=admin_id)
+
+        mock_conn = AsyncMock()
+        # update_member_status returns False (0 rows updated — member not in album A)
+        mock_conn.execute = AsyncMock(return_value="UPDATE 0")
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=album_a,
+            ),
+            patch(
+                "app.repositories.album_repo.find_member",
+                new_callable=AsyncMock,
+                return_value={"role": "ADMIN", "status": "ACCEPTED"},
+            ),
+        ):
+            from app.services.album import approve_member
+
+            with pytest.raises(AppError) as exc_info:
+                await approve_member(
+                    album_id=str(album_a_uuid),
+                    user_id=admin_id,
+                    member_id=str(member_id_from_album_b),
+                    user_role="ADMIN",
+                )
+            assert exc_info.value.status_code == 404
+            assert "not found in this album" in exc_info.value.detail["message"].lower()
+
+    @pytest.mark.anyio
+    async def test_approve_member_correct_album_succeeds(self):
+        """approve_member succeeds when member belongs to the correct album."""
+        admin_id = str(uuid.uuid4())
+        album_uuid = uuid.uuid4()
+        member_id = uuid.uuid4()
+        album = _fake_album_row(album_id=album_uuid, user_id=admin_id)
+
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock(return_value="UPDATE 1")
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=album,
+            ),
+            patch(
+                "app.repositories.album_repo.find_member",
+                new_callable=AsyncMock,
+                return_value={"role": "ADMIN", "status": "ACCEPTED"},
+            ),
+        ):
+            from app.services.album import approve_member
+
+            result = await approve_member(
+                album_id=str(album_uuid),
+                user_id=admin_id,
+                member_id=str(member_id),
+                user_role="ADMIN",
+            )
+            assert result is True
+
+    @pytest.mark.anyio
+    async def test_update_member_status_passes_album_id_to_sql(self):
+        """album_repo.update_member_status includes album_id in SQL when provided."""
+        member_id = uuid.uuid4()
+        album_id = uuid.uuid4()
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock(return_value="UPDATE 1")
+
+        from app.repositories.album_repo import update_member_status
+
+        result = await update_member_status(
+            mock_conn, member_id, "ACCEPTED", album_id=album_id
+        )
+        assert result is True
+        # Verify album_id was included in the SQL query
+        call_args = mock_conn.execute.call_args
+        query = call_args.args[0]
+        assert "album_id = $3" in query
+        assert call_args.args[3] == album_id
+
+
+# ── B-20: update_album allows clearing fields to None ──────────────────────
+
+
+class TestB20UpdateAlbumNoneValues:
+    """B-20: update_album should allow setting fields to None (clearing them)."""
+
+    @pytest.mark.anyio
+    async def test_update_album_sets_description_to_none(self):
+        """update_album correctly passes None description to repo for clearing."""
+        user_id = str(uuid.uuid4())
+        album_uuid = uuid.uuid4()
+        album = _fake_album_row(album_id=album_uuid, user_id=user_id)
+
+        mock_conn = AsyncMock()
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=album,
+            ),
+            patch(
+                "app.repositories.album_repo.find_member",
+                new_callable=AsyncMock,
+                return_value={"role": "ADMIN", "status": "ACCEPTED"},
+            ),
+            patch(
+                "app.repositories.album_repo.update_album",
+                new_callable=AsyncMock,
+                return_value=album,
+            ) as mock_update,
+        ):
+            from app.services.album import update_album
+
+            await update_album(
+                album_id=str(album_uuid),
+                user_id=user_id,
+                user_role="ADMIN",
+                description=None,
+            )
+            # Verify description=None was passed to repo (not skipped)
+            mock_update.assert_called_once()
+            call_kwargs = mock_update.call_args.kwargs
+            assert "description" in call_kwargs
+            assert call_kwargs["description"] is None
+
+    @pytest.mark.anyio
+    async def test_update_album_repo_includes_none_in_sql(self):
+        """album_repo.update_album includes None values in SET clause."""
+        album_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        fake_row = MagicMock()
+        fake_row.__getitem__ = lambda s, k: {
+            "id": album_id,
+            "title": "T",
+            "description": None,
+            "created_by": uuid.uuid4(),
+            "created_by_name": "X",
+            "is_deleted": False,
+            "is_archived": False,
+            "cover_photo_url": None,
+            "photo_count": 0,
+            "member_count": 1,
+            "created_at": now,
+            "updated_at": now,
+        }[k]
+        fake_row.items = lambda: []
+        fake_row.keys = lambda: []
+        fake_row.__iter__ = lambda s: iter([])
+        fake_row.__bool__ = lambda s: True
+
+        mock_conn = AsyncMock()
+        # First call: UPDATE query; second call: find_album_by_id
+        mock_conn.fetchrow = AsyncMock(return_value=fake_row)
+
+        from app.repositories.album_repo import update_album as repo_update_album
+
+        await repo_update_album(mock_conn, album_id, description=None)
+        # First fetchrow call should be the UPDATE query
+        first_call = mock_conn.fetchrow.call_args_list[0]
+        query = first_call.args[0]
+        assert "UPDATE albums SET" in query
+        assert "description = $1" in query
+        # The None value should have been passed as a parameter
+        assert first_call.args[1] is None
+
+    @pytest.mark.anyio
+    async def test_update_album_unset_fields_not_included(self):
+        """update_album does not include fields that were not provided at all."""
+        user_id = str(uuid.uuid4())
+        album_uuid = uuid.uuid4()
+        album = _fake_album_row(album_id=album_uuid, user_id=user_id)
+
+        mock_conn = AsyncMock()
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
+
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                "app.repositories.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=album,
+            ),
+            patch(
+                "app.repositories.album_repo.find_member",
+                new_callable=AsyncMock,
+                return_value={"role": "ADMIN", "status": "ACCEPTED"},
+            ),
+            patch(
+                "app.repositories.album_repo.update_album",
+                new_callable=AsyncMock,
+                return_value=album,
+            ) as mock_update,
+        ):
+            from app.services.album import update_album
+
+            # Only provide title, description should not be included
+            await update_album(
+                album_id=str(album_uuid),
+                user_id=user_id,
+                user_role="ADMIN",
+                title="New Title",
+            )
+            call_kwargs = mock_update.call_args.kwargs
+            assert "title" in call_kwargs
+            assert call_kwargs["title"] == "New Title"
+            assert "description" not in call_kwargs
+
+
 # ── Test helpers for service-layer mocks ───────────────────────────────────
 
 

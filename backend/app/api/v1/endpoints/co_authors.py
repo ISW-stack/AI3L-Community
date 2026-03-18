@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.constants import RATE_LIMIT_CO_AUTHOR_INVITE
 from app.core.deps import get_current_user, require_role
@@ -25,13 +25,29 @@ router = APIRouter(prefix="/co-authors", tags=["co-authors"])
 
 @router.get("/my-posts")
 async def list_my_co_authored_posts(
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """List posts where the current user is an accepted co-author."""
     posts, total = await list_co_authored_posts(
         user_id=current_user["sub"],
+        page=page,
+        page_size=page_size,
+    )
+    return {"posts": posts, "total": total}
+
+
+@router.get("/user/{user_id}/posts")
+async def list_user_co_authored_posts(
+    user_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """List posts where a specific user is an accepted co-author."""
+    posts, total = await list_co_authored_posts(
+        user_id=str(user_id),
         page=page,
         page_size=page_size,
     )

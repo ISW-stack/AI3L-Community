@@ -200,11 +200,10 @@ sig_scores AS (
            COUNT(DISTINCT sm2.sig_id) AS common_sigs
     FROM user_pairs up
     LEFT JOIN sig_members sm1
-        ON sm1.user_id = up.user_id AND sm1.status = 'ACCEPTED'
+        ON sm1.user_id = up.user_id
     LEFT JOIN sig_members sm2
         ON sm2.sig_id = sm1.sig_id
         AND sm2.user_id = up.candidate_id
-        AND sm2.status = 'ACCEPTED'
     GROUP BY up.user_id, up.candidate_id
 ),
 friend_scores AS (

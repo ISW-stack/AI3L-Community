@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from app.core.constants import RATE_LIMIT_SIG_CRUD, RATE_LIMIT_SIG_JOIN, RATE_LIMIT_SIG_MANAGE
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
+from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
 from app.schemas.auth import MessageResponse
 from app.schemas.post import PostListResponse
@@ -61,8 +62,9 @@ async def create_new_sig(
 ) -> SigResponse:
     if not await check_rate_limit(f"rl:sig_crud:{current_user['sub']}", *RATE_LIMIT_SIG_CRUD):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+    description = sanitize_html(req.description) if req.description else req.description
     try:
-        sig = await create_sig(req.name, req.description, current_user["sub"])
+        sig = await create_sig(req.name, description, current_user["sub"])
     except ValueError as e:
         raise AppError(ErrorCode.SYS_409, 409, str(e))
     return SigResponse(**sig)
@@ -96,11 +98,12 @@ async def update_existing_sig(
     if not await check_rate_limit(f"rl:sig_crud:{current_user['sub']}", *RATE_LIMIT_SIG_CRUD):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     # Permission check is done inside the service layer transaction to prevent TOCTOU
+    description = sanitize_html(req.description) if req.description else req.description
     try:
         sig = await update_sig(
             sig_id,
             name=req.name,
-            description=req.description,
+            description=description,
             caller_id=current_user["sub"],
             caller_role=current_user["role"],
         )

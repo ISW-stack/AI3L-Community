@@ -65,6 +65,7 @@ const passwordChecks = computed(() => ({
   upper: /[A-Z]/.test(password.value),
   lower: /[a-z]/.test(password.value),
   digit: /[0-9]/.test(password.value),
+  special: /[^A-Za-z0-9]/.test(password.value),
 }))
 
 const passwordValid = computed(
@@ -72,7 +73,8 @@ const passwordValid = computed(
     passwordChecks.value.length &&
     passwordChecks.value.upper &&
     passwordChecks.value.lower &&
-    passwordChecks.value.digit,
+    passwordChecks.value.digit &&
+    passwordChecks.value.special,
 )
 
 const passwordsMatch = computed(
@@ -203,6 +205,9 @@ onMounted(() => {
               </li>
               <li :class="passwordChecks.digit ? 'text-success-600' : 'text-muted'">
                 {{ t('auth.validation.digit') }}
+              </li>
+              <li :class="passwordChecks.special ? 'text-success-600' : 'text-muted'">
+                {{ t('auth.validation.special') }}
               </li>
             </ul>
           </div>

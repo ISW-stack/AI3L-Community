@@ -17,7 +17,7 @@ from app.core.redis import get_redis
 from app.repositories import form_repo
 
 _VALID_QUESTION_TYPES = frozenset(
-    {"single_choice", "multiple_choice", "rating", "text", "textarea", "dropdown"}
+    {"single_choice", "multiple_choice", "rating", "text", "textarea", "dropdown", "file_upload"}
 )
 
 

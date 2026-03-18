@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from loguru import logger
 
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
@@ -84,15 +85,21 @@ async def review_membership_application(
             "Application not found or already reviewed.",
         )
 
-    # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
-    await emit(
-        "audit.action",
-        user_id=current_user["sub"],
-        action="APPLICATION_REVIEW",
-        target_type="application",
-        target_id=str(app_id),
-        ip_address=ip,
-    )
+    # Audit log — failure must not crash the endpoint
+    try:
+        ip = request.client.host if request.client else None
+        await emit(
+            "audit.action",
+            user_id=current_user["sub"],
+            action="APPLICATION_REVIEW",
+            target_type="application",
+            target_id=str(app_id),
+            ip_address=ip,
+        )
+    except Exception as e:
+        logger.error(
+            "Audit log emit failed for APPLICATION_REVIEW",
+            extra={"app_id": str(app_id), "error": str(e)},
+        )
 
     return MessageResponse(message=f"Application {req.action.lower()}.")

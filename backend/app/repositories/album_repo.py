@@ -89,10 +89,9 @@ async def update_album(conn: Any, album_id: uuid.UUID, **fields: Any) -> dict | 
     for field_name, value in fields.items():
         if field_name not in _ALLOWED:
             continue
-        if value is not None:
-            set_parts.append(f"{field_name} = ${idx}")
-            values.append(value)
-            idx += 1
+        set_parts.append(f"{field_name} = ${idx}")
+        values.append(value)
+        idx += 1
 
     if not set_parts:
         return await find_album_by_id(conn, album_id)
@@ -249,12 +248,22 @@ async def find_members(
     return [], 0
 
 
-async def update_member_status(conn: Any, member_id: uuid.UUID, status: str) -> bool:
-    result = await conn.execute(
-        "UPDATE album_members SET status = $1 WHERE id = $2",
-        status,
-        member_id,
-    )
+async def update_member_status(
+    conn: Any, member_id: uuid.UUID, status: str, album_id: uuid.UUID | None = None
+) -> bool:
+    if album_id is not None:
+        result = await conn.execute(
+            "UPDATE album_members SET status = $1 WHERE id = $2 AND album_id = $3",
+            status,
+            member_id,
+            album_id,
+        )
+    else:
+        result = await conn.execute(
+            "UPDATE album_members SET status = $1 WHERE id = $2",
+            status,
+            member_id,
+        )
     return bool(result == "UPDATE 1")
 
 

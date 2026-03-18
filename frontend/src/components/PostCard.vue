@@ -162,6 +162,16 @@ function displayTime(dateStr: string): string {
   return props.formatTime ? props.formatTime(dateStr) : defaultFormatTime(dateStr)
 }
 
+// Local comment count (avoids direct prop mutation)
+const localCommentCount = ref(props.post.comment_count)
+
+watch(
+  () => props.post.comment_count,
+  (newVal) => {
+    localCommentCount.value = newVal
+  },
+)
+
 // Quick comment panel
 const showQuickComments = ref(false)
 
@@ -170,7 +180,7 @@ function toggleQuickComments() {
 }
 
 function handleCommented() {
-  props.post.comment_count++
+  localCommentCount.value++
 }
 </script>
 
@@ -289,7 +299,7 @@ function handleCommented() {
         @click.stop.prevent="toggleQuickComments"
       >
         <MessageCircle class="w-3.5 h-3.5" />
-        {{ post.comment_count }}
+        {{ localCommentCount }}
       </button>
       <span class="text-sm text-muted flex items-center gap-1">
         <Eye class="w-3.5 h-3.5" />

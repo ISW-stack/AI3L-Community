@@ -6,13 +6,18 @@ from typing import Any
 from app.core.database import get_pool
 
 
+def _escape_ilike(s: str) -> str:
+    """Escape ILIKE special characters."""
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 async def find_standalone(
     conn: Any, page: int, page_size: int, q: str | None = None
 ) -> list[Any]:
     """List standalone forms (sig_id IS NULL, not deleted), optionally filtered by search."""
     offset = (page - 1) * page_size
     if q:
-        search_pattern = f"%{q}%"
+        search_pattern = f"%{_escape_ilike(q)}%"
         return list(
             await conn.fetch(
                 """
@@ -27,7 +32,7 @@ async def find_standalone(
                 GROUP BY form_id
             ) rc ON rc.form_id = f.id
             WHERE f.sig_id IS NULL AND f.is_deleted = false
-              AND (f.title ILIKE $3 OR f.description ILIKE $3)
+              AND (f.title ILIKE $3 ESCAPE '\\' OR f.description ILIKE $3 ESCAPE '\\')
             ORDER BY f.created_at DESC
             LIMIT $1 OFFSET $2
             """,

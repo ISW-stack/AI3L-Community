@@ -1,4 +1,6 @@
 import json
+import re
+import uuid
 from typing import Any, Awaitable, cast
 
 from celery import shared_task
@@ -7,6 +9,29 @@ from loguru import logger
 MAX_EVENT_RETRIES = 3
 # Maximum events to process per invocation (prevents unbounded loops)
 MAX_EVENTS_PER_RUN = 500
+
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def _restore_types(kwargs: dict) -> dict:
+    """Restore Python types lost during JSON serialization.
+
+    UUIDs serialized via ``json.dumps(default=str)`` become plain strings.
+    This function converts UUID-formatted strings back to ``uuid.UUID``.
+    """
+    restored: dict = {}
+    for key, value in kwargs.items():
+        if isinstance(value, str) and _UUID_RE.match(value):
+            restored[key] = uuid.UUID(value)
+        elif isinstance(value, dict):
+            restored[key] = _restore_types(value)
+        elif isinstance(value, list):
+            restored[key] = [
+                uuid.UUID(v) if isinstance(v, str) and _UUID_RE.match(v) else v for v in value
+            ]
+        else:
+            restored[key] = value
+    return restored
 
 
 @shared_task(name="retry_failed_events")
@@ -54,7 +79,7 @@ async def _async_retry() -> None:
             continue
 
         event_name = entry.get("event")
-        kwargs = entry.get("kwargs", {})
+        kwargs = _restore_types(entry.get("kwargs", {}))
 
         if not event_name or event_name not in _handlers:
             dropped += 1

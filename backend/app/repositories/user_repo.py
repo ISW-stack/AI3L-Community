@@ -194,7 +194,7 @@ async def list_all(
         if search:
             pattern = f"%{_escape_ilike(search)}%"
             rows = await conn.fetch(
-                "SELECT *, COUNT(*) OVER() AS _total FROM users"
+                f"SELECT {_USER_COLUMNS}, COUNT(*) OVER() AS _total FROM users"
                 " WHERE is_deleted = false"
                 " AND (username ILIKE $1 ESCAPE '\\' OR display_name ILIKE $1 ESCAPE '\\')"
                 " ORDER BY created_at DESC OFFSET $2 LIMIT $3",
@@ -204,7 +204,7 @@ async def list_all(
             )
         else:
             rows = await conn.fetch(
-                "SELECT *, COUNT(*) OVER() AS _total FROM users"
+                f"SELECT {_USER_COLUMNS}, COUNT(*) OVER() AS _total FROM users"
                 " WHERE is_deleted = false"
                 " ORDER BY created_at DESC OFFSET $1 LIMIT $2",
                 offset,

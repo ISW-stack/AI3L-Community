@@ -553,6 +553,92 @@ describe('Accessibility: MessageInput char counter', () => {
   })
 })
 
+// --------------- B-06: MessageInput reacts to editContent prop changes ---------------
+
+describe('B-06: MessageInput editContent reactivity', () => {
+  function mountInput(props: Record<string, unknown> = {}) {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    return mount(MessageInput, {
+      props: {
+        disabled: false,
+        ...props,
+      },
+      global: {
+        plugins: [pinia],
+      },
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('updates textarea content when editContent prop changes', async () => {
+    const wrapper = mountInput({ editMode: true, editContent: 'First message' })
+    const textarea = wrapper.find('textarea')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('First message')
+
+    await wrapper.setProps({ editContent: 'Second message' })
+    await nextTick()
+
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('Second message')
+  })
+
+  it('does not clear content when editContent becomes undefined', async () => {
+    const wrapper = mountInput({ editMode: true, editContent: 'Hello' })
+    const textarea = wrapper.find('textarea')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('Hello')
+
+    await wrapper.setProps({ editContent: undefined })
+    await nextTick()
+
+    // Content should remain 'Hello' since undefined is ignored
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('Hello')
+  })
+
+  it('sets content to empty string when editContent changes to empty string', async () => {
+    const wrapper = mountInput({ editMode: true, editContent: 'Hello' })
+
+    await wrapper.setProps({ editContent: '' })
+    await nextTick()
+
+    const textarea = wrapper.find('textarea')
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('')
+  })
+})
+
+// --------------- S-11: MessageInput file input accept attribute ---------------
+
+describe('S-11: MessageInput file input accept attribute', () => {
+  function mountInput(props: Record<string, unknown> = {}) {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    return mount(MessageInput, {
+      props: {
+        disabled: false,
+        ...props,
+      },
+      global: {
+        plugins: [pinia],
+      },
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('file input has accept attribute restricting file types', () => {
+    const wrapper = mountInput()
+    const fileInput = wrapper.find('input[type="file"]')
+    expect(fileInput.exists()).toBe(true)
+    expect(fileInput.attributes('accept')).toBe(
+      'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip',
+    )
+  })
+})
+
 // --------------- UX-9: Mobile back button ---------------
 
 describe('UX-9: Mobile back button', () => {

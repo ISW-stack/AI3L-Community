@@ -16,7 +16,7 @@ MAGIC_NUMBERS = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
         b"PK\x03\x04"
     ],  # DOCX is a ZIP
-    "image/webp": [b"RIFF"],  # Full signature is RIFF????WEBP but first 4 bytes suffice
+    "image/webp": [b"RIFF"],  # First 4 bytes; validated further in validate_magic_number
     "image/gif": [b"GIF87a", b"GIF89a"],
 }
 
@@ -36,7 +36,13 @@ def validate_magic_number(data: bytes, expected_content_type: str) -> bool:
     signatures = MAGIC_NUMBERS.get(expected_content_type)
     if signatures is None:
         return False
-    return any(data[: len(sig)] == sig for sig in signatures)
+    if not any(data[: len(sig)] == sig for sig in signatures):
+        return False
+    # WebP requires additional check: bytes 8-12 must be "WEBP"
+    if expected_content_type == "image/webp":
+        if len(data) < 12 or data[8:12] != b"WEBP":
+            return False
+    return True
 
 
 def get_content_type_from_extension(filename: str) -> str | None:

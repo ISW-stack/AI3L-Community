@@ -3,6 +3,24 @@ import { exportForm } from '@/api/forms'
 import { getTaskStatus } from '@/api/tasks'
 import { getErrorMessage } from '@/utils/error'
 
+/**
+ * Validate that a download URL belongs to an allowed origin.
+ * Prevents opening arbitrary URLs from potentially tampered API responses.
+ */
+export function isAllowedDownloadUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    const allowedOrigins = [
+      window.location.origin,
+      'http://localhost:19000',
+    ]
+    // Also allow MINIO_PUBLIC_URL if configured differently
+    return allowedOrigins.includes(parsed.origin)
+  } catch {
+    return false
+  }
+}
+
 export type ExportStatus = 'idle' | 'pending' | 'done' | 'error'
 
 export interface UseFormExportOptions {
@@ -99,7 +117,12 @@ export function useFormExport(options: UseFormExportOptions = {}) {
           exportStatusMessage.value = ''
           exportingFormId.value = null
           options.onSuccess?.(data.download_url)
-          window.open(data.download_url, '_blank')
+          if (isAllowedDownloadUrl(data.download_url)) {
+            window.open(data.download_url, '_blank')
+          } else {
+            exportStatus.value = 'error'
+            options.onError?.('Invalid download URL origin')
+          }
         } else if (data.status === 'FAILURE') {
           stopAll()
           exportStatus.value = 'error'

@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Request
 
 from app.core.errors import AppError, ErrorCode
-from app.core.rate_limit import check_rate_limit
+from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.core.redis import get_redis
 from app.repositories import dashboard_repo
 
@@ -15,7 +15,7 @@ _CACHE_TTL = 300  # 5 minutes
 
 @router.get("/stats")
 async def get_public_stats(request: Request) -> dict:
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:public_stats:{ip}", 30, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 

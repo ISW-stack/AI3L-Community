@@ -217,9 +217,12 @@ async function confirmRecall() {
     await dmApi.recallMessage(messageId)
     recallTargetId.value = null
   } catch (e: unknown) {
-    // Rollback
-    if (original && idx >= 0) {
-      dmStore.messages[idx] = original
+    // Rollback — re-find by ID since WS events may have shifted indices
+    if (original) {
+      const rollbackIdx = dmStore.messages.findIndex((m) => m.id === messageId)
+      if (rollbackIdx >= 0) {
+        dmStore.messages[rollbackIdx] = original
+      }
     }
     toast.show(parseDMError(e, 'Failed to recall message.'), 'error')
   } finally {

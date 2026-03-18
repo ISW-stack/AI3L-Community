@@ -717,6 +717,19 @@ class TestRecommendationSQL:
         assert "sig_scores AS" in _RECOMMENDATION_BATCH_SQL
         assert "friend_scores AS" in _RECOMMENDATION_BATCH_SQL
 
+    def test_sql_does_not_reference_sig_members_status(self):
+        """B-02: sig_members has no status column; SQL must not filter on it."""
+        from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL
+
+        # The sig_members table has no 'status' column -- all rows are active members.
+        # Ensure the SQL does not contain any sm1.status or sm2.status references.
+        assert "sm1.status" not in _RECOMMENDATION_BATCH_SQL, (
+            "SQL must not reference sm1.status: sig_members has no status column"
+        )
+        assert "sm2.status" not in _RECOMMENDATION_BATCH_SQL, (
+            "SQL must not reference sm2.status: sig_members has no status column"
+        )
+
     def test_sql_total_score_formula(self):
         """The total_score calculation uses correct weights summing to 1.0."""
         from app.tasks.recommendations import _RECOMMENDATION_BATCH_SQL

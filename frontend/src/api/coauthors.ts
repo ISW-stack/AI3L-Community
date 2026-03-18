@@ -52,6 +52,23 @@ export interface UserSearchResult {
   avatar_url: string | null
 }
 
+export interface CoAuthoredPostsResponse {
+  posts: { id: string; title: string; created_at: string }[]
+  total: number
+}
+
+export async function listCoAuthoredPosts(
+  userId: string,
+  page = 1,
+  pageSize = 10,
+): Promise<CoAuthoredPostsResponse> {
+  const { data } = await api.get<CoAuthoredPostsResponse>(
+    `/co-authors/user/${userId}/posts`,
+    { params: { page, page_size: pageSize } },
+  )
+  return data
+}
+
 export async function searchUsers(query: string, limit = 5): Promise<UserSearchResult[]> {
   const { data } = await api.get<UserSearchResult[]>('/users/search', {
     params: { q: query, limit },

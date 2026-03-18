@@ -2,6 +2,9 @@
 import { ref, watch, nextTick, reactive, computed } from 'vue'
 import type { DMMessage } from '@/types/dm'
 import { relativeTime } from '@/utils/datetime'
+import { useLocale } from '@/composables/useLocale'
+
+const { currentLocale: locale } = useLocale()
 import {
   MoreHorizontal,
   Pencil,
@@ -123,7 +126,7 @@ function isFileExpired(expiresAt: string | null): boolean {
   return new Date(expiresAt).getTime() < Date.now()
 }
 
-const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])
+const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp'])
 const VIDEO_EXTS = new Set(['mp4', 'webm', 'mov', 'avi'])
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'flac'])
 
@@ -151,7 +154,7 @@ function getDateLabel(iso: string): string {
   const diff = today.getTime() - msgDay.getTime()
   if (diff === 0) return 'Today'
   if (diff === 86400000) return 'Yesterday'
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return date.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 const messagesWithDateSeparators = computed(() => {
@@ -315,7 +318,7 @@ const messagesWithDateSeparators = computed(() => {
               :class="isMine(item.message) ? 'justify-end' : 'justify-start'"
             >
               <span>{{
-                new Date(item.message.created_at).toLocaleTimeString('en-US', {
+                new Date(item.message.created_at).toLocaleTimeString(locale, {
                   hour: '2-digit',
                   minute: '2-digit',
                 })
@@ -332,7 +335,7 @@ const messagesWithDateSeparators = computed(() => {
               <!-- Read (double check with tooltip) -->
               <span
                 v-if="isMine(item.message) && item.message.read_at && !item.message.is_recalled"
-                :title="'Read ' + new Date(item.message.read_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })"
+                :title="'Read ' + new Date(item.message.read_at).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })"
               >
                 <CheckCheck
                   class="w-3.5 h-3.5 text-brand-500"

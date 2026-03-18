@@ -1,8 +1,11 @@
 """Album service — business logic for activity albums."""
 
 import uuid
+from typing import Any
 
 from loguru import logger
+
+_UNSET: Any = object()  # sentinel — distinguishes "not provided" from "set to None"
 
 from app.converters.album_converter import (
     to_album_comment_response,
@@ -95,8 +98,8 @@ async def update_album(
     album_id: str,
     user_id: str,
     user_role: str,
-    title: str | None = None,
-    description: str | None = None,
+    title: Any = _UNSET,
+    description: Any = _UNSET,
 ) -> dict:
     """Update album. Creator or ADMIN/SUPER_ADMIN only."""
     pool = get_pool()
@@ -118,9 +121,9 @@ async def update_album(
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to update this album.")
 
         fields: dict = {}
-        if title is not None:
+        if title is not _UNSET:
             fields["title"] = title
-        if description is not None:
+        if description is not _UNSET:
             fields["description"] = description
 
         row = await album_repo.update_album(conn, album_uuid, **fields)
@@ -143,9 +146,9 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
             raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
         is_creator = str(album["created_by"]) == user_id
-        is_super_admin = user_role == "SUPER_ADMIN"
+        is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
 
-        if not (is_creator or is_super_admin):
+        if not (is_creator or is_site_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this album.")
 
         async with conn.transaction():
@@ -441,7 +444,11 @@ async def approve_member(
         if not (is_creator or is_site_admin or is_album_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to approve members.")
 
-        updated = await album_repo.update_member_status(conn, member_uuid, "ACCEPTED")
+        updated = await album_repo.update_member_status(
+            conn, member_uuid, "ACCEPTED", album_id=album_uuid
+        )
+        if not updated:
+            raise AppError(ErrorCode.ALBUM_001, 404, "Pending member not found in this album.")
 
     return updated
 

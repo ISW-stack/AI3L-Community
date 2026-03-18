@@ -70,8 +70,8 @@ async function fillValidForm(wrapper: VueWrapper) {
   await wrapper.find('#input-invite-code').setValue('INV-CODE')
   // Password that passes all checks
   const passwordInputs = wrapper.findAll('input[type="password"]')
-  await passwordInputs[0].setValue('StrongP1')
-  await passwordInputs[1].setValue('StrongP1')
+  await passwordInputs[0].setValue('Strong!P1')
+  await passwordInputs[1].setValue('Strong!P1')
   await wrapper.find('input[maxlength="4"]').setValue('ABCD')
 }
 
@@ -144,6 +144,7 @@ describe('RegisterView', () => {
       expect(wrapper.text()).toContain('Contains an uppercase letter')
       expect(wrapper.text()).toContain('Contains a lowercase letter')
       expect(wrapper.text()).toContain('Contains a digit')
+      expect(wrapper.text()).toContain('Contains a special character')
     })
   })
 
@@ -222,6 +223,38 @@ describe('RegisterView', () => {
       expect(btn.attributes('disabled')).toBeDefined()
     })
 
+    it('submit button is disabled when password lacks special character', async () => {
+      const { wrapper } = await mountRegister()
+      const passwordInputs = wrapper.findAll('input[type="password"]')
+      await passwordInputs[0].setValue('NoSpecial1') // no special character
+      await passwordInputs[1].setValue('NoSpecial1')
+
+      const btn = wrapper.find('button[type="submit"]')
+      expect(btn.attributes('disabled')).toBeDefined()
+    })
+
+    it('special check turns green when password has special character', async () => {
+      const { wrapper } = await mountRegister()
+      const passwordInputs = wrapper.findAll('input[type="password"]')
+      await passwordInputs[0].setValue('Pass@1234')
+
+      const items = wrapper.findAll('ul li')
+      const specialItem = items.find((li) => li.text().includes('special character'))
+      expect(specialItem).toBeDefined()
+      expect(specialItem!.classes()).toContain('text-success-600')
+    })
+
+    it('special check stays muted when password has no special character', async () => {
+      const { wrapper } = await mountRegister()
+      const passwordInputs = wrapper.findAll('input[type="password"]')
+      await passwordInputs[0].setValue('NoSpecial1')
+
+      const items = wrapper.findAll('ul li')
+      const specialItem = items.find((li) => li.text().includes('special character'))
+      expect(specialItem).toBeDefined()
+      expect(specialItem!.classes()).toContain('text-muted')
+    })
+
     it('submit button is enabled when all password requirements met and passwords match', async () => {
       const { wrapper } = await mountRegister()
       await fillValidForm(wrapper)
@@ -233,7 +266,7 @@ describe('RegisterView', () => {
     it('shows password mismatch warning when confirm password differs', async () => {
       const { wrapper } = await mountRegister()
       const passwordInputs = wrapper.findAll('input[type="password"]')
-      await passwordInputs[0].setValue('StrongP1')
+      await passwordInputs[0].setValue('Strong!P1')
       await passwordInputs[1].setValue('DifferentP1')
 
       expect(wrapper.text()).toContain('Passwords do not match')
@@ -242,7 +275,7 @@ describe('RegisterView', () => {
     it('submit button is disabled when passwords do not match', async () => {
       const { wrapper } = await mountRegister()
       const passwordInputs = wrapper.findAll('input[type="password"]')
-      await passwordInputs[0].setValue('StrongP1')
+      await passwordInputs[0].setValue('Strong!P1')
       await passwordInputs[1].setValue('Mismatch1')
 
       const btn = wrapper.find('button[type="submit"]')
@@ -276,7 +309,7 @@ describe('RegisterView', () => {
       await wrapper.find('#input-display-name').setValue('User')
       await wrapper.find('#input-invite-code').setValue('CODE')
       const passwordInputs = wrapper.findAll('input[type="password"]')
-      await passwordInputs[0].setValue('StrongP1')
+      await passwordInputs[0].setValue('Strong!P1')
       await passwordInputs[1].setValue('StrongP2')
       await wrapper.find('input[maxlength="4"]').setValue('1234')
 
@@ -325,7 +358,7 @@ describe('RegisterView', () => {
 
       expect(mockRegister).toHaveBeenCalledWith(
         'newuser',
-        'StrongP1',
+        'Strong!P1',
         'New User',
         'INV-CODE',
         'cap-reg-1',

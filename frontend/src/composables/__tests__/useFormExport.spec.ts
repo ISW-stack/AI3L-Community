@@ -116,7 +116,7 @@ describe('useFormExport', () => {
       mockExportForm.mockResolvedValue({ task_id: 'task-1' })
       mockGetTaskStatus.mockResolvedValue({
         status: 'SUCCESS',
-        download_url: 'http://example.com/export.csv',
+        download_url: 'http://localhost:19000/bucket/export.csv',
       })
       const onSuccess = vi.fn()
 
@@ -128,16 +128,16 @@ describe('useFormExport', () => {
       await vi.advanceTimersByTimeAsync(1000)
 
       expect(exportStatus.value).toBe('done')
-      expect(exportUrl.value).toBe('http://example.com/export.csv')
-      expect(onSuccess).toHaveBeenCalledWith('http://example.com/export.csv')
-      expect(window.open).toHaveBeenCalledWith('http://example.com/export.csv', '_blank')
+      expect(exportUrl.value).toBe('http://localhost:19000/bucket/export.csv')
+      expect(onSuccess).toHaveBeenCalledWith('http://localhost:19000/bucket/export.csv')
+      expect(window.open).toHaveBeenCalledWith('http://localhost:19000/bucket/export.csv', '_blank')
     })
 
     it('clears exportingFormId on success', async () => {
       mockExportForm.mockResolvedValue({ task_id: 'task-1' })
       mockGetTaskStatus.mockResolvedValue({
         status: 'SUCCESS',
-        download_url: 'http://example.com/export.csv',
+        download_url: 'http://localhost:19000/bucket/export.csv',
       })
 
       const { startExport, exportingFormId } = useFormExport({ pollInterval: 1000 })
@@ -152,7 +152,7 @@ describe('useFormExport', () => {
       mockExportForm.mockResolvedValue({ task_id: 'task-1' })
       mockGetTaskStatus.mockResolvedValue({
         status: 'SUCCESS',
-        download_url: 'http://example.com/export.csv',
+        download_url: 'http://localhost:19000/bucket/export.csv',
       })
 
       const { startExport } = useFormExport({ pollInterval: 1000 })
@@ -298,12 +298,12 @@ describe('useFormExport', () => {
       // First export that completes
       mockGetTaskStatus.mockResolvedValue({
         status: 'SUCCESS',
-        download_url: 'http://example.com/first.csv',
+        download_url: 'http://localhost:19000/bucket/first.csv',
       })
       await startExport('form-1', messages)
       await vi.advanceTimersByTimeAsync(1000)
       expect(exportStatus.value).toBe('done')
-      expect(exportUrl.value).toBe('http://example.com/first.csv')
+      expect(exportUrl.value).toBe('http://localhost:19000/bucket/first.csv')
 
       // Starting a new export resets state
       mockExportForm.mockResolvedValue({ task_id: 'task-2' })
@@ -343,7 +343,7 @@ describe('useFormExport', () => {
       mockExportForm.mockResolvedValue({ task_id: 'task-1' })
       mockGetTaskStatus.mockResolvedValue({
         status: 'SUCCESS',
-        download_url: 'http://example.com/export.csv',
+        download_url: 'http://localhost:19000/bucket/export.csv',
       })
 
       const { startExport, resetExport, exportStatus, exportUrl, exportingFormId, exportElapsed } =
@@ -367,7 +367,7 @@ describe('useFormExport', () => {
       mockExportForm.mockResolvedValue({ task_id: 'task-1' })
       mockGetTaskStatus.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({
         status: 'SUCCESS',
-        download_url: 'http://example.com/export.csv',
+        download_url: 'http://localhost:19000/bucket/export.csv',
       })
 
       const { startExport, exportStatus } = useFormExport({ pollInterval: 1000 })

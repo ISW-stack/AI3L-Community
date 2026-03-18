@@ -3,6 +3,17 @@ export function stripHtml(html: string): string {
 }
 
 /**
+ * Check whether HTML content from TiptapEditor is effectively empty.
+ * Handles `<p></p>`, `<p><br></p>`, whitespace-only text, etc.
+ * Returns false for media tags (img, video, table, etc.) even with no text.
+ */
+export function isContentEmpty(html: string): boolean {
+  if (!html || html === '<p></p>') return true
+  if (/<(img|iframe|video|audio|embed|object|source|table)\b/i.test(html)) return false
+  return !html.replace(/<[^>]*>/g, '').trim()
+}
+
+/**
  * Replace @username patterns in HTML content with styled mention spans.
  * Only usernames listed in the mentions array are highlighted.
  */

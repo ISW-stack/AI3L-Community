@@ -10,6 +10,7 @@ import { getErrorMessage } from '@/utils/error'
 import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
 import { listPosts } from '@/api/posts'
+import { listCoAuthoredPosts } from '@/api/coauthors'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -99,14 +100,8 @@ const coAuthoredLoading = ref(false)
 async function fetchCoAuthoredPosts() {
   coAuthoredLoading.value = true
   try {
-    const data = await listPosts({
-      author_id: userId.value,
-      type: 'post',
-      page: 1,
-      page_size: 10,
-    })
-    // We filter client-side for co-authored — if needed the API can be extended
-    coAuthoredPosts.value = data.posts
+    const data = await listCoAuthoredPosts(userId.value, 1, 10)
+    coAuthoredPosts.value = data.posts as Post[]
   } catch {
     // Non-critical, silently fail
   } finally {

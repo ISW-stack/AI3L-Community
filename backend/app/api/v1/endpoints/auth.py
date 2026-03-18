@@ -14,7 +14,7 @@ from app.core.csrf import generate_csrf_token
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
-from app.core.rate_limit import check_rate_limit
+from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.core.security import validate_password_policy
 from app.schemas.auth import (
     AuthResponse,
@@ -86,7 +86,7 @@ def _clear_auth_cookies(response: Response) -> None:
 async def get_captcha(request: Request) -> CaptchaResponse:
     from app.core.constants import RATE_LIMIT_CAPTCHA
 
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:captcha:{ip}", *RATE_LIMIT_CAPTCHA):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     captcha_id, image_base64 = await generate_captcha()
@@ -96,7 +96,7 @@ async def get_captcha(request: Request) -> CaptchaResponse:
 @router.post("/login", response_model=AuthResponse)
 async def login(req: LoginRequest, request: Request, response: Response) -> AuthResponse:
     # Rate limit: 10 attempts/minute per IP
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:login:{ip}", *RATE_LIMIT_LOGIN):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
@@ -135,7 +135,7 @@ async def login_as_guest(
     invite_code: str, req: GuestLoginRequest, request: Request, response: Response
 ) -> AuthResponse:
     # Rate limit: 10 attempts/minute per IP
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:guest:{ip}", *RATE_LIMIT_GUEST):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
@@ -178,9 +178,7 @@ async def login_as_guest(
 async def logout(
     request: Request, response: Response, current_user: dict = Depends(get_current_user)
 ) -> MessageResponse:
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
-        request.client.host if request.client else None
-    )
+    ip = get_client_ip(request)
 
     await destroy_session(
         user_id=current_user["sub"],
@@ -210,7 +208,7 @@ async def logout(
 @router.post("/register", response_model=AuthResponse)
 async def register(req: CreateAccountRequest, request: Request, response: Response) -> AuthResponse:
     # Rate limit: 5 attempts/minute per IP
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:register:{ip}", *RATE_LIMIT_REGISTER):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
@@ -284,7 +282,7 @@ async def generate_invite_code(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> InviteCodeResponse:
     # IP-based rate limit as defense-in-depth
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:invite_ip:{ip}", 10, 3600):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
@@ -314,7 +312,7 @@ async def generate_invite_code(
     response_model=MessageResponse,
 )
 async def verify_invite_code(code: str, request: Request) -> MessageResponse:
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:invite_verify:{ip}", *RATE_LIMIT_INVITE_VERIFY):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     result = await get_invite_code(code)

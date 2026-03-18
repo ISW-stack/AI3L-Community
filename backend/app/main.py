@@ -185,6 +185,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 
+
+class _BodyTooLargeError(Exception):
+    """Internal signal raised when chunked body exceeds MAX_REQUEST_BODY_SIZE."""
+
 app = FastAPI(
     title="AI3L Community API",
     version="0.1.0",
@@ -197,7 +201,11 @@ app = FastAPI(
 
 @app.middleware("http")
 async def limit_request_body_size(request: Request, call_next: RequestResponseEndpoint) -> Response:
-    """Reject requests whose Content-Length exceeds the global limit."""
+    """Reject requests whose body exceeds the global limit.
+
+    Checks Content-Length header first. For chunked transfer (no Content-Length),
+    wraps the ASGI receive callable to count bytes and abort if the limit is exceeded.
+    """
     content_length = request.headers.get("content-length")
     if content_length:
         try:
@@ -207,7 +215,27 @@ async def limit_request_body_size(request: Request, call_next: RequestResponseEn
             return JSONResponse(
                 status_code=400, content={"detail": "Invalid Content-Length header"}
             )
-    return await call_next(request)
+    elif request.method in ("POST", "PUT", "PATCH"):
+        # No Content-Length — may be chunked transfer.  Wrap receive to enforce limit.
+        bytes_received = 0
+
+        original_receive = request._receive  # type: ignore[attr-defined]
+
+        async def _size_limited_receive() -> dict:
+            nonlocal bytes_received
+            message = await original_receive()
+            body = message.get("body", b"")
+            bytes_received += len(body)
+            if bytes_received > MAX_REQUEST_BODY_SIZE:
+                raise _BodyTooLargeError()
+            return message
+
+        request._receive = _size_limited_receive  # type: ignore[attr-defined]
+
+    try:
+        return await call_next(request)
+    except _BodyTooLargeError:
+        return JSONResponse(status_code=413, content={"detail": "Request body too large"})
 
 
 app.add_middleware(

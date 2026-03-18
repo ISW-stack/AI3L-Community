@@ -16,7 +16,51 @@ from app.core.constants import (
 )
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
+from app.core.file_validation import sanitize_html, validate_magic_number
 from app.repositories import dm_repo
+
+# ── DM attachment allowed extensions ────────────────────────────────────────
+_DM_ALLOWED_EXTENSIONS: set[str] = {
+    ".jpg", ".jpeg", ".png", ".gif", ".webp",           # images
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx",            # documents
+    ".ppt", ".pptx", ".txt", ".csv", ".zip",             # other
+}
+
+# Extensions that require magic-byte validation (images)
+_DM_MAGIC_CHECK_EXTENSIONS: dict[str, str] = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".pdf": "application/pdf",
+}
+
+
+def _validate_dm_file(file_name: str, file_data: bytes) -> None:
+    """Validate DM attachment: extension allowlist + magic bytes for images/PDFs.
+
+    Raises AppError if validation fails.
+    """
+    ext = ""
+    if file_name and "." in file_name:
+        ext = "." + file_name.rsplit(".", 1)[-1].lower()
+
+    if ext not in _DM_ALLOWED_EXTENSIONS:
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            f"File type not allowed. Accepted: {', '.join(sorted(_DM_ALLOWED_EXTENSIONS))}",
+        )
+
+    # For types with known magic signatures, verify content matches extension
+    expected_type = _DM_MAGIC_CHECK_EXTENSIONS.get(ext)
+    if expected_type and not validate_magic_number(file_data, expected_type):
+        raise AppError(
+            ErrorCode.FILE_001,
+            400,
+            "File content does not match its extension (invalid magic number).",
+        )
 
 
 async def send_message(
@@ -44,6 +88,10 @@ async def send_message(
             422,
             f"Message too long (max {DM_MAX_MESSAGE_LENGTH} chars).",
         )
+
+    # B-04/S-01: Sanitize HTML content before storing
+    if content:
+        content = sanitize_html(content)
 
     # 4. Check block (bilateral)
     from app.core.database import get_pool
@@ -77,6 +125,9 @@ async def send_message(
         if file_size > DM_MAX_ATTACHMENT_SIZE:
             raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
 
+        # S-02: Validate file type before upload
+        _validate_dm_file(file_name, file_data)
+
         # Check storage quota
         from app.repositories import user_repo
 
@@ -84,14 +135,15 @@ async def send_message(
         if used + file_size > 1_073_741_824:  # 1 GB
             raise AppError(ErrorCode.DM_004, 413, "Storage quota exceeded (1 GB limit).")
 
-        # Upload to MinIO
-        from app.core.storage import upload_file
+        # B-07: Use async upload instead of sync (avoids blocking event loop)
+        from app.core.async_storage import upload_file as async_upload_file
 
-        storage_key = f"dm/{sender_id}/{uuid.uuid4()}_{file_name}"
-        upload_file(file_data, storage_key, file_content_type or "application/octet-stream")
-
-        # Increment storage used
-        await user_repo.increment_storage_used(uuid.UUID(sender_id), file_size)
+        # B-27/S-03: Sanitize filename — only preserve extension, not full name
+        ext = ""
+        if file_name and "." in file_name:
+            ext = "." + file_name.rsplit(".", 1)[-1].lower()
+        storage_key = f"dm/{sender_id}/{uuid.uuid4().hex}{ext}"
+        await async_upload_file(file_data, storage_key, file_content_type or "application/octet-stream")
 
         attachment_key = storage_key
         attachment_name = file_name
@@ -120,6 +172,12 @@ async def send_message(
         char_cap=DM_CHAR_CAP_PER_CONVERSATION,
     )
 
+    # B-12: Increment storage quota AFTER successful message insert (not before)
+    if attachment_size and file_size:
+        from app.repositories import user_repo
+
+        await user_repo.increment_storage_used(uuid.UUID(sender_id), file_size)
+
     # Refund storage for any deleted attachments (outside transaction)
     if deleted_msgs:
         from app.repositories import user_repo
@@ -127,10 +185,10 @@ async def send_message(
         for dmsg in deleted_msgs:
             if dmsg.get("attachment_size") and dmsg.get("sender_id"):
                 try:
-                    from app.core.storage import delete_file
+                    from app.core.async_storage import delete_file as async_delete_file
 
                     if dmsg.get("attachment_key"):
-                        delete_file(dmsg["attachment_key"])
+                        await async_delete_file(dmsg["attachment_key"])
                     await user_repo.decrement_storage_used(
                         dmsg["sender_id"], dmsg["attachment_size"]
                     )
@@ -201,6 +259,9 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
             f"Message too long (max {DM_MAX_MESSAGE_LENGTH} chars).",
         )
 
+    # B-04/S-01: Sanitize HTML content before storing
+    new_content = sanitize_html(new_content)
+
     # 5. Calculate char delta
     old_content = row.get("content") or ""
     char_delta = len(new_content) - len(old_content)
@@ -263,19 +324,21 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
     # 4. Recall message in DB first (before external I/O)
     conversation_id = row["conversation_id"]
     content_len = len(row.get("content") or "")
-    if content_len > 0:
-        await dm_repo.increment_char_count(conversation_id, -content_len)
 
     recalled_row = await dm_repo.recall_message(uuid.UUID(message_id))
     if not recalled_row:
         raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
 
+    # B-11: Decrement char count AFTER successful recall (not before)
+    if content_len > 0:
+        await dm_repo.increment_char_count(conversation_id, -content_len)
+
     # 5. If has attachment: delete from MinIO and refund storage quota (after DB recall)
     if row.get("attachment_key"):
         try:
-            from app.core.storage import delete_file
+            from app.core.async_storage import delete_file as async_delete_file
 
-            delete_file(row["attachment_key"])
+            await async_delete_file(row["attachment_key"])
         except Exception:
             logger.warning(
                 "Failed to delete DM attachment from storage",

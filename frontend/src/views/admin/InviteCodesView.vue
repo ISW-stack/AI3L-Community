@@ -14,7 +14,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toastStore = useToastStore()
 const codes = ref<InviteCode[]>([])
 const total = ref(0)
@@ -99,7 +99,7 @@ const statusBadge: Record<string, 'success' | 'neutral' | 'danger'> = {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+  return new Date(iso).toLocaleDateString(locale.value, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
