@@ -15,6 +15,7 @@ from app.core.errors import (
     StorageQuotaError,
 )
 from app.core.event_bus import emit
+from app.core.file_validation import sanitize_html
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
 from app.schemas.auth import MessageResponse
@@ -79,6 +80,9 @@ async def update_my_profile(
         for k in ("display_name", "bio", "affiliation", "orcid", "preferred_language")
         if k in req.model_fields_set
     }
+    # Sanitize bio HTML like post content
+    if "bio" in provided and provided["bio"]:
+        provided["bio"] = sanitize_html(provided["bio"])
     user = await update_user_profile(
         user_id=uuid.UUID(current_user["sub"]),
         **provided,

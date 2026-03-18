@@ -35,7 +35,7 @@ class PublicUserResponse(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     display_name: str | None = Field(None, max_length=100)
-    bio: str | None = Field(None, max_length=500)
+    bio: str | None = Field(None, max_length=50000)
     affiliation: str | None = Field(None, max_length=200)
     orcid: str | None = Field(None, max_length=50)
     preferred_language: str | None = Field(

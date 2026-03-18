@@ -194,11 +194,25 @@ describe('ProfileView', () => {
     expect(payload.orcid).toBeNull()
   })
 
+  it('sends null for empty TipTap bio content (<p></p>)', async () => {
+    const { wrapper } = await mountProfile()
+    const vm = wrapper.vm as any
+    vm.bio = '<p></p>'
+    await nextTick()
+
+    const form = wrapper.find('form')
+    await form.trigger('submit')
+    await flushPromises()
+
+    const payload = mockUpdateProfile.mock.calls[0][0]
+    expect(payload.bio).toBeNull()
+  })
+
   it('sends trimmed values for non-empty fields', async () => {
     const { wrapper } = await mountProfile()
     const vm = wrapper.vm as any
 
-    vm.bio = '  Updated bio  '
+    vm.bio = '<p>Updated bio</p>'
     vm.affiliation = '  MIT  '
     vm.orcid = '  0000-0001-2345-6789  '
     await nextTick()
@@ -208,7 +222,7 @@ describe('ProfileView', () => {
     await flushPromises()
 
     const payload = mockUpdateProfile.mock.calls[0][0]
-    expect(payload.bio).toBe('Updated bio')
+    expect(payload.bio).toBe('<p>Updated bio</p>')
     expect(payload.affiliation).toBe('MIT')
     expect(payload.orcid).toBe('0000-0001-2345-6789')
   })

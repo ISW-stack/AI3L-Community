@@ -11,6 +11,7 @@ import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
 import { listPosts } from '@/api/posts'
 import { listCoAuthoredPosts } from '@/api/coauthors'
+import DOMPurify from 'dompurify'
 import { MessageSquare, Lock } from 'lucide-vue-next'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -209,8 +210,8 @@ onMounted(() => {
           <!-- Info Cards -->
           <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
             <div v-if="user.bio" class="text-sm text-foreground/80">
-              <span class="font-medium text-foreground">{{ t('userProfile.bio') }}</span>
-              {{ user.bio }}
+              <span class="font-medium text-foreground block mb-1">{{ t('userProfile.bio') }}</span>
+              <div class="prose prose-sm max-w-none break-words" v-html="DOMPurify.sanitize(user.bio)"></div>
             </div>
             <div v-if="user.affiliation" class="text-sm text-foreground/80">
               <span class="font-medium text-foreground">{{ t('userProfile.affiliation') }}</span>

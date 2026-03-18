@@ -11,6 +11,7 @@ import {
 } from '@/api/users'
 import { createInviteCode } from '@/api/admin'
 import { getStorageUsage } from '@/api/files'
+import { isContentEmpty } from '@/utils/html'
 import { listMyInvitations, acceptInvitation, rejectInvitation } from '@/api/coauthors'
 import type { CoAuthorInvitation } from '@/types/coauthor'
 import BaseAlert from '@/components/base/BaseAlert.vue'
@@ -174,7 +175,7 @@ async function saveProfile() {
   try {
     const data = await updateProfile({
       display_name: displayName.value.trim() || undefined,
-      bio: bio.value.trim() === '' ? null : bio.value.trim(),
+      bio: isContentEmpty(bio.value) ? null : bio.value,
       affiliation: affiliation.value.trim() === '' ? null : affiliation.value.trim(),
       orcid: orcid.value.trim() === '' ? null : orcid.value.trim(),
     })
