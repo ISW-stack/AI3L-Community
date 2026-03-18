@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { listStandaloneForms } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
+import { stripHtml } from '@/utils/html'
 import { usePagination } from '@/composables/usePagination'
 import type { FormData } from '@/types'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -123,7 +124,7 @@ watch(page, fetchForms)
               </BaseBadge>
             </div>
             <p v-if="form.description" class="text-sm text-muted mb-3 line-clamp-2">
-              {{ truncateText(form.description, 120) }}
+              {{ truncateText(stripHtml(form.description), 120) }}
             </p>
             <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
               <span>{{ form.response_count }} {{ t('formsDirectory.responses') }}</span>

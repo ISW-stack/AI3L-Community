@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
 import { deleteForm as deleteFormApi } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
+import { stripHtml } from '@/utils/html'
 import { useFormResponseViewer } from '@/composables/useFormResponseViewer'
 import { useFormExport } from '@/composables/useFormExport'
 import { useSigLayout } from '@/composables/useSigLayout'
@@ -275,7 +276,7 @@ onMounted(fetchForms)
               isDescriptionExpanded(f.id) ? '' : 'line-clamp-3',
             ]"
           >
-            {{ f.description }}
+            {{ stripHtml(f.description) }}
           </p>
           <button
             v-if="isDescriptionTruncated(f.id) || isDescriptionExpanded(f.id)"

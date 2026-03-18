@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { FormData } from '@/types'
 import { getForm } from '@/api/forms'
+import { stripHtml } from '@/utils/html'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -51,7 +52,7 @@ onMounted(async () => {
             </BaseBadge>
           </div>
           <p v-if="form.description" class="text-xs text-muted line-clamp-2 mb-1">
-            {{ form.description }}
+            {{ stripHtml(form.description) }}
           </p>
           <div class="flex items-center gap-3 text-xs text-muted">
             <span>{{ form.response_count }} {{ t('forms.view.response') }}</span>
