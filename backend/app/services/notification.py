@@ -87,7 +87,3 @@ async def delete_notification(notification_id: uuid.UUID, user_id: str) -> bool:
     if deleted:
         logger.info("Notification deleted", extra={"notification_id": str(notification_id)})
     return deleted
-
-
-async def get_unread_count(user_id: str) -> int:
-    return await notification_repo.count_unread(uuid.UUID(user_id))

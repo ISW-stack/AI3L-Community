@@ -58,7 +58,6 @@ async def read_notification(
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def bulk_delete_notifications(
-    request: Request,
     req: BulkDeleteNotificationsRequest | None = None,
     current_user: dict = Depends(get_current_user),
 ) -> Response:

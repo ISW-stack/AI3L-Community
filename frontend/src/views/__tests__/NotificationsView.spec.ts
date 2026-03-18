@@ -297,9 +297,11 @@ describe('NotificationsView', () => {
   it('decrements unreadCount when deleting an unread notification', async () => {
     const { wrapper } = await mountNotifications()
     const vm = wrapper.vm as any
+    const { useNotificationStore } = await import('@/stores/notifications')
+    const store = useNotificationStore()
 
-    // Verify initial state: n1 is unread
-    expect(vm.unreadCount).toBe(2)
+    // Verify initial state: 2 unread notifications in the store
+    expect(store.unreadCount).toBe(2)
     const n1 = vm.notifications.find((n: any) => n.id === 'n1')
     expect(n1).toBeTruthy()
     expect(n1.is_read).toBe(false)
@@ -317,8 +319,8 @@ describe('NotificationsView', () => {
 
     // Notification should be removed from array
     expect(vm.notifications.find((n: any) => n.id === 'n1')).toBeUndefined()
-    // unreadCount should be decremented (either by local logic or store re-fetch)
-    expect(vm.unreadCount).toBe(1)
+    // store.unreadCount should be updated by fetchUnreadCount
+    expect(store.unreadCount).toBe(1)
   })
 
   it('renders notifications directly without filteredNotifications computed', async () => {
@@ -414,14 +416,17 @@ describe('NotificationsView', () => {
   it('does not decrement unreadCount when deleting a read notification', async () => {
     const { wrapper } = await mountNotifications()
     const vm = wrapper.vm as any
+    const { useNotificationStore } = await import('@/stores/notifications')
+    const store = useNotificationStore()
 
-    expect(vm.unreadCount).toBe(2)
+    expect(store.unreadCount).toBe(2)
 
     // Delete n2 (already read notification) - call the handler directly
     await vm.handleDeleteNotification('n2')
+    await flushPromises()
 
-    // unreadCount should remain 2 since n2 was already read
-    expect(vm.unreadCount).toBe(2)
+    // store.unreadCount should remain 2 since n2 was already read
+    expect(store.unreadCount).toBe(2)
     // Notification should be removed from array
     expect(vm.notifications.find((n: any) => n.id === 'n2')).toBeUndefined()
   })

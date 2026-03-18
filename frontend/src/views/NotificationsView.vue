@@ -8,7 +8,6 @@ import type { Notification } from '@/types'
 import {
   listNotifications,
   markRead as apiMarkRead,
-  markAllRead as apiMarkAllRead,
   deleteNotification,
   bulkDeleteNotifications,
 } from '@/api/notifications'
@@ -29,7 +28,6 @@ const toast = useToastStore()
 const notificationStore = useNotificationStore()
 const notifications = ref<Notification[]>([])
 const { page, totalPages, pageSize, setPage, updateFromResponse } = usePagination()
-const unreadCount = ref(0)
 const loading = ref(false)
 const filter = ref<'all' | 'unread'>('all')
 const showClearAllConfirm = ref(false)
@@ -53,7 +51,7 @@ async function fetchNotifications() {
     if (localFetchId !== fetchId) return
     notifications.value = data.notifications
     updateFromResponse(data.total)
-    unreadCount.value = data.unread_count
+    notificationStore.unreadCount = data.unread_count
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('notifications.fetchError')), 'error')
   } finally {
@@ -68,7 +66,7 @@ async function markRead(notif: Notification) {
     try {
       await apiMarkRead(notif.id)
       notif.is_read = true
-      unreadCount.value = Math.max(0, unreadCount.value - 1)
+      notificationStore.unreadCount = Math.max(0, notificationStore.unreadCount - 1)
     } catch (e: unknown) {
       toast.show(getErrorMessage(e, t('notifications.markReadError')), 'error')
     }
@@ -78,34 +76,22 @@ async function markRead(notif: Notification) {
 
 async function markAllRead() {
   try {
-    await apiMarkAllRead()
+    await notificationStore.markAllRead()
     notifications.value.forEach((n) => (n.is_read = true))
-    unreadCount.value = 0
-    notificationStore.unreadCount = 0
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('notifications.markReadError')), 'error')
   }
 }
 
 function navigateToEntity(notif: Notification) {
-  if (!notif.entity_id) return
-  if (notif.entity_type === 'post') {
-    router.push(`/forum/${notif.entity_id}`)
-  } else if (notif.entity_type === 'comment') {
-    // For comment notifications, entity_id is typically the post_id
-    // Navigate to the post so the user can see the comment in context
+  if (notif.entity_id) {
     router.push(`/forum/${notif.entity_id}`)
   }
 }
 
 async function handleDeleteNotification(id: string) {
   try {
-    const notif = notifications.value.find((n) => n.id === id)
     await deleteNotification(id)
-    // Decrement local unreadCount if the deleted notification was unread
-    if (notif && !notif.is_read) {
-      unreadCount.value = Math.max(0, unreadCount.value - 1)
-    }
     notifications.value = notifications.value.filter((n) => n.id !== id)
     await notificationStore.fetchUnreadCount()
   } catch {
@@ -146,11 +132,11 @@ onMounted(fetchNotifications)
       <h1 class="text-2xl font-bold text-foreground">{{ t('notifications.title') }}</h1>
       <div class="flex items-center gap-3">
         <button
-          v-if="unreadCount > 0"
+          v-if="notificationStore.unreadCount > 0"
           @click="markAllRead"
           class="text-sm text-brand-600 hover:text-brand-800 hover:underline"
         >
-          {{ t('notifications.markAllRead') }} ({{ unreadCount }})
+          {{ t('notifications.markAllRead') }} ({{ notificationStore.unreadCount }})
         </button>
         <BaseButton
           v-if="notifications.length > 0"
@@ -195,9 +181,9 @@ onMounted(fetchNotifications)
       >
         {{ t('notifications.filter.unread') }}
         <span
-          v-if="unreadCount > 0"
+          v-if="notificationStore.unreadCount > 0"
           class="ml-1 text-xs bg-brand-100 text-brand-700 rounded-full px-1.5"
-          >{{ unreadCount }}</span
+          >{{ notificationStore.unreadCount }}</span
         >
       </button>
     </div>
