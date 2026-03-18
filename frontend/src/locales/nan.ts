@@ -1212,7 +1212,7 @@ export default {
     noSearchResults: 'No matching forms',
     noSearchResultsMessage: 'No forms match your search query.',
     totalForms: 'total forms',
-    noFormsMessage: 'There are no standalone forms available at the moment.',
+    noFormsMessage: '你猶未建立任何獨立表單。',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
     privateNotice:

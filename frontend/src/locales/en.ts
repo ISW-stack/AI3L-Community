@@ -1154,6 +1154,11 @@ export default {
         usedBy: 'Used By',
         created: 'Created',
         expires: 'Expires',
+        actions: 'Actions',
+      },
+      action: {
+        revoke: 'Revoke',
+        delete: 'Delete',
       },
       copyAriaLabel: 'Copy invite code',
       message: {
@@ -1163,6 +1168,10 @@ export default {
         copied: 'Code copied to clipboard.',
         copyFailed: 'Failed to copy code.',
         fetchFailed: 'Failed to load invite codes.',
+        revoked: 'Invite code revoked.',
+        revokeFailed: 'Failed to revoke invite code.',
+        deleted: 'Invite code deleted.',
+        deleteFailed: 'Failed to delete invite code.',
       },
       total: '{count} code(s) total',
     },

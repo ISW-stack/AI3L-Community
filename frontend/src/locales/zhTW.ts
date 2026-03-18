@@ -1173,7 +1173,7 @@ export default {
     noSearchResults: '沒有符合的表單',
     noSearchResultsMessage: '沒有符合搜尋條件的表單。',
     totalForms: '個表單',
-    noFormsMessage: '目前沒有可用的獨立表單。',
+    noFormsMessage: '你還沒有建立任何獨立表單。',
     loadError: '載入表單失敗',
     due: '截止 {date}',
     privateNotice: '在此建立的表單僅自己可見。若需要其他人填寫，請直接分享表單連結。',

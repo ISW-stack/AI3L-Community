@@ -1,9 +1,8 @@
-"""Tests for rate limiting on heartbeat, ws-ticket, public stats, and forms list endpoints.
+"""Tests for rate limiting on heartbeat, ws-ticket, and public stats endpoints.
 
 S09: /auth/heartbeat — 20 req/60s per user
 S10: /auth/ws-ticket — 10 req/60s per user
 S11: /public/stats — 30 req/60s per IP
-S17: GET /forms — 30 req/60s per IP
 """
 
 import uuid
@@ -206,47 +205,31 @@ class TestPublicStatsRateLimit:
         assert args[2] == 60
 
 
-class TestFormsListRateLimit:
-    """S17: GET /forms rate limited at 30 req/60s per IP."""
+class TestFormsListAuth:
+    """GET /forms now requires authentication."""
 
     @pytest.mark.anyio
-    async def test_forms_list_rate_limited(self, client: AsyncClient):
-        """When rate limit is exceeded, forms list returns 429."""
-        with patch(
-            f"{_FORMS_EP}.check_rate_limit",
-            new_callable=AsyncMock,
-            return_value=False,
-        ):
-            resp = await client.get("/api/v1/forms")
-        assert resp.status_code == 429
-        assert resp.json()["detail"]["code"] == "SYS_429"
+    async def test_forms_list_requires_auth(self, client: AsyncClient):
+        """GET /forms → 401 without authentication."""
+        resp = await client.get("/api/v1/forms")
+        assert resp.status_code == 401
 
     @pytest.mark.anyio
-    async def test_forms_list_passes_when_under_limit(self, client: AsyncClient):
-        """When rate limit is not exceeded, forms list succeeds."""
-        with (
-            patch(
-                f"{_FORMS_EP}.check_rate_limit",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-            patch(
+    async def test_forms_list_authenticated_succeeds(self, client: AsyncClient):
+        """GET /forms → 200 for authenticated user."""
+        uid = str(uuid.uuid4())
+        _override_auth(user_id=uid)
+        try:
+            with patch(
                 f"{_FORMS_EP}.list_standalone_forms_svc",
                 new_callable=AsyncMock,
                 return_value=([], 0),
-            ),
-        ):
-            resp = await client.get("/api/v1/forms")
-        assert resp.status_code == 200
-        assert resp.json()["total"] == 0
+            ):
+                resp = await client.get("/api/v1/forms")
+            assert resp.status_code == 200
+            assert resp.json()["total"] == 0
+        finally:
+            from app.core.deps import get_current_user
+            from app.main import app
 
-    @pytest.mark.anyio
-    async def test_forms_list_rate_limit_uses_ip(self, client: AsyncClient):
-        """Rate limit key includes the client IP."""
-        mock_rl = AsyncMock(return_value=False)
-        with patch(f"{_FORMS_EP}.check_rate_limit", mock_rl):
-            await client.get("/api/v1/forms")
-        args = mock_rl.call_args[0]
-        assert args[0].startswith("rl:forms_list:")
-        assert args[1] == 30
-        assert args[2] == 60
+            app.dependency_overrides.pop(get_current_user, None)

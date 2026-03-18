@@ -1227,7 +1227,7 @@ export default {
     noSearchResults: 'No matching forms',
     noSearchResultsMessage: 'No forms match your search query.',
     totalForms: 'total forms',
-    noFormsMessage: 'There are no standalone forms available at the moment.',
+    noFormsMessage: 'Bạn chưa tạo biểu mẫu độc lập nào.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
     privateNotice:

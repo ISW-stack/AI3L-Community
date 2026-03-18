@@ -167,7 +167,7 @@ class TestB14FormRepoIlikeEscape:
         mock_conn = AsyncMock()
         mock_conn.fetch = AsyncMock(return_value=[])
 
-        await find_standalone(mock_conn, page=1, page_size=20, q="%test_value")
+        await find_standalone(mock_conn, page=1, page_size=20, user_id=uuid.uuid4(), q="%test_value")
 
         call_args = mock_conn.fetch.call_args
         sql_param = call_args[0][3]  # $3 is the search_pattern
@@ -181,7 +181,7 @@ class TestB14FormRepoIlikeEscape:
         mock_conn = AsyncMock()
         mock_conn.fetch = AsyncMock(return_value=[])
 
-        await find_standalone(mock_conn, page=1, page_size=20, q="test")
+        await find_standalone(mock_conn, page=1, page_size=20, user_id=uuid.uuid4(), q="test")
 
         sql = mock_conn.fetch.call_args[0][0]
         assert "ESCAPE" in sql
@@ -194,7 +194,7 @@ class TestB14FormRepoIlikeEscape:
         mock_conn = AsyncMock()
         mock_conn.fetch = AsyncMock(return_value=[])
 
-        await find_standalone(mock_conn, page=1, page_size=20, q=None)
+        await find_standalone(mock_conn, page=1, page_size=20, user_id=uuid.uuid4(), q=None)
 
         sql = mock_conn.fetch.call_args[0][0]
         assert "ESCAPE" not in sql

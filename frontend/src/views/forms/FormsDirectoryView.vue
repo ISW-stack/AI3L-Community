@@ -79,12 +79,13 @@ watch(page, fetchForms)
     <BaseBreadcrumb
       :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.formsDirectory') }]"
     />
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex justify-between items-center mb-2">
       <h1 class="text-2xl font-bold text-foreground">{{ t('formsDirectory.title') }}</h1>
       <router-link v-if="canCreate" to="/forms/new">
         <BaseButton>{{ t('formsDirectory.createForm') }}</BaseButton>
       </router-link>
     </div>
+    <p class="text-sm text-muted mb-6">{{ t('formsDirectory.privateNotice') }}</p>
 
     <div class="mb-4">
       <BaseInput

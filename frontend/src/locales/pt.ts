@@ -1228,7 +1228,7 @@ export default {
     noSearchResults: 'No matching forms',
     noSearchResultsMessage: 'No forms match your search query.',
     totalForms: 'total forms',
-    noFormsMessage: 'There are no standalone forms available at the moment.',
+    noFormsMessage: 'Você ainda não criou nenhum formulário independente.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
     privateNotice:

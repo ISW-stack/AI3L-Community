@@ -1226,7 +1226,7 @@ export default {
     noSearchResults: 'No matching forms',
     noSearchResultsMessage: 'No forms match your search query.',
     totalForms: 'total forms',
-    noFormsMessage: 'There are no standalone forms available at the moment.',
+    noFormsMessage: 'आपने अभी तक कोई स्वतंत्र फ़ॉर्म नहीं बनाया है।',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
     privateNotice:

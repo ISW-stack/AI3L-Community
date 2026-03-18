@@ -1,7 +1,7 @@
 import uuid
 
 import asyncpg
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.constants import (
     DEFAULT_PAGE_SIZE_STANDALONE_FORMS,
@@ -14,7 +14,7 @@ from app.core.constants import (
 from app.core.deps import get_current_user, get_optional_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
-from app.core.rate_limit import check_rate_limit, get_client_ip
+from app.core.rate_limit import check_rate_limit
 from app.dependencies.sig_admin import require_sig_admin
 from app.repositories import sig_repo
 from app.schemas.form import (
@@ -132,16 +132,15 @@ async def create_standalone_form(
 
 @router.get("/forms", response_model=FormListResponse)
 async def list_standalone_forms_endpoint(
-    request: Request,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(DEFAULT_PAGE_SIZE_STANDALONE_FORMS, ge=1, le=MAX_PAGE_SIZE),
     q: str | None = Query(None, max_length=200),
+    current_user: dict = Depends(get_current_user),
 ) -> FormListResponse:
-    """List standalone forms (public, no auth required)."""
-    ip = get_client_ip(request) or "unknown"
-    if not await check_rate_limit(f"rl:forms_list:{ip}", 30, 60):
-        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
-    forms, total = await list_standalone_forms_svc(page=page, page_size=page_size, q=q)
+    """List standalone forms owned by the current user."""
+    forms, total = await list_standalone_forms_svc(
+        user_id=uuid.UUID(current_user["sub"]), page=page, page_size=page_size, q=q
+    )
     return FormListResponse(
         forms=[FormResponseSchema(**f) for f in forms],
         total=total,

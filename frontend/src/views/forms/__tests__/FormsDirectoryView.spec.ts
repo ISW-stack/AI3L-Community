@@ -142,6 +142,11 @@ describe('FormsDirectoryView', () => {
     expect(wrapper.text()).toContain('Forms')
   })
 
+  it('shows private notice', async () => {
+    const { wrapper } = await mountDirectory()
+    expect(wrapper.text()).toContain('private to you')
+  })
+
   it('fetches standalone forms on mount', async () => {
     await mountDirectory()
     expect(mockListStandaloneForms).toHaveBeenCalledWith(1, 12, undefined)

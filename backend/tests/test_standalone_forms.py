@@ -172,55 +172,82 @@ class TestCreateStandaloneForm:
 class TestListStandaloneForms:
     @pytest.mark.anyio
     async def test_list_standalone_forms_no_auth(self, client):
-        """GET /forms → 200 without authentication."""
-        form = _make_standalone_form()
-        with (
-            patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-            patch(
+        """GET /forms → 401 without authentication."""
+        resp = await client.get("/api/v1/forms")
+        assert resp.status_code == 401
+
+    @pytest.mark.anyio
+    async def test_list_standalone_forms_authenticated(self, client):
+        """GET /forms → 200 with user's own forms."""
+        payload, uid = _override_auth()
+        form = _make_standalone_form(creator_id=uid)
+        try:
+            with patch(
                 f"{_EP}.list_standalone_forms_svc",
                 new_callable=AsyncMock,
                 return_value=([form], 1),
-            ),
-        ):
-            resp = await client.get("/api/v1/forms")
-            assert resp.status_code == 200
-            data = resp.json()
-            assert data["total"] == 1
-            assert len(data["forms"]) == 1
-            assert data["forms"][0]["sig_id"] is None
+            ):
+                resp = await client.get("/api/v1/forms")
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["total"] == 1
+                assert len(data["forms"]) == 1
+                assert data["forms"][0]["sig_id"] is None
+        finally:
+            _clear_overrides()
 
     @pytest.mark.anyio
     async def test_list_standalone_forms_pagination(self, client):
         """GET /forms?page=2&page_size=1 → correct pagination."""
-        form = _make_standalone_form()
-        with (
-            patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-            patch(
+        payload, uid = _override_auth()
+        form = _make_standalone_form(creator_id=uid)
+        try:
+            with patch(
                 f"{_EP}.list_standalone_forms_svc",
                 new_callable=AsyncMock,
                 return_value=([form], 3),
-            ) as mock_list,
-        ):
-            resp = await client.get("/api/v1/forms?page=2&page_size=1")
-            assert resp.status_code == 200
-            mock_list.assert_called_once_with(page=2, page_size=1, q=None)
+            ) as mock_list:
+                resp = await client.get("/api/v1/forms?page=2&page_size=1")
+                assert resp.status_code == 200
+                mock_list.assert_called_once_with(
+                    user_id=uuid.UUID(uid), page=2, page_size=1, q=None
+                )
+        finally:
+            _clear_overrides()
 
     @pytest.mark.anyio
     async def test_list_standalone_forms_empty(self, client):
-        """GET /forms → 200 with empty list when no standalone forms."""
-        with (
-            patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-            patch(
+        """GET /forms → 200 with empty list when user has no standalone forms."""
+        _override_auth()
+        try:
+            with patch(
                 f"{_EP}.list_standalone_forms_svc",
                 new_callable=AsyncMock,
                 return_value=([], 0),
-            ),
-        ):
-            resp = await client.get("/api/v1/forms")
-            assert resp.status_code == 200
-            data = resp.json()
-            assert data["total"] == 0
-            assert data["forms"] == []
+            ):
+                resp = await client.get("/api/v1/forms")
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["total"] == 0
+                assert data["forms"] == []
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_standalone_forms_only_own(self, client):
+        """GET /forms → service is called with the current user's UUID."""
+        payload, uid = _override_auth()
+        try:
+            with patch(
+                f"{_EP}.list_standalone_forms_svc",
+                new_callable=AsyncMock,
+                return_value=([], 0),
+            ) as mock_list:
+                await client.get("/api/v1/forms")
+                mock_list.assert_called_once()
+                assert mock_list.call_args.kwargs["user_id"] == uuid.UUID(uid)
+        finally:
+            _clear_overrides()
 
 
 class TestGetStandaloneFormDetail:
@@ -469,7 +496,7 @@ class TestStandaloneFormServiceLayer:
                 return_value=fake_rows,
             ),
         ):
-            forms, total = await list_standalone_forms(page=1, page_size=20)
+            forms, total = await list_standalone_forms(user_id=uuid.uuid4(), page=1, page_size=20)
             assert total == 1
             assert len(forms) == 1
             assert forms[0]["sig_id"] is None
@@ -516,7 +543,7 @@ class TestStandaloneFormServiceLayer:
                 return_value=fake_rows,
             ),
         ):
-            forms, total = await list_standalone_forms(page=1, page_size=20)
+            forms, total = await list_standalone_forms(user_id=uuid.uuid4(), page=1, page_size=20)
             assert total == 1
             assert forms[0]["response_count"] == 42
 

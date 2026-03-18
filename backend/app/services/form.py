@@ -329,12 +329,15 @@ async def update_form(
 
 
 async def list_standalone_forms(
-    page: int = 1, page_size: int = DEFAULT_PAGE_SIZE_STANDALONE_FORMS, q: str | None = None
+    user_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = DEFAULT_PAGE_SIZE_STANDALONE_FORMS,
+    q: str | None = None,
 ) -> tuple[list[dict], int]:
-    """List standalone forms (sig_id IS NULL)."""
+    """List standalone forms owned by user (sig_id IS NULL)."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await form_repo.find_standalone(conn, page, page_size, q=q)
+        rows = await form_repo.find_standalone(conn, page, page_size, user_id=user_id, q=q)
     if not rows:
         return [], 0
     total = rows[0]["total_count"]
