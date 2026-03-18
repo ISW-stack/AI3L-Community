@@ -1381,7 +1381,6 @@ export default {
     fileLabel: 'File:',
     sizeLabel: 'Size:',
     selectFileFirst: 'Please select a file first.',
-    upload: 'Upload Photo',
   },
 
   // ── Social ──
