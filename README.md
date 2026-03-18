@@ -237,18 +237,18 @@ _Last updated: 2026-03-18 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +227,651 |
-| Total lines removed (all commits) | -34,865 |
-| Backend source lines (excl. tests) | 22,372 |
-| Frontend source lines (excl. tests) | 51,624 |
+| Total lines added (all commits) | +232,896 |
+| Total lines removed (all commits) | -35,200 |
+| Backend source lines (excl. tests) | 22,866 |
+| Frontend source lines (excl. tests) | 52,241 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 78420
-    "TypeScript" : 73652
-    "Vue" : 19161
+    "Python" : 81142
+    "TypeScript" : 75438
+    "Vue" : 19563
     "CSS" : 109
 ```
 
@@ -260,18 +260,18 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 2,294 | 22,372 | 53,602 |
-| Frontend (Vitest) | 2,412 | 51,624 | 41,189 |
-| **Total** | **4,706** | **73,996** | **94,791** |
+| Backend (pytest) | 2,368 | 22,866 | 55,751 |
+| Frontend (Vitest) | 2,497 | 52,241 | 42,760 |
+| **Total** | **4,865** | **75,107** | **98,511** |
 
-Test-to-source ratio: **1.28** (94,791 lines of tests for every 73,996 lines of source)
+Test-to-source ratio: **1.31** (98,511 lines of tests for every 75,107 lines of source)
 
 ### Additional Metrics
 
 | Metric | Value |
 | --- | ---: |
-| REST API endpoints | 165 |
-| Database migrations | 38 |
+| REST API endpoints | 172 |
+| Database migrations | 40 |
 | Longest commit streak | 19 days |
 
 ### Top 5 Largest Source Files
@@ -279,18 +279,18 @@ Test-to-source ratio: **1.28** (94,791 lines of tests for every 73,996 lines of 
 | File | Lines |
 | --- | ---: |
 | `backend/app/services/album.py` | 978 |
-| `frontend/src/composables/usePostDetail.ts` | 807 |
-| `frontend/src/views/forum/PostDetailView.vue` | 716 |
+| `frontend/src/composables/usePostDetail.ts` | 809 |
+| `frontend/src/views/forum/PostDetailView.vue` | 757 |
 | `backend/app/event_handlers.py` | 690 |
-| `backend/app/repositories/post_repo.py` | 660 |
+| `frontend/src/views/sigs/SigFormsView.vue` | 666 |
 
 ### Contributions by Author
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 299 | +225,376 | -33,506 |
+| Isaries | 306 | +230,604 | -33,824 |
 | SW9526 | 21 | +4,761 | -1,554 |
-| github-actions[bot] | 4 | +33 | -33 |
+| github-actions[bot] | 5 | +50 | -50 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
 
