@@ -176,3 +176,12 @@ export async function createInviteCode() {
   const { data } = await api.post('/auth/invite-code')
   return data as { invite_code: string }
 }
+
+export async function revokeInviteCode(codeId: string) {
+  const { data } = await api.patch(`/admin/invite-codes/${codeId}/revoke`)
+  return data as { message: string }
+}
+
+export async function deleteInviteCode(codeId: string) {
+  await api.delete(`/admin/invite-codes/${codeId}`)
+}

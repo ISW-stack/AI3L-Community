@@ -1106,6 +1106,11 @@ export default {
         usedBy: '사용자',
         created: '생성일',
         expires: '만료일',
+        actions: '작업',
+      },
+      action: {
+        revoke: '취소',
+        delete: '삭제',
       },
       copyAriaLabel: '초대 코드 복사',
       message: {
@@ -1115,6 +1120,10 @@ export default {
         copied: '코드가 클립보드에 복사되었습니다.',
         copyFailed: '코드 복사에 실패했습니다.',
         fetchFailed: '초대 코드를 불러오지 못했습니다.',
+        revoked: '초대 코드가 취소되었습니다.',
+        revokeFailed: '초대 코드 취소에 실패했습니다.',
+        deleted: '초대 코드가 삭제되었습니다.',
+        deleteFailed: '초대 코드 삭제에 실패했습니다.',
       },
       total: '총 {count}개의 코드',
     },

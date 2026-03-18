@@ -1106,6 +1106,11 @@ export default {
         usedBy: 'استخدمه',
         created: 'تاريخ الإنشاء',
         expires: 'تاريخ الانتهاء',
+        actions: 'الإجراءات',
+      },
+      action: {
+        revoke: 'إلغاء',
+        delete: 'حذف',
       },
       copyAriaLabel: 'نسخ رمز الدعوة',
       message: {
@@ -1115,6 +1120,10 @@ export default {
         copied: 'تم نسخ الرمز إلى الحافظة.',
         copyFailed: 'فشل نسخ الرمز.',
         fetchFailed: 'فشل في تحميل رموز الدعوة.',
+        revoked: 'تم إلغاء رمز الدعوة.',
+        revokeFailed: 'فشل إلغاء رمز الدعوة.',
+        deleted: 'تم حذف رمز الدعوة.',
+        deleteFailed: 'فشل حذف رمز الدعوة.',
       },
       total: '{count} رمز(رموز) إجمالاً',
     },

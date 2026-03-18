@@ -1112,6 +1112,11 @@ export default {
         usedBy: 'Usado Por',
         created: 'Criado',
         expires: 'Expira',
+        actions: 'Ações',
+      },
+      action: {
+        revoke: 'Revogar',
+        delete: 'Excluir',
       },
       copyAriaLabel: 'Copiar código de convite',
       message: {
@@ -1121,6 +1126,10 @@ export default {
         copied: 'Código copiado para a área de transferência.',
         copyFailed: 'Falha ao copiar código.',
         fetchFailed: 'Falha ao carregar códigos de convite.',
+        revoked: 'Código de convite revogado.',
+        revokeFailed: 'Falha ao revogar o código de convite.',
+        deleted: 'Código de convite excluído.',
+        deleteFailed: 'Falha ao excluir o código de convite.',
       },
       total: '{count} código(s) no total',
     },

@@ -15,14 +15,14 @@ async def find_many(
         if status_filter == "active":
             base_where += (
                 " AND ic.consumed_at IS NULL"
-                " AND (ic.expires_at IS NULL OR ic.expires_at > NOW())"
+                " AND ic.expires_at > NOW()"
             )
         elif status_filter == "consumed":
             base_where += " AND ic.consumed_at IS NOT NULL"
         elif status_filter == "expired":
             base_where += (
                 " AND ic.consumed_at IS NULL"
-                " AND ic.expires_at IS NOT NULL AND ic.expires_at <= NOW()"
+                " AND ic.expires_at <= NOW()"
             )
 
         total = await conn.fetchval(
@@ -53,7 +53,7 @@ async def count_active_by_user(user_id: str) -> int:
     async with pool.acquire() as conn:
         return (
             await conn.fetchval(
-                "SELECT COUNT(*) FROM invite_codes WHERE created_by = $1 AND consumed_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())",  # noqa: E501
+                "SELECT COUNT(*) FROM invite_codes WHERE created_by = $1 AND consumed_at IS NULL AND expires_at > NOW()",  # noqa: E501
                 uuid.UUID(user_id),
             )
             or 0
@@ -65,7 +65,7 @@ async def revoke(code_id: uuid.UUID) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
-            "UPDATE invite_codes SET expires_at = NOW() WHERE id = $1 AND consumed_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())",  # noqa: E501
+            "UPDATE invite_codes SET expires_at = NOW() WHERE id = $1 AND consumed_at IS NULL AND expires_at > NOW()",  # noqa: E501
             code_id,
         )
         return bool(result == "UPDATE 1")

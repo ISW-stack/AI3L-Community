@@ -1059,6 +1059,11 @@ export default {
         usedBy: '使用者',
         created: '建立時間',
         expires: '過期時間',
+        actions: '操作',
+      },
+      action: {
+        revoke: '撤銷',
+        delete: '刪除',
       },
       copyAriaLabel: '複製邀請碼',
       message: {
@@ -1068,6 +1073,10 @@ export default {
         copied: '邀請碼已複製到剪貼簿。',
         copyFailed: '邀請碼複製失敗。',
         fetchFailed: '載入邀請碼失敗。',
+        revoked: '邀請碼已撤銷。',
+        revokeFailed: '撤銷邀請碼失敗。',
+        deleted: '邀請碼已刪除。',
+        deleteFailed: '刪除邀請碼失敗。',
       },
       total: '共 {count} 個邀請碼',
     },

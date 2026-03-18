@@ -28,6 +28,7 @@ from app.schemas.auth import (
 from app.schemas.user import CreateAccountRequest
 from app.services.auth import (
     authenticate_user,
+    consume_invite_code,
     create_invite_code,
     create_session,
     create_ws_ticket,
@@ -148,6 +149,13 @@ async def login_as_guest(
     if not await verify_captcha(req.captcha_id, req.captcha_code):
         raise AppError(
             ErrorCode.AUTH_005, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
+        )
+
+    # Consume invite code (guest has no DB user, so consumed_by stays NULL)
+    consumed = await consume_invite_code(invite_code)
+    if not consumed:
+        raise AppError(
+            ErrorCode.AUTH_006, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
         )
 
     # Per-IP guest session limit (atomic via Lua script)

@@ -4,6 +4,7 @@ const mockGet = vi.fn()
 const mockPost = vi.fn()
 const mockPut = vi.fn()
 const mockDelete = vi.fn()
+const mockPatch = vi.fn()
 
 vi.mock('@/composables/api', () => ({
   default: {
@@ -11,6 +12,7 @@ vi.mock('@/composables/api', () => ({
     post: (...args: unknown[]) => mockPost(...args),
     put: (...args: unknown[]) => mockPut(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
+    patch: (...args: unknown[]) => mockPatch(...args),
   },
 }))
 
@@ -28,6 +30,8 @@ import {
   reviewReport,
   listInviteCodes,
   createInviteCode,
+  revokeInviteCode,
+  deleteInviteCode,
 } from '../admin'
 
 describe('admin API', () => {
@@ -284,6 +288,28 @@ describe('admin API', () => {
 
       expect(mockPost).toHaveBeenCalledWith('/auth/invite-code')
       expect(result).toEqual({ invite_code: 'ABC123' })
+    })
+  })
+
+  describe('revokeInviteCode', () => {
+    it('calls PATCH /admin/invite-codes/{id}/revoke', async () => {
+      const mockData = { message: 'Invite code revoked.' }
+      mockPatch.mockResolvedValue({ data: mockData })
+
+      const result = await revokeInviteCode('code-123')
+
+      expect(mockPatch).toHaveBeenCalledWith('/admin/invite-codes/code-123/revoke')
+      expect(result).toEqual({ message: 'Invite code revoked.' })
+    })
+  })
+
+  describe('deleteInviteCode', () => {
+    it('calls DELETE /admin/invite-codes/{id}', async () => {
+      mockDelete.mockResolvedValue({ status: 204 })
+
+      await deleteInviteCode('code-456')
+
+      expect(mockDelete).toHaveBeenCalledWith('/admin/invite-codes/code-456')
     })
   })
 })

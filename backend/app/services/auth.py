@@ -262,10 +262,19 @@ async def get_invite_code(invite_code: str) -> dict | None:
     return await auth_repo.find_invite_code(invite_code)
 
 
-async def consume_invite_code(code: str, user_id: str) -> None:
-    """Mark an invite code as consumed by the given user."""
-    await auth_repo.consume_invite_code(code, uuid.UUID(user_id))
-    logger.info("Invite code consumed", extra={"code": mask_pii(code, 4), "user_id": user_id})
+async def consume_invite_code(code: str, user_id: str | None = None) -> bool:
+    """Mark an invite code as consumed. Returns True if updated.
+
+    ``user_id`` is optional — guest logins consume the code without a DB user.
+    """
+    uid = uuid.UUID(user_id) if user_id else None
+    ok = await auth_repo.consume_invite_code(code, uid)
+    if ok:
+        logger.info(
+            "Invite code consumed",
+            extra={"code": mask_pii(code, 4), "user_id": user_id or "guest"},
+        )
+    return ok
 
 
 async def create_invite_code(user_id: str) -> tuple[str, datetime]:

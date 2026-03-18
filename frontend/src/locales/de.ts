@@ -1118,6 +1118,11 @@ export default {
         usedBy: 'Verwendet von',
         created: 'Erstellt',
         expires: 'Läuft ab',
+        actions: 'Aktionen',
+      },
+      action: {
+        revoke: 'Widerrufen',
+        delete: 'Löschen',
       },
       copyAriaLabel: 'Einladungscode kopieren',
       message: {
@@ -1127,6 +1132,10 @@ export default {
         copied: 'Code in Zwischenablage kopiert.',
         copyFailed: 'Code konnte nicht kopiert werden.',
         fetchFailed: 'Einladungscodes konnten nicht geladen werden.',
+        revoked: 'Einladungscode widerrufen.',
+        revokeFailed: 'Widerruf des Einladungscodes fehlgeschlagen.',
+        deleted: 'Einladungscode gelöscht.',
+        deleteFailed: 'Löschen des Einladungscodes fehlgeschlagen.',
       },
       total: '{count} Code(s) insgesamt',
     },

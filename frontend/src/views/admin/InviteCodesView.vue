@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Copy, Check } from 'lucide-vue-next'
+import { Copy, Check, Ban, Trash2 } from 'lucide-vue-next'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import type { InviteCode } from '@/types'
-import { listInviteCodes, createInviteCode } from '@/api/admin'
+import { listInviteCodes, createInviteCode, revokeInviteCode, deleteInviteCode } from '@/api/admin'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -89,6 +89,26 @@ async function copyCode(code: string, codeId: string) {
     }, 2000)
   } catch {
     toastStore.show(t('admin.inviteCodes.message.copyFailed'), 'error')
+  }
+}
+
+async function handleRevoke(codeId: string) {
+  try {
+    await revokeInviteCode(codeId)
+    toastStore.show(t('admin.inviteCodes.message.revoked'), 'success')
+    await fetchCodes()
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('admin.inviteCodes.message.revokeFailed')), 'error')
+  }
+}
+
+async function handleDelete(codeId: string) {
+  try {
+    await deleteInviteCode(codeId)
+    toastStore.show(t('admin.inviteCodes.message.deleted'), 'success')
+    await fetchCodes()
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('admin.inviteCodes.message.deleteFailed')), 'error')
   }
 }
 
@@ -200,6 +220,23 @@ onUnmounted(() => {
               {{ code.expires_at ? formatDate(code.expires_at) : '—' }}</span
             >
           </div>
+          <div class="flex gap-2 pt-1">
+            <button
+              v-if="code.status === 'active'"
+              class="text-xs text-warning-600 hover:underline flex items-center gap-1"
+              @click="handleRevoke(code.id)"
+            >
+              <Ban class="w-3 h-3" aria-hidden="true" />
+              {{ t('admin.inviteCodes.action.revoke') }}
+            </button>
+            <button
+              class="text-xs text-danger-600 hover:underline flex items-center gap-1"
+              @click="handleDelete(code.id)"
+            >
+              <Trash2 class="w-3 h-3" aria-hidden="true" />
+              {{ t('admin.inviteCodes.action.delete') }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -225,6 +262,9 @@ onUnmounted(() => {
               </th>
               <th class="px-4 py-3 font-medium text-muted">
                 {{ t('admin.inviteCodes.table.expires') }}
+              </th>
+              <th class="px-4 py-3 font-medium text-muted">
+                {{ t('admin.inviteCodes.table.actions') }}
               </th>
             </tr>
           </thead>
@@ -259,6 +299,27 @@ onUnmounted(() => {
               </td>
               <td class="px-4 py-3 text-muted text-xs">
                 {{ code.expires_at ? formatDate(code.expires_at) : '—' }}
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="code.status === 'active'"
+                    class="p-1 rounded hover:bg-warning-50 text-warning-600 hover:text-warning-700 transition"
+                    :aria-label="t('admin.inviteCodes.action.revoke')"
+                    :title="t('admin.inviteCodes.action.revoke')"
+                    @click="handleRevoke(code.id)"
+                  >
+                    <Ban class="w-4 h-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    class="p-1 rounded hover:bg-danger-50 text-danger-600 hover:text-danger-700 transition"
+                    :aria-label="t('admin.inviteCodes.action.delete')"
+                    :title="t('admin.inviteCodes.action.delete')"
+                    @click="handleDelete(code.id)"
+                  >
+                    <Trash2 class="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

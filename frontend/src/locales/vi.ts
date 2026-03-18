@@ -1111,6 +1111,11 @@ export default {
         usedBy: 'Sử dụng bởi',
         created: 'Ngày tạo',
         expires: 'Hết hạn',
+        actions: 'Hành động',
+      },
+      action: {
+        revoke: 'Thu hồi',
+        delete: 'Xóa',
       },
       copyAriaLabel: 'Sao chép mã mời',
       message: {
@@ -1120,6 +1125,10 @@ export default {
         copied: 'Mã đã được sao chép vào bộ nhớ tạm.',
         copyFailed: 'Sao chép mã thất bại.',
         fetchFailed: 'Không tải được mã mời.',
+        revoked: 'Đã thu hồi mã mời.',
+        revokeFailed: 'Không thể thu hồi mã mời.',
+        deleted: 'Đã xóa mã mời.',
+        deleteFailed: 'Không thể xóa mã mời.',
       },
       total: '{count} mã',
     },

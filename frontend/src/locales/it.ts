@@ -1113,6 +1113,11 @@ export default {
         usedBy: 'Utilizzato da',
         created: 'Creato',
         expires: 'Scade',
+        actions: 'Azioni',
+      },
+      action: {
+        revoke: 'Revoca',
+        delete: 'Elimina',
       },
       copyAriaLabel: 'Copia codice invito',
       message: {
@@ -1122,6 +1127,10 @@ export default {
         copied: 'Codice copiato negli appunti.',
         copyFailed: 'Copia del codice non riuscita.',
         fetchFailed: 'Impossibile caricare i codici di invito.',
+        revoked: 'Codice invito revocato.',
+        revokeFailed: 'Impossibile revocare il codice invito.',
+        deleted: 'Codice invito eliminato.',
+        deleteFailed: 'Impossibile eliminare il codice invito.',
       },
       total: '{count} codice/i in totale',
     },

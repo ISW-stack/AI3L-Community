@@ -1119,6 +1119,11 @@ export default {
         usedBy: 'Utilisé par',
         created: 'Créé le',
         expires: 'Expire le',
+        actions: 'Actions',
+      },
+      action: {
+        revoke: 'Révoquer',
+        delete: 'Supprimer',
       },
       copyAriaLabel: "Copier le code d'invitation",
       message: {
@@ -1128,6 +1133,10 @@ export default {
         copied: 'Code copié dans le presse-papiers.',
         copyFailed: 'Échec de la copie du code.',
         fetchFailed: "Échec du chargement des codes d'invitation.",
+        revoked: "Code d'invitation révoqué.",
+        revokeFailed: "Échec de la révocation du code d'invitation.",
+        deleted: "Code d'invitation supprimé.",
+        deleteFailed: "Échec de la suppression du code d'invitation.",
       },
       total: '{count} code(s) au total',
     },

@@ -1113,6 +1113,11 @@ export default {
         usedBy: 'Kullanan',
         created: 'Oluşturulma',
         expires: 'Son Geçerlilik',
+        actions: 'Eylemler',
+      },
+      action: {
+        revoke: 'İptal Et',
+        delete: 'Sil',
       },
       copyAriaLabel: 'Davet kodunu kopyala',
       message: {
@@ -1122,6 +1127,10 @@ export default {
         copied: 'Kod panoya kopyalandı.',
         copyFailed: 'Kod kopyalanamadı.',
         fetchFailed: 'Davet kodları yüklenemedi.',
+        revoked: 'Davet kodu iptal edildi.',
+        revokeFailed: 'Davet kodu iptal edilemedi.',
+        deleted: 'Davet kodu silindi.',
+        deleteFailed: 'Davet kodu silinemedi.',
       },
       total: 'Toplam {count} kod',
     },

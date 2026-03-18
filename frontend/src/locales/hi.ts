@@ -1110,6 +1110,11 @@ export default {
         usedBy: 'उपयोग किया द्वारा',
         created: 'बनाया गया',
         expires: 'समाप्त होता है',
+        actions: 'क्रियाएं',
+      },
+      action: {
+        revoke: 'रद्द करें',
+        delete: 'हटाएं',
       },
       copyAriaLabel: 'आमंत्रण कोड कॉपी करें',
       message: {
@@ -1119,6 +1124,10 @@ export default {
         copied: 'कोड क्लिपबोर्ड पर कॉपी हुआ।',
         copyFailed: 'कोड कॉपी करने में विफल।',
         fetchFailed: 'आमंत्रण कोड लोड करने में विफल।',
+        revoked: 'आमंत्रण कोड रद्द किया गया।',
+        revokeFailed: 'आमंत्रण कोड रद्द करने में विफल।',
+        deleted: 'आमंत्रण कोड हटाया गया।',
+        deleteFailed: 'आमंत्रण कोड हटाने में विफल।',
       },
       total: 'कुल {count} कोड',
     },

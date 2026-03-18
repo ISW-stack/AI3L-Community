@@ -1116,6 +1116,11 @@ export default {
         usedBy: 'Digunakan Oleh',
         created: 'Dibuat',
         expires: 'Kedaluwarsa',
+        actions: 'Tindakan',
+      },
+      action: {
+        revoke: 'Cabut',
+        delete: 'Hapus',
       },
       copyAriaLabel: 'Salin kode undangan',
       message: {
@@ -1125,6 +1130,10 @@ export default {
         copied: 'Kode disalin ke clipboard.',
         copyFailed: 'Gagal menyalin kode.',
         fetchFailed: 'Gagal memuat kode undangan.',
+        revoked: 'Kode undangan dicabut.',
+        revokeFailed: 'Gagal mencabut kode undangan.',
+        deleted: 'Kode undangan dihapus.',
+        deleteFailed: 'Gagal menghapus kode undangan.',
       },
       total: '{count} kode total',
     },

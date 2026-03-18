@@ -1107,6 +1107,11 @@ export default {
         usedBy: '使用者',
         created: '作成日',
         expires: '有効期限',
+        actions: '操作',
+      },
+      action: {
+        revoke: '無効化',
+        delete: '削除',
       },
       copyAriaLabel: '招待コードをコピー',
       message: {
@@ -1116,6 +1121,10 @@ export default {
         copied: 'コードをクリップボードにコピーしました。',
         copyFailed: 'コードのコピーに失敗しました。',
         fetchFailed: '招待コードの読み込みに失敗しました。',
+        revoked: '招待コードを無効化しました。',
+        revokeFailed: '招待コードの無効化に失敗しました。',
+        deleted: '招待コードを削除しました。',
+        deleteFailed: '招待コードの削除に失敗しました。',
       },
       total: '合計 {count} 件のコード',
     },

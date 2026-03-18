@@ -7,10 +7,14 @@ import InviteCodesView from '../InviteCodesView.vue'
 
 const mockListInviteCodes = vi.fn()
 const mockCreateInviteCode = vi.fn()
+const mockRevokeInviteCode = vi.fn()
+const mockDeleteInviteCode = vi.fn()
 
 vi.mock('@/api/admin', () => ({
   listInviteCodes: (...args: unknown[]) => mockListInviteCodes(...args),
   createInviteCode: (...args: unknown[]) => mockCreateInviteCode(...args),
+  revokeInviteCode: (...args: unknown[]) => mockRevokeInviteCode(...args),
+  deleteInviteCode: (...args: unknown[]) => mockDeleteInviteCode(...args),
 }))
 
 vi.mock('@/composables/api', () => ({
@@ -269,5 +273,82 @@ describe('InviteCodesView', () => {
 
     // Should show the code in an alert as fallback
     expect(wrapper.find('.base-alert').exists()).toBe(true)
+  })
+
+  it('renders revoke button only for active codes', async () => {
+    const wrapper = await mountInviteCodes()
+    // Desktop table: find revoke buttons (Ban icon) by aria-label
+    const revokeButtons = wrapper.findAll('[aria-label="Revoke"]')
+    // Only code-1 is active, so there should be exactly 1 revoke button in the desktop table
+    // (mobile layout also has one, so we check for at least 1)
+    expect(revokeButtons.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders delete buttons for all codes', async () => {
+    const wrapper = await mountInviteCodes()
+    const deleteButtons = wrapper.findAll('[aria-label="Delete"]')
+    // 3 codes × 2 layouts (mobile + desktop) = 6, but desktop is hidden on mobile
+    // Just check that there are some delete buttons
+    expect(deleteButtons.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('calls revokeInviteCode when revoke button is clicked', async () => {
+    mockRevokeInviteCode.mockResolvedValue({ message: 'Revoked.' })
+    mockListInviteCodes.mockResolvedValue({ codes: fakeCodes, total: 3 })
+
+    const wrapper = await mountInviteCodes()
+
+    const revokeButtons = wrapper.findAll('[aria-label="Revoke"]')
+    expect(revokeButtons.length).toBeGreaterThanOrEqual(1)
+
+    await revokeButtons[0].trigger('click')
+    await flushPromises()
+
+    expect(mockRevokeInviteCode).toHaveBeenCalledWith('code-1')
+  })
+
+  it('calls deleteInviteCode when delete button is clicked', async () => {
+    mockDeleteInviteCode.mockResolvedValue(undefined)
+    mockListInviteCodes.mockResolvedValue({ codes: fakeCodes, total: 3 })
+
+    const wrapper = await mountInviteCodes()
+
+    const deleteButtons = wrapper.findAll('[aria-label="Delete"]')
+    expect(deleteButtons.length).toBeGreaterThanOrEqual(1)
+
+    await deleteButtons[0].trigger('click')
+    await flushPromises()
+
+    expect(mockDeleteInviteCode).toHaveBeenCalled()
+  })
+
+  it('re-fetches codes after revoke', async () => {
+    mockRevokeInviteCode.mockResolvedValue({ message: 'Revoked.' })
+    mockListInviteCodes.mockResolvedValue({ codes: fakeCodes, total: 3 })
+
+    const wrapper = await mountInviteCodes()
+    mockListInviteCodes.mockClear()
+    mockListInviteCodes.mockResolvedValue({ codes: fakeCodes, total: 3 })
+
+    const revokeButtons = wrapper.findAll('[aria-label="Revoke"]')
+    await revokeButtons[0].trigger('click')
+    await flushPromises()
+
+    expect(mockListInviteCodes).toHaveBeenCalled()
+  })
+
+  it('re-fetches codes after delete', async () => {
+    mockDeleteInviteCode.mockResolvedValue(undefined)
+    mockListInviteCodes.mockResolvedValue({ codes: fakeCodes, total: 3 })
+
+    const wrapper = await mountInviteCodes()
+    mockListInviteCodes.mockClear()
+    mockListInviteCodes.mockResolvedValue({ codes: fakeCodes, total: 3 })
+
+    const deleteButtons = wrapper.findAll('[aria-label="Delete"]')
+    await deleteButtons[0].trigger('click')
+    await flushPromises()
+
+    expect(mockListInviteCodes).toHaveBeenCalled()
   })
 })

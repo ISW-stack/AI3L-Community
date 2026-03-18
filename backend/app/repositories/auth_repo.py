@@ -4,24 +4,38 @@ from datetime import datetime
 from app.core.database import get_pool
 
 
+_INVITE_CODE_COLUMNS = (
+    "id, code, created_by, expires_at, created_at, consumed_at, consumed_by"
+)
+
+
 async def find_invite_code(code: str) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT * FROM invite_codes WHERE code = $1 AND expires_at > NOW() AND consumed_at IS NULL",  # noqa: E501
+            f"SELECT {_INVITE_CODE_COLUMNS} FROM invite_codes "
+            "WHERE code = $1 AND expires_at > NOW() AND consumed_at IS NULL",
             code,
         )
         return dict(row) if row else None
 
 
-async def consume_invite_code(code: str, user_id: uuid.UUID) -> None:
+async def consume_invite_code(
+    code: str, user_id: uuid.UUID | None = None
+) -> bool:
+    """Mark an invite code as consumed. Returns True if updated.
+
+    ``user_id`` is optional — guest logins consume the code without a DB user.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            "UPDATE invite_codes SET consumed_at = NOW(), consumed_by = $1 WHERE code = $2",
+        result = await conn.execute(
+            "UPDATE invite_codes SET consumed_at = NOW(), consumed_by = $1 "
+            "WHERE code = $2 AND consumed_at IS NULL AND expires_at > NOW()",
             user_id,
             code,
         )
+        return bool(result == "UPDATE 1")
 
 
 async def insert_invite_code(
