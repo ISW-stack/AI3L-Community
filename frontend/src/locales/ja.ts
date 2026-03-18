@@ -1224,6 +1224,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'ここで作成したフォームはあなただけに表示されます。他の人にフォームを記入してもらうには、リンクを直接共有してください。',
   },
 
   // ── Albums ──
@@ -1470,6 +1472,8 @@ export default {
     removeAriaLabel: '共著者を削除',
     addExternalCoAuthor: '+ 外部共著者を追加',
     addExternalBtn: '外部共著者を追加',
+    leave: '共著者を辞退',
+    leaveSuccess: '共著者を辞退しました。',
   },
 
   // ── Citations ──

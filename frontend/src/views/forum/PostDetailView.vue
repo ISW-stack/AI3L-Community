@@ -3,8 +3,11 @@ import { computed, ref, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import DOMPurify from 'dompurify'
 import { renderMentions } from '@/utils/html'
+import { getErrorMessage } from '@/utils/error'
+import { leaveCoAuthorship } from '@/api/coauthors'
 import { usePostDetail } from '@/composables/usePostDetail'
 const TiptapEditor = defineAsyncComponent(() => import('@/components/TiptapEditor.vue'))
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -30,6 +33,7 @@ const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToastStore()
 const postId = computed(() => route.params.id as string)
 
 const {
@@ -66,8 +70,10 @@ const {
   canReport,
   pinSaving,
   isAuthor,
+  isCoAuthor,
   canModify,
   coAuthors,
+  fetchCoAuthors,
   citedBy,
   citing,
   contentSegments,
@@ -106,6 +112,20 @@ function toggleCitedBy() {
 
 function toggleReferences() {
   showReferences.value = !showReferences.value
+}
+
+async function handleLeaveCoAuthorship() {
+  const myCoAuthor = coAuthors.value.find(
+    (ca) => ca.user_id === auth.user?.id && ca.status === 'ACCEPTED',
+  )
+  if (!myCoAuthor) return
+  try {
+    await leaveCoAuthorship(postId.value, myCoAuthor.id)
+    toast.show(t('coauthors.leaveSuccess'), 'success')
+    await fetchCoAuthors()
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, 'Failed to leave co-authorship.'), 'error')
+  }
 }
 
 const breadcrumbItems = computed(() => {
@@ -261,6 +281,15 @@ const breadcrumbItems = computed(() => {
                 <span v-if="ca.affiliation" class="text-xs text-muted">({{ ca.affiliation }})</span>
               </div>
             </div>
+            <BaseButton
+              v-if="isCoAuthor && !isAuthor"
+              variant="secondary"
+              size="sm"
+              class="mt-2"
+              @click="handleLeaveCoAuthorship"
+            >
+              {{ t('coauthors.leave') }}
+            </BaseButton>
           </div>
 
           <!-- Citations sections -->

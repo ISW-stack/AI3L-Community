@@ -2,7 +2,12 @@ import api from '@/composables/api'
 import type { CoAuthorListResponse, CoAuthorInvitationListResponse } from '@/types/coauthor'
 
 export async function listCoAuthors(postId: string): Promise<CoAuthorListResponse> {
-  const { data } = await api.get<CoAuthorListResponse>(`/posts/${postId}/co-authors`)
+  const { data } = await api.get<CoAuthorListResponse>(`/co-authors/posts/${postId}`)
+  return data
+}
+
+export async function listAllCoAuthors(postId: string): Promise<CoAuthorListResponse> {
+  const { data } = await api.get<CoAuthorListResponse>(`/co-authors/posts/${postId}/all`)
   return data
 }
 
@@ -10,18 +15,22 @@ export async function inviteCoAuthor(
   postId: string,
   inviteData: { user_id: string; display_name?: string },
 ): Promise<void> {
-  await api.post(`/posts/${postId}/co-authors/invite`, inviteData)
+  await api.post(`/co-authors/posts/${postId}/invite`, inviteData)
 }
 
 export async function addExternalCoAuthor(
   postId: string,
   authorData: { display_name: string; affiliation?: string; orcid?: string },
 ): Promise<void> {
-  await api.post(`/posts/${postId}/co-authors/external`, authorData)
+  await api.post(`/co-authors/posts/${postId}/external`, authorData)
 }
 
 export async function removeCoAuthor(postId: string, coAuthorId: string): Promise<void> {
-  await api.delete(`/posts/${postId}/co-authors/${coAuthorId}`)
+  await api.delete(`/co-authors/posts/${postId}/${coAuthorId}`)
+}
+
+export async function leaveCoAuthorship(postId: string, coAuthorId: string): Promise<void> {
+  await api.delete(`/co-authors/posts/${postId}/${coAuthorId}/leave`)
 }
 
 export async function listMyInvitations(

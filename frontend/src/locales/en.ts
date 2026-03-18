@@ -1220,7 +1220,7 @@ export default {
     title: 'Forms',
     createForm: 'Create Form',
     noForms: 'No forms yet',
-    noFormsMessage: 'There are no standalone forms available at the moment.',
+    noFormsMessage: 'You have not created any standalone forms yet.',
     responses: 'responses',
     active: 'Active',
     closed: 'Closed',
@@ -1230,6 +1230,8 @@ export default {
     totalForms: '{count} total forms',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'Forms created here are private to you. To let others fill out a form, share its link directly.',
   },
 
   // ── Albums ──
@@ -1476,6 +1478,8 @@ export default {
     removeAriaLabel: 'Remove co-author',
     addExternalCoAuthor: '+ Add external co-author',
     addExternalBtn: 'Add External Co-Author',
+    leave: 'Leave Co-authorship',
+    leaveSuccess: 'You have left the co-authorship.',
   },
 
   // ── Citations ──

@@ -3,7 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { CoAuthor } from '@/types/coauthor'
 import {
-  listCoAuthors,
+  listAllCoAuthors,
   inviteCoAuthor,
   addExternalCoAuthor,
   removeCoAuthor,
@@ -50,12 +50,14 @@ const externalAffiliation = ref('')
 const externalOrcid = ref('')
 const addingExternal = ref(false)
 
-const canAddMore = computed(() => coAuthors.value.length < MAX_CO_AUTHORS)
+const canAddMore = computed(
+  () => coAuthors.value.filter((ca) => ca.status !== 'REJECTED').length < MAX_CO_AUTHORS,
+)
 
 async function fetchCoAuthors() {
   loading.value = true
   try {
-    const res = await listCoAuthors(props.postId)
+    const res = await listAllCoAuthors(props.postId)
     coAuthors.value = res.co_authors
   } catch (e: unknown) {
     error.value = getErrorMessage(e, 'Failed to load co-authors.')

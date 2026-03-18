@@ -240,7 +240,7 @@ async def test_invite_co_author_advisory_lock():
     target_user_id = str(uuid.uuid4())
 
     post_row = {"id": post_id, "user_id": uuid.UUID(user_id), "title": "Test Post"}
-    target_row = {"id": uuid.UUID(target_user_id), "display_name": "Target User"}
+    target_row = {"id": uuid.UUID(target_user_id), "display_name": "Target User", "avatar_url": None}
     co_author_row = _make_co_author_row(post_id=post_id, user_id=uuid.UUID(target_user_id))
 
     # Track calls to verify advisory lock is called
@@ -371,7 +371,7 @@ async def test_invite_event_includes_inviter_id():
     target_user_id = str(uuid.uuid4())
 
     post_row = {"id": post_id, "user_id": uuid.UUID(user_id), "title": "Test Post"}
-    target_row = {"id": uuid.UUID(target_user_id), "display_name": "Target User"}
+    target_row = {"id": uuid.UUID(target_user_id), "display_name": "Target User", "avatar_url": None}
     co_author_row = _make_co_author_row(post_id=post_id, user_id=uuid.UUID(target_user_id))
 
     conn = AsyncMock()

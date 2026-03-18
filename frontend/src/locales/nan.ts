@@ -1213,6 +1213,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'Tī chia kiàn--ê piáu-toaⁿ kan-na lí ka-kī khoàⁿ-ē-tio̍h. Beh hō͘ pa̍t-lâng thâu, chhiáⁿ ti̍t-chiap hun-hiáng liân-kiat.',
   },
 
   // ── Albums ──
@@ -1459,6 +1461,8 @@ export default {
     removeAriaLabel: '移除共同作者',
     addExternalCoAuthor: '＋ 加外部共同作者',
     addExternalBtn: '加外部共同作者',
+    leave: '退出共同作者',
+    leaveSuccess: '你已經退出共同作者。',
   },
 
   // ── Citations ──

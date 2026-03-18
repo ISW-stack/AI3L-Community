@@ -49,6 +49,21 @@ async def find_co_authors_by_post(conn: Any, post_id: uuid.UUID) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+async def find_all_co_authors_by_post(conn: Any, post_id: uuid.UUID) -> list[dict]:
+    """Return ALL co-authors for a post (all statuses, not just ACCEPTED)."""
+    rows = await conn.fetch(
+        """
+        SELECT pca.*, u.display_name AS user_display_name, u.avatar_url AS user_avatar_url
+        FROM post_co_authors pca
+        LEFT JOIN users u ON pca.user_id = u.id
+        WHERE pca.post_id = $1
+        ORDER BY pca.invited_at ASC
+        """,
+        post_id,
+    )
+    return [dict(r) for r in rows]
+
+
 async def find_co_authors_batch(conn: Any, post_ids: list[uuid.UUID]) -> list[dict]:
     rows = await conn.fetch(
         """
@@ -111,8 +126,8 @@ async def find_pending_invitations(
                COUNT(*) OVER() AS _total
         FROM post_co_authors pca
         JOIN posts p ON pca.post_id = p.id
-        JOIN users inviter ON pca.invited_by = inviter.id
-        WHERE pca.user_id = $1 AND pca.status = 'PENDING'
+        LEFT JOIN users inviter ON pca.invited_by = inviter.id
+        WHERE pca.user_id = $1 AND pca.status = 'PENDING' AND p.is_deleted = false
         ORDER BY pca.invited_at DESC
         LIMIT $2 OFFSET $3
         """,

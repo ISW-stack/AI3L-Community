@@ -1230,6 +1230,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'I moduli creati qui sono privati. Per consentire ad altri di compilare un modulo, condividi direttamente il link.',
   },
 
   // ── Albums ──
@@ -1476,6 +1478,8 @@ export default {
     removeAriaLabel: 'Rimuovi co-autore',
     addExternalCoAuthor: '+ Aggiungi co-autore esterno',
     addExternalBtn: 'Aggiungi co-autore esterno',
+    leave: 'Lascia coautore',
+    leaveSuccess: 'Hai lasciato la coautoria.',
   },
 
   // ── Citations ──

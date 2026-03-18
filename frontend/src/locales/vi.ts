@@ -1228,6 +1228,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'Biểu mẫu tạo ở đây chỉ hiển thị với bạn. Để người khác điền biểu mẫu, hãy chia sẻ liên kết trực tiếp.',
   },
 
   // ── Albums ──
@@ -1474,6 +1476,8 @@ export default {
     removeAriaLabel: 'Xóa đồng tác giả',
     addExternalCoAuthor: '+ Thêm đồng tác giả bên ngoài',
     addExternalBtn: 'Thêm Đồng Tác Giả Bên Ngoài',
+    leave: 'Rời khỏi đồng tác giả',
+    leaveSuccess: 'Bạn đã rời khỏi đồng tác giả.',
   },
 
   // ── Citations ──

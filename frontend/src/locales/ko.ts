@@ -1223,6 +1223,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      '여기서 만든 양식은 본인만 볼 수 있습니다. 다른 사람이 양식을 작성하게 하려면 링크를 직접 공유하세요.',
   },
 
   // ── Albums ──
@@ -1469,6 +1471,8 @@ export default {
     removeAriaLabel: '공동 저자 제거',
     addExternalCoAuthor: '+ 외부 공동 저자 추가',
     addExternalBtn: '외부 공동 저자 추가',
+    leave: '공동저자 탈퇴',
+    leaveSuccess: '공동저자에서 탈퇴했습니다.',
   },
 
   // ── Citations ──

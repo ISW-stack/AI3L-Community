@@ -1174,6 +1174,7 @@ export default {
     noFormsMessage: '目前沒有可用的獨立表單。',
     loadError: '載入表單失敗',
     due: '截止 {date}',
+    privateNotice: '在此建立的表單僅自己可見。若需要其他人填寫，請直接分享表單連結。',
   },
 
   // ── Albums ──
@@ -1420,6 +1421,8 @@ export default {
     removeAriaLabel: '移除共同作者',
     addExternalCoAuthor: '+ 新增外部共同作者',
     addExternalBtn: '新增外部共同作者',
+    leave: '退出共同作者',
+    leaveSuccess: '您已退出共同作者。',
   },
 
   // ── Citations ──

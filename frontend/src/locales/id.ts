@@ -1233,6 +1233,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'Formulir yang dibuat di sini bersifat pribadi. Untuk memungkinkan orang lain mengisi formulir, bagikan tautannya secara langsung.',
   },
 
   // ── Albums ──
@@ -1479,6 +1481,8 @@ export default {
     removeAriaLabel: 'Hapus penulis bersama',
     addExternalCoAuthor: '+ Tambah penulis bersama eksternal',
     addExternalBtn: 'Tambah Penulis Bersama Eksternal',
+    leave: 'Tinggalkan rekan penulis',
+    leaveSuccess: 'Anda telah meninggalkan rekan penulis.',
   },
 
   // ── Citations ──

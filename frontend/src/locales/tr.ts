@@ -1230,6 +1230,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'Burada oluşturulan formlar yalnızca size özeldir. Başkalarının bir formu doldurmasını sağlamak için bağlantıyı doğrudan paylaşın.',
   },
 
   // ── Albums ──
@@ -1476,6 +1478,8 @@ export default {
     removeAriaLabel: 'Ortak yazarı kaldır',
     addExternalCoAuthor: '+ Harici ortak yazar ekle',
     addExternalBtn: 'Harici Ortak Yazar Ekle',
+    leave: 'Ortak yazarlıktan ayrıl',
+    leaveSuccess: 'Ortak yazarlıktan ayrıldınız.',
   },
 
   // ── Citations ──

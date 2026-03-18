@@ -1235,6 +1235,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'Hier erstellte Formulare sind nur für Sie sichtbar. Um andere ein Formular ausfüllen zu lassen, teilen Sie den Link direkt.',
   },
 
   // ── Albums ──
@@ -1481,6 +1483,8 @@ export default {
     removeAriaLabel: 'Mitautor entfernen',
     addExternalCoAuthor: '+ Externen Mitautor hinzufügen',
     addExternalBtn: 'Externen Mitautor hinzufügen',
+    leave: 'Ko-Autorschaft verlassen',
+    leaveSuccess: 'Sie haben die Ko-Autorschaft verlassen.',
   },
 
   // ── Citations ──

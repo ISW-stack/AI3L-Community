@@ -15,6 +15,8 @@ from app.schemas.co_author import (
 from app.services.co_author import (
     add_external_co_author,
     invite_co_author,
+    leave_co_authorship,
+    list_all_co_authors,
     list_co_authored_posts,
     list_co_authors,
     remove_co_author,
@@ -100,6 +102,16 @@ async def add_external_co_author_endpoint(
     return CoAuthorResponse(**result)
 
 
+@router.get("/posts/{post_id}/all", response_model=CoAuthorListResponse)
+async def list_all_co_authors_endpoint(
+    post_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> CoAuthorListResponse:
+    """List all co-authors for a post (all statuses). Only for post management."""
+    result = await list_all_co_authors(post_id=post_id)
+    return CoAuthorListResponse(co_authors=[CoAuthorResponse(**r) for r in result])
+
+
 @router.get("/posts/{post_id}", response_model=CoAuthorListResponse)
 async def list_co_authors_endpoint(
     post_id: uuid.UUID,
@@ -108,6 +120,23 @@ async def list_co_authors_endpoint(
     """List accepted co-authors for a post."""
     result = await list_co_authors(post_id=post_id)
     return CoAuthorListResponse(co_authors=[CoAuthorResponse(**r) for r in result])
+
+
+@router.delete(
+    "/posts/{post_id}/{co_author_id}/leave",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def leave_co_author_endpoint(
+    post_id: uuid.UUID,
+    co_author_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> None:
+    """Allow a co-author to remove themselves from a post."""
+    await leave_co_authorship(
+        post_id=post_id,
+        co_author_id=co_author_id,
+        user_id=current_user["sub"],
+    )
 
 
 @router.delete(

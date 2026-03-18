@@ -86,7 +86,7 @@ async def invite_co_author(
             # Check target user exists
             target_uuid = uuid.UUID(target_user_id)
             target = await conn.fetchrow(
-                "SELECT id, display_name FROM users WHERE id = $1 AND is_deleted = false",
+                "SELECT id, display_name, avatar_url FROM users WHERE id = $1 AND is_deleted = false",
                 target_uuid,
             )
             if not target:
@@ -119,6 +119,9 @@ async def invite_co_author(
                 "PENDING",
                 uuid.UUID(user_id),
             )
+            # Enrich row with user JOIN data for converter (avatar + display name)
+            row["user_display_name"] = target["display_name"]
+            row["user_avatar_url"] = target["avatar_url"]
 
     # Emit event for notification (best-effort)
     try:
@@ -191,18 +194,27 @@ async def add_external_co_author(
                 )
 
             co_author_id = uuid.uuid4()
-            row = await co_author_repo.insert_co_author(
-                conn,
-                co_author_id,
-                post_id,
-                None,
-                display_name,
-                affiliation,
-                orcid,
-                True,
-                "ACCEPTED",
-                uuid.UUID(user_id),
-            )
+            try:
+                row = await co_author_repo.insert_co_author(
+                    conn,
+                    co_author_id,
+                    post_id,
+                    None,
+                    display_name,
+                    affiliation,
+                    orcid,
+                    True,
+                    "ACCEPTED",
+                    uuid.UUID(user_id),
+                )
+            except Exception as exc:
+                if "UniqueViolationError" in type(exc).__name__:
+                    raise AppError(
+                        ErrorCode.COAUTHOR_002,
+                        409,
+                        "An external co-author with this name and affiliation already exists.",
+                    )
+                raise
 
     return await to_co_author_response(row)
 
@@ -215,19 +227,26 @@ async def respond_to_invitation(
     """Accept or reject a co-author invitation."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        invitation = await co_author_repo.find_co_author_by_id(conn, co_author_id)
-        if not invitation:
-            raise NotFoundError("Invitation", str(co_author_id))
+        async with conn.transaction():
+            # Lock the row and check status atomically
+            invitation = await conn.fetchrow(
+                "SELECT * FROM post_co_authors WHERE id = $1 FOR UPDATE",
+                co_author_id,
+            )
+            if not invitation:
+                raise NotFoundError("Invitation", str(co_author_id))
 
-        if invitation["status"] != "PENDING":
-            raise AppError(ErrorCode.SYS_409, 409, "Invitation has already been responded to.")
+            if invitation["status"] != "PENDING":
+                raise AppError(
+                    ErrorCode.SYS_409, 409, "Invitation has already been responded to."
+                )
 
-        if str(invitation["user_id"]) != user_id:
-            raise ForbiddenError("You are not the target of this invitation.")
+            if str(invitation["user_id"]) != user_id:
+                raise ForbiddenError("You are not the target of this invitation.")
 
-        new_status = "ACCEPTED" if accept else "REJECTED"
-        now = datetime.now(timezone.utc)
-        await co_author_repo.update_status(conn, co_author_id, new_status, now)
+            new_status = "ACCEPTED" if accept else "REJECTED"
+            now = datetime.now(timezone.utc)
+            await co_author_repo.update_status(conn, co_author_id, new_status, now)
 
     # Emit event for notification
     try:
@@ -287,11 +306,38 @@ async def remove_co_author(
         return await co_author_repo.delete_co_author(conn, co_author_id)
 
 
+async def leave_co_authorship(
+    post_id: uuid.UUID,
+    co_author_id: uuid.UUID,
+    user_id: str,
+) -> bool:
+    """Allow a co-author to remove themselves from a post."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        co_author = await co_author_repo.find_co_author_by_id(conn, co_author_id)
+        if not co_author or co_author["post_id"] != post_id:
+            raise NotFoundError("Co-author", str(co_author_id))
+
+        # Only the co-author themselves can leave
+        if str(co_author.get("user_id")) != user_id:
+            raise ForbiddenError("You can only remove yourself as a co-author.")
+
+        return await co_author_repo.delete_co_author(conn, co_author_id)
+
+
 async def list_co_authors(post_id: uuid.UUID) -> list[dict]:
     """List accepted co-authors for a post."""
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await co_author_repo.find_co_authors_by_post(conn, post_id)
+    return [await to_co_author_response(r) for r in rows]
+
+
+async def list_all_co_authors(post_id: uuid.UUID) -> list[dict]:
+    """List ALL co-authors for a post (all statuses)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await co_author_repo.find_all_co_authors_by_post(conn, post_id)
     return [await to_co_author_response(r) for r in rows]
 
 

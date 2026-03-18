@@ -1229,6 +1229,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'Формы, созданные здесь, видны только вам. Чтобы другие могли заполнить форму, поделитесь ссылкой напрямую.',
   },
 
   // ── Albums ──
@@ -1475,6 +1477,8 @@ export default {
     removeAriaLabel: 'Удалить соавтора',
     addExternalCoAuthor: '+ Добавить внешнего соавтора',
     addExternalBtn: 'Добавить внешнего соавтора',
+    leave: 'Покинуть соавторство',
+    leaveSuccess: 'Вы покинули соавторство.',
   },
 
   // ── Citations ──

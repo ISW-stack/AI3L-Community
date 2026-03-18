@@ -1227,6 +1227,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'यहाँ बनाए गए फ़ॉर्म केवल आपके लिए हैं। दूसरों को फ़ॉर्म भरने देने के लिए, सीधे लिंक साझा करें।',
   },
 
   // ── Albums ──
@@ -1473,6 +1475,8 @@ export default {
     removeAriaLabel: 'सह-लेखक हटाएँ',
     addExternalCoAuthor: '+ बाहरी सह-लेखक जोड़ें',
     addExternalBtn: 'बाहरी सह-लेखक जोड़ें',
+    leave: 'सह-लेखन छोड़ें',
+    leaveSuccess: 'आपने सह-लेखन छोड़ दिया है।',
   },
 
   // ── Citations ──

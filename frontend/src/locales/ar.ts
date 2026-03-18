@@ -1223,6 +1223,8 @@ export default {
     noFormsMessage: 'There are no standalone forms available at the moment.',
     loadError: 'Failed to load forms',
     due: 'Due {date}',
+    privateNotice:
+      'النماذج التي تُنشئها هنا خاصة بك. لتمكين الآخرين من ملء النموذج، شارك الرابط مباشرة.',
   },
 
   // ── Albums ──
@@ -1469,6 +1471,8 @@ export default {
     removeAriaLabel: 'إزالة المؤلف المشارك',
     addExternalCoAuthor: '+ إضافة مؤلف مشارك خارجي',
     addExternalBtn: 'إضافة مؤلف مشارك خارجي',
+    leave: 'مغادرة التأليف المشترك',
+    leaveSuccess: 'لقد غادرت التأليف المشترك.',
   },
 
   // ── Citations ──
