@@ -228,6 +228,76 @@ npx vitest run
 
 ---
 
+## Project Stats
+
+<!-- STATS:START -->
+_Last updated: 2026-03-18 — auto-generated on every push to `main`_
+
+### Code Volume
+
+| Metric | Value |
+| --- | ---: |
+| Total lines added (all commits) | +219,138 |
+| Total lines removed (all commits) | -32,512 |
+| Backend source lines (excl. tests) | 22,121 |
+| Frontend source lines (excl. tests) | 50,139 |
+
+### Language Breakdown
+
+```mermaid
+pie title Lines of Code by Language
+    "Python" : 75469
+    "TypeScript" : 71834
+    "Vue" : 18913
+    "CSS" : 109
+```
+
+### Commit Activity
+
+![Commit activity over the last 12 months](docs/stats/activity.svg)
+
+### Test Coverage
+
+| Suite | Test cases | Source lines | Test lines |
+| --- | ---: | ---: | ---: |
+| Backend (pytest) | 2,165 | 22,121 | 50,902 |
+| Frontend (Vitest) | 2,372 | 50,139 | 40,608 |
+| **Total** | **4,537** | **72,260** | **91,510** |
+
+Test-to-source ratio: **1.27** (91,510 lines of tests for every 72,260 lines of source)
+
+### Additional Metrics
+
+| Metric | Value |
+| --- | ---: |
+| REST API endpoints | 164 |
+| Database migrations | 38 |
+| Longest commit streak | 19 days |
+
+### Top 5 Largest Source Files
+
+| File | Lines |
+| --- | ---: |
+| `backend/app/services/album.py` | 971 |
+| `frontend/src/composables/usePostDetail.ts` | 807 |
+| `frontend/src/views/forum/PostDetailView.vue` | 716 |
+| `backend/app/event_handlers.py` | 690 |
+| `backend/app/repositories/post_repo.py` | 660 |
+
+### Contributions by Author
+
+| Author | Commits |
+| --- | ---: |
+| Isaries | 290 |
+| SW9526 | 12 |
+| AI3L Community | 2 |
+| dependabot[bot] | 2 |
+| Leo | 1 |
+
+<!-- STATS:END -->
+
+---
+
 ## Documentation
 
 | Document | Contents |
