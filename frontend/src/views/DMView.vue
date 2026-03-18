@@ -123,11 +123,15 @@ async function selectConversation(conversationId: string, otherUserId: string) {
   // Mark as read
   try {
     await dmApi.markConversationRead(conversationId)
-    // Update local unread count
-    const conv = dmStore.conversations.find((c) => c.id === conversationId)
-    if (conv && conv.unread_count > 0) {
-      dmStore.unreadCount = Math.max(0, dmStore.unreadCount - conv.unread_count)
-      conv.unread_count = 0
+    // Update local unread count (immutable pattern for reactivity)
+    const convIdx = dmStore.conversations.findIndex((c) => c.id === conversationId)
+    if (convIdx >= 0 && dmStore.conversations[convIdx].unread_count > 0) {
+      const prevUnread = dmStore.conversations[convIdx].unread_count
+      dmStore.unreadCount = Math.max(0, dmStore.unreadCount - prevUnread)
+      dmStore.conversations[convIdx] = {
+        ...dmStore.conversations[convIdx],
+        unread_count: 0,
+      }
     }
   } catch {
     // Non-critical, ignore
@@ -200,7 +204,8 @@ function parseDMError(e: unknown, fallback: string): string {
     const code = resp?.data?.detail?.code
     if (code === 'DM_001') {
       const msg = resp?.data?.detail?.message ?? ''
-      if (msg.includes('friends')) return 'This user only accepts messages from friends.'
+      if (msg.toLowerCase().includes('friend'))
+        return 'This user only accepts messages from friends.'
       return 'You cannot message this user.'
     }
     if (code === 'DM_002') return 'The edit/recall window (12 hours) has expired.'
@@ -212,7 +217,12 @@ function parseDMError(e: unknown, fallback: string): string {
       if (msg.includes('already recalled')) return 'This message has already been recalled.'
       if (msg.includes('recalled message')) return 'Cannot edit a recalled message.'
     }
-    if (code === 'SYS_403') return 'You can only edit or recall your own messages.'
+    if (code === 'SYS_403') {
+      const msg = resp?.data?.detail?.message ?? ''
+      if (msg.includes('edit')) return 'You can only edit your own messages.'
+      if (msg.includes('recall')) return 'You can only recall your own messages.'
+      return 'You do not have permission to perform this action.'
+    }
   }
   return getErrorMessage(e, fallback)
 }

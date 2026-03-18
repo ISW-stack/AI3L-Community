@@ -99,21 +99,23 @@ async def send_message(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        if await social_repo.is_blocked(conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)):
-            raise AppError(ErrorCode.DM_001, 403, "Cannot message this user.")
+        # Wrap block + friendship checks in a transaction to prevent TOCTOU races
+        async with conn.transaction():
+            if await social_repo.is_blocked(conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)):
+                raise AppError(ErrorCode.DM_001, 403, "Cannot message this user.")
 
-        # 5. Check recipient's dm_friends_only preference
-        dm_friends_only = await dm_repo.get_dm_friends_only(uuid.UUID(recipient_id))
-        if dm_friends_only:
-            friendship = await social_repo.find_friendship_between(
-                conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)
-            )
-            if not friendship or friendship["status"] != "ACCEPTED":
-                raise AppError(
-                    ErrorCode.DM_001,
-                    403,
-                    "This user only accepts messages from friends.",
+            # 5. Check recipient's dm_friends_only preference
+            dm_friends_only = await dm_repo.get_dm_friends_only(uuid.UUID(recipient_id))
+            if dm_friends_only:
+                friendship = await social_repo.find_friendship_between(
+                    conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)
                 )
+                if not friendship or friendship["status"] != "ACCEPTED":
+                    raise AppError(
+                        ErrorCode.DM_001,
+                        403,
+                        "This user only accepts messages from friends.",
+                    )
 
     # 6. Handle file attachment
     attachment_key: str | None = None

@@ -78,7 +78,18 @@ async def find_albums(
         total = rows[0]["_total"]
         result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         return result, total
-    return [], 0
+    # L2: Return actual total even on empty pages beyond the first
+    if exclude_user_ids:
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM albums WHERE is_deleted = false"
+            " AND created_by != ALL($1::uuid[])",
+            exclude_user_ids,
+        )
+    else:
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM albums WHERE is_deleted = false"
+        )
+    return [], int(count)
 
 
 async def update_album(conn: Any, album_id: uuid.UUID, **fields: Any) -> dict | None:
@@ -245,7 +256,12 @@ async def find_members(
         total = rows[0]["_total"]
         result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         return result, total
-    return [], 0
+    # L2: Return actual total even on empty pages beyond the first
+    count = await conn.fetchval(
+        "SELECT COUNT(*) FROM album_members WHERE album_id = $1",
+        album_id,
+    )
+    return [], int(count)
 
 
 async def update_member_status(
@@ -373,7 +389,20 @@ async def find_photos(
         total = rows[0]["_total"]
         result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         return result, total
-    return [], 0
+    # L2: Return actual total even on empty pages beyond the first
+    if exclude_user_ids:
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM album_photos WHERE album_id = $1"
+            " AND uploaded_by != ALL($2::uuid[])",
+            album_id,
+            exclude_user_ids,
+        )
+    else:
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM album_photos WHERE album_id = $1",
+            album_id,
+        )
+    return [], int(count)
 
 
 async def update_photo(conn: Any, photo_id: uuid.UUID, **fields: Any) -> dict | None:
@@ -487,7 +516,20 @@ async def find_comments(
         total = rows[0]["_total"]
         result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         return result, total
-    return [], 0
+    # L2: Return actual total even on empty pages beyond the first
+    if exclude_user_ids:
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM album_comments WHERE album_id = $1 AND is_deleted = false"
+            " AND user_id != ALL($2::uuid[])",
+            album_id,
+            exclude_user_ids,
+        )
+    else:
+        count = await conn.fetchval(
+            "SELECT COUNT(*) FROM album_comments WHERE album_id = $1 AND is_deleted = false",
+            album_id,
+        )
+    return [], int(count)
 
 
 async def delete_comment(conn: Any, comment_id: uuid.UUID) -> bool:

@@ -68,15 +68,17 @@ async function handleAddFriend(userId: string) {
 }
 
 async function handleDismiss(userId: string) {
-  // Optimistic removal
-  const removed = recommendations.value.find((r) => r.user_id === userId)
+  // Optimistic removal — save index for rollback
+  const removedIndex = recommendations.value.findIndex((r) => r.user_id === userId)
+  if (removedIndex < 0) return
+  const removed = recommendations.value[removedIndex]
   recommendations.value = recommendations.value.filter((r) => r.user_id !== userId)
   try {
     await dismissRecommendation(userId)
   } catch (e: unknown) {
-    // Rollback on error
+    // Rollback on error — restore to original position
     if (removed) {
-      recommendations.value.push(removed)
+      recommendations.value.splice(removedIndex, 0, removed)
     }
     toast.show(getErrorMessage(e, 'Failed to dismiss recommendation'), 'error')
   }

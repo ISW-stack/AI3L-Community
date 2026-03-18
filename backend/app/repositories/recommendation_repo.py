@@ -21,6 +21,11 @@ async def find_recommendations(
               SELECT dismissed_user_id FROM dismissed_recommendations WHERE user_id = $1
           )
           AND u.is_deleted = false AND u.is_banned = false
+          AND NOT EXISTS (
+              SELECT 1 FROM blocks
+              WHERE (blocker_id = $1 AND blocked_id = fr.recommended_user_id)
+                 OR (blocker_id = fr.recommended_user_id AND blocked_id = $1)
+          )
         ORDER BY fr.score DESC
         LIMIT $2
         """,

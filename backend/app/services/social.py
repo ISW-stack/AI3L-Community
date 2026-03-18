@@ -23,13 +23,12 @@ async def send_friend_request(
         raise AppError(ErrorCode.SYS_422, 400, "Cannot send a friend request to yourself.")
 
     async with pool.acquire() as conn:
-        # Check blocked (read-only, outside transaction is fine)
-        if await social_repo.is_blocked(conn, requester_id, addressee_id):
-            raise AppError(ErrorCode.SOCIAL_003, 403, "Cannot interact with this user.")
-
-        # Wrap check + insert in transaction with FOR UPDATE to prevent
-        # concurrent mutual requests from creating duplicate auto-accepts
+        # Wrap all checks + insert in transaction to prevent TOCTOU races
+        # where a block could be inserted between the check and the friend request
         async with conn.transaction():
+            if await social_repo.is_blocked(conn, requester_id, addressee_id):
+                raise AppError(ErrorCode.SOCIAL_003, 403, "Cannot interact with this user.")
+
             existing = await social_repo.find_friendship_between(
                 conn, requester_id, addressee_id, for_update=True
             )

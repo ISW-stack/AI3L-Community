@@ -165,6 +165,8 @@ async def find_pending_requests(
         JOIN users adr ON adr.id = f.addressee_id
         WHERE f.status = 'PENDING'
           AND (f.requester_id = $1 OR f.addressee_id = $1)
+          AND req.is_deleted = false
+          AND adr.is_deleted = false
         ORDER BY f.created_at DESC
         OFFSET $2 LIMIT $3
         """,
@@ -175,7 +177,20 @@ async def find_pending_requests(
     if rows:
         total = rows[0]["_total"]
         return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
-    return [], 0
+    # L2: Return actual total even on empty pages beyond the first
+    count = await conn.fetchval(
+        """
+        SELECT COUNT(*) FROM friendships f
+        JOIN users req ON req.id = f.requester_id
+        JOIN users adr ON adr.id = f.addressee_id
+        WHERE f.status = 'PENDING'
+          AND (f.requester_id = $1 OR f.addressee_id = $1)
+          AND req.is_deleted = false
+          AND adr.is_deleted = false
+        """,
+        user_id,
+    )
+    return [], int(count)
 
 
 async def count_friends(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
@@ -270,14 +285,16 @@ async def find_followers(
         total = rows[0]["_total"]
         return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
     # L2: Return actual total even on empty pages beyond the first
+    count_exclusion = " AND u.id != ALL($2::uuid[])" if exclude_user_ids else ""
+    count_params: list = [user_id] + ([exclude_user_ids] if exclude_user_ids else [])
     count = await conn.fetchval(
         f"""
         SELECT COUNT(*) FROM follows f
         JOIN users u ON u.id = f.follower_id
         WHERE f.following_id = $1
-          AND u.is_deleted = false{exclusion_clause}
+          AND u.is_deleted = false{count_exclusion}
         """,
-        *([user_id] + ([exclude_user_ids] if exclude_user_ids else [])),
+        *count_params,
     )
     return [], int(count)
 
@@ -318,14 +335,16 @@ async def find_following(
         total = rows[0]["_total"]
         return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
     # L2: Return actual total even on empty pages beyond the first
+    count_exclusion = " AND u.id != ALL($2::uuid[])" if exclude_user_ids else ""
+    count_params: list = [user_id] + ([exclude_user_ids] if exclude_user_ids else [])
     count = await conn.fetchval(
         f"""
         SELECT COUNT(*) FROM follows f
         JOIN users u ON u.id = f.following_id
         WHERE f.follower_id = $1
-          AND u.is_deleted = false{exclusion_clause}
+          AND u.is_deleted = false{count_exclusion}
         """,
-        *([user_id] + ([exclude_user_ids] if exclude_user_ids else [])),
+        *count_params,
     )
     return [], int(count)
 

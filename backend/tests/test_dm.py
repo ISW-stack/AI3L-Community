@@ -636,6 +636,11 @@ def _mock_pool_context():
     """Create a mock pool with acquire() context manager."""
     pool = MagicMock()
     conn = AsyncMock()
+    # transaction() context manager
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx)
     cm = AsyncMock()
     cm.__aenter__ = AsyncMock(return_value=conn)
     cm.__aexit__ = AsyncMock(return_value=False)

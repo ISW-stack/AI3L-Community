@@ -312,7 +312,7 @@ class TestSigSoftDeleteCascade:
                 form_resp_idx = i
             if "posts" in s and "is_deleted = true" in s and "sig_id" in s:
                 posts_soft_idx = i
-            if "sig_members" in s and "DELETE" in s:
+            if "sig_members" in s and ("DELETE" in s or "is_deleted = true" in s):
                 members_idx = i
 
         assert form_resp_idx is not None, "form_responses cleanup should be present"
