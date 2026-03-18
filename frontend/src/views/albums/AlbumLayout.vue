@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLocale } from '@/composables/useLocale'
-import { getAlbum, listAlbumMembers, deleteAlbum, updateAlbum } from '@/api/albums'
+import { getAlbum, listAlbumMembers, deleteAlbum, updateAlbum, uploadAlbumCover } from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
 import type { Album, AlbumMember } from '@/types/album'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -89,6 +89,32 @@ async function handleSaveEdit() {
   }
 }
 
+const coverFileInput = ref<HTMLInputElement | null>(null)
+const uploadingCover = ref(false)
+
+function triggerCoverUpload() {
+  coverFileInput.value?.click()
+}
+
+async function handleCoverFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !album.value) return
+  input.value = ''
+  uploadingCover.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const updated = await uploadAlbumCover(album.value.id, formData)
+    album.value = updated
+    toastStore.show(t('albums.uploadCoverSuccess'), 'success')
+  } catch (e: unknown) {
+    toastStore.show(getErrorMessage(e, t('albums.uploadCoverError')), 'error')
+  } finally {
+    uploadingCover.value = false
+  }
+}
+
 const deleting = ref(false)
 
 async function handleDeleteAlbum() {
@@ -169,6 +195,52 @@ const currentRouteName = computed(() => route.name)
     <template v-else>
       <div class="shrink-0">
         <BaseCard padding="lg" class="mb-6">
+          <!-- Cover image -->
+          <div
+            v-if="album.cover_photo_url || canEditAlbum"
+            class="relative -mx-6 -mt-6 mb-4 h-48 bg-surface-alt rounded-t-xl overflow-hidden"
+          >
+            <img
+              v-if="album.cover_photo_url"
+              :src="album.cover_photo_url"
+              :alt="album.title"
+              class="w-full h-full object-cover"
+            />
+            <div
+              v-else
+              class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600"
+            />
+            <button
+              v-if="canEditAlbum"
+              type="button"
+              class="absolute bottom-3 right-3 flex items-center gap-1.5 text-xs text-white bg-black/50 hover:bg-black/70 px-3 py-1.5 rounded-lg transition"
+              :disabled="uploadingCover"
+              @click="triggerCoverUpload"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              {{ uploadingCover ? '...' : t('albums.changeCover') }}
+            </button>
+            <input
+              ref="coverFileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              class="hidden"
+              @change="handleCoverFileChange"
+            />
+          </div>
           <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div class="min-w-0 flex-1">
               <!-- Edit mode -->

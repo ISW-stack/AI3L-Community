@@ -108,6 +108,18 @@ export async function deleteAlbumPhoto(albumId: string, photoId: string): Promis
   await api.delete(`/albums/${albumId}/photos/${photoId}`)
 }
 
+export async function setAlbumCoverFromPhoto(albumId: string, photoId: string): Promise<Album> {
+  const { data } = await api.put<Album>(`/albums/${albumId}/cover`, { photo_id: photoId })
+  return data
+}
+
+export async function uploadAlbumCover(albumId: string, formData: FormData): Promise<Album> {
+  const { data } = await api.post<Album>(`/albums/${albumId}/cover`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
 export async function listAlbumComments(
   albumId: string,
   page = 1,

@@ -164,14 +164,25 @@ async def archive_album(conn: Any, album_id: uuid.UUID, archived: bool) -> bool:
     return bool(result == "UPDATE 1")
 
 
-async def set_cover_photo(conn: Any, album_id: uuid.UUID, url: str | None) -> bool:
+async def set_cover_photo(conn: Any, album_id: uuid.UUID, storage_key: str | None) -> bool:
+    """Set album cover_photo_url to a MinIO storage key (or None to clear)."""
     result = await conn.execute(
         "UPDATE albums SET cover_photo_url = $1, updated_at = NOW() "
         "WHERE id = $2 AND is_deleted = false",
-        url,
+        storage_key,
         album_id,
     )
     return bool(result == "UPDATE 1")
+
+
+async def find_first_photo_key(conn: Any, album_id: uuid.UUID) -> str | None:
+    """Get the storage_key of the earliest photo in an album."""
+    row = await conn.fetchrow(
+        "SELECT storage_key FROM album_photos "
+        "WHERE album_id = $1 ORDER BY created_at ASC LIMIT 1",
+        album_id,
+    )
+    return row["storage_key"] if row else None
 
 
 # ── Members ─────────────────────────────────────────────────────────────────

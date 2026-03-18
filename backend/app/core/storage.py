@@ -176,3 +176,8 @@ def album_thumbnail_key(album_id: str, filename_uuid: str) -> str:
 def album_zip_key(album_id: str, filename_uuid: str, ext: str) -> str:
     """Generate storage key for an album ZIP file."""
     return f"albums/{album_id}/files/{filename_uuid}.{ext}"
+
+
+def album_cover_key(album_id: str, filename_uuid: str, ext: str) -> str:
+    """Generate storage key for an album cover image."""
+    return f"albums/{album_id}/cover/{filename_uuid}.{ext}"

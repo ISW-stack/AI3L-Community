@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.constants import (
     ALBUM_ALLOWED_IMAGE_TYPES,
     ALBUM_ALLOWED_ZIP_TYPES,
+    ALBUM_MAX_COVER_SIZE_BYTES,
     ALBUM_MAX_PHOTO_SIZE_BYTES,
     ALBUM_MAX_PHOTOS,
     ALBUM_MAX_ZIP_SIZE_BYTES,
@@ -182,6 +183,17 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
 
     # 7. Best-effort storage cleanup (outside transaction)
     if deleted:
+        # Delete dedicated cover file if it exists
+        cover_key = album.get("cover_photo_url")
+        if cover_key and "/cover/" in cover_key:
+            try:
+                await delete_file(cover_key)
+            except Exception:
+                logger.warning(
+                    "Failed to delete cover file during album cleanup",
+                    extra={"album_id": album_id, "key": cover_key},
+                )
+
         for photo in photos:
             for key_field in ("storage_key", "thumbnail_key"):
                 key = photo.get(key_field)
@@ -196,6 +208,134 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
 
     logger.info("Album deleted", extra={"album_id": album_id, "user_id": user_id})
     return deleted
+
+
+# ── Cover ──────────────────────────────────────────────────────────────────
+
+
+async def set_cover_from_photo(
+    album_id: str,
+    photo_id: str,
+    user_id: str,
+    user_role: str,
+) -> dict:
+    """Set an existing album photo as the album cover."""
+    pool = get_pool()
+    album_uuid = uuid.UUID(album_id)
+    photo_uuid = uuid.UUID(photo_id)
+
+    async with pool.acquire() as conn:
+        album = await album_repo.find_album_by_id(conn, album_uuid)
+        if not album:
+            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+
+        _check_album_admin(album, user_id, user_role, await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id)))
+
+        photo = await album_repo.find_photo_by_id(conn, photo_uuid)
+        if not photo or str(photo["album_id"]) != album_id:
+            raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found in this album.")
+
+        await album_repo.set_cover_photo(conn, album_uuid, photo["storage_key"])
+
+    async with pool.acquire() as conn:
+        row = await album_repo.find_album_by_id(conn, album_uuid)
+    return to_album_response(row or album)
+
+
+async def upload_cover(
+    album_id: str,
+    user_id: str,
+    user_role: str,
+    file_data: bytes,
+    filename: str,
+    content_type: str,
+) -> dict:
+    """Upload a new image as album cover. Counts toward uploader's storage quota."""
+    from app.core.async_storage import delete_file, upload_file as async_upload_file
+    from app.core.storage import album_cover_key
+
+    album_uuid = uuid.UUID(album_id)
+    user_uuid = uuid.UUID(user_id)
+
+    # Validate file type
+    if content_type not in ALBUM_ALLOWED_IMAGE_TYPES:
+        raise AppError(
+            ErrorCode.ALBUM_003,
+            400,
+            f"File type not allowed. Accepted: {', '.join(ALBUM_ALLOWED_IMAGE_TYPES)}",
+        )
+
+    # Validate magic bytes
+    if not validate_magic_number(file_data, content_type):
+        raise AppError(ErrorCode.ALBUM_003, 400, "File content does not match its declared type.")
+
+    file_size = len(file_data)
+    if file_size > ALBUM_MAX_COVER_SIZE_BYTES:
+        raise AppError(
+            ErrorCode.ALBUM_002,
+            400,
+            f"Cover image size exceeds {ALBUM_MAX_COVER_SIZE_BYTES // (1024 * 1024)}MB limit.",
+        )
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            album = await album_repo.find_album_by_id(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+
+            _check_album_admin(album, user_id, user_role, await album_repo.find_member(conn, album_uuid, user_uuid))
+
+            # Check storage quota
+            quota_row = await conn.fetchrow(
+                "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
+                user_uuid,
+            )
+            storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
+            if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
+                raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
+
+            # Upload to MinIO
+            ext = ""
+            if "." in filename:
+                ext = filename.rsplit(".", 1)[-1].lower()
+            file_uuid = str(uuid.uuid4())
+            storage_key = album_cover_key(album_id, file_uuid, ext)
+            await async_upload_file(file_data, storage_key, content_type)
+
+            # Delete old cover file from storage if it was a dedicated cover (not a photo key)
+            old_cover_key = album.get("cover_photo_url")
+            if old_cover_key and "/cover/" in old_cover_key:
+                try:
+                    await delete_file(old_cover_key)
+                    # Refund old cover size — we don't track it per-file,
+                    # so we skip refund for simplicity (cover is small)
+                except Exception:
+                    logger.warning("Failed to delete old cover", extra={"key": old_cover_key})
+
+            # Increment storage
+            await conn.execute(
+                "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
+                file_size,
+                user_uuid,
+            )
+
+            await album_repo.set_cover_photo(conn, album_uuid, storage_key)
+
+    logger.info("Album cover uploaded", extra={"album_id": album_id, "user_id": user_id})
+
+    async with pool.acquire() as conn:
+        row = await album_repo.find_album_by_id(conn, album_uuid)
+    return to_album_response(row or album)
+
+
+def _check_album_admin(album: dict, user_id: str, user_role: str, member: dict | None) -> None:
+    """Check if user is album creator, album admin, or site admin."""
+    is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
+    is_creator = str(album["created_by"]) == user_id
+    is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
+    if not (is_creator or is_site_admin or is_album_admin):
+        raise AppError(ErrorCode.SYS_403, 403, "Not authorized to update this album.")
 
 
 # ── Members ─────────────────────────────────────────────────────────────────
@@ -457,7 +597,11 @@ async def upload_photo(
                 content_type,
             )
 
-    # 10. Dispatch thumbnail generation (lazy import)
+            # 10. Auto-set as cover if album has no cover yet
+            if not album.get("cover_photo_url"):
+                await album_repo.set_cover_photo(conn, album_uuid, storage_key)
+
+    # 11. Dispatch thumbnail generation (lazy import)
     try:
         thumb_key = album_thumbnail_key(album_id, file_uuid)
         from app.tasks.thumbnail import generate_thumbnail_task

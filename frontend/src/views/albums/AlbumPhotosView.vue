@@ -3,7 +3,12 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
-import { listAlbumPhotos, uploadAlbumPhoto, deleteAlbumPhoto } from '@/api/albums'
+import {
+  listAlbumPhotos,
+  uploadAlbumPhoto,
+  deleteAlbumPhoto,
+  setAlbumCoverFromPhoto,
+} from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
 import { usePagination } from '@/composables/usePagination'
 import { useAuthStore } from '@/stores/auth'
@@ -112,6 +117,26 @@ async function handleDeletePhoto(photo: AlbumPhoto) {
   }
 }
 
+const canSetCover = computed(() => {
+  if (!album.value || !auth.user) return false
+  return (
+    album.value.created_by === auth.user.id ||
+    auth.isAdmin ||
+    userAlbumRole.value === 'ADMIN'
+  )
+})
+
+async function handleSetCover(photo: AlbumPhoto) {
+  if (!album.value) return
+  try {
+    const updated = await setAlbumCoverFromPhoto(album.value.id, photo.id)
+    album.value = updated
+    toast.show(t('albums.setCoverSuccess'), 'success')
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('albums.setCoverError')), 'error')
+  }
+}
+
 watch(
   () => album.value?.id,
   () => {
@@ -141,7 +166,13 @@ watch(page, fetchPhotos)
     />
 
     <template v-else>
-      <PhotoGrid :photos="photos" @select="openLightbox" />
+      <PhotoGrid
+        :photos="photos"
+        :cover-storage-url="album?.cover_photo_url"
+        :can-set-cover="canSetCover"
+        @select="openLightbox"
+        @set-cover="handleSetCover"
+      />
 
       <div class="mt-6">
         <BasePagination
@@ -159,9 +190,11 @@ watch(page, fetchPhotos)
       :current-index="lightboxIndex"
       :visible="lightboxVisible"
       :can-delete="photos[lightboxIndex] ? canDeleteThisPhoto(photos[lightboxIndex]) : false"
+      :can-set-cover="canSetCover"
       @close="closeLightbox"
       @navigate="handleLightboxNavigate"
       @delete="handleDeletePhoto"
+      @set-cover="handleSetCover"
     />
 
     <PhotoUploadModal v-model="showUploadModal" @upload="handleUpload" />

@@ -23,6 +23,7 @@ from app.schemas.album import (
     AlbumCommentCreateRequest,
     AlbumCommentListResponse,
     AlbumCommentResponse,
+    AlbumCoverFromPhotoRequest,
     AlbumCreateRequest,
     AlbumListResponse,
     AlbumMemberListResponse,
@@ -48,8 +49,10 @@ from app.services.album import (
     list_members,
     list_photos,
     remove_member,
+    set_cover_from_photo,
     update_album,
     update_photo,
+    upload_cover,
     upload_file_zip,
     upload_photo,
 )
@@ -120,6 +123,59 @@ async def delete_album_endpoint(
     )
     if not deleted:
         raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+
+
+# ── Cover ──────────────────────────────────────────────────────────────────
+
+
+@router.put("/{album_id}/cover", response_model=AlbumResponse)
+async def set_cover_from_photo_endpoint(
+    album_id: uuid.UUID,
+    req: AlbumCoverFromPhotoRequest,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> AlbumResponse:
+    """Set an existing album photo as the cover image."""
+    album = await set_cover_from_photo(
+        album_id=str(album_id),
+        photo_id=req.photo_id,
+        user_id=current_user["sub"],
+        user_role=current_user["role"],
+    )
+    return AlbumResponse(**album)
+
+
+@router.post("/{album_id}/cover", response_model=AlbumResponse, status_code=status.HTTP_200_OK)
+async def upload_cover_endpoint(
+    album_id: uuid.UUID,
+    file: UploadFile,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> AlbumResponse:
+    """Upload a new image as the album cover."""
+    if not await check_rate_limit(
+        f"rl:album_upload:{current_user['sub']}", *RATE_LIMIT_ALBUM_UPLOAD
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Upload rate limit exceeded.")
+
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(8192):
+        total += len(chunk)
+        if total > MAX_ALBUM_UPLOAD_BYTES:
+            raise AppError(ErrorCode.SYS_422, 422, "File too large.")
+        chunks.append(chunk)
+    file_data = b"".join(chunks)
+    content_type = file.content_type or "application/octet-stream"
+    filename = file.filename or "cover"
+
+    album = await upload_cover(
+        album_id=str(album_id),
+        user_id=current_user["sub"],
+        user_role=current_user["role"],
+        file_data=file_data,
+        filename=filename,
+        content_type=content_type,
+    )
+    return AlbumResponse(**album)
 
 
 # ── Members ─────────────────────────────────────────────────────────────────

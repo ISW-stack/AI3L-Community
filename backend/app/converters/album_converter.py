@@ -6,7 +6,13 @@ from app.core.storage import generate_presigned_url
 
 def to_album_response(row: dict) -> dict:
     """Convert an album DB row to an AlbumResponse-compatible dict."""
-    cover_url = row.get("cover_photo_url")
+    cover_key = row.get("cover_photo_url")  # stored as storage key
+    cover_url = None
+    if cover_key:
+        try:
+            cover_url = generate_presigned_url(cover_key, expires_in=3600)
+        except Exception:
+            cover_url = None
     return {
         "id": str(row["id"]),
         "title": row["title"],

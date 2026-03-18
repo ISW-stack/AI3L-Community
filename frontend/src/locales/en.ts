@@ -1274,6 +1274,16 @@ export default {
     editAlbum: 'Edit Album',
     editAlbumSuccess: 'Album updated successfully.',
     editAlbumError: 'Failed to update album.',
+    // Cover
+    setCover: 'Set as Cover',
+    setCoverSuccess: 'Cover photo updated.',
+    setCoverError: 'Failed to set cover photo.',
+    uploadCover: 'Upload Cover',
+    uploadCoverSuccess: 'Cover image uploaded successfully.',
+    uploadCoverError: 'Failed to upload cover image.',
+    currentCover: 'Cover',
+    changeCover: 'Change Cover',
+    coverAcceptedFormats: 'JPEG, PNG, GIF, or WebP (max 5MB)',
     // Members view
     joinAlbum: 'Join Album',
     leave: 'Leave',
