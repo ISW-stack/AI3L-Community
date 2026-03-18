@@ -11,6 +11,7 @@ import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
 import { listPosts } from '@/api/posts'
 import { listCoAuthoredPosts } from '@/api/coauthors'
+import { MessageSquare, Lock } from 'lucide-vue-next'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -187,6 +188,21 @@ onMounted(() => {
                 v-if="!isOwnProfile && auth.isAuthenticated && !auth.isGuest"
                 :user-id="userId"
               />
+              <router-link
+                v-if="!isOwnProfile && auth.isAuthenticated && !auth.isGuest"
+                :to="`/messages/${userId}`"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-surface-alt transition"
+                :title="user?.dm_friends_only ? 'This user only accepts messages from friends' : 'Send message'"
+                data-testid="message-btn"
+              >
+                <MessageSquare class="w-4 h-4" aria-hidden="true" />
+                Message
+                <Lock
+                  v-if="user?.dm_friends_only"
+                  class="w-3 h-3 text-muted"
+                  aria-label="Friends only"
+                />
+              </router-link>
             </div>
           </div>
 

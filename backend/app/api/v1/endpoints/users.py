@@ -20,6 +20,7 @@ from app.models.user import UserRole
 from app.schemas.auth import MessageResponse
 from app.schemas.user import (
     AdminCreateAccountRequest,
+    AdminDeleteUserRequest,
     BanRequest,
     BulkRoleChangeRequest,
     ChangePasswordRequest,
@@ -289,6 +290,59 @@ async def bulk_change_role(
         target_id=f"role={req.role},count={count}",
     )
     return {"updated_count": count}
+
+
+@router.delete("/{user_id}", response_model=MessageResponse)
+async def admin_delete_user(
+    user_id: uuid.UUID,
+    request: Request,
+    req: AdminDeleteUserRequest = AdminDeleteUserRequest(),
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> MessageResponse:
+    """SUPER_ADMIN soft-deletes (anonymizes) another user."""
+    if str(user_id) == current_user["sub"]:
+        raise AppError(ErrorCode.SYS_422, 400, "Cannot delete yourself.")
+
+    target = await get_user_by_id(user_id)
+    if target is None:
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+
+    if target.get("role") == "SUPER_ADMIN":
+        raise AppError(ErrorCode.SYS_403, 403, "Cannot delete a Super Admin.")
+
+    # Block deletion if the target user is the sole admin of any SIG
+    sole_admin_sigs = await check_sole_admin_sigs(user_id)
+    if sole_admin_sigs:
+        sig_names = ", ".join(s["name"] for s in sole_admin_sigs)
+        raise AppError(
+            ErrorCode.SYS_409,
+            409,
+            (
+                "Cannot delete user: they are the sole admin of the following SIG(s): "
+                f"{sig_names}. Please assign another admin first."
+            ),
+        )
+
+    deleted = await anonymize_user(user_id)
+    if not deleted:
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+
+    # Revoke the target user's sessions
+    await revoke_user_sessions(str(user_id))
+
+    # Audit log
+    ip = request.client.host if request.client else None
+    await emit(
+        "audit.action",
+        user_id=current_user["sub"],
+        action="ADMIN_DELETE_USER",
+        target_type="user",
+        target_id=str(user_id),
+        ip_address=ip,
+        detail=req.reason or None,
+    )
+
+    return MessageResponse(message="User has been deleted and anonymized.")
 
 
 @router.get("/{user_id}", response_model=PublicUserResponse)

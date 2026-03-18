@@ -13,6 +13,7 @@ import {
   bulkChangeRole as apiBulkChangeRole,
   banUser,
   unbanUser as apiUnbanUser,
+  deleteUser as apiDeleteUser,
 } from '@/api/admin'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
@@ -213,6 +214,37 @@ async function confirmBan() {
   }
 }
 
+const showDeleteModal = ref(false)
+const deleteTargetUser = ref<AdminUser | null>(null)
+const deleteReason = ref('')
+const deleteConfirmText = ref('')
+const deleting = ref(false)
+
+function openDeleteModal(user: AdminUser) {
+  deleteTargetUser.value = user
+  deleteReason.value = ''
+  deleteConfirmText.value = ''
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+  if (!deleteTargetUser.value || deleteConfirmText.value !== 'DELETE') return
+  deleting.value = true
+  try {
+    await apiDeleteUser(deleteTargetUser.value.id, deleteReason.value)
+    showDeleteModal.value = false
+    toast.show(
+      t('admin.users.message.deleted', { username: deleteTargetUser.value.username }),
+      'success',
+    )
+    await fetchUsers()
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('admin.users.message.deleteFailed')), 'error')
+  } finally {
+    deleting.value = false
+  }
+}
+
 async function handleUnban(user: AdminUser) {
   try {
     await apiUnbanUser(user.id)
@@ -344,6 +376,9 @@ onUnmounted(() => {
               <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)">
                 {{ t('admin.users.unbanBtn') }}
               </BaseButton>
+              <BaseButton size="sm" variant="danger" @click="openDeleteModal(user)">{{
+                t('admin.users.deleteBtn')
+              }}</BaseButton>
             </div>
           </div>
         </div>
@@ -443,6 +478,11 @@ onUnmounted(() => {
                     <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)">{{
                       t('admin.users.unbanBtn')
                     }}</BaseButton>
+                    <BaseButton
+                      size="sm"
+                      variant="danger"
+                      @click="openDeleteModal(user)"
+                    >{{ t('admin.users.deleteBtn') }}</BaseButton>
                   </template>
                 </div>
               </td>
@@ -550,6 +590,36 @@ onUnmounted(() => {
         <BaseButton variant="danger" :loading="banning" @click="confirmBan">{{
           t('admin.users.banModal.confirmBtn')
         }}</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Delete user modal -->
+    <BaseModal v-model="showDeleteModal" :title="t('admin.users.deleteModal.title')" size="sm">
+      <p class="text-sm text-muted mb-4">
+        {{ t('admin.users.deleteModal.message', { username: deleteTargetUser?.username }) }}
+      </p>
+      <BaseTextarea
+        v-model="deleteReason"
+        :label="t('admin.users.deleteModal.reasonLabel')"
+        :rows="2"
+        :placeholder="t('admin.users.deleteModal.reasonPlaceholder')"
+      />
+      <BaseInput
+        v-model="deleteConfirmText"
+        :label="t('admin.users.deleteModal.typeLabel')"
+        placeholder="DELETE"
+        class="mt-3"
+      />
+      <template #footer>
+        <BaseButton variant="secondary" @click="showDeleteModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton
+          variant="danger"
+          :loading="deleting"
+          :disabled="deleteConfirmText !== 'DELETE'"
+          @click="confirmDelete"
+        >{{ t('admin.users.deleteModal.confirmBtn') }}</BaseButton>
       </template>
     </BaseModal>
   </div>

@@ -69,10 +69,11 @@ export const useDMStore = defineStore('dm', () => {
       if (fetchId !== _msgFetchId) return
       const errMsg = getErrorMessage(e, 'Failed to load messages.')
       error.value = errMsg
-      // BUG-5: If 404, clear active conversation
+      // BUG-5: If 404, clear active conversation and set user-friendly message
       if (e && typeof e === 'object' && 'response' in e) {
         const axiosErr = e as { response?: { status?: number } }
         if (axiosErr.response?.status === 404) {
+          error.value = 'This conversation no longer exists.'
           activeConversationId.value = null
           messages.value = []
           messagesTotal.value = 0

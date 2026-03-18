@@ -88,6 +88,12 @@ async function selectConversation(conversationId: string, otherUserId: string) {
   await dmStore.fetchMessages(conversationId, 1, msgPagination.pageSize)
   msgPagination.updateFromResponse(dmStore.messagesTotal)
 
+  // Show toast if messages failed to load (e.g. conversation was deleted)
+  if (dmStore.error) {
+    toast.show(dmStore.error, 'error')
+    return
+  }
+
   // Mark as read
   try {
     await dmApi.markConversationRead(conversationId)
@@ -287,22 +293,32 @@ const activeConvUser = computed(() => {
             >
               <ArrowLeft class="w-5 h-5" aria-hidden="true" />
             </button>
-            <div
+            <router-link
               v-if="activeConvUser"
-              class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+              :to="`/users/${activeConvUser.id}`"
+              class="flex items-center gap-2 hover:opacity-75 transition"
+              :title="`View ${activeConvUser.display_name}'s profile`"
+              data-testid="thread-header-profile-link"
             >
-              <img
-                v-if="activeConvUser.avatar_url"
-                :src="activeConvUser.avatar_url"
-                class="w-8 h-8 rounded-full object-cover"
-                :alt="`${activeConvUser.display_name}'s avatar`"
-              />
-              <span v-else class="text-xs font-semibold text-muted">
-                {{ activeConvUser.display_name.charAt(0).toUpperCase() }}
+              <div
+                class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+              >
+                <img
+                  v-if="activeConvUser.avatar_url"
+                  :src="activeConvUser.avatar_url"
+                  class="w-8 h-8 rounded-full object-cover"
+                  :alt="`${activeConvUser.display_name}'s avatar`"
+                />
+                <span v-else class="text-xs font-semibold text-muted">
+                  {{ activeConvUser.display_name.charAt(0).toUpperCase() }}
+                </span>
+              </div>
+              <span class="text-sm font-medium text-foreground">
+                {{ activeConvUser.display_name }}
               </span>
-            </div>
-            <span class="text-sm font-medium text-foreground">
-              {{ activeConvUser?.display_name ?? 'New Conversation' }}
+            </router-link>
+            <span v-else class="text-sm font-medium text-foreground">
+              New Conversation
             </span>
           </div>
 

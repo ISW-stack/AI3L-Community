@@ -20,7 +20,17 @@ async def find_by_id(user_id: uuid.UUID) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            f"SELECT {_USER_COLUMNS} FROM users WHERE id = $1", user_id
+            """
+            SELECT u.id, u.username, u.display_name, u.role, u.bio,
+                   u.affiliation, u.orcid, u.avatar_url, u.preferred_language,
+                   u.is_banned, u.ban_reason, u.is_deleted,
+                   u.created_at, u.updated_at,
+                   COALESCE(up.dm_friends_only, FALSE) AS dm_friends_only
+            FROM users u
+            LEFT JOIN user_preferences up ON up.user_id = u.id
+            WHERE u.id = $1
+            """,
+            user_id,
         )
         return dict(row) if row else None
 

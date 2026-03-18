@@ -939,6 +939,18 @@ describe('useDMStore', () => {
       expect(store.activeConversationId).toBe('conv-1')
       expect(store.error).toBeTruthy()
     })
+
+    it('sets user-friendly error message on 404', async () => {
+      const store = useDMStore()
+      const err404 = Object.assign(new Error('Not Found'), {
+        response: { status: 404 },
+      })
+      mockListMessages.mockRejectedValueOnce(err404)
+
+      await store.fetchMessages('conv-deleted')
+
+      expect(store.error).toBe('This conversation no longer exists.')
+    })
   })
 
   describe('addFromWebSocket unknown conversation refetch', () => {

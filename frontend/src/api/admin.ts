@@ -57,6 +57,44 @@ export async function unbanUser(userId: string) {
   await api.post(`/users/${userId}/unban`)
 }
 
+export async function deleteUser(userId: string, reason: string = '') {
+  await api.delete(`/users/${userId}`, { data: { reason } })
+}
+
+/* ── IP Bans ──────────────────────────────────────────────── */
+
+export interface IpBan {
+  id: string
+  ip_address: string
+  reason: string
+  banned_by: string | null
+  expires_at: string | null
+  created_at: string
+}
+
+export interface IpBansResponse {
+  bans: IpBan[]
+  total: number
+}
+
+export async function listIpBans(params?: { page?: number; page_size?: number }) {
+  const { data } = await api.get('/admin/ip-bans', { params })
+  return data as IpBansResponse
+}
+
+export async function createIpBan(payload: {
+  ip_address: string
+  reason?: string
+  expires_at?: string
+}) {
+  const { data } = await api.post('/admin/ip-bans', payload)
+  return data as IpBan
+}
+
+export async function deleteIpBan(banId: string) {
+  await api.delete(`/admin/ip-bans/${banId}`)
+}
+
 /* ── Audit Logs ────────────────────────────────────────────── */
 
 export interface AuditLogsResponse {

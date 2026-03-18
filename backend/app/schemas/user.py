@@ -30,6 +30,7 @@ class PublicUserResponse(BaseModel):
     profile_view_count_unique: int = 0
     profile_view_count_total: int = 0
     created_at: str
+    dm_friends_only: bool = False
 
 
 class UserUpdateRequest(BaseModel):
@@ -78,6 +79,10 @@ class ChangePasswordRequest(BaseModel):
 class BulkRoleChangeRequest(BaseModel):
     user_ids: list[uuid.UUID] = Field(..., min_length=1, max_length=50)
     role: str = Field(..., pattern="^(MEMBER|ADMIN)$")
+
+
+class AdminDeleteUserRequest(BaseModel):
+    reason: str = Field("", max_length=500)
 
 
 class UserListResponse(BaseModel):

@@ -238,6 +238,26 @@ async def limit_request_body_size(request: Request, call_next: RequestResponseEn
         return JSONResponse(status_code=413, content={"detail": "Request body too large"})
 
 
+@app.middleware("http")
+async def check_ip_ban(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    """Block requests from banned IPs."""
+    from app.core.rate_limit import get_client_ip
+
+    ip = get_client_ip(request)
+    if ip:
+        try:
+            from app.services.ip_ban import is_ip_banned
+
+            if await is_ip_banned(ip):
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Your IP address has been banned."},
+                )
+        except Exception:
+            pass  # Redis/DB failure -> allow request through
+    return await call_next(request)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS_LIST,

@@ -54,6 +54,7 @@ async def async_user_to_public_response(user: dict) -> PublicUserResponse:
             if hasattr(user["created_at"], "isoformat")
             else user["created_at"]
         ),
+        dm_friends_only=bool(user.get("dm_friends_only", False)),
     )
 
 
@@ -91,6 +92,7 @@ def user_to_public_response(user: dict) -> PublicUserResponse:
             if hasattr(user["created_at"], "isoformat")
             else user["created_at"]
         ),
+        dm_friends_only=bool(user.get("dm_friends_only", False)),
     )
 
 
