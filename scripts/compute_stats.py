@@ -43,7 +43,9 @@ _TEST_DIR_RE = re.compile(r"[/\\]__tests__[/\\]")
 # ---------------------------------------------------------------------------
 
 def _run(cmd: str) -> str:
-    return subprocess.check_output(cmd, shell=True, text=True, cwd=ROOT).strip()
+    return subprocess.check_output(
+        cmd, shell=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT
+    ).strip()
 
 
 def _count_lines(path: Path) -> int:
@@ -87,29 +89,82 @@ _AUTHOR_ALIASES: dict[str, str] = {
     "Leo": "Isaries",
 }
 
+# Matches "Co-authored-by: Display Name <email>" (case-insensitive).
+_COAUTHOR_RE = re.compile(r"^Co-authored-by:\s+(.+?)\s+<", re.IGNORECASE)
+
+# Matches a HASH:<40-hex-char> marker line produced by our git format strings.
+# The fixed-width constraint makes false matches from commit-body text impossible.
+_HASH_LINE_RE = re.compile(r"^HASH:[0-9a-f]{40}$")
+
+
+def _canonical(name: str) -> str:
+    return _AUTHOR_ALIASES.get(name, name)
+
 
 def git_author_stats() -> list[tuple[int, str, int, int]]:
-    """Returns list of (commits, name, additions, deletions) sorted by commits desc."""
-    output = _run("git log --numstat --pretty=format:COMMIT:%an HEAD")
+    """Returns list of (commits, name, additions, deletions) sorted by commits desc.
+
+    Co-authored-by trailers in commit messages are parsed: the co-author receives
+    the same commit count +1 and the same line additions/deletions as the primary
+    author for that commit.
+    """
+    # ── Step 1: build hash → (primary_author, [co_authors]) ──────────────────
+    commit_meta: dict[str, tuple[str, list[str]]] = {}
+
+    # Primary author per commit
+    current_hash: str | None = None
+    for line in _run("git log --format=HASH:%H%nAUTHOR:%an HEAD").splitlines():
+        if _HASH_LINE_RE.match(line):
+            current_hash = line[5:]
+        elif line.startswith("AUTHOR:") and current_hash:
+            commit_meta[current_hash] = (_canonical(line[7:].strip()), [])
+            current_hash = None
+
+    # Co-authors from full commit message (%B = subject + body, catches trailers)
+    current_hash = None
+    for line in _run("git log --format=HASH:%H%n%B HEAD").splitlines():
+        if _HASH_LINE_RE.match(line):
+            current_hash = line[5:]
+        elif current_hash and current_hash in commit_meta:
+            m = _COAUTHOR_RE.match(line)
+            if m:
+                canonical = _canonical(m.group(1).strip())
+                primary, coauthors = commit_meta[current_hash]
+                if canonical != primary and canonical not in coauthors:
+                    coauthors.append(canonical)
+
+    # ── Step 2: accumulate commit counts + line stats ─────────────────────────
     commit_counts: defaultdict[str, int] = defaultdict(int)
     adds: defaultdict[str, int] = defaultdict(int)
     dels: defaultdict[str, int] = defaultdict(int)
-    current: str | None = None
-    for line in output.splitlines():
-        if line.startswith("COMMIT:"):
-            raw = line[7:].strip()
-            current = _AUTHOR_ALIASES.get(raw, raw)
-            commit_counts[current] += 1
-        elif current and "\t" in line:
+    current_primary: str | None = None
+    current_coauthors: list[str] = []
+
+    for line in _run("git log --numstat --format=HASH:%H HEAD").splitlines():
+        if _HASH_LINE_RE.match(line):
+            h = line[5:]
+            if h in commit_meta:
+                current_primary, current_coauthors = commit_meta[h]
+                commit_counts[current_primary] += 1
+                for ca in current_coauthors:
+                    commit_counts[ca] += 1
+            else:
+                current_primary = None
+                current_coauthors = []
+        elif current_primary and "\t" in line:
             parts = line.split("\t")
             if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
-                adds[current] += int(parts[0])
-                dels[current] += int(parts[1])
-    result = [
-        (commit_counts[n], n, adds[n], dels[n])
-        for n in commit_counts
-    ]
-    return sorted(result, reverse=True)
+                a, d = int(parts[0]), int(parts[1])
+                adds[current_primary] += a
+                dels[current_primary] += d
+                for ca in current_coauthors:
+                    adds[ca] += a
+                    dels[ca] += d
+
+    return sorted(
+        ((commit_counts[n], n, adds[n], dels[n]) for n in commit_counts),
+        reverse=True,
+    )
 
 
 # ---------------------------------------------------------------------------
