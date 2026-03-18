@@ -351,7 +351,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   }
 
   // Auto-save draft while editing
-  watch([editTitle, editContent], () => {
+  watch([editTitle, editContent, editing], () => {
     if (editing.value) saveEditDraft()
   })
 
@@ -383,8 +383,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
       const detail = apiError.response?.data?.detail
       const code = typeof detail === 'object' ? detail?.code : undefined
       if (code === 'SYS_409' || apiError.response?.status === 409) {
-        editMessage.value =
-          'This post was edited by someone else. Please reload to see the latest version.'
+        editMessage.value = 'VERSION_CONFLICT'
       } else {
         editMessage.value = getErrorMessage(err, 'Failed to save changes.')
       }
@@ -519,8 +518,11 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   async function toggleReactionHandler(commentId: string, reaction: string) {
     try {
-      await apiToggleReaction(postId.value, commentId, reaction)
-      await fetchComments()
+      const updated = await apiToggleReaction(postId.value, commentId, reaction)
+      const idx = comments.value.findIndex((c) => c.id === commentId)
+      if (idx !== -1) {
+        comments.value[idx] = updated
+      }
     } catch (e: unknown) {
       toastStore.show(getErrorMessage(e, 'Failed to toggle reaction.'), 'error')
     }

@@ -336,6 +336,8 @@ export default {
       backToForum: '返回论坛',
       editTitle: '编辑文章',
       saveChanges: '保存更改',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: '找不到文章。',
       pin: '置顶',
       unpin: '取消置顶',

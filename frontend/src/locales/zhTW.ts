@@ -336,6 +336,8 @@ export default {
       backToForum: '返回論壇',
       editTitle: '編輯文章',
       saveChanges: '儲存變更',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: '找不到文章。',
       pin: '置頂',
       unpin: '取消置頂',

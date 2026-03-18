@@ -364,6 +364,8 @@ export default {
       backToForum: 'Retour au forum',
       editTitle: 'Modifier la publication',
       saveChanges: 'Enregistrer les modifications',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'Publication introuvable.',
       pin: 'Épingler',
       unpin: 'Désépingler',

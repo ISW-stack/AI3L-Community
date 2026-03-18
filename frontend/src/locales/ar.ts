@@ -358,6 +358,8 @@ export default {
       backToForum: 'العودة إلى المنتدى',
       editTitle: 'تعديل المشاركة',
       saveChanges: 'حفظ التغييرات',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'المشاركة غير موجودة.',
       pin: 'تثبيت',
       unpin: 'إلغاء التثبيت',

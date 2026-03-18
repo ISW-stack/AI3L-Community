@@ -360,6 +360,8 @@ export default {
       backToForum: 'Back to Forum',
       editTitle: 'Edit Post',
       saveChanges: 'Save Changes',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'Post not found.',
       pin: 'Pin',
       unpin: 'Unpin',

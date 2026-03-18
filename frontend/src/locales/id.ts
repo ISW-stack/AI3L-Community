@@ -361,6 +361,8 @@ export default {
       backToForum: 'Kembali ke Forum',
       editTitle: 'Ubah Postingan',
       saveChanges: 'Simpan Perubahan',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'Postingan tidak ditemukan.',
       pin: 'Sematkan',
       unpin: 'Lepas Sematan',

@@ -99,6 +99,7 @@ const {
   saveEditComment,
   handleReply,
   cancelEdit,
+  fetchPost,
 } = usePostDetail({ postId, auth, router })
 
 const showCitedBy = ref(false)
@@ -112,6 +113,11 @@ function toggleCitedBy() {
 
 function toggleReferences() {
   showReferences.value = !showReferences.value
+}
+
+async function reloadAndExitEdit() {
+  await fetchPost()
+  cancelEdit()
 }
 
 async function handleLeaveCoAuthorship() {
@@ -162,7 +168,13 @@ const breadcrumbItems = computed(() => {
       <!-- Editing mode -->
       <div v-if="editing" class="space-y-4">
         <h2 class="text-xl font-bold text-foreground mb-4">{{ t('post.detail.editTitle') }}</h2>
-        <BaseAlert v-if="editMessage" type="error">{{ editMessage }}</BaseAlert>
+        <BaseAlert v-if="editMessage === 'VERSION_CONFLICT'" type="error">
+          {{ t('post.detail.versionConflict', 'This post was edited by someone else.') }}
+          <button class="ml-2 underline font-medium" @click="reloadAndExitEdit">
+            {{ t('post.detail.reloadLatest', 'Reload latest version') }}
+          </button>
+        </BaseAlert>
+        <BaseAlert v-else-if="editMessage" type="error">{{ editMessage }}</BaseAlert>
         <BaseInput v-model="editTitle" :placeholder="t('post.create.titlePlaceholder')" />
         <TiptapEditor v-model="editContent" />
         <div class="flex gap-3">

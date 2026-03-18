@@ -355,6 +355,8 @@ export default {
       backToForum: '倒轉去討論區',
       editTitle: '編輯貼文',
       saveChanges: '儲存更改',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: '搵無這篇貼文。',
       pin: '置頂',
       unpin: '取消置頂',

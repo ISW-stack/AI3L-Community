@@ -363,6 +363,8 @@ export default {
       backToForum: 'Zurück zum Forum',
       editTitle: 'Beitrag bearbeiten',
       saveChanges: 'Änderungen speichern',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'Beitrag nicht gefunden.',
       pin: 'Anheften',
       unpin: 'Lösen',

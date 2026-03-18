@@ -19,6 +19,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 import { UserPlus, X, Users } from 'lucide-vue-next'
 
 const { t } = useI18n()
+// Must match backend app/core/constants.py → MAX_CO_AUTHORS_PER_POST
 const MAX_CO_AUTHORS = 10
 
 const props = defineProps<{
@@ -91,7 +92,7 @@ function onSearchInput() {
 
 async function handleInvite(userId: string, displayName: string) {
   if (!canAddMore.value) {
-    toast.show('Maximum of 10 co-authors reached.', 'warning')
+    toast.show(`Maximum of ${MAX_CO_AUTHORS} co-authors reached.`, 'warning')
     return
   }
   try {
@@ -108,7 +109,7 @@ async function handleInvite(userId: string, displayName: string) {
 async function handleAddExternal() {
   if (!externalName.value.trim()) return
   if (!canAddMore.value) {
-    toast.show('Maximum of 10 co-authors reached.', 'warning')
+    toast.show(`Maximum of ${MAX_CO_AUTHORS} co-authors reached.`, 'warning')
     return
   }
   addingExternal.value = true

@@ -360,6 +360,8 @@ export default {
       backToForum: 'Quay lại Diễn đàn',
       editTitle: 'Chỉnh sửa bài viết',
       saveChanges: 'Lưu thay đổi',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'Không tìm thấy bài viết.',
       pin: 'Ghim',
       unpin: 'Bỏ ghim',

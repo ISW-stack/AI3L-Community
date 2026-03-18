@@ -236,7 +236,7 @@ async def update_existing_post(
 
     content = sanitize_html(req.content) if req.content else None
     if content is not None and not content.strip():
-        raise AppError(ErrorCode.SYS_422, 422, "Content cannot be empty after sanitization.")
+        raise AppError(ErrorCode.SYS_422, 400, "Content cannot be empty after sanitization.")
     if content:
         from app.core.file_validation import post_process_citations
 

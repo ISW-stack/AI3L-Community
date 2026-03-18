@@ -413,7 +413,7 @@ describe('usePostDetail', () => {
     startEdit()
     await saveEdit()
 
-    expect(editMessage.value).toContain('edited by someone else')
+    expect(editMessage.value).toBe('VERSION_CONFLICT')
     expect(editing.value).toBe(true)
   })
 

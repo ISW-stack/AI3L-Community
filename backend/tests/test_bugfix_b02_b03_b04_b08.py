@@ -405,8 +405,8 @@ class TestB08EmptyContentAfterSanitization:
     """B08: update_post endpoint rejects content that becomes empty after sanitization."""
 
     @pytest.mark.anyio
-    async def test_update_post_empty_after_sanitize_returns_422(self, client):
-        """PUT /posts/{id} with content that sanitizes to empty → 422."""
+    async def test_update_post_empty_after_sanitize_returns_400(self, client):
+        """PUT /posts/{id} with content that sanitizes to empty → 400."""
         post_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
 
@@ -431,7 +431,7 @@ class TestB08EmptyContentAfterSanitization:
                     },
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 422
+                assert resp.status_code == 400
                 assert (
                     "empty after sanitization"
                     in resp.json()["detail"]["message"].lower()
@@ -440,8 +440,8 @@ class TestB08EmptyContentAfterSanitization:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_update_post_whitespace_after_sanitize_returns_422(self, client):
-        """PUT /posts/{id} with content that sanitizes to whitespace → 422."""
+    async def test_update_post_whitespace_after_sanitize_returns_400(self, client):
+        """PUT /posts/{id} with content that sanitizes to whitespace → 400."""
         post_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
 
@@ -466,7 +466,7 @@ class TestB08EmptyContentAfterSanitization:
                     },
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 422
+                assert resp.status_code == 400
                 assert (
                     "empty after sanitization"
                     in resp.json()["detail"]["message"].lower()

@@ -358,6 +358,8 @@ export default {
       backToForum: 'フォーラムに戻る',
       editTitle: '投稿を編集',
       saveChanges: '変更を保存',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: '投稿が見つかりません。',
       pin: 'ピン留め',
       unpin: 'ピン解除',

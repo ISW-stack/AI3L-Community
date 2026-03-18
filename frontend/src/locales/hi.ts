@@ -359,6 +359,8 @@ export default {
       backToForum: 'फ़ोरम पर वापस',
       editTitle: 'पोस्ट संपादित करें',
       saveChanges: 'परिवर्तन सहेजें',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'पोस्ट नहीं मिली।',
       pin: 'पिन करें',
       unpin: 'अनपिन करें',

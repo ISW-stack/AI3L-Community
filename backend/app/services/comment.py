@@ -28,6 +28,9 @@ async def create_comment(
         blocked_ids = await get_blocked_user_ids(redis, user_id)
         if post_owner_id in blocked_ids:
             raise ValueError("Cannot comment on this post.")
+        owner_blocked_ids = await get_blocked_user_ids(redis, post_owner_id)
+        if user_id in owner_blocked_ids:
+            raise ValueError("Cannot comment on this post.")
 
     pool = get_pool()
     comment_id = uuid.uuid4()

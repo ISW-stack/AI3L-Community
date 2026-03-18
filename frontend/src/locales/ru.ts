@@ -360,6 +360,8 @@ export default {
       backToForum: 'Назад на форум',
       editTitle: 'Редактировать запись',
       saveChanges: 'Сохранить изменения',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'Запись не найдена.',
       pin: 'Закрепить',
       unpin: 'Открепить',

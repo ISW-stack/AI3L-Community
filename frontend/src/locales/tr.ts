@@ -361,6 +361,8 @@ export default {
       backToForum: 'Foruma Dön',
       editTitle: 'Gönderiyi Düzenle',
       saveChanges: 'Değişiklikleri Kaydet',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: 'Gönderi bulunamadı.',
       pin: 'Sabitle',
       unpin: 'Sabitlemeyi Kaldır',

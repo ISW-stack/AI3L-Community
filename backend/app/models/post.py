@@ -3,7 +3,7 @@ import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -29,6 +29,11 @@ class Post(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Boolean, nullable=False, server_default=sa.text("true")
     )
 
+    type: Mapped[str] = mapped_column(String(30), nullable=False, server_default=sa.text("'post'"))
+    reactions: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    like_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("0"))
+    answer_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("0"))
+    best_answer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("1"))
     comment_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sa.text("0"))
     is_pinned: Mapped[bool] = mapped_column(

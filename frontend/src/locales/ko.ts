@@ -358,6 +358,8 @@ export default {
       backToForum: '포럼으로 돌아가기',
       editTitle: '게시물 편집',
       saveChanges: '변경사항 저장',
+      versionConflict: 'This post was edited by someone else.',
+      reloadLatest: 'Reload latest version',
       notFound: '게시물을 찾을 수 없습니다.',
       pin: '고정',
       unpin: '고정 해제',
