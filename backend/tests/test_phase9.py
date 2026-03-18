@@ -329,7 +329,10 @@ class TestCommentEdit:
 
         try:
             _override_auth("MEMBER", user_id=user_id)
-            with patch("app.repositories.comment_repo.get_pool", return_value=mock_pool):
+            with (
+                patch("app.repositories.comment_repo.get_pool", return_value=mock_pool),
+                patch("app.api.v1.endpoints.comments.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            ):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",
                     json={"content": "Updated content"},
@@ -349,7 +352,10 @@ class TestCommentEdit:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.repositories.comment_repo.get_pool", return_value=mock_pool):
+            with (
+                patch("app.repositories.comment_repo.get_pool", return_value=mock_pool),
+                patch("app.api.v1.endpoints.comments.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            ):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",
                     json={"content": "Hacked"},

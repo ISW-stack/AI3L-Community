@@ -166,9 +166,9 @@ async def soft_delete(sig_id: uuid.UUID) -> bool:
                 sig_id,
             )
 
-            # Soft-delete SIG members
+            # Hard-delete SIG member records (no content to preserve)
             await conn.execute(
-                "UPDATE sig_members SET is_deleted = true WHERE sig_id = $1",
+                "DELETE FROM sig_members WHERE sig_id = $1",
                 sig_id,
             )
             return True

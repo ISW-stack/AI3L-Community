@@ -1803,6 +1803,7 @@ class TestCleanupDMExpiredFiles:
         }
 
         with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[expired_msg]),
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_delete,
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock) as mock_decrement,
@@ -1830,6 +1831,7 @@ class TestCleanupDMExpiredFiles:
         }
 
         with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[expired_msg]),
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock, side_effect=Exception("S3 error")),
             patch("app.repositories.dm_repo.clear_message_attachment", new_callable=AsyncMock),
@@ -1844,7 +1846,10 @@ class TestCleanupDMExpiredFiles:
     @pytest.mark.anyio
     async def test_no_expired_files(self):
         """_cleanup_files returns 0 when no expired files."""
-        with patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[]):
+        with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[]),
+        ):
             from app.tasks.dm_cleanup import _cleanup_files
 
             result = await _cleanup_files()
@@ -1865,6 +1870,7 @@ class TestCleanupDMExpiredFiles:
         }
 
         with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[expired]),
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.clear_message_attachment", new_callable=AsyncMock) as mock_clear,
@@ -1890,6 +1896,7 @@ class TestCleanupDMExpiredText:
         ]
 
         with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=expired),
             patch("app.repositories.dm_repo.delete_messages_by_ids", new_callable=AsyncMock, return_value=3),
             patch("app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock) as mock_incr,
@@ -1905,7 +1912,10 @@ class TestCleanupDMExpiredText:
     @pytest.mark.anyio
     async def test_empty_expired_noop(self):
         """_cleanup_text returns 0 when no expired text messages."""
-        with patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=[]):
+        with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=[]),
+        ):
             from app.tasks.dm_cleanup import _cleanup_text
 
             result = await _cleanup_text()
@@ -1920,6 +1930,7 @@ class TestCleanupDMExpiredText:
         ]
 
         with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=expired),
             patch("app.repositories.dm_repo.delete_messages_by_ids", new_callable=AsyncMock, return_value=1),
             patch("app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock, side_effect=Exception("DB error")),
@@ -1939,6 +1950,7 @@ class TestCleanupDMExpiredText:
         ]
 
         with (
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=expired),
             patch("app.repositories.dm_repo.delete_messages_by_ids", new_callable=AsyncMock, return_value=1),
             patch("app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock) as mock_incr,

@@ -47,7 +47,7 @@ async def create_user(
 
 _PROFILE_FIELD_LIMITS: dict[str, int] = {
     "display_name": 100,
-    "bio": 50000,
+    "bio": 500,
     "affiliation": 200,
     "orcid": 30,
 }
