@@ -88,16 +88,28 @@ _AUTHOR_ALIASES: dict[str, str] = {
 }
 
 
-def git_author_commits() -> list[tuple[int, str]]:
-    output = _run("git shortlog -sn HEAD")
-    counts: defaultdict[str, int] = defaultdict(int)
+def git_author_stats() -> list[tuple[int, str, int, int]]:
+    """Returns list of (commits, name, additions, deletions) sorted by commits desc."""
+    output = _run("git log --numstat --pretty=format:COMMIT:%an HEAD")
+    commit_counts: defaultdict[str, int] = defaultdict(int)
+    adds: defaultdict[str, int] = defaultdict(int)
+    dels: defaultdict[str, int] = defaultdict(int)
+    current: str | None = None
     for line in output.splitlines():
-        m = re.match(r"\s*(\d+)\s+(.+)", line)
-        if m:
-            name = m.group(2).strip()
-            canonical = _AUTHOR_ALIASES.get(name, name)
-            counts[canonical] += int(m.group(1))
-    return sorted(((c, n) for n, c in counts.items()), reverse=True)
+        if line.startswith("COMMIT:"):
+            raw = line[7:].strip()
+            current = _AUTHOR_ALIASES.get(raw, raw)
+            commit_counts[current] += 1
+        elif current and "\t" in line:
+            parts = line.split("\t")
+            if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+                adds[current] += int(parts[0])
+                dels[current] += int(parts[1])
+    result = [
+        (commit_counts[n], n, adds[n], dels[n])
+        for n in commit_counts
+    ]
+    return sorted(result, reverse=True)
 
 
 # ---------------------------------------------------------------------------
@@ -406,7 +418,7 @@ def generate_activity_svg(monthly: list[tuple[str, int]]) -> Path:
 def build_stats_block(
     plus: int,
     minus: int,
-    authors: list[tuple[int, str]],
+    authors: list[tuple[int, str, int, int]],
     be_loc: int,
     fe_loc: int,
     be_tests: int,
@@ -486,11 +498,11 @@ def build_stats_block(
         "",
         "### Contributions by Author",
         "",
-        "| Author | Commits |",
-        "| --- | ---: |",
+        "| Author | Commits | Lines added | Lines removed |",
+        "| --- | ---: | ---: | ---: |",
     ]
-    for commits, author in authors:
-        rows.append(f"| {author} | {_fmt(commits)} |")
+    for commits, author, a, d in authors:
+        rows.append(f"| {author} | {_fmt(commits)} | +{_fmt(a)} | -{_fmt(d)} |")
 
     rows.append("")
     rows.append(STATS_END)
@@ -538,9 +550,9 @@ def main() -> None:
     print(f"  +{_fmt(plus)} / -{_fmt(minus)}")
 
     print("Computing author commit counts…")
-    authors = git_author_commits()
-    for commits, author in authors:
-        print(f"  {commits:>6,}  {author}")
+    authors = git_author_stats()
+    for commits, author, a, d in authors:
+        print(f"  {commits:>6,}  {author}  +{_fmt(a)} / -{_fmt(d)}")
 
     print("Computing monthly commit activity…")
     monthly = monthly_commits()
