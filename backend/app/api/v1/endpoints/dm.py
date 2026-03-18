@@ -14,7 +14,7 @@ from app.core.constants import (
     RATE_LIMIT_DM_SEND,
 )
 from app.core.deps import require_role
-from app.core.errors import AppError, ErrorCode, StorageQuotaError
+from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
 from app.schemas.auth import MessageResponse
 from app.schemas.dm import (
@@ -132,18 +132,15 @@ async def send_message(
         file_name = file.filename or "attachment"
         file_content_type = file.content_type
 
-    try:
-        msg = await dm_service.send_message(
-            sender_id=sender_id,
-            recipient_id=str(user_id),
-            content=content,
-            file_data=file_data,
-            file_name=file_name,
-            file_size=file_size,
-            file_content_type=file_content_type,
-        )
-    except StorageQuotaError as e:
-        raise AppError(ErrorCode.ALBUM_002, 400, str(e))
+    msg = await dm_service.send_message(
+        sender_id=sender_id,
+        recipient_id=str(user_id),
+        content=content,
+        file_data=file_data,
+        file_name=file_name,
+        file_size=file_size,
+        file_content_type=file_content_type,
+    )
 
     return DMMessageResponse(**msg)
 

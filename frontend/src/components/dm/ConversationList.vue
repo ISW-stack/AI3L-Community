@@ -63,6 +63,7 @@ function handleAvatarError(convId: string) {
         @click="handleSelect(conv)"
         class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-alt border-b border-border/50 transition"
         :class="{ 'bg-brand-50/50': activeId === conv.id }"
+        :aria-current="activeId === conv.id ? 'true' : undefined"
       >
         <!-- Avatar -->
         <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -97,6 +98,8 @@ function handleAvatarError(convId: string) {
         <span
           v-if="conv.unread_count > 0"
           class="shrink-0 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-danger-500 rounded-full"
+          role="status"
+          :aria-label="`${conv.unread_count} unread message${conv.unread_count === 1 ? '' : 's'}`"
         >
           {{ conv.unread_count > 99 ? '99+' : conv.unread_count }}
         </span>

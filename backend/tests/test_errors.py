@@ -39,6 +39,9 @@ class TestErrorCodes:
             "DM_001",
             "DM_002",
             "DM_003",
+            "DM_004",
+            "DM_005",
+            "DM_006",
         ]
         actual = [e.value for e in ErrorCode]
         assert sorted(actual) == sorted(expected)

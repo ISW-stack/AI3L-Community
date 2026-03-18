@@ -411,6 +411,127 @@ async def delete_oldest_messages_by_chars(
             return [dict(r) for r in rows]
 
 
+async def send_message_atomic(
+    conversation_id: uuid.UUID,
+    msg_id: uuid.UUID,
+    sender_id: uuid.UUID,
+    content: str | None,
+    attachment_key: str | None,
+    attachment_name: str | None,
+    attachment_size: int | None,
+    attachment_expires_at,
+    content_len: int,
+    char_cap: int,
+) -> tuple[dict, list[dict]]:
+    """Atomically: advisory lock -> enforce char cap -> insert message -> update char count.
+
+    All operations run in a single transaction with pg_advisory_xact_lock
+    on the conversation_id to prevent concurrent corruption.
+
+    Returns (inserted_message_row, deleted_messages_for_storage_cleanup).
+    """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # 1. Advisory lock on conversation
+            await conn.execute(
+                "SELECT pg_advisory_xact_lock(hashtext($1::text))",
+                str(conversation_id),
+            )
+
+            # 2. Enforce char cap — delete oldest messages if needed
+            deleted: list[dict] = []
+            if content_len > 0:
+                total_chars = (
+                    await conn.fetchval(
+                        "SELECT total_chars FROM conversations WHERE id = $1",
+                        conversation_id,
+                    )
+                    or 0
+                )
+                excess = total_chars + content_len - char_cap
+                if excess > 0:
+                    rows = await conn.fetch(
+                        """
+                        WITH ranked AS (
+                            SELECT id, content, attachment_key, attachment_size, sender_id,
+                                   COALESCE(LENGTH(content), 0) AS char_len,
+                                   SUM(COALESCE(LENGTH(content), 0))
+                                       OVER (ORDER BY created_at ASC) AS running_total
+                            FROM dm_messages
+                            WHERE conversation_id = $1
+                              AND NOT is_recalled
+                            ORDER BY created_at ASC
+                        ),
+                        to_delete AS (
+                            SELECT id, content, attachment_key, attachment_size, sender_id, char_len
+                            FROM ranked
+                            WHERE running_total <= $2
+                               OR char_len > 0 AND running_total - char_len < $2
+                        ),
+                        deleted_rows AS (
+                            DELETE FROM dm_messages
+                            WHERE id IN (SELECT id FROM to_delete)
+                            RETURNING id, content, attachment_key, attachment_size, sender_id
+                        )
+                        SELECT *, COALESCE(LENGTH(content), 0) AS char_len FROM deleted_rows
+                        """,
+                        conversation_id,
+                        excess,
+                    )
+                    if rows:
+                        total_removed = sum(r["char_len"] for r in rows)
+                        await conn.execute(
+                            "UPDATE conversations SET total_chars = GREATEST(0, total_chars - $1) WHERE id = $2",
+                            total_removed,
+                            conversation_id,
+                        )
+                        deleted = [dict(r) for r in rows]
+
+            # 3. Insert message
+            row = await conn.fetchrow(
+                """
+                WITH inserted AS (
+                    INSERT INTO dm_messages
+                        (id, conversation_id, sender_id, content,
+                         attachment_key, attachment_name, attachment_size,
+                         attachment_expires_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    RETURNING *
+                )
+                SELECT i.*,
+                       u.display_name AS sender_display_name,
+                       u.avatar_url   AS sender_avatar_url
+                FROM inserted i
+                JOIN users u ON i.sender_id = u.id
+                """,
+                msg_id,
+                conversation_id,
+                sender_id,
+                content,
+                attachment_key,
+                attachment_name,
+                attachment_size,
+                attachment_expires_at,
+            )
+
+            # 4. Bump conversation updated_at
+            await conn.execute(
+                "UPDATE conversations SET updated_at = NOW() WHERE id = $1",
+                conversation_id,
+            )
+
+            # 5. Increment char count
+            if content_len > 0:
+                await conn.execute(
+                    "UPDATE conversations SET total_chars = GREATEST(0, total_chars + $1) WHERE id = $2",
+                    content_len,
+                    conversation_id,
+                )
+
+            return dict(row), deleted
+
+
 async def find_expired_file_messages(cutoff) -> list[dict]:
     """Find messages with expired attachments that still have an attachment_key."""
     pool = get_pool()

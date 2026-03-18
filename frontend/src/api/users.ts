@@ -47,3 +47,23 @@ export async function applyForMembership(description: string) {
   const { data } = await api.post('/users/apply-member', { description })
   return data as { message: string }
 }
+
+export interface UserPreferences {
+  theme: string
+  notify_mentions: boolean
+  notify_replies: boolean
+  notify_sig_posts: boolean
+  dm_friends_only: boolean
+}
+
+export async function getPreferences(): Promise<UserPreferences> {
+  const { data } = await api.get('/users/me/preferences')
+  return data as UserPreferences
+}
+
+export async function updatePreferences(
+  payload: Partial<UserPreferences>,
+): Promise<UserPreferences> {
+  const { data } = await api.patch('/users/me/preferences', payload)
+  return data as UserPreferences
+}

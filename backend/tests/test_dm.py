@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.core.errors import AppError, ErrorCode, StorageQuotaError
+from app.core.errors import AppError, ErrorCode
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -656,9 +656,7 @@ class TestSendMessageService:
         msg_dict = _make_msg_response()
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
-        mock_dm_repo.get_conversation_char_count = AsyncMock(return_value=0)
-        mock_dm_repo.insert_message = AsyncMock(return_value=msg_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
 
@@ -691,9 +689,7 @@ class TestSendMessageService:
         msg_dict["attachment_url"] = "http://minio/presigned"
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
-        mock_dm_repo.get_conversation_char_count = AsyncMock(return_value=0)
-        mock_dm_repo.insert_message = AsyncMock(return_value=msg_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
 
@@ -732,9 +728,7 @@ class TestSendMessageService:
         msg_dict["attachment_url"] = "http://presigned"
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
-        mock_dm_repo.get_conversation_char_count = AsyncMock(return_value=0)
-        mock_dm_repo.insert_message = AsyncMock(return_value=msg_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
 
@@ -847,9 +841,7 @@ class TestSendMessageService:
 
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=True)
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
-        mock_dm_repo.get_conversation_char_count = AsyncMock(return_value=0)
-        mock_dm_repo.insert_message = AsyncMock(return_value=msg_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
         mock_convert.return_value = _make_msg_response()
 
         with (
@@ -870,7 +862,7 @@ class TestSendMessageService:
     @pytest.mark.anyio
     @patch(f"{_SVC}.dm_repo")
     async def test_send_storage_quota_exceeded(self, mock_dm_repo):
-        """send_message with file raises StorageQuotaError when quota exceeded."""
+        """send_message with file raises DM_004 when quota exceeded."""
         pool, conn = _mock_pool_context()
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
 
@@ -885,7 +877,7 @@ class TestSendMessageService:
         ):
             from app.services.dm import send_message
 
-            with pytest.raises(StorageQuotaError):
+            with pytest.raises(AppError) as exc:
                 await send_message(
                     sender_id=_SENDER_ID,
                     recipient_id=_RECIPIENT_ID,
@@ -895,21 +887,21 @@ class TestSendMessageService:
                     file_content_type="application/octet-stream",
                 )
 
+            assert exc.value.status_code == 413
+            assert exc.value.detail["code"] == "DM_004"
+
     @pytest.mark.anyio
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_send_char_cap_deletes_oldest(self, mock_dm_repo, mock_emit, mock_convert):
-        """send_message enforces char cap by deleting oldest messages."""
+    async def test_send_char_cap_uses_atomic(self, mock_dm_repo, mock_emit, mock_convert):
+        """send_message uses send_message_atomic for char cap enforcement."""
         pool, conn = _mock_pool_context()
         conv = _make_conversation(conv_id=_CONV_ID)
         msg_row = _make_message_row(sender_id=_SENDER_ID)
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
-        mock_dm_repo.get_conversation_char_count = AsyncMock(return_value=50000)  # at cap
-        mock_dm_repo.delete_oldest_messages_by_chars = AsyncMock(return_value=[])
-        mock_dm_repo.insert_message = AsyncMock(return_value=msg_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = _make_msg_response()
 
@@ -921,7 +913,7 @@ class TestSendMessageService:
 
             result = await send_message(sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="New msg")
 
-        mock_dm_repo.delete_oldest_messages_by_chars.assert_called_once()
+        mock_dm_repo.send_message_atomic.assert_called_once()
         assert result is not None
 
     @pytest.mark.anyio
@@ -934,9 +926,7 @@ class TestSendMessageService:
         msg_row = _make_message_row(sender_id=_SENDER_ID)
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
-        mock_dm_repo.get_conversation_char_count = AsyncMock(return_value=0)
-        mock_dm_repo.insert_message = AsyncMock(return_value=msg_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
 
         with (
@@ -1622,8 +1612,8 @@ class TestSendMessageEndpoint:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_400_storage_quota_exceeded(self, client):
-        """POST /dm/conversations/{user_id}/messages returns 400 for storage quota."""
+    async def test_413_storage_quota_exceeded(self, client):
+        """POST /dm/conversations/{user_id}/messages returns 413 for storage quota."""
         payload, uid = _override_auth("MEMBER")
         target = uuid.uuid4()
         try:
@@ -1632,7 +1622,7 @@ class TestSendMessageEndpoint:
                 patch(
                     f"{_EP}.dm_service.send_message",
                     new_callable=AsyncMock,
-                    side_effect=StorageQuotaError("Storage quota exceeded (1 GB limit)."),
+                    side_effect=AppError(ErrorCode.DM_004, 413, "Storage quota exceeded (1 GB limit)."),
                 ),
             ):
                 resp = await client.post(
@@ -1640,7 +1630,8 @@ class TestSendMessageEndpoint:
                     data={"content": "Hi"},
                     files={"file": ("big.bin", b"data", "application/octet-stream")},
                 )
-            assert resp.status_code == 400
+            assert resp.status_code == 413
+            assert resp.json()["detail"]["code"] == "DM_004"
         finally:
             _clear_overrides()
 
@@ -2130,8 +2121,8 @@ class TestSendMessageEdgeCases:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_send_file_too_large_raises_422(self, mock_dm_repo, mock_emit, mock_convert):
-        """send_message with file exceeding DM_MAX_ATTACHMENT_SIZE raises SYS_422."""
+    async def test_send_file_too_large_raises_dm005(self, mock_dm_repo, mock_emit, mock_convert):
+        """send_message with file exceeding DM_MAX_ATTACHMENT_SIZE raises DM_005."""
         pool, conn = _mock_pool_context()
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
 
@@ -2151,7 +2142,8 @@ class TestSendMessageEdgeCases:
                     file_content_type="application/octet-stream",
                 )
 
-        assert exc.value.status_code == 422
+        assert exc.value.status_code == 413
+        assert exc.value.detail["code"] == "DM_005"
 
     @pytest.mark.anyio
     @patch(f"{_SVC}.dm_repo")
@@ -2270,3 +2262,371 @@ class TestListMessagesEndpointEdgeCases:
             assert resp.status_code == 403
         finally:
             _clear_overrides()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 8. BUG-3: ADVISORY LOCK / ATOMIC SEND TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSendMessageAtomicRepo:
+    """Tests for the new send_message_atomic repo function."""
+
+    @pytest.mark.anyio
+    async def test_send_message_atomic_calls_advisory_lock(self, mock_pool, mock_conn):
+        """send_message_atomic acquires pg_advisory_xact_lock on conversation_id."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        mock_conn.fetchrow.return_value = msg_row
+        mock_conn.fetchval.return_value = 0  # total_chars = 0
+        mock_conn.fetch.return_value = []  # no deletions
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            from app.repositories.dm_repo import send_message_atomic
+
+            row, deleted = await send_message_atomic(
+                conversation_id=_CONV_ID,
+                msg_id=uuid.uuid4(),
+                sender_id=uuid.UUID(_SENDER_ID),
+                content="Test",
+                attachment_key=None,
+                attachment_name=None,
+                attachment_size=None,
+                attachment_expires_at=None,
+                content_len=4,
+                char_cap=50000,
+            )
+
+        # Verify advisory lock was called
+        execute_calls = [str(c) for c in mock_conn.execute.call_args_list]
+        lock_called = any("pg_advisory_xact_lock" in c for c in execute_calls)
+        assert lock_called, "Expected pg_advisory_xact_lock to be called"
+        assert row is not None
+
+    @pytest.mark.anyio
+    async def test_send_message_atomic_enforces_char_cap(self, mock_pool, mock_conn):
+        """send_message_atomic deletes oldest messages when char cap exceeded."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        deleted_row = {
+            "id": uuid.uuid4(),
+            "content": "Old msg",
+            "attachment_key": None,
+            "attachment_size": None,
+            "sender_id": uuid.UUID(_SENDER_ID),
+            "char_len": 7,
+        }
+        mock_conn.fetchrow.return_value = msg_row
+        mock_conn.fetchval.return_value = 49998  # near cap
+        mock_conn.fetch.return_value = [deleted_row]  # one message deleted
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            from app.repositories.dm_repo import send_message_atomic
+
+            row, deleted = await send_message_atomic(
+                conversation_id=_CONV_ID,
+                msg_id=uuid.uuid4(),
+                sender_id=uuid.UUID(_SENDER_ID),
+                content="New message",  # 11 chars
+                attachment_key=None,
+                attachment_name=None,
+                attachment_size=None,
+                attachment_expires_at=None,
+                content_len=11,
+                char_cap=50000,
+            )
+
+        assert len(deleted) == 1
+        assert deleted[0]["char_len"] == 7
+
+    @pytest.mark.anyio
+    async def test_send_message_atomic_returns_deleted_messages(self, mock_pool, mock_conn):
+        """send_message_atomic returns deleted messages for storage cleanup."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        del1 = {
+            "id": uuid.uuid4(),
+            "content": "Msg1",
+            "attachment_key": "dm/test/a.pdf",
+            "attachment_size": 1024,
+            "sender_id": uuid.UUID(_SENDER_ID),
+            "char_len": 4,
+        }
+        del2 = {
+            "id": uuid.uuid4(),
+            "content": "Msg2",
+            "attachment_key": None,
+            "attachment_size": None,
+            "sender_id": uuid.UUID(_SENDER_ID),
+            "char_len": 4,
+        }
+        mock_conn.fetchrow.return_value = msg_row
+        mock_conn.fetchval.return_value = 50000  # at cap
+        mock_conn.fetch.return_value = [del1, del2]
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            from app.repositories.dm_repo import send_message_atomic
+
+            row, deleted = await send_message_atomic(
+                conversation_id=_CONV_ID,
+                msg_id=uuid.uuid4(),
+                sender_id=uuid.UUID(_SENDER_ID),
+                content="New",
+                attachment_key=None,
+                attachment_name=None,
+                attachment_size=None,
+                attachment_expires_at=None,
+                content_len=3,
+                char_cap=50000,
+            )
+
+        assert len(deleted) == 2
+        assert deleted[0]["attachment_key"] == "dm/test/a.pdf"
+        assert deleted[1]["attachment_key"] is None
+
+    @pytest.mark.anyio
+    async def test_send_message_atomic_no_deletions_under_cap(self, mock_pool, mock_conn):
+        """send_message_atomic does not delete when under char cap."""
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        mock_conn.fetchrow.return_value = msg_row
+        mock_conn.fetchval.return_value = 100  # far under cap
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            from app.repositories.dm_repo import send_message_atomic
+
+            row, deleted = await send_message_atomic(
+                conversation_id=_CONV_ID,
+                msg_id=uuid.uuid4(),
+                sender_id=uuid.UUID(_SENDER_ID),
+                content="Short",
+                attachment_key=None,
+                attachment_name=None,
+                attachment_size=None,
+                attachment_expires_at=None,
+                content_len=5,
+                char_cap=50000,
+            )
+
+        assert deleted == []
+        # fetch should not have been called (no excess)
+        mock_conn.fetch.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_send_message_atomic_file_only_no_char_cap_check(self, mock_pool, mock_conn):
+        """send_message_atomic with file-only (content_len=0) skips char cap check."""
+        msg_row = _make_message_row(
+            sender_id=_SENDER_ID,
+            content=None,
+            attachment_key="dm/test/f.pdf",
+        )
+        mock_conn.fetchrow.return_value = msg_row
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            from app.repositories.dm_repo import send_message_atomic
+
+            row, deleted = await send_message_atomic(
+                conversation_id=_CONV_ID,
+                msg_id=uuid.uuid4(),
+                sender_id=uuid.UUID(_SENDER_ID),
+                content=None,
+                attachment_key="dm/test/f.pdf",
+                attachment_name="f.pdf",
+                attachment_size=1024,
+                attachment_expires_at=None,
+                content_len=0,
+                char_cap=50000,
+            )
+
+        assert deleted == []
+        # fetchval should NOT have been called (no char cap check for file-only)
+        mock_conn.fetchval.assert_not_called()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 9. BUG-6: RECALL ORDER (DB FIRST, THEN MINIO) TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestRecallMessageOrder:
+    """Tests verifying recall_message does DB recall before MinIO deletion."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_db_before_minio_delete(self, mock_dm_repo, mock_emit, mock_convert):
+        """recall_message calls DB recall before MinIO delete_file."""
+        msg_row = _make_message_row(
+            sender_id=_SENDER_ID,
+            content="With file",
+            attachment_key="dm/test/file.pdf",
+            attachment_size=2048,
+        )
+        recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
+        conv = _make_conversation(
+            conv_id=msg_row["conversation_id"],
+            user_a=_SENDER_ID,
+            user_b=_RECIPIENT_ID,
+        )
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
+        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
+        mock_convert.return_value = _make_msg_response(content=None)
+
+        call_order = []
+
+        original_recall = mock_dm_repo.recall_message
+
+        async def track_recall(*a, **kw):
+            call_order.append("db_recall")
+            return await original_recall(*a, **kw)
+
+        mock_dm_repo.recall_message = AsyncMock(side_effect=track_recall)
+
+        def track_delete(*a, **kw):
+            call_order.append("minio_delete")
+
+        with (
+            patch("app.core.storage.delete_file", side_effect=track_delete),
+            patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
+        ):
+            from app.services.dm import recall_message
+
+            await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        assert call_order.index("db_recall") < call_order.index("minio_delete"), (
+            f"DB recall must happen before MinIO delete, got: {call_order}"
+        )
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_minio_failure_still_recalls_db(self, mock_dm_repo, mock_emit, mock_convert):
+        """recall_message still succeeds in DB even if MinIO delete raises."""
+        msg_row = _make_message_row(
+            sender_id=_SENDER_ID,
+            content="With file",
+            attachment_key="dm/test/file.pdf",
+            attachment_size=2048,
+        )
+        recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
+        conv = _make_conversation(
+            conv_id=msg_row["conversation_id"],
+            user_a=_SENDER_ID,
+            user_b=_RECIPIENT_ID,
+        )
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
+        mock_dm_repo.increment_char_count = AsyncMock()
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
+        mock_convert.return_value = _make_msg_response(content=None)
+
+        with (
+            patch("app.core.storage.delete_file", side_effect=Exception("S3 down")),
+            patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
+        ):
+            from app.services.dm import recall_message
+
+            # Should NOT raise — DB recall happened before MinIO delete
+            result = await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        # DB recall was called successfully
+        mock_dm_repo.recall_message.assert_called_once()
+        assert result is not None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 10. NEW ERROR CODES TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestNewDMErrorCodes:
+    """Tests for DM_004, DM_005, DM_006 error codes."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_file_too_large_returns_dm_005(self, mock_dm_repo):
+        """send_message with oversized file raises DM_005 with 413 status."""
+        pool, conn = _mock_pool_context()
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+        ):
+            from app.services.dm import send_message
+
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID,
+                    recipient_id=_RECIPIENT_ID,
+                    file_data=b"x",
+                    file_name="huge.bin",
+                    file_size=52_428_801,
+                    file_content_type="application/octet-stream",
+                )
+
+        assert exc.value.status_code == 413
+        assert exc.value.detail["code"] == "DM_005"
+        assert "50 MB" in exc.value.detail["message"]
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_storage_quota_exceeded_returns_dm_004(self, mock_dm_repo):
+        """send_message with file raises DM_004 with 413 when storage quota exceeded."""
+        pool, conn = _mock_pool_context()
+        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=1_073_741_824,
+            ),
+        ):
+            from app.services.dm import send_message
+
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID,
+                    recipient_id=_RECIPIENT_ID,
+                    file_data=b"data",
+                    file_name="test.bin",
+                    file_size=100,
+                    file_content_type="application/octet-stream",
+                )
+
+        assert exc.value.status_code == 413
+        assert exc.value.detail["code"] == "DM_004"
+        assert "1 GB" in exc.value.detail["message"]
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_list_messages_conversation_not_found_returns_dm_006(self, mock_dm_repo):
+        """list_messages raises DM_006 with 404 when conversation not found."""
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=None)
+
+        from app.services.dm import list_messages
+
+        with pytest.raises(AppError) as exc:
+            await list_messages(_SENDER_ID, str(uuid.uuid4()))
+
+        assert exc.value.status_code == 404
+        assert exc.value.detail["code"] == "DM_006"
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_mark_read_conversation_not_found_returns_dm_006(self, mock_dm_repo):
+        """mark_read raises DM_006 with 404 when conversation not found."""
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=None)
+
+        from app.services.dm import mark_read
+
+        with pytest.raises(AppError) as exc:
+            await mark_read(_SENDER_ID, str(uuid.uuid4()))
+
+        assert exc.value.status_code == 404
+        assert exc.value.detail["code"] == "DM_006"

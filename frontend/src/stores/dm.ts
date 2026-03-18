@@ -13,6 +13,15 @@ export const useDMStore = defineStore('dm', () => {
   const messagesTotal = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const currentUserId = ref('')
+
+  // BUG-1: fetchId guards to discard stale responses
+  let _convFetchId = 0
+  let _msgFetchId = 0
+
+  function setCurrentUserId(id: string) {
+    currentUserId.value = id
+  }
 
   async function fetchUnreadCount() {
     try {
@@ -24,24 +33,29 @@ export const useDMStore = defineStore('dm', () => {
   }
 
   async function fetchConversations(page = 1, pageSize = 30) {
+    const fetchId = ++_convFetchId
     loading.value = true
     error.value = null
     try {
       const res = await dmApi.listConversations({ page, page_size: pageSize })
+      if (fetchId !== _convFetchId) return // stale response, discard
       conversations.value = res.conversations
       conversationsTotal.value = res.total
     } catch (e: unknown) {
+      if (fetchId !== _convFetchId) return
       error.value = getErrorMessage(e, 'Failed to load conversations.')
     } finally {
-      loading.value = false
+      if (fetchId === _convFetchId) loading.value = false
     }
   }
 
   async function fetchMessages(conversationId: string, page = 1, pageSize = 30) {
+    const fetchId = ++_msgFetchId
     loading.value = true
     error.value = null
     try {
       const res = await dmApi.listMessages(conversationId, { page, page_size: pageSize })
+      if (fetchId !== _msgFetchId) return // stale response, discard
       if (page === 1) {
         messages.value = res.messages
       } else {
@@ -52,9 +66,20 @@ export const useDMStore = defineStore('dm', () => {
       }
       messagesTotal.value = res.total
     } catch (e: unknown) {
-      error.value = getErrorMessage(e, 'Failed to load messages.')
+      if (fetchId !== _msgFetchId) return
+      const errMsg = getErrorMessage(e, 'Failed to load messages.')
+      error.value = errMsg
+      // BUG-5: If 404, clear active conversation
+      if (e && typeof e === 'object' && 'response' in e) {
+        const axiosErr = e as { response?: { status?: number } }
+        if (axiosErr.response?.status === 404) {
+          activeConversationId.value = null
+          messages.value = []
+          messagesTotal.value = 0
+        }
+      }
     } finally {
-      loading.value = false
+      if (fetchId === _msgFetchId) loading.value = false
     }
   }
 
@@ -63,16 +88,50 @@ export const useDMStore = defineStore('dm', () => {
     const convIdx = conversations.value.findIndex(
       (c) => c.id === message.conversation_id,
     )
-    if (convIdx >= 0) {
+
+    // BUG-5: Unknown conversation — refetch list
+    if (convIdx < 0) {
+      fetchConversations(1, 30)
+      if (message.sender.id !== currentUserId.value) {
+        unreadCount.value += 1
+      }
+      // Still add to messages if viewing this conversation
+      if (activeConversationId.value === message.conversation_id) {
+        const exists = messages.value.some((m) => m.id === message.id)
+        if (!exists) {
+          messages.value.push(message)
+        }
+      }
+      return
+    }
+
+    // BUG-2: Own message echoed back via WS — dedup only, no unread increment
+    if (message.sender.id === currentUserId.value) {
+      // Update conversation list (move to top, update last_message) but don't touch unread
       const conv = { ...conversations.value[convIdx] }
       conv.last_message = message
       conv.updated_at = message.created_at
-      if (activeConversationId.value !== message.conversation_id) {
-        conv.unread_count += 1
-      }
       conversations.value.splice(convIdx, 1)
       conversations.value.unshift(conv)
+      // Only add to messages if viewing this conversation and not already present
+      if (activeConversationId.value === message.conversation_id) {
+        const exists = messages.value.some((m) => m.id === message.id)
+        if (!exists) {
+          messages.value.push(message)
+        }
+      }
+      return
     }
+
+    // Other user's message
+    const conv = { ...conversations.value[convIdx] }
+    conv.last_message = message
+    conv.updated_at = message.created_at
+    if (activeConversationId.value !== message.conversation_id) {
+      conv.unread_count += 1
+    }
+    conversations.value.splice(convIdx, 1)
+    conversations.value.unshift(conv)
 
     // If viewing this conversation, add message to messages array
     if (activeConversationId.value === message.conversation_id) {
@@ -122,21 +181,20 @@ export const useDMStore = defineStore('dm', () => {
     }
   }
 
+  // BUG-4: Immutable update pattern for reactivity
   function readReceiptFromWebSocket(conversationId: string, readAt: string) {
     if (activeConversationId.value === conversationId) {
-      for (const msg of messages.value) {
-        if (!msg.read_at) {
-          msg.read_at = readAt
-        }
-      }
+      messages.value = messages.value.map((msg) =>
+        !msg.read_at ? { ...msg, read_at: readAt } : msg,
+      )
     }
-    // Clear unread count for this conversation
-    const conv = conversations.value.find((c) => c.id === conversationId)
-    if (conv) {
-      const prevUnread = conv.unread_count
-      conv.unread_count = 0
+    // Update conversation unread count (immutable pattern)
+    conversations.value = conversations.value.map((c) => {
+      if (c.id !== conversationId) return c
+      const prevUnread = c.unread_count
       unreadCount.value = Math.max(0, unreadCount.value - prevUnread)
-    }
+      return { ...c, unread_count: 0 }
+    })
   }
 
   function setActiveConversation(id: string | null) {
@@ -152,6 +210,7 @@ export const useDMStore = defineStore('dm', () => {
     activeConversationId.value = null
     loading.value = false
     error.value = null
+    currentUserId.value = ''
   }
 
   return {
@@ -163,6 +222,7 @@ export const useDMStore = defineStore('dm', () => {
     messagesTotal,
     loading,
     error,
+    currentUserId,
     fetchUnreadCount,
     fetchConversations,
     fetchMessages,
@@ -171,6 +231,7 @@ export const useDMStore = defineStore('dm', () => {
     recallFromWebSocket,
     readReceiptFromWebSocket,
     setActiveConversation,
+    setCurrentUserId,
     resetState,
   }
 })

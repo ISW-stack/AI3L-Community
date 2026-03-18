@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useLocale } from '@/composables/useLocale'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -6,10 +7,21 @@ import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import { getPreferences, updatePreferences } from '@/api/users'
 
 const { t } = useLocale()
 
-defineProps<{
+const displayName = defineModel<string>('displayName', { required: true })
+const bio = defineModel<string>('bio', { required: true })
+const affiliation = defineModel<string>('affiliation', { required: true })
+const orcid = defineModel<string>('orcid', { required: true })
+
+const emit = defineEmits<{
+  save: []
+  'upload-avatar': [event: Event]
+}>()
+
+const props = defineProps<{
   username: string
   avatarUrl: string | null
   role: string | null | undefined
@@ -21,16 +33,6 @@ defineProps<{
   isGuest: boolean
   saving: boolean
   displayNameInitial: string
-}>()
-
-const displayName = defineModel<string>('displayName', { required: true })
-const bio = defineModel<string>('bio', { required: true })
-const affiliation = defineModel<string>('affiliation', { required: true })
-const orcid = defineModel<string>('orcid', { required: true })
-
-const emit = defineEmits<{
-  save: []
-  'upload-avatar': [event: Event]
 }>()
 
 function roleBadgeVariant(
@@ -62,6 +64,32 @@ function roleBadgeLabel(role: string | null | undefined): string {
       return t('common.role.guest')
     default:
       return role || 'Unknown'
+  }
+}
+
+const dmFriendsOnly = ref(false)
+const dmFriendsOnlyLoading = ref(false)
+
+onMounted(async () => {
+  if (!props.isGuest) {
+    try {
+      const prefs = await getPreferences()
+      dmFriendsOnly.value = prefs.dm_friends_only
+    } catch {
+      // Non-critical, leave default
+    }
+  }
+})
+
+async function toggleDmFriendsOnly() {
+  dmFriendsOnlyLoading.value = true
+  try {
+    await updatePreferences({ dm_friends_only: dmFriendsOnly.value })
+  } catch {
+    // Revert on failure
+    dmFriendsOnly.value = !dmFriendsOnly.value
+  } finally {
+    dmFriendsOnlyLoading.value = false
   }
 }
 
@@ -185,5 +213,23 @@ function formatBytes(bytes: number): string {
 
       <BaseButton type="submit" :loading="saving">{{ t('profile.form.saveBtn') }}</BaseButton>
     </form>
+  </BaseCard>
+
+  <!-- Privacy -->
+  <BaseCard v-if="!isGuest" padding="lg" class="mb-8">
+    <h3 class="text-sm font-semibold text-foreground mb-4">Privacy</h3>
+    <label class="flex items-center justify-between gap-4 cursor-pointer">
+      <div>
+        <span class="text-sm font-medium text-foreground">Friends-only messages</span>
+        <p class="text-xs text-muted mt-0.5">Only friends can send you direct messages</p>
+      </div>
+      <input
+        type="checkbox"
+        v-model="dmFriendsOnly"
+        :disabled="dmFriendsOnlyLoading"
+        class="h-5 w-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+        @change="toggleDmFriendsOnly"
+      />
+    </label>
   </BaseCard>
 </template>

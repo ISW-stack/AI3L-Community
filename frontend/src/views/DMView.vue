@@ -11,6 +11,7 @@ import ConversationList from '@/components/dm/ConversationList.vue'
 import MessageThread from '@/components/dm/MessageThread.vue'
 import MessageInput from '@/components/dm/MessageInput.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { MessageSquare, ArrowLeft } from 'lucide-vue-next'
 
@@ -24,6 +25,8 @@ const convPagination = usePagination(30)
 const msgPagination = usePagination(30)
 
 const sending = ref(false)
+const recalling = ref(false)
+const recallTargetId = ref<string | null>(null)
 const editingMessageId = ref<string | null>(null)
 const editingContent = ref('')
 const activeOtherUserId = ref<string | null>(null)
@@ -37,6 +40,7 @@ const breadcrumbs = [{ label: 'Home', to: '/' }, { label: 'Messages' }]
 
 // Load conversations on mount
 onMounted(async () => {
+  dmStore.setCurrentUserId(auth.user?.id ?? '')
   await dmStore.fetchConversations(1, convPagination.pageSize)
   convPagination.updateFromResponse(dmStore.conversationsTotal)
 
@@ -146,7 +150,7 @@ async function handleSend(content: string, file?: File) {
       }
     }
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to send message.'), 'error')
+    toast.show(parseDMError(e, 'Failed to send message.'), 'error')
   } finally {
     sending.value = false
   }
@@ -157,23 +161,69 @@ function handleEditMessage(messageId: string, currentContent: string) {
   editingContent.value = currentContent
 }
 
-async function handleRecallMessage(messageId: string) {
-  if (!confirm('Recall this message? The other party will see "Message recalled".')) return
+function parseDMError(e: unknown, fallback: string): string {
+  if (e && typeof e === 'object' && 'response' in e) {
+    const resp = (e as { response?: { data?: { detail?: { code?: string; message?: string } } } })
+      .response
+    const code = resp?.data?.detail?.code
+    if (code === 'DM_001') {
+      const msg = resp?.data?.detail?.message ?? ''
+      if (msg.includes('friends')) return 'This user only accepts messages from friends.'
+      return 'You cannot message this user.'
+    }
+    if (code === 'DM_002') return 'The edit/recall window (12 hours) has expired.'
+    if (code === 'DM_003') return 'You cannot message yourself.'
+    if (code === 'DM_004') return 'Storage quota exceeded (1 GB limit).'
+    if (code === 'DM_005') return 'File too large (max 50 MB).'
+    if (code === 'SYS_422') {
+      const msg = resp?.data?.detail?.message ?? ''
+      if (msg.includes('already recalled')) return 'This message has already been recalled.'
+      if (msg.includes('recalled message')) return 'Cannot edit a recalled message.'
+    }
+    if (code === 'SYS_403') return 'You can only edit or recall your own messages.'
+  }
+  return getErrorMessage(e, fallback)
+}
+
+function handleRecallMessage(messageId: string) {
+  recallTargetId.value = messageId
+}
+
+function cancelRecall() {
+  recallTargetId.value = null
+}
+
+async function confirmRecall() {
+  if (!recallTargetId.value) return
+  const messageId = recallTargetId.value
+  recalling.value = true
+
+  // Save original for rollback
+  const idx = dmStore.messages.findIndex((m) => m.id === messageId)
+  const original = idx >= 0 ? { ...dmStore.messages[idx] } : null
+
+  // Optimistic update
+  if (idx >= 0) {
+    dmStore.messages[idx] = {
+      ...dmStore.messages[idx],
+      is_recalled: true,
+      content: null,
+      attachment_url: null,
+      attachment_name: null,
+    }
+  }
+
   try {
     await dmApi.recallMessage(messageId)
-    // Update local state
-    const idx = dmStore.messages.findIndex((m) => m.id === messageId)
-    if (idx >= 0) {
-      dmStore.messages[idx] = {
-        ...dmStore.messages[idx],
-        is_recalled: true,
-        content: null,
-        attachment_url: null,
-        attachment_name: null,
-      }
-    }
+    recallTargetId.value = null
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to recall message.'), 'error')
+    // Rollback
+    if (original && idx >= 0) {
+      dmStore.messages[idx] = original
+    }
+    toast.show(parseDMError(e, 'Failed to recall message.'), 'error')
+  } finally {
+    recalling.value = false
   }
 }
 
@@ -228,7 +278,7 @@ const activeConvUser = computed(() => {
           <!-- Thread header -->
           <div class="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface">
             <button
-              class="sm:hidden p-1 text-muted hover:text-foreground transition"
+              class="sm:hidden p-2 -ml-2 text-muted hover:text-foreground active:bg-surface-alt rounded-lg transition"
               @click="handleBackToList"
               aria-label="Back to conversations"
             >
@@ -287,5 +337,31 @@ const activeConvUser = computed(() => {
         </template>
       </div>
     </div>
+
+    <BaseModal
+      :model-value="recallTargetId != null"
+      title="Recall Message"
+      size="sm"
+      @update:model-value="cancelRecall"
+    >
+      <p class="text-sm text-muted mb-4">
+        Are you sure you want to recall this message? The other party will see "Message recalled".
+      </p>
+      <div class="flex justify-end gap-3">
+        <button
+          @click="cancelRecall"
+          class="px-4 py-2 text-sm font-medium text-foreground bg-surface-alt border border-border rounded-lg hover:bg-gray-100 transition"
+        >
+          Cancel
+        </button>
+        <button
+          @click="confirmRecall"
+          :disabled="recalling"
+          class="px-4 py-2 text-sm font-medium text-white bg-danger-600 rounded-lg hover:bg-danger-700 transition disabled:opacity-50"
+        >
+          {{ recalling ? 'Recalling...' : 'Recall' }}
+        </button>
+      </div>
+    </BaseModal>
   </div>
 </template>

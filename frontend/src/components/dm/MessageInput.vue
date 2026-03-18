@@ -20,6 +20,14 @@ const content = ref(props.editContent ?? '')
 const file = ref<File | null>(null)
 const fileError = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const textarea = ref<HTMLTextAreaElement | null>(null)
+const isOverflowing = ref(false)
+
+function checkOverflow() {
+  if (textarea.value) {
+    isOverflowing.value = textarea.value.scrollHeight > textarea.value.clientHeight
+  }
+}
 
 const charsRemaining = computed(() => MAX_CHARS - content.value.length)
 const canSend = computed(
@@ -134,19 +142,27 @@ function formatFileSize(bytes: number): string {
       <!-- Textarea -->
       <div class="flex-1 relative">
         <textarea
+          ref="textarea"
           v-model="content"
           @keydown="handleKeydown"
+          @input="checkOverflow"
           :placeholder="editMode ? 'Edit your message...' : 'Type a message...'"
           :disabled="disabled"
           :maxlength="MAX_CHARS"
           rows="1"
-          class="w-full resize-none rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition disabled:opacity-50"
+          class="w-full resize-none rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition disabled:opacity-50 overflow-y-auto"
           style="max-height: 120px; min-height: 38px; field-sizing: content"
         ></textarea>
+        <div
+          v-if="isOverflowing"
+          class="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-surface-alt to-transparent pointer-events-none rounded-b-lg"
+        ></div>
         <span
           v-if="charsRemaining < 500"
           class="absolute bottom-1 right-2 text-[10px]"
           :class="charsRemaining < 0 ? 'text-danger-600' : 'text-muted'"
+          aria-live="polite"
+          :aria-label="`${charsRemaining} characters remaining`"
         >
           {{ charsRemaining }}
         </span>

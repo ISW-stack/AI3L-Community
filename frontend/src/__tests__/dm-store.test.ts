@@ -302,6 +302,7 @@ describe('useDMStore', () => {
     it('adds message to messages array when viewing that conversation', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-1'
+      store.conversations = [makeConversation({ id: 'conv-1' })]
       store.messages = [makeMessage({ id: 'existing' })]
 
       const newMsg = makeMessage({ id: 'new-msg', conversation_id: 'conv-1' })
@@ -314,6 +315,7 @@ describe('useDMStore', () => {
     it('does NOT add duplicate message with same id', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-1'
+      store.conversations = [makeConversation({ id: 'conv-1' })]
       const msg = makeMessage({ id: 'dup-1', conversation_id: 'conv-1' })
       store.messages = [msg]
 
@@ -324,6 +326,7 @@ describe('useDMStore', () => {
     it('increments unreadCount when NOT viewing that conversation', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-other'
+      store.conversations = [makeConversation({ id: 'conv-1' })]
       store.unreadCount = 0
 
       const msg = makeMessage({ id: 'msg-x', conversation_id: 'conv-1' })
@@ -334,6 +337,7 @@ describe('useDMStore', () => {
     it('does NOT increment unreadCount when viewing that conversation', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-1'
+      store.conversations = [makeConversation({ id: 'conv-1' })]
       store.unreadCount = 0
 
       const msg = makeMessage({ id: 'msg-x', conversation_id: 'conv-1' })
@@ -383,6 +387,7 @@ describe('useDMStore', () => {
     it('does not add message to messages array if viewing different conversation', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-other'
+      store.conversations = [makeConversation({ id: 'conv-1' })]
       store.messages = []
 
       const msg = makeMessage({ id: 'msg-1', conversation_id: 'conv-1' })
@@ -657,6 +662,335 @@ describe('useDMStore', () => {
       store.setActiveConversation('conv-1')
       store.setActiveConversation('conv-2')
       expect(store.activeConversationId).toBe('conv-2')
+    })
+  })
+
+  // ============ currentUserId ============
+
+  describe('setCurrentUserId', () => {
+    it('sets currentUserId', () => {
+      const store = useDMStore()
+      store.setCurrentUserId('user-42')
+      expect(store.currentUserId).toBe('user-42')
+    })
+
+    it('is cleared on resetState', () => {
+      const store = useDMStore()
+      store.setCurrentUserId('user-42')
+      store.resetState()
+      expect(store.currentUserId).toBe('')
+    })
+  })
+
+  // ============ BUG-1: fetchId guard (stale response discard) ============
+
+  describe('fetchConversations fetchId guard', () => {
+    it('discards stale response when a newer fetch is in progress', async () => {
+      const store = useDMStore()
+
+      let resolveFirst!: (value: unknown) => void
+      const firstPromise = new Promise((resolve) => {
+        resolveFirst = resolve
+      })
+      mockListConversations.mockReturnValueOnce(firstPromise)
+
+      const staleConvos = [makeConversation({ id: 'stale-conv' })]
+      const freshConvos = [makeConversation({ id: 'fresh-conv' })]
+
+      // Start first fetch (will be stale)
+      const fetch1 = store.fetchConversations()
+
+      // Start second fetch immediately (supersedes first)
+      mockListConversations.mockResolvedValueOnce({
+        conversations: freshConvos,
+        total: 1,
+      })
+      const fetch2 = store.fetchConversations()
+
+      // Resolve the stale first response
+      resolveFirst({ conversations: staleConvos, total: 1 })
+
+      await fetch1
+      await fetch2
+
+      // Only fresh data should be present
+      expect(store.conversations).toHaveLength(1)
+      expect(store.conversations[0].id).toBe('fresh-conv')
+    })
+
+    it('does not set loading false on stale response', async () => {
+      const store = useDMStore()
+
+      let resolveFirst!: (value: unknown) => void
+      const firstPromise = new Promise((resolve) => {
+        resolveFirst = resolve
+      })
+      mockListConversations.mockReturnValueOnce(firstPromise)
+
+      // Start first fetch
+      const fetch1 = store.fetchConversations()
+
+      // Start second fetch (pending)
+      let resolveSecond!: (value: unknown) => void
+      const secondPromise = new Promise((resolve) => {
+        resolveSecond = resolve
+      })
+      mockListConversations.mockReturnValueOnce(secondPromise)
+      const fetch2 = store.fetchConversations()
+
+      // Resolve the stale first response — loading should stay true
+      resolveFirst({ conversations: [], total: 0 })
+      await fetch1
+      expect(store.loading).toBe(true) // second is still pending
+
+      resolveSecond({ conversations: [], total: 0 })
+      await fetch2
+      expect(store.loading).toBe(false)
+    })
+  })
+
+  describe('fetchMessages fetchId guard', () => {
+    it('discards stale response when a newer fetch is in progress', async () => {
+      const store = useDMStore()
+
+      let resolveFirst!: (value: unknown) => void
+      const firstPromise = new Promise((resolve) => {
+        resolveFirst = resolve
+      })
+      mockListMessages.mockReturnValueOnce(firstPromise)
+
+      const staleMessages = [makeMessage({ id: 'stale-msg' })]
+      const freshMessages = [makeMessage({ id: 'fresh-msg' })]
+
+      // Start first fetch (will be stale)
+      const fetch1 = store.fetchMessages('conv-1')
+
+      // Start second fetch immediately
+      mockListMessages.mockResolvedValueOnce({
+        messages: freshMessages,
+        total: 1,
+      })
+      const fetch2 = store.fetchMessages('conv-1')
+
+      // Resolve the stale first response
+      resolveFirst({ messages: staleMessages, total: 1 })
+
+      await fetch1
+      await fetch2
+
+      // Only fresh data should be present
+      expect(store.messages).toHaveLength(1)
+      expect(store.messages[0].id).toBe('fresh-msg')
+    })
+  })
+
+  // ============ BUG-2: Own message dedup ============
+
+  describe('addFromWebSocket own message handling', () => {
+    it('skips unread increment for own messages', () => {
+      const store = useDMStore()
+      store.setCurrentUserId('user-1')
+      store.activeConversationId = 'conv-other'
+      store.unreadCount = 0
+      store.conversations = [makeConversation({ id: 'conv-1' })]
+
+      const ownMsg = makeMessage({
+        id: 'my-msg',
+        conversation_id: 'conv-1',
+        sender: makeSender({ id: 'user-1' }),
+      })
+      store.addFromWebSocket(ownMsg)
+
+      expect(store.unreadCount).toBe(0)
+    })
+
+    it('deduplicates own sent message already in array', () => {
+      const store = useDMStore()
+      store.setCurrentUserId('user-1')
+      store.activeConversationId = 'conv-1'
+      store.conversations = [makeConversation({ id: 'conv-1' })]
+
+      const ownMsg = makeMessage({
+        id: 'my-msg',
+        conversation_id: 'conv-1',
+        sender: makeSender({ id: 'user-1' }),
+      })
+      store.messages = [ownMsg]
+
+      // WS echo arrives
+      store.addFromWebSocket(ownMsg)
+
+      expect(store.messages).toHaveLength(1)
+    })
+
+    it('still updates conversation last_message for own messages', () => {
+      const store = useDMStore()
+      store.setCurrentUserId('user-1')
+      store.activeConversationId = 'conv-1'
+      store.conversations = [makeConversation({ id: 'conv-1', last_message: null })]
+
+      const ownMsg = makeMessage({
+        id: 'my-msg',
+        conversation_id: 'conv-1',
+        sender: makeSender({ id: 'user-1' }),
+        content: 'My message',
+      })
+      store.addFromWebSocket(ownMsg)
+
+      expect(store.conversations[0].last_message).toBeTruthy()
+      expect(store.conversations[0].last_message!.content).toBe('My message')
+    })
+
+    it('does not increment conversation unread_count for own messages', () => {
+      const store = useDMStore()
+      store.setCurrentUserId('user-1')
+      store.activeConversationId = 'conv-other'
+      store.conversations = [makeConversation({ id: 'conv-1', unread_count: 0 })]
+
+      const ownMsg = makeMessage({
+        id: 'my-msg',
+        conversation_id: 'conv-1',
+        sender: makeSender({ id: 'user-1' }),
+      })
+      store.addFromWebSocket(ownMsg)
+
+      expect(store.conversations[0].unread_count).toBe(0)
+    })
+  })
+
+  // ============ BUG-4: readReceiptFromWebSocket immutable update ============
+
+  describe('readReceiptFromWebSocket immutable update', () => {
+    it('creates new message objects (referential inequality)', () => {
+      const store = useDMStore()
+      store.activeConversationId = 'conv-1'
+      const origMsg = makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null })
+      store.messages = [origMsg]
+
+      store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
+
+      // New object — not the same reference
+      expect(store.messages[0]).not.toBe(origMsg)
+      expect(store.messages[0].read_at).toBe('2026-03-17T01:00:00Z')
+    })
+
+    it('updates all unread messages', () => {
+      const store = useDMStore()
+      store.activeConversationId = 'conv-1'
+      store.messages = [
+        makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null }),
+        makeMessage({ id: 'msg-2', conversation_id: 'conv-1', read_at: '2026-03-16T00:00:00Z' }),
+        makeMessage({ id: 'msg-3', conversation_id: 'conv-1', read_at: null }),
+      ]
+
+      store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
+
+      expect(store.messages[0].read_at).toBe('2026-03-17T01:00:00Z')
+      // Already-read message keeps its original timestamp
+      expect(store.messages[1].read_at).toBe('2026-03-16T00:00:00Z')
+      expect(store.messages[2].read_at).toBe('2026-03-17T01:00:00Z')
+    })
+
+    it('creates new conversation objects in the array', () => {
+      const store = useDMStore()
+      store.activeConversationId = 'conv-1'
+      const origConv = makeConversation({ id: 'conv-1', unread_count: 3 })
+      store.conversations = [origConv]
+      store.unreadCount = 3
+      store.messages = []
+
+      store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
+
+      expect(store.conversations[0]).not.toBe(origConv)
+      expect(store.conversations[0].unread_count).toBe(0)
+    })
+  })
+
+  // ============ BUG-5: Stale activeConversationId / unknown conversation ============
+
+  describe('fetchMessages clears active conversation on 404', () => {
+    it('clears activeConversationId and messages on 404', async () => {
+      const store = useDMStore()
+      store.activeConversationId = 'conv-deleted'
+      store.messages = [makeMessage({ id: 'old-msg' })]
+      store.messagesTotal = 1
+
+      const err404 = Object.assign(new Error('Not Found'), {
+        response: { status: 404 },
+      })
+      mockListMessages.mockRejectedValueOnce(err404)
+
+      await store.fetchMessages('conv-deleted')
+
+      expect(store.activeConversationId).toBeNull()
+      expect(store.messages).toEqual([])
+      expect(store.messagesTotal).toBe(0)
+      expect(store.error).toBeTruthy()
+    })
+
+    it('does NOT clear activeConversationId on non-404 errors', async () => {
+      const store = useDMStore()
+      store.activeConversationId = 'conv-1'
+
+      mockListMessages.mockRejectedValueOnce(new Error('Server error'))
+
+      await store.fetchMessages('conv-1')
+
+      expect(store.activeConversationId).toBe('conv-1')
+      expect(store.error).toBeTruthy()
+    })
+  })
+
+  describe('addFromWebSocket unknown conversation refetch', () => {
+    it('triggers fetchConversations for unknown conversation', async () => {
+      mockListConversations.mockResolvedValueOnce({ conversations: [], total: 0 })
+      const store = useDMStore()
+      store.setCurrentUserId('user-1')
+      // No conversations loaded — convIdx will be -1
+      store.conversations = []
+
+      const msg = makeMessage({
+        id: 'msg-from-unknown',
+        conversation_id: 'conv-unknown',
+        sender: makeSender({ id: 'user-2' }),
+      })
+      store.addFromWebSocket(msg)
+
+      expect(mockListConversations).toHaveBeenCalled()
+    })
+
+    it('increments unreadCount for unknown conversation from other user', () => {
+      mockListConversations.mockResolvedValueOnce({ conversations: [], total: 0 })
+      const store = useDMStore()
+      store.setCurrentUserId('user-1')
+      store.conversations = []
+      store.unreadCount = 0
+
+      const msg = makeMessage({
+        id: 'msg-new',
+        conversation_id: 'conv-unknown',
+        sender: makeSender({ id: 'user-2' }),
+      })
+      store.addFromWebSocket(msg)
+
+      expect(store.unreadCount).toBe(1)
+    })
+
+    it('does NOT increment unreadCount for unknown conversation from self', () => {
+      mockListConversations.mockResolvedValueOnce({ conversations: [], total: 0 })
+      const store = useDMStore()
+      store.setCurrentUserId('user-1')
+      store.conversations = []
+      store.unreadCount = 0
+
+      const msg = makeMessage({
+        id: 'msg-new',
+        conversation_id: 'conv-unknown',
+        sender: makeSender({ id: 'user-1' }),
+      })
+      store.addFromWebSocket(msg)
+
+      expect(store.unreadCount).toBe(0)
     })
   })
 

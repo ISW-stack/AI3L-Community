@@ -36,6 +36,9 @@ class ErrorCode(str, Enum):
     DM_001 = "DM_001"  # Cannot message this user (blocked / friends-only)
     DM_002 = "DM_002"  # Edit/recall window expired (12 hours)
     DM_003 = "DM_003"  # Cannot message yourself
+    DM_004 = "DM_004"  # Storage quota exceeded
+    DM_005 = "DM_005"  # File too large
+    DM_006 = "DM_006"  # Conversation not found
 
 
 class AppError(HTTPException):

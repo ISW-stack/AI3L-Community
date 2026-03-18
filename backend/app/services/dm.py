@@ -1,6 +1,5 @@
 """DM service -- direct messaging business logic."""
 
-import io
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -15,7 +14,7 @@ from app.core.constants import (
     DM_MAX_MESSAGE_LENGTH,
     PRESIGNED_URL_FILE_SECONDS,
 )
-from app.core.errors import AppError, ErrorCode, StorageQuotaError
+from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
 from app.repositories import dm_repo
 
@@ -76,14 +75,14 @@ async def send_message(
 
     if file_data and file_name and file_size:
         if file_size > DM_MAX_ATTACHMENT_SIZE:
-            raise AppError(ErrorCode.SYS_422, 422, "File too large (max 50 MB).")
+            raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
 
         # Check storage quota
         from app.repositories import user_repo
 
         used = await user_repo.get_storage_used(uuid.UUID(sender_id))
         if used + file_size > 1_073_741_824:  # 1 GB
-            raise StorageQuotaError("Storage quota exceeded (1 GB limit).")
+            raise AppError(ErrorCode.DM_004, 413, "Storage quota exceeded (1 GB limit).")
 
         # Upload to MinIO
         from app.core.storage import upload_file
@@ -105,52 +104,42 @@ async def send_message(
     )
     conversation_id = conversation["id"]
 
-    # 8. Enforce char cap
+    # 8-10. Atomic: advisory lock + char cap enforcement + insert + char count update
     content_len = len(content) if content else 0
-    if content_len > 0:
-        total_chars = await dm_repo.get_conversation_char_count(conversation_id)
-        excess = total_chars + content_len - DM_CHAR_CAP_PER_CONVERSATION
-        if excess > 0:
-            deleted_msgs = await dm_repo.delete_oldest_messages_by_chars(
-                conversation_id, excess
-            )
-            # Refund storage for any deleted attachments
-            if deleted_msgs:
-                from app.repositories import user_repo
-
-                for dmsg in deleted_msgs:
-                    if dmsg.get("attachment_size") and dmsg.get("sender_id"):
-                        try:
-                            from app.core.storage import delete_file
-
-                            if dmsg.get("attachment_key"):
-                                delete_file(dmsg["attachment_key"])
-                            await user_repo.decrement_storage_used(
-                                dmsg["sender_id"], dmsg["attachment_size"]
-                            )
-                        except Exception:
-                            logger.warning(
-                                "Failed to clean up attachment during char cap enforcement",
-                                exc_info=True,
-                                extra={"msg_id": str(dmsg.get("id"))},
-                            )
-
-    # 9. Insert message
     msg_id = uuid.uuid4()
-    row = await dm_repo.insert_message(
-        msg_id=msg_id,
+    row, deleted_msgs = await dm_repo.send_message_atomic(
         conversation_id=conversation_id,
+        msg_id=msg_id,
         sender_id=uuid.UUID(sender_id),
         content=content,
         attachment_key=attachment_key,
         attachment_name=attachment_name,
         attachment_size=attachment_size,
         attachment_expires_at=attachment_expires_at,
+        content_len=content_len,
+        char_cap=DM_CHAR_CAP_PER_CONVERSATION,
     )
 
-    # 10. Increment char count
-    if content_len > 0:
-        await dm_repo.increment_char_count(conversation_id, content_len)
+    # Refund storage for any deleted attachments (outside transaction)
+    if deleted_msgs:
+        from app.repositories import user_repo
+
+        for dmsg in deleted_msgs:
+            if dmsg.get("attachment_size") and dmsg.get("sender_id"):
+                try:
+                    from app.core.storage import delete_file
+
+                    if dmsg.get("attachment_key"):
+                        delete_file(dmsg["attachment_key"])
+                    await user_repo.decrement_storage_used(
+                        dmsg["sender_id"], dmsg["attachment_size"]
+                    )
+                except Exception:
+                    logger.warning(
+                        "Failed to clean up attachment during char cap enforcement",
+                        exc_info=True,
+                        extra={"msg_id": str(dmsg.get("id"))},
+                    )
 
     # 11. Convert row and generate presigned URL if attachment
     msg = await async_row_to_message(row)
@@ -271,7 +260,17 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
     if created_at < cutoff:
         raise AppError(ErrorCode.DM_002, 403, "Recall window has expired.")
 
-    # 4. If has attachment: delete from MinIO and refund storage quota
+    # 4. Recall message in DB first (before external I/O)
+    conversation_id = row["conversation_id"]
+    content_len = len(row.get("content") or "")
+    if content_len > 0:
+        await dm_repo.increment_char_count(conversation_id, -content_len)
+
+    recalled_row = await dm_repo.recall_message(uuid.UUID(message_id))
+    if not recalled_row:
+        raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+
+    # 5. If has attachment: delete from MinIO and refund storage quota (after DB recall)
     if row.get("attachment_key"):
         try:
             from app.core.storage import delete_file
@@ -297,17 +296,6 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                     exc_info=True,
                     extra={"msg_id": message_id},
                 )
-
-    # 5. Subtract content length from char count
-    conversation_id = row["conversation_id"]
-    content_len = len(row.get("content") or "")
-    if content_len > 0:
-        await dm_repo.increment_char_count(conversation_id, -content_len)
-
-    # 6. Recall message in DB
-    recalled_row = await dm_repo.recall_message(uuid.UUID(message_id))
-    if not recalled_row:
-        raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
 
     msg = await async_row_to_message(recalled_row)
 
@@ -369,7 +357,7 @@ async def list_messages(
         uuid.UUID(conversation_id), uuid.UUID(user_id)
     )
     if not conv:
-        raise AppError(ErrorCode.SYS_404, 404, "Conversation not found.")
+        raise AppError(ErrorCode.DM_006, 404, "Conversation not found.")
 
     offset = (page - 1) * page_size
     rows, total = await dm_repo.find_messages(
@@ -402,7 +390,7 @@ async def mark_read(user_id: str, conversation_id: str) -> str | None:
         uuid.UUID(conversation_id), uuid.UUID(user_id)
     )
     if not conv:
-        raise AppError(ErrorCode.SYS_404, 404, "Conversation not found.")
+        raise AppError(ErrorCode.DM_006, 404, "Conversation not found.")
 
     count = await dm_repo.mark_messages_read(uuid.UUID(conversation_id), uuid.UUID(user_id))
     if count == 0:
