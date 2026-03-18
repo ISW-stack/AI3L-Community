@@ -237,18 +237,18 @@ _Last updated: 2026-03-18 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +233,101 |
-| Total lines removed (all commits) | -35,385 |
-| Backend source lines (excl. tests) | 22,866 |
-| Frontend source lines (excl. tests) | 52,248 |
+| Total lines added (all commits) | +233,276 |
+| Total lines removed (all commits) | -35,509 |
+| Backend source lines (excl. tests) | 22,876 |
+| Frontend source lines (excl. tests) | 52,260 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 81164
-    "TypeScript" : 75429
-    "Vue" : 19570
+    "Python" : 81184
+    "TypeScript" : 75457
+    "Vue" : 19573
     "CSS" : 109
 ```
 
@@ -260,11 +260,11 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 2,368 | 22,866 | 55,751 |
-| Frontend (Vitest) | 2,496 | 52,248 | 42,751 |
-| **Total** | **4,864** | **75,114** | **98,502** |
+| Backend (pytest) | 2,369 | 22,876 | 55,761 |
+| Frontend (Vitest) | 2,498 | 52,260 | 42,770 |
+| **Total** | **4,867** | **75,136** | **98,531** |
 
-Test-to-source ratio: **1.31** (98,502 lines of tests for every 75,114 lines of source)
+Test-to-source ratio: **1.31** (98,531 lines of tests for every 75,136 lines of source)
 
 ### Additional Metrics
 
@@ -288,9 +288,9 @@ Test-to-source ratio: **1.31** (98,502 lines of tests for every 75,114 lines of 
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 310 | +230,760 | -33,960 |
+| Isaries | 312 | +230,924 | -34,073 |
 | SW9526 | 21 | +4,761 | -1,554 |
-| github-actions[bot] | 9 | +99 | -99 |
+| github-actions[bot] | 10 | +110 | -110 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
 
