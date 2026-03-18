@@ -390,6 +390,13 @@ export default {
       postComment: 'コメントを投稿',
       writeComment: 'コメントを書く...',
     },
+    quickComment: {
+      placeholder: 'コメントを書く...',
+      noComments: 'コメントはまだありません。',
+      loginToComment: 'ログインしてコメント',
+      disabled: 'コメントは無効です。',
+      submitError: 'コメントの投稿に失敗しました。',
+    },
     history: {
       title: '編集履歴',
       empty: '編集履歴がありません。',

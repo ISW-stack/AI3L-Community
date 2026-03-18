@@ -368,6 +368,13 @@ export default {
       postComment: '发表评论',
       writeComment: '撰写评论...',
     },
+    quickComment: {
+      placeholder: '写一条评论...',
+      noComments: '暂无评论。',
+      loginToComment: '登录后评论',
+      disabled: '评论功能已关闭。',
+      submitError: '评论发送失败。',
+    },
     history: {
       title: '编辑记录',
       empty: '没有编辑记录。',

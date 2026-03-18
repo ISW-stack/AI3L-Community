@@ -390,6 +390,13 @@ export default {
       postComment: '댓글 등록',
       writeComment: '댓글을 작성하세요...',
     },
+    quickComment: {
+      placeholder: '댓글을 작성하세요...',
+      noComments: '아직 댓글이 없습니다.',
+      loginToComment: '로그인하여 댓글 달기',
+      disabled: '댓글이 비활성화되었습니다.',
+      submitError: '댓글 등록에 실패했습니다.',
+    },
     history: {
       title: '수정 기록',
       empty: '수정 기록이 없습니다.',

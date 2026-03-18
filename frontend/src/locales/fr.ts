@@ -396,6 +396,13 @@ export default {
       postComment: 'Publier le commentaire',
       writeComment: 'Rédigez un commentaire...',
     },
+    quickComment: {
+      placeholder: 'Rédigez un commentaire...',
+      noComments: 'Aucun commentaire pour le moment.',
+      loginToComment: 'Connectez-vous pour commenter',
+      disabled: 'Les commentaires sont désactivés.',
+      submitError: 'Échec de la publication du commentaire.',
+    },
     history: {
       title: 'Historique des modifications',
       empty: 'Aucun historique de modification.',

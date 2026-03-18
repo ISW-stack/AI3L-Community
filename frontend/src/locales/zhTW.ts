@@ -368,6 +368,13 @@ export default {
       postComment: '發表留言',
       writeComment: '撰寫留言...',
     },
+    quickComment: {
+      placeholder: '撰寫留言...',
+      noComments: '尚無留言。',
+      loginToComment: '登入後留言',
+      disabled: '留言功能已停用。',
+      submitError: '留言發送失敗。',
+    },
     history: {
       title: '編輯紀錄',
       empty: '沒有編輯紀錄。',

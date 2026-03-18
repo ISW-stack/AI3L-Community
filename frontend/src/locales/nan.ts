@@ -387,6 +387,13 @@ export default {
       postComment: '送出回覆',
       writeComment: '寫留言...',
     },
+    quickComment: {
+      placeholder: '寫留言...',
+      noComments: '猶無留言。',
+      loginToComment: '登入來留言',
+      disabled: '留言功能已關閉。',
+      submitError: '留言送出失敗。',
+    },
     history: {
       title: '編輯紀錄',
       empty: '無編輯紀錄。',

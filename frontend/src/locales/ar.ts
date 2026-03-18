@@ -390,6 +390,13 @@ export default {
       postComment: 'نشر التعليق',
       writeComment: 'اكتب تعليقاً...',
     },
+    quickComment: {
+      placeholder: 'اكتب تعليقاً...',
+      noComments: 'لا توجد تعليقات بعد.',
+      loginToComment: 'سجّل الدخول للتعليق',
+      disabled: 'التعليقات معطّلة.',
+      submitError: 'فشل في نشر التعليق.',
+    },
     history: {
       title: 'سجل التعديل',
       empty: 'لا يوجد سجل تعديل.',

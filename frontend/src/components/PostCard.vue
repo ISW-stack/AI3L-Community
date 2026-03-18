@@ -12,6 +12,7 @@ import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import { Pin, Eye, MessageCircle, Quote, HelpCircle, MessageSquare } from 'lucide-vue-next'
 import ReactionPicker from '@/components/ReactionPicker.vue'
 import CoAuthorBadges from '@/components/post/CoAuthorBadges.vue'
+import QuickCommentPanel from '@/components/QuickCommentPanel.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -160,6 +161,17 @@ function defaultFormatTime(dateStr: string): string {
 function displayTime(dateStr: string): string {
   return props.formatTime ? props.formatTime(dateStr) : defaultFormatTime(dateStr)
 }
+
+// Quick comment panel
+const showQuickComments = ref(false)
+
+function toggleQuickComments() {
+  showQuickComments.value = !showQuickComments.value
+}
+
+function handleCommented() {
+  props.post.comment_count++
+}
 </script>
 
 <template>
@@ -270,10 +282,15 @@ function displayTime(dateStr: string): string {
 
     <!-- Action Bar -->
     <div class="border-t border-border px-4 py-2.5 flex items-center gap-4">
-      <span class="text-sm text-muted flex items-center gap-1">
+      <button
+        type="button"
+        class="text-sm flex items-center gap-1 transition-colors"
+        :class="showQuickComments ? 'text-brand-600' : 'text-muted hover:text-brand-600'"
+        @click.stop.prevent="toggleQuickComments"
+      >
         <MessageCircle class="w-3.5 h-3.5" />
         {{ post.comment_count }}
-      </span>
+      </button>
       <span class="text-sm text-muted flex items-center gap-1">
         <Eye class="w-3.5 h-3.5" />
         {{ post.view_count }}
@@ -294,6 +311,14 @@ function displayTime(dateStr: string): string {
         {{ t('post.card.lastReply', { time: displayTime(post.last_comment_at) }) }}
       </span>
     </div>
+
+    <!-- Quick Comment Panel -->
+    <QuickCommentPanel
+      v-if="showQuickComments"
+      :post-id="post.id"
+      :allow-comments="post.allow_comments"
+      @commented="handleCommented"
+    />
   </BaseCard>
 </template>
 

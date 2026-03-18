@@ -392,6 +392,13 @@ export default {
       postComment: 'Đăng bình luận',
       writeComment: 'Viết bình luận...',
     },
+    quickComment: {
+      placeholder: 'Viết bình luận...',
+      noComments: 'Chưa có bình luận nào.',
+      loginToComment: 'Đăng nhập để bình luận',
+      disabled: 'Bình luận đã bị tắt.',
+      submitError: 'Gửi bình luận thất bại.',
+    },
     history: {
       title: 'Lịch sử chỉnh sửa',
       empty: 'Không có lịch sử chỉnh sửa.',

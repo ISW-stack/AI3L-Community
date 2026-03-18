@@ -15,6 +15,8 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
+import { MessageCircle } from 'lucide-vue-next'
+import QuickCommentPanel from '@/components/QuickCommentPanel.vue'
 
 const { t } = useI18n()
 const toast = useToastStore()
@@ -27,6 +29,16 @@ const loading = ref(true)
 const { page, total, totalPages, pageSize, setPage, updateFromResponse } = usePagination()
 
 const isMember = computed(() => userSigRole?.value != null)
+
+const expandedCommentPostId = ref<string | null>(null)
+
+function toggleQuickComments(postId: string) {
+  expandedCommentPostId.value = expandedCommentPostId.value === postId ? null : postId
+}
+
+function handleCommented(post: Post) {
+  post.comment_count++
+}
 
 async function fetchPosts() {
   loading.value = true
@@ -110,10 +122,27 @@ onMounted(fetchPosts)
           </router-link>
 
           <div class="flex items-center gap-4 mt-3 text-xs text-muted">
-            <span class="flex items-center gap-1">
+            <button
+              type="button"
+              class="flex items-center gap-1 transition-colors"
+              :class="
+                expandedCommentPostId === p.id
+                  ? 'text-brand-600'
+                  : 'text-muted hover:text-brand-600'
+              "
+              @click.stop.prevent="toggleQuickComments(p.id)"
+            >
+              <MessageCircle class="w-3.5 h-3.5" />
               {{ p.comment_count }} {{ t('sigs.posts.comments') }}
-            </span>
+            </button>
           </div>
+
+          <QuickCommentPanel
+            v-if="expandedCommentPostId === p.id"
+            :post-id="p.id"
+            :allow-comments="p.allow_comments"
+            @commented="handleCommented(p)"
+          />
         </BaseCard>
       </div>
     </div>

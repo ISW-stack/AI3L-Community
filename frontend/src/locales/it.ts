@@ -392,6 +392,13 @@ export default {
       postComment: 'Pubblica commento',
       writeComment: 'Scrivi un commento...',
     },
+    quickComment: {
+      placeholder: 'Scrivi un commento...',
+      noComments: 'Nessun commento ancora.',
+      loginToComment: 'Accedi per commentare',
+      disabled: 'I commenti sono disabilitati.',
+      submitError: 'Impossibile pubblicare il commento.',
+    },
     history: {
       title: 'Cronologia modifiche',
       empty: 'Nessuna cronologia di modifica.',

@@ -391,6 +391,13 @@ export default {
       postComment: 'Publicar Comentário',
       writeComment: 'Escreva um comentário...',
     },
+    quickComment: {
+      placeholder: 'Escreva um comentário...',
+      noComments: 'Nenhum comentário ainda.',
+      loginToComment: 'Faça login para comentar',
+      disabled: 'Os comentários estão desativados.',
+      submitError: 'Falha ao publicar o comentário.',
+    },
     history: {
       title: 'Histórico de Edições',
       empty: 'Nenhum histórico de edições.',

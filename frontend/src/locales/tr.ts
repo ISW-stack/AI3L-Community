@@ -393,6 +393,13 @@ export default {
       postComment: 'Yorum Yap',
       writeComment: 'Yorum yazın...',
     },
+    quickComment: {
+      placeholder: 'Yorum yazın...',
+      noComments: 'Henüz yorum yok.',
+      loginToComment: 'Yorum yapmak için giriş yapın',
+      disabled: 'Yorumlar devre dışı.',
+      submitError: 'Yorum gönderilemedi.',
+    },
     history: {
       title: 'Düzenleme Geçmişi',
       empty: 'Düzenleme geçmişi yok.',

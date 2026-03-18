@@ -391,6 +391,13 @@ export default {
       postComment: 'Post Comment',
       writeComment: 'Write a comment...',
     },
+    quickComment: {
+      placeholder: 'Write a comment...',
+      noComments: 'No comments yet.',
+      loginToComment: 'Log in to comment',
+      disabled: 'Comments are disabled.',
+      submitError: 'Failed to post comment.',
+    },
     history: {
       title: 'Edit History',
       empty: 'No edit history.',

@@ -391,6 +391,13 @@ export default {
       postComment: 'टिप्पणी पोस्ट करें',
       writeComment: 'टिप्पणी लिखें...',
     },
+    quickComment: {
+      placeholder: 'टिप्पणी लिखें...',
+      noComments: 'अभी तक कोई टिप्पणी नहीं।',
+      loginToComment: 'टिप्पणी करने के लिए लॉगिन करें',
+      disabled: 'टिप्पणियाँ अक्षम हैं।',
+      submitError: 'टिप्पणी पोस्ट करने में विफल।',
+    },
     history: {
       title: 'संपादन इतिहास',
       empty: 'कोई संपादन इतिहास नहीं।',

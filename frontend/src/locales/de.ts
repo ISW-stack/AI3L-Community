@@ -395,6 +395,13 @@ export default {
       postComment: 'Kommentar absenden',
       writeComment: 'Kommentar verfassen...',
     },
+    quickComment: {
+      placeholder: 'Kommentar verfassen...',
+      noComments: 'Noch keine Kommentare.',
+      loginToComment: 'Zum Kommentieren anmelden',
+      disabled: 'Kommentare sind deaktiviert.',
+      submitError: 'Kommentar konnte nicht gepostet werden.',
+    },
     history: {
       title: 'Bearbeitungsverlauf',
       empty: 'Kein Bearbeitungsverlauf vorhanden.',

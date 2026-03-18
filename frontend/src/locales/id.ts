@@ -393,6 +393,13 @@ export default {
       postComment: 'Kirim Komentar',
       writeComment: 'Tulis komentar...',
     },
+    quickComment: {
+      placeholder: 'Tulis komentar...',
+      noComments: 'Belum ada komentar.',
+      loginToComment: 'Masuk untuk berkomentar',
+      disabled: 'Komentar dinonaktifkan.',
+      submitError: 'Gagal mengirim komentar.',
+    },
     history: {
       title: 'Riwayat Pengeditan',
       empty: 'Tidak ada riwayat pengeditan.',
