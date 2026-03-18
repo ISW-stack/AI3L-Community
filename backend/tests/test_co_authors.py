@@ -509,3 +509,79 @@ def test_list_pending_invitations_no_pool_parameter():
     param_names = list(sig.parameters.keys())
     assert "pool" not in param_names, "pool parameter should have been removed"
     assert param_names[0] == "user_id", "First parameter should be user_id"
+
+
+# --- B-13: Pagination parameter validation ---
+
+
+@pytest.mark.asyncio
+async def test_my_posts_page_rejects_zero(client):
+    """B-13: page=0 should be rejected by Query(ge=1)."""
+    _override_auth("MEMBER")
+    try:
+        resp = await client.get("/api/v1/co-authors/my-posts", params={"page": 0})
+        assert resp.status_code == 422
+    finally:
+        _clear_overrides()
+
+
+@pytest.mark.asyncio
+async def test_my_posts_page_rejects_exceeding_max(client):
+    """B-13: page exceeding MAX_PAGE_NUMBER should be rejected."""
+    _override_auth("MEMBER")
+    try:
+        resp = await client.get("/api/v1/co-authors/my-posts", params={"page": 10001})
+        assert resp.status_code == 422
+    finally:
+        _clear_overrides()
+
+
+@pytest.mark.asyncio
+async def test_my_posts_page_size_rejects_exceeding_max(client):
+    """B-13: page_size exceeding MAX_PAGE_SIZE should be rejected."""
+    _override_auth("MEMBER")
+    try:
+        resp = await client.get("/api/v1/co-authors/my-posts", params={"page_size": 999999})
+        assert resp.status_code == 422
+    finally:
+        _clear_overrides()
+
+
+@pytest.mark.asyncio
+async def test_user_posts_page_rejects_zero(client):
+    """B-13: page=0 on /user/{id}/posts should be rejected."""
+    _override_auth("MEMBER")
+    try:
+        uid = uuid.uuid4()
+        resp = await client.get(f"/api/v1/co-authors/user/{uid}/posts", params={"page": 0})
+        assert resp.status_code == 422
+    finally:
+        _clear_overrides()
+
+
+@pytest.mark.asyncio
+async def test_user_posts_page_rejects_exceeding_max(client):
+    """B-13: page exceeding MAX_PAGE_NUMBER on /user/{id}/posts should be rejected."""
+    _override_auth("MEMBER")
+    try:
+        uid = uuid.uuid4()
+        resp = await client.get(
+            f"/api/v1/co-authors/user/{uid}/posts", params={"page": 10001}
+        )
+        assert resp.status_code == 422
+    finally:
+        _clear_overrides()
+
+
+@pytest.mark.asyncio
+async def test_user_posts_page_size_rejects_exceeding_max(client):
+    """B-13: page_size exceeding MAX_PAGE_SIZE on /user/{id}/posts should be rejected."""
+    _override_auth("MEMBER")
+    try:
+        uid = uuid.uuid4()
+        resp = await client.get(
+            f"/api/v1/co-authors/user/{uid}/posts", params={"page_size": 999999}
+        )
+        assert resp.status_code == 422
+    finally:
+        _clear_overrides()
