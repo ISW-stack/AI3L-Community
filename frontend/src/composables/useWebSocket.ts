@@ -77,7 +77,7 @@ export function useWebSocket() {
           // Guard: don't process non-PING messages after auth is cleared
           if (!auth.isAuthenticated) return
 
-          if (msg.type === 'FORCE_LOGOUT') {
+          if (msg.type === 'FORCE_LOGOUT' || msg.type === 'ROLE_CHANGED') {
             auth.clearSession()
             router.push({ name: 'login' })
           } else if (msg.type === 'NEW_NOTIFICATION') {

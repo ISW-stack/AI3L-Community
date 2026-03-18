@@ -319,6 +319,18 @@ describe('useWebSocket', () => {
       expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
     })
 
+    it('handles ROLE_CHANGED by clearing session and navigating to login', async () => {
+      const { connect } = useWebSocket()
+      await connect()
+      const ws = MockWebSocket.instances[0]
+      ws.simulateOpen()
+
+      ws.simulateMessage({ type: 'ROLE_CHANGED', new_role: 'MEMBER' })
+
+      expect(mockClearSession).toHaveBeenCalled()
+      expect(mockRouterPush).toHaveBeenCalledWith({ name: 'login' })
+    })
+
     it('handles NEW_NOTIFICATION by adding to store and showing toast', async () => {
       const notification = { id: 'n1', message: 'You have a reply' }
 
