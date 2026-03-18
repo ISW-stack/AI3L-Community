@@ -856,3 +856,247 @@ class TestSigManageRateLimit:
                 assert resp.status_code == 429
         finally:
             _clear_overrides()
+
+
+class TestJoinSigErrors:
+    @pytest.mark.anyio
+    async def test_join_sig_already_member_returns_409(self, client):
+        """POST /sigs/{id}/members/me → 409 when already a member."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.join_sig",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Already a member of this SIG."),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_join_sig_not_found_returns_404(self, client):
+        """POST /sigs/{id}/members/me → 404 when SIG not found."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.join_sig",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("SIG not found."),
+                ),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_join_sig_success_returns_201(self, client):
+        """POST /sigs/{id}/members/me → 201 on success."""
+        sig_id = uuid.uuid4()
+        now = datetime.now(timezone.utc).isoformat()
+        member = {
+            "id": str(uuid.uuid4()),
+            "sig_id": str(sig_id),
+            "user_id": str(uuid.uuid4()),
+            "role": "MEMBER",
+            "display_name": "User1",
+            "username": "user1",
+            "created_at": now,
+        }
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.join_sig", new_callable=AsyncMock, return_value=member),
+            ):
+                resp = await client.post(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 201
+        finally:
+            _clear_overrides()
+
+
+class TestLeaveSigErrors:
+    @pytest.mark.anyio
+    async def test_leave_sig_last_admin_returns_422(self, client):
+        """DELETE /sigs/{id}/members/me → 422 when last admin tries to leave."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.leave_sig",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError(
+                        "Cannot leave: you are the last admin of this SIG."
+                    ),
+                ),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_leave_sig_not_member_returns_404(self, client):
+        """DELETE /sigs/{id}/members/me → 404 when not a member."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.leave_sig", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_leave_sig_success(self, client):
+        """DELETE /sigs/{id}/members/me → 200 on success."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.leave_sig", new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.delete(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+
+class TestCreateSigDuplicateName:
+    @pytest.mark.anyio
+    async def test_create_sig_duplicate_name_returns_409(self, client):
+        """POST /sigs → 409 when SIG name already exists."""
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.create_sig",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("A SIG with this name already exists."),
+                ),
+            ):
+                resp = await client.post(
+                    "/api/v1/sigs",
+                    json={"name": "Duplicate SIG", "description": "Desc"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+        finally:
+            _clear_overrides()
+
+
+class TestSoftDeleteSig:
+    @pytest.mark.anyio
+    async def test_soft_delete_sig_updates_sig_members_not_deletes(self, mock_pool, mock_conn):
+        """soft_delete() must UPDATE sig_members.is_deleted = true (not DELETE)."""
+        from app.repositories import sig_repo
+
+        sig_id = uuid.uuid4()
+
+        execute_calls: list[str] = []
+
+        async def _execute(sql: str, *args: object) -> str:
+            execute_calls.append(sql.strip())
+            if "UPDATE sigs" in sql:
+                return "UPDATE 1"
+            return "UPDATE 5"
+
+        mock_conn.execute = _execute
+
+        with patch("app.repositories.sig_repo.get_pool", return_value=mock_pool):
+            result = await sig_repo.soft_delete(sig_id)
+
+        assert result is True
+
+        sig_members_calls = [c for c in execute_calls if "sig_members" in c.lower()]
+        assert len(sig_members_calls) == 1
+        assert sig_members_calls[0].startswith("UPDATE sig_members SET is_deleted = true")
+        # Ensure there is no DELETE on sig_members
+        for call in execute_calls:
+            if "sig_members" in call.lower():
+                assert not call.upper().startswith("DELETE"), (
+                    f"Expected UPDATE but got DELETE: {call}"
+                )
+
+
+class TestGetMySigMembership:
+    @pytest.mark.anyio
+    async def test_get_my_membership_returns_role(self, client):
+        """GET /sigs/{id}/members/me → 200 with role."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.get_member_role",
+                new_callable=AsyncMock,
+                return_value="ADMIN",
+            ):
+                resp = await client.get(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["role"] == "ADMIN"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_get_my_membership_not_member_returns_404(self, client):
+        """GET /sigs/{id}/members/me → 404 when not a member."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.get_member_role",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                resp = await client.get(
+                    f"/api/v1/sigs/{sig_id}/members/me",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
+        finally:
+            _clear_overrides()

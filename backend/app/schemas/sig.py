@@ -61,3 +61,7 @@ class MySigListResponse(BaseModel):
 
 class SubAdminAssignRequest(BaseModel):
     user_id: uuid.UUID
+
+
+class SigMyRoleResponse(BaseModel):
+    role: str

@@ -29,7 +29,7 @@ vi.mock('dompurify', () => ({
 const mockGetSig = vi.fn()
 const mockUpdateSig = vi.fn()
 const mockDeleteSig = vi.fn()
-const mockGetSigMembers = vi.fn()
+const mockGetMySigRole = vi.fn()
 const mockLeaveSig = vi.fn()
 const mockJoinSig = vi.fn()
 
@@ -37,7 +37,7 @@ vi.mock('@/api/sigs', () => ({
   getSig: (...args: unknown[]) => mockGetSig(...args),
   updateSig: (...args: unknown[]) => mockUpdateSig(...args),
   deleteSig: (...args: unknown[]) => mockDeleteSig(...args),
-  getSigMembers: (...args: unknown[]) => mockGetSigMembers(...args),
+  getMySigRole: (...args: unknown[]) => mockGetMySigRole(...args),
   leaveSig: (...args: unknown[]) => mockLeaveSig(...args),
   joinSig: (...args: unknown[]) => mockJoinSig(...args),
 }))
@@ -52,39 +52,10 @@ const fakeSig = {
   created_at: '2026-01-15T00:00:00Z',
 }
 
-const fakeMembersWithUser = {
-  members: [
-    {
-      id: 'member-1',
-      sig_id: 'sig-1',
-      user_id: 'user1',
-      role: 'MEMBER',
-      display_name: 'Test User',
-      username: 'testuser',
-      avatar_url: null,
-      created_at: '2026-01-15T00:00:00Z',
-    },
-  ],
-}
-
-const fakeMembersAdmin = {
-  members: [
-    {
-      id: 'member-1',
-      sig_id: 'sig-1',
-      user_id: 'user1',
-      role: 'ADMIN',
-      display_name: 'Test User',
-      username: 'testuser',
-      avatar_url: null,
-      created_at: '2026-01-15T00:00:00Z',
-    },
-  ],
-}
-
-const fakeMembersEmpty = {
-  members: [],
-}
+// Role values returned by getMySigRole (null = not a member)
+const roleAsMember = 'MEMBER'
+const roleAsAdmin = 'ADMIN'
+const roleAsNone = null
 
 function createTestRouter() {
   return createRouter({
@@ -117,26 +88,22 @@ function createTestRouter() {
 async function mountLayout(options?: {
   role?: string
   sigData?: typeof fakeSig | null
-  membersData?: typeof fakeMembersWithUser
+  sigRole?: string | null
   rejectSig?: boolean
 }) {
   const {
     role = 'MEMBER',
     sigData = fakeSig,
-    membersData = fakeMembersEmpty,
+    sigRole = null,
     rejectSig = false,
   } = options ?? {}
 
-  if (rejectSig) {
-    mockGetSig.mockRejectedValueOnce(new Error('Not found'))
-    mockGetSigMembers.mockResolvedValueOnce(fakeMembersEmpty)
-  } else if (sigData === null) {
+  if (rejectSig || sigData === null) {
     // Simulate sig not found: getSig throws, so sig stays null
     mockGetSig.mockRejectedValueOnce(new Error('Not found'))
-    mockGetSigMembers.mockResolvedValueOnce(fakeMembersEmpty)
   } else {
     mockGetSig.mockResolvedValueOnce(sigData)
-    mockGetSigMembers.mockResolvedValueOnce(membersData)
+    mockGetMySigRole.mockResolvedValueOnce(sigRole)
   }
 
   const router = createTestRouter()
@@ -206,7 +173,7 @@ describe('SigLayout', () => {
     mockGetSig.mockReset()
     mockUpdateSig.mockReset()
     mockDeleteSig.mockReset()
-    mockGetSigMembers.mockReset()
+    mockGetMySigRole.mockReset()
     mockLeaveSig.mockReset()
     mockJoinSig.mockReset()
   })
@@ -218,7 +185,7 @@ describe('SigLayout', () => {
   it('shows loading skeleton initially', async () => {
     // Never resolve so loading stays true
     mockGetSig.mockReturnValue(new Promise(() => {}))
-    mockGetSigMembers.mockReturnValue(new Promise(() => {}))
+    mockGetMySigRole.mockReturnValue(new Promise(() => {}))
 
     const router = createTestRouter()
     const pinia = createPinia()
@@ -262,7 +229,7 @@ describe('SigLayout', () => {
   it('renders SIG name and description after loading', async () => {
     const { wrapper } = await mountLayout({
       sigData: fakeSig,
-      membersData: fakeMembersEmpty,
+      sigRole: null,
     })
 
     expect(wrapper.text()).toContain('Test SIG')
@@ -273,7 +240,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'MEMBER',
       sigData: fakeSig,
-      membersData: fakeMembersEmpty,
+      sigRole: null,
     })
 
     const buttons = wrapper.findAll('button')
@@ -285,7 +252,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'MEMBER',
       sigData: fakeSig,
-      membersData: fakeMembersAdmin,
+      sigRole: roleAsAdmin,
     })
 
     const buttons = wrapper.findAll('button')
@@ -297,7 +264,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'ADMIN',
       sigData: fakeSig,
-      membersData: fakeMembersWithUser,
+      sigRole: roleAsMember,
     })
 
     const buttons = wrapper.findAll('button')
@@ -309,7 +276,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'MEMBER',
       sigData: fakeSig,
-      membersData: fakeMembersWithUser,
+      sigRole: roleAsMember,
     })
 
     const buttons = wrapper.findAll('button')
@@ -321,7 +288,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'MEMBER',
       sigData: fakeSig,
-      membersData: fakeMembersWithUser,
+      sigRole: roleAsMember,
     })
 
     const buttons = wrapper.findAll('button')
@@ -332,7 +299,7 @@ describe('SigLayout', () => {
   it('renders navigation items (Posts, Members, Forms)', async () => {
     const { wrapper } = await mountLayout({
       sigData: fakeSig,
-      membersData: fakeMembersEmpty,
+      sigRole: null,
     })
 
     expect(wrapper.text()).toContain('Posts')
@@ -344,7 +311,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'ADMIN',
       sigData: fakeSig,
-      membersData: fakeMembersWithUser,
+      sigRole: roleAsMember,
     })
 
     const buttons = wrapper.findAll('button')
@@ -374,7 +341,7 @@ describe('SigLayout', () => {
 
     // Provide enough mock responses for both onMounted and possible watcher calls
     mockGetSig.mockResolvedValue(fakeSig)
-    mockGetSigMembers.mockResolvedValue(fakeMembersWithUser)
+    mockGetMySigRole.mockResolvedValue(roleAsMember)
 
     const router = createRouter({
       history: createMemoryHistory(),
@@ -458,7 +425,7 @@ describe('SigLayout', () => {
 
     // Initial mount: user is MEMBER
     mockGetSig.mockResolvedValue(fakeSig)
-    mockGetSigMembers.mockResolvedValue(fakeMembersWithUser)
+    mockGetMySigRole.mockResolvedValue(roleAsMember)
 
     const router = createRouter({
       history: createMemoryHistory(),
@@ -530,20 +497,7 @@ describe('SigLayout', () => {
     expect(injectedEl.text()).toContain('MEMBER')
 
     // Now simulate role change: user was promoted to SUB_ADMIN
-    mockGetSigMembers.mockResolvedValueOnce({
-      members: [
-        {
-          id: 'member-1',
-          sig_id: 'sig-1',
-          user_id: 'user1',
-          role: 'SUB_ADMIN',
-          display_name: 'Test User',
-          username: 'testuser',
-          avatar_url: null,
-          created_at: '2026-01-15T00:00:00Z',
-        },
-      ],
-    })
+    mockGetMySigRole.mockResolvedValueOnce('SUB_ADMIN')
 
     await capturedRefreshSigRole!()
     await nextTick()
@@ -556,7 +510,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'MEMBER',
       sigData: fakeSig,
-      membersData: fakeMembersWithUser,
+      sigRole: roleAsMember,
     })
 
     // Modal should not be visible initially
@@ -581,12 +535,12 @@ describe('SigLayout', () => {
     mockLeaveSig.mockResolvedValueOnce({})
     // Mock the refetch after leave
     mockGetSig.mockResolvedValueOnce(fakeSig)
-    mockGetSigMembers.mockResolvedValueOnce(fakeMembersEmpty)
+    mockGetMySigRole.mockResolvedValueOnce(roleAsNone)
 
     const { wrapper } = await mountLayout({
       role: 'MEMBER',
       sigData: fakeSig,
-      membersData: fakeMembersWithUser,
+      sigRole: roleAsMember,
     })
 
     // Click Leave SIG button to open modal
@@ -617,7 +571,7 @@ describe('SigLayout', () => {
     const { wrapper } = await mountLayout({
       role: 'MEMBER',
       sigData: fakeSig,
-      membersData: fakeMembersWithUser,
+      sigRole: roleAsMember,
     })
 
     // Click Leave SIG button to open modal
@@ -649,7 +603,7 @@ describe('SigLayout', () => {
     it('renders a scrollable tab nav for mobile', async () => {
       const { wrapper } = await mountLayout({
         sigData: fakeSig,
-        membersData: fakeMembersEmpty,
+        sigRole: null,
       })
 
       const tabNav = wrapper.find('.tab-scroll-nav')
@@ -661,7 +615,7 @@ describe('SigLayout', () => {
     it('shows a scroll hint gradient element by default', async () => {
       const { wrapper } = await mountLayout({
         sigData: fakeSig,
-        membersData: fakeMembersEmpty,
+        sigRole: null,
       })
 
       const scrollHint = wrapper.find('.scroll-hint')
@@ -673,7 +627,7 @@ describe('SigLayout', () => {
     it('has touch scrolling style on tab nav', async () => {
       const { wrapper } = await mountLayout({
         sigData: fakeSig,
-        membersData: fakeMembersEmpty,
+        sigRole: null,
       })
 
       const tabNav = wrapper.find('.tab-scroll-nav')

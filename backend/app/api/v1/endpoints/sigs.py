@@ -17,6 +17,7 @@ from app.schemas.sig import (
     SigListResponse,
     SigMemberListResponse,
     SigMemberResponse,
+    SigMyRoleResponse,
     SigResponse,
     SigUpdateRequest,
     SubAdminAssignRequest,
@@ -26,6 +27,7 @@ from app.services.sig import (
     assign_sub_admin,
     create_sig,
     demote_sub_admin,
+    get_member_role,
     get_sig_by_id,
     join_sig,
     leave_sig,
@@ -126,6 +128,18 @@ async def delete_sig(
         raise AppError(ErrorCode.SYS_404, 404, "SIG not found.")
 
 
+@router.get("/{sig_id}/members/me", response_model=SigMyRoleResponse)
+async def get_my_sig_membership(
+    sig_id: uuid.UUID,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> SigMyRoleResponse:
+    """Return the current user's membership role in this SIG."""
+    role = await get_member_role(sig_id, current_user["sub"])
+    if role is None:
+        raise AppError(ErrorCode.SYS_404, 404, "Not a member of this SIG.")
+    return SigMyRoleResponse(role=role)
+
+
 @router.post(
     "/{sig_id}/members/me", response_model=SigMemberResponse, status_code=status.HTTP_201_CREATED
 )
@@ -138,7 +152,10 @@ async def join_sig_endpoint(
     try:
         member = await join_sig(sig_id, current_user["sub"])
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        msg = str(e)
+        if "already a member" in msg.lower():
+            raise AppError(ErrorCode.SYS_409, 409, msg)
+        raise AppError(ErrorCode.SYS_404, 404, msg)
     except PermissionError as e:
         raise AppError(ErrorCode.SYS_403, 403, str(e))
     return SigMemberResponse(**member)
@@ -154,7 +171,7 @@ async def leave_sig_endpoint(
     try:
         left = await leave_sig(sig_id, current_user["sub"])
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     if not left:
         raise AppError(ErrorCode.SYS_404, 404, "Not a member of this SIG.")
     return MessageResponse(message="Left SIG successfully.")

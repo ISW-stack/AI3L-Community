@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
+import { usePagination } from '@/composables/usePagination'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -31,6 +32,7 @@ const { sig, userSigRole } = useSigLayout()
 const forms = ref<SigForm[]>([])
 const total = ref(0)
 const loading = ref(true)
+const { page, totalPages, setPage, resetPage, updateFromResponse } = usePagination(20)
 
 const canCreateForm = computed(() => {
   if (auth.isAdmin) return true
@@ -40,15 +42,26 @@ const canCreateForm = computed(() => {
 async function fetchForms() {
   loading.value = true
   try {
-    const data = await getSigForms(sigId.value)
+    const data = await getSigForms(sigId.value, { page: page.value, page_size: 20 })
     forms.value = data.forms
     total.value = data.total
+    updateFromResponse(data.total)
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.forms.fetchError')), 'error')
   } finally {
     loading.value = false
   }
 }
+
+function goToPage(p: number) {
+  setPage(p)
+  fetchForms()
+}
+
+watch(sigId, () => {
+  resetPage()
+  fetchForms()
+})
 
 // ── Feature 4: Card Description Expand ──
 const expandedDescriptions = ref<Set<string>>(new Set())
@@ -235,7 +248,7 @@ onMounted(fetchForms)
       :message="t('sigs.forms.emptyMessage')"
     />
 
-    <div v-else class="grid gap-4 sm:grid-cols-2">
+    <div v-else class="grid gap-4 sm:grid-cols-2" data-testid="forms-grid">
       <BaseCard
         v-for="f in forms"
         :key="f.id"
@@ -346,6 +359,14 @@ onMounted(fetchForms)
         </div>
       </BaseCard>
     </div>
+
+    <BasePagination
+      v-if="totalPages > 1"
+      :current-page="page"
+      :total-pages="totalPages"
+      class="mt-4"
+      @update:current-page="goToPage"
+    />
 
     <!-- Feature 5: Delete Confirmation with Response Count -->
     <BaseModal

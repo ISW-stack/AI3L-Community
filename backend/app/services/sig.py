@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 
+import asyncpg
 from loguru import logger
 
 from app.converters.sig_converter import async_row_to_member, row_to_sig
@@ -16,7 +17,10 @@ async def create_sig(name: str, description: str | None, creator_id: str) -> dic
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            row = await sig_repo.insert(sig_id, name, description, creator_uuid, conn)
+            try:
+                row = await sig_repo.insert(sig_id, name, description, creator_uuid, conn)
+            except asyncpg.UniqueViolationError:
+                raise ValueError("A SIG with this name already exists.")
             await sig_repo.add_member(member_id, sig_id, creator_uuid, "ADMIN", conn)
             creator_name = await sig_repo.find_creator_display_name(creator_uuid, conn)
 

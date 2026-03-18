@@ -5,12 +5,12 @@ import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import type { Sig, SigMember } from '@/types'
+import type { Sig } from '@/types'
 import {
   getSig,
   updateSig,
   deleteSig as deleteSigApi,
-  getSigMembers,
+  getMySigRole,
   leaveSig as leaveSigApi,
   joinSig as joinSigApi,
 } from '@/api/sigs'
@@ -49,10 +49,12 @@ provide('sig', sig)
 provide('userSigRole', userSigRole)
 
 async function refreshSigRole() {
+  if (!auth.isAuthenticated || auth.isGuest) {
+    userSigRole.value = null
+    return
+  }
   try {
-    const membersData = await getSigMembers(sigId.value)
-    const me = membersData.members.find((m: SigMember) => m.user_id === auth.user?.id)
-    userSigRole.value = me?.role ?? null
+    userSigRole.value = await getMySigRole(sigId.value)
   } catch {
     // Silently fail — role stays as-is
   }
@@ -68,21 +70,18 @@ const isSigAdmin = computed(
 const canJoin = computed(() => auth.isAuthenticated && !auth.isGuest && !isMember.value)
 const canEdit = computed(() => auth.isAdmin || isSigAdmin.value)
 const canDelete = computed(() => auth.isAdmin)
-const canLeave = computed(
-  () =>
-    userSigRole.value !== null && !(isSigAdmin.value && sig.value && sig.value.member_count <= 1),
-)
+const canLeave = computed(() => userSigRole.value !== null)
 
 async function fetchSigData() {
   loading.value = true
   try {
-    const [sigData, membersData] = await Promise.all([
-      getSig(sigId.value),
-      getSigMembers(sigId.value),
-    ])
+    const sigData = await getSig(sigId.value)
     sig.value = sigData
-    const me = membersData.members.find((m: SigMember) => m.user_id === auth.user?.id)
-    userSigRole.value = me?.role ?? null
+    if (auth.isAuthenticated && !auth.isGuest) {
+      userSigRole.value = await getMySigRole(sigId.value)
+    } else {
+      userSigRole.value = null
+    }
   } catch (e: unknown) {
     toastStore.show(getErrorMessage(e, t('sigs.detail.fetchError')), 'error')
   } finally {
@@ -275,7 +274,7 @@ onUnmounted(() => {
                 </BaseButton>
 
                 <BaseButton
-                  v-if="canLeave && userSigRole !== 'ADMIN'"
+                  v-if="canLeave"
                   size="sm"
                   class="bg-warning-50 text-warning-700 hover:bg-warning-100"
                   @click="promptLeaveSig"

@@ -166,9 +166,9 @@ async def soft_delete(sig_id: uuid.UUID) -> bool:
                 sig_id,
             )
 
-            # Delete SIG members
+            # Soft-delete SIG members
             await conn.execute(
-                "DELETE FROM sig_members WHERE sig_id = $1",
+                "UPDATE sig_members SET is_deleted = true WHERE sig_id = $1",
                 sig_id,
             )
             return True
@@ -179,7 +179,7 @@ async def remove_member(sig_id: uuid.UUID, user_id: uuid.UUID) -> bool:
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await conn.execute(
-                "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+                "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
                 sig_id,
                 user_id,
             )
@@ -196,7 +196,7 @@ async def get_member_role(sig_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+            "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
             sig_id,
             user_id,
         )
@@ -205,11 +205,28 @@ async def get_member_role(sig_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
 
 async def get_member_role_in_conn(sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any) -> str | None:
     row = await conn.fetchrow(
-        "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+        "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
         sig_id,
         user_id,
     )
     return row["role"] if row else None
+
+
+async def find_member_by_user(sig_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:
+    """Return the member row for a specific user in a SIG, or None if not a member."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT sm.*, u.display_name, u.username, u.avatar_url
+            FROM sig_members sm
+            JOIN users u ON sm.user_id = u.id
+            WHERE sm.sig_id = $1 AND sm.user_id = $2 AND sm.is_deleted = false
+            """,
+            sig_id,
+            user_id,
+        )
+        return dict(row) if row else None
 
 
 async def count_admins(sig_id: uuid.UUID, conn: Any) -> int:
@@ -221,7 +238,7 @@ async def count_admins(sig_id: uuid.UUID, conn: Any) -> int:
         """
         SELECT sm.id FROM sig_members sm
         JOIN users u ON sm.user_id = u.id
-        WHERE sm.sig_id = $1 AND sm.role = 'ADMIN' AND u.is_deleted = false
+        WHERE sm.sig_id = $1 AND sm.role = 'ADMIN' AND sm.is_deleted = false AND u.is_deleted = false
         FOR UPDATE
         """,
         sig_id,
@@ -231,7 +248,7 @@ async def count_admins(sig_id: uuid.UUID, conn: Any) -> int:
 
 async def delete_member(sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any) -> bool:
     result = await conn.execute(
-        "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+        "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
         sig_id,
         user_id,
     )
@@ -263,7 +280,7 @@ async def update_member_role_in_conn(
         return None
 
     existing = await conn.fetchrow(
-        "SELECT id FROM sig_members WHERE sig_id = $1 AND user_id = $2",
+        "SELECT id FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
         sig_id,
         user_id,
     )
@@ -343,7 +360,7 @@ async def find_by_user(user_id: uuid.UUID) -> list[dict]:
             FROM sig_members sm
             JOIN sigs s ON sm.sig_id = s.id
             LEFT JOIN users u ON s.created_by = u.id
-            WHERE sm.user_id = $1 AND s.is_deleted = false
+            WHERE sm.user_id = $1 AND sm.is_deleted = false AND s.is_deleted = false
             ORDER BY sm.created_at DESC
             """,
             user_id,
@@ -362,6 +379,7 @@ async def find_sole_admin_sigs(user_id: uuid.UUID) -> list[dict]:
             JOIN sigs s ON sm.sig_id = s.id
             WHERE sm.user_id = $1
               AND sm.role = 'ADMIN'
+              AND sm.is_deleted = false
               AND s.is_deleted = false
               AND (
                   SELECT COUNT(*)
@@ -369,6 +387,7 @@ async def find_sole_admin_sigs(user_id: uuid.UUID) -> list[dict]:
                   JOIN users u ON sm2.user_id = u.id
                   WHERE sm2.sig_id = sm.sig_id
                     AND sm2.role = 'ADMIN'
+                    AND sm2.is_deleted = false
                     AND u.is_deleted = false
               ) = 1
             """,
@@ -390,7 +409,7 @@ async def find_members(
                    COUNT(*) OVER() AS _total
             FROM sig_members sm
             JOIN users u ON sm.user_id = u.id
-            WHERE sm.sig_id = $1
+            WHERE sm.sig_id = $1 AND sm.is_deleted = false
             ORDER BY sm.created_at ASC
             LIMIT $2 OFFSET $3
             """,

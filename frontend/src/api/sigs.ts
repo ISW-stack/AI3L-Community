@@ -67,9 +67,18 @@ export async function getSigMembers(
   return data as SigMembersResponse
 }
 
-export async function getSigForms(sigId: string) {
-  const { data } = await api.get(`/sigs/${sigId}/forms`)
+export async function getSigForms(sigId: string, params?: { page?: number; page_size?: number }) {
+  const { data } = await api.get(`/sigs/${sigId}/forms`, { params })
   return data as SigFormsResponse
+}
+
+export async function getMySigRole(sigId: string): Promise<string | null> {
+  try {
+    const { data } = await api.get(`/sigs/${sigId}/members/me`)
+    return (data as { role: string }).role
+  } catch {
+    return null
+  }
 }
 
 export async function leaveSig(sigId: string) {

@@ -22,6 +22,7 @@ import {
   getSigPosts,
   getSigMembers,
   getSigForms,
+  getMySigRole,
   leaveSig,
   removeMember,
   assignSubAdmin,
@@ -143,8 +144,40 @@ describe('sigs API', () => {
 
       const result = await getSigForms(sigId)
 
-      expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/forms`)
+      expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/forms`, { params: undefined })
       expect(result).toEqual(mockData)
+    })
+
+    it('passes pagination params when provided', async () => {
+      const sigId = 'sig-forms'
+      const mockData = { forms: [], total: 0 }
+      mockGet.mockResolvedValue({ data: mockData })
+
+      await getSigForms(sigId, { page: 2, page_size: 20 })
+
+      expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/forms`, {
+        params: { page: 2, page_size: 20 },
+      })
+    })
+  })
+
+  describe('getMySigRole', () => {
+    it('returns the role string on success', async () => {
+      const sigId = 'sig-role'
+      mockGet.mockResolvedValue({ data: { role: 'MEMBER' } })
+
+      const result = await getMySigRole(sigId)
+
+      expect(mockGet).toHaveBeenCalledWith(`/sigs/${sigId}/members/me`)
+      expect(result).toBe('MEMBER')
+    })
+
+    it('returns null when the request fails (user is not a member)', async () => {
+      mockGet.mockRejectedValue(new Error('Not found'))
+
+      const result = await getMySigRole('sig-no-member')
+
+      expect(result).toBeNull()
     })
   })
 
