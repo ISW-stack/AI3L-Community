@@ -37,6 +37,7 @@ function createTestRouter() {
       { path: '/admin/audit-logs', component: { template: '<div />' } },
       { path: '/profile', component: { template: '<div />' } },
       { path: '/about', component: { template: '<div />' } },
+      { path: '/friends', component: { template: '<div />' } },
     ],
   })
 }
@@ -119,13 +120,59 @@ describe('AppNavbar', () => {
       expect(wrapper.text()).toContain('SIGs')
     })
 
-    it('should show About link', async () => {
+    it('should show About link inside user dropdown', async () => {
       const { wrapper, auth } = mountNavbar()
       auth.setSession('MEMBER', 3600)
+      auth.user = {
+        id: 'u1',
+        username: 'alice',
+        display_name: 'Alice',
+        role: 'MEMBER',
+        bio: null,
+        affiliation: null,
+        orcid: null,
+        avatar_url: null,
+        preferred_language: 'en',
+        is_banned: false,
+        ban_reason: null,
+        created_at: new Date().toISOString(),
+      } as any
+      await nextTick()
+
+      // About is now inside user dropdown — open it first
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      await userBtn.trigger('click')
       await nextTick()
 
       const html = wrapper.html()
       expect(html).toContain('href="/about"')
+    })
+
+    it('should show Friends link inside user dropdown', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      auth.user = {
+        id: 'u1',
+        username: 'alice',
+        display_name: 'Alice',
+        role: 'MEMBER',
+        bio: null,
+        affiliation: null,
+        orcid: null,
+        avatar_url: null,
+        preferred_language: 'en',
+        is_banned: false,
+        ban_reason: null,
+        created_at: new Date().toISOString(),
+      } as any
+      await nextTick()
+
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      await userBtn.trigger('click')
+      await nextTick()
+
+      const html = wrapper.html()
+      expect(html).toContain('href="/friends"')
     })
 
     it('should not show Log In / Sign Up links', async () => {
@@ -146,16 +193,7 @@ describe('AppNavbar', () => {
       expect(wrapper.text()).not.toContain('Audit Logs')
     })
 
-    it('should show the user dropdown with role displayed', async () => {
-      const { wrapper, auth } = mountNavbar()
-      auth.setSession('MEMBER', 3600)
-      await nextTick()
-
-      // The dropdown button shows the role as the display or badge text
-      expect(wrapper.text()).toContain('Member')
-    })
-
-    it('shows role badge before username in the dropdown button', async () => {
+    it('should show role and name inside user dropdown panel', async () => {
       const { wrapper, auth } = mountNavbar()
       auth.setSession('MEMBER', 3600)
       auth.user = {
@@ -174,24 +212,96 @@ describe('AppNavbar', () => {
       } as any
       await nextTick()
 
+      // Open user dropdown
       const userBtn = wrapper.find('.user-dropdown-wrapper button')
-      const btnText = userBtn.text()
-      const roleIdx = btnText.indexOf('Member')
-      const nameIdx = btnText.indexOf('AliceDisplay')
-      // Role badge label should appear before the username
-      expect(roleIdx).toBeGreaterThanOrEqual(0)
-      expect(nameIdx).toBeGreaterThanOrEqual(0)
-      expect(roleIdx).toBeLessThan(nameIdx)
+      await userBtn.trigger('click')
+      await nextTick()
+
+      const dropdownPanel = wrapper.find('.user-dropdown-wrapper .absolute')
+      expect(dropdownPanel.text()).toContain('Member')
+      expect(dropdownPanel.text()).toContain('AliceDisplay')
     })
 
-    it('shows fallback dash when display_name is not set', async () => {
+    it('shows user initials in dropdown trigger', async () => {
       const { wrapper, auth } = mountNavbar()
       auth.setSession('MEMBER', 3600)
-      // user is null → display_name fallback is "—"
+      auth.user = {
+        id: 'u1',
+        username: 'alice',
+        display_name: 'Alice Doe',
+        role: 'MEMBER',
+        bio: null,
+        affiliation: null,
+        orcid: null,
+        avatar_url: null,
+        preferred_language: 'en',
+        is_banned: false,
+        ban_reason: null,
+        created_at: new Date().toISOString(),
+      } as any
       await nextTick()
 
       const userBtn = wrapper.find('.user-dropdown-wrapper button')
-      expect(userBtn.text()).toContain('—')
+      expect(userBtn.text()).toContain('AD')
+    })
+
+    it('shows avatar image when avatar_url is set', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      auth.user = {
+        id: 'u1',
+        username: 'alice',
+        display_name: 'Alice Doe',
+        role: 'MEMBER',
+        bio: null,
+        affiliation: null,
+        orcid: null,
+        avatar_url: 'http://localhost:19000/avatars/alice.jpg',
+        preferred_language: 'en',
+        is_banned: false,
+        ban_reason: null,
+        created_at: new Date().toISOString(),
+      } as any
+      await nextTick()
+
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      const img = userBtn.find('img')
+      expect(img.exists()).toBe(true)
+      expect(img.attributes('src')).toBe('http://localhost:19000/avatars/alice.jpg')
+      expect(img.attributes('alt')).toBe('Alice Doe')
+    })
+
+    it('shows fallback initials when display_name is not set', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      // user is null → initials fallback is "?"
+      await nextTick()
+
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      expect(userBtn.text()).toContain('?')
+    })
+
+    it('shows fallback initials for whitespace-only display_name', async () => {
+      const { wrapper, auth } = mountNavbar()
+      auth.setSession('MEMBER', 3600)
+      auth.user = {
+        id: 'u1',
+        username: 'alice',
+        display_name: '   ',
+        role: 'MEMBER',
+        bio: null,
+        affiliation: null,
+        orcid: null,
+        avatar_url: null,
+        preferred_language: 'en',
+        is_banned: false,
+        ban_reason: null,
+        created_at: new Date().toISOString(),
+      } as any
+      await nextTick()
+
+      const userBtn = wrapper.find('.user-dropdown-wrapper button')
+      expect(userBtn.text()).toContain('?')
     })
   })
 
@@ -415,10 +525,10 @@ describe('AppNavbar', () => {
 
   // ---------- AI3L Community brand ----------
 
-  // ---------- i18n: dropdown close buttons ----------
+  // ---------- dropdowns close via click-outside / Escape ----------
 
-  describe('dropdown close buttons', () => {
-    it('renders close button in admin dropdown', async () => {
+  describe('dropdowns close via click-outside', () => {
+    it('admin dropdown has no inline close button', async () => {
       const { wrapper, auth } = mountNavbar()
       auth.setSession('ADMIN', 3600)
       await nextTick()
@@ -427,12 +537,11 @@ describe('AppNavbar', () => {
       await adminBtn.trigger('click')
       await nextTick()
 
-      // Should have a close button with X icon
       const closeBtn = wrapper.find('.admin-dropdown-wrapper button[aria-label="Close dropdown"]')
-      expect(closeBtn.exists()).toBe(true)
+      expect(closeBtn.exists()).toBe(false)
     })
 
-    it('renders close button in user dropdown', async () => {
+    it('user dropdown has no inline close button', async () => {
       const { wrapper, auth } = mountNavbar()
       auth.setSession('MEMBER', 3600)
       await nextTick()
@@ -442,7 +551,7 @@ describe('AppNavbar', () => {
       await nextTick()
 
       const closeBtn = wrapper.find('.user-dropdown-wrapper button[aria-label="Close dropdown"]')
-      expect(closeBtn.exists()).toBe(true)
+      expect(closeBtn.exists()).toBe(false)
     })
   })
 

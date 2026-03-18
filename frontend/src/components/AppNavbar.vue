@@ -37,6 +37,14 @@ const { handleDropdownKeydown: handleUserKeydown } = useDropdownKeyNav({
   wrapperClass: 'user-dropdown-wrapper',
 })
 
+const userInitials = computed(() => {
+  const trimmed = (auth.user?.display_name || '').trim()
+  if (!trimmed) return '?'
+  const parts = trimmed.split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return trimmed.slice(0, 2).toUpperCase()
+})
+
 const roleLabels = computed<Record<string, string>>(() => ({
   SUPER_ADMIN: t('common.role.superAdmin'),
   ADMIN: t('common.role.admin'),
@@ -131,18 +139,6 @@ onUnmounted(() => {
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.albums') }}</router-link
           >
-          <router-link
-            v-if="auth.isAuthenticated && !auth.isGuest"
-            to="/about"
-            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >{{ t('nav.about') }}</router-link
-          >
-          <router-link
-            v-if="auth.isAuthenticated && !auth.isGuest"
-            to="/friends"
-            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >{{ t('nav.friends') }}</router-link
-          >
 
           <template v-if="auth.isAuthenticated">
             <!-- Admin dropdown -->
@@ -169,16 +165,6 @@ onUnmounted(() => {
                   v-if="adminDropdownOpen"
                   class="absolute right-0 sm:left-0 sm:right-auto mt-2 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
                 >
-                  <div class="flex justify-end px-2 pt-1 pb-0">
-                    <button
-                      type="button"
-                      class="p-1 text-muted hover:text-foreground transition"
-                      :aria-label="t('nav.closeDropdown')"
-                      @click="adminDropdownOpen = false"
-                    >
-                      <X class="w-4 h-4" aria-hidden="true" />
-                    </button>
-                  </div>
                   <router-link
                     to="/admin"
                     class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
@@ -240,8 +226,6 @@ onUnmounted(() => {
               </Transition>
             </div>
 
-            <LanguageSwitcher />
-
             <!-- DM Badge -->
             <router-link
               v-if="!auth.isGuest"
@@ -264,47 +248,95 @@ onUnmounted(() => {
             <div class="relative user-dropdown-wrapper" @keydown="handleUserKeydown">
               <button
                 @click="userDropdownOpen = !userDropdownOpen"
-                class="flex items-center gap-2 text-sm text-foreground hover:text-foreground/80 transition"
+                class="flex items-center gap-2 transition"
                 :aria-expanded="userDropdownOpen"
+                :aria-label="t('nav.sectionAccount')"
+                :title="auth.user?.display_name || ''"
               >
-                <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'">
-                  {{ roleLabels[auth.role || ''] || auth.role }}
-                </BaseBadge>
-                <span>{{ auth.user?.display_name || '—' }}</span>
-                <ChevronDown class="w-4 h-4 text-muted" aria-hidden="true" />
+                <span
+                  v-if="auth.user?.avatar_url"
+                  class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-brand-200 transition"
+                >
+                  <img
+                    :src="auth.user.avatar_url"
+                    :alt="auth.user.display_name"
+                    class="w-full h-full object-cover"
+                  />
+                </span>
+                <span
+                  v-else
+                  class="flex items-center justify-center w-8 h-8 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold ring-2 ring-transparent hover:ring-brand-200 transition"
+                >
+                  {{ userInitials }}
+                </span>
+                <ChevronDown
+                  class="w-3.5 h-3.5 text-muted transition-transform"
+                  :class="{ 'rotate-180': userDropdownOpen }"
+                  aria-hidden="true"
+                />
               </button>
 
-              <div
-                v-if="userDropdownOpen"
-                class="absolute right-0 mt-2 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
-              >
-                <div class="flex justify-end px-2 pt-1 pb-0">
+              <Transition name="dropdown">
+                <div
+                  v-if="userDropdownOpen"
+                  class="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
+                >
+                  <!-- User info header -->
+                  <div class="px-4 py-2 border-b border-border">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-medium text-foreground truncate">{{
+                        auth.user?.display_name || '—'
+                      }}</span>
+                      <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'" size="sm">
+                        {{ roleLabels[auth.role || ''] || auth.role }}
+                      </BaseBadge>
+                    </div>
+                  </div>
+
+                  <template v-if="!auth.isGuest">
+                    <router-link
+                      to="/profile"
+                      class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                      @click="userDropdownOpen = false"
+                      tabindex="-1"
+                    >
+                      {{ t('nav.profile') }}
+                    </router-link>
+                    <router-link
+                      to="/friends"
+                      class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                      @click="userDropdownOpen = false"
+                      tabindex="-1"
+                    >
+                      {{ t('nav.friends') }}
+                    </router-link>
+                    <router-link
+                      to="/about"
+                      class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                      @click="userDropdownOpen = false"
+                      tabindex="-1"
+                    >
+                      {{ t('nav.about') }}
+                    </router-link>
+
+                    <div class="border-t border-border my-1" />
+                  </template>
+
+                  <div class="px-4 py-2">
+                    <LanguageSwitcher variant="form" />
+                  </div>
+
+                  <div class="border-t border-border my-1" />
+
                   <button
-                    type="button"
-                    class="p-1 text-muted hover:text-foreground transition"
-                    :aria-label="t('nav.closeDropdown')"
-                    @click="userDropdownOpen = false"
+                    @click="handleLogout"
+                    class="block w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-surface-alt transition"
+                    tabindex="-1"
                   >
-                    <X class="w-4 h-4" aria-hidden="true" />
+                    {{ t('nav.logOut') }}
                   </button>
                 </div>
-                <router-link
-                  v-if="!auth.isGuest"
-                  to="/profile"
-                  class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
-                  @click="userDropdownOpen = false"
-                  tabindex="-1"
-                >
-                  {{ t('nav.profile') }}
-                </router-link>
-                <button
-                  @click="handleLogout"
-                  class="block w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-surface-alt transition"
-                  tabindex="-1"
-                >
-                  {{ t('nav.logOut') }}
-                </button>
-              </div>
+              </Transition>
             </div>
           </template>
 
@@ -395,22 +427,6 @@ onUnmounted(() => {
           >
             {{ t('nav.albums') }}
           </router-link>
-          <router-link
-            v-if="auth.isAuthenticated && !auth.isGuest"
-            to="/about"
-            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-            @click="mobileMenuOpen = false"
-          >
-            {{ t('nav.about') }}
-          </router-link>
-          <router-link
-            v-if="auth.isAuthenticated && !auth.isGuest"
-            to="/friends"
-            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-            @click="mobileMenuOpen = false"
-          >
-            {{ t('nav.friends') }}
-          </router-link>
 
           <template v-if="auth.isAuthenticated">
             <template v-if="auth.isAdmin">
@@ -488,14 +504,29 @@ onUnmounted(() => {
             <div class="px-3 py-2">
               <LanguageSwitcher variant="form" />
             </div>
-            <router-link
-              v-if="!auth.isGuest"
-              to="/profile"
-              class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-              @click="mobileMenuOpen = false"
-            >
-              {{ t('nav.profile') }}
-            </router-link>
+            <template v-if="!auth.isGuest">
+              <router-link
+                to="/profile"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+              >
+                {{ t('nav.profile') }}
+              </router-link>
+              <router-link
+                to="/friends"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+              >
+                {{ t('nav.friends') }}
+              </router-link>
+              <router-link
+                to="/about"
+                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                @click="mobileMenuOpen = false"
+              >
+                {{ t('nav.about') }}
+              </router-link>
+            </template>
             <button
               @click="handleLogout"
               class="block w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-surface-alt rounded-lg transition"
