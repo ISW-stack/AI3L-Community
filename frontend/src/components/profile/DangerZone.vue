@@ -47,7 +47,8 @@ defineExpose({
 </script>
 
 <template>
-  <BaseAlert type="warning" class="mb-4">{{ t('profile.dangerZone.warning') }}</BaseAlert>
+  <div>
+    <BaseAlert type="warning" class="mb-4">{{ t('profile.dangerZone.warning') }}</BaseAlert>
 
   <h2 class="text-xl font-bold text-danger-600 mb-4">{{ t('profile.dangerZone.title') }}</h2>
   <BaseCard padding="lg">
@@ -86,4 +87,5 @@ defineExpose({
       >
     </template>
   </BaseModal>
+  </div>
 </template>

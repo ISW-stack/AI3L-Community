@@ -46,8 +46,9 @@ function toggleConfirmPassword() {
 </script>
 
 <template>
-  <!-- Change Password -->
-  <h2 class="text-xl font-bold text-foreground mb-4">
+  <div>
+    <!-- Change Password -->
+    <h2 class="text-xl font-bold text-foreground mb-4">
     {{ t('profile.security.changePassword.title') }}
   </h2>
 
@@ -143,4 +144,5 @@ function toggleConfirmPassword() {
       </div>
     </div>
   </BaseCard>
+  </div>
 </template>

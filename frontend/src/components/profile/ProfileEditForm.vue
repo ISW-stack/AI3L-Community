@@ -74,8 +74,9 @@ function formatBytes(bytes: number): string {
 </script>
 
 <template>
-  <!-- Avatar -->
-  <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-6">
+  <div>
+    <!-- Avatar -->
+    <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-6">
     <div
       class="w-20 h-20 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
     >
@@ -191,4 +192,5 @@ function formatBytes(bytes: number): string {
       <BaseButton type="submit" :loading="saving">{{ t('profile.form.saveBtn') }}</BaseButton>
     </form>
   </BaseCard>
+  </div>
 </template>
