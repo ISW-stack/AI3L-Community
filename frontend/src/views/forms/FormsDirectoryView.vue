@@ -77,7 +77,7 @@ watch(page, fetchForms)
 </script>
 
 <template>
-  <div>
+  <div class="flex-1 flex flex-col">
     <BaseBreadcrumb
       :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.formsDirectory') }]"
     />
@@ -99,7 +99,7 @@ watch(page, fetchForms)
 
     <SkeletonLoader v-if="initialLoading" :lines="3" variant="card" />
 
-    <div v-else class="min-h-[200px]">
+    <div v-else class="min-h-[400px]">
       <div
         :class="{ 'opacity-50 pointer-events-none': loading }"
         class="transition-opacity duration-150"
