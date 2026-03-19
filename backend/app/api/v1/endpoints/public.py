@@ -22,7 +22,7 @@ async def get_public_stats(request: Request) -> dict:
     redis = get_redis()
     cached = await redis.get(_CACHE_KEY)
     if cached:
-        return json.loads(cached)
+        return dict(json.loads(cached))
 
     member_count = await dashboard_repo.count_users()
     post_count = await dashboard_repo.count_posts()

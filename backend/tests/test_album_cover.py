@@ -179,7 +179,9 @@ class TestSetCoverFromPhotoService:
             pool_inst.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
             mock_pool.return_value = pool_inst
 
-            with patch(f"{_SVC}.album_repo.find_album_by_id", new_callable=AsyncMock, return_value=None):
+            with patch(
+                f"{_SVC}.album_repo.find_album_by_id", new_callable=AsyncMock, return_value=None
+            ):
                 with pytest.raises(AppError) as exc_info:
                     await set_cover_from_photo(
                         album_id=str(uuid.uuid4()),
@@ -222,7 +224,11 @@ class TestSetCoverFromPhotoService:
             mock_pool.return_value = pool_inst
 
             with (
-                patch(f"{_SVC}.album_repo.find_album_by_id", new_callable=AsyncMock, return_value=album_row),
+                patch(
+                    f"{_SVC}.album_repo.find_album_by_id",
+                    new_callable=AsyncMock,
+                    return_value=album_row,
+                ),
                 patch(f"{_SVC}.album_repo.find_member", new_callable=AsyncMock, return_value=None),
             ):
                 with pytest.raises(AppError) as exc_info:
@@ -284,9 +290,17 @@ class TestSetCoverFromPhotoService:
             mock_pool.return_value = pool_inst
 
             with (
-                patch(f"{_SVC}.album_repo.find_album_by_id", new_callable=AsyncMock, return_value=album_row),
+                patch(
+                    f"{_SVC}.album_repo.find_album_by_id",
+                    new_callable=AsyncMock,
+                    return_value=album_row,
+                ),
                 patch(f"{_SVC}.album_repo.find_member", new_callable=AsyncMock, return_value=None),
-                patch(f"{_SVC}.album_repo.find_photo_by_id", new_callable=AsyncMock, return_value=photo_row),
+                patch(
+                    f"{_SVC}.album_repo.find_photo_by_id",
+                    new_callable=AsyncMock,
+                    return_value=photo_row,
+                ),
             ):
                 with pytest.raises(AppError) as exc_info:
                     await set_cover_from_photo(
@@ -572,14 +586,30 @@ class TestAutoSetCoverOnUpload:
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(f"{_SVC}.validate_magic_number", return_value=True),
-            patch(f"{_SVC}.album_repo.find_album_by_id", new_callable=AsyncMock, return_value=album_row),
-            patch(f"{_SVC}.album_repo.find_member", new_callable=AsyncMock, return_value=member_row),
+            patch(
+                f"{_SVC}.album_repo.find_album_by_id",
+                new_callable=AsyncMock,
+                return_value=album_row,
+            ),
+            patch(
+                f"{_SVC}.album_repo.find_member", new_callable=AsyncMock, return_value=member_row
+            ),
             patch(f"{_SVC}.album_repo.count_photos", new_callable=AsyncMock, return_value=0),
-            patch(f"{_SVC}.album_repo.insert_photo", new_callable=AsyncMock, return_value=photo_row),
-            patch(f"{_SVC}.album_repo.set_cover_photo", new_callable=AsyncMock, return_value=True) as mock_set_cover,
-            patch(f"{_SVC}.album_repo.find_photo_by_id", new_callable=AsyncMock, return_value=photo_row),
+            patch(
+                f"{_SVC}.album_repo.insert_photo", new_callable=AsyncMock, return_value=photo_row
+            ),
+            patch(
+                f"{_SVC}.album_repo.set_cover_photo", new_callable=AsyncMock, return_value=True
+            ) as mock_set_cover,
+            patch(
+                f"{_SVC}.album_repo.find_photo_by_id",
+                new_callable=AsyncMock,
+                return_value=photo_row,
+            ),
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
-            patch("app.converters.album_converter.generate_presigned_url", return_value="http://url"),
+            patch(
+                "app.converters.album_converter.generate_presigned_url", return_value="http://url"
+            ),
         ):
             await upload_photo(
                 album_id=str(album_id),

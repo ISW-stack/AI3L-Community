@@ -86,9 +86,7 @@ class TestUpdateUserProfile:
         assert "UPDATE" in query
 
     @patch("app.repositories.user_repo.get_pool")
-    async def test_update_profile_clears_multiple_fields(
-        self, mock_get_pool, mock_pool, mock_conn
-    ):
+    async def test_update_profile_clears_multiple_fields(self, mock_get_pool, mock_pool, mock_conn):
         """N-B10: Clearing bio, affiliation, orcid simultaneously."""
         from app.services.user import update_user_profile
 
@@ -99,9 +97,7 @@ class TestUpdateUserProfile:
         mock_conn.fetchrow.return_value = user
         mock_get_pool.return_value = mock_pool
 
-        result = await update_user_profile(
-            user["id"], bio=None, affiliation=None, orcid=None
-        )
+        result = await update_user_profile(user["id"], bio=None, affiliation=None, orcid=None)
         assert result is not None
         call_args = mock_conn.fetchrow.call_args
         query = call_args[0][0]

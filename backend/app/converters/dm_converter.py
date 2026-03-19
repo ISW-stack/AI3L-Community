@@ -21,9 +21,7 @@ async def async_row_to_message(row: dict) -> dict:
         "attachment_name": row.get("attachment_name"),
         "attachment_size": row.get("attachment_size"),
         "attachment_expires_at": (
-            row["attachment_expires_at"].isoformat()
-            if row.get("attachment_expires_at")
-            else None
+            row["attachment_expires_at"].isoformat() if row.get("attachment_expires_at") else None
         ),
         "is_recalled": row["is_recalled"],
         "is_edited": row["is_edited"],
@@ -54,9 +52,7 @@ async def async_row_to_conversation(row: dict, user_id: str) -> dict:
             "sender": {
                 "id": str(row["last_msg_sender_id"]),
                 "display_name": row.get("last_msg_sender_display_name", ""),
-                "avatar_url": await async_resolve_avatar_url(
-                    row.get("last_msg_sender_avatar_url")
-                ),
+                "avatar_url": await async_resolve_avatar_url(row.get("last_msg_sender_avatar_url")),
             },
             "content": row.get("last_msg_content"),
             "attachment_url": None,
@@ -70,9 +66,7 @@ async def async_row_to_conversation(row: dict, user_id: str) -> dict:
             "is_recalled": row.get("last_msg_is_recalled", False),
             "is_edited": row.get("last_msg_is_edited", False),
             "read_at": (
-                row["last_msg_read_at"].isoformat()
-                if row.get("last_msg_read_at")
-                else None
+                row["last_msg_read_at"].isoformat() if row.get("last_msg_read_at") else None
             ),
             "created_at": row["last_msg_created_at"].isoformat(),
             "updated_at": row["last_msg_updated_at"].isoformat(),

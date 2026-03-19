@@ -21,9 +21,21 @@ from app.repositories import dm_repo
 
 # ── DM attachment allowed extensions ────────────────────────────────────────
 _DM_ALLOWED_EXTENSIONS: set[str] = {
-    ".jpg", ".jpeg", ".png", ".gif", ".webp",           # images
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx",            # documents
-    ".ppt", ".pptx", ".txt", ".csv", ".zip",             # other
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".webp",  # images
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",  # documents
+    ".ppt",
+    ".pptx",
+    ".txt",
+    ".csv",
+    ".zip",  # other
 }
 
 # Extensions that require magic-byte validation (images)
@@ -145,7 +157,9 @@ async def send_message(
         if file_name and "." in file_name:
             ext = "." + file_name.rsplit(".", 1)[-1].lower()
         storage_key = f"dm/{sender_id}/{uuid.uuid4().hex}{ext}"
-        await async_upload_file(file_data, storage_key, file_content_type or "application/octet-stream")
+        await async_upload_file(
+            file_data, storage_key, file_content_type or "application/octet-stream"
+        )
 
         attachment_key = storage_key
         attachment_name = file_name
@@ -352,9 +366,7 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
             try:
                 from app.repositories import user_repo
 
-                await user_repo.decrement_storage_used(
-                    uuid.UUID(sender_id), row["attachment_size"]
-                )
+                await user_repo.decrement_storage_used(uuid.UUID(sender_id), row["attachment_size"])
             except Exception:
                 logger.warning(
                     "Failed to refund storage quota for recalled DM attachment",
@@ -387,20 +399,14 @@ async def list_conversations(
 ) -> tuple[list[dict], int]:
     """List conversations with presigned URLs for last message attachments."""
     offset = (page - 1) * page_size
-    rows, total = await dm_repo.find_conversations(
-        uuid.UUID(user_id), page_size, offset
-    )
+    rows, total = await dm_repo.find_conversations(uuid.UUID(user_id), page_size, offset)
 
     conversations = []
     for row in rows:
         conv = await async_row_to_conversation(row, user_id)
         # Generate presigned URL for last message attachment if present
         last_msg = conv.get("last_message")
-        if (
-            last_msg
-            and last_msg.get("attachment_key")
-            and not last_msg.get("is_recalled")
-        ):
+        if last_msg and last_msg.get("attachment_key") and not last_msg.get("is_recalled"):
             from app.core.storage import generate_presigned_url
 
             last_msg["attachment_url"] = generate_presigned_url(
@@ -418,16 +424,12 @@ async def list_messages(
 ) -> tuple[list[dict], int]:
     """List messages, verifying user is participant. Generate presigned URLs."""
     # Verify user is a participant
-    conv = await dm_repo.find_conversation_by_id(
-        uuid.UUID(conversation_id), uuid.UUID(user_id)
-    )
+    conv = await dm_repo.find_conversation_by_id(uuid.UUID(conversation_id), uuid.UUID(user_id))
     if not conv:
         raise AppError(ErrorCode.DM_006, 404, "Conversation not found.")
 
     offset = (page - 1) * page_size
-    rows, total = await dm_repo.find_messages(
-        uuid.UUID(conversation_id), page_size, offset
-    )
+    rows, total = await dm_repo.find_messages(uuid.UUID(conversation_id), page_size, offset)
 
     messages = []
     for row in rows:
@@ -451,9 +453,7 @@ async def mark_read(user_id: str, conversation_id: str) -> str | None:
     Returns read_at ISO string or None if nothing to mark.
     """
     # Verify user is a participant
-    conv = await dm_repo.find_conversation_by_id(
-        uuid.UUID(conversation_id), uuid.UUID(user_id)
-    )
+    conv = await dm_repo.find_conversation_by_id(uuid.UUID(conversation_id), uuid.UUID(user_id))
     if not conv:
         raise AppError(ErrorCode.DM_006, 404, "Conversation not found.")
 

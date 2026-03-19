@@ -62,7 +62,9 @@ describe('getErrorMessage', () => {
 
   it('translates error code when t function is provided', () => {
     const error = {
-      response: { data: { detail: { code: 'AUTH_010', message: 'Invalid username or password.' } } },
+      response: {
+        data: { detail: { code: 'AUTH_010', message: 'Invalid username or password.' } },
+      },
     }
     const t = (key: string) => (key === 'errors.AUTH_010' ? 'Translated message' : key)
     expect(getErrorMessage(error, t)).toBe('Translated message')
@@ -93,7 +95,8 @@ describe('getErrorMessage', () => {
 
   it('uses fallbackKey with t function when no detail', () => {
     const error = new Error('network')
-    const t = (key: string) => (key === 'auth.loginFailed' ? 'Login failed. Please try again.' : key)
+    const t = (key: string) =>
+      key === 'auth.loginFailed' ? 'Login failed. Please try again.' : key
     expect(getErrorMessage(error, t, 'auth.loginFailed')).toBe('Login failed. Please try again.')
   })
 

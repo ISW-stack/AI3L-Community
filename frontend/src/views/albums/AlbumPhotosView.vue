@@ -92,11 +92,7 @@ async function handleUpload(file: File) {
 
 const canDeletePhoto = computed(() => {
   if (!album.value || !auth.user) return false
-  return (
-    album.value.created_by === auth.user.id ||
-    auth.isAdmin ||
-    userAlbumRole.value === 'ADMIN'
-  )
+  return album.value.created_by === auth.user.id || auth.isAdmin || userAlbumRole.value === 'ADMIN'
 })
 
 function canDeleteThisPhoto(photo: AlbumPhoto): boolean {
@@ -119,11 +115,7 @@ async function handleDeletePhoto(photo: AlbumPhoto) {
 
 const canSetCover = computed(() => {
   if (!album.value || !auth.user) return false
-  return (
-    album.value.created_by === auth.user.id ||
-    auth.isAdmin ||
-    userAlbumRole.value === 'ADMIN'
-  )
+  return album.value.created_by === auth.user.id || auth.isAdmin || userAlbumRole.value === 'ADMIN'
 })
 
 async function handleSetCover(photo: AlbumPhoto) {

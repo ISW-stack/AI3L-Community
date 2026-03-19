@@ -7,6 +7,7 @@ Create Date: 2026-03-17
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "k2l3m4n5o6p7"
@@ -17,8 +18,7 @@ depends_on = None
 
 def upgrade() -> None:
     # ── conversations table ──
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE conversations (
             id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             participant_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -30,14 +30,12 @@ def upgrade() -> None:
             CONSTRAINT ck_participant_order CHECK (participant_a < participant_b),
             CONSTRAINT ck_no_self_convo CHECK (participant_a != participant_b)
         )
-        """
-    )
+        """)
     op.create_index("ix_conversations_participant_a", "conversations", ["participant_a"])
     op.create_index("ix_conversations_participant_b", "conversations", ["participant_b"])
 
     # ── dm_messages table ──
-    op.execute(
-        """
+    op.execute("""
         CREATE TABLE dm_messages (
             id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             conversation_id     UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
@@ -53,28 +51,23 @@ def upgrade() -> None:
             created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
-        """
-    )
+        """)
     op.create_index(
         "ix_dm_messages_conversation_created",
         "dm_messages",
         ["conversation_id", sa.text("created_at DESC")],
     )
     op.create_index("ix_dm_messages_sender_id", "dm_messages", ["sender_id"])
-    op.execute(
-        """
+    op.execute("""
         CREATE INDEX ix_dm_messages_attachment_expires
         ON dm_messages (attachment_expires_at)
         WHERE attachment_expires_at IS NOT NULL
-        """
-    )
-    op.execute(
-        """
+        """)
+    op.execute("""
         CREATE INDEX ix_dm_messages_text_cleanup
         ON dm_messages (created_at)
         WHERE NOT is_recalled
-        """
-    )
+        """)
 
     # ── user_preferences: add dm_friends_only column ──
     op.add_column(

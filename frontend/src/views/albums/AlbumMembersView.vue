@@ -184,7 +184,9 @@ watch(() => album.value?.id, fetchMembers)
         >
           {{ t('albums.leave') }}
         </BaseButton>
-        <BaseButton v-if="isAlbumAdmin" size="sm" @click="openAddMember"> {{ t('albums.addMember') }} </BaseButton>
+        <BaseButton v-if="isAlbumAdmin" size="sm" @click="openAddMember">
+          {{ t('albums.addMember') }}
+        </BaseButton>
       </div>
     </div>
 
@@ -215,10 +217,12 @@ watch(() => album.value?.id, fetchMembers)
                 </div>
               </div>
               <div class="flex gap-2 shrink-0">
-                <BaseButton size="sm" @click="handleApprove(member)">{{ t('albums.approve') }}</BaseButton>
-                <BaseButton size="sm" variant="soft-danger" @click="handleRemove(member)"
-                  >{{ t('albums.reject') }}</BaseButton
-                >
+                <BaseButton size="sm" @click="handleApprove(member)">{{
+                  t('albums.approve')
+                }}</BaseButton>
+                <BaseButton size="sm" variant="soft-danger" @click="handleRemove(member)">{{
+                  t('albums.reject')
+                }}</BaseButton>
               </div>
             </div>
           </BaseCard>
@@ -237,7 +241,9 @@ watch(() => album.value?.id, fetchMembers)
                 </p>
                 <p class="text-xs text-muted">@{{ member.username }}</p>
               </div>
-              <BaseBadge v-if="member.role === 'ADMIN'" variant="brand">{{ t('albums.admin') }}</BaseBadge>
+              <BaseBadge v-if="member.role === 'ADMIN'" variant="brand">{{
+                t('albums.admin')
+              }}</BaseBadge>
             </div>
             <BaseButton
               v-if="isAlbumAdmin && member.user_id !== auth.user?.id"
@@ -282,10 +288,12 @@ watch(() => album.value?.id, fetchMembers)
         </div>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" @click="showAddMemberModal = false">{{ t('common.cancel') }}</BaseButton>
-        <BaseButton :loading="addingMember" :disabled="!addMemberUserId" @click="handleAddMember"
-          >{{ t('albums.add') }}</BaseButton
-        >
+        <BaseButton variant="secondary" @click="showAddMemberModal = false">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton :loading="addingMember" :disabled="!addMemberUserId" @click="handleAddMember">{{
+          t('albums.add')
+        }}</BaseButton>
       </template>
     </BaseModal>
   </div>

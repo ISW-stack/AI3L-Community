@@ -30,8 +30,8 @@ from app.core.config import settings
 from app.core.csrf import CSRFMiddleware
 from app.core.database import close_db_pool, init_db_pool
 from app.core.logging import setup_logging
-from app.core.redis import close_redis, init_redis
 from app.core.logging_utils import mask_pii
+from app.core.redis import close_redis, init_redis
 from app.core.storage import close_storage, init_storage
 
 
@@ -60,7 +60,9 @@ async def bootstrap_super_admin() -> None:
             if not await async_verify_password(password, user["password_hash"]):
                 new_hash = await async_hash_password(password)
                 await user_repo.update_password_hash(user["id"], new_hash)
-                logger.info("Super Admin password synced from .env", extra={"username": mask_pii(username)})
+                logger.info(
+                    "Super Admin password synced from .env", extra={"username": mask_pii(username)}
+                )
             else:
                 logger.debug(
                     "Super Admin password unchanged, skipping rehash",
@@ -137,7 +139,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             if getattr(settings, key) == default:
                 logger.warning(
                     f"SECURITY: {key} is still using the default value. "
-                    f"Generate a strong random secret with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+                    "Generate a strong random secret with: "
+                    'python -c "import secrets; print(secrets.token_urlsafe(48))"'
                 )
 
     # Production security checks — abort startup on insecure defaults
@@ -189,6 +192,7 @@ MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 class _BodyTooLargeError(Exception):
     """Internal signal raised when chunked body exceeds MAX_REQUEST_BODY_SIZE."""
 
+
 app = FastAPI(
     title="AI3L Community API",
     version="0.1.0",
@@ -221,14 +225,14 @@ async def limit_request_body_size(request: Request, call_next: RequestResponseEn
 
         original_receive = request._receive  # type: ignore[attr-defined]
 
-        async def _size_limited_receive() -> dict:
+        async def _size_limited_receive() -> dict:  # type: ignore[type-arg]
             nonlocal bytes_received
             message = await original_receive()
             body = message.get("body", b"")
             bytes_received += len(body)
             if bytes_received > MAX_REQUEST_BODY_SIZE:
                 raise _BodyTooLargeError()
-            return message
+            return dict(message)
 
         request._receive = _size_limited_receive  # type: ignore[attr-defined]
 

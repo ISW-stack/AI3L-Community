@@ -140,9 +140,7 @@ async def _on_comment_created(
                     )
                 except Exception:
                     failed += 1
-                    logger.error(
-                        "Failed to send post owner comment notification", exc_info=True
-                    )
+                    logger.error("Failed to send post owner comment notification", exc_info=True)
 
     if failed:
         logger.error(

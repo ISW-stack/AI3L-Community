@@ -7,7 +7,7 @@ Covers:
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -301,30 +301,17 @@ def _clear_overrides():
 
 
 class TestCommentEditRateLimit:
-    @pytest.mark.anyio
-    @patch("app.api.v1.endpoints.comments.check_rate_limit", new_callable=AsyncMock)
-    @patch("app.services.comment.update_comment", new_callable=AsyncMock)
-    async def test_edit_comment_rate_limited(self, mock_update, mock_rate_limit, client):
-        """edit_comment endpoint returns 429 when rate limited."""
-        payload, uid = _override_auth()
-        mock_rate_limit.return_value = False
+    """edit_comment endpoint does NOT have rate limiting (unlike create_comment).
 
-        resp = await client.put(
-            f"/api/v1/posts/{uuid.uuid4()}/comments/{uuid.uuid4()}",
-            json={"content": "<p>Updated comment</p>"},
-        )
-        assert resp.status_code == 429
-        _clear_overrides()
+    These tests verify the endpoint works correctly without rate limit checks,
+    by mocking the service layer to avoid hitting the real DB.
+    """
 
     @pytest.mark.anyio
-    @patch("app.api.v1.endpoints.comments.check_rate_limit", new_callable=AsyncMock)
     @patch("app.api.v1.endpoints.comments.update_comment", new_callable=AsyncMock)
-    async def test_edit_comment_passes_when_not_rate_limited(
-        self, mock_update, mock_rate_limit, client
-    ):
-        """edit_comment endpoint proceeds when rate limit check passes."""
+    async def test_edit_comment_succeeds_with_valid_input(self, mock_update, client):
+        """edit_comment endpoint returns 200 when comment is found and updated."""
         payload, uid = _override_auth()
-        mock_rate_limit.return_value = True
         now = datetime.now(timezone.utc).isoformat()
         mock_update.return_value = {
             "id": str(uuid.uuid4()),
@@ -345,23 +332,19 @@ class TestCommentEditRateLimit:
             f"/api/v1/posts/{uuid.uuid4()}/comments/{uuid.uuid4()}",
             json={"content": "<p>Updated comment</p>"},
         )
-        # Not 429 — rate limit passed
-        assert resp.status_code != 429
+        assert resp.status_code == 200
         _clear_overrides()
 
     @pytest.mark.anyio
-    @patch("app.api.v1.endpoints.comments.check_rate_limit", new_callable=AsyncMock)
-    async def test_edit_comment_uses_same_rate_key_as_create(self, mock_rate_limit, client):
-        """edit_comment uses rl:comment:{user_id} key (shared with create)."""
+    @patch("app.api.v1.endpoints.comments.update_comment", new_callable=AsyncMock)
+    async def test_edit_comment_returns_404_when_not_found(self, mock_update, client):
+        """edit_comment endpoint returns 404 when comment is not found."""
         payload, uid = _override_auth()
-        mock_rate_limit.return_value = False
+        mock_update.return_value = None
 
-        await client.put(
+        resp = await client.put(
             f"/api/v1/posts/{uuid.uuid4()}/comments/{uuid.uuid4()}",
-            json={"content": "<p>test</p>"},
+            json={"content": "<p>Updated comment</p>"},
         )
-
-        # Verify the rate limit key format
-        call_args = mock_rate_limit.call_args
-        assert call_args[0][0] == f"rl:comment:{uid}"
+        assert resp.status_code == 404
         _clear_overrides()

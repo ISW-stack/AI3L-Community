@@ -348,7 +348,7 @@ async function handleDeleteAccount() {
         v-model:orcid="orcid"
         :username="auth.user?.username || ''"
         :avatar-url="auth.user?.avatar_url ?? null"
-        :role="auth.role"
+        :user-role="auth.role"
         :storage-used="storageUsed"
         :storage-quota="storageQuota"
         :storage-percent="storagePercent"
@@ -362,7 +362,13 @@ async function handleDeleteAccount() {
       />
 
       <!-- Social Tab -->
-      <div v-if="activeTab === 'social' && !auth.isGuest" id="panel-social" role="tabpanel" aria-labelledby="tab-social" class="space-y-6">
+      <div
+        v-if="activeTab === 'social' && !auth.isGuest"
+        id="panel-social"
+        role="tabpanel"
+        aria-labelledby="tab-social"
+        class="space-y-6"
+      >
         <!-- Quick Links -->
         <div class="space-y-3">
           <h3 class="text-sm font-semibold text-foreground">

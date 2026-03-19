@@ -86,7 +86,8 @@ async def invite_co_author(
             # Check target user exists
             target_uuid = uuid.UUID(target_user_id)
             target = await conn.fetchrow(
-                "SELECT id, display_name, avatar_url FROM users WHERE id = $1 AND is_deleted = false",
+                "SELECT id, display_name, avatar_url FROM users "
+                "WHERE id = $1 AND is_deleted = false",
                 target_uuid,
             )
             if not target:
@@ -237,9 +238,7 @@ async def respond_to_invitation(
                 raise NotFoundError("Invitation", str(co_author_id))
 
             if invitation["status"] != "PENDING":
-                raise AppError(
-                    ErrorCode.SYS_409, 409, "Invitation has already been responded to."
-                )
+                raise AppError(ErrorCode.SYS_409, 409, "Invitation has already been responded to.")
 
             if str(invitation["user_id"]) != user_id:
                 raise ForbiddenError("You are not the target of this invitation.")

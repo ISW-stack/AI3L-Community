@@ -139,9 +139,7 @@ class TestBanIpService:
 
             from app.services.ip_ban import ban_ip
 
-            result = await ban_ip(
-                ip="10.0.0.5", reason="spam", banned_by=banned_by
-            )
+            result = await ban_ip(ip="10.0.0.5", reason="spam", banned_by=banned_by)
             assert result["ip_address"] == "10.0.0.5"
             mock_repo.create.assert_called_once()
             mock_redis.delete.assert_called_once_with("ip_ban:10.0.0.5")
@@ -157,9 +155,7 @@ class TestUnbanIpService:
 
         # Mock the pool for the inline query in unban_ip
         mock_conn = AsyncMock()
-        mock_conn.fetchrow = AsyncMock(
-            return_value={"ip_address": "10.0.0.5"}
-        )
+        mock_conn.fetchrow = AsyncMock(return_value={"ip_address": "10.0.0.5"})
         mock_pool = MagicMock()
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=mock_conn)

@@ -64,9 +64,7 @@ export const useDMStore = defineStore('dm', () => {
       } else {
         // Prepend older messages (pagination loads older pages)
         const existingIds = new Set(messages.value.map((m) => m.id))
-        const newMessages = chronological.filter(
-          (m) => !existingIds.has(m.id),
-        )
+        const newMessages = chronological.filter((m) => !existingIds.has(m.id))
         messages.value = [...newMessages, ...messages.value]
       }
       messagesTotal.value = res.total
@@ -91,9 +89,7 @@ export const useDMStore = defineStore('dm', () => {
 
   function addFromWebSocket(message: DMMessage) {
     // Update conversation list
-    const convIdx = conversations.value.findIndex(
-      (c) => c.id === message.conversation_id,
-    )
+    const convIdx = conversations.value.findIndex((c) => c.id === message.conversation_id)
 
     // BUG-5: Unknown conversation — refetch list
     if (convIdx < 0) {

@@ -215,9 +215,7 @@ async def update_user_role(user_id: uuid.UUID, new_role: str) -> dict | None:
                     user_id,
                 )
                 if current and current["role"] == "SUPER_ADMIN" and count <= 1:
-                    raise ValueError(
-                        "Cannot demote: this is the last Super Admin in the system."
-                    )
+                    raise ValueError("Cannot demote: this is the last Super Admin in the system.")
 
             result = await user_repo.update_role_in_conn(user_id, new_role, conn)
 

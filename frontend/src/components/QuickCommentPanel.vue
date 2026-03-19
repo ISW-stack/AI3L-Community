@@ -27,9 +27,7 @@ const loading = ref(true)
 const newComment = ref('')
 const saving = ref(false)
 
-const canComment = computed(
-  () => auth.isAuthenticated && !auth.isGuest && props.allowComments,
-)
+const canComment = computed(() => auth.isAuthenticated && !auth.isGuest && props.allowComments)
 
 async function fetchRecentComments() {
   loading.value = true
@@ -120,7 +118,9 @@ fetchRecentComments()
             </router-link>
             <p class="text-sm text-foreground break-words">{{ comment.content }}</p>
           </div>
-          <span class="text-[10px] text-muted ml-3">{{ formatCommentTime(comment.created_at) }}</span>
+          <span class="text-[10px] text-muted ml-3">{{
+            formatCommentTime(comment.created_at)
+          }}</span>
         </div>
       </div>
     </template>
@@ -155,7 +155,10 @@ fetchRecentComments()
     </div>
 
     <!-- Guest prompt -->
-    <div v-else-if="!auth.isAuthenticated || auth.isGuest" class="text-xs text-muted text-center py-1">
+    <div
+      v-else-if="!auth.isAuthenticated || auth.isGuest"
+      class="text-xs text-muted text-center py-1"
+    >
       <router-link to="/login" class="text-brand-600 hover:underline">
         {{ t('post.quickComment.loginToComment') }}
       </router-link>

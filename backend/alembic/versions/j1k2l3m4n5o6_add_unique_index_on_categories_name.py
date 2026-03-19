@@ -15,9 +15,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS uq_categories_name ON categories (LOWER(name))"
-    )
+    op.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_categories_name ON categories (LOWER(name))")
 
 
 def downgrade() -> None:

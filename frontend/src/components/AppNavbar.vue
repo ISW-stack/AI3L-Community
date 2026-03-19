@@ -287,7 +287,10 @@ onUnmounted(() => {
                       <span class="text-sm font-medium text-foreground truncate">{{
                         auth.user?.display_name || '—'
                       }}</span>
-                      <BaseBadge :variant="roleBadgeVariant[auth.role || ''] || 'neutral'" size="sm">
+                      <BaseBadge
+                        :variant="roleBadgeVariant[auth.role || ''] || 'neutral'"
+                        size="sm"
+                      >
                         {{ roleLabels[auth.role || ''] || auth.role }}
                       </BaseBadge>
                     </div>

@@ -2,8 +2,6 @@
 
 import re
 
-import pytest
-
 from app.core.logging_utils import hash_identifier, mask_pii
 
 

@@ -91,12 +91,7 @@ async function mountLayout(options?: {
   sigRole?: string | null
   rejectSig?: boolean
 }) {
-  const {
-    role = 'MEMBER',
-    sigData = fakeSig,
-    sigRole = null,
-    rejectSig = false,
-  } = options ?? {}
+  const { role = 'MEMBER', sigData = fakeSig, sigRole = null, rejectSig = false } = options ?? {}
 
   if (rejectSig || sigData === null) {
     // Simulate sig not found: getSig throws, so sig stays null
@@ -604,7 +599,7 @@ describe('SigLayout', () => {
       mockGetSig.mockResolvedValue(fakeSig)
       mockGetMySigRole.mockResolvedValue('MEMBER')
 
-      const { wrapper, auth } = await mountLayout({ sigRole: 'MEMBER' })
+      const { auth } = await mountLayout({ sigRole: 'MEMBER' })
 
       // Simulate promotion: backend set new role in DB
       mockGetMySigRole.mockResolvedValueOnce('SUB_ADMIN')

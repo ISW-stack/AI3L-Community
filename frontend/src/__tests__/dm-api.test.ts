@@ -105,10 +105,7 @@ describe('DM API module', () => {
 
       await listMessages('abc-xyz', { page: 1 })
 
-      expect(mockGet).toHaveBeenCalledWith(
-        '/dm/conversations/abc-xyz/messages',
-        expect.any(Object),
-      )
+      expect(mockGet).toHaveBeenCalledWith('/dm/conversations/abc-xyz/messages', expect.any(Object))
     })
   })
 

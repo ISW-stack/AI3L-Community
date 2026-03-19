@@ -90,7 +90,9 @@ function resetState() {
       <BaseAlert v-if="error" type="error">{{ error }}</BaseAlert>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{ t('albums.selectFile') }}</label>
+        <label class="block text-sm font-medium text-foreground mb-1">{{
+          t('albums.selectFile')
+        }}</label>
         <input
           type="file"
           :accept="ACCEPTED_TYPES"
@@ -109,14 +111,22 @@ function resetState() {
       </div>
 
       <div v-if="fileInfo" class="text-sm text-muted">
-        <p><span class="font-medium text-foreground">{{ t('albums.fileLabel') }}</span> {{ fileInfo.name }}</p>
-        <p><span class="font-medium text-foreground">{{ t('albums.sizeLabel') }}</span> {{ fileInfo.size }}</p>
+        <p>
+          <span class="font-medium text-foreground">{{ t('albums.fileLabel') }}</span>
+          {{ fileInfo.name }}
+        </p>
+        <p>
+          <span class="font-medium text-foreground">{{ t('albums.sizeLabel') }}</span>
+          {{ fileInfo.size }}
+        </p>
       </div>
     </div>
 
     <template #footer>
       <BaseButton variant="secondary" @click="handleClose">{{ t('common.cancel') }}</BaseButton>
-      <BaseButton :disabled="!selectedFile" @click="handleUpload">{{ t('albums.upload') }}</BaseButton>
+      <BaseButton :disabled="!selectedFile" @click="handleUpload">{{
+        t('albums.upload')
+      }}</BaseButton>
     </template>
   </BaseModal>
 </template>

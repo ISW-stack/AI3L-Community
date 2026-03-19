@@ -94,10 +94,7 @@ onMounted(fetchBans)
 <template>
   <div>
     <BaseBreadcrumb
-      :items="[
-        { label: t('breadcrumb.admin'), to: '/admin' },
-        { label: t('admin.ipBans.title') },
-      ]"
+      :items="[{ label: t('breadcrumb.admin'), to: '/admin' }, { label: t('admin.ipBans.title') }]"
     />
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('admin.ipBans.title') }}</h1>
@@ -132,7 +129,8 @@ onMounted(fetchBans)
               variant="success"
               :loading="unbanning === ban.id"
               @click="handleUnban(ban)"
-            >{{ t('admin.ipBans.unbanBtn') }}</BaseButton>
+              >{{ t('admin.ipBans.unbanBtn') }}</BaseButton
+            >
           </div>
           <div class="mt-2 text-xs text-muted">
             <span>{{ formatDate(ban.created_at) }}</span>
@@ -174,9 +172,7 @@ onMounted(fetchBans)
               <td class="px-4 py-3 font-mono text-foreground">{{ ban.ip_address }}</td>
               <td class="px-4 py-3 text-muted max-w-xs truncate">{{ ban.reason || '-' }}</td>
               <td class="px-4 py-3 text-muted">
-                {{
-                  ban.expires_at ? formatDate(ban.expires_at) : t('admin.ipBans.permanent')
-                }}
+                {{ ban.expires_at ? formatDate(ban.expires_at) : t('admin.ipBans.permanent') }}
               </td>
               <td class="px-4 py-3 text-muted">{{ formatDate(ban.created_at) }}</td>
               <td class="px-4 py-3">
@@ -185,7 +181,8 @@ onMounted(fetchBans)
                   variant="success"
                   :loading="unbanning === ban.id"
                   @click="handleUnban(ban)"
-                >{{ t('admin.ipBans.unbanBtn') }}</BaseButton>
+                  >{{ t('admin.ipBans.unbanBtn') }}</BaseButton
+                >
               </td>
             </tr>
           </tbody>

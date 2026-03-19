@@ -33,9 +33,20 @@ from app.services import dm as dm_service
 
 # File extensions blocked at the endpoint level (defense-in-depth).
 _DM_BLOCKED_EXTENSIONS: set[str] = {
-    ".exe", ".bat", ".ps1", ".sh", ".cmd", ".vbs",
-    ".js", ".html", ".htm", ".svg", ".msi", ".dll",
-    ".scr", ".com",
+    ".exe",
+    ".bat",
+    ".ps1",
+    ".sh",
+    ".cmd",
+    ".vbs",
+    ".js",
+    ".html",
+    ".htm",
+    ".svg",
+    ".msi",
+    ".dll",
+    ".scr",
+    ".com",
 }
 
 router = APIRouter(prefix="/dm", tags=["dm"])
@@ -60,23 +71,19 @@ async def list_conversations(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> ConversationListResponse:
     """List the current user's DM conversations (paginated)."""
-    if not await check_rate_limit(
-        f"rl:dm:list:{current_user['sub']}", *RATE_LIMIT_DM_LIST
-    ):
+    if not await check_rate_limit(f"rl:dm:list:{current_user['sub']}", *RATE_LIMIT_DM_LIST):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
-    convos, total = await dm_service.list_conversations(
-        current_user["sub"], page, page_size
+    convos, total = await dm_service.list_conversations(current_user["sub"], page, page_size)
+    return ConversationListResponse(
+        conversations=[ConversationResponse(**c) for c in convos], total=total
     )
-    return ConversationListResponse(conversations=convos, total=total)
 
 
 # ── Parameterized paths ───────────────────────────────────────────────
 
 
-@router.get(
-    "/conversations/{conversation_id}/messages", response_model=MessageListResponse
-)
+@router.get("/conversations/{conversation_id}/messages", response_model=MessageListResponse)
 async def list_messages(
     conversation_id: uuid.UUID,
     page: int = Query(1, ge=1, le=MAX_PAGE_NUMBER),
@@ -84,15 +91,13 @@ async def list_messages(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> MessageListResponse:
     """List messages in a conversation (paginated)."""
-    if not await check_rate_limit(
-        f"rl:dm:list:{current_user['sub']}", *RATE_LIMIT_DM_LIST
-    ):
+    if not await check_rate_limit(f"rl:dm:list:{current_user['sub']}", *RATE_LIMIT_DM_LIST):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
     msgs, total = await dm_service.list_messages(
         current_user["sub"], str(conversation_id), page, page_size
     )
-    return MessageListResponse(messages=msgs, total=total)
+    return MessageListResponse(messages=[DMMessageResponse(**m) for m in msgs], total=total)
 
 
 @router.post(
@@ -116,9 +121,7 @@ async def send_message(
 
     # Validate: must have content or file
     if not content and not file:
-        raise AppError(
-            ErrorCode.SYS_422, 422, "Message must have content or an attachment."
-        )
+        raise AppError(ErrorCode.SYS_422, 422, "Message must have content or an attachment.")
 
     # Validate content length
     if content and len(content) > DM_MAX_MESSAGE_LENGTH:
@@ -138,9 +141,7 @@ async def send_message(
         fname = file.filename or ""
         ext = os.path.splitext(fname)[1].lower()
         if ext in _DM_BLOCKED_EXTENSIONS:
-            raise AppError(
-                ErrorCode.SYS_422, 400, f"File type '{ext}' is not allowed."
-            )
+            raise AppError(ErrorCode.SYS_422, 400, f"File type '{ext}' is not allowed.")
 
         file_data = await file.read()
         file_size = len(file_data)
@@ -171,14 +172,10 @@ async def edit_message(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> DMMessageResponse:
     """Edit a previously sent message (within the edit window)."""
-    if not await check_rate_limit(
-        f"rl:dm:edit:{current_user['sub']}", *RATE_LIMIT_DM_EDIT
-    ):
+    if not await check_rate_limit(f"rl:dm:edit:{current_user['sub']}", *RATE_LIMIT_DM_EDIT):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
-    msg = await dm_service.edit_message(
-        str(message_id), current_user["sub"], req.content
-    )
+    msg = await dm_service.edit_message(str(message_id), current_user["sub"], req.content)
     return DMMessageResponse(**msg)
 
 
@@ -188,9 +185,7 @@ async def recall_message(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> DMMessageResponse:
     """Recall (unsend) a message (within the recall window)."""
-    if not await check_rate_limit(
-        f"rl:dm:recall:{current_user['sub']}", *RATE_LIMIT_DM_RECALL
-    ):
+    if not await check_rate_limit(f"rl:dm:recall:{current_user['sub']}", *RATE_LIMIT_DM_RECALL):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
     msg = await dm_service.recall_message(str(message_id), current_user["sub"])

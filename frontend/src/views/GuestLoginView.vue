@@ -125,11 +125,7 @@ onMounted(() => {
             }}</label>
             <div v-if="captchaError" class="text-danger-600 text-sm mb-2">
               {{ t('auth.captchaLoadError') }}
-              <button
-                type="button"
-                class="ml-2 underline text-brand-600"
-                @click="loadCaptcha"
-              >
+              <button type="button" class="ml-2 underline text-brand-600" @click="loadCaptcha">
                 {{ t('auth.captchaRetry') }}
               </button>
             </div>

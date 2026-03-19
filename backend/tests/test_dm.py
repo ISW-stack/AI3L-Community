@@ -667,11 +667,17 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
         ):
             from app.services.dm import send_message
 
-            result = await send_message(sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hello!")
+            result = await send_message(
+                sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hello!"
+            )
 
         assert result["content"] == "Hello!"
         mock_emit.assert_called_once()
@@ -700,8 +706,16 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://minio/presigned"),
@@ -740,8 +754,16 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
@@ -804,7 +826,9 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=True
+            ),
         ):
             from app.services.dm import send_message
 
@@ -822,7 +846,11 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch(
                 "app.repositories.social_repo.find_friendship_between",
                 new_callable=AsyncMock,
@@ -840,7 +868,9 @@ class TestSendMessageService:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_send_friends_only_is_friend_succeeds(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_send_friends_only_is_friend_succeeds(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
         """send_message to friends-only user succeeds when friendship is ACCEPTED."""
         pool, conn = _mock_pool_context()
         conv = _make_conversation(conv_id=_CONV_ID)
@@ -853,7 +883,11 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch(
                 "app.repositories.social_repo.find_friendship_between",
                 new_callable=AsyncMock,
@@ -862,7 +896,9 @@ class TestSendMessageService:
         ):
             from app.services.dm import send_message
 
-            result = await send_message(sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hi friend")
+            result = await send_message(
+                sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hi friend"
+            )
 
         assert result is not None
 
@@ -875,7 +911,11 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch(
                 "app.repositories.user_repo.get_storage_used",
                 new_callable=AsyncMock,
@@ -915,11 +955,17 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
         ):
             from app.services.dm import send_message
 
-            result = await send_message(sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="New msg")
+            result = await send_message(
+                sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="New msg"
+            )
 
         mock_dm_repo.send_message_atomic.assert_called_once()
         assert result is not None
@@ -939,8 +985,16 @@ class TestSendMessageService:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock, return_value=_make_msg_response()),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                f"{_SVC}.async_row_to_message",
+                new_callable=AsyncMock,
+                return_value=_make_msg_response(),
+            ),
         ):
             from app.services.dm import send_message
 
@@ -1044,8 +1098,12 @@ class TestEditMessageService:
     async def test_edit_adjusts_char_count(self, mock_dm_repo, mock_emit, mock_convert):
         """edit_message adjusts conversation char count by delta."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Short")
-        updated_row = _make_message_row(sender_id=_SENDER_ID, content="Much longer message", is_edited=True)
-        conv = _make_conversation(conv_id=msg_row["conversation_id"], user_a=_SENDER_ID, user_b=_RECIPIENT_ID)
+        updated_row = _make_message_row(
+            sender_id=_SENDER_ID, content="Much longer message", is_edited=True
+        )
+        conv = _make_conversation(
+            conv_id=msg_row["conversation_id"], user_a=_SENDER_ID, user_b=_RECIPIENT_ID
+        )
 
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
         mock_dm_repo.update_message_content = AsyncMock(return_value=updated_row)
@@ -1058,9 +1116,7 @@ class TestEditMessageService:
         await edit_message(str(_MSG_ID), _SENDER_ID, "Much longer message")
 
         # delta = len("Much longer message") - len("Short") = 19 - 5 = 14
-        mock_dm_repo.increment_char_count.assert_called_once_with(
-            msg_row["conversation_id"], 14
-        )
+        mock_dm_repo.increment_char_count.assert_called_once_with(msg_row["conversation_id"], 14)
 
     @pytest.mark.anyio
     @patch(f"{_SVC}.dm_repo")
@@ -1109,7 +1165,9 @@ class TestRecallMessageService:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_with_attachment_deletes_storage(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_recall_with_attachment_deletes_storage(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
         """recall_message with attachment deletes file and refunds quota."""
         msg_row = _make_message_row(
             sender_id=_SENDER_ID,
@@ -1132,7 +1190,9 @@ class TestRecallMessageService:
 
         with (
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_delete,
-            patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock) as mock_decrement,
+            patch(
+                "app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock
+            ) as mock_decrement,
         ):
             from app.services.dm import recall_message
 
@@ -1145,7 +1205,9 @@ class TestRecallMessageService:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_without_attachment_no_storage_ops(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_recall_without_attachment_no_storage_ops(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
         """recall_message without attachment does not call storage delete."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Text only")
         recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
@@ -1236,7 +1298,9 @@ class TestListConversationsService:
 
         with (
             patch(f"{_SVC}.async_row_to_conversation", new_callable=AsyncMock) as mock_conv,
-            patch("app.core.storage.generate_presigned_url", return_value="http://presigned") as mock_presign,
+            patch(
+                "app.core.storage.generate_presigned_url", return_value="http://presigned"
+            ),  # mock_presign unused but patch needed
         ):
             conv_dict = {
                 "id": str(row["id"]),
@@ -1271,7 +1335,11 @@ class TestListMessagesService:
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_dm_repo.find_messages = AsyncMock(return_value=([msg_row], 1))
 
-        with patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock, return_value=_make_msg_response()):
+        with patch(
+            f"{_SVC}.async_row_to_message",
+            new_callable=AsyncMock,
+            return_value=_make_msg_response(),
+        ):
             from app.services.dm import list_messages
 
             msgs, total = await list_messages(_SENDER_ID, str(_CONV_ID))
@@ -1354,7 +1422,9 @@ class TestGetUnreadCountEndpoint:
         """GET /dm/unread-count returns 200 with unread_count."""
         payload, uid = _override_auth("MEMBER")
         try:
-            with patch(f"{_EP}.dm_service.get_unread_count", new_callable=AsyncMock, return_value=5):
+            with patch(
+                f"{_EP}.dm_service.get_unread_count", new_callable=AsyncMock, return_value=5
+            ):
                 resp = await client.get("/api/v1/dm/unread-count")
             assert resp.status_code == 200
             assert resp.json()["unread_count"] == 5
@@ -1389,7 +1459,11 @@ class TestListConversationsEndpoint:
         try:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-                patch(f"{_EP}.dm_service.list_conversations", new_callable=AsyncMock, return_value=(convos, 1)),
+                patch(
+                    f"{_EP}.dm_service.list_conversations",
+                    new_callable=AsyncMock,
+                    return_value=(convos, 1),
+                ),
             ):
                 resp = await client.get("/api/v1/dm/conversations")
             assert resp.status_code == 200
@@ -1421,7 +1495,11 @@ class TestListMessagesEndpoint:
         try:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-                patch(f"{_EP}.dm_service.list_messages", new_callable=AsyncMock, return_value=(msgs, 1)),
+                patch(
+                    f"{_EP}.dm_service.list_messages",
+                    new_callable=AsyncMock,
+                    return_value=(msgs, 1),
+                ),
             ):
                 resp = await client.get(f"/api/v1/dm/conversations/{conv_id}/messages")
             assert resp.status_code == 200
@@ -1630,7 +1708,9 @@ class TestSendMessageEndpoint:
                 patch(
                     f"{_EP}.dm_service.send_message",
                     new_callable=AsyncMock,
-                    side_effect=AppError(ErrorCode.DM_004, 413, "Storage quota exceeded (1 GB limit)."),
+                    side_effect=AppError(
+                        ErrorCode.DM_004, 413, "Storage quota exceeded (1 GB limit)."
+                    ),
                 ),
             ):
                 resp = await client.post(
@@ -1804,10 +1884,18 @@ class TestCleanupDMExpiredFiles:
 
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[expired_msg]),
+            patch(
+                "app.repositories.dm_repo.find_expired_file_messages",
+                new_callable=AsyncMock,
+                return_value=[expired_msg],
+            ),
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_delete,
-            patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock) as mock_decrement,
-            patch("app.repositories.dm_repo.clear_message_attachment", new_callable=AsyncMock) as mock_clear,
+            patch(
+                "app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock
+            ) as mock_decrement,
+            patch(
+                "app.repositories.dm_repo.clear_message_attachment", new_callable=AsyncMock
+            ) as mock_clear,
         ):
             from app.tasks.dm_cleanup import _cleanup_files
 
@@ -1832,8 +1920,16 @@ class TestCleanupDMExpiredFiles:
 
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[expired_msg]),
-            patch("app.core.async_storage.delete_file", new_callable=AsyncMock, side_effect=Exception("S3 error")),
+            patch(
+                "app.repositories.dm_repo.find_expired_file_messages",
+                new_callable=AsyncMock,
+                return_value=[expired_msg],
+            ),
+            patch(
+                "app.core.async_storage.delete_file",
+                new_callable=AsyncMock,
+                side_effect=Exception("S3 error"),
+            ),
             patch("app.repositories.dm_repo.clear_message_attachment", new_callable=AsyncMock),
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
         ):
@@ -1848,7 +1944,11 @@ class TestCleanupDMExpiredFiles:
         """_cleanup_files returns 0 when no expired files."""
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "app.repositories.dm_repo.find_expired_file_messages",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
             from app.tasks.dm_cleanup import _cleanup_files
 
@@ -1871,9 +1971,15 @@ class TestCleanupDMExpiredFiles:
 
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_file_messages", new_callable=AsyncMock, return_value=[expired]),
+            patch(
+                "app.repositories.dm_repo.find_expired_file_messages",
+                new_callable=AsyncMock,
+                return_value=[expired],
+            ),
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.clear_message_attachment", new_callable=AsyncMock) as mock_clear,
+            patch(
+                "app.repositories.dm_repo.clear_message_attachment", new_callable=AsyncMock
+            ) as mock_clear,
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
         ):
             from app.tasks.dm_cleanup import _cleanup_files
@@ -1897,9 +2003,19 @@ class TestCleanupDMExpiredText:
 
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=expired),
-            patch("app.repositories.dm_repo.delete_messages_by_ids", new_callable=AsyncMock, return_value=3),
-            patch("app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock) as mock_incr,
+            patch(
+                "app.repositories.dm_repo.find_expired_text_messages",
+                new_callable=AsyncMock,
+                return_value=expired,
+            ),
+            patch(
+                "app.repositories.dm_repo.delete_messages_by_ids",
+                new_callable=AsyncMock,
+                return_value=3,
+            ),
+            patch(
+                "app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock
+            ) as mock_incr,
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
@@ -1914,7 +2030,11 @@ class TestCleanupDMExpiredText:
         """_cleanup_text returns 0 when no expired text messages."""
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=[]),
+            patch(
+                "app.repositories.dm_repo.find_expired_text_messages",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
@@ -1931,9 +2051,21 @@ class TestCleanupDMExpiredText:
 
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=expired),
-            patch("app.repositories.dm_repo.delete_messages_by_ids", new_callable=AsyncMock, return_value=1),
-            patch("app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock, side_effect=Exception("DB error")),
+            patch(
+                "app.repositories.dm_repo.find_expired_text_messages",
+                new_callable=AsyncMock,
+                return_value=expired,
+            ),
+            patch(
+                "app.repositories.dm_repo.delete_messages_by_ids",
+                new_callable=AsyncMock,
+                return_value=1,
+            ),
+            patch(
+                "app.repositories.dm_repo.increment_char_count",
+                new_callable=AsyncMock,
+                side_effect=Exception("DB error"),
+            ),
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
@@ -1951,9 +2083,19 @@ class TestCleanupDMExpiredText:
 
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.repositories.dm_repo.find_expired_text_messages", new_callable=AsyncMock, return_value=expired),
-            patch("app.repositories.dm_repo.delete_messages_by_ids", new_callable=AsyncMock, return_value=1),
-            patch("app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock) as mock_incr,
+            patch(
+                "app.repositories.dm_repo.find_expired_text_messages",
+                new_callable=AsyncMock,
+                return_value=expired,
+            ),
+            patch(
+                "app.repositories.dm_repo.delete_messages_by_ids",
+                new_callable=AsyncMock,
+                return_value=1,
+            ),
+            patch(
+                "app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock
+            ) as mock_incr,
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
@@ -2166,7 +2308,11 @@ class TestSendMessageEdgeCases:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
         ):
             from app.services.dm import send_message
 
@@ -2192,7 +2338,11 @@ class TestSendMessageEdgeCases:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch(
                 "app.repositories.social_repo.find_friendship_between",
                 new_callable=AsyncMock,
@@ -2257,7 +2407,11 @@ class TestListConversationsEndpointEdgeCases:
         try:
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
-                patch(f"{_EP}.dm_service.list_conversations", new_callable=AsyncMock, return_value=([], 0)),
+                patch(
+                    f"{_EP}.dm_service.list_conversations",
+                    new_callable=AsyncMock,
+                    return_value=([], 0),
+                ),
             ):
                 resp = await client.get("/api/v1/dm/conversations")
             assert resp.status_code == 200
@@ -2531,15 +2685,17 @@ class TestRecallMessageOrder:
 
             await recall_message(str(_MSG_ID), _SENDER_ID)
 
-        assert call_order.index("db_recall") < call_order.index("minio_delete"), (
-            f"DB recall must happen before MinIO delete, got: {call_order}"
-        )
+        assert call_order.index("db_recall") < call_order.index(
+            "minio_delete"
+        ), f"DB recall must happen before MinIO delete, got: {call_order}"
 
     @pytest.mark.anyio
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_minio_failure_still_recalls_db(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_recall_minio_failure_still_recalls_db(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
         """recall_message still succeeds in DB even if MinIO delete raises."""
         msg_row = _make_message_row(
             sender_id=_SENDER_ID,
@@ -2561,7 +2717,11 @@ class TestRecallMessageOrder:
         mock_convert.return_value = _make_msg_response(content=None)
 
         with (
-            patch("app.core.async_storage.delete_file", new_callable=AsyncMock, side_effect=Exception("S3 down")),
+            patch(
+                "app.core.async_storage.delete_file",
+                new_callable=AsyncMock,
+                side_effect=Exception("S3 down"),
+            ),
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
         ):
             from app.services.dm import recall_message
@@ -2591,7 +2751,11 @@ class TestNewDMErrorCodes:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
         ):
             from app.services.dm import send_message
 
@@ -2618,7 +2782,11 @@ class TestNewDMErrorCodes:
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch(
                 "app.repositories.user_repo.get_storage_used",
                 new_callable=AsyncMock,
@@ -2701,7 +2869,9 @@ class TestEditMessageRateLimit:
         msg["is_edited"] = True
         try:
             with (
-                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True) as mock_rl,
+                patch(
+                    f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
+                ) as mock_rl,
                 patch(f"{_EP}.dm_service.edit_message", new_callable=AsyncMock, return_value=msg),
             ):
                 await client.put(
@@ -2737,7 +2907,9 @@ class TestRecallMessageRateLimit:
         msg["content"] = None
         try:
             with (
-                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True) as mock_rl,
+                patch(
+                    f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
+                ) as mock_rl,
                 patch(f"{_EP}.dm_service.recall_message", new_callable=AsyncMock, return_value=msg),
             ):
                 await client.delete(f"/api/v1/dm/messages/{msg_id}")
@@ -2767,7 +2939,9 @@ class TestMarkReadRateLimit:
         conv_id = uuid.uuid4()
         try:
             with (
-                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True) as mock_rl,
+                patch(
+                    f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
+                ) as mock_rl,
                 patch(
                     f"{_EP}.dm_service.mark_read",
                     new_callable=AsyncMock,
@@ -2985,9 +3159,7 @@ class TestB04S01SanitizeHtmlContent:
     async def test_edit_message_sanitizes_content(self, mock_dm_repo, mock_emit, mock_convert):
         """edit_message calls sanitize_html on new_content before DB update."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, created_at=_NOW)
-        updated_row = _make_message_row(
-            sender_id=_SENDER_ID, content="sanitized", is_edited=True
-        )
+        updated_row = _make_message_row(sender_id=_SENDER_ID, content="sanitized", is_edited=True)
         conv = _make_conversation(
             conv_id=msg_row["conversation_id"],
             user_a=_SENDER_ID,
@@ -3075,9 +3247,7 @@ class TestB07AsyncStorageOps:
             attachment_key="dm/test/file.pdf",
             attachment_size=2048,
         )
-        recalled_row = _make_message_row(
-            sender_id=_SENDER_ID, is_recalled=True, content=None
-        )
+        recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
         conv = _make_conversation(
             conv_id=msg_row["conversation_id"],
             user_a=_SENDER_ID,
@@ -3106,9 +3276,7 @@ class TestB07AsyncStorageOps:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_send_deleted_msgs_use_async_delete(
-        self, mock_dm_repo, mock_emit, mock_convert
-    ):
+    async def test_send_deleted_msgs_use_async_delete(self, mock_dm_repo, mock_emit, mock_convert):
         """send_message uses async_delete_file for deleted attachment cleanup."""
         pool, conn = _mock_pool_context()
         conv = _make_conversation(conv_id=_CONV_ID)
@@ -3132,9 +3300,7 @@ class TestB07AsyncStorageOps:
                 new_callable=AsyncMock,
                 return_value=False,
             ),
-            patch(
-                "app.core.async_storage.delete_file", new_callable=AsyncMock
-            ) as mock_async_del,
+            patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_async_del,
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
         ):
@@ -3183,9 +3349,7 @@ class TestB11RecallCharCountAfterSuccess:
     ):
         """When dm_repo.recall_message succeeds, char count IS decremented."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="12345")
-        recalled_row = _make_message_row(
-            sender_id=_SENDER_ID, is_recalled=True, content=None
-        )
+        recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
         conv = _make_conversation(
             conv_id=msg_row["conversation_id"],
             user_a=_SENDER_ID,
@@ -3202,9 +3366,7 @@ class TestB11RecallCharCountAfterSuccess:
 
         await recall_message(str(_MSG_ID), _SENDER_ID)
 
-        mock_dm_repo.increment_char_count.assert_called_once_with(
-            msg_row["conversation_id"], -5
-        )
+        mock_dm_repo.increment_char_count.assert_called_once_with(msg_row["conversation_id"], -5)
 
     @pytest.mark.anyio
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
@@ -3243,9 +3405,7 @@ class TestB12StorageQuotaAfterInsert:
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         conv = _make_conversation(conv_id=_CONV_ID)
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
-        mock_dm_repo.send_message_atomic = AsyncMock(
-            side_effect=RuntimeError("DB insert failed")
-        )
+        mock_dm_repo.send_message_atomic = AsyncMock(side_effect=RuntimeError("DB insert failed"))
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -3284,9 +3444,7 @@ class TestB12StorageQuotaAfterInsert:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_insert_success_increments_quota(
-        self, mock_dm_repo, mock_emit, mock_convert
-    ):
+    async def test_insert_success_increments_quota(self, mock_dm_repo, mock_emit, mock_convert):
         """When send_message_atomic succeeds, storage quota IS incremented."""
         pool, conn = _mock_pool_context()
         conv = _make_conversation(conv_id=_CONV_ID)
@@ -3343,9 +3501,7 @@ class TestB27S03SanitizedFilename:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_storage_key_uses_only_extension(
-        self, mock_dm_repo, mock_emit, mock_convert
-    ):
+    async def test_storage_key_uses_only_extension(self, mock_dm_repo, mock_emit, mock_convert):
         """Storage key is dm/{sender_id}/{hex}{ext}, not dm/{sender_id}/{uuid}_{filename}."""
         pool, conn = _mock_pool_context()
         conv = _make_conversation(conv_id=_CONV_ID)
@@ -3404,9 +3560,7 @@ class TestB27S03SanitizedFilename:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_storage_key_handles_no_extension(
-        self, mock_dm_repo, mock_emit, mock_convert
-    ):
+    async def test_storage_key_handles_no_extension(self, mock_dm_repo, mock_emit, mock_convert):
         """Storage key works when filename has no extension."""
         pool, conn = _mock_pool_context()
         conv = _make_conversation(conv_id=_CONV_ID)

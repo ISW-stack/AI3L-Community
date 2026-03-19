@@ -13,17 +13,11 @@ async def find_many(
         base_where = "WHERE 1=1"
 
         if status_filter == "active":
-            base_where += (
-                " AND ic.consumed_at IS NULL"
-                " AND ic.expires_at > NOW()"
-            )
+            base_where += " AND ic.consumed_at IS NULL" " AND ic.expires_at > NOW()"
         elif status_filter == "consumed":
             base_where += " AND ic.consumed_at IS NOT NULL"
         elif status_filter == "expired":
-            base_where += (
-                " AND ic.consumed_at IS NULL"
-                " AND ic.expires_at <= NOW()"
-            )
+            base_where += " AND ic.consumed_at IS NULL" " AND ic.expires_at <= NOW()"
 
         total = await conn.fetchval(
             f"SELECT COUNT(*) FROM invite_codes ic {base_where}",

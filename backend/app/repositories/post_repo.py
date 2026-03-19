@@ -213,9 +213,7 @@ async def find_content_by_id(post_id: uuid.UUID) -> str | None:
         return row["content"] if row else None
 
 
-async def find_history(
-    post_id: uuid.UUID, limit: int = 50
-) -> tuple[list[dict], int]:
+async def find_history(post_id: uuid.UUID, limit: int = 50) -> tuple[list[dict], int]:
     """Return (history_rows, total_count). Rows are capped by *limit*."""
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -228,10 +226,7 @@ async def find_history(
         )
         if rows:
             total = rows[0]["_total_count"]
-            result = [
-                {k: v for k, v in dict(r).items() if k != "_total_count"}
-                for r in rows
-            ]
+            result = [{k: v for k, v in dict(r).items() if k != "_total_count"} for r in rows]
         else:
             total = 0
             result = []

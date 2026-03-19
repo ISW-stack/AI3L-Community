@@ -129,7 +129,12 @@ async function mountView(options?: { role?: string; platformAdmin?: boolean; use
   setActivePinia(pinia)
 
   const auth = useAuthStore()
-  auth.user = { id: userId, username: 'me', display_name: 'Me', role: platformAdmin ? 'ADMIN' : 'MEMBER' } as never
+  auth.user = {
+    id: userId,
+    username: 'me',
+    display_name: 'Me',
+    role: platformAdmin ? 'ADMIN' : 'MEMBER',
+  } as never
   // Set the role ref so the computed isAdmin works correctly
   if (platformAdmin) {
     auth.setSession('ADMIN', 3600)

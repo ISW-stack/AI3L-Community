@@ -94,7 +94,9 @@ async def find_many(
         unread_where = "WHERE n.user_id = $1 AND n.is_read = false"
         unread_params: list = [user_id]
         if exclude_user_ids:
-            unread_where += " AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL($2::uuid[]))"
+            unread_where += (
+                " AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL($2::uuid[]))"
+            )
             unread_params.append(exclude_user_ids)
         unread_count = await conn.fetchval(
             f"SELECT COUNT(*) FROM notifications n {unread_where}",

@@ -326,7 +326,9 @@ const breadcrumbItems = computed(() => {
                   >
                     {{ c.post_title }}
                   </router-link>
-                  <span class="text-xs text-muted ml-1">{{ t('common.by') }} {{ c.author_name }}</span>
+                  <span class="text-xs text-muted ml-1"
+                    >{{ t('common.by') }} {{ c.author_name }}</span
+                  >
                   <BaseBadge
                     v-if="c.is_self_citation"
                     variant="neutral"
@@ -358,7 +360,9 @@ const breadcrumbItems = computed(() => {
                   >
                     {{ c.post_title }}
                   </router-link>
-                  <span class="text-xs text-muted ml-1">{{ t('common.by') }} {{ c.author_name }}</span>
+                  <span class="text-xs text-muted ml-1"
+                    >{{ t('common.by') }} {{ c.author_name }}</span
+                  >
                   <BaseBadge
                     v-if="c.is_self_citation"
                     variant="neutral"
@@ -385,7 +389,7 @@ const breadcrumbItems = computed(() => {
           <div class="flex items-center justify-between border-t border-border pt-3">
             <div class="flex items-center gap-4">
               <span class="text-sm text-muted">
-                {{ t('post.detail.commentCount', post.comment_count, { count: post.comment_count }) }}
+                {{ t('post.detail.commentCount', { count: post.comment_count }) }}
               </span>
               <span class="text-sm text-muted flex items-center gap-1">
                 <svg

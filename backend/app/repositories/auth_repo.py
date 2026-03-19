@@ -3,10 +3,7 @@ from datetime import datetime
 
 from app.core.database import get_pool
 
-
-_INVITE_CODE_COLUMNS = (
-    "id, code, created_by, expires_at, created_at, consumed_at, consumed_by"
-)
+_INVITE_CODE_COLUMNS = "id, code, created_by, expires_at, created_at, consumed_at, consumed_by"
 
 
 async def find_invite_code(code: str) -> dict | None:
@@ -20,9 +17,7 @@ async def find_invite_code(code: str) -> dict | None:
         return dict(row) if row else None
 
 
-async def consume_invite_code(
-    code: str, user_id: uuid.UUID | None = None
-) -> bool:
+async def consume_invite_code(code: str, user_id: uuid.UUID | None = None) -> bool:
     """Mark an invite code as consumed. Returns True if updated.
 
     ``user_id`` is optional — guest logins consume the code without a DB user.

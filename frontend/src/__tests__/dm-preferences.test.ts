@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { nextTick } from 'vue'
 import { getErrorMessage } from '@/utils/error'
 
 // --------------- Mock: API layer ---------------
@@ -288,9 +287,7 @@ describe('parseDMError — new error codes', () => {
         },
       },
     }
-    expect(parseDMError(err, 'fallback')).toBe(
-      'This user only accepts messages from friends.',
-    )
+    expect(parseDMError(err, 'fallback')).toBe('This user only accepts messages from friends.')
   })
 
   it('returns generic block message for DM_001 without "friends" in message', () => {
@@ -353,9 +350,7 @@ describe('parseDMError — new error codes', () => {
     const err = {
       response: { data: { detail: { code: 'DM_002', message: '' } } },
     }
-    expect(parseDMError(err, 'fallback')).toBe(
-      'The edit/recall window (12 hours) has expired.',
-    )
+    expect(parseDMError(err, 'fallback')).toBe('The edit/recall window (12 hours) has expired.')
   })
 
   it('returns fallback for unknown errors', () => {

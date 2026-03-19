@@ -221,14 +221,14 @@ def cleanup_orphan_files(self: Any) -> dict[str, Any]:
                 total += 1
                 if len(batch) >= _ORPHAN_BATCH_SIZE:
                     orphan_keys.extend(
-                        key for key, modified in batch
+                        key
+                        for key, modified in batch
                         if key not in referenced and modified < cutoff
                     )
                     batch = []
             if batch:
                 orphan_keys.extend(
-                    key for key, modified in batch
-                    if key not in referenced and modified < cutoff
+                    key for key, modified in batch if key not in referenced and modified < cutoff
                 )
             return orphan_keys, total
 

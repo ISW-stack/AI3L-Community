@@ -20,7 +20,9 @@ def mock_redis_session():
 
 
 @pytest.mark.asyncio
-async def test_create_session_publishes_force_logout_on_override(mock_redis_session: AsyncMock) -> None:
+async def test_create_session_publishes_force_logout_on_override(
+    mock_redis_session: AsyncMock,
+) -> None:
     """When an existing session exists, create_session should publish FORCE_LOGOUT."""
     user_id = "user-123"
     role = "MEMBER"
@@ -42,9 +44,7 @@ async def test_create_session_publishes_force_logout_on_override(mock_redis_sess
     assert jti == "new-jti"
 
     # Verify FORCE_LOGOUT was published to ws:user:{user_id}
-    publish_calls = [
-        call for call in mock_redis_session.publish.call_args_list
-    ]
+    publish_calls = [call for call in mock_redis_session.publish.call_args_list]
     assert len(publish_calls) == 1
     channel, payload = publish_calls[0].args
     assert channel == f"ws:user:{user_id}"
@@ -63,7 +63,9 @@ async def test_create_session_publishes_force_logout_on_override(mock_redis_sess
 
 
 @pytest.mark.asyncio
-async def test_create_session_no_publish_when_no_existing_session(mock_redis_session: AsyncMock) -> None:
+async def test_create_session_no_publish_when_no_existing_session(
+    mock_redis_session: AsyncMock,
+) -> None:
     """When no existing session, create_session should NOT publish FORCE_LOGOUT."""
     user_id = "user-456"
     role = "MEMBER"

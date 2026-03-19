@@ -52,10 +52,7 @@ export async function getSigPosts(sigId: string, params?: { page?: number; page_
   return data as SigPostsResponse
 }
 
-export async function getSigMembers(
-  sigId: string,
-  params?: { page?: number; page_size?: number },
-) {
+export async function getSigMembers(sigId: string, params?: { page?: number; page_size?: number }) {
   let query: Record<string, number> | undefined
   if (params?.page != null && params?.page_size != null) {
     query = {

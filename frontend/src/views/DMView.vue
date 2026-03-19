@@ -13,7 +13,6 @@ import MessageThread from '@/components/dm/MessageThread.vue'
 import MessageInput from '@/components/dm/MessageInput.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
-import EmptyState from '@/components/EmptyState.vue'
 import { MessageSquare, ArrowLeft, Lock, Unlock } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -34,9 +33,7 @@ const editingContent = ref('')
 const activeOtherUserId = ref<string | null>(null)
 
 const currentUserId = computed(() => auth.user?.id ?? '')
-const hasMoreMessages = computed(
-  () => dmStore.messages.length < dmStore.messagesTotal,
-)
+const hasMoreMessages = computed(() => dmStore.messages.length < dmStore.messagesTotal)
 
 const dmFriendsOnly = ref(false)
 const dmFriendsOnlyLoading = ref(false)
@@ -303,7 +300,11 @@ const activeConvUser = computed(() => {
       <h1 class="text-2xl font-bold text-foreground">Messages</h1>
       <button
         :disabled="dmFriendsOnlyLoading"
-        :title="dmFriendsOnly ? 'Friends-only mode ON — only friends can message you' : 'Anyone can message you'"
+        :title="
+          dmFriendsOnly
+            ? 'Friends-only mode ON — only friends can message you'
+            : 'Anyone can message you'
+        "
         class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border transition"
         :class="
           dmFriendsOnly
@@ -375,9 +376,7 @@ const activeConvUser = computed(() => {
                 {{ activeConvUser.display_name }}
               </span>
             </router-link>
-            <span v-else class="text-sm font-medium text-foreground">
-              New Conversation
-            </span>
+            <span v-else class="text-sm font-medium text-foreground"> New Conversation </span>
           </div>
 
           <!-- Message thread -->

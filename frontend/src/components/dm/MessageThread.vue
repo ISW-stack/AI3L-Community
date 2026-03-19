@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, reactive, computed, onMounted, onUnmounted } from 'vue'
 import type { DMMessage } from '@/types/dm'
-import { relativeTime } from '@/utils/datetime'
+// relativeTime removed (unused) — date formatting handled in template
 import { useLocale } from '@/composables/useLocale'
 
 const { currentLocale: locale } = useLocale()
@@ -196,7 +196,11 @@ defineExpose({ scrollToBottom })
 </script>
 
 <template>
-  <div ref="scrollContainer" @scroll="handleScroll" class="flex-1 overflow-y-auto px-4 py-4 space-y-1 relative">
+  <div
+    ref="scrollContainer"
+    @scroll="handleScroll"
+    class="flex-1 overflow-y-auto px-4 py-4 space-y-1 relative"
+  >
     <!-- Load more -->
     <div v-if="hasMore" class="text-center pb-3">
       <button
@@ -211,16 +215,35 @@ defineExpose({ scrollToBottom })
     <!-- Loading spinner -->
     <div v-if="loading && messages.length === 0" class="flex items-center justify-center py-12">
       <div class="flex items-center gap-2 text-sm text-muted">
-        <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        <svg
+          class="animate-spin h-4 w-4"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          ></path>
         </svg>
         Loading messages...
       </div>
     </div>
 
     <!-- Empty conversation -->
-    <div v-else-if="!loading && messages.length === 0" class="flex flex-col items-center justify-center flex-1 py-12 text-center">
+    <div
+      v-else-if="!loading && messages.length === 0"
+      class="flex flex-col items-center justify-center flex-1 py-12 text-center"
+    >
       <MessageSquare class="w-10 h-10 text-gray-300 mb-3" aria-hidden="true" />
       <p class="text-sm text-muted">No messages yet</p>
       <p class="text-xs text-muted mt-1">Send the first message to start the conversation.</p>
@@ -229,7 +252,12 @@ defineExpose({ scrollToBottom })
     <template v-else>
       <div v-for="item in messagesWithDateSeparators" :key="item.key">
         <!-- Date separator -->
-        <div v-if="item.type === 'date'" class="flex items-center gap-3 py-3" role="separator" :aria-label="item.label">
+        <div
+          v-if="item.type === 'date'"
+          class="flex items-center gap-3 py-3"
+          role="separator"
+          :aria-label="item.label"
+        >
           <div class="flex-1 border-t border-border"></div>
           <span class="text-xs text-muted font-medium">{{ item.label }}</span>
           <div class="flex-1 border-t border-border"></div>
@@ -285,7 +313,10 @@ defineExpose({ scrollToBottom })
               <!-- File attachment -->
               <div v-if="item.message.attachment_name" class="mt-1.5">
                 <template v-if="isFileExpired(item.message.attachment_expires_at)">
-                  <div class="flex items-center gap-2 text-xs" :class="isMine(item.message) ? 'text-white/80' : 'text-muted'">
+                  <div
+                    class="flex items-center gap-2 text-xs"
+                    :class="isMine(item.message) ? 'text-white/80' : 'text-muted'"
+                  >
                     <AlertTriangle class="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                     <span class="italic">File expired</span>
                   </div>
@@ -307,7 +338,11 @@ defineExpose({ scrollToBottom })
                     />
                   </a>
                   <!-- Non-image file -->
-                  <div v-else class="flex items-center gap-2 text-xs" :class="isMine(item.message) ? 'text-white/80' : 'text-muted'">
+                  <div
+                    v-else
+                    class="flex items-center gap-2 text-xs"
+                    :class="isMine(item.message) ? 'text-white/80' : 'text-muted'"
+                  >
                     <a
                       :href="item.message.attachment_url ?? '#'"
                       target="_blank"
@@ -315,7 +350,11 @@ defineExpose({ scrollToBottom })
                       class="flex items-center gap-1.5 hover:underline"
                       :class="isMine(item.message) ? 'text-white/90' : 'text-brand-600'"
                     >
-                      <component :is="getFileIcon(item.message.attachment_name)" class="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      <component
+                        :is="getFileIcon(item.message.attachment_name)"
+                        class="w-3.5 h-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
                       <span class="truncate max-w-[180px]">{{ item.message.attachment_name }}</span>
                       <span v-if="item.message.attachment_size" class="shrink-0">
                         ({{ formatFileSize(item.message.attachment_size) }})
@@ -357,12 +396,17 @@ defineExpose({ scrollToBottom })
               <!-- Read (double check with tooltip) -->
               <span
                 v-if="isMine(item.message) && item.message.read_at && !item.message.is_recalled"
-                :title="'Read ' + new Date(item.message.read_at).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })"
+                :title="
+                  'Read ' +
+                  new Date(item.message.read_at).toLocaleString(locale, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                "
               >
-                <CheckCheck
-                  class="w-3.5 h-3.5 text-brand-500"
-                  aria-label="Read"
-                />
+                <CheckCheck class="w-3.5 h-3.5 text-brand-500" aria-label="Read" />
               </span>
             </div>
 

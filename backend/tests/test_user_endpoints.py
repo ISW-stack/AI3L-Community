@@ -347,9 +347,7 @@ class TestBulkChangeRole:
                     return_value=3,
                 ),
                 patch("app.services.audit.log_action", new_callable=AsyncMock),
-                patch(
-                    f"{_EP}.emit", new_callable=AsyncMock
-                ) as mock_emit,
+                patch(f"{_EP}.emit", new_callable=AsyncMock) as mock_emit,
                 patch(
                     "app.services.auth.revoke_user_sessions",
                     new_callable=AsyncMock,
@@ -366,9 +364,7 @@ class TestBulkChangeRole:
                 # emit called once per user with correct args
                 assert mock_emit.call_count == len(user_ids)
                 for uid in user_ids:
-                    mock_emit.assert_any_call(
-                        "user.role_changed", user_id=uid, new_role="MEMBER"
-                    )
+                    mock_emit.assert_any_call("user.role_changed", user_id=uid, new_role="MEMBER")
 
                 # revoke_user_sessions called once per user
                 assert mock_revoke.call_count == len(user_ids)

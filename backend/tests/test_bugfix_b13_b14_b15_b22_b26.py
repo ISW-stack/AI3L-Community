@@ -167,7 +167,9 @@ class TestB14FormRepoIlikeEscape:
         mock_conn = AsyncMock()
         mock_conn.fetch = AsyncMock(return_value=[])
 
-        await find_standalone(mock_conn, page=1, page_size=20, user_id=uuid.uuid4(), q="%test_value")
+        await find_standalone(
+            mock_conn, page=1, page_size=20, user_id=uuid.uuid4(), q="%test_value"
+        )
 
         call_args = mock_conn.fetch.call_args
         sql_param = call_args[0][3]  # $3 is the search_pattern
@@ -385,7 +387,7 @@ class TestB22SigDescriptionSanitized:
                 patch(f"{_EP_SIGS}.sanitize_html", return_value="clean") as mock_sanitize,
                 patch("app.services.sig.get_pool", return_value=mock_pool),
             ):
-                resp = await client.post(
+                await client.post(
                     "/api/v1/sigs",
                     json={"name": "New SIG"},
                     headers={"Authorization": "Bearer fake"},

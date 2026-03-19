@@ -192,7 +192,7 @@ onMounted(() => loadForm())
           <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
           <span>{{ form.response_count }} {{ t('forms.view.response') }}</span>
           <span v-if="form.deadline"
-            >{{ t('forms.view.deadline') }} {{ formatDateTime(form.deadline, locale.value) }}</span
+            >{{ t('forms.view.deadline') }} {{ formatDateTime(form.deadline, locale) }}</span
           >
           <span v-if="form.max_respondents"
             >{{ t('forms.view.max') }} {{ form.max_respondents }}</span

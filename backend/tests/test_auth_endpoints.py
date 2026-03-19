@@ -113,7 +113,14 @@ class TestGuestLoginEndpoint:
     @patch(f"{_EP}.verify_captcha", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
     async def test_guest_login_success(
-        self, mock_invite, mock_captcha, mock_consume, mock_ip_incr, mock_guest, mock_rl, client: AsyncClient
+        self,
+        mock_invite,
+        mock_captcha,
+        mock_consume,
+        mock_ip_incr,
+        mock_guest,
+        mock_rl,
+        client: AsyncClient,
     ):
         mock_invite.return_value = {"code": "INV-123", "id": uuid.uuid4()}
 

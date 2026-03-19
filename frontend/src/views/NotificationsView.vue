@@ -195,72 +195,72 @@ onMounted(fetchNotifications)
       role="tabpanel"
       :aria-labelledby="filter === 'all' ? 'tab-all' : 'tab-unread'"
     >
-    <SkeletonLoader v-if="loading" :lines="5" variant="list" />
+      <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
-    <EmptyState
-      v-else-if="notifications.length === 0"
-      :message="t('notifications.emptyMessage')"
-      :title="t('notifications.emptyTitle')"
-    />
+      <EmptyState
+        v-else-if="notifications.length === 0"
+        :message="t('notifications.emptyMessage')"
+        :title="t('notifications.emptyTitle')"
+      />
 
-    <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
-      <button
-        v-for="notif in notifications"
-        :key="notif.id"
-        @click="markRead(notif)"
-        class="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-surface-alt transition"
-        :class="{ 'bg-brand-50/40': !notif.is_read }"
-      >
-        <!-- Avatar -->
-        <div
-          class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
-        >
-          <img
-            v-if="notif.trigger_user?.avatar_url"
-            :src="notif.trigger_user.avatar_url"
-            class="w-10 h-10 rounded-full object-cover"
-            alt=""
-            loading="lazy"
-            width="40"
-            height="40"
-          />
-          <component
-            :is="notif.action_type === 'SYSTEM' ? Settings : User"
-            v-else
-            class="w-5 h-5 text-muted"
-          />
-        </div>
-
-        <!-- Content -->
-        <div class="flex-1 min-w-0">
-          <p class="text-sm text-foreground">{{ notif.message }}</p>
-          <p class="text-xs text-muted mt-1">{{ relativeTime(notif.created_at) }}</p>
-        </div>
-
-        <!-- Unread dot -->
-        <div
-          v-if="!notif.is_read"
-          class="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-600 mt-2"
-        ></div>
-
-        <!-- Delete button -->
+      <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
         <button
-          @click.stop="handleDeleteNotification(notif.id)"
-          class="flex-shrink-0 p-1 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
-          :title="t('common.delete')"
+          v-for="notif in notifications"
+          :key="notif.id"
+          @click="markRead(notif)"
+          class="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-surface-alt transition"
+          :class="{ 'bg-brand-50/40': !notif.is_read }"
         >
-          <Trash2 :size="16" />
-        </button>
-      </button>
-    </div>
+          <!-- Avatar -->
+          <div
+            class="flex-shrink-0 w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center overflow-hidden border border-border"
+          >
+            <img
+              v-if="notif.trigger_user?.avatar_url"
+              :src="notif.trigger_user.avatar_url"
+              class="w-10 h-10 rounded-full object-cover"
+              alt=""
+              loading="lazy"
+              width="40"
+              height="40"
+            />
+            <component
+              :is="notif.action_type === 'SYSTEM' ? Settings : User"
+              v-else
+              class="w-5 h-5 text-muted"
+            />
+          </div>
 
-    <BasePagination
-      v-if="totalPages > 1"
-      :current-page="page"
-      :total-pages="totalPages"
-      @update:current-page="goToPage"
-      class="mt-6"
-    />
+          <!-- Content -->
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-foreground">{{ notif.message }}</p>
+            <p class="text-xs text-muted mt-1">{{ relativeTime(notif.created_at) }}</p>
+          </div>
+
+          <!-- Unread dot -->
+          <div
+            v-if="!notif.is_read"
+            class="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-600 mt-2"
+          ></div>
+
+          <!-- Delete button -->
+          <button
+            @click.stop="handleDeleteNotification(notif.id)"
+            class="flex-shrink-0 p-1 rounded text-muted hover:text-danger-600 hover:bg-danger-50 transition"
+            :title="t('common.delete')"
+          >
+            <Trash2 :size="16" />
+          </button>
+        </button>
+      </div>
+
+      <BasePagination
+        v-if="totalPages > 1"
+        :current-page="page"
+        :total-pages="totalPages"
+        @update:current-page="goToPage"
+        class="mt-6"
+      />
     </div>
 
     <!-- Clear All Confirmation Modal -->

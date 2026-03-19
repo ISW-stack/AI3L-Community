@@ -19,10 +19,10 @@ const emit = defineEmits<{
   'upload-avatar': [event: Event]
 }>()
 
-const props = defineProps<{
+defineProps<{
   username: string
   avatarUrl: string | null
-  role: string | null | undefined
+  userRole: string | null | undefined
   storageUsed: number
   storageQuota: number
   storagePercent: number
@@ -106,7 +106,7 @@ function formatBytes(bytes: number): string {
     <h2 class="text-sm font-medium text-muted mb-3">{{ t('profile.memberInfo') }}</h2>
     <div class="flex items-center gap-3">
       <span class="text-sm text-foreground font-medium">{{ username || '---' }}</span>
-      <BaseBadge :variant="roleBadgeVariant(role)">{{ roleBadgeLabel(role) }}</BaseBadge>
+      <BaseBadge :variant="roleBadgeVariant(userRole)">{{ roleBadgeLabel(userRole) }}</BaseBadge>
     </div>
   </BaseCard>
 
@@ -191,5 +191,4 @@ function formatBytes(bytes: number): string {
       <BaseButton type="submit" :loading="saving">{{ t('profile.form.saveBtn') }}</BaseButton>
     </form>
   </BaseCard>
-
 </template>

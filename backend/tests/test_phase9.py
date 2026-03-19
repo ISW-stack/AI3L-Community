@@ -58,7 +58,11 @@ class TestInviteCodeConsumption:
                 f"{_EP}.auth.user_exists_by_username", new_callable=AsyncMock, return_value=False
             ),
             patch(f"{_EP}.auth.register_new_user", new_callable=AsyncMock, return_value=user_row),
-            patch(f"{_EP}.auth.create_session", new_callable=AsyncMock, return_value=("tok", "jti-ph9", 3600)),
+            patch(
+                f"{_EP}.auth.create_session",
+                new_callable=AsyncMock,
+                return_value=("tok", "jti-ph9", 3600),
+            ),
         ):
             resp1 = await client.post(
                 "/api/v1/auth/register",
@@ -331,7 +335,11 @@ class TestCommentEdit:
             _override_auth("MEMBER", user_id=user_id)
             with (
                 patch("app.repositories.comment_repo.get_pool", return_value=mock_pool),
-                patch("app.api.v1.endpoints.comments.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.api.v1.endpoints.comments.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",
@@ -354,7 +362,11 @@ class TestCommentEdit:
             _override_auth("MEMBER")
             with (
                 patch("app.repositories.comment_repo.get_pool", return_value=mock_pool),
-                patch("app.api.v1.endpoints.comments.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    "app.api.v1.endpoints.comments.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 resp = await client.put(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}",

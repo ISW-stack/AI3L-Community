@@ -1,9 +1,7 @@
 """Tests for block cache warmup TTL (N-B08 fix)."""
 
 import uuid
-from unittest.mock import MagicMock, AsyncMock
-
-import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from app.core.blacklist import warmup_block_cache
 

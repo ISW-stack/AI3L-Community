@@ -86,9 +86,7 @@ async def find_albums(
             exclude_user_ids,
         )
     else:
-        count = await conn.fetchval(
-            "SELECT COUNT(*) FROM albums WHERE is_deleted = false"
-        )
+        count = await conn.fetchval("SELECT COUNT(*) FROM albums WHERE is_deleted = false")
     return [], int(count)
 
 

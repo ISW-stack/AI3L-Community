@@ -207,7 +207,7 @@ describe('QAListView', () => {
   it('EmptyState action-to points to /qa/ask (not /qa/create)', async () => {
     const { wrapper } = await mountView([])
     // EmptyState is mocked — check the prop passed to it
-    const emptyState = wrapper.findComponent({ name: 'default' })
+    const _emptyState = wrapper.findComponent({ name: 'default' })
     // Find the raw template rendering: action-to="/qa/ask" in the source
     const html = wrapper.html()
     expect(html).not.toContain('/qa/create')

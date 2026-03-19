@@ -740,9 +740,7 @@ class TestFollowUserTransaction:
         mock_insert.assert_called_once()
 
     @patch(f"{_REPO}.is_blocked", new_callable=AsyncMock, return_value=True)
-    async def test_follow_blocked_inside_transaction(
-        self, mock_blocked, mock_pool, mock_conn
-    ):
+    async def test_follow_blocked_inside_transaction(self, mock_blocked, mock_pool, mock_conn):
         """Block check failure should still happen inside the transaction."""
         from app.services.social import follow_user
 

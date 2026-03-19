@@ -173,7 +173,11 @@ async def guest_login(display_name: str) -> tuple[str, str, int] | None:
 
     logger.info(
         "Guest login",
-        extra={"guest_id": guest_id, "display_name": mask_pii(display_name), "online_guests": new_count},
+        extra={
+            "guest_id": guest_id,
+            "display_name": mask_pii(display_name),
+            "online_guests": new_count,
+        },
     )
     return token, jti, ttl_seconds
 
@@ -357,5 +361,7 @@ async def register_new_user(
             if result != "UPDATE 1":
                 raise ValueError("Invite code already consumed or expired.")
     user = dict(row)
-    logger.info("User registered", extra={"user_id": str(user_id), "invite_code": mask_pii(invite_code, 4)})
+    logger.info(
+        "User registered", extra={"user_id": str(user_id), "invite_code": mask_pii(invite_code, 4)}
+    )
     return user

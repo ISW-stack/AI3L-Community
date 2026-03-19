@@ -12,7 +12,8 @@ from app.tasks.cleanup import _ensure_pool
 @celery.task(name="cleanup_dm_expired_files")
 def cleanup_dm_expired_files() -> dict:
     """Delete DM file attachments past their expiry. Refund storage quota."""
-    return _run_async(_cleanup_files())
+    result: dict = _run_async(_cleanup_files())
+    return result
 
 
 async def _cleanup_files() -> dict:
@@ -33,9 +34,7 @@ async def _cleanup_files() -> dict:
             if msg.get("attachment_key"):
                 await delete_file(msg["attachment_key"])
                 if msg.get("attachment_size") and msg.get("sender_id"):
-                    await user_repo.decrement_storage_used(
-                        msg["sender_id"], msg["attachment_size"]
-                    )
+                    await user_repo.decrement_storage_used(msg["sender_id"], msg["attachment_size"])
             await dm_repo.clear_message_attachment(msg["id"])
             deleted += 1
         except Exception:
@@ -53,7 +52,8 @@ async def _cleanup_files() -> dict:
 @celery.task(name="cleanup_dm_expired_text")
 def cleanup_dm_expired_text() -> dict:
     """Delete DM text messages older than the retention period."""
-    return _run_async(_cleanup_text())
+    result: dict = _run_async(_cleanup_text())
+    return result
 
 
 async def _cleanup_text() -> dict:

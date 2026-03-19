@@ -88,10 +88,7 @@ export function useWebSocket() {
           } else if (msg.type === 'NEW_DM') {
             dmStore.addFromWebSocket(msg.message)
             if (dmStore.activeConversationId !== msg.message.conversation_id) {
-              toastStore.show(
-                `New message from ${msg.message.sender.display_name}`,
-                'info',
-              )
+              toastStore.show(`New message from ${msg.message.sender.display_name}`, 'info')
             }
           } else if (msg.type === 'DM_EDITED') {
             dmStore.updateFromWebSocket(msg.message)

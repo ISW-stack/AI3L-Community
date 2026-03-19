@@ -174,7 +174,7 @@ onMounted(() => {
               </div>
               <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
               <p class="text-xs text-muted">
-                {{ t('userProfile.joined') }} {{ formatDate(user.created_at, locale.value) }}
+                {{ t('userProfile.joined') }} {{ formatDate(user.created_at, locale) }}
               </p>
             </div>
             <div class="shrink-0 flex flex-col items-end gap-2">
@@ -193,7 +193,11 @@ onMounted(() => {
                 v-if="!isOwnProfile && auth.isAuthenticated && !auth.isGuest"
                 :to="`/messages/${userId}`"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-surface-alt transition"
-                :title="user?.dm_friends_only ? 'This user only accepts messages from friends' : 'Send message'"
+                :title="
+                  user?.dm_friends_only
+                    ? 'This user only accepts messages from friends'
+                    : 'Send message'
+                "
                 data-testid="message-btn"
               >
                 <MessageSquare class="w-4 h-4" aria-hidden="true" />
@@ -211,7 +215,10 @@ onMounted(() => {
           <div v-if="user.bio || user.affiliation || user.orcid" class="mt-4 space-y-2">
             <div v-if="user.bio" class="text-sm text-foreground/80">
               <span class="font-medium text-foreground block mb-1">{{ t('userProfile.bio') }}</span>
-              <div class="prose prose-sm max-w-none break-words" v-html="DOMPurify.sanitize(user.bio)"></div>
+              <div
+                class="prose prose-sm max-w-none break-words"
+                v-html="DOMPurify.sanitize(user.bio)"
+              ></div>
             </div>
             <div v-if="user.affiliation" class="text-sm text-foreground/80">
               <span class="font-medium text-foreground">{{ t('userProfile.affiliation') }}</span>
@@ -272,7 +279,12 @@ onMounted(() => {
         </div>
 
         <!-- Posts Feed -->
-        <template v-if="activeSection === 'posts'" id="panel-posts" role="tabpanel" aria-labelledby="tab-posts">
+        <div
+          v-if="activeSection === 'posts'"
+          id="panel-posts"
+          role="tabpanel"
+          aria-labelledby="tab-posts"
+        >
           <SkeletonLoader v-if="postsLoading" :lines="3" variant="card" />
           <EmptyState
             v-else-if="posts.length === 0"
@@ -294,10 +306,15 @@ onMounted(() => {
               @update:current-page="goToPage"
             />
           </div>
-        </template>
+        </div>
 
         <!-- Co-Authored Posts -->
-        <template v-if="activeSection === 'coauthored'" id="panel-coauthored" role="tabpanel" aria-labelledby="tab-coauthored">
+        <div
+          v-if="activeSection === 'coauthored'"
+          id="panel-coauthored"
+          role="tabpanel"
+          aria-labelledby="tab-coauthored"
+        >
           <SkeletonLoader v-if="coAuthoredLoading" :lines="3" variant="card" />
           <EmptyState
             v-else-if="coAuthoredPosts.length === 0"
@@ -309,7 +326,7 @@ onMounted(() => {
               <PostCard :post="p" :format-time="toLocaleTime" :max-preview-lines="3" />
             </div>
           </div>
-        </template>
+        </div>
       </template>
     </div>
   </div>

@@ -196,7 +196,8 @@ async def get_member_role(sig_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT role FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
+            "SELECT role FROM sig_members "
+            "WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
             sig_id,
             user_id,
         )
@@ -238,7 +239,8 @@ async def count_admins(sig_id: uuid.UUID, conn: Any) -> int:
         """
         SELECT sm.id FROM sig_members sm
         JOIN users u ON sm.user_id = u.id
-        WHERE sm.sig_id = $1 AND sm.role = 'ADMIN' AND sm.is_deleted = false AND u.is_deleted = false
+        WHERE sm.sig_id = $1 AND sm.role = 'ADMIN'
+          AND sm.is_deleted = false AND u.is_deleted = false
         FOR UPDATE
         """,
         sig_id,

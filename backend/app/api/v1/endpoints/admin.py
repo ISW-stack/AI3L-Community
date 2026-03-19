@@ -20,6 +20,7 @@ class IpBanRequest(BaseModel):
     reason: str = Field("", max_length=500)
     expires_at: datetime | None = None
 
+
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 

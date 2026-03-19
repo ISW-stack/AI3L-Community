@@ -47,7 +47,8 @@ async def _reconcile_citation_counts() -> int:
                 WHERE citation_count > 0
                   AND id NOT IN (
                       SELECT DISTINCT cited_post_id FROM post_citations pc
-                      JOIN posts citing ON pc.citing_post_id = citing.id AND citing.is_deleted = false
+                      JOIN posts citing ON pc.citing_post_id = citing.id
+                        AND citing.is_deleted = false
                   )
                 """)
             return updated

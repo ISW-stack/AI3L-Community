@@ -56,7 +56,7 @@ def _set_auth_cookies(response: Response, token: str, csrf_token: str, max_age: 
         key="access_token",
         value=token,
         httponly=True,
-        secure=settings.COOKIE_SECURE,
+        secure=bool(settings.COOKIE_SECURE),
         samesite=settings.COOKIE_SAMESITE,  # type: ignore[arg-type]
         max_age=max_age,
         path="/",
@@ -68,7 +68,7 @@ def _set_auth_cookies(response: Response, token: str, csrf_token: str, max_age: 
         key="csrf_token",
         value=csrf_token,
         httponly=False,
-        secure=settings.COOKIE_SECURE,
+        secure=bool(settings.COOKIE_SECURE),
         samesite=settings.COOKIE_SAMESITE,  # type: ignore[arg-type]
         max_age=max_age,
         path="/",

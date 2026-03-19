@@ -123,7 +123,7 @@ const {
         <div class="flex flex-wrap items-center gap-2">
           <span>{{
             t('forms.builder.draftFound', {
-              time: formatDateTime(draftTime, locale.value),
+              time: formatDateTime(draftTime, locale),
             })
           }}</span>
           <button class="text-sm font-medium text-brand-600 hover:underline" @click="restoreDraft">

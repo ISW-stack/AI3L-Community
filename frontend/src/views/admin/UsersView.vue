@@ -478,11 +478,9 @@ onUnmounted(() => {
                     <BaseButton v-else size="sm" variant="success" @click="handleUnban(user)">{{
                       t('admin.users.unbanBtn')
                     }}</BaseButton>
-                    <BaseButton
-                      size="sm"
-                      variant="danger"
-                      @click="openDeleteModal(user)"
-                    >{{ t('admin.users.deleteBtn') }}</BaseButton>
+                    <BaseButton size="sm" variant="danger" @click="openDeleteModal(user)">{{
+                      t('admin.users.deleteBtn')
+                    }}</BaseButton>
                   </template>
                 </div>
               </td>
@@ -619,7 +617,8 @@ onUnmounted(() => {
           :loading="deleting"
           :disabled="deleteConfirmText !== 'DELETE'"
           @click="confirmDelete"
-        >{{ t('admin.users.deleteModal.confirmBtn') }}</BaseButton>
+          >{{ t('admin.users.deleteModal.confirmBtn') }}</BaseButton
+        >
       </template>
     </BaseModal>
   </div>

@@ -24,6 +24,7 @@ export default {
     apply: 'Appliquer',
     clear: 'Effacer',
     submit: 'Soumettre',
+    submitting: 'Submitting...',
     or: 'ou',
     to: 'à',
     by: 'Par',
@@ -159,6 +160,7 @@ export default {
     categories: 'Catégories',
     inviteCodes: "Codes d'invitation",
     auditLogs: "Journaux d'audit",
+    ipBans: 'IP Bans',
     contributors: 'Contributeurs',
     profile: 'Profil',
     logOut: 'Se déconnecter',
@@ -217,6 +219,7 @@ export default {
     guestSignUpSuffix: 'pour un accès complet.',
     applyMembership: {
       title: 'Demander une adhésion',
+      applyBtn: 'Apply Now',
       submitted: "Votre candidature a été soumise. Un administrateur l'examinera prochainement.",
       description:
         'Parlez-nous un peu de vous et de la raison pour laquelle vous souhaitez rejoindre la communauté.',
@@ -224,6 +227,23 @@ export default {
       submitBtn: 'Soumettre la candidature',
       success: 'Candidature soumise avec succès !',
       error: 'Échec de la soumission de la candidature.',
+      reasonLabel: 'Why do you want to join?',
+      usernamePlaceholder: 'Choose a username',
+      passwordPlaceholder: 'Choose a password',
+      passwordHint: 'Min 8 characters, with uppercase, lowercase, digit, and special character.',
+      status: {
+        PENDING: 'Pending Review',
+        APPROVED: 'Approved',
+        REJECTED: 'Rejected',
+      },
+      validation: {
+        usernameMin: 'Username must be at least 3 characters.',
+        usernameMax: 'Username must be at most 50 characters.',
+        passwordMin: 'Password must be at least 8 characters.',
+        passwordPolicy: 'Password must include uppercase, lowercase, digit, and special character.',
+        displayNameRequired: 'Display name is required.',
+        descriptionRequired: 'Please describe why you want to join.',
+      },
     },
     recentPosts: {
       title: 'Publications récentes',
@@ -385,7 +405,8 @@ export default {
       citedByCount: 'Cité par {count}',
       referencesCount: 'Références ({count})',
       unsavedChangesTitle: 'Modifications non enregistrées',
-      unsavedChangesMessage: 'Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter cette page ?',
+      unsavedChangesMessage:
+        'Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter cette page ?',
       leaveBtn: 'Quitter',
     },
     comment: {
@@ -733,7 +754,8 @@ export default {
       draftFound: 'Vous avez un brouillon non enregistré de {time}.',
       draftRestore: 'Restaurer',
       draftDiscard: 'Supprimer',
-      confirmDiscard: 'Êtes-vous sûr de vouloir supprimer ce brouillon ? Cette action est irréversible.',
+      confirmDiscard:
+        'Êtes-vous sûr de vouloir supprimer ce brouillon ? Cette action est irréversible.',
       previewDesktop: 'Bureau',
       previewMobile: 'Mobile',
       uploadBannerError: "Échec du téléchargement de l'image de bannière.",
@@ -973,6 +995,7 @@ export default {
         displayNamePlaceholder: "Nom d'affichage",
         passwordLabel: 'Mot de passe',
         passwordPlaceholder: '8+ caractères, majuscule/minuscule/chiffre',
+        passwordHint: 'Min 8 characters, with uppercase, lowercase, digit, and special character.',
         passwordTooShort: 'Le mot de passe doit comporter au moins 8 caractères',
         passwordNeedsUpper: 'Doit contenir une lettre majuscule',
         passwordNeedsLower: 'Doit contenir une lettre minuscule',
@@ -984,6 +1007,8 @@ export default {
       },
       banModal: {
         title: "Bannir l'utilisateur",
+        deleted: '{username} has been deleted.',
+        deleteFailed: 'Failed to delete user.',
         message: 'Bannir {username} ? Cela révoquera immédiatement sa session.',
         reasonLabel: 'Motif du bannissement',
         reasonPlaceholder: 'Motif du bannissement',
@@ -991,6 +1016,15 @@ export default {
       },
       banBtn: 'Bannir',
       unbanBtn: 'Débannir',
+      deleteBtn: 'Delete',
+      deleteModal: {
+        title: 'Delete User Account',
+        message: 'Permanently anonymize {username}? This cannot be undone. Type DELETE to confirm.',
+        reasonLabel: 'Reason (optional)',
+        reasonPlaceholder: 'Reason for deletion',
+        typeLabel: 'Type DELETE to confirm',
+        confirmBtn: 'Delete Account',
+      },
       message: {
         loadFailed: 'Échec du chargement de la liste des utilisateurs.',
         roleUpdated: 'Rôle mis à jour avec succès.',
@@ -1003,6 +1037,40 @@ export default {
         unbanFailed: "Échec du débannissement de l'utilisateur.",
         bulkRoleUpdated: 'Rôle mis à jour pour {count} utilisateur(s).',
         bulkRoleFailed: 'Échec de la mise à jour en masse des rôles.',
+        deleted: '{username} has been deleted.',
+        deleteFailed: 'Failed to delete user.',
+      },
+    },
+    ipBans: {
+      title: 'IP Bans',
+      banBtn: 'Ban IP',
+      unbanBtn: 'Remove',
+      permanent: 'Permanent',
+      expiresAt: 'Expires',
+      total: '{count} banned IP(s)',
+      emptyTitle: 'No Banned IPs',
+      emptyMessage: 'No IP bans configured.',
+      table: {
+        ip: 'IP Address',
+        reason: 'Reason',
+        expires: 'Expires',
+        created: 'Created',
+        actions: 'Actions',
+      },
+      createModal: {
+        title: 'Ban IP Address',
+        ipLabel: 'IP Address',
+        reasonLabel: 'Reason',
+        reasonPlaceholder: 'Reason for IP ban',
+        expiresLabel: 'Expires at (optional)',
+        expiresHint: 'Leave empty for permanent ban.',
+        confirmBtn: 'Ban IP',
+      },
+      message: {
+        created: 'IP address banned.',
+        createFailed: 'Failed to ban IP.',
+        removed: 'IP ban for {ip} removed.',
+        removeFailed: 'Failed to remove IP ban.',
       },
     },
     applications: {
@@ -1248,7 +1316,7 @@ export default {
     loadError: 'Failed to load forms',
     due: 'Due {date}',
     privateNotice:
-      'Les formulaires créés ici sont privés. Pour permettre à d\'autres de remplir un formulaire, partagez son lien directement.',
+      "Les formulaires créés ici sont privés. Pour permettre à d'autres de remplir un formulaire, partagez son lien directement.",
   },
 
   // ── Albums ──

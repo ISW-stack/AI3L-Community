@@ -108,8 +108,13 @@ class TestSigServiceEmitsRoleChangedEvent:
 
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", AsyncMock(return_value="SUB_ADMIN")),
-            patch("app.repositories.sig_repo.update_member_role_in_conn", AsyncMock(return_value=row)),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                AsyncMock(return_value="SUB_ADMIN"),
+            ),
+            patch(
+                "app.repositories.sig_repo.update_member_role_in_conn", AsyncMock(return_value=row)
+            ),
             patch("app.services.sig.emit", mock_emit),
             patch("app.services.sig.async_row_to_member", mock_row_to_member),
         ):
@@ -141,8 +146,13 @@ class TestSigServiceEmitsRoleChangedEvent:
         mock_row_to_member = AsyncMock(return_value=row)
 
         with (
-            patch("app.repositories.sig_repo.get_member_role_in_conn", AsyncMock(return_value="MEMBER")),
-            patch("app.repositories.sig_repo.update_member_role_in_conn", AsyncMock(return_value=row)),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                AsyncMock(return_value="MEMBER"),
+            ),
+            patch(
+                "app.repositories.sig_repo.update_member_role_in_conn", AsyncMock(return_value=row)
+            ),
             patch("app.repositories.sig_repo.count_admins", AsyncMock(return_value=1)),
             patch("app.services.sig.get_pool") as mock_get_pool,
             patch("app.services.sig.emit", mock_emit),

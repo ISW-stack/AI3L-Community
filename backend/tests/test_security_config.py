@@ -7,7 +7,7 @@ Covers:
 """
 
 import sys
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic_settings import SettingsConfigDict
@@ -56,7 +56,7 @@ class TestCookieSecureAutoDerive:
 
     def test_explicit_false_overrides_production(self) -> None:
         """Explicit COOKIE_SECURE=False overrides production auto-derive."""
-        s = _make_settings(
+        _make_settings(
             FASTAPI_ENV="production",
             COOKIE_SECURE=False,
             JWT_SECRET_KEY="prod_secret_key_safe",

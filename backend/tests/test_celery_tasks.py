@@ -192,9 +192,7 @@ class TestAsyncRetry:
         async def infinite_lpop(key: str) -> str:
             nonlocal call_count
             call_count += 1
-            return json.dumps(
-                {"event": "e", "handler": "h", "kwargs": {}, "retry_count": 0}
-            )
+            return json.dumps({"event": "e", "handler": "h", "kwargs": {}, "retry_count": 0})
 
         mock_redis = AsyncMock()
         mock_redis.lpop = AsyncMock(side_effect=infinite_lpop)
@@ -1833,8 +1831,8 @@ class TestThumbnailTask:
     def test_max_image_pixels_set_before_image_open(self):
         """N-B06: MAX_IMAGE_PIXELS must be set before Image.open is called."""
         mock_image_module = MagicMock()
-        mock_image_ops = MagicMock()
-        mock_minio = MagicMock()
+        MagicMock()  # image_ops — unused but required for test setup
+        MagicMock()  # minio — unused but required for test setup
         mock_settings = MagicMock()
         mock_settings.MINIO_ENDPOINT = "localhost:9000"
         mock_settings.MINIO_ROOT_USER = "user"
@@ -1852,9 +1850,7 @@ class TestThumbnailTask:
                 call_order.append(("set_max_pixels", value))
             original_setattr(self, name, value)
 
-        mock_image_module.__class__ = type(
-            "MockImage", (), {"__setattr__": track_max_pixels}
-        )
+        mock_image_module.__class__ = type("MockImage", (), {"__setattr__": track_max_pixels})
 
         # Instead of tracking setattr, verify via source inspection
         import inspect
@@ -1864,9 +1860,9 @@ class TestThumbnailTask:
         source = inspect.getsource(generate_thumbnail_task)
         max_pixels_pos = source.find("MAX_IMAGE_PIXELS")
         image_open_pos = source.find("Image.open")
-        assert max_pixels_pos < image_open_pos, (
-            "MAX_IMAGE_PIXELS must be set before Image.open is called"
-        )
+        assert (
+            max_pixels_pos < image_open_pos
+        ), "MAX_IMAGE_PIXELS must be set before Image.open is called"
 
     def test_max_download_size_constant_exists(self):
         """N-B13: MAX_DOWNLOAD_SIZE constant must be defined at module level."""
@@ -1878,13 +1874,13 @@ class TestThumbnailTask:
         """N-B13: response.read() must be called with a size limit."""
         import inspect
 
-        from app.tasks.thumbnail import MAX_DOWNLOAD_SIZE, generate_thumbnail_task
+        from app.tasks.thumbnail import generate_thumbnail_task
 
         source = inspect.getsource(generate_thumbnail_task)
         # Must call response.read with a size argument, not unbounded
-        assert "response.read()" not in source, (
-            "response.read() is unbounded — must pass MAX_DOWNLOAD_SIZE"
-        )
+        assert (
+            "response.read()" not in source
+        ), "response.read() is unbounded — must pass MAX_DOWNLOAD_SIZE"
         assert "response.read(MAX_DOWNLOAD_SIZE" in source
 
     def test_oversized_download_returns_skipped(self):
@@ -1939,10 +1935,10 @@ class TestThumbnailTask:
 
     def test_normal_size_download_proceeds(self):
         """N-B13: Files within MAX_DOWNLOAD_SIZE should be processed normally."""
-        from app.tasks.thumbnail import MAX_DOWNLOAD_SIZE
-
         # Create a small valid image in memory
         from PIL import Image as PILImage
+
+        from app.tasks.thumbnail import MAX_DOWNLOAD_SIZE
 
         img_buf = io.BytesIO()
         img = PILImage.new("RGB", (100, 100), color="red")

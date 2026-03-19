@@ -34,7 +34,9 @@ import type { DMMessage, Conversation } from '@/types/dm'
 
 // --------------- Test data factories ---------------
 
-function makeSender(overrides: Partial<{ id: string; display_name: string; avatar_url: string | null }> = {}) {
+function makeSender(
+  overrides: Partial<{ id: string; display_name: string; avatar_url: string | null }> = {},
+) {
   return {
     id: 'user-2',
     display_name: 'Alice',
@@ -344,10 +346,7 @@ describe('useDMStore', () => {
     })
 
     it('does not mutate the original API response array', async () => {
-      const original = [
-        makeMessage({ id: 'msg-2' }),
-        makeMessage({ id: 'msg-1' }),
-      ]
+      const original = [makeMessage({ id: 'msg-2' }), makeMessage({ id: 'msg-1' })]
       const apiResponse = { messages: [...original], total: 2 }
       mockListMessages.mockResolvedValueOnce(apiResponse)
       const store = useDMStore()
@@ -502,7 +501,12 @@ describe('useDMStore', () => {
       store.conversations = [makeConversation({ id: 'conv-1', last_message: lastMsg })]
       store.messages = [lastMsg]
 
-      const updated = makeMessage({ id: 'msg-1', content: 'New content', conversation_id: 'conv-1', is_edited: true })
+      const updated = makeMessage({
+        id: 'msg-1',
+        content: 'New content',
+        conversation_id: 'conv-1',
+        is_edited: true,
+      })
       store.updateFromWebSocket(updated)
 
       expect(store.conversations[0].last_message!.content).toBe('New content')
@@ -658,9 +662,7 @@ describe('useDMStore', () => {
     it('does not update messages if conversation is not active', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-other'
-      store.messages = [
-        makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null }),
-      ]
+      store.messages = [makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null })]
 
       store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
 

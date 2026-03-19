@@ -12,7 +12,8 @@ class Sig(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "sigs"
 
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    # Uniqueness for active SIGs enforced via partial index uq_sigs_name_active (migration o5p6q7r8s9t0)
+    # Uniqueness for active SIGs enforced via partial index
+    # uq_sigs_name_active (migration o5p6q7r8s9t0)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False

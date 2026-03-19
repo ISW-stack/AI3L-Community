@@ -43,7 +43,10 @@ function handleAvatarError(convId: string) {
       <h2 class="text-sm font-semibold text-foreground">Conversations</h2>
     </div>
 
-    <div v-if="loading && conversations.length === 0" class="px-4 py-8 text-center text-sm text-muted">
+    <div
+      v-if="loading && conversations.length === 0"
+      class="px-4 py-8 text-center text-sm text-muted"
+    >
       Loading...
     </div>
 
@@ -66,7 +69,9 @@ function handleAvatarError(convId: string) {
         :aria-current="activeId === conv.id ? 'true' : undefined"
       >
         <!-- Avatar -->
-        <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+        <div
+          class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+        >
           <img
             v-if="conv.other_user.avatar_url && !avatarFailed[conv.id]"
             :src="conv.other_user.avatar_url"

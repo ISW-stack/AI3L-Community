@@ -521,9 +521,7 @@ class TestSigMemberBatchNotification:
 
         # First batch must be full (len == BATCH_SIZE) so the loop continues;
         # second batch is partial (< BATCH_SIZE) so the loop terminates.
-        page1_members = [
-            {"user_id": uuid.UUID(member_id_1)}
-        ] * _SIG_MEMBER_BATCH_SIZE  # full batch
+        page1_members = [{"user_id": uuid.UUID(member_id_1)}] * _SIG_MEMBER_BATCH_SIZE  # full batch
         page2_members = [{"user_id": uuid.UUID(member_id_2)}]  # partial batch
 
         find_members_mock = AsyncMock(

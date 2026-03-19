@@ -102,9 +102,7 @@ class TestB02AlbumUploadSizeLimit:
             ):
                 resp = await client.post(
                     f"/api/v1/albums/{album_id}/photos",
-                    files={
-                        "file": ("big.jpg", io.BytesIO(oversized_data), "image/jpeg")
-                    },
+                    files={"file": ("big.jpg", io.BytesIO(oversized_data), "image/jpeg")},
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 413
@@ -160,9 +158,7 @@ class TestB02AlbumUploadSizeLimit:
             ):
                 resp = await client.post(
                     f"/api/v1/albums/{album_id}/photos",
-                    files={
-                        "file": ("small.jpg", io.BytesIO(small_data), "image/jpeg")
-                    },
+                    files={"file": ("small.jpg", io.BytesIO(small_data), "image/jpeg")},
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 201
@@ -389,9 +385,7 @@ class TestB04InviteCodeExpiryRecheck:
 
             # Verify the execute call includes expires_at > NOW()
             execute_calls = mock_conn.execute.call_args_list
-            update_call = [
-                c for c in execute_calls if "invite_codes" in str(c.args[0])
-            ]
+            update_call = [c for c in execute_calls if "invite_codes" in str(c.args[0])]
             assert len(update_call) == 1
             query = update_call[0].args[0]
             assert "expires_at > NOW()" in query
@@ -432,10 +426,7 @@ class TestB08EmptyContentAfterSanitization:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert (
-                    "empty after sanitization"
-                    in resp.json()["detail"]["message"].lower()
-                )
+                assert "empty after sanitization" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 
@@ -467,10 +458,7 @@ class TestB08EmptyContentAfterSanitization:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 400
-                assert (
-                    "empty after sanitization"
-                    in resp.json()["detail"]["message"].lower()
-                )
+                assert "empty after sanitization" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 

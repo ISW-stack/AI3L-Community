@@ -36,9 +36,7 @@ def _ensure_loop() -> asyncio.AbstractEventLoop:
             asyncio.set_event_loop(loop)
             loop.run_forever()
 
-        _worker_thread = threading.Thread(
-            target=_run_forever, args=(_worker_loop,), daemon=True
-        )
+        _worker_thread = threading.Thread(target=_run_forever, args=(_worker_loop,), daemon=True)
         _worker_thread.start()
         return _worker_loop
 

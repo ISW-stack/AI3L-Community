@@ -39,6 +39,8 @@ vi.mock('lucide-vue-next', () => ({
   ArrowDown: { name: 'ArrowDown', template: '<span class="icon-arrow-down" />' },
   Pencil: { name: 'Pencil', template: '<span class="icon-pencil" />' },
   Trash2: { name: 'Trash2', template: '<span class="icon-trash" />' },
+  Lock: { name: 'Lock', template: '<span class="icon-lock" />' },
+  Unlock: { name: 'Unlock', template: '<span class="icon-unlock" />' },
 }))
 
 vi.mock('@/utils/datetime', () => ({
@@ -64,18 +66,42 @@ const mockDMStoreState = {
 
 vi.mock('@/stores/dm', () => ({
   useDMStore: () => ({
-    get conversations() { return mockDMStoreState.conversations },
-    set conversations(v) { mockDMStoreState.conversations = v },
-    get conversationsTotal() { return mockDMStoreState.conversationsTotal },
-    get messages() { return mockDMStoreState.messages },
-    set messages(v) { mockDMStoreState.messages = v },
-    get messagesTotal() { return mockDMStoreState.messagesTotal },
-    set messagesTotal(v) { mockDMStoreState.messagesTotal = v },
-    get unreadCount() { return mockDMStoreState.unreadCount },
-    set unreadCount(v) { mockDMStoreState.unreadCount = v },
-    get activeConversationId() { return mockDMStoreState.activeConversationId },
-    get loading() { return mockDMStoreState.loading },
-    get error() { return mockDMStoreState.error },
+    get conversations() {
+      return mockDMStoreState.conversations
+    },
+    set conversations(v) {
+      mockDMStoreState.conversations = v
+    },
+    get conversationsTotal() {
+      return mockDMStoreState.conversationsTotal
+    },
+    get messages() {
+      return mockDMStoreState.messages
+    },
+    set messages(v) {
+      mockDMStoreState.messages = v
+    },
+    get messagesTotal() {
+      return mockDMStoreState.messagesTotal
+    },
+    set messagesTotal(v) {
+      mockDMStoreState.messagesTotal = v
+    },
+    get unreadCount() {
+      return mockDMStoreState.unreadCount
+    },
+    set unreadCount(v) {
+      mockDMStoreState.unreadCount = v
+    },
+    get activeConversationId() {
+      return mockDMStoreState.activeConversationId
+    },
+    get loading() {
+      return mockDMStoreState.loading
+    },
+    get error() {
+      return mockDMStoreState.error
+    },
     fetchConversations: vi.fn(),
     fetchMessages: vi.fn(),
     setActiveConversation: vi.fn(),

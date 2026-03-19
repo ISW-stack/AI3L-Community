@@ -948,9 +948,7 @@ class TestLeaveSigErrors:
                 patch(
                     f"{_EP}.leave_sig",
                     new_callable=AsyncMock,
-                    side_effect=ValueError(
-                        "Cannot leave: you are the last admin of this SIG."
-                    ),
+                    side_effect=ValueError("Cannot leave: you are the last admin of this SIG."),
                 ),
             ):
                 resp = await client.delete(
@@ -1053,9 +1051,9 @@ class TestSoftDeleteSig:
         # Ensure there is no DELETE on sig_members
         for call in execute_calls:
             if "sig_members" in call.lower():
-                assert not call.upper().startswith("DELETE"), (
-                    f"Expected UPDATE but got DELETE: {call}"
-                )
+                assert not call.upper().startswith(
+                    "DELETE"
+                ), f"Expected UPDATE but got DELETE: {call}"
 
 
 class TestGetMySigMembership:

@@ -100,7 +100,16 @@ function createStubs() {
     BaseInput: {
       template:
         '<div><input class="base-input" :id="id" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /><span v-if="error" class="input-error">{{ error }}</span></div>',
-      props: ['modelValue', 'id', 'label', 'placeholder', 'error', 'maxlength', 'autocomplete', 'type'],
+      props: [
+        'modelValue',
+        'id',
+        'label',
+        'placeholder',
+        'error',
+        'maxlength',
+        'autocomplete',
+        'type',
+      ],
     },
     BaseTextarea: {
       template:
@@ -327,11 +336,9 @@ describe('HomeView', () => {
       mockGetMyApplication.mockRejectedValue(
         Object.assign(new Error('Not Found'), { response: { status: 404 } }),
       )
-      const { wrapper, auth } = await mountHome({ role: 'GUEST' })
+      const { wrapper } = await mountHome({ role: 'GUEST' })
       // Click "Apply Now" button to open the modal
-      const applyBtn = wrapper
-        .findAll('button')
-        .find((b) => b.text().includes('Apply Now'))
+      const applyBtn = wrapper.findAll('button').find((b) => b.text().includes('Apply Now'))
       expect(applyBtn).toBeTruthy()
       await applyBtn!.trigger('click')
       await nextTick()
@@ -349,7 +356,7 @@ describe('HomeView', () => {
     it('H3: password with only lowercase and length >= 8 fails validation', async () => {
       const { wrapper } = await openModal()
       // Fill form with valid fields but weak password (no uppercase/digit/special)
-      const inputs = wrapper.findAll('.base-input')
+      const _inputs = wrapper.findAll('.base-input')
       const usernameInput = wrapper.find('#apply-username')
       const passwordInput = wrapper.find('#apply-password')
       const displayNameInput = wrapper.find('#apply-display-name')

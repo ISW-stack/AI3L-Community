@@ -1243,9 +1243,7 @@ class TestB16ApproveMemberIDOR:
 
         from app.repositories.album_repo import update_member_status
 
-        result = await update_member_status(
-            mock_conn, member_id, "ACCEPTED", album_id=album_id
-        )
+        result = await update_member_status(mock_conn, member_id, "ACCEPTED", album_id=album_id)
         assert result is True
         # Verify album_id was included in the SQL query
         call_args = mock_conn.execute.call_args

@@ -354,7 +354,11 @@ onMounted(() => {
           <div class="mb-2">
             <TiptapEditor v-model="newAnswer" />
           </div>
-          <BaseButton :loading="answerSaving" :disabled="isContentEmpty(newAnswer)" @click="submitAnswer">
+          <BaseButton
+            :loading="answerSaving"
+            :disabled="isContentEmpty(newAnswer)"
+            @click="submitAnswer"
+          >
             {{ t('qa.postAnswer') }}
           </BaseButton>
         </div>

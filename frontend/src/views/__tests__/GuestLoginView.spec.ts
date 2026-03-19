@@ -19,7 +19,11 @@ vi.mock('@/stores/auth', () => ({
 }))
 
 vi.mock('@/utils/error', () => ({
-  getErrorMessage: (e: unknown, tOrFallback?: ((key: string) => string) | string, fallbackKey?: string) => {
+  getErrorMessage: (
+    e: unknown,
+    tOrFallback?: ((key: string) => string) | string,
+    fallbackKey?: string,
+  ) => {
     if (e && typeof e === 'object' && 'response' in e) {
       const err = e as { response?: { data?: { detail?: string } } }
       if (typeof err.response?.data?.detail === 'string') return err.response.data.detail

@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # B07 — Cursor pagination uses native UUID (no ::text cast)
 # ---------------------------------------------------------------------------
@@ -158,9 +157,9 @@ class TestB09SearchSortPopular:
         from app.repositories.post_repo import _SEARCH_SORT_MAP, _SORT_MAP
 
         for key in _SORT_MAP:
-            assert key in _SEARCH_SORT_MAP, (
-                f"Sort option '{key}' exists in _SORT_MAP but not _SEARCH_SORT_MAP"
-            )
+            assert (
+                key in _SEARCH_SORT_MAP
+            ), f"Sort option '{key}' exists in _SORT_MAP but not _SEARCH_SORT_MAP"
 
 
 # ---------------------------------------------------------------------------
@@ -218,14 +217,12 @@ class TestB11OrphanCleanupBatching:
             total += 1
             if len(batch) >= _ORPHAN_BATCH_SIZE:
                 orphan_keys.extend(
-                    key for key, modified in batch
-                    if key not in referenced and modified < cutoff
+                    key for key, modified in batch if key not in referenced and modified < cutoff
                 )
                 batch = []
         if batch:
             orphan_keys.extend(
-                key for key, modified in batch
-                if key not in referenced and modified < cutoff
+                key for key, modified in batch if key not in referenced and modified < cutoff
             )
 
         assert total == 2500
@@ -246,14 +243,12 @@ class TestB11OrphanCleanupBatching:
             total += 1
             if len(batch) >= _ORPHAN_BATCH_SIZE:
                 orphan_keys.extend(
-                    key for key, modified in batch
-                    if key not in referenced and modified < cutoff
+                    key for key, modified in batch if key not in referenced and modified < cutoff
                 )
                 batch = []
         if batch:
             orphan_keys.extend(
-                key for key, modified in batch
-                if key not in referenced and modified < cutoff
+                key for key, modified in batch if key not in referenced and modified < cutoff
             )
 
         assert total == 0
@@ -277,14 +272,12 @@ class TestB11OrphanCleanupBatching:
             total += 1
             if len(batch) >= _ORPHAN_BATCH_SIZE:
                 orphan_keys.extend(
-                    key for key, modified in batch
-                    if key not in referenced and modified < cutoff
+                    key for key, modified in batch if key not in referenced and modified < cutoff
                 )
                 batch = []
         if batch:
             orphan_keys.extend(
-                key for key, modified in batch
-                if key not in referenced and modified < cutoff
+                key for key, modified in batch if key not in referenced and modified < cutoff
             )
 
         assert total == _ORPHAN_BATCH_SIZE
@@ -297,12 +290,12 @@ class TestB11OrphanCleanupBatching:
         from app.tasks.cleanup import cleanup_orphan_files
 
         source = inspect.getsource(cleanup_orphan_files)
-        assert "list, _iter_editor_files" not in source, (
-            "Should not materialize all S3 files with list(_iter_editor_files())"
-        )
-        assert "list(_iter_editor_files" not in source, (
-            "Should not materialize all S3 files with list(_iter_editor_files())"
-        )
+        assert (
+            "list, _iter_editor_files" not in source
+        ), "Should not materialize all S3 files with list(_iter_editor_files())"
+        assert (
+            "list(_iter_editor_files" not in source
+        ), "Should not materialize all S3 files with list(_iter_editor_files())"
 
 
 # ---------------------------------------------------------------------------
@@ -396,12 +389,14 @@ class TestB12FormStatsBatched:
     async def test_get_form_stats_uses_batched_and_count(self):
         """get_form_stats should call count_total_responses and iter_responses_batched."""
         form_id = uuid.uuid4()
-        now = datetime.now(timezone.utc).isoformat()
+        _now = datetime.now(timezone.utc).isoformat()  # noqa: F841
         form_row = {
             "id": form_id,
-            "questions": json.dumps([
-                {"id": "q1", "type": "text", "label": "Name"},
-            ]),
+            "questions": json.dumps(
+                [
+                    {"id": "q1", "type": "text", "label": "Name"},
+                ]
+            ),
             "created_by": uuid.uuid4(),
         }
 
@@ -537,15 +532,15 @@ class TestB12FormStatsBatched:
         from app.services import form as form_module
 
         source = inspect.getsource(form_module.get_form_stats)
-        assert "iter_responses_batched" in source, (
-            "get_form_stats should use iter_responses_batched"
-        )
-        assert "count_total_responses" in source, (
-            "get_form_stats should use count_total_responses for the count"
-        )
-        assert "find_all_responses" not in source, (
-            "get_form_stats should NOT use find_all_responses (loads all into memory)"
-        )
+        assert (
+            "iter_responses_batched" in source
+        ), "get_form_stats should use iter_responses_batched"
+        assert (
+            "count_total_responses" in source
+        ), "get_form_stats should use count_total_responses for the count"
+        assert (
+            "find_all_responses" not in source
+        ), "get_form_stats should NOT use find_all_responses (loads all into memory)"
 
 
 # ---------------------------------------------------------------------------
@@ -568,9 +563,7 @@ def _is_uuid_str(s: str) -> bool:
         return False
 
 
-def _make_response_record(
-    response_id: uuid.UUID, form_id: uuid.UUID, answers: dict
-) -> MagicMock:
+def _make_response_record(response_id: uuid.UUID, form_id: uuid.UUID, answers: dict) -> MagicMock:
     """Create a mock asyncpg Record for form_responses."""
     now = datetime.now(timezone.utc)
     user_id = uuid.uuid4()

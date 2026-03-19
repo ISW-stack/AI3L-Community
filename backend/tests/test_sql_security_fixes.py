@@ -5,15 +5,13 @@ S08 — SELECT */RETURNING * exposing password_hash
 S15 — reaction_helpers table name interpolation
 """
 
-import json
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from tests.conftest import make_user_dict
-
 
 # ---------------------------------------------------------------------------
 # S03: ILIKE wildcard injection — _escape_ilike + search_users_for_coauthor
@@ -216,9 +214,20 @@ class TestUserColumnsConstant:
         from app.repositories.user_repo import _USER_COLUMNS
 
         for col in [
-            "id", "username", "display_name", "role", "bio",
-            "affiliation", "orcid", "avatar_url", "preferred_language",
-            "is_banned", "ban_reason", "is_deleted", "created_at", "updated_at",
+            "id",
+            "username",
+            "display_name",
+            "role",
+            "bio",
+            "affiliation",
+            "orcid",
+            "avatar_url",
+            "preferred_language",
+            "is_banned",
+            "ban_reason",
+            "is_deleted",
+            "created_at",
+            "updated_at",
         ]:
             assert col in _USER_COLUMNS, f"Missing column: {col}"
 
@@ -229,7 +238,7 @@ class TestFindByIdNoPasswordHash:
     @pytest.mark.asyncio
     @patch("app.repositories.user_repo.get_pool")
     async def test_find_by_id_no_password_hash(self, mock_get_pool, mock_pool, mock_conn):
-        from app.repositories.user_repo import _USER_COLUMNS, find_by_id
+        from app.repositories.user_repo import find_by_id
 
         uid = uuid.uuid4()
         safe_row = _make_safe_user_row(user_id=uid)
@@ -393,9 +402,7 @@ class TestReactionHelpersInvalidTable:
 
         fake_conn = AsyncMock()
         with pytest.raises(ValueError, match="Invalid table"):
-            await toggle_reaction_jsonb(
-                fake_conn, "evil_table", str(uuid.uuid4()), "user1", "LIKE"
-            )
+            await toggle_reaction_jsonb(fake_conn, "evil_table", str(uuid.uuid4()), "user1", "LIKE")
 
     @pytest.mark.asyncio
     async def test_sql_injection_table_name(self):
@@ -418,9 +425,7 @@ class TestReactionHelpersInvalidTable:
 
         fake_conn = AsyncMock()
         with pytest.raises(ValueError, match="Invalid table"):
-            await toggle_reaction_jsonb(
-                fake_conn, "", str(uuid.uuid4()), "user1", "LIKE"
-            )
+            await toggle_reaction_jsonb(fake_conn, "", str(uuid.uuid4()), "user1", "LIKE")
 
 
 class TestReactionHelpersValidTables:

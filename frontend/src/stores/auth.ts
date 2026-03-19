@@ -14,7 +14,6 @@ import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
 import { useDMStore } from '@/stores/dm'
 import router from '@/router'
-import { i18n } from '@/locales'
 
 export const useAuthStore = defineStore('auth', () => {
   // Role is non-sensitive — kept in localStorage for UI state across page reloads

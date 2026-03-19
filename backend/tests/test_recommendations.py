@@ -723,12 +723,12 @@ class TestRecommendationSQL:
 
         # The sig_members table has no 'status' column -- all rows are active members.
         # Ensure the SQL does not contain any sm1.status or sm2.status references.
-        assert "sm1.status" not in _RECOMMENDATION_BATCH_SQL, (
-            "SQL must not reference sm1.status: sig_members has no status column"
-        )
-        assert "sm2.status" not in _RECOMMENDATION_BATCH_SQL, (
-            "SQL must not reference sm2.status: sig_members has no status column"
-        )
+        assert (
+            "sm1.status" not in _RECOMMENDATION_BATCH_SQL
+        ), "SQL must not reference sm1.status: sig_members has no status column"
+        assert (
+            "sm2.status" not in _RECOMMENDATION_BATCH_SQL
+        ), "SQL must not reference sm2.status: sig_members has no status column"
 
     def test_sql_total_score_formula(self):
         """The total_score calculation uses correct weights summing to 1.0."""

@@ -5,8 +5,6 @@ from typing import Any
 
 from loguru import logger
 
-_UNSET: Any = object()  # sentinel — distinguishes "not provided" from "set to None"
-
 from app.converters.album_converter import (
     to_album_comment_response,
     to_album_member_response,
@@ -28,6 +26,8 @@ from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html, validate_magic_number
 from app.core.redis import get_redis
 from app.repositories import album_repo, user_repo
+
+_UNSET: Any = object()  # sentinel — distinguishes "not provided" from "set to None"
 
 # ── Albums ──────────────────────────────────────────────────────────────────
 
@@ -232,7 +232,12 @@ async def set_cover_from_photo(
         if not album:
             raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        _check_album_admin(album, user_id, user_role, await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id)))
+        _check_album_admin(
+            album,
+            user_id,
+            user_role,
+            await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id)),
+        )
 
         photo = await album_repo.find_photo_by_id(conn, photo_uuid)
         if not photo or str(photo["album_id"]) != album_id:
@@ -254,7 +259,8 @@ async def upload_cover(
     content_type: str,
 ) -> dict:
     """Upload a new image as album cover. Counts toward uploader's storage quota."""
-    from app.core.async_storage import delete_file, upload_file as async_upload_file
+    from app.core.async_storage import delete_file
+    from app.core.async_storage import upload_file as async_upload_file
     from app.core.storage import album_cover_key
 
     album_uuid = uuid.UUID(album_id)
@@ -287,7 +293,9 @@ async def upload_cover(
             if not album:
                 raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-            _check_album_admin(album, user_id, user_role, await album_repo.find_member(conn, album_uuid, user_uuid))
+            _check_album_admin(
+                album, user_id, user_role, await album_repo.find_member(conn, album_uuid, user_uuid)
+            )
 
             # Check storage quota
             quota_row = await conn.fetchrow(

@@ -35,9 +35,7 @@ async def find_or_create_conversation(user_a: uuid.UUID, user_b: uuid.UUID) -> d
         return dict(row)
 
 
-async def find_conversation_by_id(
-    conversation_id: uuid.UUID, user_id: uuid.UUID
-) -> dict | None:
+async def find_conversation_by_id(conversation_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:
     """Find conversation by ID, verify user is a participant.
 
     Returns None if not found or not participant.
@@ -150,7 +148,7 @@ async def insert_message(
     attachment_key: str | None = None,
     attachment_name: str | None = None,
     attachment_size: int | None = None,
-    attachment_expires_at=None,
+    attachment_expires_at: object = None,
 ) -> dict:
     """Insert a message and bump conversation updated_at.
 
@@ -404,7 +402,8 @@ async def delete_oldest_messages_by_chars(
             if rows:
                 total_removed = sum(r["char_len"] for r in rows)
                 await conn.execute(
-                    "UPDATE conversations SET total_chars = GREATEST(0, total_chars - $1) WHERE id = $2",
+                    "UPDATE conversations SET total_chars = "
+                    "GREATEST(0, total_chars - $1) WHERE id = $2",
                     total_removed,
                     conversation_id,
                 )
@@ -419,7 +418,7 @@ async def send_message_atomic(
     attachment_key: str | None,
     attachment_name: str | None,
     attachment_size: int | None,
-    attachment_expires_at,
+    attachment_expires_at: object,
     content_len: int,
     char_cap: int,
 ) -> tuple[dict, list[dict]]:
@@ -482,7 +481,8 @@ async def send_message_atomic(
                     if rows:
                         total_removed = sum(r["char_len"] for r in rows)
                         await conn.execute(
-                            "UPDATE conversations SET total_chars = GREATEST(0, total_chars - $1) WHERE id = $2",
+                            "UPDATE conversations SET total_chars = "
+                            "GREATEST(0, total_chars - $1) WHERE id = $2",
                             total_removed,
                             conversation_id,
                         )
@@ -524,7 +524,8 @@ async def send_message_atomic(
             # 5. Increment char count
             if content_len > 0:
                 await conn.execute(
-                    "UPDATE conversations SET total_chars = GREATEST(0, total_chars + $1) WHERE id = $2",
+                    "UPDATE conversations SET total_chars = "
+                    "GREATEST(0, total_chars + $1) WHERE id = $2",
                     content_len,
                     conversation_id,
                 )
@@ -532,7 +533,7 @@ async def send_message_atomic(
             return dict(row), deleted
 
 
-async def find_expired_file_messages(cutoff) -> list[dict]:
+async def find_expired_file_messages(cutoff: object) -> list[dict]:
     """Find messages with expired attachments that still have an attachment_key."""
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -566,7 +567,7 @@ async def clear_message_attachment(message_id: uuid.UUID) -> None:
         )
 
 
-async def find_expired_text_messages(cutoff) -> list[dict]:
+async def find_expired_text_messages(cutoff: object) -> list[dict]:
     """Find text-only messages older than cutoff that haven't been recalled."""
     pool = get_pool()
     async with pool.acquire() as conn:

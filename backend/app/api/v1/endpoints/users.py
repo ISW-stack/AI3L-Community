@@ -321,7 +321,7 @@ async def get_my_application_status(
 async def admin_delete_user(
     user_id: uuid.UUID,
     request: Request,
-    req: AdminDeleteUserRequest = AdminDeleteUserRequest(),
+    req: AdminDeleteUserRequest = AdminDeleteUserRequest(reason=""),
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
 ) -> MessageResponse:
     """SUPER_ADMIN soft-deletes (anonymizes) another user."""

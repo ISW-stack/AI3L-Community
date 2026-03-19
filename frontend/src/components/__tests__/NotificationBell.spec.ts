@@ -498,7 +498,9 @@ describe('NotificationBell', () => {
       await wrapper.vm.$nextTick()
 
       // Click the friend request notification
-      const notifBtn = wrapper.findAll('button').find((b) => b.text().includes('new friend request'))
+      const notifBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('new friend request'))
       expect(notifBtn).toBeTruthy()
       await notifBtn!.trigger('click')
       await wrapper.vm.$nextTick()
@@ -590,7 +592,9 @@ describe('NotificationBell', () => {
       await button.trigger('click')
       await wrapper.vm.$nextTick()
 
-      const notifBtn = wrapper.findAll('button').find((b) => b.text().includes('System maintenance'))
+      const notifBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('System maintenance'))
       expect(notifBtn).toBeTruthy()
       await notifBtn!.trigger('click')
       await wrapper.vm.$nextTick()

@@ -46,7 +46,9 @@ def validate_password_policy(password: str) -> str | None:
     if not re.search(r"[0-9]", password):
         return "Password must contain at least one digit."
     if not re.search(rf"[{_SPECIAL_CHARS}]", password):
-        return "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?/~)."
+        return (
+            "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?/~)."
+        )
     return None
 
 

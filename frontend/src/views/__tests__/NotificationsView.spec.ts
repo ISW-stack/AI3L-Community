@@ -358,7 +358,7 @@ describe('NotificationsView', () => {
     })
     // After the delete call, the next listNotifications call is from fetchUnreadCount
     mockDeleteNotification.mockResolvedValue({})
-    const callCount = mockListNotifications.mock.calls.length
+    const _callCount = mockListNotifications.mock.calls.length
     mockListNotifications.mockImplementation(() => {
       // This is the fetchUnreadCount call from the store
       return fetchPromise.then(() => ({

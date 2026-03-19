@@ -19,9 +19,7 @@ async def find_by_ip(ip: str) -> dict | None:
     return dict(row) if row else None
 
 
-async def list_all(
-    page: int = 1, page_size: int = 50
-) -> tuple[list[dict], int]:
+async def list_all(page: int = 1, page_size: int = 50) -> tuple[list[dict], int]:
     """Return paginated list of all IP bans with total count."""
     pool = get_pool()
     offset = (page - 1) * page_size
@@ -39,9 +37,7 @@ async def list_all(
     if not rows:
         return [], 0
     total = rows[0]["_total"]
-    return [
-        {k: v for k, v in dict(r).items() if k != "_total"} for r in rows
-    ], total
+    return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
 
 
 async def create(
@@ -77,4 +73,4 @@ async def delete(ban_id: uuid.UUID) -> bool:
             "DELETE FROM ip_bans WHERE id = $1",
             ban_id,
         )
-    return result == "DELETE 1"
+    return bool(result == "DELETE 1")

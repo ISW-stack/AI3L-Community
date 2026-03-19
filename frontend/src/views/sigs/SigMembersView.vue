@@ -46,7 +46,7 @@ const showConfirmModal = computed({
   },
 })
 
-const isSigAdmin = computed(
+const _isSigAdmin = computed(
   () => userSigRole?.value === 'ADMIN' || userSigRole?.value === 'SUB_ADMIN',
 )
 const isSigOwner = computed(() => userSigRole?.value === 'ADMIN')

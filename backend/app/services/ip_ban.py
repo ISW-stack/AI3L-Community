@@ -11,11 +11,11 @@ async def is_ip_banned(ip: str) -> bool:
     cache_key = f"ip_ban:{ip}"
     cached = await redis.get(cache_key)
     if cached is not None:
-        return cached == "1"
+        return bool(cached == "1")
 
     ban = await ip_ban_repo.find_by_ip(ip)
     await redis.set(cache_key, "1" if ban else "0", ex=300)
-    return ban is not None
+    return bool(ban is not None)
 
 
 async def ban_ip(
@@ -46,9 +46,7 @@ async def unban_ip(ban_id: uuid.UUID) -> bool:
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT ip_address FROM ip_bans WHERE id = $1", ban_id
-        )
+        row = await conn.fetchrow("SELECT ip_address FROM ip_bans WHERE id = $1", ban_id)
 
     deleted = await ip_ban_repo.delete(ban_id)
 
@@ -59,8 +57,6 @@ async def unban_ip(ban_id: uuid.UUID) -> bool:
     return deleted
 
 
-async def list_ip_bans(
-    page: int = 1, page_size: int = 50
-) -> tuple[list[dict], int]:
+async def list_ip_bans(page: int = 1, page_size: int = 50) -> tuple[list[dict], int]:
     """Return paginated list of all IP bans."""
     return await ip_ban_repo.list_all(page, page_size)

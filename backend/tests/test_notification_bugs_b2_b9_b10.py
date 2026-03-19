@@ -64,7 +64,9 @@ class TestB2UnreadCountExcludesBlockedUsers:
         assert "trigger_user_id" in query, "Unread count query must filter by trigger_user_id"
         assert "ALL(" in query, "Unread count query must use ALL() for exclude_user_ids"
         # The blocked_id should be passed as a parameter
-        assert [blocked_id] in fetchval_call[0], "Blocked user ID list must be passed as query parameter"
+        assert [blocked_id] in fetchval_call[
+            0
+        ], "Blocked user ID list must be passed as query parameter"
 
     @pytest.mark.anyio
     async def test_unread_count_no_exclusion_when_no_blocked(self):
@@ -125,7 +127,11 @@ class TestB9RedisExceptionLogging:
             patch(f"{_SVC}.get_redis", side_effect=Exception("Redis down")),
             patch(f"{_SVC}.logger"),
             patch(f"{_SVC}.notification_repo") as mock_repo,
-            patch(f"{_SVC}.async_row_to_notification", new_callable=AsyncMock, return_value=fake_converted),
+            patch(
+                f"{_SVC}.async_row_to_notification",
+                new_callable=AsyncMock,
+                return_value=fake_converted,
+            ),
         ):
             mock_repo.find_many = AsyncMock(return_value=(fake_notifs, 1, 1))
 

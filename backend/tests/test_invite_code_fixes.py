@@ -1,13 +1,10 @@
 """Tests for invite code fixes: guest consumption, repo hardening, model consistency."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
-
-from tests.conftest import make_user_dict
 
 _EP = "app.api.v1.endpoints.auth"
 _REPO = "app.repositories.auth_repo"
@@ -28,7 +25,14 @@ class TestGuestLoginConsumesInviteCode:
     @patch(f"{_EP}.increment_guest_ip_counter", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("tok", "jti-g", 3600))
     async def test_guest_login_consumes_code(
-        self, mock_gl, mock_ip, mock_consume, mock_captcha, mock_invite, mock_rl, client: AsyncClient
+        self,
+        mock_gl,
+        mock_ip,
+        mock_consume,
+        mock_captcha,
+        mock_invite,
+        mock_rl,
+        client: AsyncClient,
     ):
         """Guest login should call consume_invite_code after validation."""
         mock_invite.return_value = {"code": "INV-TEST", "id": uuid.uuid4()}
@@ -47,7 +51,8 @@ class TestGuestLoginConsumesInviteCode:
     async def test_guest_login_fails_when_consume_fails(
         self, mock_consume, mock_captcha, mock_invite, mock_rl, client: AsyncClient
     ):
-        """Guest login returns 400 if invite code was consumed between validation and consumption."""
+        """Guest login returns 400 if invite code was consumed
+        between validation and consumption."""
         mock_invite.return_value = {"code": "INV-RACE", "id": uuid.uuid4()}
 
         resp = await client.post(
@@ -134,7 +139,7 @@ class TestConsumeInviteCodeSafety:
         annotation = sig.return_annotation
         # The return type should indicate bool (via coroutine)
         source = inspect.getsource(consume_invite_code)
-        assert '-> bool' in source or 'bool' in str(annotation)
+        assert "-> bool" in source or "bool" in str(annotation)
 
     def test_consume_has_safe_where_clause(self):
         """UPDATE should include consumed_at IS NULL AND expires_at > NOW()."""
@@ -192,7 +197,9 @@ class TestConsumeInviteCodeService:
     async def test_consume_with_user_id(self, mock_repo):
         from app.services.auth import consume_invite_code
 
-        result = await consume_invite_code("INV-ABC", user_id="550e8400-e29b-41d4-a716-446655440000")
+        result = await consume_invite_code(
+            "INV-ABC", user_id="550e8400-e29b-41d4-a716-446655440000"
+        )
         assert result is True
         mock_repo.assert_called_once()
         args = mock_repo.call_args

@@ -227,8 +227,7 @@ export default {
       placeholder: 'Describe your background and research interests...',
       usernamePlaceholder: 'Choose a username',
       passwordPlaceholder: 'Choose a password',
-      passwordHint:
-        'Min 8 characters, with uppercase, lowercase, digit, and special character.',
+      passwordHint: 'Min 8 characters, with uppercase, lowercase, digit, and special character.',
       submitBtn: 'Submit Application',
       success: 'Application submitted successfully! An admin will review it shortly.',
       error: 'Failed to submit application.',
@@ -241,8 +240,7 @@ export default {
         usernameMin: 'Username must be at least 3 characters.',
         usernameMax: 'Username must be at most 50 characters.',
         passwordMin: 'Password must be at least 8 characters.',
-        passwordPolicy:
-          'Password must include uppercase, lowercase, digit, and special character.',
+        passwordPolicy: 'Password must include uppercase, lowercase, digit, and special character.',
         displayNameRequired: 'Display name is required.',
         descriptionRequired: 'Please describe why you want to join.',
       },
@@ -1007,8 +1005,7 @@ export default {
       deleteBtn: 'Delete',
       deleteModal: {
         title: 'Delete User Account',
-        message:
-          'Permanently anonymize {username}? This cannot be undone. Type DELETE to confirm.',
+        message: 'Permanently anonymize {username}? This cannot be undone. Type DELETE to confirm.',
         reasonLabel: 'Reason (optional)',
         reasonPlaceholder: 'Reason for deletion',
         typeLabel: 'Type DELETE to confirm',
@@ -1352,7 +1349,8 @@ export default {
     photosCount: '{count} photos',
     membersCount: '{count} members',
     deleteAlbum: 'Delete Album',
-    confirmDeleteAlbum: 'Are you sure you want to delete this album? All photos and comments will be permanently removed.',
+    confirmDeleteAlbum:
+      'Are you sure you want to delete this album? All photos and comments will be permanently removed.',
     deleteAlbumSuccess: 'Album deleted successfully.',
     deleteAlbumError: 'Failed to delete album.',
     confirmDeletePhoto: 'Are you sure you want to delete this photo?',

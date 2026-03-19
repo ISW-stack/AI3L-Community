@@ -239,7 +239,12 @@ onMounted(() => {
     </div>
 
     <!-- Friends Tab -->
-    <div v-if="activeTab === 'friends'" id="panel-friends" role="tabpanel" aria-labelledby="tab-friends">
+    <div
+      v-if="activeTab === 'friends'"
+      id="panel-friends"
+      role="tabpanel"
+      aria-labelledby="tab-friends"
+    >
       <SkeletonLoader v-if="friendsLoading" :lines="5" variant="list" />
 
       <EmptyState
@@ -289,7 +294,12 @@ onMounted(() => {
     </div>
 
     <!-- Requests Tab -->
-    <div v-if="activeTab === 'requests'" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests">
+    <div
+      v-if="activeTab === 'requests'"
+      id="panel-requests"
+      role="tabpanel"
+      aria-labelledby="tab-requests"
+    >
       <SkeletonLoader v-if="requestsLoading" :lines="4" variant="list" />
 
       <EmptyState

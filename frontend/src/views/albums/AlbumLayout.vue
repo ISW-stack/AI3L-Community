@@ -4,7 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLocale } from '@/composables/useLocale'
-import { getAlbum, listAlbumMembers, deleteAlbum, updateAlbum, uploadAlbumCover } from '@/api/albums'
+import {
+  getAlbum,
+  listAlbumMembers,
+  deleteAlbum,
+  updateAlbum,
+  uploadAlbumCover,
+} from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
 import type { Album, AlbumMember } from '@/types/album'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -206,10 +212,7 @@ const currentRouteName = computed(() => route.name)
               :alt="album.title"
               class="w-full h-full object-cover"
             />
-            <div
-              v-else
-              class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600"
-            />
+            <div v-else class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600" />
             <button
               v-if="canEditAlbum"
               type="button"

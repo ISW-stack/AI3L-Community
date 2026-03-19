@@ -7,8 +7,6 @@ Covers:
 - Edge cases: exactly 8 chars, very long passwords, unicode
 """
 
-import pytest
-
 from app.core.security import validate_password_policy
 
 

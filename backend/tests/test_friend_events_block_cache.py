@@ -176,12 +176,8 @@ async def test_friend_accepted_idempotent_key_uses_friendship_id():
             new_callable=AsyncMock,
         ) as mock_create,
     ):
-        await _on_friend_accepted(
-            user_id=requester_id, friend_id=friend_id_1, friendship_id=fid_1
-        )
-        await _on_friend_accepted(
-            user_id=requester_id, friend_id=friend_id_2, friendship_id=fid_2
-        )
+        await _on_friend_accepted(user_id=requester_id, friend_id=friend_id_1, friendship_id=fid_1)
+        await _on_friend_accepted(user_id=requester_id, friend_id=friend_id_2, friendship_id=fid_2)
 
         # Both calls should use distinct friendship_id in the idempotent key
         assert len(idempotent_calls) == 2
@@ -414,9 +410,7 @@ async def test_get_blocked_user_ids_bilateral_block(mock_pool, mock_conn):
 _REPO = "app.repositories.social_repo"
 
 
-def _make_friendship(
-    requester_id=None, addressee_id=None, status="PENDING", friendship_id=None
-):
+def _make_friendship(requester_id=None, addressee_id=None, status="PENDING", friendship_id=None):
     from datetime import datetime, timezone
 
     now = datetime.now(timezone.utc)
@@ -431,7 +425,8 @@ def _make_friendship(
 
 
 class TestAcceptFriendRequestEmitsBothParties:
-    """H1: accept_friend_request must emit friend.accepted for BOTH the requester and the accepter."""
+    """H1: accept_friend_request must emit friend.accepted
+    for BOTH the requester and the accepter."""
 
     @patch(f"{_REPO}.insert_follow", new_callable=AsyncMock, return_value={})
     @patch(f"{_REPO}.is_following", new_callable=AsyncMock, return_value=False)

@@ -67,7 +67,7 @@ vi.mock('@/api/dm', () => ({
 }))
 
 import { useDMStore } from '@/stores/dm'
-import type { Conversation, DMMessage } from '@/types/dm'
+import type { Conversation } from '@/types/dm'
 import type { FriendRecommendation } from '@/types/recommendation'
 
 // ── Test data factories ─────────────────────────────────────────────────
@@ -192,14 +192,18 @@ describe('Social bugfixes', () => {
 
     it('returns edit-specific message for SYS_403 with edit', () => {
       const error = {
-        response: { data: { detail: { code: 'SYS_403', message: "Cannot edit another user's message." } } },
+        response: {
+          data: { detail: { code: 'SYS_403', message: "Cannot edit another user's message." } },
+        },
       }
       expect(parseDMError(error, 'fallback')).toBe('You can only edit your own messages.')
     })
 
     it('returns recall-specific message for SYS_403 with recall', () => {
       const error = {
-        response: { data: { detail: { code: 'SYS_403', message: "Cannot recall another user's message." } } },
+        response: {
+          data: { detail: { code: 'SYS_403', message: "Cannot recall another user's message." } },
+        },
       }
       expect(parseDMError(error, 'fallback')).toBe('You can only recall your own messages.')
     })
@@ -216,12 +220,12 @@ describe('Social bugfixes', () => {
     it('handles DM_001 friends message case-insensitively', () => {
       const error = {
         response: {
-          data: { detail: { code: 'DM_001', message: 'This user only accepts messages from Friends.' } },
+          data: {
+            detail: { code: 'DM_001', message: 'This user only accepts messages from Friends.' },
+          },
         },
       }
-      expect(parseDMError(error, 'fallback')).toBe(
-        'This user only accepts messages from friends.',
-      )
+      expect(parseDMError(error, 'fallback')).toBe('This user only accepts messages from friends.')
     })
 
     it('returns blocked message for DM_001 without friend keyword', () => {

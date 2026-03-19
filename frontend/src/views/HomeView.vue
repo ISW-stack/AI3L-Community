@@ -56,16 +56,25 @@ const myApplication = ref<MyApplication | null>(null)
 
 function validateApplyForm(): boolean {
   const errs: Record<string, string> = {}
-  if (applyForm.value.username.length < 3) errs.username = t('home.applyMembership.validation.usernameMin')
-  if (applyForm.value.username.length > 50) errs.username = t('home.applyMembership.validation.usernameMax')
+  if (applyForm.value.username.length < 3)
+    errs.username = t('home.applyMembership.validation.usernameMin')
+  if (applyForm.value.username.length > 50)
+    errs.username = t('home.applyMembership.validation.usernameMax')
   const pw = applyForm.value.password
   if (pw.length < 8) {
     errs.password = t('home.applyMembership.validation.passwordMin')
-  } else if (!/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/\d/.test(pw) || !/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?\/~]/.test(pw)) {
+  } else if (
+    !/[A-Z]/.test(pw) ||
+    !/[a-z]/.test(pw) ||
+    !/\d/.test(pw) ||
+    !/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?\/~]/.test(pw)
+  ) {
     errs.password = t('home.applyMembership.validation.passwordPolicy')
   }
-  if (applyForm.value.display_name.trim().length === 0) errs.display_name = t('home.applyMembership.validation.displayNameRequired')
-  if (applyForm.value.description.trim().length === 0) errs.description = t('home.applyMembership.validation.descriptionRequired')
+  if (applyForm.value.display_name.trim().length === 0)
+    errs.display_name = t('home.applyMembership.validation.displayNameRequired')
+  if (applyForm.value.description.trim().length === 0)
+    errs.description = t('home.applyMembership.validation.descriptionRequired')
   applyErrors.value = errs
   return Object.keys(errs).length === 0
 }
@@ -588,9 +597,7 @@ onMounted(() => {
           :maxlength="500"
           :rows="4"
         />
-        <p class="text-xs text-muted text-right -mt-3">
-          {{ applyForm.description.length }}/500
-        </p>
+        <p class="text-xs text-muted text-right -mt-3">{{ applyForm.description.length }}/500</p>
         <button type="submit" class="hidden" />
       </form>
 

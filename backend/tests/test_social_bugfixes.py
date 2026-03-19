@@ -29,9 +29,7 @@ _DM_REPO = "app.repositories.dm_repo"
 _DM_SVC = "app.services.dm"
 
 
-def _make_friendship(
-    requester_id=None, addressee_id=None, status="PENDING", friendship_id=None
-):
+def _make_friendship(requester_id=None, addressee_id=None, status="PENDING", friendship_id=None):
     now = datetime.now(timezone.utc)
     return {
         "id": friendship_id or uuid.uuid4(),
@@ -187,7 +185,7 @@ class TestSendFriendRequestBlockInTransaction:
 
         # Track call order
         call_order = []
-        original_transaction = mock_conn.transaction
+        _original_transaction = mock_conn.transaction  # noqa: F841
 
         tx = AsyncMock()
         tx.__aenter__ = AsyncMock(return_value=tx)
@@ -199,7 +197,7 @@ class TestSendFriendRequestBlockInTransaction:
 
         mock_conn.transaction = MagicMock(side_effect=track_transaction)
 
-        original_is_blocked = mock_blocked.side_effect
+        _original_is_blocked = mock_blocked.side_effect  # noqa: F841
 
         async def track_blocked(*args, **kwargs):
             call_order.append("is_blocked")
@@ -232,7 +230,9 @@ class TestDMSendMessageTransactionChecks:
     @patch("app.core.database.get_pool")
     @patch(f"{_REPO}.is_blocked", new_callable=AsyncMock, return_value=True)
     @pytest.mark.anyio
-    async def test_dm_block_check_in_transaction(self, mock_blocked, mock_get_pool, mock_pool, mock_conn):
+    async def test_dm_block_check_in_transaction(
+        self, mock_blocked, mock_get_pool, mock_pool, mock_conn
+    ):
         """DM send_message runs block check inside a transaction."""
         from app.services.dm import send_message
 
@@ -339,13 +339,15 @@ class TestRejectFriendRequestEndpointRateLimit:
             return False  # trigger 429 to short-circuit
 
         try:
-            with patch("app.api.v1.endpoints.social.check_rate_limit", side_effect=capture_rate_limit):
+            with patch(
+                "app.api.v1.endpoints.social.check_rate_limit", side_effect=capture_rate_limit
+            ):
                 await client.put(
                     f"/api/v1/social/friends/{uuid.uuid4()}/reject",
                 )
-            assert any(k.startswith("social:reject:") for k in captured_keys), (
-                f"Expected 'social:reject:' key, got: {captured_keys}"
-            )
+            assert any(
+                k.startswith("social:reject:") for k in captured_keys
+            ), f"Expected 'social:reject:' key, got: {captured_keys}"
             assert any(user_id in k for k in captured_keys)
         finally:
             app.dependency_overrides.clear()

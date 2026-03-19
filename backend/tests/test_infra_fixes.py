@@ -72,18 +72,18 @@ class TestSigSoftDeleteCleansUpMembers:
         calls = mock_conn.execute.call_args_list
         sql_statements = [str(c[0][0]) for c in calls]
 
-        # Verify sig_members cleanup was called
-        member_delete_found = any(
-            "DELETE FROM sig_members" in sql and "sig_id" in sql for sql in sql_statements
+        # Verify sig_members cleanup was called (soft delete, not hard delete)
+        member_update_found = any(
+            "UPDATE sig_members" in sql and "is_deleted" in sql for sql in sql_statements
         )
         assert (
-            member_delete_found
-        ), f"Expected DELETE FROM sig_members in transaction. Got: {sql_statements}"
+            member_update_found
+        ), f"Expected UPDATE sig_members SET is_deleted in transaction. Got: {sql_statements}"
 
         # Verify it was called with the correct sig_id
-        member_delete_call = [c for c in calls if "DELETE FROM sig_members" in str(c[0][0])]
-        assert len(member_delete_call) == 1
-        assert member_delete_call[0][0][1] == sig_id
+        member_update_call = [c for c in calls if "UPDATE sig_members" in str(c[0][0])]
+        assert len(member_update_call) == 1
+        assert member_update_call[0][0][1] == sig_id
 
         # Verify transaction was used
         mock_conn.transaction.assert_called_once()
@@ -127,14 +127,12 @@ class TestSigSoftDeleteCleansUpMembers:
         form_resp_idx = next(i for i, s in enumerate(sql_statements) if "form_responses" in s)
         posts_idx = next(i for i, s in enumerate(sql_statements) if "UPDATE posts" in s)
         forms_idx = next(i for i, s in enumerate(sql_statements) if "UPDATE forms" in s)
-        members_idx = next(
-            i for i, s in enumerate(sql_statements) if "DELETE FROM sig_members" in s
-        )
+        members_idx = next(i for i, s in enumerate(sql_statements) if "UPDATE sig_members" in s)
 
         assert form_resp_idx < forms_idx, "form_responses cleanup before forms"
         assert posts_idx < members_idx, "posts soft-delete before member cleanup"
         assert forms_idx < members_idx, "forms soft-delete before member cleanup"
-        assert "DELETE FROM sig_members" in sql_statements[-1], "sig_members last"
+        assert "UPDATE sig_members" in sql_statements[-1], "sig_members last"
 
 
 # ===========================================================================

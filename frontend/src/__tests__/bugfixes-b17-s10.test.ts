@@ -4,7 +4,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, defineComponent, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 
 // ─────────────────────────────────────────────────────────
 // B-17: isContentEmpty utility
@@ -96,9 +95,7 @@ describe('B-18: Recall rollback re-finds message by ID, not stale index', () => 
   })
 
   it('handles case where message was removed entirely during rollback', () => {
-    const messages = [
-      { id: 'msg-1', content: 'Hello', is_recalled: false },
-    ]
+    const messages = [{ id: 'msg-1', content: 'Hello', is_recalled: false }]
 
     const messageId = 'msg-removed'
     const original = { id: messageId, content: 'Was here', is_recalled: false }
@@ -124,13 +121,13 @@ describe('B-18: Recall rollback re-finds message by ID, not stale index', () => 
 type IOCallback = (entries: IntersectionObserverEntry[]) => void
 
 describe('B-19: useInfiniteScroll creates observer when sentinelRef becomes available', () => {
-  let capturedCallback: IOCallback | null = null
+  let _capturedCallback: IOCallback | null = null
   const mockObserve = vi.fn()
   const mockDisconnect = vi.fn()
 
   class MockIntersectionObserver {
     constructor(callback: IOCallback) {
-      capturedCallback = callback
+      _capturedCallback = callback
     }
     observe = mockObserve
     unobserve = vi.fn()
@@ -138,7 +135,7 @@ describe('B-19: useInfiniteScroll creates observer when sentinelRef becomes avai
   }
 
   beforeEach(() => {
-    capturedCallback = null
+    _capturedCallback = null
     mockObserve.mockClear()
     mockDisconnect.mockClear()
     vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
@@ -249,10 +246,9 @@ describe('B-21: Co-authored posts fetch uses listCoAuthoredPosts API', () => {
     const { listCoAuthoredPosts } = await import('@/api/coauthors')
     const result = await listCoAuthoredPosts('user-123', 1, 10)
 
-    expect(mockGet).toHaveBeenCalledWith(
-      '/co-authors/user/user-123/posts',
-      { params: { page: 1, page_size: 10 } },
-    )
+    expect(mockGet).toHaveBeenCalledWith('/co-authors/user/user-123/posts', {
+      params: { page: 1, page_size: 10 },
+    })
     expect(result.posts).toHaveLength(1)
     expect(result.posts[0].title).toBe('Collab Post')
   })
@@ -299,10 +295,7 @@ describe('B-24: Date formatting uses dynamic locale, not hardcoded en-US', () =>
     // This is a source-level check by importing and verifying the locale plumbing
     const { readFileSync } = await import('fs')
     const { resolve } = await import('path')
-    const source = readFileSync(
-      resolve(__dirname, '../views/admin/InviteCodesView.vue'),
-      'utf-8',
-    )
+    const source = readFileSync(resolve(__dirname, '../views/admin/InviteCodesView.vue'), 'utf-8')
     // The formatDate function should NOT contain 'en-US'
     const formatDateMatch = source.match(/function formatDate[\s\S]*?\n\}/m)
     expect(formatDateMatch).toBeTruthy()
@@ -313,10 +306,7 @@ describe('B-24: Date formatting uses dynamic locale, not hardcoded en-US', () =>
   it('MessageThread does not contain hardcoded en-US in date formatting', async () => {
     const { readFileSync } = await import('fs')
     const { resolve } = await import('path')
-    const source = readFileSync(
-      resolve(__dirname, '../components/dm/MessageThread.vue'),
-      'utf-8',
-    )
+    const source = readFileSync(resolve(__dirname, '../components/dm/MessageThread.vue'), 'utf-8')
     // No 'en-US' should remain in the file
     expect(source).not.toContain("'en-US'")
   })
@@ -329,10 +319,7 @@ describe('B-25: PostCard does not directly mutate post.comment_count prop', () =
   it('source code does not contain props.post.comment_count++', async () => {
     const { readFileSync } = await import('fs')
     const { resolve } = await import('path')
-    const source = readFileSync(
-      resolve(__dirname, '../components/PostCard.vue'),
-      'utf-8',
-    )
+    const source = readFileSync(resolve(__dirname, '../components/PostCard.vue'), 'utf-8')
     expect(source).not.toContain('props.post.comment_count++')
     expect(source).toContain('localCommentCount')
   })
@@ -340,10 +327,7 @@ describe('B-25: PostCard does not directly mutate post.comment_count prop', () =
   it('uses localCommentCount ref initialized from prop', async () => {
     const { readFileSync } = await import('fs')
     const { resolve } = await import('path')
-    const source = readFileSync(
-      resolve(__dirname, '../components/PostCard.vue'),
-      'utf-8',
-    )
+    const source = readFileSync(resolve(__dirname, '../components/PostCard.vue'), 'utf-8')
     // Should define a local ref
     expect(source).toContain('const localCommentCount = ref(props.post.comment_count)')
     // Should display localCommentCount in template
@@ -355,10 +339,7 @@ describe('B-25: PostCard does not directly mutate post.comment_count prop', () =
   it('watches prop changes and syncs localCommentCount', async () => {
     const { readFileSync } = await import('fs')
     const { resolve } = await import('path')
-    const source = readFileSync(
-      resolve(__dirname, '../components/PostCard.vue'),
-      'utf-8',
-    )
+    const source = readFileSync(resolve(__dirname, '../components/PostCard.vue'), 'utf-8')
     // Should watch for prop changes
     expect(source).toContain('() => props.post.comment_count')
     expect(source).toContain('localCommentCount.value = newVal')
@@ -372,10 +353,7 @@ describe('S-07: IMAGE_EXTS does not include svg', () => {
   it('source file does not list svg in IMAGE_EXTS', async () => {
     const { readFileSync } = await import('fs')
     const { resolve } = await import('path')
-    const source = readFileSync(
-      resolve(__dirname, '../components/dm/MessageThread.vue'),
-      'utf-8',
-    )
+    const source = readFileSync(resolve(__dirname, '../components/dm/MessageThread.vue'), 'utf-8')
     // Extract the IMAGE_EXTS line
     const match = source.match(/const IMAGE_EXTS = new Set\(\[.*?\]\)/)
     expect(match).toBeTruthy()
@@ -386,10 +364,7 @@ describe('S-07: IMAGE_EXTS does not include svg', () => {
   it('allowed image extensions include jpg, jpeg, png, gif, webp but not svg', async () => {
     const { readFileSync } = await import('fs')
     const { resolve } = await import('path')
-    const source = readFileSync(
-      resolve(__dirname, '../components/dm/MessageThread.vue'),
-      'utf-8',
-    )
+    const source = readFileSync(resolve(__dirname, '../components/dm/MessageThread.vue'), 'utf-8')
     const match = source.match(/const IMAGE_EXTS = new Set\(\[.*?\]\)/)
     const line = match![0]
     expect(line).toContain("'jpg'")

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { nextTick, ref } from 'vue'
+import { nextTick } from 'vue'
 import type { DMMessage } from '@/types/dm'
 
 // --------------- Global mocks ---------------
@@ -159,17 +159,13 @@ function parseDMError(e: unknown, fallback: string): string {
       }
     ).response
     const code = resp?.data?.detail?.code
-    if (code === 'DM_002')
-      return 'The edit/recall window (12 hours) has expired.'
+    if (code === 'DM_002') return 'The edit/recall window (12 hours) has expired.'
     if (code === 'SYS_422') {
       const msg = resp?.data?.detail?.message ?? ''
-      if (msg.includes('already recalled'))
-        return 'This message has already been recalled.'
-      if (msg.includes('recalled message'))
-        return 'Cannot edit a recalled message.'
+      if (msg.includes('already recalled')) return 'This message has already been recalled.'
+      if (msg.includes('recalled message')) return 'Cannot edit a recalled message.'
     }
-    if (code === 'SYS_403')
-      return 'You can only edit or recall your own messages.'
+    if (code === 'SYS_403') return 'You can only edit or recall your own messages.'
   }
   return getErrorMessage(e, fallback)
 }
@@ -179,9 +175,7 @@ describe('parseDMError', () => {
     const err = {
       response: { data: { detail: { code: 'DM_002', message: '' } } },
     }
-    expect(parseDMError(err, 'fallback')).toBe(
-      'The edit/recall window (12 hours) has expired.',
-    )
+    expect(parseDMError(err, 'fallback')).toBe('The edit/recall window (12 hours) has expired.')
   })
 
   it('returns "already recalled" message for SYS_422 with "already recalled"', () => {
@@ -195,9 +189,7 @@ describe('parseDMError', () => {
         },
       },
     }
-    expect(parseDMError(err, 'fallback')).toBe(
-      'This message has already been recalled.',
-    )
+    expect(parseDMError(err, 'fallback')).toBe('This message has already been recalled.')
   })
 
   it('returns "cannot edit recalled" message for SYS_422 with "recalled message"', () => {
@@ -211,9 +203,7 @@ describe('parseDMError', () => {
         },
       },
     }
-    expect(parseDMError(err, 'fallback')).toBe(
-      'Cannot edit a recalled message.',
-    )
+    expect(parseDMError(err, 'fallback')).toBe('Cannot edit a recalled message.')
   })
 
   it('returns permission message for SYS_403 code', () => {
@@ -222,9 +212,7 @@ describe('parseDMError', () => {
         data: { detail: { code: 'SYS_403', message: 'Forbidden' } },
       },
     }
-    expect(parseDMError(err, 'fallback')).toBe(
-      'You can only edit or recall your own messages.',
-    )
+    expect(parseDMError(err, 'fallback')).toBe('You can only edit or recall your own messages.')
   })
 
   it('returns fallback for unknown errors', () => {
@@ -278,9 +266,7 @@ describe('MessageThread UX', () => {
     it('shows "No messages yet" when not loading and messages are empty', () => {
       const wrapper = mountThread({ loading: false, messages: [] })
       expect(wrapper.text()).toContain('No messages yet')
-      expect(wrapper.text()).toContain(
-        'Send the first message to start the conversation.',
-      )
+      expect(wrapper.text()).toContain('Send the first message to start the conversation.')
       expect(wrapper.find('.icon-message-square').exists()).toBe(true)
     })
 
@@ -334,19 +320,14 @@ describe('MessageThread UX', () => {
       await nextTick()
 
       // Now add a new message to trigger the watcher
-      const newMsgs = [
-        ...msgs,
-        makeMessage({ id: 'msg-2', content: 'New!' }),
-      ]
+      const newMsgs = [...msgs, makeMessage({ id: 'msg-2', content: 'New!' })]
       await wrapper.setProps({ messages: newMsgs })
       await nextTick()
       await nextTick()
 
       // The "New message" hint should appear
-      const hint = wrapper.find('button')
-      const hintButtons = wrapper
-        .findAll('button')
-        .filter((b) => b.text().includes('New message'))
+      const _hint = wrapper.find('button')
+      const hintButtons = wrapper.findAll('button').filter((b) => b.text().includes('New message'))
       expect(hintButtons.length).toBe(1)
     })
 
@@ -354,9 +335,7 @@ describe('MessageThread UX', () => {
       const wrapper = mountThread({
         messages: [makeMessage({ id: 'msg-1' })],
       })
-      const hintButtons = wrapper
-        .findAll('button')
-        .filter((b) => b.text().includes('New message'))
+      const hintButtons = wrapper.findAll('button').filter((b) => b.text().includes('New message'))
       expect(hintButtons.length).toBe(0)
     })
   })
@@ -484,7 +463,7 @@ describe('MessageThread UX', () => {
       const wrapper = mountThread({ messages: msgs })
 
       // Access exposed scrollToBottom
-      const scrollToBottomSpy = vi.spyOn(wrapper.vm, 'scrollToBottom' as never)
+      const _scrollToBottomSpy = vi.spyOn(wrapper.vm, 'scrollToBottom' as never)
 
       // The ResizeObserver should have been registered on mount
       // We can't easily trigger a real ResizeObserver in JSDOM,

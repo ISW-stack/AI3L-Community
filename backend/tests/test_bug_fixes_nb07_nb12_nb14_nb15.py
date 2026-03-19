@@ -11,12 +11,10 @@ N-B15: Pillow and other dependencies broadly pinned — pillow>=10.4.0.
 
 import asyncio
 import sys
-import threading
 import types
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Celery mock fixture — must be set up before importing any task modules
@@ -131,9 +129,7 @@ class TestGetReferencedKeysIncludesComments:
 
         async def mock_fetch(query, *args):
             if "posts" in query and args[-1] == 0:
-                return [
-                    {"html": '<img src="/api/v1/files/content/editor/u1/p.png">'}
-                ]
+                return [{"html": '<img src="/api/v1/files/content/editor/u1/p.png">'}]
             return []
 
         mock_conn = AsyncMock()
@@ -216,9 +212,7 @@ class TestRunAsyncPersistentLoop:
         # Reset module state for clean test
         with async_runner._lock:
             if async_runner._worker_loop and not async_runner._worker_loop.is_closed():
-                async_runner._worker_loop.call_soon_threadsafe(
-                    async_runner._worker_loop.stop
-                )
+                async_runner._worker_loop.call_soon_threadsafe(async_runner._worker_loop.stop)
                 if async_runner._worker_thread:
                     async_runner._worker_thread.join(timeout=2)
             async_runner._worker_loop = None
@@ -243,9 +237,9 @@ class TestRunAsyncPersistentLoop:
 
         source = inspect.getsource(run_async)
         # asyncio.run_coroutine_threadsafe is fine — it's asyncio.run() we want to avoid
-        assert "asyncio.run(" not in source, (
-            "run_async must NOT use asyncio.run() — it destroys the loop"
-        )
+        assert (
+            "asyncio.run(" not in source
+        ), "run_async must NOT use asyncio.run() — it destroys the loop"
 
     def test_all_task_files_use_shared_run_async(self):
         """All task files should import run_async from async_runner, not define their own."""
@@ -265,9 +259,9 @@ class TestRunAsyncPersistentLoop:
             # Check that _run_async exists and is imported (not locally defined)
             if hasattr(mod, "_run_async"):
                 source = inspect.getsource(mod)
-                assert "def _run_async" not in source, (
-                    f"{mod_name} still defines its own _run_async"
-                )
+                assert (
+                    "def _run_async" not in source
+                ), f"{mod_name} still defines its own _run_async"
 
     def test_run_async_propagates_exceptions(self):
         """Exceptions raised in the coroutine should propagate to the caller."""
@@ -424,15 +418,13 @@ class TestCleanupDocstring:
         from app.tasks import cleanup
 
         doc = cleanup.__doc__ or ""
-        assert "comment" in doc.lower(), (
-            "Module docstring should mention that comments are also scanned"
-        )
+        assert (
+            "comment" in doc.lower()
+        ), "Module docstring should mention that comments are also scanned"
 
     def test_get_referenced_keys_docstring_mentions_comments(self):
         """_get_referenced_keys docstring should mention comments."""
         from app.tasks.cleanup import _get_referenced_keys
 
         doc = _get_referenced_keys.__doc__ or ""
-        assert "comment" in doc.lower(), (
-            "_get_referenced_keys docstring should mention comments"
-        )
+        assert "comment" in doc.lower(), "_get_referenced_keys docstring should mention comments"

@@ -3,8 +3,6 @@
 import uuid
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 
 class TestAuditLogDateValidation:
     """GET /users/admin/audit-logs date params are validated by FastAPI."""
@@ -131,9 +129,7 @@ class TestAuditLogDateValidation:
         new_callable=AsyncMock,
         return_value=([], 0),
     )
-    async def test_only_date_from_passes(
-        self, mock_list: AsyncMock, client: AsyncMock
-    ) -> None:
+    async def test_only_date_from_passes(self, mock_list: AsyncMock, client: AsyncMock) -> None:
         """Providing only date_from (no date_to) should be valid."""
         self._override_super_admin()
         try:
@@ -157,9 +153,7 @@ class TestAuditLogDateValidation:
         new_callable=AsyncMock,
         return_value=([], 0),
     )
-    async def test_only_date_to_passes(
-        self, mock_list: AsyncMock, client: AsyncMock
-    ) -> None:
+    async def test_only_date_to_passes(self, mock_list: AsyncMock, client: AsyncMock) -> None:
         """Providing only date_to (no date_from) should be valid."""
         self._override_super_admin()
         try:

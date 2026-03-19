@@ -38,9 +38,7 @@ class TestWebSocketJSONDecodeError:
         from fastapi import WebSocketDisconnect
 
         good_msg = json.dumps({"type": "MSG"})
-        ws.receive_text = AsyncMock(
-            side_effect=["not valid json", good_msg, WebSocketDisconnect()]
-        )
+        ws.receive_text = AsyncMock(side_effect=["not valid json", good_msg, WebSocketDisconnect()])
 
         with (
             patch(f"{_EP}._authenticate_ws", new_callable=AsyncMock, return_value=payload),
@@ -66,9 +64,7 @@ class TestWebSocketJSONDecodeError:
         from fastapi import WebSocketDisconnect
 
         # Send 60 invalid JSONs + 1 valid JSON — should NOT trigger rate limit
-        side_effects = ["bad json"] * 60 + [json.dumps({"type": "MSG"})] + [
-            WebSocketDisconnect()
-        ]
+        side_effects = ["bad json"] * 60 + [json.dumps({"type": "MSG"})] + [WebSocketDisconnect()]
         ws.receive_text = AsyncMock(side_effect=side_effects)
 
         with (
@@ -92,9 +88,7 @@ class TestWebSocketJSONDecodeError:
 
         from fastapi import WebSocketDisconnect
 
-        ws.receive_text = AsyncMock(
-            side_effect=["{{invalid", WebSocketDisconnect()]
-        )
+        ws.receive_text = AsyncMock(side_effect=["{{invalid", WebSocketDisconnect()])
 
         with (
             patch(f"{_EP}._authenticate_ws", new_callable=AsyncMock, return_value=payload),
@@ -119,9 +113,7 @@ class TestWebSocketJSONDecodeError:
         from fastapi import WebSocketDisconnect
 
         good_msg = json.dumps({"type": "PONG"})
-        ws.receive_text = AsyncMock(
-            side_effect=["bad", good_msg, WebSocketDisconnect()]
-        )
+        ws.receive_text = AsyncMock(side_effect=["bad", good_msg, WebSocketDisconnect()])
         # send_json fails on the error reply
         ws.send_json = AsyncMock(side_effect=[Exception("write failed"), None])
 
@@ -145,9 +137,7 @@ class TestWebSocketJSONDecodeError:
 
         from fastapi import WebSocketDisconnect
 
-        ws.receive_text = AsyncMock(
-            side_effect=["bad1", "bad2", "bad3", WebSocketDisconnect()]
-        )
+        ws.receive_text = AsyncMock(side_effect=["bad1", "bad2", "bad3", WebSocketDisconnect()])
 
         with (
             patch(f"{_EP}._authenticate_ws", new_callable=AsyncMock, return_value=payload),
@@ -186,10 +176,12 @@ class TestViewSyncTransactions:
         mock_conn.transaction = MagicMock(return_value=mock_tx)
 
         mock_pool = AsyncMock()
-        mock_pool.acquire = MagicMock(return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_conn),
-            __aexit__=AsyncMock(return_value=False),
-        ))
+        mock_pool.acquire = MagicMock(
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_conn),
+                __aexit__=AsyncMock(return_value=False),
+            )
+        )
 
         with patch(f"{_VIEW_SYNC}.get_pool", return_value=mock_pool):
             from app.tasks.view_sync import _reconcile_citation_counts
@@ -213,10 +205,12 @@ class TestViewSyncTransactions:
         mock_conn.transaction = MagicMock(return_value=mock_tx)
 
         mock_pool = AsyncMock()
-        mock_pool.acquire = MagicMock(return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_conn),
-            __aexit__=AsyncMock(return_value=False),
-        ))
+        mock_pool.acquire = MagicMock(
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_conn),
+                __aexit__=AsyncMock(return_value=False),
+            )
+        )
 
         with patch(f"{_VIEW_SYNC}.get_pool", return_value=mock_pool):
             from app.tasks.view_sync import _reconcile_answer_counts
@@ -239,10 +233,12 @@ class TestViewSyncTransactions:
         mock_conn.transaction = MagicMock(return_value=mock_tx)
 
         mock_pool = AsyncMock()
-        mock_pool.acquire = MagicMock(return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_conn),
-            __aexit__=AsyncMock(return_value=False),
-        ))
+        mock_pool.acquire = MagicMock(
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_conn),
+                __aexit__=AsyncMock(return_value=False),
+            )
+        )
 
         with patch(f"{_VIEW_SYNC}.get_pool", return_value=mock_pool):
             from app.tasks.view_sync import _reconcile_vote_scores
@@ -265,10 +261,12 @@ class TestViewSyncTransactions:
         mock_conn.transaction = MagicMock(return_value=mock_tx)
 
         mock_pool = AsyncMock()
-        mock_pool.acquire = MagicMock(return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_conn),
-            __aexit__=AsyncMock(return_value=False),
-        ))
+        mock_pool.acquire = MagicMock(
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_conn),
+                __aexit__=AsyncMock(return_value=False),
+            )
+        )
 
         with patch(f"{_VIEW_SYNC}.get_pool", return_value=mock_pool):
             from app.tasks.view_sync import _reconcile_profile_view_counts
@@ -302,10 +300,12 @@ class TestViewSyncTransactions:
         mock_conn.transaction = MagicMock(return_value=mock_tx)
 
         mock_pool = AsyncMock()
-        mock_pool.acquire = MagicMock(return_value=AsyncMock(
-            __aenter__=AsyncMock(return_value=mock_conn),
-            __aexit__=AsyncMock(return_value=False),
-        ))
+        mock_pool.acquire = MagicMock(
+            return_value=AsyncMock(
+                __aenter__=AsyncMock(return_value=mock_conn),
+                __aexit__=AsyncMock(return_value=False),
+            )
+        )
 
         with patch(f"{_VIEW_SYNC}.get_pool", return_value=mock_pool):
             from app.tasks.view_sync import _reconcile_citation_counts

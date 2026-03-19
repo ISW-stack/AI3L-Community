@@ -21,9 +21,9 @@ export async function searchForCitation(
   query: string,
   limit = 10,
 ): Promise<CitationSearchResult[]> {
-  const { data } = await api.post<CitationSearchResult[]>(
-    '/citations/posts/search-for-citation',
-    { query, limit },
-  )
+  const { data } = await api.post<CitationSearchResult[]>('/citations/posts/search-for-citation', {
+    query,
+    limit,
+  })
   return data
 }

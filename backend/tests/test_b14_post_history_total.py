@@ -2,10 +2,8 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, cast
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from typing import Any
+from unittest.mock import patch
 
 
 def _make_history_row(version: int = 1) -> dict:

@@ -1,7 +1,7 @@
 """Tests for role protection: last SUPER_ADMIN cannot be demoted."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -37,10 +37,12 @@ class TestLastSuperAdminProtection:
         # count_super_admins_for_update returns 2 (multiple SAs)
         mock_conn.fetchval = AsyncMock(return_value=2)
         # First fetchrow: current user role check; second: update_role_in_conn RETURNING
-        mock_conn.fetchrow = AsyncMock(side_effect=[
-            {"role": "SUPER_ADMIN"},
-            updated_row,
-        ])
+        mock_conn.fetchrow = AsyncMock(
+            side_effect=[
+                {"role": "SUPER_ADMIN"},
+                updated_row,
+            ]
+        )
 
         with patch(f"{_DB}.get_pool", return_value=mock_pool):
             result = await update_user_role(user_id, "ADMIN")
@@ -76,10 +78,12 @@ class TestLastSuperAdminProtection:
         # count_super_admins_for_update returns 1 but user is ADMIN, not SA
         mock_conn.fetchval = AsyncMock(return_value=1)
         # First fetchrow: current user is ADMIN; second: update_role_in_conn RETURNING
-        mock_conn.fetchrow = AsyncMock(side_effect=[
-            {"role": "ADMIN"},
-            updated_row,
-        ])
+        mock_conn.fetchrow = AsyncMock(
+            side_effect=[
+                {"role": "ADMIN"},
+                updated_row,
+            ]
+        )
 
         with patch(f"{_DB}.get_pool", return_value=mock_pool):
             result = await update_user_role(user_id, "MEMBER")
@@ -94,10 +98,12 @@ class TestLastSuperAdminProtection:
 
         # 2 SAs so the demote is allowed — we just want to verify the query text
         mock_conn.fetchval = AsyncMock(return_value=2)
-        mock_conn.fetchrow = AsyncMock(side_effect=[
-            {"role": "SUPER_ADMIN"},
-            {"id": user_id, "role": "ADMIN"},
-        ])
+        mock_conn.fetchrow = AsyncMock(
+            side_effect=[
+                {"role": "SUPER_ADMIN"},
+                {"id": user_id, "role": "ADMIN"},
+            ]
+        )
 
         with patch(f"{_DB}.get_pool", return_value=mock_pool):
             await update_user_role(user_id, "ADMIN")

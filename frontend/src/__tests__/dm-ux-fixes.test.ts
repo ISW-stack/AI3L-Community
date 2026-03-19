@@ -225,7 +225,11 @@ vi.mock('@/components/base/BaseBreadcrumb.vue', () => ({
   default: { name: 'BaseBreadcrumb', template: '<nav />' },
 }))
 vi.mock('@/components/social/SocialActions.vue', () => ({
-  default: { name: 'SocialActions', template: '<div data-testid="social-actions" />', props: ['userId'] },
+  default: {
+    name: 'SocialActions',
+    template: '<div data-testid="social-actions" />',
+    props: ['userId'],
+  },
 }))
 vi.mock('@/components/social/FriendRecommendations.vue', () => ({
   default: { name: 'FriendRecommendations', template: '<div />' },
@@ -366,9 +370,11 @@ describe('Fix 2: 404 toast notification when conversation is deleted', () => {
     await flushPromises()
 
     // Simulate selecting a conversation
-    const store = (wrapper.vm as unknown as { dmStore: { selectConversation?: unknown } })
+    const _store = wrapper.vm as unknown as { dmStore: { selectConversation?: unknown } }
     // Trigger selectConversation via the component's internal method
-    await (wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }).selectConversation?.('conv-deleted', 'user-2')
+    await (
+      wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }
+    ).selectConversation?.('conv-deleted', 'user-2')
     await flushPromises()
 
     expect(mockToastShow).toHaveBeenCalledWith(
@@ -386,13 +392,13 @@ describe('Fix 2: 404 toast notification when conversation is deleted', () => {
     const wrapper = mount(DMView, { global: { plugins: [createPinia()] } })
     await flushPromises()
 
-    await (wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }).selectConversation?.('conv-1', 'user-2')
+    await (
+      wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }
+    ).selectConversation?.('conv-1', 'user-2')
     await flushPromises()
 
     // Toast should NOT be called with 'error' for messages
-    const errorCalls = mockToastShow.mock.calls.filter(
-      (call: unknown[]) => call[1] === 'error',
-    )
+    const errorCalls = mockToastShow.mock.calls.filter((call: unknown[]) => call[1] === 'error')
     expect(errorCalls).toHaveLength(0)
   })
 })
@@ -423,7 +429,9 @@ describe('Fix 3: Thread header has router-link to other user profile', () => {
     await flushPromises()
 
     // Select the conversation to activate it
-    await (wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }).selectConversation?.('conv-1', 'user-2')
+    await (
+      wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }
+    ).selectConversation?.('conv-1', 'user-2')
     await flushPromises()
 
     const link = wrapper.find('[data-testid="thread-header-profile-link"]')
@@ -441,7 +449,9 @@ describe('Fix 3: Thread header has router-link to other user profile', () => {
     const wrapper = mount(DMView, { global: { plugins: [createPinia()] } })
     await flushPromises()
 
-    await (wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }).selectConversation?.('conv-1', 'user-2')
+    await (
+      wrapper.vm as unknown as { selectConversation: (id: string, userId: string) => Promise<void> }
+    ).selectConversation?.('conv-1', 'user-2')
     await flushPromises()
 
     const link = wrapper.find('[data-testid="thread-header-profile-link"]')

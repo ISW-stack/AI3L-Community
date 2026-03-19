@@ -553,7 +553,14 @@ class TestFindLatestByUser:
         from app.repositories.application_repo import find_latest_by_user
 
         now = datetime.now(timezone.utc)
-        row = {"id": uuid.uuid4(), "user_id": uuid.uuid4(), "description": "x", "status": "PENDING", "reviewed_at": None, "created_at": now}
+        row = {
+            "id": uuid.uuid4(),
+            "user_id": uuid.uuid4(),
+            "description": "x",
+            "status": "PENDING",
+            "reviewed_at": None,
+            "created_at": now,
+        }
         mock_conn.fetchrow = AsyncMock(return_value=row)
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -597,9 +604,7 @@ class TestCreateApplicationService:
             ),
         ):
             with pytest.raises(ValueError, match="Username already taken"):
-                await create_application(
-                    uuid.uuid4(), "taken", "Passw0rd!", "Name", "Desc"
-                )
+                await create_application(uuid.uuid4(), "taken", "Passw0rd!", "Name", "Desc")
 
     @pytest.mark.anyio
     async def test_double_submit_raises_value_error(self):
@@ -616,9 +621,7 @@ class TestCreateApplicationService:
             ),
         ):
             with pytest.raises(ValueError, match="already submitted"):
-                await create_application(
-                    uuid.uuid4(), "user", "Passw0rd!", "Name", "Desc"
-                )
+                await create_application(uuid.uuid4(), "user", "Passw0rd!", "Name", "Desc")
 
     @pytest.mark.anyio
     async def test_duplicate_pending_raises_value_error(self):
@@ -631,9 +634,7 @@ class TestCreateApplicationService:
             return_value=None,
         ):
             with pytest.raises(ValueError, match="pending"):
-                await create_application(
-                    uuid.uuid4(), "user", "Passw0rd!", "Name", "Desc"
-                )
+                await create_application(uuid.uuid4(), "user", "Passw0rd!", "Name", "Desc")
 
     @pytest.mark.anyio
     async def test_success(self):
@@ -877,7 +878,12 @@ class TestReApplyAfterRejection:
         try:
             _override_auth("GUEST", user_id=user_id)
             now = datetime.now(timezone.utc)
-            row = {"id": uuid.uuid4(), "user_id": uuid.UUID(user_id), "status": "PENDING", "created_at": now}
+            row = {
+                "id": uuid.uuid4(),
+                "user_id": uuid.UUID(user_id),
+                "status": "PENDING",
+                "created_at": now,
+            }
             with patch(
                 f"{_EP}.create_application",
                 new_callable=AsyncMock,

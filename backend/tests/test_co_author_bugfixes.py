@@ -36,9 +36,7 @@ def _make_co_author_row(post_id=None, user_id=None, status="ACCEPTED"):
 
 
 @pytest.mark.asyncio
-async def test_respond_to_invitation_uses_transaction_and_for_update(
-    mock_pool, mock_conn
-):
+async def test_respond_to_invitation_uses_transaction_and_for_update(mock_pool, mock_conn):
     """BUG 2: respond_to_invitation wraps read+write in a transaction with FOR UPDATE."""
     from app.services.co_author import respond_to_invitation
 
@@ -94,9 +92,7 @@ async def test_respond_to_invitation_uses_transaction_and_for_update(
 
     with (
         patch(f"{_SVC}.get_pool", side_effect=get_pool_side_effect),
-        patch(
-            f"{_REPO}.update_status", new_callable=AsyncMock, return_value=True
-        ),
+        patch(f"{_REPO}.update_status", new_callable=AsyncMock, return_value=True),
         patch(f"{_SVC}.emit", new_callable=AsyncMock),
     ):
         result = await respond_to_invitation(co_author_id, user_id, True)
@@ -174,9 +170,9 @@ def test_find_pending_invitations_excludes_deleted_posts():
             "app.repositories.co_author_repo", fromlist=["find_pending_invitations"]
         ).find_pending_invitations
     )
-    assert "is_deleted = false" in source or "is_deleted=false" in source, (
-        "find_pending_invitations must filter out deleted posts with is_deleted = false"
-    )
+    assert (
+        "is_deleted = false" in source or "is_deleted=false" in source
+    ), "find_pending_invitations must filter out deleted posts with is_deleted = false"
 
 
 # ---------------------------------------------------------------------------
@@ -191,18 +187,16 @@ def test_find_pending_invitations_uses_left_join_for_inviter():
             "app.repositories.co_author_repo", fromlist=["find_pending_invitations"]
         ).find_pending_invitations
     )
-    assert "LEFT JOIN users inviter" in source or "LEFT JOIN users inviter" in source, (
-        "find_pending_invitations must use LEFT JOIN for inviter to handle deleted inviters"
-    )
+    assert (
+        "LEFT JOIN users inviter" in source or "LEFT JOIN users inviter" in source
+    ), "find_pending_invitations must use LEFT JOIN for inviter to handle deleted inviters"
     # Ensure it's not an INNER JOIN
     # The SQL should not have a bare "JOIN users inviter" without LEFT
     lines = source.split("\n")
     for line in lines:
         stripped = line.strip()
         if "JOIN users inviter" in stripped and "LEFT" not in stripped:
-            pytest.fail(
-                f"Found INNER JOIN for inviter (missing LEFT): {stripped}"
-            )
+            pytest.fail(f"Found INNER JOIN for inviter (missing LEFT): {stripped}")
 
 
 # ---------------------------------------------------------------------------
@@ -228,9 +222,7 @@ async def test_add_external_co_author_duplicate_returns_409(mock_pool, mock_conn
 
     with (
         patch(f"{_SVC}.get_pool", return_value=mock_pool),
-        patch(
-            f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0
-        ),
+        patch(f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0),
         patch(
             f"{_REPO}.insert_co_author",
             new_callable=AsyncMock,
@@ -238,9 +230,7 @@ async def test_add_external_co_author_duplicate_returns_409(mock_pool, mock_conn
         ),
     ):
         with pytest.raises(AppError) as exc_info:
-            await add_external_co_author(
-                post_id, user_id, "External Author", "MIT"
-            )
+            await add_external_co_author(post_id, user_id, "External Author", "MIT")
         assert exc_info.value.status_code == 409
         assert "COAUTHOR_002" in exc_info.value.detail["code"]
         assert "already exists" in exc_info.value.detail["message"]
@@ -309,22 +299,20 @@ async def test_invite_co_author_response_includes_avatar():
         return pool2
 
     # Capture what gets passed to the converter
-    captured_row = {}
+    _captured_row = {}  # noqa: F841
 
     async def mock_insert(conn, *args):
         return dict(co_author_row)
 
     with (
         patch(f"{_SVC}.get_pool", side_effect=get_pool_side_effect),
-        patch(f"{_SVC}.get_redis") as _mock_redis,
+        patch(f"{_SVC}.get_redis") as _mock_redis,  # noqa: F841
         patch(
             f"{_SVC}.get_blocked_user_ids",
             new_callable=AsyncMock,
             return_value=set(),
         ),
-        patch(
-            f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0
-        ),
+        patch(f"{_REPO}.count_co_authors", new_callable=AsyncMock, return_value=0),
         patch(
             f"{_REPO}.find_existing_by_user",
             new_callable=AsyncMock,

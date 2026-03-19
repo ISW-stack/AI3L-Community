@@ -38,9 +38,7 @@ class TestRedisCache:
     """Public stats endpoint uses Redis for cross-worker caching."""
 
     @patch(_REPO)
-    def test_cache_miss_fetches_from_repo_and_sets_redis(
-        self, mock_repo, mock_redis_client
-    ):
+    def test_cache_miss_fetches_from_repo_and_sets_redis(self, mock_repo, mock_redis_client):
         """On cache miss (Redis returns None), fetch from repo and store in Redis."""
         from fastapi.testclient import TestClient
 
@@ -79,9 +77,7 @@ class TestRedisCache:
 
         from app.main import app
 
-        cached_data = json.dumps(
-            {"member_count": 10, "post_count": 20, "sig_count": 3}
-        )
+        cached_data = json.dumps({"member_count": 10, "post_count": 20, "sig_count": 3})
         redis = AsyncMock()
         redis.get = AsyncMock(return_value=cached_data)
         redis.set = AsyncMock()
@@ -118,9 +114,7 @@ class TestRedisCache:
 
         from app.main import app
 
-        cached_data = json.dumps(
-            {"member_count": 7, "post_count": 14, "sig_count": 2}
-        )
+        cached_data = json.dumps({"member_count": 7, "post_count": 14, "sig_count": 2})
         mock_redis_client.get.return_value = cached_data
 
         with (
@@ -168,9 +162,7 @@ class TestRedisCache:
         from app.main import app
 
         mock_redis_client.get.return_value = None
-        mock_repo.count_users = AsyncMock(
-            side_effect=RuntimeError("DB connection failed")
-        )
+        mock_repo.count_users = AsyncMock(side_effect=RuntimeError("DB connection failed"))
         mock_repo.count_posts = AsyncMock(return_value=0)
         mock_repo.count_sigs = AsyncMock(return_value=0)
 
@@ -188,9 +180,7 @@ class TestRedisCache:
 
         from app.main import app
 
-        cached_data = json.dumps(
-            {"member_count": 1, "post_count": 2, "sig_count": 3}
-        )
+        cached_data = json.dumps({"member_count": 1, "post_count": 2, "sig_count": 3})
         mock_redis_client.get.return_value = cached_data
 
         with (

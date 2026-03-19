@@ -74,8 +74,7 @@ function createStubs() {
     BaseBadge: { template: '<span class="base-badge"><slot /></span>', props: ['variant'] },
     BaseAvatar: { template: '<span class="base-avatar" />', props: ['src', 'name', 'size'] },
     BaseModal: {
-      template:
-        '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
+      template: '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
       props: ['modelValue', 'title', 'size'],
     },
     BaseInput: {

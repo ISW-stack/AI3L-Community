@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import type { DMMessage, Conversation } from '@/types/dm'
@@ -42,8 +42,8 @@ vi.mock('lucide-vue-next', () => ({
 }))
 
 vi.mock('@/utils/datetime', () => ({
-  relativeTime: (date: string) => '2 min ago',
-  formatDateTime: (date: string) => date,
+  relativeTime: (_date: string) => '2 min ago',
+  formatDateTime: (_date: string) => _date,
 }))
 
 vi.mock('vue-router', () => ({
@@ -69,18 +69,42 @@ const mockSetActiveConversation = vi.fn()
 
 vi.mock('@/stores/dm', () => ({
   useDMStore: () => ({
-    get conversations() { return mockDMStoreState.conversations },
-    set conversations(v) { mockDMStoreState.conversations = v },
-    get conversationsTotal() { return mockDMStoreState.conversationsTotal },
-    get messages() { return mockDMStoreState.messages },
-    set messages(v) { mockDMStoreState.messages = v },
-    get messagesTotal() { return mockDMStoreState.messagesTotal },
-    set messagesTotal(v) { mockDMStoreState.messagesTotal = v },
-    get unreadCount() { return mockDMStoreState.unreadCount },
-    set unreadCount(v) { mockDMStoreState.unreadCount = v },
-    get activeConversationId() { return mockDMStoreState.activeConversationId },
-    get loading() { return mockDMStoreState.loading },
-    get error() { return mockDMStoreState.error },
+    get conversations() {
+      return mockDMStoreState.conversations
+    },
+    set conversations(v) {
+      mockDMStoreState.conversations = v
+    },
+    get conversationsTotal() {
+      return mockDMStoreState.conversationsTotal
+    },
+    get messages() {
+      return mockDMStoreState.messages
+    },
+    set messages(v) {
+      mockDMStoreState.messages = v
+    },
+    get messagesTotal() {
+      return mockDMStoreState.messagesTotal
+    },
+    set messagesTotal(v) {
+      mockDMStoreState.messagesTotal = v
+    },
+    get unreadCount() {
+      return mockDMStoreState.unreadCount
+    },
+    set unreadCount(v) {
+      mockDMStoreState.unreadCount = v
+    },
+    get activeConversationId() {
+      return mockDMStoreState.activeConversationId
+    },
+    get loading() {
+      return mockDMStoreState.loading
+    },
+    get error() {
+      return mockDMStoreState.error
+    },
     fetchConversations: mockFetchConversations,
     fetchMessages: mockFetchMessages,
     setActiveConversation: mockSetActiveConversation,
@@ -290,7 +314,10 @@ describe('ConversationList', () => {
     const wrapper = mountConvList({
       conversations: [
         makeConversation({ id: 'conv-1' }),
-        makeConversation({ id: 'conv-2', other_user: makeSender({ id: 'u3', display_name: 'Charlie' }) }),
+        makeConversation({
+          id: 'conv-2',
+          other_user: makeSender({ id: 'u3', display_name: 'Charlie' }),
+        }),
       ],
       activeId: 'conv-1',
     })
@@ -347,7 +374,10 @@ describe('ConversationList', () => {
     const wrapper = mountConvList({
       conversations: [
         makeConversation({
-          other_user: makeSender({ display_name: 'Alice', avatar_url: 'https://example.com/broken.jpg' }),
+          other_user: makeSender({
+            display_name: 'Alice',
+            avatar_url: 'https://example.com/broken.jpg',
+          }),
         }),
       ],
     })
@@ -790,7 +820,7 @@ describe('MessageInput', () => {
   it('disables send when content exceeds 5000 characters', async () => {
     const wrapper = mountInput()
     // Simulate setting value beyond maxlength (browser enforces maxlength, but test the computed)
-    const vm = wrapper.vm as unknown as { content: { value: string } }
+    const _vm = wrapper.vm as unknown as { content: { value: string } }
     // We can't easily exceed maxlength in jsdom, but we can verify the canSend logic
     // by checking disabled state with empty content
     const sendBtn = wrapper.find('[aria-label="Send message"]')

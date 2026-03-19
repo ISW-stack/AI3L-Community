@@ -71,10 +71,9 @@ export async function listCoAuthoredPosts(
   page = 1,
   pageSize = 10,
 ): Promise<CoAuthoredPostsResponse> {
-  const { data } = await api.get<CoAuthoredPostsResponse>(
-    `/co-authors/user/${userId}/posts`,
-    { params: { page, page_size: pageSize } },
-  )
+  const { data } = await api.get<CoAuthoredPostsResponse>(`/co-authors/user/${userId}/posts`, {
+    params: { page, page_size: pageSize },
+  })
   return data
 }
 

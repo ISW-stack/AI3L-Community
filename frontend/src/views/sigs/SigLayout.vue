@@ -343,7 +343,12 @@ onUnmounted(() => {
             <BaseButton variant="secondary" @click="showDeleteConfirm = false">{{
               t('common.cancel')
             }}</BaseButton>
-            <BaseButton variant="danger" :loading="deletingGroup" :disabled="deletingGroup" @click="handleDeleteSig">
+            <BaseButton
+              variant="danger"
+              :loading="deletingGroup"
+              :disabled="deletingGroup"
+              @click="handleDeleteSig"
+            >
               <span v-if="deletingGroup">{{ t('sigs.detail.deleteConfirm.deletingBtn') }}</span>
               <span v-else>{{ t('sigs.detail.deleteConfirm.confirmBtn') }}</span>
             </BaseButton>

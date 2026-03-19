@@ -96,14 +96,17 @@ class TestCsrfBindingMiddleware:
             "jti": jti,
         }
         try:
-            with patch(
-                "app.api.v1.endpoints.auth.refresh_session_ttl",
-                new_callable=AsyncMock,
-                return_value=True,
-            ), patch(
-                "app.api.v1.endpoints.auth.check_rate_limit",
-                new_callable=AsyncMock,
-                return_value=True,
+            with (
+                patch(
+                    "app.api.v1.endpoints.auth.refresh_session_ttl",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.auth.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 resp = await _app_client.post(
                     "/api/v1/auth/heartbeat",
@@ -161,14 +164,17 @@ class TestCsrfBindingMiddleware:
             "jti": "some-jti",
         }
         try:
-            with patch(
-                "app.api.v1.endpoints.auth.refresh_session_ttl",
-                new_callable=AsyncMock,
-                return_value=True,
-            ), patch(
-                "app.api.v1.endpoints.auth.check_rate_limit",
-                new_callable=AsyncMock,
-                return_value=True,
+            with (
+                patch(
+                    "app.api.v1.endpoints.auth.refresh_session_ttl",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.auth.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
             ):
                 resp = await _app_client.post(
                     "/api/v1/auth/heartbeat",
@@ -184,7 +190,6 @@ class TestCsrfBindingMiddleware:
     @pytest.mark.anyio
     async def test_login_sets_bound_csrf_token(self, _app_client: AsyncClient):
         """Login endpoint sets a CSRF token that is bound to the session JTI."""
-        from app.core.security import decode_access_token
         from tests.conftest import make_user_dict
 
         user = make_user_dict(username="alice", role="MEMBER")

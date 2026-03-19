@@ -14,7 +14,8 @@ def _escape_ilike(s: str) -> str:
 async def find_standalone(
     conn: Any, page: int, page_size: int, user_id: uuid.UUID, q: str | None = None
 ) -> list[Any]:
-    """List standalone forms owned by user (sig_id IS NULL, not deleted), optionally filtered by search."""
+    """List standalone forms owned by user (sig_id IS NULL, not deleted),
+    optionally filtered by search."""
     offset = (page - 1) * page_size
     if q:
         search_pattern = f"%{_escape_ilike(q)}%"
@@ -412,9 +413,7 @@ async def count_total_responses(form_id: uuid.UUID) -> int:
         )
 
 
-async def iter_responses_batched(
-    form_id: uuid.UUID, batch_size: int = 500
-) -> list[dict]:
+async def iter_responses_batched(form_id: uuid.UUID, batch_size: int = 500) -> list[dict]:
     """Fetch all responses in batches using keyset pagination to bound memory.
 
     Returns the full list but fetches from DB in chunks of *batch_size*
