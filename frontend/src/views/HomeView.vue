@@ -6,11 +6,16 @@ import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
 import { listPosts, getTrendingPosts, getPublicStats } from '@/api/posts'
 import { listMySigs, listSigs } from '@/api/sigs'
+import { applyForMembership, getMyApplication } from '@/api/users'
+import type { MyApplication } from '@/api/users'
 import type { Post, Sig } from '@/types'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseTextarea from '@/components/base/BaseTextarea.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import { useFetchPaginated } from '@/composables/useFetchPaginated'
 import { getErrorMessage } from '@/utils/error'
@@ -41,6 +46,64 @@ const loadingTrending = ref(false)
 const loadingMySigs = ref(false)
 const loadingStats = ref(false)
 const loadingFeaturedSigs = ref(false)
+
+// ── Membership application ──────────────────────────────────
+const showApplyModal = ref(false)
+const applyForm = ref({ username: '', password: '', display_name: '', description: '' })
+const applyErrors = ref<Record<string, string>>({})
+const applySubmitting = ref(false)
+const myApplication = ref<MyApplication | null>(null)
+
+function validateApplyForm(): boolean {
+  const errs: Record<string, string> = {}
+  if (applyForm.value.username.length < 3) errs.username = t('home.applyMembership.validation.usernameMin')
+  if (applyForm.value.username.length > 50) errs.username = t('home.applyMembership.validation.usernameMax')
+  const pw = applyForm.value.password
+  if (pw.length < 8) {
+    errs.password = t('home.applyMembership.validation.passwordMin')
+  } else if (!/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/\d/.test(pw) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) {
+    errs.password = t('home.applyMembership.validation.passwordPolicy')
+  }
+  if (applyForm.value.display_name.trim().length === 0) errs.display_name = t('home.applyMembership.validation.displayNameRequired')
+  if (applyForm.value.description.trim().length === 0) errs.description = t('home.applyMembership.validation.descriptionRequired')
+  applyErrors.value = errs
+  return Object.keys(errs).length === 0
+}
+
+async function handleApplySubmit() {
+  if (!validateApplyForm()) return
+  applySubmitting.value = true
+  applyErrors.value = {}
+  try {
+    await applyForMembership({
+      username: applyForm.value.username,
+      password: applyForm.value.password,
+      display_name: applyForm.value.display_name,
+      description: applyForm.value.description,
+    })
+    toast.show(t('home.applyMembership.success'), 'success')
+    showApplyModal.value = false
+    applyForm.value = { username: '', password: '', display_name: '', description: '' }
+    // Refresh application status
+    await fetchMyApplication()
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e, t('home.applyMembership.error'))
+    toast.show(msg, 'error')
+  } finally {
+    applySubmitting.value = false
+  }
+}
+
+async function fetchMyApplication() {
+  try {
+    const data = await getMyApplication()
+    myApplication.value = data.application
+  } catch {
+    // Guest without a user record → 404 or empty, ignore
+  }
+}
+
+// ── Data fetching ───────────────────────────────────────────
 
 async function fetchTrendingPosts() {
   loadingTrending.value = true
@@ -96,6 +159,8 @@ onMounted(() => {
     notifStore.fetchUnreadCount()
     if (!auth.isGuest) {
       fetchMySigs()
+    } else {
+      fetchMyApplication()
     }
     fetchFeaturedSigs()
   }
@@ -129,14 +194,53 @@ onMounted(() => {
             </div>
           </BaseCard>
 
-          <BaseAlert v-if="auth.isGuest" type="warning">
-            {{ t('home.guestAlert') }}
-            <router-link to="/register" class="font-medium underline">{{
-              t('home.guestSignUp')
-            }}</router-link>
-            {{ t('home.guestSignUpSuffix') }}
-          </BaseAlert>
+          <!-- Guest alert + membership application -->
+          <template v-if="auth.isGuest">
+            <BaseAlert type="warning">
+              {{ t('home.guestAlert') }}
+              <router-link to="/register" class="font-medium underline">{{
+                t('home.guestSignUp')
+              }}</router-link>
+              {{ t('home.guestSignUpSuffix') }}
+            </BaseAlert>
 
+            <!-- Application status or apply button -->
+            <BaseCard v-if="myApplication" padding="md">
+              <div class="flex items-center gap-3">
+                <span
+                  :class="[
+                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                    myApplication.status === 'PENDING'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : myApplication.status === 'APPROVED'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800',
+                  ]"
+                >
+                  {{ t(`home.applyMembership.status.${myApplication.status}`) }}
+                </span>
+                <p class="text-sm text-muted">
+                  {{ t('home.applyMembership.submitted') }}
+                </p>
+              </div>
+            </BaseCard>
+
+            <BaseCard v-else padding="md">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-foreground">
+                    {{ t('home.applyMembership.title') }}
+                  </p>
+                  <p class="text-xs text-muted mt-0.5">
+                    {{ t('home.applyMembership.description') }}
+                  </p>
+                </div>
+                <BaseButton size="sm" @click="showApplyModal = true">
+                  {{ t('home.applyMembership.applyBtn') }}
+                </BaseButton>
+              </div>
+            </BaseCard>
+          </template>
 
           <!-- Trending Posts -->
           <div v-if="!auth.isGuest">
@@ -431,5 +535,67 @@ onMounted(() => {
         </router-link>
       </div>
     </div>
+
+    <!-- Membership application modal -->
+    <BaseModal v-model="showApplyModal" :title="t('home.applyMembership.title')" size="md">
+      <form class="space-y-4" @submit.prevent="handleApplySubmit">
+        <p class="text-sm text-muted">{{ t('home.applyMembership.description') }}</p>
+
+        <BaseInput
+          id="apply-username"
+          v-model="applyForm.username"
+          :label="t('auth.username')"
+          :placeholder="t('home.applyMembership.usernamePlaceholder')"
+          :error="applyErrors.username"
+          :maxlength="50"
+          autocomplete="username"
+        />
+
+        <BaseInput
+          id="apply-password"
+          v-model="applyForm.password"
+          type="password"
+          :label="t('auth.password')"
+          :placeholder="t('home.applyMembership.passwordPlaceholder')"
+          :error="applyErrors.password"
+          :maxlength="128"
+          autocomplete="new-password"
+        />
+        <p class="text-xs text-muted -mt-3">
+          {{ t('home.applyMembership.passwordHint') }}
+        </p>
+
+        <BaseInput
+          id="apply-display-name"
+          v-model="applyForm.display_name"
+          :label="t('auth.displayName')"
+          :error="applyErrors.display_name"
+          :maxlength="100"
+        />
+
+        <BaseTextarea
+          id="apply-description"
+          v-model="applyForm.description"
+          :label="t('home.applyMembership.reasonLabel')"
+          :placeholder="t('home.applyMembership.placeholder')"
+          :error="applyErrors.description"
+          :maxlength="500"
+          :rows="4"
+        />
+        <p class="text-xs text-muted text-right -mt-3">
+          {{ applyForm.description.length }}/500
+        </p>
+        <button type="submit" class="hidden" />
+      </form>
+
+      <template #footer>
+        <BaseButton variant="secondary" :disabled="applySubmitting" @click="showApplyModal = false">
+          {{ t('common.cancel') }}
+        </BaseButton>
+        <BaseButton :disabled="applySubmitting" @click="handleApplySubmit">
+          {{ applySubmitting ? t('common.submitting') : t('home.applyMembership.submitBtn') }}
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>

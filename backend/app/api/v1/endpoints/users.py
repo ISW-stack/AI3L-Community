@@ -296,6 +296,27 @@ async def bulk_change_role(
     return {"updated_count": count}
 
 
+@router.get("/my-application")
+async def get_my_application_status(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Return the guest's most recent membership application, if any."""
+    from app.schemas.application import MyApplicationResponse
+    from app.services.application import get_my_application
+
+    app = await get_my_application(uuid.UUID(current_user["sub"]))
+    if app is None:
+        return MyApplicationResponse(application=None).model_dump()
+    return MyApplicationResponse(
+        application=MyApplicationResponse.Item(
+            id=str(app["id"]),
+            status=app["status"],
+            created_at=app["created_at"].isoformat(),
+            reviewed_at=app["reviewed_at"].isoformat() if app.get("reviewed_at") else None,
+        )
+    ).model_dump()
+
+
 @router.delete("/{user_id}", response_model=MessageResponse)
 async def admin_delete_user(
     user_id: uuid.UUID,

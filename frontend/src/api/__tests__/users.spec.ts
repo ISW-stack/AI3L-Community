@@ -25,6 +25,7 @@ import {
   deleteAccount,
   getPublicProfile,
   applyForMembership,
+  getMyApplication,
 } from '../users'
 
 describe('users API', () => {
@@ -242,33 +243,61 @@ describe('users API', () => {
   })
 
   describe('applyForMembership', () => {
-    it('calls POST /users/apply-member with description and returns data', async () => {
-      const description = 'I am a researcher in AI and language learning.'
+    const payload = {
+      username: 'newuser',
+      password: 'Passw0rd!',
+      display_name: 'New User',
+      description: 'I am a researcher in AI and language learning.',
+    }
+
+    it('calls POST /users/apply-member with full payload and returns data', async () => {
       const mockData = { message: 'Application submitted successfully.' }
       mockPost.mockResolvedValue({ data: mockData })
 
-      const result = await applyForMembership(description)
+      const result = await applyForMembership(payload)
 
-      expect(mockPost).toHaveBeenCalledWith('/users/apply-member', { description })
+      expect(mockPost).toHaveBeenCalledWith('/users/apply-member', payload)
       expect(result).toEqual(mockData)
     })
 
-    it('wraps description in an object with key "description"', async () => {
+    it('sends all fields in the request body', async () => {
       mockPost.mockResolvedValue({ data: { message: 'ok' } })
 
-      await applyForMembership('My application text')
+      await applyForMembership(payload)
 
-      expect(mockPost).toHaveBeenCalledWith('/users/apply-member', {
-        description: 'My application text',
-      })
+      const callArgs = mockPost.mock.calls[0][1]
+      expect(callArgs).toHaveProperty('username')
+      expect(callArgs).toHaveProperty('password')
+      expect(callArgs).toHaveProperty('display_name')
+      expect(callArgs).toHaveProperty('description')
     })
 
     it('returns the message from the API response', async () => {
       mockPost.mockResolvedValue({ data: { message: 'Under review.' } })
 
-      const result = await applyForMembership('Description here')
+      const result = await applyForMembership(payload)
 
       expect(result.message).toBe('Under review.')
+    })
+  })
+
+  describe('getMyApplication', () => {
+    it('calls GET /users/my-application and returns data', async () => {
+      const mockData = { application: { id: '1', status: 'PENDING', created_at: '2026-03-19' } }
+      mockGet.mockResolvedValue({ data: mockData })
+
+      const result = await getMyApplication()
+
+      expect(mockGet).toHaveBeenCalledWith('/users/my-application')
+      expect(result.application?.status).toBe('PENDING')
+    })
+
+    it('returns null application when none exists', async () => {
+      mockGet.mockResolvedValue({ data: { application: null } })
+
+      const result = await getMyApplication()
+
+      expect(result.application).toBeNull()
     })
   })
 })

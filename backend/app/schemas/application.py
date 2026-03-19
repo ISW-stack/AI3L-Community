@@ -18,5 +18,15 @@ class ApplicationListResponse(BaseModel):
     total: int
 
 
+class MyApplicationResponse(BaseModel):
+    class Item(BaseModel):
+        id: str
+        status: str
+        created_at: str
+        reviewed_at: str | None = None
+
+    application: Item | None = None
+
+
 class ReviewApplicationRequest(BaseModel):
     action: str = Field(..., pattern="^(APPROVED|REJECTED)$")

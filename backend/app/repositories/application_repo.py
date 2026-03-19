@@ -104,3 +104,67 @@ async def find_pending_by_user(user_id: uuid.UUID) -> bool:
             user_id,
         )
         return bool(count > 0)
+
+
+async def insert_with_user(
+    app_id: uuid.UUID,
+    user_id: uuid.UUID,
+    username: str,
+    password_hash: str,
+    display_name: str,
+    description: str,
+) -> dict | None:
+    """Create user record and membership application atomically.
+
+    Returns application row or None if a pending application already exists.
+    """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                """
+                INSERT INTO users (id, username, password_hash, role, display_name)
+                VALUES ($1, $2, $3, 'GUEST', $4)
+                ON CONFLICT (id) DO UPDATE
+                    SET username = EXCLUDED.username,
+                        password_hash = EXCLUDED.password_hash,
+                        display_name = EXCLUDED.display_name
+                    WHERE users.role = 'GUEST'
+                """,
+                user_id,
+                username,
+                password_hash,
+                display_name,
+            )
+            row = await conn.fetchrow(
+                """
+                INSERT INTO membership_applications (id, user_id, description, status, created_at)
+                SELECT $1, $2, $3, 'PENDING', NOW()
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM membership_applications
+                    WHERE user_id = $2 AND status = 'PENDING'
+                )
+                RETURNING *
+                """,
+                app_id,
+                user_id,
+                description,
+            )
+            return dict(row) if row else None
+
+
+async def find_latest_by_user(user_id: uuid.UUID) -> dict | None:
+    """Return the most recent application for a user (any status)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT id, user_id, description, status, reviewed_at, created_at
+            FROM membership_applications
+            WHERE user_id = $1
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            user_id,
+        )
+        return dict(row) if row else None

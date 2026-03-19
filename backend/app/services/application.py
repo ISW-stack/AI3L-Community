@@ -4,19 +4,44 @@ import asyncpg
 from loguru import logger
 
 from app.core.event_bus import emit
+from app.core.security import async_hash_password
 from app.repositories import application_repo
 
 
-async def create_application(user_id: uuid.UUID, description: str) -> dict:
+async def create_application(
+    guest_id: uuid.UUID,
+    username: str,
+    password: str,
+    display_name: str,
+    description: str,
+) -> dict:
+    """Create a user record and membership application atomically.
+
+    The guest's Redis-only UUID becomes a real user row so the FK constraint
+    on membership_applications.user_id is satisfied.
+    """
     app_id = uuid.uuid4()
+    password_hash = await async_hash_password(password)
     try:
-        row = await application_repo.insert(app_id, user_id, description)
-    except asyncpg.ForeignKeyViolationError:
-        raise ValueError("Guest account is not eligible to apply. Please register a full account first.")
+        row = await application_repo.insert_with_user(
+            app_id, guest_id, username, password_hash, display_name, description
+        )
+    except asyncpg.UniqueViolationError as exc:
+        detail = str(exc).lower()
+        if "username" in detail:
+            raise ValueError("Username already taken.")
+        # Other unique constraint violations (e.g. application PK collision
+        # from a concurrent double submit)
+        raise ValueError("You have already submitted an application.")
     if row is None:
         raise ValueError("You already have a pending application.")
-    logger.info("Membership application created", extra={"user_id": str(user_id)})
+    logger.info("Membership application created", extra={"user_id": str(guest_id)})
     return row
+
+
+async def get_my_application(user_id: uuid.UUID) -> dict | None:
+    """Return the most recent application for a user."""
+    return await application_repo.find_latest_by_user(user_id)
 
 
 async def list_applications(

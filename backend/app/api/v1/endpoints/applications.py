@@ -6,6 +6,7 @@ from loguru import logger
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
+from app.core.security import validate_password_policy
 from app.schemas.application import (
     ApplicationListResponse,
     ApplicationResponse,
@@ -13,7 +14,11 @@ from app.schemas.application import (
 )
 from app.schemas.auth import MessageResponse
 from app.schemas.user import ApplyMemberRequest
-from app.services.application import create_application, list_applications, review_application
+from app.services.application import (
+    create_application,
+    list_applications,
+    review_application,
+)
 
 router = APIRouter(tags=["applications"])
 
@@ -22,8 +27,8 @@ def _app_to_response(app: dict) -> ApplicationResponse:
     return ApplicationResponse(
         id=str(app["id"]),
         user_id=str(app["user_id"]),
-        username=app.get("username", ""),
-        display_name=app.get("display_name", ""),
+        username=app["username"],
+        display_name=app["display_name"],
         description=app["description"],
         status=app["status"],
         reviewed_by=str(app["reviewed_by"]) if app.get("reviewed_by") else None,
@@ -44,8 +49,26 @@ async def apply_for_membership(
             "Only guests can apply for membership.",
         )
 
+    # Validate password policy
+    pw_error = validate_password_policy(req.password)
+    if pw_error:
+        raise AppError(ErrorCode.AUTH_007, status.HTTP_400_BAD_REQUEST, pw_error)
+
+    # Username uniqueness is enforced atomically by the DB unique constraint.
+    # The service layer catches UniqueViolationError and raises ValueError.
+
+    # Note: The guest's JWT (sub, role, jti) remains valid even after the DB user
+    # record is created by insert_with_user(). get_current_user reads from the JWT
+    # and doesn't re-query the DB. The role in the JWT stays "GUEST" until the
+    # application is approved and the guest re-logs in with MEMBER role.
     try:
-        await create_application(uuid.UUID(current_user["sub"]), req.description)
+        await create_application(
+            guest_id=uuid.UUID(current_user["sub"]),
+            username=req.username,
+            password=req.password,
+            display_name=req.display_name,
+            description=req.description,
+        )
     except ValueError as e:
         raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, str(e))
 
@@ -73,11 +96,19 @@ async def review_membership_application(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> MessageResponse:
-    result = await review_application(
-        app_id=app_id,
-        reviewer_id=uuid.UUID(current_user["sub"]),
-        action=req.action,
-    )
+    try:
+        result = await review_application(
+            app_id=app_id,
+            reviewer_id=uuid.UUID(current_user["sub"]),
+            action=req.action,
+        )
+    except ValueError as e:
+        # The ReviewApplicationRequest schema validates action via pattern, so
+        # invalid actions get 422 before reaching here. This ValueError comes
+        # from update_status() when the user role upgrade fails (e.g. user was
+        # deleted or is no longer a GUEST). 409 is appropriate since the
+        # resource state conflicts with the requested operation.
+        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, str(e))
     if result is None:
         raise AppError(
             ErrorCode.SYS_404,

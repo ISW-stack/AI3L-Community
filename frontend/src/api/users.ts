@@ -43,9 +43,26 @@ export async function getPublicProfile(userId: string) {
   return data as PublicUser
 }
 
-export async function applyForMembership(description: string) {
-  const { data } = await api.post('/users/apply-member', { description })
+export async function applyForMembership(payload: {
+  username: string
+  password: string
+  display_name: string
+  description: string
+}) {
+  const { data } = await api.post('/users/apply-member', payload)
   return data as { message: string }
+}
+
+export interface MyApplication {
+  id: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  created_at: string
+  reviewed_at: string | null
+}
+
+export async function getMyApplication(): Promise<{ application: MyApplication | null }> {
+  const { data } = await api.get('/users/my-application')
+  return data as { application: MyApplication | null }
 }
 
 export interface UserPreferences {

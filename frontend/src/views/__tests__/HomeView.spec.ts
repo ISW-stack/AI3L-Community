@@ -26,8 +26,10 @@ vi.mock('@/api/sigs', () => ({
   getSig: vi.fn(),
 }))
 
+const mockGetMyApplication = vi.fn().mockResolvedValue({ application: null })
 vi.mock('@/api/users', () => ({
   applyForMembership: (...args: unknown[]) => mockApplyForMembership(...args),
+  getMyApplication: (...args: unknown[]) => mockGetMyApplication(...args),
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
 }))

@@ -24,6 +24,7 @@ export default {
     apply: 'Apply',
     clear: 'Clear',
     submit: 'Submit',
+    submitting: 'Submitting...',
     or: 'or',
     to: 'to',
     by: 'By',
@@ -218,12 +219,31 @@ export default {
     guestSignUpSuffix: 'for full access.',
     applyMembership: {
       title: 'Apply for Membership',
+      applyBtn: 'Apply Now',
       submitted: 'Your application has been submitted. An admin will review it shortly.',
-      description: "Tell us a bit about yourself and why you'd like to join the community.",
+      description:
+        "No invite code? Apply here. Create your account details and tell us why you'd like to join.",
+      reasonLabel: 'Why do you want to join?',
       placeholder: 'Describe your background and research interests...',
+      usernamePlaceholder: 'Choose a username',
+      passwordPlaceholder: 'Choose a password',
+      passwordHint:
+        'Min 8 characters, with uppercase, lowercase, digit, and special character.',
       submitBtn: 'Submit Application',
-      success: 'Application submitted successfully!',
+      success: 'Application submitted successfully! An admin will review it shortly.',
       error: 'Failed to submit application.',
+      status: {
+        PENDING: 'Pending Review',
+        APPROVED: 'Approved',
+        REJECTED: 'Rejected',
+      },
+      validation: {
+        usernameMin: 'Username must be at least 3 characters.',
+        usernameMax: 'Username must be at most 50 characters.',
+        passwordMin: 'Password must be at least 8 characters.',
+        displayNameRequired: 'Display name is required.',
+        descriptionRequired: 'Please describe why you want to join.',
+      },
     },
     recentPosts: {
       title: 'Recent Posts',

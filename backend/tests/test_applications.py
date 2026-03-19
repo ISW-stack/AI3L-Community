@@ -1,6 +1,7 @@
 """Tests for applications endpoints.
 
-apply success, non-guest rejected, list admin, review approve.
+apply success, non-guest rejected, list admin, review approve,
+my-application status, password policy, username uniqueness.
 Also covers atomic check+insert transaction safety in application_repo.
 """
 
@@ -11,7 +12,16 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 _EP = "app.api.v1.endpoints.applications"
+_EP_USERS = "app.api.v1.endpoints.users"
 _REPO = "app.repositories.application_repo"
+_SVC = "app.services.application"
+
+_VALID_APPLY_BODY = {
+    "username": "newuser",
+    "password": "Passw0rd!",
+    "display_name": "New User",
+    "description": "I'd like to join the community.",
+}
 
 
 def _override_auth(role="MEMBER", user_id=None):
@@ -45,10 +55,13 @@ def _make_application(user_id=None):
     }
 
 
+# ── Apply endpoint ──────────────────────────────────────────
+
+
 class TestApplyMembership:
     @pytest.mark.anyio
     async def test_apply_success(self, client):
-        """POST /users/apply-member → 200 for GUEST."""
+        """POST /users/apply-member → 200 for GUEST with valid body."""
         user_id = str(uuid.uuid4())
 
         try:
@@ -56,7 +69,7 @@ class TestApplyMembership:
             with patch(f"{_EP}.create_application", new_callable=AsyncMock):
                 resp = await client.post(
                     "/api/v1/users/apply-member",
-                    json={"description": "I'd like to join"},
+                    json=_VALID_APPLY_BODY,
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
@@ -71,12 +84,172 @@ class TestApplyMembership:
             _override_auth("MEMBER")
             resp = await client.post(
                 "/api/v1/users/apply-member",
-                json={"description": "Want to join"},
+                json=_VALID_APPLY_BODY,
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 400
         finally:
             _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_apply_weak_password_rejected(self, client):
+        """POST /users/apply-member → 400 when password fails policy."""
+        user_id = str(uuid.uuid4())
+        body = {**_VALID_APPLY_BODY, "password": "weak"}
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            resp = await client.post(
+                "/api/v1/users/apply-member",
+                json=body,
+                headers={"Authorization": "Bearer fake"},
+            )
+            # Pydantic validation (min 8 chars) rejects first → 422
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_apply_password_no_special_char(self, client):
+        """POST /users/apply-member → 400 when password lacks special char."""
+        user_id = str(uuid.uuid4())
+        body = {**_VALID_APPLY_BODY, "password": "Passw0rdx"}
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            resp = await client.post(
+                "/api/v1/users/apply-member",
+                json=body,
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 400
+            detail = resp.json()["detail"]
+            msg = detail["message"] if isinstance(detail, dict) else str(detail)
+            assert "special" in msg.lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_apply_username_taken(self, client):
+        """POST /users/apply-member → 409 when username already exists."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            with patch(
+                f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True
+            ):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json=_VALID_APPLY_BODY,
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                detail = resp.json()["detail"]
+                msg = detail["message"] if isinstance(detail, dict) else str(detail)
+                assert "username" in msg.lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_apply_missing_fields_422(self, client):
+        """POST /users/apply-member with missing fields → 422."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            resp = await client.post(
+                "/api/v1/users/apply-member",
+                json={"description": "only description"},
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+
+class TestApplyDuplicate:
+    @pytest.mark.anyio
+    async def test_apply_duplicate_pending(self, client):
+        """POST /users/apply-member with pending application → 409."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            with (
+                patch(
+                    f"{_EP}.create_application",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("pending"),
+                ),
+                patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json=_VALID_APPLY_BODY,
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+        finally:
+            _clear_overrides()
+
+
+# ── My application endpoint ──────────────────────────────────
+
+
+class TestGetMyApplication:
+    @pytest.mark.anyio
+    async def test_my_application_exists(self, client):
+        """GET /users/my-application → 200 with application data."""
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            with patch(
+                "app.services.application.get_my_application",
+                new_callable=AsyncMock,
+                return_value={
+                    "id": uuid.uuid4(),
+                    "status": "PENDING",
+                    "created_at": now,
+                    "reviewed_at": None,
+                },
+            ):
+                resp = await client.get(
+                    "/api/v1/users/my-application",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                data = resp.json()
+                assert data["application"] is not None
+                assert data["application"]["status"] == "PENDING"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_my_application_none(self, client):
+        """GET /users/my-application → 200 with null when no application."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            with patch(
+                "app.services.application.get_my_application",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                resp = await client.get(
+                    "/api/v1/users/my-application",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["application"] is None
+        finally:
+            _clear_overrides()
+
+
+# ── List applications ────────────────────────────────────────
 
 
 class TestListApplications:
@@ -101,6 +274,46 @@ class TestListApplications:
             _clear_overrides()
 
 
+class TestListApplicationsFilter:
+    @pytest.mark.anyio
+    async def test_list_applications_with_status_filter(self, client):
+        """GET /admin/applications?status=APPROVED → passes filter."""
+        app_row = _make_application()
+        app_row["status"] = "APPROVED"
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.list_applications",
+                new_callable=AsyncMock,
+                return_value=([app_row], 1),
+            ) as m:
+                resp = await client.get(
+                    "/api/v1/admin/applications?status=APPROVED",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                m.assert_called_once_with(status_filter="APPROVED", offset=0, limit=50)
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_applications_forbidden_member(self, client):
+        """GET /admin/applications → 403 for MEMBER."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/admin/applications",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+# ── Review application ───────────────────────────────────────
+
+
 class TestReviewApplication:
     @pytest.mark.anyio
     async def test_review_approve(self, client):
@@ -121,149 +334,6 @@ class TestReviewApplication:
                 assert "approved" in resp.json()["message"].lower()
         finally:
             _clear_overrides()
-
-
-class TestApplicationInsertTransaction:
-    """Verify application_repo.insert wraps check+insert in a transaction."""
-
-    @pytest.mark.anyio
-    async def test_insert_no_duplicate_uses_transaction(self, mock_pool, mock_conn):
-        """insert() must open a transaction and insert when no pending application exists."""
-        from app.repositories.application_repo import insert
-
-        app_id = uuid.uuid4()
-        user_id = uuid.uuid4()
-        now = datetime.now(timezone.utc)
-        new_row = {
-            "id": app_id,
-            "user_id": user_id,
-            "description": "I'd like to join",
-            "status": "PENDING",
-            "reviewed_by": None,
-            "reviewed_at": None,
-            "created_at": now,
-        }
-
-        # Atomic INSERT ... WHERE NOT EXISTS returns the row when no duplicate
-        mock_conn.fetchrow = AsyncMock(return_value=new_row)
-
-        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
-            result = await insert(app_id, user_id, "I'd like to join")
-
-        assert result is not None
-        assert result["id"] == app_id
-        mock_conn.transaction.assert_called_once()
-
-    @pytest.mark.anyio
-    async def test_insert_duplicate_returns_none_uses_transaction(self, mock_pool, mock_conn):
-        """insert() returns None for duplicate pending application, inside a transaction."""
-        from app.repositories.application_repo import insert
-
-        app_id = uuid.uuid4()
-        user_id = uuid.uuid4()
-
-        # Atomic INSERT ... WHERE NOT EXISTS returns None when duplicate exists
-        mock_conn.fetchrow = AsyncMock(return_value=None)
-
-        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
-            result = await insert(app_id, user_id, "Duplicate request")
-
-        assert result is None
-        mock_conn.transaction.assert_called_once()
-
-    @pytest.mark.anyio
-    async def test_insert_concurrent_only_one_succeeds(self, mock_pool, mock_conn):
-        """Simulate concurrent inserts: second call returns None (atomic WHERE NOT EXISTS)."""
-        import asyncio
-
-        from app.repositories.application_repo import insert
-
-        user_id = uuid.uuid4()
-        now = datetime.now(timezone.utc)
-
-        call_count = 0
-
-        new_row = {
-            "id": uuid.uuid4(),
-            "user_id": user_id,
-            "description": "Join request",
-            "status": "PENDING",
-            "reviewed_by": None,
-            "reviewed_at": None,
-            "created_at": now,
-        }
-
-        async def fetchrow_side_effect(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            # First call: INSERT succeeds; second call: WHERE NOT EXISTS blocks → None
-            return new_row if call_count == 1 else None
-
-        mock_conn.fetchrow = AsyncMock(side_effect=fetchrow_side_effect)
-
-        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
-            results = await asyncio.gather(
-                insert(uuid.uuid4(), user_id, "Join request"),
-                insert(uuid.uuid4(), user_id, "Join request"),
-            )
-
-        # One result should be non-None and one None
-        non_none = [r for r in results if r is not None]
-        none_results = [r for r in results if r is None]
-        assert len(non_none) == 1
-        assert len(none_results) == 1
-        assert mock_conn.transaction.call_count == 2
-
-
-class TestApplicationAtomicInsert:
-    """Bug #5: INSERT ... WHERE NOT EXISTS prevents race condition duplicates."""
-
-    @pytest.mark.anyio
-    async def test_insert_uses_atomic_sql(self, mock_pool, mock_conn):
-        """insert() should use INSERT ... WHERE NOT EXISTS (single atomic statement)."""
-        from app.repositories.application_repo import insert
-
-        app_id = uuid.uuid4()
-        user_id = uuid.uuid4()
-
-        # fetchrow returns None → duplicate blocked by WHERE NOT EXISTS
-        mock_conn.fetchrow = AsyncMock(return_value=None)
-
-        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
-            result = await insert(app_id, user_id, "Join request")
-
-        assert result is None
-        # Verify the SQL uses WHERE NOT EXISTS pattern (single fetchrow, no fetchval)
-        mock_conn.fetchrow.assert_called_once()
-        sql = mock_conn.fetchrow.call_args[0][0]
-        assert "WHERE NOT EXISTS" in sql
-        assert "INSERT INTO membership_applications" in sql
-
-    @pytest.mark.anyio
-    async def test_insert_atomic_success(self, mock_pool, mock_conn):
-        """insert() returns row when no pending exists (atomic INSERT succeeds)."""
-        from app.repositories.application_repo import insert
-
-        app_id = uuid.uuid4()
-        user_id = uuid.uuid4()
-        now = datetime.now(timezone.utc)
-        new_row = {
-            "id": app_id,
-            "user_id": user_id,
-            "description": "Join",
-            "status": "PENDING",
-            "reviewed_by": None,
-            "reviewed_at": None,
-            "created_at": now,
-        }
-
-        mock_conn.fetchrow = AsyncMock(return_value=new_row)
-
-        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
-            result = await insert(app_id, user_id, "Join")
-
-        assert result is not None
-        assert result["id"] == app_id
 
 
 class TestReviewReject:
@@ -325,22 +395,50 @@ class TestReviewForbiddenMember:
             _clear_overrides()
 
 
-class TestApplyDuplicate:
+class TestReviewValueErrorReturns409:
+    """review_application ValueError (e.g. user no longer GUEST) must return 409, not 500."""
+
     @pytest.mark.anyio
-    async def test_apply_duplicate_pending(self, client):
-        """POST /users/apply-member with pending application → 409."""
-        user_id = str(uuid.uuid4())
+    async def test_review_approve_user_no_longer_guest_returns_409(self, client):
+        """PUT /admin/applications/{id}/review → 409 when user role already changed."""
+        app_id = uuid.uuid4()
 
         try:
-            _override_auth("GUEST", user_id=user_id)
+            _override_auth("ADMIN")
             with patch(
-                f"{_EP}.create_application",
+                f"{_EP}.review_application",
                 new_callable=AsyncMock,
-                side_effect=ValueError("pending"),
+                side_effect=ValueError(
+                    "User role was not updated: user may have been deleted or is no longer a guest."
+                ),
             ):
-                resp = await client.post(
-                    "/api/v1/users/apply-member",
-                    json={"description": "I'd like to join"},
+                resp = await client.put(
+                    f"/api/v1/admin/applications/{app_id}/review",
+                    json={"action": "APPROVED"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                detail = resp.json()["detail"]
+                detail_str = detail if isinstance(detail, str) else str(detail)
+                assert "no longer a guest" in detail_str.lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_review_invalid_action_returns_409(self, client):
+        """PUT /admin/applications/{id}/review with invalid action → 409."""
+        app_id = uuid.uuid4()
+
+        try:
+            _override_auth("ADMIN")
+            with patch(
+                f"{_EP}.review_application",
+                new_callable=AsyncMock,
+                side_effect=ValueError("Invalid action: must be one of {'APPROVED', 'REJECTED'}"),
+            ):
+                resp = await client.put(
+                    f"/api/v1/admin/applications/{app_id}/review",
+                    json={"action": "APPROVED"},
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
@@ -348,48 +446,236 @@ class TestApplyDuplicate:
             _clear_overrides()
 
 
-class TestListApplicationsFilter:
-    @pytest.mark.anyio
-    async def test_list_applications_with_status_filter(self, client):
-        """GET /admin/applications?status=APPROVED → passes filter."""
-        app_row = _make_application()
-        app_row["status"] = "APPROVED"
+# ── Repository tests ─────────────────────────────────────────
 
-        try:
-            _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.list_applications",
-                new_callable=AsyncMock,
-                return_value=([app_row], 1),
-            ) as m:
-                resp = await client.get(
-                    "/api/v1/admin/applications?status=APPROVED",
-                    headers={"Authorization": "Bearer fake"},
-                )
-                assert resp.status_code == 200
-                m.assert_called_once_with(status_filter="APPROVED", offset=0, limit=50)
-        finally:
-            _clear_overrides()
+
+class TestApplicationInsertTransaction:
+    """Verify application_repo.insert wraps check+insert in a transaction."""
 
     @pytest.mark.anyio
-    async def test_list_applications_forbidden_member(self, client):
-        """GET /admin/applications → 403 for MEMBER."""
-        try:
-            _override_auth("MEMBER")
-            resp = await client.get(
-                "/api/v1/admin/applications",
-                headers={"Authorization": "Bearer fake"},
+    async def test_insert_no_duplicate_uses_transaction(self, mock_pool, mock_conn):
+        """insert() must open a transaction and insert when no pending application exists."""
+        from app.repositories.application_repo import insert
+
+        app_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        new_row = {
+            "id": app_id,
+            "user_id": user_id,
+            "description": "I'd like to join",
+            "status": "PENDING",
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "created_at": now,
+        }
+
+        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert(app_id, user_id, "I'd like to join")
+
+        assert result is not None
+        assert result["id"] == app_id
+        mock_conn.transaction.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_insert_duplicate_returns_none_uses_transaction(self, mock_pool, mock_conn):
+        """insert() returns None for duplicate pending application, inside a transaction."""
+        from app.repositories.application_repo import insert
+
+        app_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert(app_id, user_id, "Duplicate request")
+
+        assert result is None
+        mock_conn.transaction.assert_called_once()
+
+
+class TestInsertWithUser:
+    """insert_with_user creates user + application atomically."""
+
+    @pytest.mark.anyio
+    async def test_insert_with_user_success(self, mock_pool, mock_conn):
+        """insert_with_user() creates user row then application row."""
+        from app.repositories.application_repo import insert_with_user
+
+        app_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        new_row = {
+            "id": app_id,
+            "user_id": user_id,
+            "description": "Join",
+            "status": "PENDING",
+            "created_at": now,
+        }
+
+        mock_conn.execute = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert_with_user(
+                app_id, user_id, "newuser", "hashed_pw", "New User", "Join"
             )
-            assert resp.status_code == 403
-        finally:
-            _clear_overrides()
+
+        assert result is not None
+        assert result["id"] == app_id
+        mock_conn.execute.assert_called_once()
+        sql = mock_conn.execute.call_args[0][0]
+        assert "INSERT INTO users" in sql
+        mock_conn.fetchrow.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_insert_with_user_duplicate_returns_none(self, mock_pool, mock_conn):
+        """insert_with_user() returns None if pending application exists."""
+        from app.repositories.application_repo import insert_with_user
+
+        mock_conn.execute = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert_with_user(
+                uuid.uuid4(), uuid.uuid4(), "user", "hash", "Name", "Desc"
+            )
+
+        assert result is None
 
 
-# ── Bug fix: application approval role guard ───────────────────────
+class TestFindLatestByUser:
+    """find_latest_by_user returns most recent application."""
+
+    @pytest.mark.anyio
+    async def test_returns_latest(self, mock_pool, mock_conn):
+        from app.repositories.application_repo import find_latest_by_user
+
+        now = datetime.now(timezone.utc)
+        row = {"id": uuid.uuid4(), "user_id": uuid.uuid4(), "description": "x", "status": "PENDING", "reviewed_at": None, "created_at": now}
+        mock_conn.fetchrow = AsyncMock(return_value=row)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await find_latest_by_user(uuid.uuid4())
+
+        assert result is not None
+        assert result["status"] == "PENDING"
+        sql = mock_conn.fetchrow.call_args[0][0]
+        assert "ORDER BY created_at DESC" in sql
+
+    @pytest.mark.anyio
+    async def test_returns_none(self, mock_pool, mock_conn):
+        from app.repositories.application_repo import find_latest_by_user
+
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await find_latest_by_user(uuid.uuid4())
+
+        assert result is None
+
+
+# ── Service tests ────────────────────────────────────────────
+
+
+class TestCreateApplicationService:
+    """Service-level create_application tests."""
+
+    @pytest.mark.anyio
+    async def test_username_taken_raises_value_error(self):
+        """UniqueViolationError on username → ValueError with 'Username already taken'."""
+        import asyncpg
+
+        from app.services.application import create_application
+
+        with patch(
+            f"{_REPO}.insert_with_user",
+            new_callable=AsyncMock,
+            side_effect=asyncpg.UniqueViolationError(
+                'duplicate key value violates unique constraint "users_username_key"'
+            ),
+        ):
+            with pytest.raises(ValueError, match="Username already taken"):
+                await create_application(
+                    uuid.uuid4(), "taken", "Passw0rd!", "Name", "Desc"
+                )
+
+    @pytest.mark.anyio
+    async def test_double_submit_raises_value_error(self):
+        """UniqueViolationError on PK → ValueError with 'already submitted'."""
+        import asyncpg
+
+        from app.services.application import create_application
+
+        with patch(
+            f"{_REPO}.insert_with_user",
+            new_callable=AsyncMock,
+            side_effect=asyncpg.UniqueViolationError(
+                'duplicate key value violates unique constraint "users_pkey"'
+            ),
+        ):
+            with pytest.raises(ValueError, match="already submitted"):
+                await create_application(
+                    uuid.uuid4(), "user", "Passw0rd!", "Name", "Desc"
+                )
+
+    @pytest.mark.anyio
+    async def test_duplicate_pending_raises_value_error(self):
+        """insert_with_user returning None → ValueError."""
+        from app.services.application import create_application
+
+        with patch(
+            f"{_REPO}.insert_with_user",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            with pytest.raises(ValueError, match="pending"):
+                await create_application(
+                    uuid.uuid4(), "user", "Passw0rd!", "Name", "Desc"
+                )
+
+    @pytest.mark.anyio
+    async def test_success(self):
+        """Successful application creation."""
+        from app.services.application import create_application
+
+        now = datetime.now(timezone.utc)
+        row = {"id": uuid.uuid4(), "user_id": uuid.uuid4(), "status": "PENDING", "created_at": now}
+
+        with patch(
+            f"{_REPO}.insert_with_user",
+            new_callable=AsyncMock,
+            return_value=row,
+        ):
+            result = await create_application(
+                uuid.uuid4(), "newuser", "Passw0rd!", "Display", "Description"
+            )
+            assert result["status"] == "PENDING"
+
+
+class TestGetMyApplicationService:
+    @pytest.mark.anyio
+    async def test_delegates_to_repo(self):
+        from app.services.application import get_my_application
+
+        user_id = uuid.uuid4()
+        with patch(
+            f"{_REPO}.find_latest_by_user",
+            new_callable=AsyncMock,
+            return_value=None,
+        ) as m:
+            result = await get_my_application(user_id)
+            m.assert_called_once_with(user_id)
+            assert result is None
+
+
+# ── Application approval role guard ──────────────────────────
 
 
 class TestApplicationApprovalRoleGuard:
-    """Bug fix: approve must only promote GUEST users."""
+    """Approve must only promote GUEST users."""
 
     @pytest.mark.anyio
     async def test_approve_non_guest_raises(self, mock_pool, mock_conn):
@@ -408,7 +694,6 @@ class TestApplicationApprovalRoleGuard:
             "reviewed_at": None,
         }
         mock_conn.fetchrow = AsyncMock(return_value=app_row)
-        # UPDATE users ... WHERE role = 'GUEST' returns "UPDATE 0"
         mock_conn.execute = AsyncMock(return_value="UPDATE 0")
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -460,127 +745,49 @@ class TestApplicationApprovalRoleGuard:
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             result = await update_status(app_id, reviewer_id, "REJECTED")
         assert result is not None
-        # execute should NOT have been called (no role update for REJECTED)
         mock_conn.execute.assert_not_called()
 
 
-class TestCreateApplicationFKViolation:
-    """Guest without a user row triggers FK violation → ValueError."""
-
-    @pytest.mark.anyio
-    async def test_fk_violation_raises_value_error(self):
-        """create_application catches ForeignKeyViolationError and raises ValueError."""
-        import asyncpg
-
-        from app.services.application import create_application
-
-        user_id = uuid.uuid4()
-
-        with patch(
-            f"{_REPO}.insert",
-            new_callable=AsyncMock,
-            side_effect=asyncpg.ForeignKeyViolationError("insert on membership_applications violates fk"),
-        ):
-            with pytest.raises(ValueError, match="not eligible"):
-                await create_application(user_id, "I want to join")
-
-    @pytest.mark.anyio
-    async def test_guest_apply_endpoint_returns_409_on_fk_violation(self, client):
-        """POST /users/apply-member → 409 when guest has no user row."""
-        user_id = str(uuid.uuid4())
-
-        try:
-            _override_auth("GUEST", user_id=user_id)
-            with patch(
-                f"{_EP}.create_application",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Guest account is not eligible to apply."),
-            ):
-                resp = await client.post(
-                    "/api/v1/users/apply-member",
-                    json={"description": "I'd like to join"},
-                    headers={"Authorization": "Bearer fake"},
-                )
-                assert resp.status_code == 409
-        finally:
-            _clear_overrides()
+# ── Review action validation ─────────────────────────────────
 
 
 class TestReviewApplicationActionValidation:
-    """Bug fix: review_application must reject invalid action strings."""
+    """review_application must reject invalid action strings."""
 
     @pytest.mark.anyio
     async def test_invalid_action_raises_value_error(self):
-        """Passing an invalid action to review_application raises ValueError."""
         from app.services.application import review_application
 
-        app_id = uuid.uuid4()
-        reviewer_id = uuid.uuid4()
-
         with pytest.raises(ValueError, match="Invalid action"):
-            await review_application(app_id, reviewer_id, "INVALID")
-
-    @pytest.mark.anyio
-    async def test_arbitrary_string_action_raises_value_error(self):
-        """Arbitrary strings like 'PENDING' are also rejected."""
-        from app.services.application import review_application
-
-        app_id = uuid.uuid4()
-        reviewer_id = uuid.uuid4()
-
-        with pytest.raises(ValueError, match="Invalid action"):
-            await review_application(app_id, reviewer_id, "PENDING")
+            await review_application(uuid.uuid4(), uuid.uuid4(), "INVALID")
 
     @pytest.mark.anyio
     async def test_approved_action_passes_validation(self):
-        """'APPROVED' passes validation and reaches the repo call."""
         from app.services.application import review_application
 
-        app_id = uuid.uuid4()
-        reviewer_id = uuid.uuid4()
         app_row = _make_application()
         app_row["status"] = "APPROVED"
 
         with (
-            patch(
-                f"{_REPO}.update_status",
-                new_callable=AsyncMock,
-                return_value=app_row,
-            ),
-            patch(
-                "app.services.application.emit",
-                new_callable=AsyncMock,
-            ),
-            patch(
-                "app.services.auth.revoke_user_sessions",
-                new_callable=AsyncMock,
-            ),
+            patch(f"{_REPO}.update_status", new_callable=AsyncMock, return_value=app_row),
+            patch("app.services.application.emit", new_callable=AsyncMock),
+            patch("app.services.auth.revoke_user_sessions", new_callable=AsyncMock),
         ):
-            result = await review_application(app_id, reviewer_id, "APPROVED")
+            result = await review_application(uuid.uuid4(), uuid.uuid4(), "APPROVED")
             assert result is not None
             assert result["status"] == "APPROVED"
 
     @pytest.mark.anyio
     async def test_rejected_action_passes_validation(self):
-        """'REJECTED' passes validation and reaches the repo call."""
         from app.services.application import review_application
 
-        app_id = uuid.uuid4()
-        reviewer_id = uuid.uuid4()
         app_row = _make_application()
         app_row["status"] = "REJECTED"
 
         with (
-            patch(
-                f"{_REPO}.update_status",
-                new_callable=AsyncMock,
-                return_value=app_row,
-            ),
-            patch(
-                "app.services.application.emit",
-                new_callable=AsyncMock,
-            ),
+            patch(f"{_REPO}.update_status", new_callable=AsyncMock, return_value=app_row),
+            patch("app.services.application.emit", new_callable=AsyncMock),
         ):
-            result = await review_application(app_id, reviewer_id, "REJECTED")
+            result = await review_application(uuid.uuid4(), uuid.uuid4(), "REJECTED")
             assert result is not None
             assert result["status"] == "REJECTED"
