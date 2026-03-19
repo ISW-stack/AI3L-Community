@@ -31,21 +31,23 @@ function onConsentAccepted() {
 <template>
   <div class="min-h-screen bg-surface-alt flex flex-col overflow-x-hidden">
     <AppNavbar />
+
     <main
       :class="[
         'flex-1 flex flex-col w-full',
-        isFullWidth ? '' : 'max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
+        isFullWidth ? '' : 'max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
       ]"
-      style="min-width: 0;" 
+      style="min-width: 0"
     >
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
-          <div class="w-full flex-1 flex flex-col">
+          <div :key="route.path" class="w-full flex-1 flex flex-col">
             <component :is="Component" />
           </div>
         </Transition>
       </RouterView>
     </main>
+
     <AppFooter />
     <ToastNotification />
     <PrivacyConsentModal
@@ -54,10 +56,12 @@ function onConsentAccepted() {
     />
   </div>
 </template>
+
 <style>
 html {
   margin-left: calc(100vw - 100%);
   overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .page-enter-active,
@@ -75,7 +79,7 @@ html {
     width: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #f1f1f1; 
+    background: #f1f1f1;
   }
   ::-webkit-scrollbar-thumb {
     background: #ccc;

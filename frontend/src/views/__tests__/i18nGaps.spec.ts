@@ -110,7 +110,6 @@ function createStubs() {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function createTestRouter(_initialRoute?: string) {
   return createRouter({
     history: createMemoryHistory(),

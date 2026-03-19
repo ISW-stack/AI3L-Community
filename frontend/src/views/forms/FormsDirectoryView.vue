@@ -99,7 +99,7 @@ watch(page, fetchForms)
 
     <SkeletonLoader v-if="initialLoading" :lines="3" variant="card" />
 
-    <div v-else class="min-h-[400px]">
+    <div v-else class="min-h-[200px]">
       <div
         :class="{ 'opacity-50 pointer-events-none': loading }"
         class="transition-opacity duration-150"
