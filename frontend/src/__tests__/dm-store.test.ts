@@ -217,13 +217,16 @@ describe('useDMStore', () => {
   // ============ fetchMessages ============
 
   describe('fetchMessages', () => {
-    it('populates messages array from API on page 1', async () => {
-      const msgs = [makeMessage({ id: 'msg-1' }), makeMessage({ id: 'msg-2' })]
+    it('populates messages array from API on page 1 in chronological order', async () => {
+      // Backend returns newest-first (DESC); store should reverse to chronological (ASC)
+      const msgs = [makeMessage({ id: 'msg-2' }), makeMessage({ id: 'msg-1' })]
       mockListMessages.mockResolvedValueOnce({ messages: msgs, total: 2 })
       const store = useDMStore()
       await store.fetchMessages('conv-1')
       expect(store.messages).toHaveLength(2)
+      // After reverse: msg-1 (older) first, msg-2 (newer) last
       expect(store.messages[0].id).toBe('msg-1')
+      expect(store.messages[1].id).toBe('msg-2')
     })
 
     it('sets messagesTotal from API', async () => {
@@ -233,28 +236,33 @@ describe('useDMStore', () => {
       expect(store.messagesTotal).toBe(50)
     })
 
-    it('prepends older messages on page > 1 without duplicates', async () => {
+    it('prepends older messages on page > 1 in chronological order', async () => {
+      // Current messages already in chronological order
       const store = useDMStore()
       store.messages = [makeMessage({ id: 'msg-3' }), makeMessage({ id: 'msg-4' })]
 
+      // Backend returns DESC for page 2: msg-2 (newer), msg-1 (older)
       mockListMessages.mockResolvedValueOnce({
-        messages: [makeMessage({ id: 'msg-1' }), makeMessage({ id: 'msg-2' })],
+        messages: [makeMessage({ id: 'msg-2' }), makeMessage({ id: 'msg-1' })],
         total: 4,
       })
       await store.fetchMessages('conv-1', 2)
 
       expect(store.messages).toHaveLength(4)
-      // Older messages prepended
+      // After reverse + prepend: msg-1, msg-2, msg-3, msg-4
       expect(store.messages[0].id).toBe('msg-1')
       expect(store.messages[1].id).toBe('msg-2')
+      expect(store.messages[2].id).toBe('msg-3')
+      expect(store.messages[3].id).toBe('msg-4')
     })
 
     it('does not add duplicates on page > 1', async () => {
       const store = useDMStore()
       store.messages = [makeMessage({ id: 'msg-2' }), makeMessage({ id: 'msg-3' })]
 
+      // Backend returns DESC: msg-2 (newer), msg-1 (older) → reversed to msg-1, msg-2
       mockListMessages.mockResolvedValueOnce({
-        messages: [makeMessage({ id: 'msg-1' }), makeMessage({ id: 'msg-2' })],
+        messages: [makeMessage({ id: 'msg-2' }), makeMessage({ id: 'msg-1' })],
         total: 3,
       })
       await store.fetchMessages('conv-1', 2)
@@ -293,6 +301,61 @@ describe('useDMStore', () => {
       const store = useDMStore()
       await store.fetchMessages('conv-abc', 2, 10)
       expect(mockListMessages).toHaveBeenCalledWith('conv-abc', { page: 2, page_size: 10 })
+    })
+  })
+
+  // ============ fetchMessages chronological ordering ============
+
+  describe('fetchMessages chronological ordering', () => {
+    it('reverses DESC backend response to chronological ASC on page 1', async () => {
+      // Backend: [newest, ..., oldest] → Store: [oldest, ..., newest]
+      const msgs = [
+        makeMessage({ id: 'msg-3', created_at: '2026-03-17T03:00:00Z' }),
+        makeMessage({ id: 'msg-2', created_at: '2026-03-17T02:00:00Z' }),
+        makeMessage({ id: 'msg-1', created_at: '2026-03-17T01:00:00Z' }),
+      ]
+      mockListMessages.mockResolvedValueOnce({ messages: msgs, total: 3 })
+      const store = useDMStore()
+      await store.fetchMessages('conv-1')
+
+      expect(store.messages.map((m) => m.id)).toEqual(['msg-1', 'msg-2', 'msg-3'])
+    })
+
+    it('reverses and prepends older page in chronological order', async () => {
+      const store = useDMStore()
+      // Current page 1 already chronological
+      store.messages = [
+        makeMessage({ id: 'msg-4', created_at: '2026-03-17T04:00:00Z' }),
+        makeMessage({ id: 'msg-5', created_at: '2026-03-17T05:00:00Z' }),
+      ]
+
+      // Page 2 from backend (DESC): msg-3, msg-2
+      mockListMessages.mockResolvedValueOnce({
+        messages: [
+          makeMessage({ id: 'msg-3', created_at: '2026-03-17T03:00:00Z' }),
+          makeMessage({ id: 'msg-2', created_at: '2026-03-17T02:00:00Z' }),
+        ],
+        total: 5,
+      })
+      await store.fetchMessages('conv-1', 2)
+
+      // Result: msg-2, msg-3, msg-4, msg-5 (chronological)
+      expect(store.messages.map((m) => m.id)).toEqual(['msg-2', 'msg-3', 'msg-4', 'msg-5'])
+    })
+
+    it('does not mutate the original API response array', async () => {
+      const original = [
+        makeMessage({ id: 'msg-2' }),
+        makeMessage({ id: 'msg-1' }),
+      ]
+      const apiResponse = { messages: [...original], total: 2 }
+      mockListMessages.mockResolvedValueOnce(apiResponse)
+      const store = useDMStore()
+      await store.fetchMessages('conv-1')
+
+      // Original array order preserved (not reversed in-place)
+      expect(apiResponse.messages[0].id).toBe('msg-2')
+      expect(apiResponse.messages[1].id).toBe('msg-1')
     })
   })
 

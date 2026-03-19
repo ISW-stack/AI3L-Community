@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, reactive, computed } from 'vue'
+import { ref, watch, nextTick, reactive, computed, onMounted, onUnmounted } from 'vue'
 import type { DMMessage } from '@/types/dm'
 import { relativeTime } from '@/utils/datetime'
 import { useLocale } from '@/composables/useLocale'
@@ -73,6 +73,26 @@ function scrollToNewMessages() {
   scrollToBottom()
   showNewMessageHint.value = false
 }
+
+// When the container resizes (e.g. MessageInput textarea grows/shrinks),
+// maintain scroll position at bottom if user was already at bottom.
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  if (scrollContainer.value) {
+    resizeObserver = new ResizeObserver(() => {
+      if (isAtBottom.value) {
+        scrollToBottom()
+      }
+    })
+    resizeObserver.observe(scrollContainer.value)
+  }
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+})
 
 function isMine(msg: DMMessage): boolean {
   return msg.sender.id === props.currentUserId
@@ -171,6 +191,8 @@ const messagesWithDateSeparators = computed(() => {
   }
   return result
 })
+
+defineExpose({ scrollToBottom })
 </script>
 
 <template>

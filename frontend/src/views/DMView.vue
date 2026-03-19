@@ -25,6 +25,7 @@ const toast = useToastStore()
 const convPagination = usePagination(30)
 const msgPagination = usePagination(30)
 
+const messageThreadRef = ref<InstanceType<typeof MessageThread> | null>(null)
 const sending = ref(false)
 const recalling = ref(false)
 const recallTargetId = ref<string | null>(null)
@@ -138,6 +139,9 @@ async function selectConversation(conversationId: string, otherUserId: string) {
   }
 
   await nextTick()
+  if (typeof messageThreadRef.value?.scrollToBottom === 'function') {
+    messageThreadRef.value.scrollToBottom()
+  }
 }
 
 function handleSelectConversation(conversationId: string, otherUserId: string) {
@@ -378,6 +382,7 @@ const activeConvUser = computed(() => {
 
           <!-- Message thread -->
           <MessageThread
+            ref="messageThreadRef"
             :messages="dmStore.messages"
             :current-user-id="currentUserId"
             :loading="dmStore.loading"

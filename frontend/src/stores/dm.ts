@@ -56,12 +56,17 @@ export const useDMStore = defineStore('dm', () => {
     try {
       const res = await dmApi.listMessages(conversationId, { page, page_size: pageSize })
       if (fetchId !== _msgFetchId) return // stale response, discard
+      // Backend returns messages ORDER BY created_at DESC (newest first).
+      // Reverse to chronological order: oldest first → newest last (chat convention).
+      const chronological = res.messages.slice().reverse()
       if (page === 1) {
-        messages.value = res.messages
+        messages.value = chronological
       } else {
-        // Prepend older messages (pagination loads older first)
+        // Prepend older messages (pagination loads older pages)
         const existingIds = new Set(messages.value.map((m) => m.id))
-        const newMessages = res.messages.filter((m) => !existingIds.has(m.id))
+        const newMessages = chronological.filter(
+          (m) => !existingIds.has(m.id),
+        )
         messages.value = [...newMessages, ...messages.value]
       }
       messagesTotal.value = res.total
