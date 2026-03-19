@@ -291,51 +291,22 @@ describe('HomeView', () => {
       expect(alerts.length).toBeGreaterThan(0)
     })
 
-    it('shows membership application form', async () => {
+    it('does not show membership application form (anonymous guests cannot apply)', async () => {
       const { wrapper } = await mountHome({ role: 'GUEST' })
-      expect(wrapper.find('.base-textarea').exists()).toBe(true)
+      // Application textarea was removed — guests should register instead
+      expect(wrapper.find('.base-textarea').exists()).toBe(false)
     })
 
-    it('submits membership application on click', async () => {
+    it('shows a register link in the guest alert', async () => {
       const { wrapper } = await mountHome({ role: 'GUEST' })
-      const vm = wrapper.vm as any
-      vm.applicationDesc = 'I want to join the community'
-      await nextTick()
-
-      await vm.submitApplication()
-      await flushPromises()
-      expect(mockApplyForMembership).toHaveBeenCalledWith('I want to join the community')
+      const links = wrapper.findAll('a')
+      const registerLink = links.find((l) => l.attributes('href')?.includes('/register'))
+      expect(registerLink).toBeTruthy()
     })
 
-    it('shows submitted message after successful application', async () => {
-      const { wrapper } = await mountHome({ role: 'GUEST' })
-      const vm = wrapper.vm as any
-      vm.applicationDesc = 'Please accept me'
-      await nextTick()
-
-      await vm.submitApplication()
-      await flushPromises()
-
-      // After submit, the submitted state shows the success message
-      expect(wrapper.text()).toContain(wrapper.vm.$t('home.applyMembership.submitted'))
-    })
-
-    it('handles application error gracefully', async () => {
-      mockApplyForMembership.mockRejectedValue(new Error('Failed'))
-      const { wrapper } = await mountHome({ role: 'GUEST' })
-      const textarea = wrapper.find('.base-textarea')
-      await textarea.setValue('I want to join')
-
-      const buttons = wrapper.findAll('button')
-      const submitBtn = buttons.find(
-        (b) => b.attributes('disabled') === undefined && b.text().trim().length > 0,
-      )
-      if (submitBtn) {
-        await submitBtn.trigger('click')
-        await flushPromises()
-      }
-      // Should still show the form (not submitted)
-      expect(wrapper.find('.base-textarea').exists()).toBe(true)
+    it('never calls applyForMembership', async () => {
+      await mountHome({ role: 'GUEST' })
+      expect(mockApplyForMembership).not.toHaveBeenCalled()
     })
   })
 })

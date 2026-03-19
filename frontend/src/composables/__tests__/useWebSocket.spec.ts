@@ -17,6 +17,7 @@ const {
   mockDmRecallFromWebSocket,
   mockDmReadReceiptFromWebSocket,
   mockDmActiveConversationId,
+  mockSetSigRoleChange,
 } = vi.hoisted(() => ({
   onUnmountedCallbacks: [] as (() => void)[],
   mockClearSession: vi.fn(),
@@ -30,6 +31,7 @@ const {
   mockDmRecallFromWebSocket: vi.fn(),
   mockDmReadReceiptFromWebSocket: vi.fn(),
   mockDmActiveConversationId: { value: null as string | null },
+  mockSetSigRoleChange: vi.fn(),
 }))
 
 // ---------------------------------------------------------------------------
@@ -57,6 +59,7 @@ vi.mock('@/stores/auth', () => ({
       return mockIsAuthenticatedRef.value
     },
     clearSession: mockClearSession,
+    setSigRoleChange: mockSetSigRoleChange,
   }),
 }))
 
@@ -415,6 +418,29 @@ describe('useWebSocket', () => {
       // PING should still work (keepalive must always respond)
       ws.simulateMessage({ type: 'PING' })
       expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'PONG' }))
+    })
+
+    it('calls setSigRoleChange on SIG_ROLE_CHANGED event', async () => {
+      const { connect } = useWebSocket()
+      await connect()
+      const ws = MockWebSocket.instances[0]
+      ws.simulateOpen()
+
+      const sigId = 'sig-uuid-123'
+      ws.simulateMessage({ type: 'SIG_ROLE_CHANGED', sig_id: sigId, new_role: 'MEMBER' })
+
+      expect(mockSetSigRoleChange).toHaveBeenCalledWith(sigId, 'MEMBER')
+    })
+
+    it('calls setSigRoleChange with SUB_ADMIN on promotion event', async () => {
+      const { connect } = useWebSocket()
+      await connect()
+      const ws = MockWebSocket.instances[0]
+      ws.simulateOpen()
+
+      ws.simulateMessage({ type: 'SIG_ROLE_CHANGED', sig_id: 'sig-abc', new_role: 'SUB_ADMIN' })
+
+      expect(mockSetSigRoleChange).toHaveBeenCalledWith('sig-abc', 'SUB_ADMIN')
     })
 
     it('ignores unknown message types without error', async () => {

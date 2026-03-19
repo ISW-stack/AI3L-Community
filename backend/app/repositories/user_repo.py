@@ -142,9 +142,19 @@ async def update_role_in_conn(user_id: uuid.UUID, new_role: str, conn: Any) -> d
 
 
 async def count_super_admins_for_update(conn: Any) -> int:
-    """Count SUPER_ADMIN users with FOR UPDATE lock to prevent TOCTOU races."""
+    """Count SUPER_ADMIN users with FOR UPDATE lock to prevent TOCTOU races.
+
+    Uses a subquery so that FOR UPDATE locks the rows while the outer COUNT(*)
+    aggregates them — PostgreSQL does not allow FOR UPDATE directly on aggregate queries.
+    """
     result = await conn.fetchval(
-        "SELECT COUNT(*) FROM users WHERE role = 'SUPER_ADMIN' AND is_deleted = false FOR UPDATE",
+        """
+        SELECT COUNT(*) FROM (
+            SELECT id FROM users
+            WHERE role = 'SUPER_ADMIN' AND is_deleted = false
+            FOR UPDATE
+        ) AS locked_admins
+        """,
     )
     return int(result)
 

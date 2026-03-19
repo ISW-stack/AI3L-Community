@@ -241,6 +241,24 @@ async def _on_user_role_changed(user_id: str, new_role: str, **_kwargs: Any) -> 
         raise  # Let event bus retry
 
 
+async def _on_sig_role_changed(user_id: str, sig_id: str, new_role: str, **_kwargs: Any) -> None:
+    """Notify the affected user when their SIG membership role is changed."""
+    try:
+        from app.api.v1.endpoints.ws import send_to_user
+
+        await send_to_user(
+            user_id,
+            {"type": "SIG_ROLE_CHANGED", "sig_id": sig_id, "new_role": new_role},
+        )
+    except Exception:
+        logger.error(
+            "Failed to send SIG role change via WebSocket",
+            extra={"user_id": user_id, "sig_id": sig_id},
+            exc_info=True,
+        )
+        raise  # Let event bus retry
+
+
 _SIG_MEMBER_BATCH_SIZE = 200
 _SIG_NOTIFICATION_MAX = 500
 _SIG_NOTIFICATION_CONCURRENCY = 20
@@ -674,6 +692,7 @@ def register_all() -> None:
     on("application.reviewed", _on_application_reviewed)
     on("user.banned", _on_user_banned)
     on("user.role_changed", _on_user_role_changed)
+    on("sig.role_changed", _on_sig_role_changed)
     on("notification.created", _on_notification_created)
     on("post.created_in_sig", _on_post_created_in_sig)
     on("audit.action", _on_audit_action)

@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.converters.sig_converter import async_row_to_member, row_to_sig
 from app.core.database import get_pool
+from app.core.event_bus import emit
 from app.repositories import sig_repo
 
 
@@ -230,6 +231,7 @@ async def demote_sub_admin(
                 raise ValueError("SIG not found.")
 
     logger.info("Sub-admin demoted", extra={"sig_id": str(sig_id), "user_id": user_id})
+    await emit("sig.role_changed", user_id=user_id, sig_id=str(sig_id), new_role="MEMBER")
     return await async_row_to_member(row)
 
 
@@ -265,6 +267,7 @@ async def assign_sub_admin(
                 raise ValueError("SIG not found.")
 
     logger.info("Sub-admin assigned", extra={"sig_id": str(sig_id), "user_id": user_id})
+    await emit("sig.role_changed", user_id=user_id, sig_id=str(sig_id), new_role="SUB_ADMIN")
     return await async_row_to_member(row)
 
 

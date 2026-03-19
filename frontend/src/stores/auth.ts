@@ -22,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   const expiresAt = ref<number>(Number(localStorage.getItem('expiresAt') || '0'))
   const user = ref<UserProfile | null>(null)
   const requiresConsent = ref<boolean>(false)
+  const pendingSigRoleChange = ref<{ sigId: string; newRole: string } | null>(null)
 
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
   let heartbeatFailures = 0
@@ -43,11 +44,20 @@ export const useAuthStore = defineStore('auth', () => {
     startHeartbeat()
   }
 
+  function setSigRoleChange(sigId: string, newRole: string) {
+    pendingSigRoleChange.value = { sigId, newRole }
+  }
+
+  function clearSigRoleChange() {
+    pendingSigRoleChange.value = null
+  }
+
   function clearSession() {
     role.value = null
     expiresAt.value = 0
     user.value = null
     requiresConsent.value = false
+    pendingSigRoleChange.value = null
 
     localStorage.removeItem('role')
     localStorage.removeItem('expiresAt')
@@ -185,12 +195,15 @@ export const useAuthStore = defineStore('auth', () => {
     expiresAt,
     user,
     requiresConsent,
+    pendingSigRoleChange,
     isAuthenticated,
     isAdmin,
     isSuperAdmin,
     isGuest,
     setSession,
     clearSession,
+    setSigRoleChange,
+    clearSigRoleChange,
     login,
     guestLogin,
     register,

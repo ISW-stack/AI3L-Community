@@ -162,6 +162,17 @@ async function handleJoinSig() {
 onMounted(fetchSigData)
 watch(sigId, fetchSigData)
 
+// Refresh current user's role when they receive a SIG_ROLE_CHANGED WS event
+watch(
+  () => auth.pendingSigRoleChange,
+  (change) => {
+    if (change && change.sigId === sigId.value) {
+      auth.clearSigRoleChange()
+      refreshSigRole()
+    }
+  },
+)
+
 const navItems = [
   { key: 'sigs.detail.navPosts', route: 'sig-posts' },
   { key: 'sigs.detail.navMembers', route: 'sig-members' },

@@ -99,6 +99,8 @@ export function useWebSocket() {
             dmStore.recallFromWebSocket(msg.message_id, msg.conversation_id)
           } else if (msg.type === 'DM_READ') {
             dmStore.readReceiptFromWebSocket(msg.conversation_id, msg.read_at)
+          } else if (msg.type === 'SIG_ROLE_CHANGED') {
+            auth.setSigRoleChange(msg.sig_id, msg.new_role)
           }
         } catch {
           // ignore parse errors

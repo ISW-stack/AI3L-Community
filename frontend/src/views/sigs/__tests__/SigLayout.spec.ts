@@ -599,6 +599,59 @@ describe('SigLayout', () => {
     expect(mockLeaveSig).not.toHaveBeenCalled()
   })
 
+  describe('SIG_ROLE_CHANGED WebSocket watch', () => {
+    it('calls refreshSigRole when pendingSigRoleChange matches current sig', async () => {
+      mockGetSig.mockResolvedValue(fakeSig)
+      mockGetMySigRole.mockResolvedValue('MEMBER')
+
+      const { wrapper, auth } = await mountLayout({ sigRole: 'MEMBER' })
+
+      // Simulate promotion: backend set new role in DB
+      mockGetMySigRole.mockResolvedValueOnce('SUB_ADMIN')
+
+      // Trigger the watch by setting pendingSigRoleChange for this sig
+      auth.setSigRoleChange('sig-1', 'SUB_ADMIN')
+      await nextTick()
+      await nextTick()
+
+      // pendingSigRoleChange should be cleared after consumption
+      expect(auth.pendingSigRoleChange).toBeNull()
+      // getMySigRole re-called (once on mount, once on watch trigger)
+      expect(mockGetMySigRole.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('does not call refreshSigRole when pendingSigRoleChange is for a different sig', async () => {
+      mockGetSig.mockResolvedValue(fakeSig)
+      mockGetMySigRole.mockResolvedValue('MEMBER')
+
+      const { auth } = await mountLayout({ sigRole: 'MEMBER' })
+      const callCountBefore = mockGetMySigRole.mock.calls.length
+
+      // Change for a different SIG — should NOT trigger refresh
+      auth.setSigRoleChange('other-sig-id', 'SUB_ADMIN')
+      await nextTick()
+      await nextTick()
+
+      // pendingSigRoleChange NOT cleared (different sig)
+      expect(auth.pendingSigRoleChange).toEqual({ sigId: 'other-sig-id', newRole: 'SUB_ADMIN' })
+      // getMySigRole call count unchanged
+      expect(mockGetMySigRole.mock.calls.length).toBe(callCountBefore)
+    })
+
+    it('clears pendingSigRoleChange after consuming a matching event', async () => {
+      mockGetSig.mockResolvedValue(fakeSig)
+      mockGetMySigRole.mockResolvedValue('SUB_ADMIN')
+
+      const { auth } = await mountLayout({ sigRole: 'MEMBER' })
+
+      auth.setSigRoleChange('sig-1', 'MEMBER')
+      await nextTick()
+      await nextTick()
+
+      expect(auth.pendingSigRoleChange).toBeNull()
+    })
+  })
+
   describe('mobile tab scroll indicator (M8)', () => {
     it('renders a scrollable tab nav for mobile', async () => {
       const { wrapper } = await mountLayout({

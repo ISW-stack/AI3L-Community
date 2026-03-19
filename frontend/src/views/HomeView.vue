@@ -6,13 +6,11 @@ import { useNotificationStore } from '@/stores/notifications'
 import { useToastStore } from '@/stores/toast'
 import { listPosts, getTrendingPosts, getPublicStats } from '@/api/posts'
 import { listMySigs, listSigs } from '@/api/sigs'
-import { applyForMembership } from '@/api/users'
 import type { Post, Sig } from '@/types'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
-import BaseTextarea from '@/components/base/BaseTextarea.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import { useFetchPaginated } from '@/composables/useFetchPaginated'
 import { getErrorMessage } from '@/utils/error'
@@ -43,25 +41,6 @@ const loadingTrending = ref(false)
 const loadingMySigs = ref(false)
 const loadingStats = ref(false)
 const loadingFeaturedSigs = ref(false)
-
-// Guest membership application
-const applicationDesc = ref('')
-const applyLoading = ref(false)
-const applicationSent = ref(false)
-
-async function submitApplication() {
-  if (!applicationDesc.value.trim()) return
-  applyLoading.value = true
-  try {
-    await applyForMembership(applicationDesc.value.trim())
-    applicationSent.value = true
-    toast.show(t('home.applyMembership.success'), 'success')
-  } catch (err: unknown) {
-    toast.show(getErrorMessage(err, t('home.applyMembership.error')), 'error')
-  } finally {
-    applyLoading.value = false
-  }
-}
 
 async function fetchTrendingPosts() {
   loadingTrending.value = true
@@ -158,33 +137,6 @@ onMounted(() => {
             {{ t('home.guestSignUpSuffix') }}
           </BaseAlert>
 
-          <!-- Guest membership application -->
-          <BaseCard v-if="auth.isGuest" padding="lg">
-            <h3 class="text-lg font-semibold text-foreground mb-2">
-              {{ t('home.applyMembership.title') }}
-            </h3>
-            <div v-if="applicationSent" class="text-sm text-success-600">
-              {{ t('home.applyMembership.submitted') }}
-            </div>
-            <div v-else>
-              <p class="text-sm text-muted mb-3">
-                {{ t('home.applyMembership.description') }}
-              </p>
-              <BaseTextarea
-                v-model="applicationDesc"
-                :placeholder="t('home.applyMembership.placeholder')"
-                :rows="3"
-                class="mb-3"
-              />
-              <BaseButton
-                :disabled="!applicationDesc.trim() || applyLoading"
-                :loading="applyLoading"
-                @click="submitApplication"
-              >
-                {{ t('home.applyMembership.submitBtn') }}
-              </BaseButton>
-            </div>
-          </BaseCard>
 
           <!-- Trending Posts -->
           <div v-if="!auth.isGuest">
