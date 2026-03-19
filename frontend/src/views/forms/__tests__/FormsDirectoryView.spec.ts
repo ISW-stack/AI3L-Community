@@ -200,7 +200,7 @@ describe('FormsDirectoryView', () => {
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
-  it('shows loading skeleton while fetching', async () => {
+  it('shows loading skeleton only on initial fetch', async () => {
     mockListStandaloneForms.mockReturnValue(new Promise(() => {}))
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -218,6 +218,51 @@ describe('FormsDirectoryView', () => {
     await flushPromises()
 
     expect(wrapper.find('.skeleton-loader').exists()).toBe(true)
+  })
+
+  it('does not show skeleton on subsequent search fetches', async () => {
+    const { wrapper } = await mountDirectory()
+    // After initial load, skeleton should be gone
+    expect(wrapper.find('.skeleton-loader').exists()).toBe(false)
+
+    // Trigger a search — should NOT show skeleton
+    mockListStandaloneForms.mockReturnValue(new Promise(() => {}))
+    const vm = wrapper.vm as any
+    vm.searchQuery = 'test'
+    vm.fetchForms()
+    await flushPromises()
+
+    expect(wrapper.find('.skeleton-loader').exists()).toBe(false)
+    // Previous content should still be visible (with opacity applied)
+    expect(wrapper.text()).toContain('Research Survey')
+  })
+
+  it('applies loading opacity during search without removing content', async () => {
+    const { wrapper } = await mountDirectory()
+
+    // Start a search that won't resolve
+    mockListStandaloneForms.mockReturnValue(new Promise(() => {}))
+    const vm = wrapper.vm as any
+    vm.searchQuery = 'test'
+    vm.fetchForms()
+    await flushPromises()
+
+    // Content area should have opacity class
+    const contentDiv = wrapper.find('.opacity-50')
+    expect(contentDiv.exists()).toBe(true)
+  })
+
+  it('content area has min-height to prevent layout shift', async () => {
+    mockListStandaloneForms.mockResolvedValue({ forms: [], total: 0 })
+    const { wrapper } = await mountDirectory()
+    const vm = wrapper.vm as any
+    vm.searchQuery = 'nonexistent'
+    await vm.fetchForms()
+    await flushPromises()
+
+    // The wrapper div should have min-h class
+    const minHeightDiv = wrapper.find('.min-h-\\[200px\\]')
+    expect(minHeightDiv.exists()).toBe(true)
   })
 
   it('links form cards to detail page', async () => {

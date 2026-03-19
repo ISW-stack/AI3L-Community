@@ -23,6 +23,7 @@ const toast = useToastStore()
 
 const forms = ref<FormData[]>([])
 const loading = ref(false)
+const initialLoading = ref(true)
 const PAGE_SIZE = 12
 const searchQuery = ref('')
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
@@ -50,6 +51,7 @@ async function fetchForms() {
     toast.show(getErrorMessage(e, t('formsDirectory.loadError')), 'error')
   } finally {
     loading.value = false
+    initialLoading.value = false
   }
 }
 
@@ -95,59 +97,68 @@ watch(page, fetchForms)
       />
     </div>
 
-    <SkeletonLoader v-if="loading" :lines="3" variant="card" />
+    <SkeletonLoader v-if="initialLoading" :lines="3" variant="card" />
 
-    <EmptyState
-      v-else-if="forms.length === 0 && !searchQuery"
-      :title="t('formsDirectory.noForms')"
-      :message="t('formsDirectory.noFormsMessage')"
-    />
-
-    <EmptyState
-      v-else-if="forms.length === 0 && searchQuery"
-      :title="t('formsDirectory.noSearchResults')"
-      :message="t('formsDirectory.noSearchResultsMessage')"
-    />
-
-    <template v-else>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <router-link
-          v-for="form in forms"
-          :key="form.id"
-          :to="`/forms/${form.id}`"
-          class="block"
-        >
-          <BaseCard hoverable class="h-full">
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <h2 class="text-lg font-semibold text-foreground line-clamp-1">{{ form.title }}</h2>
-              <BaseBadge :variant="form.is_active ? 'success' : 'danger'" class="shrink-0">
-                {{ form.is_active ? t('formsDirectory.active') : t('formsDirectory.closed') }}
-              </BaseBadge>
-            </div>
-            <p v-if="form.description" class="text-sm text-muted mb-3 line-clamp-2">
-              {{ truncateText(stripHtml(form.description), 120) }}
-            </p>
-            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-              <span>{{ form.response_count }} {{ t('formsDirectory.responses') }}</span>
-              <span v-if="form.deadline">{{
-                t('formsDirectory.due', { date: formatDeadline(form.deadline) })
-              }}</span>
-              <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
-            </div>
-          </BaseCard>
-        </router-link>
-      </div>
-
-      <div class="mt-6">
-        <BasePagination
-          :current-page="page"
-          :total-pages="totalPages"
-          :page-size="PAGE_SIZE"
-          :total="total"
-          @update:current-page="handlePageChange"
+    <div v-else class="min-h-[200px]">
+      <div
+        :class="{ 'opacity-50 pointer-events-none': loading }"
+        class="transition-opacity duration-150"
+      >
+        <EmptyState
+          v-if="forms.length === 0 && !searchQuery"
+          :title="t('formsDirectory.noForms')"
+          :message="t('formsDirectory.noFormsMessage')"
         />
+
+        <EmptyState
+          v-else-if="forms.length === 0 && searchQuery"
+          :title="t('formsDirectory.noSearchResults')"
+          :message="t('formsDirectory.noSearchResultsMessage')"
+        />
+
+        <template v-else>
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <router-link
+              v-for="form in forms"
+              :key="form.id"
+              :to="`/forms/${form.id}`"
+              class="block"
+            >
+              <BaseCard hoverable class="h-full">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <h2 class="text-lg font-semibold text-foreground line-clamp-1">
+                    {{ form.title }}
+                  </h2>
+                  <BaseBadge :variant="form.is_active ? 'success' : 'danger'" class="shrink-0">
+                    {{ form.is_active ? t('formsDirectory.active') : t('formsDirectory.closed') }}
+                  </BaseBadge>
+                </div>
+                <p v-if="form.description" class="text-sm text-muted mb-3 line-clamp-2">
+                  {{ truncateText(stripHtml(form.description), 120) }}
+                </p>
+                <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                  <span>{{ form.response_count }} {{ t('formsDirectory.responses') }}</span>
+                  <span v-if="form.deadline">{{
+                    t('formsDirectory.due', { date: formatDeadline(form.deadline) })
+                  }}</span>
+                  <span>{{ t('common.by') }} {{ form.created_by_name }}</span>
+                </div>
+              </BaseCard>
+            </router-link>
+          </div>
+
+          <div class="mt-6">
+            <BasePagination
+              :current-page="page"
+              :total-pages="totalPages"
+              :page-size="PAGE_SIZE"
+              :total="total"
+              @update:current-page="handlePageChange"
+            />
+          </div>
+        </template>
       </div>
-    </template>
+    </div>
 
     <p class="mt-4 text-xs text-muted">{{ t('formsDirectory.totalForms', { count: total }) }}</p>
   </div>

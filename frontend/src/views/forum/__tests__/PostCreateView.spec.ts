@@ -378,16 +378,60 @@ describe('PostCreateView', () => {
     expect(mockCreatePost).not.toHaveBeenCalled()
   })
 
-  it('shows back link to forum', async () => {
+  it('renders back button', async () => {
     const { wrapper } = await mountPostCreate()
-    const backLink = wrapper.findAll('a').find((l) => l.attributes('href')?.includes('/forum'))
-    expect(backLink).toBeTruthy()
+    const backBtn = wrapper.findAll('button').find((b) => b.text().includes('Back'))
+    expect(backBtn).toBeTruthy()
   })
 
-  it('shows back link to SIG when posting from SIG', async () => {
-    const { wrapper } = await mountPostCreate({ query: { sig_id: 'sig1' } })
-    const backLink = wrapper.findAll('a').find((l) => l.attributes('href')?.includes('/sigs/sig1'))
-    expect(backLink).toBeTruthy()
+  it('back button uses router.back() when history exists', async () => {
+    const { wrapper, router } = await mountPostCreate()
+    const backSpy = vi.spyOn(router, 'back')
+    // Simulate history state with a back entry
+    Object.defineProperty(window.history, 'state', {
+      value: { ...window.history.state, back: '/some-page' },
+      writable: true,
+      configurable: true,
+    })
+
+    const backBtn = wrapper.findAll('button').find((b) => b.text().includes('Back'))
+    await backBtn!.trigger('click')
+
+    expect(backSpy).toHaveBeenCalled()
+    backSpy.mockRestore()
+  })
+
+  it('back button falls back to home when no history', async () => {
+    const { wrapper, router } = await mountPostCreate()
+    const pushSpy = vi.spyOn(router, 'push')
+    // Simulate no back entry in history state
+    Object.defineProperty(window.history, 'state', {
+      value: { ...window.history.state, back: null },
+      writable: true,
+      configurable: true,
+    })
+
+    const backBtn = wrapper.findAll('button').find((b) => b.text().includes('Back'))
+    await backBtn!.trigger('click')
+
+    expect(pushSpy).toHaveBeenCalledWith('/')
+    pushSpy.mockRestore()
+  })
+
+  it('back button falls back to SIG when posting from SIG with no history', async () => {
+    const { wrapper, router } = await mountPostCreate({ query: { sig_id: 'sig1' } })
+    const pushSpy = vi.spyOn(router, 'push')
+    Object.defineProperty(window.history, 'state', {
+      value: { ...window.history.state, back: null },
+      writable: true,
+      configurable: true,
+    })
+
+    const backBtn = wrapper.findAll('button').find((b) => b.text().includes('Back'))
+    await backBtn!.trigger('click')
+
+    expect(pushSpy).toHaveBeenCalledWith('/sigs/sig1')
+    pushSpy.mockRestore()
   })
 
   describe('draft integration with useDraft', () => {

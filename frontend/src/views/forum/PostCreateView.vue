@@ -190,6 +190,17 @@ onMounted(() => {
   fetchMySigs()
 })
 
+function goBack() {
+  // If Vue Router has a previous route in history, go back to it
+  const hasHistory = window.history.state?.back != null
+  if (hasHistory) {
+    router.back()
+  } else {
+    // Fallback when opened directly (no browser history)
+    router.push(sigId.value ? `/sigs/${sigId.value}` : '/')
+  }
+}
+
 onBeforeRouteLeave(() => {
   if (title.value?.trim() || content.value?.trim()) {
     return window.confirm('You have unsaved changes. Are you sure you want to leave?')
@@ -200,12 +211,13 @@ onBeforeRouteLeave(() => {
 <template>
   <div class="max-w-3xl mx-auto py-6">
     <div class="mb-4">
-      <router-link
-        :to="sigId ? `/sigs/${sigId}` : '/forum'"
+      <button
+        type="button"
         class="text-sm text-brand-600 hover:underline flex items-center gap-1"
+        @click="goBack"
       >
         <span>&larr;</span> {{ t('post.create.back') }}
-      </router-link>
+      </button>
     </div>
 
     <h1 class="text-2xl font-bold text-foreground mb-6">{{ t('post.create.title') }}</h1>
