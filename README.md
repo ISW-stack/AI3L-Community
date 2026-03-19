@@ -231,24 +231,24 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-03-18 — auto-generated on every push to `main`_
+_Last updated: 2026-03-19 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +235,007 |
-| Total lines removed (all commits) | -35,619 |
+| Total lines added (all commits) | +235,189 |
+| Total lines removed (all commits) | -35,689 |
 | Backend source lines (excl. tests) | 22,987 |
-| Frontend source lines (excl. tests) | 52,486 |
+| Frontend source lines (excl. tests) | 52,509 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
     "Python" : 82190
-    "TypeScript" : 75999
-    "Vue" : 19646
+    "TypeScript" : 76088
+    "Vue" : 19669
     "CSS" : 109
 ```
 
@@ -261,10 +261,10 @@ pie title Lines of Code by Language
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
 | Backend (pytest) | 2,410 | 22,987 | 56,656 |
-| Frontend (Vitest) | 2,515 | 52,486 | 43,159 |
-| **Total** | **4,925** | **75,473** | **99,815** |
+| Frontend (Vitest) | 2,520 | 52,509 | 43,248 |
+| **Total** | **4,930** | **75,496** | **99,904** |
 
-Test-to-source ratio: **1.32** (99,815 lines of tests for every 75,473 lines of source)
+Test-to-source ratio: **1.32** (99,904 lines of tests for every 75,496 lines of source)
 
 ### Additional Metrics
 
@@ -272,7 +272,7 @@ Test-to-source ratio: **1.32** (99,815 lines of tests for every 75,473 lines of 
 | --- | ---: |
 | REST API endpoints | 172 |
 | Database migrations | 41 |
-| Longest commit streak | 19 days |
+| Longest commit streak | 20 days |
 
 ### Top 5 Largest Source Files
 
@@ -288,9 +288,9 @@ Test-to-source ratio: **1.32** (99,815 lines of tests for every 75,473 lines of 
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 315 | +232,611 | -34,139 |
+| Isaries | 316 | +232,784 | -34,200 |
 | SW9526 | 21 | +4,761 | -1,554 |
-| github-actions[bot] | 13 | +154 | -154 |
+| github-actions[bot] | 14 | +163 | -163 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
 
