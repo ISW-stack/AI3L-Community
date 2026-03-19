@@ -196,9 +196,14 @@ async def find_pending_requests(
 async def count_friends(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
         """
-        SELECT COUNT(*) FROM friendships
-        WHERE status = 'ACCEPTED'
-          AND (requester_id = $1 OR addressee_id = $1)
+        SELECT COUNT(*) FROM friendships f
+        JOIN users u ON u.id = CASE
+            WHEN f.requester_id = $1 THEN f.addressee_id
+            ELSE f.requester_id
+        END
+        WHERE f.status = 'ACCEPTED'
+          AND (f.requester_id = $1 OR f.addressee_id = $1)
+          AND u.is_deleted = false
         """,
         user_id,
     )
@@ -362,7 +367,12 @@ async def is_following(
 
 async def count_followers(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
-        "SELECT COUNT(*) FROM follows WHERE following_id = $1",
+        """
+        SELECT COUNT(*) FROM follows f
+        JOIN users u ON u.id = f.follower_id
+        WHERE f.following_id = $1
+          AND u.is_deleted = false
+        """,
         user_id,
     )
     return int(result)
@@ -370,7 +380,12 @@ async def count_followers(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
 
 async def count_following(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
-        "SELECT COUNT(*) FROM follows WHERE follower_id = $1",
+        """
+        SELECT COUNT(*) FROM follows f
+        JOIN users u ON u.id = f.following_id
+        WHERE f.follower_id = $1
+          AND u.is_deleted = false
+        """,
         user_id,
     )
     return int(result)
@@ -449,7 +464,12 @@ async def find_blocks(
 
 async def count_blocks(conn: asyncpg.Connection, user_id: uuid.UUID) -> int:
     result = await conn.fetchval(
-        "SELECT COUNT(*) FROM blocks WHERE blocker_id = $1",
+        """
+        SELECT COUNT(*) FROM blocks b
+        JOIN users u ON u.id = b.blocked_id
+        WHERE b.blocker_id = $1
+          AND u.is_deleted = false
+        """,
         user_id,
     )
     return int(result)

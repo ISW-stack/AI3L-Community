@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import FriendsView from '../FriendsView.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const mockListFriends = vi.fn()
 const mockListFriendRequests = vi.fn()
@@ -116,9 +117,27 @@ function createStubs() {
   }
 }
 
+// Current user ID used in test data (addressee_id in fakeRequests = 'me')
+const CURRENT_USER_ID = 'me'
+
 async function mountFriendsView() {
   const pinia = createPinia()
   setActivePinia(pinia)
+
+  // Set up auth store so incomingRequests computed can compare addressee_id
+  const auth = useAuthStore()
+  auth.user = {
+    id: CURRENT_USER_ID,
+    username: 'me',
+    display_name: 'Me',
+    avatar_url: null,
+    role: 'MEMBER',
+    bio: null,
+    affiliation: null,
+    orcid: null,
+    preferred_language: 'en',
+  } as never
+
   const router = createTestRouter()
 
   await router.push('/friends')
@@ -277,5 +296,84 @@ describe('FriendsView', () => {
     await flushPromises()
 
     expect(mockAcceptFriendRequest).toHaveBeenCalledWith('r1')
+  })
+
+  it('always refreshes friends list after accepting, regardless of active tab', async () => {
+    const { wrapper } = await mountFriendsView()
+    // Start on requests tab so the old conditional would NOT call fetchFriends
+    const requestsTab = wrapper
+      .findAll('button[role="tab"]')
+      .find((b) => b.text().includes('Requests'))
+    await requestsTab!.trigger('click')
+    await flushPromises()
+    mockListFriends.mockClear()
+
+    const requestCard = wrapper.find('.friend-request-card')
+    await requestCard.trigger('click')
+    await flushPromises()
+
+    // fetchFriends must always be called, not only when on the friends tab
+    expect(mockListFriends).toHaveBeenCalled()
+  })
+
+  it('prevents double-click accept via actionLoading guard', async () => {
+    let resolveAccept!: () => void
+    mockAcceptFriendRequest.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveAccept = resolve
+      }),
+    )
+
+    const { wrapper } = await mountFriendsView()
+    const requestsTab = wrapper
+      .findAll('button[role="tab"]')
+      .find((b) => b.text().includes('Requests'))
+    await requestsTab!.trigger('click')
+    await flushPromises()
+
+    const requestCard = wrapper.find('.friend-request-card')
+    // Trigger two rapid clicks
+    await requestCard.trigger('click')
+    await requestCard.trigger('click')
+    resolveAccept()
+    await flushPromises()
+
+    // API should only be called once despite two clicks
+    expect(mockAcceptFriendRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows outgoing requests section only for non-incoming requests', async () => {
+    const outgoingRequest = {
+      id: 'r2',
+      requester_id: CURRENT_USER_ID, // we are the requester → outgoing
+      requester_name: 'Me',
+      requester_username: 'me',
+      requester_avatar_url: null,
+      addressee_id: 'u4',
+      addressee_name: 'Dave',
+      addressee_username: 'dave',
+      addressee_avatar_url: null,
+      status: 'pending',
+      created_at: '2026-03-02T00:00:00Z',
+    }
+    mockListFriendRequests.mockResolvedValue({
+      requests: [...fakeRequests, outgoingRequest],
+      total: 2,
+    })
+
+    const { wrapper } = await mountFriendsView()
+    const requestsTab = wrapper
+      .findAll('button[role="tab"]')
+      .find((b) => b.text().includes('Requests'))
+    await requestsTab!.trigger('click')
+    await flushPromises()
+
+    // r2 is outgoing (requester = me, addressee = Dave) → shows in outgoing section
+    // FriendRequestCard stub shows requester_name || addressee_name
+    // For outgoing: requester_name = 'Me', so stub shows 'Me'
+    // Verify the outgoing section header is shown (means the section is rendered)
+    expect(wrapper.text()).toContain('Sent Requests')
+    // Charlie is incoming (addressee_id = 'me') → appears in incoming section
+    expect(wrapper.text()).toContain('Charlie')
   })
 })

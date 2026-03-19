@@ -69,6 +69,7 @@ function createTestRouter() {
     routes: [
       { path: '/notifications', component: NotificationsView },
       { path: '/forum/:id', component: { template: '<div />' } },
+      { path: '/friends', component: { template: '<div />' } },
     ],
   })
 }
@@ -429,5 +430,83 @@ describe('NotificationsView', () => {
     expect(store.unreadCount).toBe(2)
     // Notification should be removed from array
     expect(vm.notifications.find((n: any) => n.id === 'n2')).toBeUndefined()
+  })
+
+  it('navigates to /friends for friendship entity_type notifications', async () => {
+    mockListNotifications.mockResolvedValue({
+      notifications: [
+        {
+          id: 'fr1',
+          message: 'You have a new friend request',
+          is_read: false,
+          action_type: 'FRIEND_REQUEST',
+          entity_type: 'friendship',
+          entity_id: 'some-friendship-uuid',
+          trigger_user: { id: 'u5', display_name: 'Charlie', avatar_url: null },
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+      total: 1,
+      unread_count: 1,
+    })
+    mockMarkRead.mockResolvedValue({})
+
+    const { wrapper, router } = await mountNotifications()
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const notifBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('You have a new friend request'))
+    expect(notifBtn).toBeTruthy()
+    await notifBtn!.trigger('click')
+    await flushPromises()
+
+    expect(pushSpy).toHaveBeenCalledWith('/friends')
+  })
+
+  it('navigates to /forum/:id for post entity_type notifications', async () => {
+    const { wrapper, router } = await mountNotifications()
+    const pushSpy = vi.spyOn(router, 'push')
+
+    // Click on Alice's notification (entity_type: 'post', entity_id: 'p1')
+    const notifBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Alice liked your post'))
+    expect(notifBtn).toBeTruthy()
+    await notifBtn!.trigger('click')
+    await flushPromises()
+
+    expect(pushSpy).toHaveBeenCalledWith('/forum/p1')
+  })
+
+  it('does not navigate for notifications without entity_type or entity_id', async () => {
+    mockListNotifications.mockResolvedValue({
+      notifications: [
+        {
+          id: 'sys1',
+          message: 'System notice',
+          is_read: false,
+          action_type: 'SYSTEM',
+          entity_type: null,
+          entity_id: null,
+          trigger_user: null,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+      total: 1,
+      unread_count: 1,
+    })
+    mockMarkRead.mockResolvedValue({})
+
+    const { wrapper, router } = await mountNotifications()
+    const pushSpy = vi.spyOn(router, 'push')
+
+    const notifBtn = wrapper.findAll('button').find((b) => b.text().includes('System notice'))
+    expect(notifBtn).toBeTruthy()
+    await notifBtn!.trigger('click')
+    await flushPromises()
+
+    // Should not navigate to /forum/null or any path
+    expect(pushSpy).not.toHaveBeenCalled()
   })
 })

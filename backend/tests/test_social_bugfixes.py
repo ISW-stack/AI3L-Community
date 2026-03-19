@@ -7,6 +7,10 @@ Covers:
 - B4: send_friend_request block check inside transaction
 - B5: DM send_message block+friendship checks inside transaction
 - B6: Recommendations exclude blocked users
+- B7: reject_friend_request_endpoint applies rate limit
+- B8: count_blocks excludes soft-deleted blocked users
+- B9: count_friends excludes soft-deleted friends
+- B10: count_followers/count_following exclude soft-deleted users
 """
 
 import uuid
@@ -283,3 +287,175 @@ class TestRecommendationsExcludeBlocked:
         # Bilateral check: both directions
         assert "blocker_id = $1" in sql
         assert "blocked_id = $1" in sql
+
+
+# ===========================================================================
+# B7: reject_friend_request_endpoint — must apply rate limit
+# ===========================================================================
+
+
+class TestRejectFriendRequestEndpointRateLimit:
+    @pytest.mark.anyio
+    async def test_reject_endpoint_enforces_rate_limit(self, client):
+        """PUT /social/friends/{id}/reject returns 429 when rate limit is exceeded."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        user_id = str(uuid.uuid4())
+        app.dependency_overrides[get_current_user] = lambda: {
+            "sub": user_id,
+            "role": "MEMBER",
+            "jti": str(uuid.uuid4()),
+        }
+        try:
+            with patch(
+                "app.api.v1.endpoints.social.check_rate_limit",
+                new_callable=AsyncMock,
+                return_value=False,
+            ):
+                resp = await client.put(
+                    f"/api/v1/social/friends/{uuid.uuid4()}/reject",
+                )
+            assert resp.status_code == 429
+        finally:
+            app.dependency_overrides.clear()
+
+    @pytest.mark.anyio
+    async def test_reject_endpoint_uses_social_rate_limit_key(self, client):
+        """reject endpoint uses social:reject:{user_id} as rate limit key."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        user_id = str(uuid.uuid4())
+        app.dependency_overrides[get_current_user] = lambda: {
+            "sub": user_id,
+            "role": "MEMBER",
+            "jti": str(uuid.uuid4()),
+        }
+        captured_keys: list[str] = []
+
+        async def capture_rate_limit(key: str, *args, **kwargs) -> bool:
+            captured_keys.append(key)
+            return False  # trigger 429 to short-circuit
+
+        try:
+            with patch("app.api.v1.endpoints.social.check_rate_limit", side_effect=capture_rate_limit):
+                await client.put(
+                    f"/api/v1/social/friends/{uuid.uuid4()}/reject",
+                )
+            assert any(k.startswith("social:reject:") for k in captured_keys), (
+                f"Expected 'social:reject:' key, got: {captured_keys}"
+            )
+            assert any(user_id in k for k in captured_keys)
+        finally:
+            app.dependency_overrides.clear()
+
+
+# ===========================================================================
+# B8: count_blocks — must exclude soft-deleted blocked users
+# ===========================================================================
+
+
+class TestCountBlocksExcludesDeleted:
+    @pytest.mark.anyio
+    async def test_count_blocks_sql_joins_users_and_filters_deleted(self, mock_conn):
+        """count_blocks SQL joins users table and filters is_deleted = false."""
+        from app.repositories.social_repo import count_blocks
+
+        mock_conn.fetchval = AsyncMock(return_value=3)
+
+        await count_blocks(mock_conn, uuid.uuid4())
+
+        sql = mock_conn.fetchval.call_args[0][0]
+        assert "JOIN users" in sql
+        assert "is_deleted = false" in sql
+
+    @pytest.mark.anyio
+    async def test_count_blocks_deleted_user_not_counted(self, mock_conn):
+        """count_blocks returns the DB value (soft-deleted users filtered by SQL)."""
+        from app.repositories.social_repo import count_blocks
+
+        # DB returns 2 (after filtering soft-deleted)
+        mock_conn.fetchval = AsyncMock(return_value=2)
+
+        result = await count_blocks(mock_conn, uuid.uuid4())
+        assert result == 2
+
+
+# ===========================================================================
+# B9: count_friends — must exclude soft-deleted friends
+# ===========================================================================
+
+
+class TestCountFriendsExcludesDeleted:
+    @pytest.mark.anyio
+    async def test_count_friends_sql_joins_users_and_filters_deleted(self, mock_conn):
+        """count_friends SQL joins users table to exclude soft-deleted friends."""
+        from app.repositories.social_repo import count_friends
+
+        mock_conn.fetchval = AsyncMock(return_value=5)
+
+        await count_friends(mock_conn, uuid.uuid4())
+
+        sql = mock_conn.fetchval.call_args[0][0]
+        assert "JOIN users" in sql
+        assert "is_deleted = false" in sql
+
+    @pytest.mark.anyio
+    async def test_count_friends_returns_db_value(self, mock_conn):
+        """count_friends returns the integer result from DB."""
+        from app.repositories.social_repo import count_friends
+
+        mock_conn.fetchval = AsyncMock(return_value=4)
+
+        result = await count_friends(mock_conn, uuid.uuid4())
+        assert result == 4
+
+
+# ===========================================================================
+# B10: count_followers / count_following — must exclude soft-deleted users
+# ===========================================================================
+
+
+class TestCountFollowersFollowingExcludeDeleted:
+    @pytest.mark.anyio
+    async def test_count_followers_sql_joins_users_and_filters_deleted(self, mock_conn):
+        """count_followers SQL joins users table and filters is_deleted = false."""
+        from app.repositories.social_repo import count_followers
+
+        mock_conn.fetchval = AsyncMock(return_value=10)
+
+        await count_followers(mock_conn, uuid.uuid4())
+
+        sql = mock_conn.fetchval.call_args[0][0]
+        assert "JOIN users" in sql
+        assert "is_deleted = false" in sql
+
+    @pytest.mark.anyio
+    async def test_count_following_sql_joins_users_and_filters_deleted(self, mock_conn):
+        """count_following SQL joins users table and filters is_deleted = false."""
+        from app.repositories.social_repo import count_following
+
+        mock_conn.fetchval = AsyncMock(return_value=7)
+
+        await count_following(mock_conn, uuid.uuid4())
+
+        sql = mock_conn.fetchval.call_args[0][0]
+        assert "JOIN users" in sql
+        assert "is_deleted = false" in sql
+
+    @pytest.mark.anyio
+    async def test_count_followers_returns_db_value(self, mock_conn):
+        """count_followers returns the integer from DB."""
+        from app.repositories.social_repo import count_followers
+
+        mock_conn.fetchval = AsyncMock(return_value=3)
+        assert await count_followers(mock_conn, uuid.uuid4()) == 3
+
+    @pytest.mark.anyio
+    async def test_count_following_returns_db_value(self, mock_conn):
+        """count_following returns the integer from DB."""
+        from app.repositories.social_repo import count_following
+
+        mock_conn.fetchval = AsyncMock(return_value=6)
+        assert await count_following(mock_conn, uuid.uuid4()) == 6

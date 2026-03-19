@@ -118,8 +118,17 @@ async def reject_friend_request_endpoint(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> MessageResponse:
     """Reject a pending friend request."""
+    user_id = current_user["sub"]
+    allowed = await check_rate_limit(
+        f"social:reject:{user_id}",
+        RATE_LIMIT_SOCIAL[0],
+        RATE_LIMIT_SOCIAL[1],
+    )
+    if not allowed:
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
     pool = get_pool()
-    await reject_friend_request(pool, friendship_id, uuid.UUID(current_user["sub"]))
+    await reject_friend_request(pool, friendship_id, uuid.UUID(user_id))
     return MessageResponse(message="Friend request rejected.")
 
 

@@ -73,6 +73,7 @@ async def test_friend_accepted_handler_creates_notification():
 
     requester_id = str(uuid.uuid4())
     friend_id = str(uuid.uuid4())
+    friendship_id = str(uuid.uuid4())
 
     with (
         patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
@@ -89,6 +90,7 @@ async def test_friend_accepted_handler_creates_notification():
         await _on_friend_accepted(
             user_id=requester_id,
             friend_id=friend_id,
+            friendship_id=friendship_id,
         )
 
         mock_create.assert_called_once_with(
@@ -96,7 +98,7 @@ async def test_friend_accepted_handler_creates_notification():
             trigger_user_id=friend_id,
             action_type="FRIEND_ACCEPTED",
             entity_type="friendship",
-            entity_id=None,
+            entity_id=friendship_id,
             message="Your friend request was accepted",
         )
 
@@ -116,6 +118,7 @@ async def test_friend_accepted_handler_skips_when_blocked():
         await _on_friend_accepted(
             user_id=str(uuid.uuid4()),
             friend_id=str(uuid.uuid4()),
+            friendship_id=str(uuid.uuid4()),
         )
 
         mock_create.assert_not_called()
@@ -141,9 +144,138 @@ async def test_friend_accepted_handler_skips_duplicate():
         await _on_friend_accepted(
             user_id=str(uuid.uuid4()),
             friend_id=str(uuid.uuid4()),
+            friendship_id=str(uuid.uuid4()),
         )
 
         mock_create.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_friend_accepted_idempotent_key_uses_friendship_id():
+    """friend.accepted idempotent key must include friendship_id so different
+    friendships don't collide within the 5-minute dedup window."""
+    from app.event_handlers import _on_friend_accepted
+
+    requester_id = str(uuid.uuid4())
+    friend_id_1 = str(uuid.uuid4())
+    friend_id_2 = str(uuid.uuid4())
+    fid_1 = str(uuid.uuid4())
+    fid_2 = str(uuid.uuid4())
+
+    idempotent_calls: list[tuple] = []
+
+    async def track_idempotent(*args: object) -> bool:
+        idempotent_calls.append(args)
+        return True
+
+    with (
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
+        patch("app.event_handlers._check_idempotent", side_effect=track_idempotent),
+        patch(
+            "app.services.notification.create_notification",
+            new_callable=AsyncMock,
+        ) as mock_create,
+    ):
+        await _on_friend_accepted(
+            user_id=requester_id, friend_id=friend_id_1, friendship_id=fid_1
+        )
+        await _on_friend_accepted(
+            user_id=requester_id, friend_id=friend_id_2, friendship_id=fid_2
+        )
+
+        # Both calls should use distinct friendship_id in the idempotent key
+        assert len(idempotent_calls) == 2
+        assert idempotent_calls[0] == (requester_id, "friendship", fid_1, "FRIEND_ACCEPTED")
+        assert idempotent_calls[1] == (requester_id, "friendship", fid_2, "FRIEND_ACCEPTED")
+        # Both notifications should be created (no false dedup)
+        assert mock_create.call_count == 2
+
+
+@pytest.mark.anyio
+async def test_friend_accepted_notification_includes_entity_id():
+    """friend.accepted notification must include friendship_id as entity_id
+    so the frontend can link to the correct friendship."""
+    from app.event_handlers import _on_friend_accepted
+
+    requester_id = str(uuid.uuid4())
+    friend_id = str(uuid.uuid4())
+    friendship_id = str(uuid.uuid4())
+
+    with (
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
+        patch(
+            "app.event_handlers._check_idempotent",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "app.services.notification.create_notification",
+            new_callable=AsyncMock,
+        ) as mock_create,
+    ):
+        await _on_friend_accepted(
+            user_id=requester_id,
+            friend_id=friend_id,
+            friendship_id=friendship_id,
+        )
+
+        call_kwargs = mock_create.call_args.kwargs
+        assert call_kwargs["entity_id"] == friendship_id
+        assert call_kwargs["entity_type"] == "friendship"
+
+
+@pytest.mark.anyio
+async def test_friend_request_handler_raises_on_create_failure():
+    """friend.request handler should re-raise exceptions from create_notification
+    so the event bus can retry."""
+    from app.event_handlers import _on_friend_request
+
+    with (
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
+        patch(
+            "app.event_handlers._check_idempotent",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "app.services.notification.create_notification",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("Redis down"),
+        ),
+    ):
+        with pytest.raises(ConnectionError):
+            await _on_friend_request(
+                user_id=str(uuid.uuid4()),
+                target_id=str(uuid.uuid4()),
+                friendship_id=str(uuid.uuid4()),
+            )
+
+
+@pytest.mark.anyio
+async def test_friend_accepted_handler_raises_on_create_failure():
+    """friend.accepted handler should re-raise exceptions from create_notification
+    so the event bus can retry."""
+    from app.event_handlers import _on_friend_accepted
+
+    with (
+        patch("app.event_handlers._is_blocked", new_callable=AsyncMock, return_value=False),
+        patch(
+            "app.event_handlers._check_idempotent",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch(
+            "app.services.notification.create_notification",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("Redis down"),
+        ),
+    ):
+        with pytest.raises(ConnectionError):
+            await _on_friend_accepted(
+                user_id=str(uuid.uuid4()),
+                friend_id=str(uuid.uuid4()),
+                friendship_id=str(uuid.uuid4()),
+            )
 
 
 def test_register_all_includes_friend_handlers():

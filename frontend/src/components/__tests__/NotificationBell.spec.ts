@@ -83,6 +83,7 @@ function createTestRouter() {
       { path: '/', component: { template: '<div />' } },
       { path: '/notifications', component: { template: '<div />' } },
       { path: '/forum/:id', component: { template: '<div />' } },
+      { path: '/friends', component: { template: '<div />' } },
     ],
   })
 }
@@ -451,6 +452,150 @@ describe('NotificationBell', () => {
 
       // The i18n key notifications.viewAll resolves to "View All"
       expect(wrapper.text()).toContain('View All')
+
+      wrapper.unmount()
+    })
+  })
+
+  // ---------- entity_type-aware navigation ----------
+
+  describe('navigateToEntity routing', () => {
+    it('navigates to /friends for friendship entity_type', async () => {
+      mockStoreState.items = [
+        {
+          id: 'fr1',
+          action_type: 'FRIEND_REQUEST',
+          entity_type: 'friendship',
+          entity_id: 'some-friendship-uuid',
+          message: 'You have a new friend request',
+          is_read: false,
+          created_at: '2026-01-01T00:00:00Z',
+          trigger_user: { id: 'u1', display_name: 'Alice', avatar_url: null },
+        },
+      ]
+      mockMarkRead.mockResolvedValue(undefined)
+
+      const router = createTestRouter()
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      const pushSpy = vi.spyOn(router, 'push')
+
+      const wrapper = mount(NotificationBell, {
+        global: {
+          plugins: [pinia, router],
+          stubs: {
+            Bell: { template: '<span class="icon-bell" />' },
+            Settings: { template: '<span class="icon-settings" />' },
+            User: { template: '<span class="icon-user" />' },
+            RouterLink: { template: '<a><slot /></a>' },
+          },
+        },
+      })
+
+      // Open dropdown
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Click the friend request notification
+      const notifBtn = wrapper.findAll('button').find((b) => b.text().includes('new friend request'))
+      expect(notifBtn).toBeTruthy()
+      await notifBtn!.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(pushSpy).toHaveBeenCalledWith('/friends')
+
+      wrapper.unmount()
+    })
+
+    it('navigates to /forum/:id for post entity_type', async () => {
+      mockStoreState.items = [
+        {
+          id: 'p1',
+          action_type: 'LIKE',
+          entity_type: 'post',
+          entity_id: 'post-123',
+          message: 'Alice liked your post',
+          is_read: false,
+          created_at: '2026-01-01T00:00:00Z',
+          trigger_user: { id: 'u1', display_name: 'Alice', avatar_url: null },
+        },
+      ]
+      mockMarkRead.mockResolvedValue(undefined)
+
+      const router = createTestRouter()
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      const pushSpy = vi.spyOn(router, 'push')
+
+      const wrapper = mount(NotificationBell, {
+        global: {
+          plugins: [pinia, router],
+          stubs: {
+            Bell: { template: '<span class="icon-bell" />' },
+            Settings: { template: '<span class="icon-settings" />' },
+            User: { template: '<span class="icon-user" />' },
+            RouterLink: { template: '<a><slot /></a>' },
+          },
+        },
+      })
+
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const notifBtn = wrapper.findAll('button').find((b) => b.text().includes('Alice liked'))
+      expect(notifBtn).toBeTruthy()
+      await notifBtn!.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(pushSpy).toHaveBeenCalledWith('/forum/post-123')
+
+      wrapper.unmount()
+    })
+
+    it('falls back to /notifications for unknown entity_type', async () => {
+      mockStoreState.items = [
+        {
+          id: 'sys1',
+          action_type: 'SYSTEM',
+          entity_type: null,
+          entity_id: null,
+          message: 'System maintenance',
+          is_read: false,
+          created_at: '2026-01-01T00:00:00Z',
+          trigger_user: null,
+        },
+      ]
+      mockMarkRead.mockResolvedValue(undefined)
+
+      const router = createTestRouter()
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      const pushSpy = vi.spyOn(router, 'push')
+
+      const wrapper = mount(NotificationBell, {
+        global: {
+          plugins: [pinia, router],
+          stubs: {
+            Bell: { template: '<span class="icon-bell" />' },
+            Settings: { template: '<span class="icon-settings" />' },
+            User: { template: '<span class="icon-user" />' },
+            RouterLink: { template: '<a><slot /></a>' },
+          },
+        },
+      })
+
+      const button = wrapper.find('button[aria-label="Notifications"]')
+      await button.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const notifBtn = wrapper.findAll('button').find((b) => b.text().includes('System maintenance'))
+      expect(notifBtn).toBeTruthy()
+      await notifBtn!.trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(pushSpy).toHaveBeenCalledWith('/notifications')
 
       wrapper.unmount()
     })

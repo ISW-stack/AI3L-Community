@@ -11,6 +11,7 @@ import {
 import { usePagination } from '@/composables/usePagination'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
+import { useAuthStore } from '@/stores/auth'
 import { useLocale } from '@/composables/useLocale'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -25,6 +26,7 @@ import { UserMinus } from 'lucide-vue-next'
 
 const { t } = useLocale()
 const toast = useToastStore()
+const auth = useAuthStore()
 
 const activeTab = ref<'friends' | 'requests'>('friends')
 
@@ -58,7 +60,13 @@ const showUnfriendConfirm = ref(false)
 const unfriendTarget = ref<Friendship | null>(null)
 const unfriendLoading = ref(false)
 
-const incomingRequests = computed(() => requests.value.filter((r) => r.status === 'pending'))
+// Guard against concurrent accept/reject clicks
+const actionLoading = ref(false)
+
+// Incoming = current user is the addressee (received the request)
+const incomingRequests = computed(() =>
+  requests.value.filter((r) => r.addressee_id === auth.user?.id),
+)
 
 async function fetchFriends() {
   const localId = ++friendsFetchId
@@ -86,7 +94,7 @@ async function fetchRequests() {
     if (localId !== requestsFetchId) return
     requests.value = data.requests
     updateRequestsResponse(data.total)
-    incomingCount.value = data.requests.filter((r) => r.status === 'pending').length
+    incomingCount.value = data.requests.filter((r) => r.addressee_id === auth.user?.id).length
   } catch (e: unknown) {
     if (localId !== requestsFetchId) return
     toast.show(getErrorMessage(e, t('social.loadRequestsError')), 'error')
@@ -140,21 +148,25 @@ async function handleUnfriend() {
 }
 
 async function handleAcceptRequest(requestId: string) {
+  if (actionLoading.value) return
+  actionLoading.value = true
   try {
     await acceptFriendRequest(requestId)
     requests.value = requests.value.filter((r) => r.id !== requestId)
     incomingCount.value = Math.max(0, incomingCount.value - 1)
     toast.show(t('social.acceptSuccess'), 'success')
-    // Refresh friends list if on friends tab
-    if (activeTab.value === 'friends') {
-      fetchFriends()
-    }
+    // Always refresh friends list so it stays in sync
+    fetchFriends()
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('social.acceptError')), 'error')
+  } finally {
+    actionLoading.value = false
   }
 }
 
 async function handleRejectRequest(requestId: string) {
+  if (actionLoading.value) return
+  actionLoading.value = true
   try {
     await rejectFriendRequest(requestId)
     requests.value = requests.value.filter((r) => r.id !== requestId)
@@ -162,6 +174,8 @@ async function handleRejectRequest(requestId: string) {
     toast.show(t('social.declineSuccess'), 'success')
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('social.declineError')), 'error')
+  } finally {
+    actionLoading.value = false
   }
 }
 
@@ -297,12 +311,7 @@ onMounted(() => {
         </div>
 
         <!-- Outgoing requests section -->
-        <div
-          v-if="
-            requests.filter((r) => r.status !== 'pending' || !incomingRequests.includes(r)).length >
-            0
-          "
-        >
+        <div v-if="requests.filter((r) => !incomingRequests.includes(r)).length > 0">
           <h3 class="text-sm font-semibold text-foreground mb-2 mt-4">
             {{ t('social.sentRequests') }}
           </h3>

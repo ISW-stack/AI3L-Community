@@ -50,9 +50,9 @@ async function markRead(notif: Notification) {
 }
 
 function navigateToEntity(notif: Notification) {
-  if (notif.entity_type === 'comment' && notif.entity_id) {
-    router.push(`/forum/${notif.entity_id}`)
-  } else if (notif.entity_type === 'post' && notif.entity_id) {
+  if (notif.entity_type === 'friendship') {
+    router.push('/friends')
+  } else if ((notif.entity_type === 'comment' || notif.entity_type === 'post') && notif.entity_id) {
     router.push(`/forum/${notif.entity_id}`)
   } else {
     router.push('/notifications')

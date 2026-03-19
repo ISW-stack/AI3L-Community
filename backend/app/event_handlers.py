@@ -600,6 +600,7 @@ async def _on_friend_request(
 async def _on_friend_accepted(
     user_id: str,
     friend_id: str,
+    friendship_id: str,
     **_kwargs: Any,
 ) -> None:
     """Notify the original requester when their friend request is accepted."""
@@ -607,7 +608,7 @@ async def _on_friend_accepted(
 
     if await _is_blocked(user_id, friend_id):
         return
-    if not await _check_idempotent(user_id, "friendship", None, "FRIEND_ACCEPTED"):
+    if not await _check_idempotent(user_id, "friendship", friendship_id, "FRIEND_ACCEPTED"):
         return
     try:
         await create_notification(
@@ -615,7 +616,7 @@ async def _on_friend_accepted(
             trigger_user_id=friend_id,
             action_type="FRIEND_ACCEPTED",
             entity_type="friendship",
-            entity_id=None,
+            entity_id=friendship_id,
             message="Your friend request was accepted",
         )
     except Exception:

@@ -105,6 +105,10 @@ class TestSendFriendRequest:
         assert result["requester_id"] == requester
         mock_insert.assert_called_once()
         mock_emit.assert_called_once()
+        emit_kwargs = mock_emit.call_args.kwargs
+        assert emit_kwargs["user_id"] == str(requester)
+        assert emit_kwargs["target_id"] == str(addressee)
+        assert "friendship_id" in emit_kwargs
 
     async def test_self_request_error(self, mock_pool):
         from app.services.social import send_friend_request
@@ -162,7 +166,20 @@ class TestSendFriendRequest:
         result = await send_friend_request(mock_pool, requester, addressee)
         assert result["status"] == "ACCEPTED"
         mock_accept.assert_called_once()
-        mock_emit.assert_called_once()
+        # Auto-accept emits friend.accepted for BOTH users
+        assert mock_emit.call_count == 2
+        # First emit: notify the original requester (addressee)
+        first_call = mock_emit.call_args_list[0]
+        assert first_call.args[0] == "friend.accepted"
+        assert first_call.kwargs["user_id"] == str(addressee)
+        assert first_call.kwargs["friend_id"] == str(requester)
+        assert first_call.kwargs["friendship_id"] == str(existing["id"])
+        # Second emit: notify the current requester
+        second_call = mock_emit.call_args_list[1]
+        assert second_call.args[0] == "friend.accepted"
+        assert second_call.kwargs["user_id"] == str(requester)
+        assert second_call.kwargs["friend_id"] == str(addressee)
+        assert second_call.kwargs["friendship_id"] == str(existing["id"])
 
     @patch(f"{_REPO}.find_friendship_between", new_callable=AsyncMock)
     @patch(f"{_REPO}.is_blocked", new_callable=AsyncMock, return_value=False)
@@ -206,6 +223,10 @@ class TestAcceptFriendRequest:
         assert result["status"] == "ACCEPTED"
         # Auto-follow both directions
         assert mock_insert_follow.call_count == 2
+        # Emit friend.accepted with friendship_id
+        mock_emit.assert_called_once()
+        emit_kwargs = mock_emit.call_args.kwargs
+        assert emit_kwargs["friendship_id"] == str(friendship_id)
 
     @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock, return_value=None)
     async def test_not_found(self, mock_find, mock_pool, mock_conn):

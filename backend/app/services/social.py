@@ -42,10 +42,18 @@ async def send_friend_request(
                     await _ensure_follow(conn, requester_id, addressee_id)
                     await _ensure_follow(conn, addressee_id, requester_id)
 
+                    # Notify both users: the original requester and the current requester
                     await emit(
                         "friend.accepted",
                         user_id=str(addressee_id),
                         friend_id=str(requester_id),
+                        friendship_id=str(existing["id"]),
+                    )
+                    await emit(
+                        "friend.accepted",
+                        user_id=str(requester_id),
+                        friend_id=str(addressee_id),
+                        friendship_id=str(existing["id"]),
                     )
                     return friendship  # type: ignore[return-value]
 
@@ -102,6 +110,7 @@ async def accept_friend_request(
         "friend.accepted",
         user_id=str(friendship["requester_id"]),
         friend_id=str(user_id),
+        friendship_id=str(friendship_id),
     )
     return updated
 
