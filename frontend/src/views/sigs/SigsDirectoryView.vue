@@ -48,7 +48,7 @@ onMounted(fetchSigs)
 </script>
 
 <template>
-  <div class="w-full flex flex-col justify-start">
+  <div class="flex-1 w-full flex flex-col justify-start">
     <div class="flex justify-between items-center mb-6 shrink-0">
       <h1 class="text-2xl font-bold text-foreground">{{ t('sigs.directory.title') }}</h1>
       <router-link v-if="auth.isAdmin" to="/sigs/create">

@@ -33,7 +33,7 @@ function onConsentAccepted() {
     <AppNavbar />
     <main
       :class="[
-        'flex-1',
+        'flex-1 flex flex-col',
         isFullWidth ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
       ]"
     >
