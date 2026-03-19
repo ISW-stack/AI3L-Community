@@ -42,7 +42,9 @@ async def send_friend_request(
                     await _ensure_follow(conn, requester_id, addressee_id)
                     await _ensure_follow(conn, addressee_id, requester_id)
 
-                    # Notify both users: the original requester and the current requester
+                    # Notify both users. addressee_id is the original requester of the
+                    # existing friendship, so they get "Your friend request was accepted".
+                    # requester_id triggered this auto-accept, so they get "You are now friends".
                     await emit(
                         "friend.accepted",
                         user_id=str(addressee_id),
@@ -54,6 +56,7 @@ async def send_friend_request(
                         user_id=str(requester_id),
                         friend_id=str(addressee_id),
                         friendship_id=str(existing["id"]),
+                        message="You are now friends",
                     )
                     return friendship  # type: ignore[return-value]
 
@@ -111,6 +114,14 @@ async def accept_friend_request(
         user_id=str(friendship["requester_id"]),
         friend_id=str(user_id),
         friendship_id=str(friendship_id),
+        # Default message "Your friend request was accepted" is correct for the requester
+    )
+    await emit(
+        "friend.accepted",
+        user_id=str(user_id),
+        friend_id=str(friendship["requester_id"]),
+        friendship_id=str(friendship_id),
+        message="You are now friends",
     )
     return updated
 

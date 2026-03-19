@@ -459,3 +459,98 @@ class TestCountFollowersFollowingExcludeDeleted:
 
         mock_conn.fetchval = AsyncMock(return_value=6)
         assert await count_following(mock_conn, uuid.uuid4()) == 6
+
+
+# ===========================================================================
+# M1: is_following — must exclude soft-deleted users
+# ===========================================================================
+
+
+class TestIsFollowingExcludesDeleted:
+    @pytest.mark.anyio
+    async def test_is_following_returns_false_for_deleted_user(self, mock_conn):
+        """is_following returns False when the followed user is soft-deleted."""
+        from app.repositories.social_repo import is_following
+
+        # DB returns 0 because the JOIN + is_deleted=false filters out the row
+        mock_conn.fetchval = AsyncMock(return_value=0)
+
+        result = await is_following(mock_conn, uuid.uuid4(), uuid.uuid4())
+        assert result is False
+
+    @pytest.mark.anyio
+    async def test_is_following_sql_joins_users_and_filters_deleted(self, mock_conn):
+        """is_following SQL must join users and include is_deleted = false."""
+        from app.repositories.social_repo import is_following
+
+        mock_conn.fetchval = AsyncMock(return_value=0)
+
+        await is_following(mock_conn, uuid.uuid4(), uuid.uuid4())
+
+        sql = mock_conn.fetchval.call_args[0][0]
+        assert "JOIN users" in sql
+        assert "is_deleted = false" in sql
+
+    @pytest.mark.anyio
+    async def test_is_following_returns_true_for_active_user(self, mock_conn):
+        """is_following returns True when a valid follow exists with active user."""
+        from app.repositories.social_repo import is_following
+
+        mock_conn.fetchval = AsyncMock(return_value=1)
+
+        result = await is_following(mock_conn, uuid.uuid4(), uuid.uuid4())
+        assert result is True
+
+
+# ===========================================================================
+# M2: is_blocked — must exclude soft-deleted users
+# ===========================================================================
+
+
+class TestIsBlockedExcludesDeleted:
+    @pytest.mark.anyio
+    async def test_is_blocked_returns_false_when_blocker_deleted(self, mock_conn):
+        """is_blocked returns False when the blocker is soft-deleted."""
+        from app.repositories.social_repo import is_blocked
+
+        # DB returns 0 because the JOIN filters out deleted blocker
+        mock_conn.fetchval = AsyncMock(return_value=0)
+
+        result = await is_blocked(mock_conn, uuid.uuid4(), uuid.uuid4())
+        assert result is False
+
+    @pytest.mark.anyio
+    async def test_is_blocked_returns_false_when_blocked_deleted(self, mock_conn):
+        """is_blocked returns False when the blocked user is soft-deleted."""
+        from app.repositories.social_repo import is_blocked
+
+        mock_conn.fetchval = AsyncMock(return_value=0)
+
+        result = await is_blocked(mock_conn, uuid.uuid4(), uuid.uuid4())
+        assert result is False
+
+    @pytest.mark.anyio
+    async def test_is_blocked_sql_joins_both_users_and_filters_deleted(self, mock_conn):
+        """is_blocked SQL must join both blocker and blocked users and filter is_deleted."""
+        from app.repositories.social_repo import is_blocked
+
+        mock_conn.fetchval = AsyncMock(return_value=0)
+
+        await is_blocked(mock_conn, uuid.uuid4(), uuid.uuid4())
+
+        sql = mock_conn.fetchval.call_args[0][0]
+        # Must join both user sides
+        assert "u_blocker" in sql
+        assert "u_blocked" in sql
+        assert "u_blocker.is_deleted = false" in sql
+        assert "u_blocked.is_deleted = false" in sql
+
+    @pytest.mark.anyio
+    async def test_is_blocked_returns_true_for_active_users(self, mock_conn):
+        """is_blocked returns True when both users are active and block exists."""
+        from app.repositories.social_repo import is_blocked
+
+        mock_conn.fetchval = AsyncMock(return_value=1)
+
+        result = await is_blocked(mock_conn, uuid.uuid4(), uuid.uuid4())
+        assert result is True

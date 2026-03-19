@@ -601,9 +601,10 @@ async def _on_friend_accepted(
     user_id: str,
     friend_id: str,
     friendship_id: str,
+    message: str = "Your friend request was accepted",
     **_kwargs: Any,
 ) -> None:
-    """Notify the original requester when their friend request is accepted."""
+    """Notify a user that a friendship was established."""
     from app.services.notification import create_notification
 
     if await _is_blocked(user_id, friend_id):
@@ -617,7 +618,7 @@ async def _on_friend_accepted(
             action_type="FRIEND_ACCEPTED",
             entity_type="friendship",
             entity_id=friendship_id,
-            message="Your friend request was accepted",
+            message=message,
         )
     except Exception:
         logger.error("Failed to send friend accepted notification", exc_info=True)

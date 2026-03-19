@@ -223,10 +223,20 @@ class TestAcceptFriendRequest:
         assert result["status"] == "ACCEPTED"
         # Auto-follow both directions
         assert mock_insert_follow.call_count == 2
-        # Emit friend.accepted with friendship_id
-        mock_emit.assert_called_once()
-        emit_kwargs = mock_emit.call_args.kwargs
-        assert emit_kwargs["friendship_id"] == str(friendship_id)
+        # Emit friend.accepted for BOTH users (requester and accepter)
+        assert mock_emit.call_count == 2
+        # First emit: notify the requester
+        first_call = mock_emit.call_args_list[0]
+        assert first_call.args[0] == "friend.accepted"
+        assert first_call.kwargs["user_id"] == str(friendship["requester_id"])
+        assert first_call.kwargs["friend_id"] == str(user_id)
+        assert first_call.kwargs["friendship_id"] == str(friendship_id)
+        # Second emit: notify the accepter
+        second_call = mock_emit.call_args_list[1]
+        assert second_call.args[0] == "friend.accepted"
+        assert second_call.kwargs["user_id"] == str(user_id)
+        assert second_call.kwargs["friend_id"] == str(friendship["requester_id"])
+        assert second_call.kwargs["friendship_id"] == str(friendship_id)
 
     @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock, return_value=None)
     async def test_not_found(self, mock_find, mock_pool, mock_conn):

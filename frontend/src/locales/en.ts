@@ -241,6 +241,8 @@ export default {
         usernameMin: 'Username must be at least 3 characters.',
         usernameMax: 'Username must be at most 50 characters.',
         passwordMin: 'Password must be at least 8 characters.',
+        passwordPolicy:
+          'Password must include uppercase, lowercase, digit, and special character.',
         displayNameRequired: 'Display name is required.',
         descriptionRequired: 'Please describe why you want to join.',
       },

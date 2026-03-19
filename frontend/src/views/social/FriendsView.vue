@@ -68,6 +68,12 @@ const incomingRequests = computed(() =>
   requests.value.filter((r) => r.addressee_id === auth.user?.id),
 )
 
+// Outgoing = current user is NOT the addressee (sent the request)
+const outgoingRequests = computed(() => {
+  const incomingIds = new Set(incomingRequests.value.map((r) => r.id))
+  return requests.value.filter((r) => !incomingIds.has(r.id))
+})
+
 async function fetchFriends() {
   const localId = ++friendsFetchId
   friendsLoading.value = true
@@ -311,13 +317,13 @@ onMounted(() => {
         </div>
 
         <!-- Outgoing requests section -->
-        <div v-if="requests.filter((r) => !incomingRequests.includes(r)).length > 0">
+        <div v-if="outgoingRequests.length > 0">
           <h3 class="text-sm font-semibold text-foreground mb-2 mt-4">
             {{ t('social.sentRequests') }}
           </h3>
           <div class="space-y-2">
             <FriendRequestCard
-              v-for="req in requests.filter((r) => !incomingRequests.includes(r))"
+              v-for="req in outgoingRequests"
               :key="req.id"
               :request="req"
               type="outgoing"

@@ -131,13 +131,15 @@ class TestApplyMembership:
 
     @pytest.mark.anyio
     async def test_apply_username_taken(self, client):
-        """POST /users/apply-member → 409 when username already exists."""
+        """POST /users/apply-member → 409 when username already exists (DB constraint)."""
         user_id = str(uuid.uuid4())
 
         try:
             _override_auth("GUEST", user_id=user_id)
             with patch(
-                f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=True
+                f"{_EP}.create_application",
+                new_callable=AsyncMock,
+                side_effect=ValueError("Username already taken."),
             ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",
@@ -176,13 +178,10 @@ class TestApplyDuplicate:
 
         try:
             _override_auth("GUEST", user_id=user_id)
-            with (
-                patch(
-                    f"{_EP}.create_application",
-                    new_callable=AsyncMock,
-                    side_effect=ValueError("pending"),
-                ),
-                patch(f"{_EP}.user_exists_by_username", new_callable=AsyncMock, return_value=False),
+            with patch(
+                f"{_EP}.create_application",
+                new_callable=AsyncMock,
+                side_effect=ValueError("pending"),
             ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",
@@ -791,3 +790,157 @@ class TestReviewApplicationActionValidation:
             result = await review_application(uuid.uuid4(), uuid.uuid4(), "REJECTED")
             assert result is not None
             assert result["status"] == "REJECTED"
+
+
+# ── Re-apply after rejection ────────────────────────────────
+
+
+class TestReApplyAfterRejection:
+    """Guest re-applies after previous rejection — ON CONFLICT updates user record."""
+
+    @pytest.mark.anyio
+    async def test_reapply_after_rejection_succeeds(self, mock_pool, mock_conn):
+        """insert_with_user() succeeds on re-apply: ON CONFLICT updates GUEST user."""
+        from app.repositories.application_repo import insert_with_user
+
+        app_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        new_row = {
+            "id": app_id,
+            "user_id": user_id,
+            "description": "Please reconsider",
+            "status": "PENDING",
+            "created_at": now,
+        }
+
+        mock_conn.execute = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=new_row)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert_with_user(
+                app_id, user_id, "newuser2", "hashed_pw2", "Updated Name", "Please reconsider"
+            )
+
+        assert result is not None
+        assert result["id"] == app_id
+        assert result["status"] == "PENDING"
+        # Verify the INSERT uses ON CONFLICT
+        sql = mock_conn.execute.call_args[0][0]
+        assert "ON CONFLICT (id) DO UPDATE" in sql
+        assert "WHERE users.role = 'GUEST'" in sql
+
+    @pytest.mark.anyio
+    async def test_reapply_while_pending_fails(self, mock_pool, mock_conn):
+        """insert_with_user() returns None when a PENDING application already exists."""
+        from app.repositories.application_repo import insert_with_user
+
+        mock_conn.execute = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            result = await insert_with_user(
+                uuid.uuid4(), uuid.uuid4(), "user", "hash", "Name", "Desc"
+            )
+
+        assert result is None
+
+    @pytest.mark.anyio
+    async def test_reapply_while_pending_endpoint_returns_409(self, client):
+        """POST /users/apply-member while PENDING → 409 via service ValueError."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            with patch(
+                f"{_EP}.create_application",
+                new_callable=AsyncMock,
+                side_effect=ValueError("You already have a pending application."),
+            ):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json=_VALID_APPLY_BODY,
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 409
+                detail = resp.json()["detail"]
+                msg = detail["message"] if isinstance(detail, dict) else str(detail)
+                assert "pending" in msg.lower()
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_reapply_after_rejection_endpoint_succeeds(self, client):
+        """POST /users/apply-member after rejection → 200 (ON CONFLICT handles user upsert)."""
+        user_id = str(uuid.uuid4())
+
+        try:
+            _override_auth("GUEST", user_id=user_id)
+            now = datetime.now(timezone.utc)
+            row = {"id": uuid.uuid4(), "user_id": uuid.UUID(user_id), "status": "PENDING", "created_at": now}
+            with patch(
+                f"{_EP}.create_application",
+                new_callable=AsyncMock,
+                return_value=row,
+            ):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json=_VALID_APPLY_BODY,
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert "submitted" in resp.json()["message"].lower()
+        finally:
+            _clear_overrides()
+
+
+# ── _app_to_response direct dict access ─────────────────────
+
+
+class TestAppToResponseDirectAccess:
+    """_app_to_response uses direct dict access for guaranteed fields."""
+
+    def test_missing_username_raises_key_error(self):
+        """_app_to_response raises KeyError when username is missing (not silently defaulting)."""
+        from app.api.v1.endpoints.applications import _app_to_response
+
+        app = {
+            "id": uuid.uuid4(),
+            "user_id": uuid.uuid4(),
+            # "username" intentionally omitted
+            "display_name": "Test",
+            "description": "desc",
+            "status": "PENDING",
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "created_at": datetime.now(timezone.utc),
+        }
+        with pytest.raises(KeyError):
+            _app_to_response(app)
+
+    def test_missing_display_name_raises_key_error(self):
+        """_app_to_response raises KeyError when display_name is missing."""
+        from app.api.v1.endpoints.applications import _app_to_response
+
+        app = {
+            "id": uuid.uuid4(),
+            "user_id": uuid.uuid4(),
+            "username": "test",
+            # "display_name" intentionally omitted
+            "description": "desc",
+            "status": "PENDING",
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "created_at": datetime.now(timezone.utc),
+        }
+        with pytest.raises(KeyError):
+            _app_to_response(app)
+
+    def test_complete_dict_succeeds(self):
+        """_app_to_response succeeds with all fields present."""
+        from app.api.v1.endpoints.applications import _app_to_response
+
+        app = _make_application()
+        result = _app_to_response(app)
+        assert result.username == "guest1"
+        assert result.display_name == "Guest User"

@@ -97,16 +97,26 @@ function createStubs() {
       props: ['loading', 'variant', 'size'],
     },
     BaseAlert: { template: '<div class="base-alert"><slot /></div>', props: ['type'] },
+    BaseInput: {
+      template:
+        '<div><input class="base-input" :id="id" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" /><span v-if="error" class="input-error">{{ error }}</span></div>',
+      props: ['modelValue', 'id', 'label', 'placeholder', 'error', 'maxlength', 'autocomplete', 'type'],
+    },
     BaseTextarea: {
       template:
         '<textarea class="base-textarea" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
       props: ['modelValue', 'placeholder', 'rows'],
+    },
+    BaseModal: {
+      template: '<div class="base-modal" v-if="modelValue"><slot /><slot name="footer" /></div>',
+      props: ['modelValue', 'title', 'size'],
     },
     SkeletonLoader: { template: '<div class="skeleton-loader" />', props: ['lines', 'variant'] },
     PostCard: {
       template: '<div class="post-card">{{ post?.title }}</div>',
       props: ['post', 'maxPreviewLines'],
     },
+    FriendRecommendations: { template: '<div />' },
     MessageSquare: { template: '<span />' },
     Users: { template: '<span />' },
     FileText: { template: '<span />' },
@@ -309,6 +319,154 @@ describe('HomeView', () => {
     it('never calls applyForMembership', async () => {
       await mountHome({ role: 'GUEST' })
       expect(mockApplyForMembership).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Membership application modal (H2, H3, M3)', () => {
+    async function openModal() {
+      mockGetMyApplication.mockRejectedValue(
+        Object.assign(new Error('Not Found'), { response: { status: 404 } }),
+      )
+      const { wrapper, auth } = await mountHome({ role: 'GUEST' })
+      // Click "Apply Now" button to open the modal
+      const applyBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Apply Now'))
+      expect(applyBtn).toBeTruthy()
+      await applyBtn!.trigger('click')
+      await nextTick()
+      return { wrapper }
+    }
+
+    it('H2: form contains a hidden submit button for Enter key submission', async () => {
+      const { wrapper } = await openModal()
+      const form = wrapper.find('form')
+      expect(form.exists()).toBe(true)
+      const hiddenSubmit = form.find('button[type="submit"].hidden')
+      expect(hiddenSubmit.exists()).toBe(true)
+    })
+
+    it('H3: password with only lowercase and length >= 8 fails validation', async () => {
+      const { wrapper } = await openModal()
+      // Fill form with valid fields but weak password (no uppercase/digit/special)
+      const inputs = wrapper.findAll('.base-input')
+      const usernameInput = wrapper.find('#apply-username')
+      const passwordInput = wrapper.find('#apply-password')
+      const displayNameInput = wrapper.find('#apply-display-name')
+
+      await usernameInput.setValue('validuser')
+      await passwordInput.setValue('abcdefgh')
+      await displayNameInput.setValue('Valid Name')
+      // Set description via textarea
+      const textarea = wrapper.find('.base-textarea')
+      await textarea.setValue('I want to join for research')
+
+      // Trigger form submission via the submit button in footer
+      const submitBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Submit Application'))
+      await submitBtn!.trigger('click')
+      await nextTick()
+
+      // Should show password policy error
+      expect(wrapper.text()).toContain(
+        'Password must include uppercase, lowercase, digit, and special character.',
+      )
+    })
+
+    it('H3: password meeting all policy requirements passes validation', async () => {
+      const { wrapper } = await openModal()
+      const usernameInput = wrapper.find('#apply-username')
+      const passwordInput = wrapper.find('#apply-password')
+      const displayNameInput = wrapper.find('#apply-display-name')
+      const textarea = wrapper.find('.base-textarea')
+
+      await usernameInput.setValue('validuser')
+      await passwordInput.setValue('StrongP@ss1')
+      await displayNameInput.setValue('Valid Name')
+      await textarea.setValue('I want to join for research')
+
+      mockApplyForMembership.mockResolvedValue({})
+      const submitBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Submit Application'))
+      await submitBtn!.trigger('click')
+      await flushPromises()
+
+      // Should not show password policy error — form submitted successfully
+      expect(wrapper.text()).not.toContain(
+        'Password must include uppercase, lowercase, digit, and special character.',
+      )
+      expect(mockApplyForMembership).toHaveBeenCalled()
+    })
+
+    it('H3: password with no special character fails validation', async () => {
+      const { wrapper } = await openModal()
+      const usernameInput = wrapper.find('#apply-username')
+      const passwordInput = wrapper.find('#apply-password')
+      const displayNameInput = wrapper.find('#apply-display-name')
+      const textarea = wrapper.find('.base-textarea')
+
+      await usernameInput.setValue('validuser')
+      await passwordInput.setValue('StrongPass1')
+      await displayNameInput.setValue('Valid Name')
+      await textarea.setValue('I want to join for research')
+
+      const submitBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Submit Application'))
+      await submitBtn!.trigger('click')
+      await nextTick()
+
+      expect(wrapper.text()).toContain(
+        'Password must include uppercase, lowercase, digit, and special character.',
+      )
+      expect(mockApplyForMembership).not.toHaveBeenCalled()
+    })
+
+    it('M3: fetchMyApplication ignores 404 errors silently', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      mockGetMyApplication.mockRejectedValue(
+        Object.assign(new Error('Not Found'), { response: { status: 404 } }),
+      )
+      await mountHome({ role: 'GUEST' })
+      await flushPromises()
+
+      expect(consoleSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Failed to fetch application status'),
+        expect.anything(),
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('M3: fetchMyApplication ignores 401 errors silently', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      mockGetMyApplication.mockRejectedValue(
+        Object.assign(new Error('Unauthorized'), { response: { status: 401 } }),
+      )
+      await mountHome({ role: 'GUEST' })
+      await flushPromises()
+
+      expect(consoleSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Failed to fetch application status'),
+        expect.anything(),
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('M3: fetchMyApplication logs non-404/401 errors', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      mockGetMyApplication.mockRejectedValue(
+        Object.assign(new Error('Server Error'), { response: { status: 500 } }),
+      )
+      await mountHome({ role: 'GUEST' })
+      await flushPromises()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to fetch application status:',
+        expect.anything(),
+      )
+      consoleSpy.mockRestore()
     })
   })
 })

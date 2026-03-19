@@ -358,7 +358,12 @@ async def is_following(
     conn: asyncpg.Connection, follower_id: uuid.UUID, following_id: uuid.UUID
 ) -> bool:
     result = await conn.fetchval(
-        "SELECT COUNT(*) FROM follows WHERE follower_id = $1 AND following_id = $2",
+        """
+        SELECT COUNT(*) FROM follows f
+        JOIN users u ON u.id = f.following_id
+        WHERE f.follower_id = $1 AND f.following_id = $2
+          AND u.is_deleted = false
+        """,
         follower_id,
         following_id,
     )
@@ -479,9 +484,13 @@ async def is_blocked(conn: asyncpg.Connection, user_a: uuid.UUID, user_b: uuid.U
     """Check if EITHER user has blocked the other."""
     result = await conn.fetchval(
         """
-        SELECT COUNT(*) FROM blocks
-        WHERE (blocker_id = $1 AND blocked_id = $2)
-           OR (blocker_id = $2 AND blocked_id = $1)
+        SELECT COUNT(*) FROM blocks b
+        JOIN users u_blocker ON u_blocker.id = b.blocker_id
+        JOIN users u_blocked ON u_blocked.id = b.blocked_id
+        WHERE ((b.blocker_id = $1 AND b.blocked_id = $2)
+            OR (b.blocker_id = $2 AND b.blocked_id = $1))
+          AND u_blocker.is_deleted = false
+          AND u_blocked.is_deleted = false
         """,
         user_a,
         user_b,

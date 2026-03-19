@@ -61,7 +61,7 @@ function validateApplyForm(): boolean {
   const pw = applyForm.value.password
   if (pw.length < 8) {
     errs.password = t('home.applyMembership.validation.passwordMin')
-  } else if (!/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/\d/.test(pw) || !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) {
+  } else if (!/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/\d/.test(pw) || !/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?\/~]/.test(pw)) {
     errs.password = t('home.applyMembership.validation.passwordPolicy')
   }
   if (applyForm.value.display_name.trim().length === 0) errs.display_name = t('home.applyMembership.validation.displayNameRequired')
@@ -98,8 +98,14 @@ async function fetchMyApplication() {
   try {
     const data = await getMyApplication()
     myApplication.value = data.application
-  } catch {
-    // Guest without a user record → 404 or empty, ignore
+  } catch (e: unknown) {
+    // 404/401 expected for guests without user records — ignore
+    if (e instanceof Error && 'response' in e) {
+      const status = (e as any).response?.status
+      if (status !== 404 && status !== 401) {
+        console.error('Failed to fetch application status:', e)
+      }
+    }
   }
 }
 

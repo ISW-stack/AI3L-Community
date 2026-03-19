@@ -406,3 +406,104 @@ async def test_get_blocked_user_ids_bilateral_block(mock_pool, mock_conn):
     result = await get_blocked_user_ids(redis, user_id, pool=mock_pool)
 
     assert result == {str(blocker_uid)}
+
+
+# ── H1: accept_friend_request emits TWO friend.accepted events ────
+
+
+_REPO = "app.repositories.social_repo"
+
+
+def _make_friendship(
+    requester_id=None, addressee_id=None, status="PENDING", friendship_id=None
+):
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    return {
+        "id": friendship_id or uuid.uuid4(),
+        "requester_id": requester_id or uuid.uuid4(),
+        "addressee_id": addressee_id or uuid.uuid4(),
+        "status": status,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+class TestAcceptFriendRequestEmitsBothParties:
+    """H1: accept_friend_request must emit friend.accepted for BOTH the requester and the accepter."""
+
+    @patch(f"{_REPO}.insert_follow", new_callable=AsyncMock, return_value={})
+    @patch(f"{_REPO}.is_following", new_callable=AsyncMock, return_value=False)
+    @patch(f"{_REPO}.accept_friendship", new_callable=AsyncMock)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
+    @patch("app.services.social.emit", new_callable=AsyncMock)
+    @pytest.mark.anyio
+    async def test_emits_two_friend_accepted_events(
+        self,
+        mock_emit,
+        mock_find,
+        mock_accept,
+        mock_is_follow,
+        mock_insert_follow,
+        mock_pool,
+        mock_conn,
+    ):
+        from app.services.social import accept_friend_request
+
+        accepter_id = uuid.uuid4()
+        requester_id = uuid.uuid4()
+        friendship_id = uuid.uuid4()
+        friendship = _make_friendship(requester_id, accepter_id, "PENDING", friendship_id)
+        mock_find.return_value = friendship
+        mock_accept.return_value = {**friendship, "status": "ACCEPTED"}
+
+        await accept_friend_request(mock_pool, friendship_id, accepter_id)
+
+        # Must emit exactly 2 events
+        assert mock_emit.call_count == 2
+
+        # First emit: notify the requester
+        first = mock_emit.call_args_list[0]
+        assert first.args[0] == "friend.accepted"
+        assert first.kwargs["user_id"] == str(requester_id)
+        assert first.kwargs["friend_id"] == str(accepter_id)
+        assert first.kwargs["friendship_id"] == str(friendship_id)
+
+        # Second emit: notify the accepter
+        second = mock_emit.call_args_list[1]
+        assert second.args[0] == "friend.accepted"
+        assert second.kwargs["user_id"] == str(accepter_id)
+        assert second.kwargs["friend_id"] == str(requester_id)
+        assert second.kwargs["friendship_id"] == str(friendship_id)
+
+    @patch(f"{_REPO}.insert_follow", new_callable=AsyncMock, return_value={})
+    @patch(f"{_REPO}.is_following", new_callable=AsyncMock, return_value=False)
+    @patch(f"{_REPO}.accept_friendship", new_callable=AsyncMock)
+    @patch(f"{_REPO}.find_friendship_by_id_for_update", new_callable=AsyncMock)
+    @patch("app.services.social.emit", new_callable=AsyncMock)
+    @pytest.mark.anyio
+    async def test_both_emits_use_same_friendship_id(
+        self,
+        mock_emit,
+        mock_find,
+        mock_accept,
+        mock_is_follow,
+        mock_insert_follow,
+        mock_pool,
+        mock_conn,
+    ):
+        from app.services.social import accept_friend_request
+
+        accepter_id = uuid.uuid4()
+        requester_id = uuid.uuid4()
+        friendship_id = uuid.uuid4()
+        friendship = _make_friendship(requester_id, accepter_id, "PENDING", friendship_id)
+        mock_find.return_value = friendship
+        mock_accept.return_value = {**friendship, "status": "ACCEPTED"}
+
+        await accept_friend_request(mock_pool, friendship_id, accepter_id)
+
+        # Both events reference the same friendship_id
+        for call in mock_emit.call_args_list:
+            assert call.kwargs["friendship_id"] == str(friendship_id)

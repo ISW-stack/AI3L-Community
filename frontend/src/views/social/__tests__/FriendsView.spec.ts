@@ -342,6 +342,59 @@ describe('FriendsView', () => {
     expect(mockAcceptFriendRequest).toHaveBeenCalledTimes(1)
   })
 
+  it('separates outgoing from incoming requests using ID comparison, not reference equality', async () => {
+    // Create requests where some are incoming (addressee = me) and some outgoing (requester = me)
+    const incomingReq = {
+      id: 'r-in',
+      requester_id: 'u5',
+      requester_name: 'Eve',
+      requester_username: 'eve',
+      requester_avatar_url: null,
+      addressee_id: CURRENT_USER_ID,
+      addressee_name: 'Me',
+      addressee_username: 'me',
+      addressee_avatar_url: null,
+      status: 'pending',
+      created_at: '2026-03-01T00:00:00Z',
+    }
+    const outgoingReq = {
+      id: 'r-out',
+      requester_id: CURRENT_USER_ID,
+      requester_name: 'Me',
+      requester_username: 'me',
+      requester_avatar_url: null,
+      addressee_id: 'u6',
+      addressee_name: 'Frank',
+      addressee_username: 'frank',
+      addressee_avatar_url: null,
+      status: 'pending',
+      created_at: '2026-03-02T00:00:00Z',
+    }
+    mockListFriendRequests.mockResolvedValue({
+      requests: [incomingReq, outgoingReq],
+      total: 2,
+    })
+
+    const { wrapper } = await mountFriendsView()
+    const requestsTab = wrapper
+      .findAll('button[role="tab"]')
+      .find((b) => b.text().includes('Requests'))
+    await requestsTab!.trigger('click')
+    await flushPromises()
+
+    // Both sections should be visible
+    expect(wrapper.text()).toContain('Incoming Requests')
+    expect(wrapper.text()).toContain('Sent Requests')
+
+    // Find FriendRequestCards by type prop
+    const cards = wrapper.findAll('.friend-request-card')
+    expect(cards.length).toBe(2)
+
+    // Eve is incoming (addressee_id = me), Frank's request is outgoing (requester_id = me)
+    expect(wrapper.text()).toContain('Eve')
+    expect(wrapper.text()).toContain('Me') // outgoing card shows requester_name
+  })
+
   it('shows outgoing requests section only for non-incoming requests', async () => {
     const outgoingRequest = {
       id: 'r2',
