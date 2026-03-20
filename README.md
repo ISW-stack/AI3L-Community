@@ -231,22 +231,22 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-03-19 — auto-generated on every push to `main`_
+_Last updated: 2026-03-20 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +240,821 |
-| Total lines removed (all commits) | -37,295 |
-| Backend source lines (excl. tests) | 23,207 |
+| Total lines added (all commits) | +240,935 |
+| Total lines removed (all commits) | -37,325 |
+| Backend source lines (excl. tests) | 23,223 |
 | Frontend source lines (excl. tests) | 53,887 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 83645
+    "Python" : 83729
     "TypeScript" : 77946
     "Vue" : 19957
     "CSS" : 109
@@ -260,11 +260,11 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 2,456 | 23,207 | 57,897 |
+| Backend (pytest) | 2,460 | 23,223 | 57,965 |
 | Frontend (Vitest) | 2,549 | 53,887 | 44,016 |
-| **Total** | **5,005** | **77,094** | **101,913** |
+| **Total** | **5,009** | **77,110** | **101,981** |
 
-Test-to-source ratio: **1.32** (101,913 lines of tests for every 77,094 lines of source)
+Test-to-source ratio: **1.32** (101,981 lines of tests for every 77,110 lines of source)
 
 ### Additional Metrics
 
@@ -272,7 +272,7 @@ Test-to-source ratio: **1.32** (101,913 lines of tests for every 77,094 lines of
 | --- | ---: |
 | REST API endpoints | 173 |
 | Database migrations | 41 |
-| Longest commit streak | 20 days |
+| Longest commit streak | 21 days |
 
 ### Top 5 Largest Source Files
 
@@ -288,9 +288,9 @@ Test-to-source ratio: **1.32** (101,913 lines of tests for every 77,094 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 325 | +238,351 | -35,741 |
+| Isaries | 326 | +238,454 | -35,760 |
 | SW9526 | 23 | +5,823 | -1,670 |
-| github-actions[bot] | 18 | +228 | -228 |
+| github-actions[bot] | 19 | +239 | -239 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
 
