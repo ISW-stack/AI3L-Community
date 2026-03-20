@@ -120,7 +120,7 @@ describe('AppNavbar', () => {
       expect(wrapper.text()).toContain('SIGs')
     })
 
-    it('should show About link inside user dropdown', async () => {
+    it('should show About dropdown with Introduction, Org Chart, Members links', async () => {
       const { wrapper, auth } = mountNavbar()
       auth.setSession('MEMBER', 3600)
       auth.user = {
@@ -139,13 +139,15 @@ describe('AppNavbar', () => {
       } as any
       await nextTick()
 
-      // About is now inside user dropdown — open it first
-      const userBtn = wrapper.find('.user-dropdown-wrapper button')
-      await userBtn.trigger('click')
+      // About dropdown is its own section — open it
+      const aboutBtn = wrapper.find('.about-dropdown-wrapper button')
+      await aboutBtn.trigger('click')
       await nextTick()
 
       const html = wrapper.html()
       expect(html).toContain('href="/about"')
+      expect(html).toContain('href="/about/org-chart"')
+      expect(html).toContain('href="/about/members"')
     })
 
     it('should show Friends link inside user dropdown', async () => {

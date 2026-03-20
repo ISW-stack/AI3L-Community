@@ -170,6 +170,9 @@ export default {
     messages: '메시지',
     signUp: '회원가입',
     closeDropdown: '드롭다운 닫기',
+    introduction: 'Introduction',
+    orgChart: 'Organization Chart',
+    members: 'Members',
   },
 
   // ── Footer ──
@@ -923,6 +926,33 @@ export default {
       loading: '기여자 정보를 불러오는 중...',
       empty: '기여자 정보가 없습니다.',
     },
+  },
+
+  // ── Org Chart ──
+  orgChart: {
+    title: 'Organization Chart',
+    subtitle: 'Explore the structure of AI3L Community: SIGs with their leaders and forum categories.',
+    sigs: 'Special Interest Groups (SIGs)',
+    forumCategories: 'Forum Categories',
+    noSigs: 'No SIGs available.',
+    noCategories: 'No categories available.',
+    memberCount: 'members',
+    editDescription: 'Edit description',
+    editOverride: 'Edit display settings',
+    editBio: 'Edit your bio',
+    customTitle: 'Custom Title',
+    displayOrder: 'Display Order',
+    visible: 'Visible',
+    sigDescription: 'Org Chart Description',
+    myBio: 'My Bio (for this SIG)',
+    hidden: 'Hidden',
+  },
+
+  // ── Members ──
+  members: {
+    title: 'Community Members',
+    subtitle: 'Browse all members of the AI3L Community.',
+    searchPlaceholder: 'Search members...',
   },
 
   // ── Admin ──

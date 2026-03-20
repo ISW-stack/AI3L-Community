@@ -70,7 +70,11 @@ async def create_new_category(
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
     try:
-        cat = await create_category(name=req.name, description=req.description)
+        cat = await create_category(
+            name=req.name,
+            description=req.description,
+            created_by=uuid.UUID(current_user["sub"]),
+        )
     except asyncpg.UniqueViolationError:
         raise AppError(ErrorCode.SYS_409, 409, "Category already exists.")
 

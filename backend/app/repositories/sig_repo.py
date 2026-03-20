@@ -398,6 +398,81 @@ async def find_sole_admin_sigs(user_id: uuid.UUID) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+async def find_all_sigs_with_leaders() -> list[dict]:
+    """Return all active SIGs with their ADMIN and SUB_ADMIN members."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        sigs = await conn.fetch(
+            """
+            SELECT s.id, s.name, s.description, s.org_chart_description,
+                   s.member_count, s.created_by
+            FROM sigs s
+            WHERE s.is_deleted = false
+            ORDER BY s.name ASC
+            """
+        )
+        if not sigs:
+            return []
+
+        sig_ids = [r["id"] for r in sigs]
+        members = await conn.fetch(
+            """
+            SELECT sm.sig_id, sm.user_id, sm.role, sm.org_chart_bio,
+                   u.display_name, u.username, u.avatar_url
+            FROM sig_members sm
+            JOIN users u ON sm.user_id = u.id
+            WHERE sm.sig_id = ANY($1)
+              AND sm.is_deleted = false
+              AND u.is_deleted = false
+            ORDER BY
+              CASE sm.role WHEN 'ADMIN' THEN 0 WHEN 'SUB_ADMIN' THEN 1 ELSE 2 END,
+              sm.created_at ASC
+            """,
+            sig_ids,
+        )
+
+        members_by_sig: dict[uuid.UUID, list[dict]] = {}
+        for m in members:
+            sid = m["sig_id"]
+            members_by_sig.setdefault(sid, []).append(dict(m))
+
+        result = []
+        for s in sigs:
+            d = dict(s)
+            d["members"] = members_by_sig.get(s["id"], [])
+            result.append(d)
+        return result
+
+
+async def update_org_chart_description(
+    sig_id: uuid.UUID, description: str | None
+) -> bool:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE sigs SET org_chart_description = $1, updated_at = NOW() "
+            "WHERE id = $2 AND is_deleted = false",
+            description,
+            sig_id,
+        )
+        return result == "UPDATE 1"
+
+
+async def update_org_chart_bio(
+    sig_id: uuid.UUID, user_id: uuid.UUID, bio: str | None
+) -> bool:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE sig_members SET org_chart_bio = $1 "
+            "WHERE sig_id = $2 AND user_id = $3 AND is_deleted = false",
+            bio,
+            sig_id,
+            user_id,
+        )
+        return result == "UPDATE 1"
+
+
 async def find_members(
     sig_id: uuid.UUID,
     offset: int = 0,

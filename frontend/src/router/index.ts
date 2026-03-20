@@ -19,6 +19,18 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMember: true },
     },
     {
+      path: '/about/org-chart',
+      name: 'about-org-chart',
+      component: () => import('@/views/about/OrgChartView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    {
+      path: '/about/members',
+      name: 'about-members',
+      component: () => import('@/views/about/MembersView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),

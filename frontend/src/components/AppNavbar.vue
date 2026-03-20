@@ -17,10 +17,15 @@ const { t } = useLocale()
 const mobileMenuOpen = ref(false)
 const userDropdownOpen = ref(false)
 const adminDropdownOpen = ref(false)
+const aboutDropdownOpen = ref(false)
 const mobileAdminOpen = ref(false)
+const mobileAboutOpen = ref(false)
 
 watch(mobileMenuOpen, (open) => {
-  if (!open) mobileAdminOpen.value = false
+  if (!open) {
+    mobileAdminOpen.value = false
+    mobileAboutOpen.value = false
+  }
 })
 
 const { handleDropdownKeydown: handleAdminKeydown } = useDropdownKeyNav({
@@ -28,6 +33,13 @@ const { handleDropdownKeydown: handleAdminKeydown } = useDropdownKeyNav({
   onOpen: () => (adminDropdownOpen.value = true),
   onClose: () => (adminDropdownOpen.value = false),
   wrapperClass: 'admin-dropdown-wrapper',
+})
+
+const { handleDropdownKeydown: handleAboutKeydown } = useDropdownKeyNav({
+  isOpen: aboutDropdownOpen,
+  onOpen: () => (aboutDropdownOpen.value = true),
+  onClose: () => (aboutDropdownOpen.value = false),
+  wrapperClass: 'about-dropdown-wrapper',
 })
 
 const { handleDropdownKeydown: handleUserKeydown } = useDropdownKeyNav({
@@ -75,12 +87,16 @@ function handleClickOutside(e: MouseEvent) {
   if (!target.closest('.admin-dropdown-wrapper')) {
     adminDropdownOpen.value = false
   }
+  if (!target.closest('.about-dropdown-wrapper')) {
+    aboutDropdownOpen.value = false
+  }
 }
 
 function handleEscapeKey(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     userDropdownOpen.value = false
     adminDropdownOpen.value = false
+    aboutDropdownOpen.value = false
     mobileMenuOpen.value = false
   }
 }
@@ -139,6 +155,59 @@ onUnmounted(() => {
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.albums') }}</router-link
           >
+
+          <template v-if="auth.isAuthenticated && !auth.isGuest">
+            <!-- About dropdown -->
+            <div
+              class="relative about-dropdown-wrapper"
+              @keydown="handleAboutKeydown"
+            >
+              <button
+                @click="aboutDropdownOpen = !aboutDropdownOpen"
+                class="flex items-center gap-1 text-sm text-muted hover:text-foreground transition"
+                :aria-expanded="aboutDropdownOpen"
+              >
+                {{ t('nav.about') }}
+                <ChevronDown
+                  class="w-4 h-4 transition-transform"
+                  :class="{ 'rotate-180': aboutDropdownOpen }"
+                  aria-hidden="true"
+                />
+              </button>
+
+              <Transition name="dropdown">
+                <div
+                  v-if="aboutDropdownOpen"
+                  class="absolute right-0 sm:left-0 sm:right-auto mt-2 w-48 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
+                >
+                  <router-link
+                    to="/about"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="aboutDropdownOpen = false"
+                    tabindex="-1"
+                  >
+                    {{ t('nav.introduction') }}
+                  </router-link>
+                  <router-link
+                    to="/about/org-chart"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="aboutDropdownOpen = false"
+                    tabindex="-1"
+                  >
+                    {{ t('nav.orgChart') }}
+                  </router-link>
+                  <router-link
+                    to="/about/members"
+                    class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="aboutDropdownOpen = false"
+                    tabindex="-1"
+                  >
+                    {{ t('nav.members') }}
+                  </router-link>
+                </div>
+              </Transition>
+            </div>
+          </template>
 
           <template v-if="auth.isAuthenticated">
             <!-- Admin dropdown -->
@@ -312,14 +381,6 @@ onUnmounted(() => {
                       tabindex="-1"
                     >
                       {{ t('nav.friends') }}
-                    </router-link>
-                    <router-link
-                      to="/about"
-                      class="block px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
-                      @click="userDropdownOpen = false"
-                      tabindex="-1"
-                    >
-                      {{ t('nav.about') }}
                     </router-link>
 
                     <div class="border-t border-border my-1" />
@@ -495,6 +556,45 @@ onUnmounted(() => {
               </Transition>
             </template>
 
+            <!-- About accordion (mobile) -->
+            <template v-if="!auth.isGuest">
+              <button
+                type="button"
+                @click="mobileAboutOpen = !mobileAboutOpen"
+                class="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted uppercase tracking-wider hover:bg-surface-alt rounded-lg transition"
+                :aria-expanded="mobileAboutOpen"
+              >
+                {{ t('nav.about') }}
+                <ChevronDown
+                  class="w-4 h-4 transition-transform"
+                  :class="{ 'rotate-180': mobileAboutOpen }"
+                  aria-hidden="true"
+                />
+              </button>
+              <Transition name="mobile-admin">
+                <div v-if="mobileAboutOpen" class="space-y-1">
+                  <router-link
+                    to="/about"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.introduction') }}</router-link
+                  >
+                  <router-link
+                    to="/about/org-chart"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.orgChart') }}</router-link
+                  >
+                  <router-link
+                    to="/about/members"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.members') }}</router-link
+                  >
+                </div>
+              </Transition>
+            </template>
+
             <div class="pt-2 pb-1 px-3 text-xs font-medium text-muted uppercase tracking-wider">
               {{ t('nav.sectionAccount') }}
             </div>
@@ -521,13 +621,6 @@ onUnmounted(() => {
                 @click="mobileMenuOpen = false"
               >
                 {{ t('nav.friends') }}
-              </router-link>
-              <router-link
-                to="/about"
-                class="block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                @click="mobileMenuOpen = false"
-              >
-                {{ t('nav.about') }}
               </router-link>
             </template>
             <button

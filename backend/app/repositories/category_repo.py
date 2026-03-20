@@ -3,18 +3,24 @@ import uuid
 from app.core.database import get_pool
 
 
-async def insert(cat_id: uuid.UUID, name: str, description: str | None) -> dict:
+async def insert(
+    cat_id: uuid.UUID,
+    name: str,
+    description: str | None,
+    created_by: uuid.UUID | None = None,
+) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            INSERT INTO categories (id, name, description)
-            VALUES ($1, $2, $3)
+            INSERT INTO categories (id, name, description, created_by)
+            VALUES ($1, $2, $3, $4)
             RETURNING *
             """,
             cat_id,
             name,
             description,
+            created_by,
         )
         return dict(row)
 
@@ -97,6 +103,20 @@ async def find_all_with_post_counts() -> list[dict]:
             FROM categories c
             LEFT JOIN posts p ON p.category_id = c.id
             GROUP BY c.id
+            ORDER BY c.name ASC
+            """)
+        return [dict(r) for r in rows]
+
+
+async def find_all_with_creators() -> list[dict]:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT c.id, c.name, c.description, c.created_by,
+                   u.display_name AS creator_display_name,
+                   u.avatar_url AS creator_avatar_url
+            FROM categories c
+            LEFT JOIN users u ON c.created_by = u.id
             ORDER BY c.name ASC
             """)
         return [dict(r) for r in rows]

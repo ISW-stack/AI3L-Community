@@ -7,11 +7,12 @@ from collections import OrderedDict
 from typing import Any
 
 import requests as _requests  # type: ignore[import-untyped]
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
+from app.repositories import sig_repo
 from app.schemas.about import (
     ContributorAdminListResponse,
     ContributorAdminResponse,
@@ -20,7 +21,16 @@ from app.schemas.about import (
     ContributorsListResponse,
     ContributorUpdateRequest,
 )
+from app.schemas.org_chart import (
+    MemberOrgChartBioUpdateRequest,
+    MembersListResponse,
+    OrgChartOverrideResponse,
+    OrgChartOverrideUpdateRequest,
+    OrgChartResponse,
+    SigOrgChartDescriptionUpdateRequest,
+)
 from app.services import contributor as contributor_service
+from app.services import org_chart as org_chart_service
 
 router = APIRouter(prefix="/about", tags=["about"])
 
@@ -123,6 +133,105 @@ async def get_contributor_avatar(
         return Response(content=data, media_type=content_type)
     except _requests.RequestException:
         return Response(status_code=502, content=b"Failed to fetch avatar")
+
+
+# ── Org Chart & Members ────────────────────────────────────────────────
+
+
+@router.get("/org-chart", response_model=OrgChartResponse)
+async def get_org_chart(
+    current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> OrgChartResponse:
+    """Return org chart data: SIGs with leaders and forum categories with creators.
+
+    Hidden entries (is_visible=False) are only returned to SUPER_ADMIN callers.
+    """
+    is_super_admin = current_user.get("role") == "SUPER_ADMIN"
+    data = await org_chart_service.get_org_chart(is_super_admin=is_super_admin)
+    return OrgChartResponse(**data)
+
+
+@router.get("/members", response_model=MembersListResponse)
+async def list_members(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(24, ge=1, le=100),
+    search: str = Query("", max_length=200),
+    _current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> MembersListResponse:
+    """Return paginated list of all non-guest members."""
+    offset = (page - 1) * page_size
+    members, total = await org_chart_service.get_members(
+        offset=offset, limit=page_size, search=search or None
+    )
+    return MembersListResponse(members=members, total=total)
+
+
+@router.put("/org-chart/override/{entity_type}/{entity_id}")
+async def update_override(
+    entity_type: str,
+    entity_id: uuid.UUID,
+    body: OrgChartOverrideUpdateRequest,
+    current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> OrgChartOverrideResponse:
+    """Update org chart override (title, order, visibility). SUPER_ADMIN only."""
+    if entity_type not in ("sig", "category", "sig_member"):
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid entity_type.")
+    result = await org_chart_service.update_override(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        updated_by=uuid.UUID(current_user["sub"]),
+        custom_title=body.custom_title,
+        custom_description=body.custom_description,
+        display_order=body.display_order,
+        is_visible=body.is_visible,
+    )
+    return OrgChartOverrideResponse(
+        entity_type=result["entity_type"],
+        entity_id=str(result["entity_id"]),
+        custom_title=result.get("custom_title"),
+        custom_description=result.get("custom_description"),
+        display_order=result.get("display_order", 0),
+        is_visible=result.get("is_visible", True),
+    )
+
+
+@router.put("/org-chart/sigs/{sig_id}/description")
+async def update_sig_org_chart_description(
+    sig_id: uuid.UUID,
+    body: SigOrgChartDescriptionUpdateRequest,
+    current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Update a SIG's org chart description. SIG ADMIN or SUB_ADMIN only."""
+    user_id = uuid.UUID(current_user["sub"])
+    user_role = current_user.get("role", "")
+
+    if user_role != "SUPER_ADMIN":
+        sig_role = await sig_repo.get_member_role(sig_id, user_id)
+        if sig_role not in ("ADMIN", "SUB_ADMIN"):
+            raise AppError(ErrorCode.SYS_403, 403, "Only SIG admins can edit this.")
+
+    updated = await org_chart_service.update_sig_description(sig_id, body.org_chart_description)
+    if not updated:
+        raise AppError(ErrorCode.SYS_404, 404, "SIG not found.")
+    return {"status": "ok"}
+
+
+@router.put("/org-chart/sigs/{sig_id}/members/me/bio")
+async def update_my_org_chart_bio(
+    sig_id: uuid.UUID,
+    body: MemberOrgChartBioUpdateRequest,
+    current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Update the caller's org_chart_bio for a specific SIG."""
+    user_id = uuid.UUID(current_user["sub"])
+    sig_role = await sig_repo.get_member_role(sig_id, user_id)
+    if sig_role is None:
+        raise AppError(ErrorCode.SYS_403, 403, "You are not a member of this SIG.")
+
+    updated = await org_chart_service.update_member_bio(sig_id, user_id, body.org_chart_bio)
+    if not updated:
+        raise AppError(ErrorCode.SYS_404, 404, "Membership not found.")
+    return {"status": "ok"}
 
 
 # ── Admin CRUD (SUPER_ADMIN only) ──────────────────────────────────────

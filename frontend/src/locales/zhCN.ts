@@ -157,6 +157,9 @@ export default {
     messages: '消息',
     signUp: '注册',
     closeDropdown: '关闭下拉菜单',
+    introduction: 'Introduction',
+    orgChart: 'Organization Chart',
+    members: 'Members',
   },
 
   // ── DM (Direct Messages) ──
@@ -879,6 +882,35 @@ export default {
       empty: '没有可用的贡献者信息。',
     },
   },
+
+  // -- Org Chart --
+  orgChart: {
+    title: 'Organization Chart',
+    subtitle:
+      'Explore the structure of AI3L Community: SIGs with their leaders and forum categories.',
+    sigs: 'Special Interest Groups (SIGs)',
+    forumCategories: 'Forum Categories',
+    noSigs: 'No SIGs available.',
+    noCategories: 'No categories available.',
+    memberCount: 'members',
+    editDescription: 'Edit description',
+    editOverride: 'Edit display settings',
+    editBio: 'Edit your bio',
+    customTitle: 'Custom Title',
+    displayOrder: 'Display Order',
+    visible: 'Visible',
+    sigDescription: 'Org Chart Description',
+    myBio: 'My Bio (for this SIG)',
+    hidden: 'Hidden',
+  },
+
+  // -- Members --
+  members: {
+    title: 'Community Members',
+    subtitle: 'Browse all members of the AI3L Community.',
+    searchPlaceholder: 'Search members...',
+  },
+
   admin: {
     layout: {
       title: '管理',

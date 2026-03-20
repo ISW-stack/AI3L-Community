@@ -7,9 +7,13 @@ from app.core.errors import ConflictError
 from app.repositories import category_repo
 
 
-async def create_category(name: str, description: str | None = None) -> dict:
+async def create_category(
+    name: str,
+    description: str | None = None,
+    created_by: uuid.UUID | None = None,
+) -> dict:
     cat_id = uuid.uuid4()
-    result = await category_repo.insert(cat_id, name, description)
+    result = await category_repo.insert(cat_id, name, description, created_by=created_by)
     logger.info("Category created", extra={"category_id": str(cat_id), "name": name})
     return result
 

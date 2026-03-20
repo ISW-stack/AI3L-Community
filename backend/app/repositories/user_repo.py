@@ -367,3 +367,43 @@ async def get_storage_used(user_id: uuid.UUID) -> int:
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT storage_used_bytes FROM users WHERE id = $1", user_id)
     return int(row["storage_used_bytes"]) if row else 0
+
+
+async def find_all_members(
+    offset: int = 0,
+    limit: int = 24,
+    search: str | None = None,
+) -> tuple[list[dict], int]:
+    """Return non-guest, non-deleted users with pagination and optional search."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        base_where = "WHERE u.is_deleted = false AND u.role != 'GUEST'"
+        params: list = []
+        idx = 1
+
+        if search:
+            escaped = _escape_ilike(search)
+            base_where += f" AND (u.display_name ILIKE ${idx} OR u.username ILIKE ${idx})"
+            params.append(f"%{escaped}%")
+            idx += 1
+
+        params.append(limit)
+        params.append(offset)
+
+        rows = await conn.fetch(
+            f"""
+            SELECT u.id, u.username, u.display_name, u.role,
+                   u.avatar_url, u.affiliation, u.bio,
+                   COUNT(*) OVER() AS _total
+            FROM users u
+            {base_where}
+            ORDER BY u.display_name ASC
+            LIMIT ${idx} OFFSET ${idx + 1}
+            """,
+            *params,
+        )
+        if not rows:
+            return [], 0
+        total = rows[0]["_total"]
+        items = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+        return items, total

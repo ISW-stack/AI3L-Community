@@ -168,6 +168,9 @@ export default {
     messages: '訊息',
     signUp: '去註冊',
     closeDropdown: '關起下拉選單',
+    introduction: 'Introduction',
+    orgChart: 'Organization Chart',
+    members: 'Members',
   },
 
   // ── Footer ──
@@ -913,6 +916,33 @@ export default {
       loading: '載入貢獻者中...',
       empty: '無貢獻者資訊。',
     },
+  },
+
+  // ── Org Chart ──
+  orgChart: {
+    title: 'Organization Chart',
+    subtitle: 'Explore the structure of AI3L Community: SIGs with their leaders and forum categories.',
+    sigs: 'Special Interest Groups (SIGs)',
+    forumCategories: 'Forum Categories',
+    noSigs: 'No SIGs available.',
+    noCategories: 'No categories available.',
+    memberCount: 'members',
+    editDescription: 'Edit description',
+    editOverride: 'Edit display settings',
+    editBio: 'Edit your bio',
+    customTitle: 'Custom Title',
+    displayOrder: 'Display Order',
+    visible: 'Visible',
+    sigDescription: 'Org Chart Description',
+    myBio: 'My Bio (for this SIG)',
+    hidden: 'Hidden',
+  },
+
+  // ── Members ──
+  members: {
+    title: 'Community Members',
+    subtitle: 'Browse all members of the AI3L Community.',
+    searchPlaceholder: 'Search members...',
   },
 
   // ── Admin ──
