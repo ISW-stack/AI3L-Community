@@ -83,6 +83,68 @@ class TestUpdateProfile:
             _clear_overrides()
 
 
+class TestUpdateProfileValidationError:
+    """Verify that ValueError from service layer returns 400, not 500."""
+
+    @pytest.mark.anyio
+    async def test_bio_too_long_returns_400(self, client):
+        """PUT /users/me with bio exceeding service limit → 400."""
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.update_user_profile",
+                new_callable=AsyncMock,
+                side_effect=ValueError("bio must be at most 50000 characters (got 50001)."),
+            ):
+                resp = await client.put(
+                    "/api/v1/users/me",
+                    json={"bio": "<p>too long</p>"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                body = resp.json()["detail"]
+                assert "bio must be at most" in body["message"]
+                assert body["code"] == "SYS_422"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_affiliation_too_long_returns_400(self, client):
+        """PUT /users/me with affiliation exceeding service limit → 400."""
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.update_user_profile",
+                new_callable=AsyncMock,
+                side_effect=ValueError("affiliation must be at most 200 characters (got 201)."),
+            ):
+                resp = await client.put(
+                    "/api/v1/users/me",
+                    json={"affiliation": "short"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                body = resp.json()["detail"]
+                assert "affiliation must be at most" in body["message"]
+                assert body["code"] == "SYS_422"
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_schema_rejects_display_name_over_max(self, client):
+        """PUT /users/me with display_name > 100 chars → Pydantic 422."""
+        try:
+            _override_auth("MEMBER")
+            resp = await client.put(
+                "/api/v1/users/me",
+                json={"display_name": "x" * 101},
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+
 class TestUploadAvatarInvalid:
     @pytest.mark.anyio
     async def test_upload_avatar_no_file(self, client):

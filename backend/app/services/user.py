@@ -6,6 +6,12 @@ from app.core.async_storage import delete_file as async_delete_file
 from app.core.async_storage import get_file_size as async_get_file_size
 from app.core.async_storage import upload_file as async_upload_file
 from app.core.config import settings
+from app.core.constants import (
+    MAX_AFFILIATION_LENGTH,
+    MAX_BIO_LENGTH,
+    MAX_DISPLAY_NAME_LENGTH,
+    MAX_ORCID_LENGTH,
+)
 from app.core.errors import (
     RateLimitError,
     ServiceNotFoundError,
@@ -46,10 +52,10 @@ async def create_user(
 
 
 _PROFILE_FIELD_LIMITS: dict[str, int] = {
-    "display_name": 100,
-    "bio": 500,
-    "affiliation": 200,
-    "orcid": 30,
+    "display_name": MAX_DISPLAY_NAME_LENGTH,
+    "bio": MAX_BIO_LENGTH,
+    "affiliation": MAX_AFFILIATION_LENGTH,
+    "orcid": MAX_ORCID_LENGTH,
 }
 
 

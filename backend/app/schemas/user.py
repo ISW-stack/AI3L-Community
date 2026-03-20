@@ -2,6 +2,13 @@ import uuid
 
 from pydantic import BaseModel, Field
 
+from app.core.constants import (
+    MAX_AFFILIATION_LENGTH,
+    MAX_BIO_LENGTH,
+    MAX_DISPLAY_NAME_LENGTH,
+    MAX_ORCID_LENGTH,
+)
+
 
 class UserResponse(BaseModel):
     id: str
@@ -34,10 +41,10 @@ class PublicUserResponse(BaseModel):
 
 
 class UserUpdateRequest(BaseModel):
-    display_name: str | None = Field(None, max_length=100)
-    bio: str | None = Field(None, max_length=50000)
-    affiliation: str | None = Field(None, max_length=200)
-    orcid: str | None = Field(None, max_length=50)
+    display_name: str | None = Field(None, max_length=MAX_DISPLAY_NAME_LENGTH)
+    bio: str | None = Field(None, max_length=MAX_BIO_LENGTH)
+    affiliation: str | None = Field(None, max_length=MAX_AFFILIATION_LENGTH)
+    orcid: str | None = Field(None, max_length=MAX_ORCID_LENGTH)
     preferred_language: str | None = Field(
         None, max_length=10, pattern="^(en|zh-TW|zh-CN|ja|fr|es|de)$"
     )

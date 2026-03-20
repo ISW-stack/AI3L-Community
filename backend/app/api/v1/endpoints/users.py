@@ -83,10 +83,13 @@ async def update_my_profile(
     # Sanitize bio HTML like post content
     if "bio" in provided and provided["bio"]:
         provided["bio"] = sanitize_html(provided["bio"])
-    user = await update_user_profile(
-        user_id=uuid.UUID(current_user["sub"]),
-        **provided,
-    )
+    try:
+        user = await update_user_profile(
+            user_id=uuid.UUID(current_user["sub"]),
+            **provided,
+        )
+    except ValueError as e:
+        raise AppError(ErrorCode.SYS_422, 400, str(e))
     if user is None:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
     return await async_user_to_response(user)
