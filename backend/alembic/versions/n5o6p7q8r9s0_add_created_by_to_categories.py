@@ -1,7 +1,7 @@
 """add created_by to categories
 
-Revision ID: a1b2c3d4e5f6
-Revises: z7a8b9c0d1e2
+Revision ID: n5o6p7q8r9s0
+Revises: m4n5o6p7q8r9
 Create Date: 2026-03-20
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "a1b2c3d4e5f6"
-down_revision = "z7a8b9c0d1e2"
+revision = "n5o6p7q8r9s0"
+down_revision = "m4n5o6p7q8r9"
 branch_labels = None
 depends_on = None
 

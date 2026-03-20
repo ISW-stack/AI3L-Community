@@ -1,7 +1,7 @@
 """add org_chart_bio to sig_members
 
-Revision ID: c3d4e5f6g7h8
-Revises: b2c3d4e5f6g7
+Revision ID: p7q8r9s0t1u2
+Revises: o6p7q8r9s0t1
 Create Date: 2026-03-20
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "c3d4e5f6g7h8"
-down_revision = "b2c3d4e5f6g7"
+revision = "p7q8r9s0t1u2"
+down_revision = "o6p7q8r9s0t1"
 branch_labels = None
 depends_on = None
 

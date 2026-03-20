@@ -1,7 +1,7 @@
 """add org_chart_description to sigs
 
-Revision ID: d4e5f6g7h8i9
-Revises: c3d4e5f6g7h8
+Revision ID: q8r9s0t1u2v3
+Revises: p7q8r9s0t1u2
 Create Date: 2026-03-20
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision = "d4e5f6g7h8i9"
-down_revision = "c3d4e5f6g7h8"
+revision = "q8r9s0t1u2v3"
+down_revision = "p7q8r9s0t1u2"
 branch_labels = None
 depends_on = None
 

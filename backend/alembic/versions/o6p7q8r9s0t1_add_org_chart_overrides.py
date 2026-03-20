@@ -1,7 +1,7 @@
 """add org_chart_overrides table
 
-Revision ID: b2c3d4e5f6g7
-Revises: a1b2c3d4e5f6
+Revision ID: o6p7q8r9s0t1
+Revises: n5o6p7q8r9s0
 Create Date: 2026-03-20
 
 """
@@ -11,8 +11,8 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision = "b2c3d4e5f6g7"
-down_revision = "a1b2c3d4e5f6"
+revision = "o6p7q8r9s0t1"
+down_revision = "n5o6p7q8r9s0"
 branch_labels = None
 depends_on = None
 
