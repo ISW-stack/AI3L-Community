@@ -149,7 +149,7 @@ function formatFileSize(bytes: number): string {
       />
 
       <!-- Textarea -->
-      <div class="flex-1 relative">
+      <div class="flex-1 min-w-0 overflow-hidden relative">
         <textarea
           ref="textarea"
           v-model="content"

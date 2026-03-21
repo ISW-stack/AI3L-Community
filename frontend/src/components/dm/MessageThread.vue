@@ -207,7 +207,7 @@ defineExpose({ scrollToBottom })
   <div
     ref="scrollContainer"
     @scroll="handleScroll"
-    class="flex-1 overflow-y-auto px-4 py-4 space-y-1 relative min-h-0"
+    class="flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 space-y-1 relative min-h-0"
   >
     <!-- Load more -->
     <div v-if="hasMore" class="text-center pb-3">
@@ -295,7 +295,7 @@ defineExpose({ scrollToBottom })
           </div>
 
           <!-- Bubble -->
-          <div class="max-w-[70%] relative group">
+          <div class="max-w-[70%] min-w-0 relative group">
             <!-- Recalled message -->
             <div
               v-if="item.message.is_recalled"
@@ -314,7 +314,7 @@ defineExpose({ scrollToBottom })
                   : 'bg-surface-alt text-foreground border border-border rounded-bl-sm'
               "
             >
-              <p v-if="item.message.content" class="whitespace-pre-wrap break-words">
+              <p v-if="item.message.content" class="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 {{ item.message.content }}
               </p>
 
