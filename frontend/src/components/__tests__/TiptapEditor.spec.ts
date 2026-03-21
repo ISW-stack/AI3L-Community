@@ -479,6 +479,92 @@ describe('TiptapEditor', () => {
       expect(vi.mocked(uploadEditorFile)).toHaveBeenCalled()
     })
 
+    it('escapes HTML in file names when inserting non-image files', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: 'https://example.com/files/malicious.pdf',
+        key: 'editor/x/malicious.pdf',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const maliciousName = '<img src=x onerror=alert(1)>.pdf'
+      const file = new File(['data'], maliciousName, { type: 'application/pdf' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      const insertedHtml = mockChain.insertContent.mock.calls[0][0] as string
+      // The file name must be escaped — no raw < or > in the inserted HTML text
+      expect(insertedHtml).not.toContain('<img src=x')
+      expect(insertedHtml).toContain('&lt;img')
+      expect(insertedHtml).toContain('&gt;.pdf')
+    })
+
+    it('rejects javascript: URLs returned by the API', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: 'javascript:alert(1)',
+        key: 'editor/x/file.pdf',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'file.pdf', { type: 'application/pdf' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      // Neither setImage nor insertContent should be called with a javascript: URL
+      expect(mockChain.setImage).not.toHaveBeenCalled()
+      expect(mockChain.insertContent).not.toHaveBeenCalled()
+    })
+
+    it('rejects data: URLs returned by the API', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: 'data:text/html,<script>alert(1)</script>',
+        key: 'editor/x/file.png',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'file.png', { type: 'image/png' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(mockChain.setImage).not.toHaveBeenCalled()
+      expect(mockChain.insertContent).not.toHaveBeenCalled()
+    })
+
+    it('accepts valid https URLs from the API', async () => {
+      const { uploadEditorFile } = await import('@/api/files')
+      vi.mocked(uploadEditorFile).mockResolvedValue({
+        url: 'https://cdn.example.com/files/photo.png',
+        key: 'editor/x/photo.png',
+        scan_task_id: null,
+      })
+
+      const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
+      const vm = wrapper.vm as any
+
+      const file = new File(['data'], 'photo.png', { type: 'image/png' })
+      const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
+      await vm.handleFileUpload(fakeEvent)
+      await flushPromises()
+
+      expect(mockChain.setImage).toHaveBeenCalledWith({
+        src: 'https://cdn.example.com/files/photo.png',
+      })
+    })
+
     it('does not set scan status to pending when scan_task_id is absent', async () => {
       const { uploadEditorFile } = await import('@/api/files')
       vi.mocked(uploadEditorFile).mockResolvedValue({

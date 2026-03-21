@@ -14,25 +14,26 @@ async def find_or_create_conversation(user_a: uuid.UUID, user_b: uuid.UUID) -> d
     low, high = sorted([user_a, user_b])
     pool = get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            """
-            INSERT INTO conversations (participant_a, participant_b)
-            VALUES ($1, $2)
-            ON CONFLICT ON CONSTRAINT uq_conversation_pair DO NOTHING
-            """,
-            low,
-            high,
-        )
-        row = await conn.fetchrow(
-            """
-            SELECT id, participant_a, participant_b, total_chars, created_at, updated_at
-            FROM conversations
-            WHERE participant_a = $1 AND participant_b = $2
-            """,
-            low,
-            high,
-        )
-        return dict(row)
+        async with conn.transaction():
+            await conn.execute(
+                """
+                INSERT INTO conversations (participant_a, participant_b)
+                VALUES ($1, $2)
+                ON CONFLICT ON CONSTRAINT uq_conversation_pair DO NOTHING
+                """,
+                low,
+                high,
+            )
+            row = await conn.fetchrow(
+                """
+                SELECT id, participant_a, participant_b, total_chars, created_at, updated_at
+                FROM conversations
+                WHERE participant_a = $1 AND participant_b = $2
+                """,
+                low,
+                high,
+            )
+            return dict(row)
 
 
 async def find_conversation_by_id(conversation_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:

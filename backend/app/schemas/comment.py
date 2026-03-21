@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 class CommentCreateRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
     parent_id: str | None = None
-    mentions: list[str] | None = None
+    mentions: list[str] | None = Field(None, max_length=20)
 
 
 class CommentAuthorResponse(BaseModel):

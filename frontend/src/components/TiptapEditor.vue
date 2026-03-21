@@ -11,6 +11,7 @@ import { ref, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { uploadEditorFile, getFileScanStatus } from '@/api/files'
 import { useToastStore } from '@/stores/toast'
+import { escapeHtml, isValidUrl } from '@/utils/html'
 import CitationSearchDialog from '@/components/post/CitationSearchDialog.vue'
 import {
   Bold,
@@ -170,6 +171,10 @@ async function handleFileUpload(event: Event) {
   uploading.value = true
   try {
     const data = await uploadEditorFile(file)
+    if (!isValidUrl(data.url)) {
+      toastStore.show('Invalid file URL received', 'error')
+      return
+    }
     const isImage = file.type.startsWith('image/')
     if (isImage) {
       editor.value.chain().focus().setImage({ src: data.url }).run()
@@ -178,7 +183,7 @@ async function handleFileUpload(event: Event) {
         .chain()
         .focus()
         .insertContent(
-          `<a href="${data.url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`,
+          `<a href="${data.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(file.name)}</a>`,
         )
         .run()
     }

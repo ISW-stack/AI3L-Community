@@ -18,6 +18,7 @@ except Exception as e:
     logging.getLogger(__name__).warning("Datadog tracing init failed: %s", e)
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -188,9 +189,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 
+_UPLOAD_BODY_LIMITS: dict[str, int] = {
+    "/api/v1/albums/": 50 * 1024 * 1024,  # 50 MB
+    "/api/v1/dm/": 50 * 1024 * 1024,  # 50 MB
+    "/api/v1/files/": 20 * 1024 * 1024,  # 20 MB
+}
+
+
+def _get_body_limit(path: str) -> int:
+    """Return the body-size limit for a given request path."""
+    for prefix, limit in _UPLOAD_BODY_LIMITS.items():
+        if path.startswith(prefix):
+            return limit
+    return MAX_REQUEST_BODY_SIZE
+
 
 class _BodyTooLargeError(Exception):
-    """Internal signal raised when chunked body exceeds MAX_REQUEST_BODY_SIZE."""
+    """Internal signal raised when chunked body exceeds the path-specific limit."""
 
 
 app = FastAPI(
@@ -203,17 +218,37 @@ app = FastAPI(
 )
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Return a sanitized 422 response without leaking schema internals."""
+    errors = []
+    for error in exc.errors():
+        loc = error.get("loc", ())
+        field = str(loc[-1]) if loc else "unknown"
+        errors.append({
+            "field": field,
+            "message": error.get("msg", "Invalid value"),
+        })
+    return JSONResponse(
+        status_code=422,
+        content={"code": "VALIDATION_ERROR", "errors": errors},
+    )
+
+
 @app.middleware("http")
 async def limit_request_body_size(request: Request, call_next: RequestResponseEndpoint) -> Response:
-    """Reject requests whose body exceeds the global limit.
+    """Reject requests whose body exceeds the path-specific limit.
 
     Checks Content-Length header first. For chunked transfer (no Content-Length),
     wraps the ASGI receive callable to count bytes and abort if the limit is exceeded.
     """
+    body_limit = _get_body_limit(request.url.path)
     content_length = request.headers.get("content-length")
     if content_length:
         try:
-            if int(content_length) > MAX_REQUEST_BODY_SIZE:
+            if int(content_length) > body_limit:
                 return JSONResponse(status_code=413, content={"detail": "Request body too large"})
         except (ValueError, TypeError):
             return JSONResponse(
@@ -230,7 +265,7 @@ async def limit_request_body_size(request: Request, call_next: RequestResponseEn
             message = await original_receive()
             body = message.get("body", b"")
             bytes_received += len(body)
-            if bytes_received > MAX_REQUEST_BODY_SIZE:
+            if bytes_received > body_limit:
                 raise _BodyTooLargeError()
             return dict(message)
 

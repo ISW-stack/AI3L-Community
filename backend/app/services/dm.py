@@ -61,6 +61,20 @@ _MAGIC_BYTES: dict[str, list[bytes]] = {
     "application/msword": [b"\xd0\xcf\x11\xe0"],
 }
 
+# M-13: Forbidden prefixes for text files (.txt/.csv) to prevent HTML-as-text attacks
+_TEXT_FORBIDDEN_PREFIXES: list[bytes] = [
+    b"<html",
+    b"<HTML",
+    b"<!DOCTYPE",
+    b"<!doctype",
+    b"<script",
+    b"<SCRIPT",
+    b"<Script",
+]
+
+# Extensions that need text content validation (no magic bytes, but must not be HTML)
+_TEXT_CONTENT_CHECK_EXTENSIONS: set[str] = {".txt", ".csv"}
+
 
 def _validate_dm_file(file_name: str, file_data: bytes) -> None:
     """Validate DM attachment: extension allowlist + magic bytes for images/PDFs.
@@ -77,6 +91,16 @@ def _validate_dm_file(file_name: str, file_data: bytes) -> None:
             400,
             f"File type not allowed. Accepted: {', '.join(sorted(_DM_ALLOWED_EXTENSIONS))}",
         )
+
+    # M-13: For text files (.txt/.csv), reject content that looks like HTML
+    if ext in _TEXT_CONTENT_CHECK_EXTENSIONS:
+        stripped = file_data.lstrip()
+        if any(stripped.startswith(prefix) for prefix in _TEXT_FORBIDDEN_PREFIXES):
+            raise AppError(
+                ErrorCode.FILE_001,
+                400,
+                "Text file contains HTML content, which is not allowed.",
+            )
 
     # For types with known magic signatures, verify content matches extension
     expected_type = _DM_MAGIC_CHECK_EXTENSIONS.get(ext)
@@ -134,13 +158,26 @@ async def send_message(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        # Wrap block + friendship checks in a transaction to prevent TOCTOU races
+        # Wrap block + friendship + recipient checks in a transaction to prevent TOCTOU races
         async with conn.transaction():
+            # M-08: Validate recipient exists and is active
+            recipient = await conn.fetchrow(
+                "SELECT id, is_deleted, is_banned FROM users WHERE id = $1",
+                uuid.UUID(recipient_id),
+            )
+            if not recipient:
+                raise AppError(ErrorCode.SYS_404, 404, "Recipient not found.")
+            if recipient["is_deleted"] or recipient["is_banned"]:
+                raise AppError(ErrorCode.DM_001, 403, "Cannot message this user.")
+
             if await social_repo.is_blocked(conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)):
                 raise AppError(ErrorCode.DM_001, 403, "Cannot message this user.")
 
-            # 5. Check recipient's dm_friends_only preference
-            dm_friends_only = await dm_repo.get_dm_friends_only(uuid.UUID(recipient_id))
+            # 5. Check recipient's dm_friends_only preference (M-05: inlined to use same conn)
+            dm_friends_only = await conn.fetchval(
+                "SELECT dm_friends_only FROM user_preferences WHERE user_id = $1",
+                uuid.UUID(recipient_id),
+            )
             if dm_friends_only:
                 friendship = await social_repo.find_friendship_between(
                     conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)
@@ -271,26 +308,12 @@ async def send_message(
 
 async def edit_message(message_id: str, sender_id: str, new_content: str) -> dict:
     """Edit a message within the edit window."""
-    # 1. Find message and verify sender
+    # 1. Initial read to get conversation_id for the advisory lock
     row = await dm_repo.find_message_by_id(uuid.UUID(message_id))
     if not row:
         raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
-    if str(row["sender_id"]) != sender_id:
-        raise AppError(ErrorCode.SYS_403, 403, "Cannot edit another user's message.")
 
-    # 2. Verify not recalled
-    if row.get("is_recalled"):
-        raise AppError(ErrorCode.SYS_422, 422, "Cannot edit a recalled message.")
-
-    # 3. Verify within edit window
-    created_at = row["created_at"]
-    if created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=timezone.utc)
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
-    if created_at < cutoff:
-        raise AppError(ErrorCode.DM_002, 403, "Edit window has expired.")
-
-    # 4. Validate new content length
+    # 2. Validate new content length (before acquiring lock)
     if len(new_content) > DM_MAX_MESSAGE_LENGTH:
         raise AppError(
             ErrorCode.SYS_422,
@@ -301,11 +324,7 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
     # B-04/S-01: Sanitize HTML content before storing
     new_content = sanitize_html(new_content)
 
-    # 5. Calculate char delta
-    old_content = row.get("content") or ""
-    char_delta = len(new_content) - len(old_content)
-
-    # 6-7. Update message content + char count atomically
+    # 3. Acquire advisory lock, re-read message inside lock, validate, and update atomically
     conversation_id = row["conversation_id"]
     from app.core.database import get_pool
 
@@ -316,8 +335,32 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
                 "SELECT pg_advisory_xact_lock(hashtext($1::text))",
                 str(conversation_id),
             )
+            # M-06: Re-read message inside lock for fresh data
+            fresh_row = await conn.fetchrow(
+                "SELECT * FROM dm_messages WHERE id = $1",
+                uuid.UUID(message_id),
+            )
+            if not fresh_row:
+                raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+            if str(fresh_row["sender_id"]) != sender_id:
+                raise AppError(ErrorCode.SYS_403, 403, "Cannot edit another user's message.")
+            if fresh_row.get("is_recalled"):
+                raise AppError(ErrorCode.SYS_422, 422, "Cannot edit a recalled message.")
+
+            # Verify within edit window
+            created_at = fresh_row["created_at"]
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
+            if created_at < cutoff:
+                raise AppError(ErrorCode.DM_002, 403, "Edit window has expired.")
+
+            # Calculate char delta from fresh data
+            old_content = fresh_row.get("content") or ""
+            char_delta = len(new_content) - len(old_content)
+
             updated_row = await conn.fetchrow(
-                "UPDATE dm_messages SET content = $1, updated_at = NOW() "
+                "UPDATE dm_messages SET content = $1, is_edited = TRUE, updated_at = NOW() "
                 "WHERE id = $2 RETURNING *",
                 new_content,
                 uuid.UUID(message_id),
@@ -358,28 +401,13 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
 
 async def recall_message(message_id: str, sender_id: str) -> dict:
     """Recall a message within the recall window."""
-    # 1. Find message and verify sender
+    # 1. Initial read to get conversation_id for the advisory lock
     row = await dm_repo.find_message_by_id(uuid.UUID(message_id))
     if not row:
         raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
-    if str(row["sender_id"]) != sender_id:
-        raise AppError(ErrorCode.SYS_403, 403, "Cannot recall another user's message.")
 
-    # 2. Verify not already recalled
-    if row.get("is_recalled"):
-        raise AppError(ErrorCode.SYS_422, 422, "Message already recalled.")
-
-    # 3. Verify within recall window
-    created_at = row["created_at"]
-    if created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=timezone.utc)
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
-    if created_at < cutoff:
-        raise AppError(ErrorCode.DM_002, 403, "Recall window has expired.")
-
-    # 4. Recall message + decrement char count atomically
+    # 2. Acquire advisory lock, re-read inside lock, validate, and recall atomically
     conversation_id = row["conversation_id"]
-    content_len = len(row.get("content") or "")
 
     from app.core.database import get_pool
 
@@ -390,6 +418,29 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                 "SELECT pg_advisory_xact_lock(hashtext($1::text))",
                 str(conversation_id),
             )
+            # M-07: Re-read message inside lock for fresh data
+            fresh_row = await conn.fetchrow(
+                "SELECT * FROM dm_messages WHERE id = $1",
+                uuid.UUID(message_id),
+            )
+            if not fresh_row:
+                raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+            if str(fresh_row["sender_id"]) != sender_id:
+                raise AppError(ErrorCode.SYS_403, 403, "Cannot recall another user's message.")
+            if fresh_row.get("is_recalled"):
+                raise AppError(ErrorCode.SYS_422, 422, "Message already recalled.")
+
+            # Verify within recall window
+            created_at = fresh_row["created_at"]
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
+            if created_at < cutoff:
+                raise AppError(ErrorCode.DM_002, 403, "Recall window has expired.")
+
+            # Calculate content_len from fresh data
+            content_len = len(fresh_row.get("content") or "")
+
             recalled_row = await conn.fetchrow(
                 "UPDATE dm_messages SET is_recalled = true, content = NULL, "
                 "updated_at = NOW() WHERE id = $1 RETURNING *",
@@ -406,11 +457,11 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                 )
 
     # 5. If has attachment: delete from MinIO and refund storage quota (after DB recall)
-    if row.get("attachment_key"):
+    if fresh_row.get("attachment_key"):
         try:
             from app.core.async_storage import delete_file as async_delete_file
 
-            await async_delete_file(row["attachment_key"])
+            await async_delete_file(fresh_row["attachment_key"])
         except Exception:
             logger.warning(
                 "Failed to delete DM attachment from storage",
@@ -418,11 +469,13 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                 extra={"msg_id": message_id},
             )
 
-        if row.get("attachment_size"):
+        if fresh_row.get("attachment_size"):
             try:
                 from app.repositories import user_repo
 
-                await user_repo.decrement_storage_used(uuid.UUID(sender_id), row["attachment_size"])
+                await user_repo.decrement_storage_used(
+                    uuid.UUID(sender_id), fresh_row["attachment_size"]
+                )
             except Exception:
                 logger.warning(
                     "Failed to refund storage quota for recalled DM attachment",

@@ -68,13 +68,26 @@ export function extractMentions(text: string): string[] {
   return Array.from(seen)
 }
 
-function escapeHtml(str: string): string {
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+/**
+ * Validate that a URL uses http: or https: protocol.
+ * Rejects javascript:, data:, and other potentially dangerous schemes.
+ */
+export function isValidUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url, window.location.origin)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 export function renderMentions(html: string, mentions: string[] | null): string {

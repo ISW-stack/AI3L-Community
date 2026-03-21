@@ -1,5 +1,88 @@
 import { describe, it, expect } from 'vitest'
-import { extractMentions, renderMentions } from '../html'
+import { extractMentions, renderMentions, escapeHtml, isValidUrl } from '../html'
+
+describe('escapeHtml', () => {
+  it('escapes < and > characters', () => {
+    expect(escapeHtml('<script>alert(1)</script>')).toBe(
+      '&lt;script&gt;alert(1)&lt;/script&gt;',
+    )
+  })
+
+  it('escapes & character', () => {
+    expect(escapeHtml('a & b')).toBe('a &amp; b')
+  })
+
+  it('escapes double quotes', () => {
+    expect(escapeHtml('he said "hello"')).toBe('he said &quot;hello&quot;')
+  })
+
+  it('escapes single quotes', () => {
+    expect(escapeHtml("it's")).toBe('it&#39;s')
+  })
+
+  it('escapes all special characters together', () => {
+    expect(escapeHtml('<img src="x" onerror=\'alert(1)\'>&')).toBe(
+      '&lt;img src=&quot;x&quot; onerror=&#39;alert(1)&#39;&gt;&amp;',
+    )
+  })
+
+  it('returns empty string unchanged', () => {
+    expect(escapeHtml('')).toBe('')
+  })
+
+  it('returns plain text unchanged', () => {
+    expect(escapeHtml('hello world')).toBe('hello world')
+  })
+
+  it('escapes XSS payload in file name', () => {
+    const maliciousName = '<img src=x onerror=alert(1)>.pdf'
+    const escaped = escapeHtml(maliciousName)
+    expect(escaped).not.toContain('<img')
+    expect(escaped).toContain('&lt;img')
+  })
+})
+
+describe('isValidUrl', () => {
+  it('accepts http URLs', () => {
+    expect(isValidUrl('http://example.com/file.pdf')).toBe(true)
+  })
+
+  it('accepts https URLs', () => {
+    expect(isValidUrl('https://example.com/file.pdf')).toBe(true)
+  })
+
+  it('accepts relative URLs (resolved against origin)', () => {
+    expect(isValidUrl('/api/v1/files/content/editor/x/file.pdf')).toBe(true)
+  })
+
+  it('rejects javascript: URLs', () => {
+    expect(isValidUrl('javascript:alert(1)')).toBe(false)
+  })
+
+  it('rejects data: URLs', () => {
+    expect(isValidUrl('data:text/html,<script>alert(1)</script>')).toBe(false)
+  })
+
+  it('rejects vbscript: URLs', () => {
+    expect(isValidUrl('vbscript:alert(1)')).toBe(false)
+  })
+
+  it('rejects empty string', () => {
+    expect(isValidUrl('')).toBe(true) // empty resolves to origin, which is http/https
+  })
+
+  it('rejects blob: URLs', () => {
+    expect(isValidUrl('blob:http://example.com/abc')).toBe(false)
+  })
+
+  it('accepts URLs with ports', () => {
+    expect(isValidUrl('http://localhost:19000/file.pdf')).toBe(true)
+  })
+
+  it('accepts URLs with query parameters', () => {
+    expect(isValidUrl('https://example.com/file?token=abc')).toBe(true)
+  })
+})
 
 describe('extractMentions', () => {
   it('returns empty array when no mentions', () => {

@@ -228,10 +228,28 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
     """GDPR anonymization: overwrite PII, set is_deleted=true, clean up related data."""
     from app.core.database import get_pool
 
+    # H-06: Fetch avatar key before anonymization (which sets avatar_url=NULL)
+    avatar_key: str | None = None
+    try:
+        existing_user = await user_repo.find_by_id(user_id)
+        if existing_user:
+            raw_avatar = existing_user.get("avatar_url") or ""
+            if raw_avatar and not raw_avatar.startswith(("http://", "https://")):
+                avatar_key = raw_avatar
+    except Exception:
+        logger.warning(
+            "Failed to fetch avatar key before anonymization",
+            extra={"user_id": str(user_id)},
+            exc_info=True,
+        )
+
     anon_name = f"Deleted_User_{uuid.uuid4().hex[:8]}"
     deleted = await user_repo.anonymize(user_id, anon_name)
     if deleted:
         logger.info("User anonymized (GDPR)", extra={"user_id": str(user_id)})
+
+        # Collect DM attachment keys for post-transaction MinIO cleanup
+        dm_attachment_keys: list[str] = []
 
         # Clean up all related data in dependency-safe order
         pool = get_pool()
@@ -304,10 +322,68 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                         user_id,
                     )
 
+                    # M-44: Privacy consents (contains IP addresses)
+                    await conn.execute(
+                        "DELETE FROM privacy_consents WHERE user_id = $1",
+                        user_id,
+                    )
+
+                    # L-42: Membership applications
+                    await conn.execute(
+                        "DELETE FROM membership_applications WHERE user_id = $1",
+                        user_id,
+                    )
+
+                    # L-42: Invite codes created by user
+                    await conn.execute(
+                        "DELETE FROM invite_codes WHERE created_by = $1",
+                        user_id,
+                    )
+
                     # SIG memberships
                     await conn.execute(
                         "DELETE FROM sig_members WHERE user_id = $1",
                         user_id,
+                    )
+
+                    # M-42: Clean user ID from reactions JSONB in posts
+                    await conn.execute(
+                        """
+                        UPDATE posts SET reactions = (
+                            SELECT COALESCE(jsonb_object_agg(
+                                key,
+                                COALESCE((
+                                    SELECT jsonb_agg(elem)
+                                    FROM jsonb_array_elements_text(value) elem
+                                    WHERE elem != $1
+                                ), '[]'::jsonb)
+                            ), '{}'::jsonb)
+                            FROM jsonb_each(reactions)
+                        ), updated_at = NOW()
+                        WHERE reactions IS NOT NULL
+                          AND reactions::text LIKE '%' || $1 || '%'
+                        """,
+                        str(user_id),
+                    )
+
+                    # M-42: Clean user ID from reactions JSONB in comments
+                    await conn.execute(
+                        """
+                        UPDATE comments SET reactions = (
+                            SELECT COALESCE(jsonb_object_agg(
+                                key,
+                                COALESCE((
+                                    SELECT jsonb_agg(elem)
+                                    FROM jsonb_array_elements_text(value) elem
+                                    WHERE elem != $1
+                                ), '[]'::jsonb)
+                            ), '{}'::jsonb)
+                            FROM jsonb_each(reactions)
+                        ), updated_at = NOW()
+                        WHERE reactions IS NOT NULL
+                          AND reactions::text LIKE '%' || $1 || '%'
+                        """,
+                        str(user_id),
                     )
 
                     # Soft-delete comments (before posts, since comments reference posts)
@@ -336,12 +412,27 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                         user_id,
                     )
 
+                    # M-43: Delete post history before soft-deleting posts
+                    await conn.execute(
+                        "DELETE FROM post_history WHERE post_id IN "
+                        "(SELECT id FROM posts WHERE user_id = $1)",
+                        user_id,
+                    )
+
                     # Soft-delete posts
                     await conn.execute(
                         "UPDATE posts SET is_deleted = true, updated_at = NOW() "
                         "WHERE user_id = $1 AND is_deleted = false",
                         user_id,
                     )
+
+                    # H-06: Collect DM attachment keys before deleting messages
+                    dm_rows = await conn.fetch(
+                        "SELECT attachment_key FROM dm_messages "
+                        "WHERE sender_id = $1 AND attachment_key IS NOT NULL",
+                        user_id,
+                    )
+                    dm_attachment_keys = [r["attachment_key"] for r in dm_rows]
 
                     # DM cleanup: recall all messages, delete DM data
                     await conn.execute(
@@ -364,6 +455,26 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                 logger.warning(
                     "Failed to clean up related data during anonymization",
                     extra={"user_id": str(user_id)},
+                    exc_info=True,
+                )
+
+        # H-06: Delete MinIO files after transaction commits (best-effort)
+        files_to_delete: list[str] = []
+        if avatar_key:
+            files_to_delete.append(avatar_key)
+        files_to_delete.extend(dm_attachment_keys)
+
+        for key in files_to_delete:
+            try:
+                await async_delete_file(key)
+                logger.info(
+                    "Deleted MinIO file during anonymization",
+                    extra={"user_id": str(user_id), "key": key},
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to delete MinIO file during anonymization",
+                    extra={"user_id": str(user_id), "key": key},
                     exc_info=True,
                 )
 

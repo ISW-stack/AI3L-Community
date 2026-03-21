@@ -13,11 +13,14 @@ def _validate_keyword_length(v: list[str] | None) -> list[str] | None:
     return v
 
 
+_UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
+
 class PostCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
-    content: str = Field(..., min_length=1)
-    category_id: str | None = None
-    sig_id: str | None = None
+    content: str = Field(..., min_length=1, max_length=100_000)
+    category_id: str | None = Field(None, pattern=_UUID_PATTERN)
+    sig_id: str | None = Field(None, pattern=_UUID_PATTERN)
     keywords: list[str] | None = Field(None, max_length=15)
     allow_comments: bool = True
     type: str = Field(default="post", pattern="^(post|question)$")
@@ -30,7 +33,7 @@ class PostCreateRequest(BaseModel):
 
 class PostUpdateRequest(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
-    content: str | None = Field(None, min_length=1)
+    content: str | None = Field(None, min_length=1, max_length=100_000)
     category_id: str | None = None
     keywords: list[str] | None = Field(None, max_length=15)
     allow_comments: bool | None = None

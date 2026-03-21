@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+_UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 
 class FriendRequestCreateRequest(BaseModel):
-    user_id: str
+    user_id: str = Field(..., pattern=_UUID_PATTERN)
 
 
 class FriendshipResponse(BaseModel):

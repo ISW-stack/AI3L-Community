@@ -662,8 +662,15 @@ class TestSendMessageService:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
+
+        # M-08: conn.fetchrow for recipient check, conn.fetchval for dm_friends_only
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -701,8 +708,14 @@ class TestSendMessageService:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -749,8 +762,14 @@ class TestSendMessageService:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -823,6 +842,11 @@ class TestSendMessageService:
     async def test_send_blocked_user_raises_dm001(self, mock_dm_repo):
         """send_message to a blocked user raises DM_001."""
         pool, conn = _mock_pool_context()
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -842,7 +866,12 @@ class TestSendMessageService:
     async def test_send_friends_only_not_friend_raises_dm001(self, mock_dm_repo):
         """send_message to friends-only user who is not a friend raises DM_001."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=True)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = True  # dm_friends_only = True
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -876,10 +905,16 @@ class TestSendMessageService:
         conv = _make_conversation(conv_id=_CONV_ID)
         msg_row = _make_message_row(sender_id=_SENDER_ID)
 
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=True)
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
         mock_convert.return_value = _make_msg_response()
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = True  # dm_friends_only = True
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -907,7 +942,12 @@ class TestSendMessageService:
     async def test_send_storage_quota_exceeded(self, mock_dm_repo):
         """send_message with file raises DM_004 when quota exceeded."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -950,8 +990,14 @@ class TestSendMessageService:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = _make_msg_response()
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -981,7 +1027,13 @@ class TestSendMessageService:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -1026,9 +1078,10 @@ class TestEditMessageService:
         )
 
         # Mock pool → conn → transaction for atomic edit
+        # fetchrow called twice: re-read inside lock, then UPDATE RETURNING
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=updated_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, updated_row])
         mock_conn.execute = AsyncMock()
 
         mock_tx = MagicMock()
@@ -1053,11 +1106,24 @@ class TestEditMessageService:
         mock_emit.assert_called_once()
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.dm_repo")
-    async def test_edit_wrong_sender_raises_403(self, mock_dm_repo):
+    async def test_edit_wrong_sender_raises_403(self, mock_dm_repo, mock_get_pool):
         """edit_message by wrong sender raises SYS_403."""
         msg_row = _make_message_row(sender_id=str(uuid.uuid4()))
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=msg_row)
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
 
         from app.services.dm import edit_message
 
@@ -1067,11 +1133,24 @@ class TestEditMessageService:
         assert exc.value.status_code == 403
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.dm_repo")
-    async def test_edit_recalled_message_raises_422(self, mock_dm_repo):
+    async def test_edit_recalled_message_raises_422(self, mock_dm_repo, mock_get_pool):
         """edit_message on recalled message raises SYS_422."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True)
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=msg_row)
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
 
         from app.services.dm import edit_message
 
@@ -1081,12 +1160,25 @@ class TestEditMessageService:
         assert exc.value.status_code == 422
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.dm_repo")
-    async def test_edit_expired_window_raises_dm002(self, mock_dm_repo):
+    async def test_edit_expired_window_raises_dm002(self, mock_dm_repo, mock_get_pool):
         """edit_message after 12h window raises DM_002."""
         old_time = _NOW - timedelta(hours=13)
         msg_row = _make_message_row(sender_id=_SENDER_ID, created_at=old_time)
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=msg_row)
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
 
         from app.services.dm import edit_message
 
@@ -1126,9 +1218,10 @@ class TestEditMessageService:
         )
 
         # Mock pool → conn → transaction for atomic edit
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (updated_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=updated_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, updated_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -1185,9 +1278,10 @@ class TestRecallMessageService:
         )
 
         # Mock pool → conn → transaction for atomic recall
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (recalled_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, recalled_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -1232,9 +1326,10 @@ class TestRecallMessageService:
         )
 
         # Mock pool → conn → transaction for atomic recall
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (recalled_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, recalled_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -1280,9 +1375,10 @@ class TestRecallMessageService:
         )
 
         # Mock pool → conn → transaction for atomic recall
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (recalled_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, recalled_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -1305,12 +1401,25 @@ class TestRecallMessageService:
         mock_delete.assert_not_called()
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_expired_window_raises_dm002(self, mock_dm_repo):
+    async def test_recall_expired_window_raises_dm002(self, mock_dm_repo, mock_get_pool):
         """recall_message after 12h window raises DM_002."""
         old_time = _NOW - timedelta(hours=13)
         msg_row = _make_message_row(sender_id=_SENDER_ID, created_at=old_time)
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=msg_row)
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
 
         from app.services.dm import recall_message
 
@@ -1320,11 +1429,24 @@ class TestRecallMessageService:
         assert exc.value.status_code == 403
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_already_recalled_raises_422(self, mock_dm_repo):
+    async def test_recall_already_recalled_raises_422(self, mock_dm_repo, mock_get_pool):
         """recall_message on already-recalled message raises SYS_422."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True)
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=msg_row)
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
 
         from app.services.dm import recall_message
 
@@ -1334,11 +1456,24 @@ class TestRecallMessageService:
         assert exc.value.status_code == 422
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_wrong_sender_raises_403(self, mock_dm_repo):
+    async def test_recall_wrong_sender_raises_403(self, mock_dm_repo, mock_get_pool):
         """recall_message by wrong sender raises SYS_403."""
         msg_row = _make_message_row(sender_id=str(uuid.uuid4()))
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=msg_row)
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
 
         from app.services.dm import recall_message
 
@@ -2394,7 +2529,12 @@ class TestSendMessageEdgeCases:
     async def test_send_file_too_large_raises_dm005(self, mock_dm_repo, mock_emit, mock_convert):
         """send_message with file exceeding DM_MAX_ATTACHMENT_SIZE raises DM_005."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -2424,7 +2564,12 @@ class TestSendMessageEdgeCases:
     async def test_send_friends_only_pending_friendship_blocked(self, mock_dm_repo):
         """send_message to friends-only user with PENDING friendship raises DM_001."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=True)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = True  # dm_friends_only = True
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -2768,9 +2913,10 @@ class TestRecallMessageOrder:
         )
 
         # Mock pool → conn → transaction for atomic recall
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (recalled_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, recalled_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -2833,9 +2979,10 @@ class TestRecallMessageOrder:
         )
 
         # Mock pool → conn → transaction for atomic recall
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (recalled_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, recalled_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -2881,7 +3028,12 @@ class TestNewDMErrorCodes:
     async def test_send_file_too_large_returns_dm_005(self, mock_dm_repo):
         """send_message with oversized file raises DM_005 with 413 status."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -2912,7 +3064,12 @@ class TestNewDMErrorCodes:
     async def test_send_storage_quota_exceeded_returns_dm_004(self, mock_dm_repo):
         """send_message with file raises DM_004 with 413 when storage quota exceeded."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -3261,8 +3418,14 @@ class TestB04S01SanitizeHtmlContent:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = _make_msg_response()
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -3304,9 +3467,10 @@ class TestB04S01SanitizeHtmlContent:
         )
 
         # Mock pool → conn → transaction for atomic edit
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (updated_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=updated_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, updated_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -3348,8 +3512,14 @@ class TestB07AsyncStorageOps:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -3408,9 +3578,10 @@ class TestB07AsyncStorageOps:
         )
 
         # Mock pool → conn → transaction for atomic recall
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (recalled_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, recalled_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -3455,8 +3626,14 @@ class TestB07AsyncStorageOps:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, [deleted_msg]))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = _make_msg_response()
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -3494,10 +3671,11 @@ class TestB11RecallCharCountAfterSuccess:
         """When recall UPDATE returns None, char count is NOT decremented."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Some content")
 
-        # Mock pool → conn → transaction; fetchrow returns None (recall failed)
+        # Mock pool → conn → transaction
+        # fetchrow: first call returns msg_row (re-read), second returns None (UPDATE failed)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, None])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -3537,9 +3715,10 @@ class TestB11RecallCharCountAfterSuccess:
         )
 
         # Mock pool → conn → transaction for atomic recall
+        # fetchrow called twice: re-read inside lock (msg_row), then UPDATE RETURNING (recalled_row)
         mock_conn = MagicMock()
         mock_conn.fetchval = AsyncMock(return_value=None)
-        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, recalled_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -3562,25 +3741,39 @@ class TestB11RecallCharCountAfterSuccess:
         assert mock_conn.execute.called
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
     async def test_recall_exception_does_not_decrement_char_count(
-        self, mock_dm_repo, mock_emit, mock_convert
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
     ):
-        """When dm_repo.recall_message raises an exception, char count is NOT decremented."""
+        """When recall UPDATE raises, char count is NOT decremented (transaction rolls back)."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Some content")
 
+        # fetchrow: re-read succeeds, then UPDATE raises
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(side_effect=[msg_row, RuntimeError("DB error")])
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(side_effect=RuntimeError("DB error"))
-        mock_dm_repo.increment_char_count = AsyncMock()
 
         from app.services.dm import recall_message
 
         with pytest.raises(RuntimeError):
             await recall_message(str(_MSG_ID), _SENDER_ID)
 
-        mock_dm_repo.increment_char_count.assert_not_called()
+        # execute should NOT have been called for char count decrement
+        mock_conn.execute.assert_not_called()
 
 
 class TestB12StorageQuotaAfterInsert:
@@ -3595,7 +3788,12 @@ class TestB12StorageQuotaAfterInsert:
     ):
         """When send_message_atomic raises, storage quota is NOT incremented."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
         conv = _make_conversation(conv_id=_CONV_ID)
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(side_effect=RuntimeError("DB insert failed"))
@@ -3650,8 +3848,14 @@ class TestB12StorageQuotaAfterInsert:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -3703,8 +3907,14 @@ class TestB27S03SanitizedFilename:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         captured_key = None
 
@@ -3762,8 +3972,14 @@ class TestB27S03SanitizedFilename:
 
         mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
         mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         captured_key = None
 
@@ -3920,7 +4136,12 @@ class TestS02FileTypeValidation:
     async def test_send_message_validates_file_type(self, mock_dm_repo):
         """send_message rejects disallowed file types before upload."""
         pool, conn = _mock_pool_context()
-        mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False
 
         with (
             patch("app.core.database.get_pool", return_value=pool),
@@ -3948,3 +4169,577 @@ class TestS02FileTypeValidation:
                 )
 
         assert exc.value.status_code == 400
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SECURITY AUDIT FIXES — M-05, M-06, M-07, M-08, M-13, M-20
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestM05DmFriendsOnlyInlinedInTransaction:
+    """M-05: dm_friends_only check must use the same connection inside the transaction."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_friends_only_query_runs_on_transaction_conn(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """dm_friends_only is queried via conn.fetchval inside the transaction, not dm_repo."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        msg_dict = _make_msg_response()
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
+        mock_convert.return_value = msg_dict
+
+        # conn.fetchrow returns recipient user row, conn.fetchval returns dm_friends_only
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False  # dm_friends_only = False
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+        ):
+            from app.services.dm import send_message
+
+            await send_message(
+                sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hello!"
+            )
+
+        # dm_repo.get_dm_friends_only should NOT be called (inlined)
+        if hasattr(mock_dm_repo, "get_dm_friends_only"):
+            mock_dm_repo.get_dm_friends_only.assert_not_called()
+
+        # conn.fetchval should have been called (for inlined dm_friends_only query)
+        assert conn.fetchval.called
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_friends_only_true_blocks_non_friend(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """When dm_friends_only=True and no friendship, send_message raises DM_001."""
+        pool, conn = _mock_pool_context()
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = True  # dm_friends_only = True
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.social_repo.find_friendship_between",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+        ):
+            from app.services.dm import send_message
+
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hi"
+                )
+
+        assert exc.value.detail["code"] == "DM_001"
+        assert exc.value.status_code == 403
+
+
+class TestM06EditMessageRereadInsideLock:
+    """M-06: edit_message must re-read message inside advisory lock for fresh char delta."""
+
+    @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_edit_rereads_inside_lock(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
+        """edit_message re-reads message inside advisory lock for accurate char_delta."""
+        # Initial read returns stale content "Short"
+        initial_row = _make_message_row(sender_id=_SENDER_ID, content="Short")
+        conv = _make_conversation(
+            conv_id=initial_row["conversation_id"],
+            user_a=_SENDER_ID,
+            user_b=_RECIPIENT_ID,
+        )
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)  # advisory lock
+
+        # The re-read inside the lock returns DIFFERENT content (simulates concurrent edit)
+        fresh_row = dict(initial_row)
+        fresh_row["content"] = "Already edited to longer text"
+        # fetchrow is called twice: first for re-read (SELECT), then for UPDATE RETURNING
+        updated_row = _make_message_row(
+            sender_id=_SENDER_ID, content="New content", is_edited=True
+        )
+        mock_conn.fetchrow = AsyncMock(side_effect=[fresh_row, updated_row])
+        mock_conn.execute = AsyncMock()
+
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=initial_row)
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
+        mock_convert.return_value = _make_msg_response(content="New content")
+
+        from app.services.dm import edit_message
+
+        await edit_message(str(_MSG_ID), _SENDER_ID, "New content")
+
+        # Verify the conn.fetchrow was called (re-read inside lock)
+        assert mock_conn.fetchrow.call_count == 2
+        # Verify char_delta is computed from fresh content, not stale
+        # fresh content = "Already edited to longer text" (29 chars)
+        # new content = "New content" (11 chars)
+        # delta = 11 - 29 = -18
+        # Check that execute was called with the correct delta
+        execute_calls = mock_conn.execute.call_args_list
+        char_update_found = False
+        for call in execute_calls:
+            args = call[0]
+            if len(args) >= 2 and "total_chars" in str(args[0]):
+                assert args[1] == 11 - 29  # -18, not 11 - 5 = 6
+                char_update_found = True
+        assert char_update_found, "Char count update with correct delta not found"
+
+    @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
+    @patch(f"{_SVC}.dm_repo")
+    async def test_edit_validates_sender_inside_lock(self, mock_dm_repo, mock_get_pool):
+        """edit_message validates sender inside the lock (not just initial read)."""
+        initial_row = _make_message_row(sender_id=_SENDER_ID, content="Hello")
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        # Re-read inside lock shows different sender (simulates race condition)
+        fresh_row = dict(initial_row)
+        fresh_row["sender_id"] = uuid.uuid4()  # different sender
+        mock_conn.fetchrow = AsyncMock(return_value=fresh_row)
+
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=initial_row)
+
+        from app.services.dm import edit_message
+
+        with pytest.raises(AppError) as exc:
+            await edit_message(str(_MSG_ID), _SENDER_ID, "Updated")
+
+        assert exc.value.status_code == 403
+
+    @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
+    @patch(f"{_SVC}.dm_repo")
+    async def test_edit_checks_recalled_inside_lock(self, mock_dm_repo, mock_get_pool):
+        """edit_message checks is_recalled inside the lock."""
+        initial_row = _make_message_row(sender_id=_SENDER_ID, content="Hello")
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        # Re-read inside lock shows message was recalled in between
+        fresh_row = dict(initial_row)
+        fresh_row["is_recalled"] = True
+        mock_conn.fetchrow = AsyncMock(return_value=fresh_row)
+
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=initial_row)
+
+        from app.services.dm import edit_message
+
+        with pytest.raises(AppError) as exc:
+            await edit_message(str(_MSG_ID), _SENDER_ID, "Updated")
+
+        assert exc.value.status_code == 422
+
+
+class TestM07RecallMessageRereadInsideLock:
+    """M-07: recall_message must re-read message inside advisory lock for fresh data."""
+
+    @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_rereads_inside_lock(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
+        """recall_message re-reads message inside advisory lock for accurate content_len."""
+        initial_row = _make_message_row(sender_id=_SENDER_ID, content="Short")
+        conv = _make_conversation(
+            conv_id=initial_row["conversation_id"],
+            user_a=_SENDER_ID,
+            user_b=_RECIPIENT_ID,
+        )
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+
+        # Re-read inside lock: content was edited to longer text
+        fresh_row = dict(initial_row)
+        fresh_row["content"] = "This was edited to be much longer"
+        recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
+        mock_conn.fetchrow = AsyncMock(side_effect=[fresh_row, recalled_row])
+        mock_conn.execute = AsyncMock()
+
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=initial_row)
+        mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
+        mock_convert.return_value = _make_msg_response(content=None)
+
+        from app.services.dm import recall_message
+
+        await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        # Verify content_len comes from fresh_row, not initial_row
+        execute_calls = mock_conn.execute.call_args_list
+        char_update_found = False
+        for call in execute_calls:
+            args = call[0]
+            if len(args) >= 2 and "total_chars" in str(args[0]):
+                # Should be len("This was edited to be much longer") = 33, not len("Short") = 5
+                assert args[1] == len("This was edited to be much longer")
+                char_update_found = True
+        assert char_update_found, "Char count decrement with correct content_len not found"
+
+    @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_validates_sender_inside_lock(self, mock_dm_repo, mock_get_pool):
+        """recall_message validates sender inside the lock."""
+        initial_row = _make_message_row(sender_id=_SENDER_ID, content="Hello")
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        fresh_row = dict(initial_row)
+        fresh_row["sender_id"] = uuid.uuid4()  # different sender
+        mock_conn.fetchrow = AsyncMock(return_value=fresh_row)
+
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=initial_row)
+
+        from app.services.dm import recall_message
+
+        with pytest.raises(AppError) as exc:
+            await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        assert exc.value.status_code == 403
+
+    @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
+    @patch(f"{_SVC}.dm_repo")
+    async def test_recall_checks_already_recalled_inside_lock(
+        self, mock_dm_repo, mock_get_pool
+    ):
+        """recall_message checks is_recalled inside the lock."""
+        initial_row = _make_message_row(sender_id=_SENDER_ID, content="Hello")
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        fresh_row = dict(initial_row)
+        fresh_row["is_recalled"] = True
+        mock_conn.fetchrow = AsyncMock(return_value=fresh_row)
+
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
+        mock_dm_repo.find_message_by_id = AsyncMock(return_value=initial_row)
+
+        from app.services.dm import recall_message
+
+        with pytest.raises(AppError) as exc:
+            await recall_message(str(_MSG_ID), _SENDER_ID)
+
+        assert exc.value.status_code == 422
+
+
+class TestM08RecipientValidation:
+    """M-08: send_message must validate that recipient exists and is active."""
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_to_nonexistent_user_raises_404(self, mock_dm_repo):
+        """send_message to a non-existent user raises SYS_404."""
+        pool, conn = _mock_pool_context()
+        conn.fetchrow.return_value = None  # recipient not found
+
+        with patch("app.core.database.get_pool", return_value=pool):
+            from app.services.dm import send_message
+
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hi"
+                )
+
+        assert exc.value.detail["code"] == "SYS_404"
+        assert exc.value.status_code == 404
+        assert "Recipient not found" in exc.value.detail["message"]
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_to_deleted_user_raises_403(self, mock_dm_repo):
+        """send_message to a deleted user raises DM_001."""
+        pool, conn = _mock_pool_context()
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": True,
+            "is_banned": False,
+        }
+
+        with patch("app.core.database.get_pool", return_value=pool):
+            from app.services.dm import send_message
+
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hi"
+                )
+
+        assert exc.value.detail["code"] == "DM_001"
+        assert exc.value.status_code == 403
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_to_banned_user_raises_403(self, mock_dm_repo):
+        """send_message to a banned user raises DM_001."""
+        pool, conn = _mock_pool_context()
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": True,
+        }
+
+        with patch("app.core.database.get_pool", return_value=pool):
+            from app.services.dm import send_message
+
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hi"
+                )
+
+        assert exc.value.detail["code"] == "DM_001"
+        assert exc.value.status_code == 403
+
+    @pytest.mark.anyio
+    @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
+    @patch(f"{_SVC}.emit", new_callable=AsyncMock)
+    @patch(f"{_SVC}.dm_repo")
+    async def test_send_to_active_user_succeeds(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
+        """send_message to an active user proceeds normally."""
+        pool, conn = _mock_pool_context()
+        conv = _make_conversation(conv_id=_CONV_ID)
+        msg_row = _make_message_row(sender_id=_SENDER_ID)
+        msg_dict = _make_msg_response()
+
+        conn.fetchrow.return_value = {
+            "id": uuid.UUID(_RECIPIENT_ID),
+            "is_deleted": False,
+            "is_banned": False,
+        }
+        conn.fetchval.return_value = False  # dm_friends_only
+
+        mock_dm_repo.find_or_create_conversation = AsyncMock(return_value=conv)
+        mock_dm_repo.send_message_atomic = AsyncMock(return_value=(msg_row, []))
+        mock_convert.return_value = msg_dict
+
+        with (
+            patch("app.core.database.get_pool", return_value=pool),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+        ):
+            from app.services.dm import send_message
+
+            result = await send_message(
+                sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, content="Hello!"
+            )
+
+        assert result["content"] == "Hello!"
+
+
+class TestM13TextCsvHtmlValidation:
+    """M-13: .txt and .csv files must not contain HTML content."""
+
+    def test_txt_with_html_rejected(self):
+        """A .txt file starting with <html is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("page.txt", b"<html><body>Hello</body></html>")
+
+        assert exc.value.status_code == 400
+        assert "HTML content" in exc.value.detail["message"]
+
+    def test_txt_with_doctype_rejected(self):
+        """A .txt file starting with <!DOCTYPE is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("page.txt", b"<!DOCTYPE html><html></html>")
+
+        assert exc.value.status_code == 400
+
+    def test_txt_with_script_rejected(self):
+        """A .txt file starting with <script is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("xss.txt", b"<script>alert(1)</script>")
+
+        assert exc.value.status_code == 400
+
+    def test_csv_with_html_rejected(self):
+        """A .csv file starting with <HTML is rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("data.csv", b"<HTML><body>fake csv</body></HTML>")
+
+        assert exc.value.status_code == 400
+
+    def test_txt_with_leading_whitespace_html_rejected(self):
+        """A .txt file with leading whitespace before HTML tag is still rejected."""
+        from app.services.dm import _validate_dm_file
+
+        with pytest.raises(AppError) as exc:
+            _validate_dm_file("sneaky.txt", b"   \n  <html><body>hi</body></html>")
+
+        assert exc.value.status_code == 400
+
+    def test_txt_with_normal_content_accepted(self):
+        """A normal .txt file is accepted."""
+        from app.services.dm import _validate_dm_file
+
+        # Should not raise
+        _validate_dm_file("notes.txt", b"Hello, this is a normal text file.")
+
+    def test_csv_with_normal_content_accepted(self):
+        """A normal .csv file is accepted."""
+        from app.services.dm import _validate_dm_file
+
+        _validate_dm_file("data.csv", b"name,age,city\nAlice,30,NYC\nBob,25,LA")
+
+    def test_txt_with_html_in_middle_accepted(self):
+        """A .txt file with HTML only in the middle (not at start) is accepted."""
+        from app.services.dm import _validate_dm_file
+
+        _validate_dm_file("notes.txt", b"Some text before <html> tag appears")
+
+
+class TestM20FindOrCreateConversationTransaction:
+    """M-20: find_or_create_conversation must wrap INSERT+SELECT in a transaction."""
+
+    @pytest.mark.anyio
+    async def test_uses_transaction(self):
+        """find_or_create_conversation wraps operations in a transaction."""
+        mock_pool = MagicMock()
+        mock_conn = AsyncMock()
+
+        # Track transaction() calls
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction = MagicMock(return_value=mock_tx)
+
+        mock_conn.execute = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(
+            return_value={
+                "id": uuid.uuid4(),
+                "participant_a": uuid.uuid4(),
+                "participant_b": uuid.uuid4(),
+                "total_chars": 0,
+                "created_at": _NOW,
+                "updated_at": _NOW,
+            }
+        )
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_pool.acquire.return_value = mock_acq
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            from app.repositories.dm_repo import find_or_create_conversation
+
+            await find_or_create_conversation(uuid.uuid4(), uuid.uuid4())
+
+        # Verify transaction() was called
+        mock_conn.transaction.assert_called_once()
+        # Verify both execute (INSERT) and fetchrow (SELECT) were called
+        assert mock_conn.execute.called
+        assert mock_conn.fetchrow.called

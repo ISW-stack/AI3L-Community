@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CitationEntryResponse(BaseModel):
@@ -18,5 +18,5 @@ class CitationListResponse(BaseModel):
 
 
 class CitationSearchRequest(BaseModel):
-    query: str
-    limit: int = 10
+    query: str = Field(..., min_length=1, max_length=200)
+    limit: int = Field(default=10, ge=1, le=50)

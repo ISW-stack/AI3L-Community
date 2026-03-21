@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TriggerUserResponse(BaseModel):
@@ -25,4 +25,4 @@ class NotificationListResponse(BaseModel):
 
 
 class BulkDeleteNotificationsRequest(BaseModel):
-    notification_ids: list[str] | None = None
+    notification_ids: list[str] | None = Field(None, max_length=100)
