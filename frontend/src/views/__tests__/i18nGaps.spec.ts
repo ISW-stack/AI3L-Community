@@ -90,7 +90,17 @@ function createStubs() {
     },
     SearchPanel: {
       template: '<div class="search-panel" />',
-      props: ['keyword', 'dateFrom', 'dateTo', 'logic', 'showAdvanced', 'isSearchLoading', 'isSearching', 'dateRangeInvalid', 'placeholder'],
+      props: [
+        'keyword',
+        'dateFrom',
+        'dateTo',
+        'logic',
+        'showAdvanced',
+        'isSearchLoading',
+        'isSearching',
+        'dateRangeInvalid',
+        'placeholder',
+      ],
     },
     CategoryFilter: {
       template: '<div class="category-filter" />',

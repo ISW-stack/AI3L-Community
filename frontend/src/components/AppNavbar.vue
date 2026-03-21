@@ -158,10 +158,7 @@ onUnmounted(() => {
 
           <template v-if="auth.isAuthenticated && !auth.isGuest">
             <!-- About dropdown -->
-            <div
-              class="relative about-dropdown-wrapper"
-              @keydown="handleAboutKeydown"
-            >
+            <div class="relative about-dropdown-wrapper" @keydown="handleAboutKeydown">
               <button
                 @click="aboutDropdownOpen = !aboutDropdownOpen"
                 class="flex items-center gap-1 text-sm text-muted hover:text-foreground transition"

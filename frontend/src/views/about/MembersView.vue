@@ -115,10 +115,7 @@ onMounted(fetchMembers)
         {{ t('common.noResults') }}
       </div>
 
-      <div
-        v-else
-        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-      >
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         <div
           v-for="member in members"
           :key="member.id"
@@ -147,11 +144,7 @@ onMounted(fetchMembers)
             <h3 class="text-sm font-semibold text-foreground truncate w-full">
               {{ member.display_name }}
             </h3>
-            <BaseBadge
-              :variant="roleBadgeVariant[member.role] || 'neutral'"
-              size="sm"
-              class="mt-1"
-            >
+            <BaseBadge :variant="roleBadgeVariant[member.role] || 'neutral'" size="sm" class="mt-1">
               {{ roleLabel[member.role] || member.role }}
             </BaseBadge>
             <p
@@ -177,9 +170,7 @@ onMounted(fetchMembers)
         >
           {{ t('common.prev') }}
         </button>
-        <span class="text-sm text-muted">
-          {{ page }} / {{ totalPages }} ({{ total }})
-        </span>
+        <span class="text-sm text-muted"> {{ page }} / {{ totalPages }} ({{ total }}) </span>
         <button
           class="px-4 py-2 text-sm border border-border rounded-lg hover:bg-surface-alt transition disabled:opacity-50"
           :disabled="page >= totalPages"

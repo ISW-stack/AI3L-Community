@@ -55,7 +55,8 @@ vi.mock('@/composables/useLocale', () => ({
       if (key === 'qa.answered') return 'Answered'
       if (key === 'qa.unanswered') return 'Unanswered'
       if (key === 'qa.answerCountLabel') return `${params?.count ?? 0} answers`
-      if (key === 'qa.answersSection') return `${params?.count ?? 0} Answer${(count ?? 0) !== 1 ? 's' : ''}`
+      if (key === 'qa.answersSection')
+        return `${params?.count ?? 0} Answer${(count ?? 0) !== 1 ? 's' : ''}`
       if (key === 'qa.noAnswers') return 'No answers yet'
       if (key === 'breadcrumb.home') return 'Home'
       return key

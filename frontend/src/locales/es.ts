@@ -947,7 +947,8 @@ export default {
   // ── Org Chart ──
   orgChart: {
     title: 'Organization Chart',
-    subtitle: 'Explore the structure of AI3L Community: SIGs with their leaders and forum categories.',
+    subtitle:
+      'Explore the structure of AI3L Community: SIGs with their leaders and forum categories.',
     sigs: 'Special Interest Groups (SIGs)',
     forumCategories: 'Forum Categories',
     noSigs: 'No SIGs available.',

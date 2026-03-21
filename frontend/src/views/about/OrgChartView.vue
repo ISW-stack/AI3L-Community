@@ -4,7 +4,12 @@ import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
 import { getOrgChart, updateOverride, updateSigDescription, updateMemberBio } from '@/api/about'
-import type { OrgChartResponse, OrgChartSig, OrgChartCategory, OrgChartMember } from '@/types/orgchart'
+import type {
+  OrgChartResponse,
+  OrgChartSig,
+  OrgChartCategory,
+  OrgChartMember,
+} from '@/types/orgchart'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import { getErrorMessage } from '@/utils/error'
@@ -208,11 +213,7 @@ onMounted(fetchData)
                   <span class="font-semibold text-sm truncate">
                     {{ sig.override?.custom_title || sig.name }}
                   </span>
-                  <BaseBadge
-                    v-if="sig.override?.is_visible === false"
-                    variant="neutral"
-                    size="sm"
-                  >
+                  <BaseBadge v-if="sig.override?.is_visible === false" variant="neutral" size="sm">
                     {{ t('orgChart.hidden') }}
                   </BaseBadge>
                 </div>
@@ -328,18 +329,12 @@ onMounted(fetchData)
               <Transition name="panel-expand">
                 <div v-if="expandedSigs.has(sig.id)" class="member-panel">
                   <!-- SIG description -->
-                  <p
-                    v-if="sig.org_chart_description || sig.description"
-                    class="sig-panel-desc"
-                  >
+                  <p v-if="sig.org_chart_description || sig.description" class="sig-panel-desc">
                     {{ sig.org_chart_description || sig.description }}
                   </p>
 
                   <!-- Leads: ADMIN + SUB_ADMIN with avatar -->
-                  <div
-                    v-if="groupMembers(sig.members).leads.length > 0"
-                    class="member-section"
-                  >
+                  <div v-if="groupMembers(sig.members).leads.length > 0" class="member-section">
                     <div
                       v-for="m in groupMembers(sig.members).leads"
                       :key="m.user_id"
@@ -372,10 +367,7 @@ onMounted(fetchData)
                           {{ m.display_name }}
                         </router-link>
                         <div class="flex items-center gap-1.5 mt-0.5">
-                          <BaseBadge
-                            :variant="roleBadgeVariant[m.role] || 'neutral'"
-                            size="sm"
-                          >
+                          <BaseBadge :variant="roleBadgeVariant[m.role] || 'neutral'" size="sm">
                             {{ m.role.replace('_', ' ') }}
                           </BaseBadge>
                         </div>
@@ -408,10 +400,7 @@ onMounted(fetchData)
                   ></div>
 
                   <!-- Regular members: name only, no avatar -->
-                  <div
-                    v-if="groupMembers(sig.members).regular.length > 0"
-                    class="member-section"
-                  >
+                  <div v-if="groupMembers(sig.members).regular.length > 0" class="member-section">
                     <div
                       v-for="m in visibleRegularMembers(sig)"
                       :key="m.user_id"
@@ -448,18 +437,13 @@ onMounted(fetchData)
                   </div>
 
                   <!-- Empty state -->
-                  <p
-                    v-if="sig.members.length === 0"
-                    class="text-xs text-muted text-center py-2"
-                  >
+                  <p v-if="sig.members.length === 0" class="text-xs text-muted text-center py-2">
                     No members
                   </p>
 
                   <!-- Inline bio edit form -->
                   <div v-if="editingBio?.sigId === sig.id" class="node-edit-form mt-2">
-                    <label class="text-xs font-medium text-muted">{{
-                      t('orgChart.myBio')
-                    }}</label>
+                    <label class="text-xs font-medium text-muted">{{ t('orgChart.myBio') }}</label>
                     <textarea
                       v-model="bioForm"
                       class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"

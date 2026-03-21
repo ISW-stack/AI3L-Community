@@ -147,9 +147,7 @@ describe('usePostList', () => {
     result.init()
     await flushPromises()
 
-    expect(mockListPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'question' }),
-    )
+    expect(mockListPosts).toHaveBeenCalledWith(expect.objectContaining({ type: 'question' }))
     wrapper.unmount()
   })
 
@@ -193,9 +191,7 @@ describe('usePostList', () => {
 
     expect(result.categoryFilter.value).toBe('cat-1')
     // The watcher on categoryFilter triggers fetchPosts
-    expect(mockListPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ category_id: 'cat-1' }),
-    )
+    expect(mockListPosts).toHaveBeenCalledWith(expect.objectContaining({ category_id: 'cat-1' }))
     wrapper.unmount()
   })
 
@@ -212,9 +208,7 @@ describe('usePostList', () => {
     await flushPromises()
 
     expect(result.sortBy.value).toBe('popular')
-    expect(mockListPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ sort: 'popular' }),
-    )
+    expect(mockListPosts).toHaveBeenCalledWith(expect.objectContaining({ sort: 'popular' }))
     wrapper.unmount()
   })
 
@@ -405,9 +399,7 @@ describe('usePostList', () => {
     result.loadMore()
     await flushPromises()
 
-    expect(mockListPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ cursor: 'cursor-abc' }),
-    )
+    expect(mockListPosts).toHaveBeenCalledWith(expect.objectContaining({ cursor: 'cursor-abc' }))
     expect(result.posts.value).toHaveLength(2)
     wrapper.unmount()
   })

@@ -87,9 +87,7 @@ const fakeCategories = [
   { id: 'cat2', name: 'Language Learning', post_count: 5 },
 ]
 
-const fakeTrending = [
-  makeQuestion({ id: 'tq1', title: 'Trending Question', answer_count: 12 }),
-]
+const fakeTrending = [makeQuestion({ id: 'tq1', title: 'Trending Question', answer_count: 12 })]
 
 // ---------------------------------------------------------------------------
 // Helpers
