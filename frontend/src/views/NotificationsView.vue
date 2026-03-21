@@ -204,11 +204,14 @@ onMounted(fetchNotifications)
       />
 
       <div v-else class="bg-surface rounded-lg shadow border border-border divide-y divide-border">
-        <button
+        <div
           v-for="notif in notifications"
           :key="notif.id"
+          role="button"
+          tabindex="0"
           @click="markRead(notif)"
-          class="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-surface-alt transition"
+          @keydown.enter="markRead(notif)"
+          class="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-surface-alt transition cursor-pointer"
           :class="{ 'bg-brand-50/40': !notif.is_read }"
         >
           <!-- Avatar -->
@@ -251,7 +254,7 @@ onMounted(fetchNotifications)
           >
             <Trash2 :size="16" />
           </button>
-        </button>
+        </div>
       </div>
 
       <BasePagination
