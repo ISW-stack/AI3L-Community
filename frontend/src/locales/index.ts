@@ -130,27 +130,32 @@ const localeAliases: Record<string, string> = {
 }
 
 const loadedLocales = new Set<string>(['en'])
+// In-flight map prevents duplicate network requests for the same locale
+const inFlight = new Map<string, Promise<void>>()
 
-export async function loadLocaleMessages(locale: string): Promise<void> {
+export function loadLocaleMessages(locale: string): Promise<void> {
   const resolved = localeAliases[locale] ?? locale
   if (loadedLocales.has(resolved)) {
-    // Already loaded — just set aliases if needed
-    if (resolved !== locale) {
-      i18n.global.setLocaleMessage(locale, i18n.global.getLocaleMessage(resolved))
-    }
-    return
+    return Promise.resolve()
+  }
+  if (inFlight.has(resolved)) {
+    return inFlight.get(resolved)!
   }
   const loader = localeLoaders[resolved]
-  if (!loader) return
-  const messages = await loader()
-  i18n.global.setLocaleMessage(resolved, messages.default)
-  loadedLocales.add(resolved)
-  // Set aliases pointing to this locale
-  for (const [alias, target] of Object.entries(localeAliases)) {
-    if (target === resolved) {
-      i18n.global.setLocaleMessage(alias, messages.default)
+  if (!loader) return Promise.resolve()
+  const promise = loader().then((messages) => {
+    i18n.global.setLocaleMessage(resolved, messages.default)
+    loadedLocales.add(resolved)
+    inFlight.delete(resolved)
+    // Set aliases pointing to this locale
+    for (const [alias, target] of Object.entries(localeAliases)) {
+      if (target === resolved) {
+        i18n.global.setLocaleMessage(alias, messages.default)
+      }
     }
-  }
+  })
+  inFlight.set(resolved, promise)
+  return promise
 }
 
 export const i18n = createI18n({

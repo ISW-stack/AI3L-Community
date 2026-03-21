@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import LanguageSwitcher from '../LanguageSwitcher.vue'
 
-const mockSetLocale = vi.fn()
+const mockSetLocale = vi.fn().mockResolvedValue(undefined)
 const mockT = vi.fn((key: string) => key)
 const mockCurrentLocale = ref('en')
 
@@ -54,6 +54,7 @@ function mountSwitcher(props: Record<string, unknown> = {}) {
 describe('LanguageSwitcher', () => {
   beforeEach(() => {
     mockSetLocale.mockReset()
+    mockSetLocale.mockResolvedValue(undefined)
     mockT.mockReset()
     mockT.mockImplementation((key: string) => key)
     mockCurrentLocale.value = 'en'

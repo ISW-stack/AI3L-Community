@@ -144,7 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Sync locale preference from DB (uses global i18n instance — safe outside setup)
       if (data.preferred_language) {
         const { syncLocaleFromProfile } = await import('@/composables/useLocale')
-        syncLocaleFromProfile(data.preferred_language)
+        syncLocaleFromProfile(data.preferred_language).catch(() => {})
       }
     } catch {
       // 401/403 is already handled by the axios interceptor (clears session)

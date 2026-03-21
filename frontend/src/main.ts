@@ -10,7 +10,7 @@ import './style.css'
 
 async function bootstrap() {
   // Load the detected locale messages before mounting (en is already bundled)
-  const initialLocale = i18n.global.locale.value ?? (i18n.global.locale as unknown as string)
+  const initialLocale = i18n.global.locale.value
   if (initialLocale !== 'en') {
     await loadLocaleMessages(initialLocale)
   }

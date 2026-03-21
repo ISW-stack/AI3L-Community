@@ -32,8 +32,8 @@ function toggleGroup(groupId: string) {
 }
 
 function selectLocale(locale: SupportedLocale) {
-  setLocale(locale)
   isOpen.value = false
+  setLocale(locale).catch(() => {})
 }
 
 function getLabel(locale: SupportedLocale): string {
