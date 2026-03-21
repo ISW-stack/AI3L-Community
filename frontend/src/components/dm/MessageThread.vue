@@ -314,7 +314,7 @@ defineExpose({ scrollToBottom })
                   : 'bg-surface-alt text-foreground border border-border rounded-bl-sm'
               "
             >
-              <p v-if="item.message.content" class="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+              <p v-if="item.message.content" class="whitespace-pre-wrap wrap-anywhere">
                 {{ item.message.content }}
               </p>
 
@@ -363,7 +363,7 @@ defineExpose({ scrollToBottom })
                         class="w-3.5 h-3.5 shrink-0"
                         aria-hidden="true"
                       />
-                      <span class="truncate max-w-[180px]">{{ item.message.attachment_name }}</span>
+                      <span class="truncate max-w-45">{{ item.message.attachment_name }}</span>
                       <span v-if="item.message.attachment_size" class="shrink-0">
                         ({{ formatFileSize(item.message.attachment_size) }})
                       </span>
