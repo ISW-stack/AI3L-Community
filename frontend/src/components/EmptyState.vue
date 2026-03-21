@@ -11,7 +11,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="text-center py-12">
+  <div class="w-full text-center py-12">
     <Inbox class="mx-auto h-12 w-12 text-gray-300 mb-4" aria-hidden="true" />
     <h3 v-if="title" class="text-sm font-medium text-foreground mb-1">{{ title }}</h3>
     <p class="text-sm text-muted">{{ message }}</p>

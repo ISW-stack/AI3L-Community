@@ -77,7 +77,7 @@ watch(page, fetchForms)
 </script>
 
 <template>
-  <div>
+  <div class="flex-1 flex flex-col">
     <BaseBreadcrumb
       :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.formsDirectory') }]"
     />

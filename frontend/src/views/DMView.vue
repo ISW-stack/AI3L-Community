@@ -339,7 +339,7 @@ const activeConvUser = computed(() => {
 
       <!-- Right: Messages or Empty State -->
       <div
-        class="flex-1 flex flex-col min-w-0"
+        class="flex-1 flex flex-col min-w-0 min-h-0"
         :class="{ 'hidden sm:flex': !dmStore.activeConversationId && !activeOtherUserId }"
       >
         <template v-if="dmStore.activeConversationId || activeOtherUserId">

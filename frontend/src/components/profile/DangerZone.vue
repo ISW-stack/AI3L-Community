@@ -50,42 +50,42 @@ defineExpose({
   <div>
     <BaseAlert type="warning" class="mb-4">{{ t('profile.dangerZone.warning') }}</BaseAlert>
 
-  <h2 class="text-xl font-bold text-danger-600 mb-4">{{ t('profile.dangerZone.title') }}</h2>
-  <BaseCard padding="lg">
-    <p class="text-sm text-muted mb-4">
-      {{ t('profile.dangerZone.deleteDescription') }}
-    </p>
-    <BaseButton variant="danger" @click="openDeleteConfirm">
-      {{ t('profile.dangerZone.deleteBtn') }}
-    </BaseButton>
-  </BaseCard>
+    <h2 class="text-xl font-bold text-danger-600 mb-4">{{ t('profile.dangerZone.title') }}</h2>
+    <BaseCard padding="lg">
+      <p class="text-sm text-muted mb-4">
+        {{ t('profile.dangerZone.deleteDescription') }}
+      </p>
+      <BaseButton variant="danger" @click="openDeleteConfirm">
+        {{ t('profile.dangerZone.deleteBtn') }}
+      </BaseButton>
+    </BaseCard>
 
-  <!-- Delete Account Confirmation Modal -->
-  <BaseModal
-    v-model="showDeleteConfirm"
-    :title="t('profile.dangerZone.deleteConfirm.title')"
-    size="sm"
-  >
-    <p class="text-sm text-muted mb-4">
-      {{ t('profile.dangerZone.deleteConfirm.message') }}
-    </p>
-    <BaseInput
-      v-model="deleteConfirmText"
-      :label="t('profile.dangerZone.deleteConfirm.typeLabel')"
-      :placeholder="t('profile.dangerZone.deleteConfirm.placeholder')"
-    />
-    <template #footer>
-      <BaseButton variant="secondary" @click="closeDeleteConfirm">{{
-        t('common.cancel')
-      }}</BaseButton>
-      <BaseButton
-        variant="danger"
-        :disabled="deleteConfirmText !== 'DELETE'"
-        :loading="deletingAccount"
-        @click="handleConfirmDelete"
-        >{{ t('profile.dangerZone.deleteConfirm.confirmBtn') }}</BaseButton
-      >
-    </template>
-  </BaseModal>
+    <!-- Delete Account Confirmation Modal -->
+    <BaseModal
+      v-model="showDeleteConfirm"
+      :title="t('profile.dangerZone.deleteConfirm.title')"
+      size="sm"
+    >
+      <p class="text-sm text-muted mb-4">
+        {{ t('profile.dangerZone.deleteConfirm.message') }}
+      </p>
+      <BaseInput
+        v-model="deleteConfirmText"
+        :label="t('profile.dangerZone.deleteConfirm.typeLabel')"
+        :placeholder="t('profile.dangerZone.deleteConfirm.placeholder')"
+      />
+      <template #footer>
+        <BaseButton variant="secondary" @click="closeDeleteConfirm">{{
+          t('common.cancel')
+        }}</BaseButton>
+        <BaseButton
+          variant="danger"
+          :disabled="deleteConfirmText !== 'DELETE'"
+          :loading="deletingAccount"
+          @click="handleConfirmDelete"
+          >{{ t('profile.dangerZone.deleteConfirm.confirmBtn') }}</BaseButton
+        >
+      </template>
+    </BaseModal>
   </div>
 </template>

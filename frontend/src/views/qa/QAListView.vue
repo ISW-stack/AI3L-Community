@@ -212,10 +212,9 @@ onUnmounted(cleanup)
                   <p class="text-sm text-foreground font-medium line-clamp-2">{{ post.title }}</p>
                   <div class="flex items-center gap-3 mt-1 text-xs text-muted">
                     <span>{{ t('qa.sidebar.answerCount', { count: post.answer_count }) }}</span>
-                    <span
-                      v-if="post.best_answer_id"
-                      class="text-success-700 font-medium"
-                    >{{ t('qa.answered') }}</span>
+                    <span v-if="post.best_answer_id" class="text-success-700 font-medium">{{
+                      t('qa.answered')
+                    }}</span>
                   </div>
                 </router-link>
               </template>
@@ -224,10 +223,7 @@ onUnmounted(cleanup)
         </aside>
       </div>
 
-      <FloatingCreateButton
-        v-if="auth.isAuthenticated && !auth.isGuest"
-        to="/qa/ask"
-      />
+      <FloatingCreateButton v-if="auth.isAuthenticated && !auth.isGuest" to="/qa/ask" />
     </div>
   </div>
 </template>

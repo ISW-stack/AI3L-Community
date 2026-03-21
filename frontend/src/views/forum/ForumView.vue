@@ -63,6 +63,8 @@ const sortOptions = [
 
 onMounted(init)
 onUnmounted(cleanup)
+
+defineExpose({ loadMore })
 </script>
 
 <template>
@@ -170,10 +172,7 @@ onUnmounted(cleanup)
           </div>
 
           <!-- No More Posts -->
-          <p
-            v-if="!hasMore && posts.length > 0"
-            class="mt-4 text-sm text-muted text-center py-4"
-          >
+          <p v-if="!hasMore && posts.length > 0" class="mt-4 text-sm text-muted text-center py-4">
             {{ t('forum.noMorePosts') }}
           </p>
         </div>

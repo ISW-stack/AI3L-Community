@@ -464,7 +464,10 @@ describe('HomeView', () => {
     it('M3: fetchMyApplication logs non-404/401 errors', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       mockGetMyApplication.mockRejectedValue(
-        Object.assign(new Error('Server Error'), { response: { status: 500 } }),
+        Object.assign(new Error('Server Error'), {
+          isAxiosError: true,
+          response: { status: 500 },
+        }),
       )
       await mountHome({ role: 'GUEST' })
       await flushPromises()

@@ -31,18 +31,22 @@ function onConsentAccepted() {
 <template>
   <div class="min-h-screen bg-surface-alt flex flex-col">
     <AppNavbar />
+
     <main
       :class="[
-        'flex-1 flex flex-col',
-        isFullWidth ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
+        'flex-1 flex flex-col w-full min-w-0',
+        isFullWidth ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
       ]"
     >
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
-          <component :is="Component" />
+          <div :key="route.path" class="w-full flex-1 flex flex-col">
+            <component :is="Component" />
+          </div>
         </Transition>
       </RouterView>
     </main>
+
     <AppFooter />
     <ToastNotification />
     <PrivacyConsentModal

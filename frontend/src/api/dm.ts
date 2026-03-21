@@ -7,7 +7,11 @@ export async function listConversations(params: {
   page_size?: number
 }): Promise<ConversationListResponse> {
   const { data } = await api.get('/dm/conversations', { params })
-  return assertShape<ConversationListResponse>(data, ['conversations', 'total'], 'listConversations')
+  return assertShape<ConversationListResponse>(
+    data,
+    ['conversations', 'total'],
+    'listConversations',
+  )
 }
 
 export async function listMessages(
