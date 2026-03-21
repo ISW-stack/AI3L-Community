@@ -385,40 +385,40 @@ The following areas were explicitly audited and confirmed correct:
 
 ## Fix Status (updated 2026-03-21)
 
-### Fixed in this session (33 findings)
+### Session 1 fixes (33 findings — commit range up to 1733a24)
 
 | ID | Status | Fix |
 |----|--------|-----|
 | H-01 | ✅ FIXED | `_get_body_limit()` path-based size map in `main.py`; albums/DM→50MB, files→20MB |
 | H-02 | ✅ FIXED | `security-headers.conf.template` uses `${MINIO_CSP_ORIGIN}` envsubst variable; `docker-entrypoint.sh` processes template at startup |
 | H-03 | ✅ FIXED | HSTS header added to both dev `security-headers.conf` and production `.conf.template` (`max-age=31536000; includeSubDomains`) |
-| H-04 | ✅ FIXED | Production guards added for `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `MINIO_ROOT_PASSWORD` in config validator; docker-compose defaults aligned (`changeme_postgres`, `changeme_redis`, `changeme_minio`) |
-| H-05 | ✅ FIXED | `nginx/docker-entrypoint.sh` auto-enables HTTPS if TLS certs exist (`/etc/nginx/ssl/fullchain.pem`); docker-compose updated with entrypoint + `MINIO_CSP_ORIGIN` env var |
+| H-04 | ✅ FIXED | Production guards added for `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `MINIO_ROOT_PASSWORD` in config validator; docker-compose defaults aligned |
+| H-05 | ✅ FIXED | `nginx/docker-entrypoint.sh` auto-enables HTTPS if TLS certs exist; docker-compose updated with entrypoint + `MINIO_CSP_ORIGIN` env var |
 | H-06 | ✅ FIXED | `anonymize_user()` collects avatar + DM attachment keys before deletion, deletes from MinIO after transaction |
 | H-07 | ✅ FIXED | `pattern=r"^[a-zA-Z0-9_-]+$"` added to all username fields in user/auth schemas |
-| H-08 | ✅ FIXED | Migration `h08fk320001`: ON DELETE SET NULL for posts/comments/audit_logs/forms/form_responses/post_reports/sigs/invite_codes user_id FKs (columns made nullable); ON DELETE CASCADE for privacy_consents/membership_applications |
+| H-08 | ✅ FIXED | Migration `h08fk320001`: ON DELETE SET NULL/CASCADE for all user_id FKs |
 | H-09 | ✅ FIXED | Migration `h09ck320002`: CHECK constraints on `users.role`, `membership_applications.status`, `post_reports.status`, `sig_members.role`, `file_scans.status` |
-| H-10 | ✅ FIXED | `post_repo.search()`, `get_search_suggestions()`, `get_keyword_suggestions()` now filter out posts from deleted SIGs (same clause as `find_many`) |
-| M-05 | ✅ FIXED | `dm_friends_only` check inlined inside transaction; no longer uses separate connection |
+| H-10 | ✅ FIXED | `post_repo.search()`, `get_search_suggestions()`, `get_keyword_suggestions()` filter deleted-SIG posts |
+| M-05 | ✅ FIXED | `dm_friends_only` check inlined inside transaction |
 | M-06 | ✅ FIXED | `edit_message` re-reads message inside advisory lock for accurate char_delta |
 | M-07 | ✅ FIXED | `recall_message` re-reads message inside advisory lock for accurate content_len |
 | M-08 | ✅ FIXED | Recipient existence + active status validated inside transaction before DM send |
-| M-13 | ✅ FIXED | `.txt`/`.csv` files checked for HTML prefixes (`<html`, `<!DOCTYPE`, `<script`, etc.) |
-| M-16 | ✅ FIXED | `file.name` escaped via `escapeHtml()` before inserting into TiptapEditor HTML |
-| M-17 | ✅ FIXED | `data.url` validated via `isValidUrl()` (http/https only) in TiptapEditor upload handler |
-| M-20 | ✅ FIXED | `find_or_create_conversation` INSERT+SELECT wrapped in transaction |
-| M-26 | ✅ FIXED | `PostCreateRequest.content` and `PostUpdateRequest.content` → `max_length=100_000` |
+| M-13 | ✅ FIXED | `.txt`/`.csv` files checked for HTML prefixes |
+| M-16 | ✅ FIXED | `file.name` escaped via `escapeHtml()` in TiptapEditor |
+| M-17 | ✅ FIXED | `data.url` validated via `isValidUrl()` (http/https only) in TiptapEditor |
+| M-20 | ✅ FIXED | `find_or_create_conversation` wrapped in transaction |
+| M-26 | ✅ FIXED | `PostCreateRequest.content` → `max_length=100_000` |
 | M-27 | ✅ FIXED | `ChangePasswordRequest` both fields → `max_length=128` |
-| M-28 | ✅ FIXED | `FormCreateRequest.questions` → `max_length=100`; same for `FormUpdateRequest` |
-| M-29 | ✅ FIXED | `QuestionSchema` field bounds: id≤100, label≤500, options≤50, max_length 1-10000, min 0-100, max 1-100, max_size_mb 1-50 |
+| M-28 | ✅ FIXED | `FormCreateRequest.questions` → `max_length=100` |
+| M-29 | ✅ FIXED | `QuestionSchema` field bounds: id≤100, label≤500, options≤50, max_length/min/max/max_size_mb bounded |
 | M-30 | ✅ FIXED | `CommentCreateRequest.mentions` → `max_length=20` |
-| M-32 | ✅ FIXED | `FormCreateRequest/FormUpdateRequest.banner_url` → `max_length=2000` + rejects non-http(s) schemes |
-| M-33 | ✅ FIXED | `display_name` validator rejects control chars + zero-width chars (U+200B/C/D, U+202E, U+FEFF) on all request schemas |
-| M-42 | ✅ FIXED | Reactions JSONB cleaned in `posts` and `comments` on account deletion |
-| M-43 | ✅ FIXED | `post_history` rows deleted before posts soft-delete on account deletion |
+| M-32 | ✅ FIXED | `banner_url` → `max_length=2000` + rejects non-http(s) schemes |
+| M-33 | ✅ FIXED | `display_name` validator rejects control chars + zero-width chars |
+| M-42 | ✅ FIXED | Reactions JSONB cleaned on account deletion |
+| M-43 | ✅ FIXED | `post_history` rows deleted on account deletion |
 | M-44 | ✅ FIXED | `privacy_consents` deleted on account deletion |
-| M-46 | ✅ FIXED | Custom `RequestValidationError` handler returns sanitized `{field, message}` only — no Pydantic internals |
-| L-31 | ✅ FIXED | `CitationSearchRequest.query` → `min=1, max=200`; `limit` → `ge=1, le=50` |
+| M-46 | ✅ FIXED | Custom `RequestValidationError` handler returns sanitized `{field, message}` only |
+| L-31 | ✅ FIXED | `CitationSearchRequest` query/limit bounded |
 | L-32 | ✅ FIXED | `BulkDeleteNotificationsRequest.notification_ids` → `max_length=100` |
 | L-34 | ✅ FIXED | `FriendRequestCreateRequest.user_id` → UUID pattern validation |
 | L-42 | ✅ FIXED | `membership_applications` and `invite_codes` deleted on account deletion |
@@ -426,7 +426,62 @@ The following areas were explicitly audited and confirmed correct:
 Additional schema hardening (L-33, L-35, L-36): `category_id`/`sig_id` UUID pattern, `captcha_id` max_length=100, `QuestionSchema` numeric bounds all applied.
 
 **Tests added:** 189 new tests across 7 new/updated test files (all passing).
-- `test_h_fixes_2026_03_21.py`: 31 tests (H-02/03/04/05/08/09/10)
+
+---
+
+### Session 2 fixes (37 findings — commit c6a6c74, 2026-03-21)
+
+| ID | Status | Fix |
+|----|--------|-----|
+| M-01 | ✅ FIXED | WS ticket `redis.getdel()` — atomic fetch+delete prevents TOCTOU race |
+| M-02 | ✅ FIXED | Password change rate-limited: 5 attempts per 300s (`rl:password_change:{uid}`) |
+| M-03 | ✅ FIXED | Periodic WS session re-validation every 5 minutes; FORCE_LOGOUT if no session keys |
+| M-04 | ✅ FIXED | Per-user WS connection limit: max 5; 6th connection rejected with code 4006 |
+| M-09 | ✅ FIXED | `list_all_co_authors` requires caller to be post owner or admin |
+| M-10 | ✅ FIXED | QA mark/vote endpoints rate-limited: 30 req/60s |
+| M-12 | ✅ FIXED | Content-Type derived from file extension (albums + DM); client-supplied type ignored |
+| M-18 | ✅ FIXED | `album_repo.update_album/update_photo`: regex guard `^[a-z_]+$` on dynamic column names |
+| M-19 | ✅ FIXED | `preferences_repo.upsert_preferences`: same regex guard on column names |
+| M-31 | ✅ FIXED | `FormSubmitRequest.answers`: max 200 keys, typed values only (str/int/float/bool/list[str]/None), str≤50000 chars |
+| M-34 | ✅ FIXED | SIG endpoints offset capped at `MAX_PAGE_NUMBER * 100`; about/members page `le=1000` |
+| M-35 | ✅ FIXED | Admin user search `max_length=200` |
+| M-38 | ✅ FIXED | Task result ownership fail-closed: expired Redis key → 403 (not pass-through) |
+| M-39 | ✅ FIXED | All 9 Beat tasks have `expires` = schedule interval to prevent overlap |
+| M-40 | ✅ FIXED | `task_reject_on_worker_lost=True` — tasks requeued on OOM kill |
+| M-41 | ✅ FIXED | `run_async()` `timeout` parameter (default 600s) — no more deadlock risk |
+| M-47 | ✅ FIXED | `ValueError` in password change sanitized; only known-safe prefixes pass through |
+| M-48 | ✅ FIXED | DM file upload: MinIO cleanup on any DB failure after upload |
+| M-50 | ✅ FIXED | Migration `m50sf320003`: `dm_messages CHECK (content IS NOT NULL OR attachment_key IS NOT NULL)` |
+| M-51 | ✅ FIXED | Migration `m50sf320003`: partial unique index on `sig_members(sig_id, user_id) WHERE is_deleted = false` |
+| M-52 | ✅ FIXED | Migration `m50sf320003`: `UNIQUE (ip_address)` on `ip_bans` (dedup existing rows first) |
+| M-53 | ✅ FIXED | Migration `m50sf320003`: index + comment on `org_chart_overrides.entity_id` |
+| L-05 | ✅ FIXED | File scan status endpoint verifies file ownership (path prefix check) or admin |
+| L-06 | ✅ FIXED | `about/members` page `le=1000` |
+| L-07 | ✅ FIXED | Preferences + notifications endpoints: `get_current_user` → `require_role(MEMBER+)` |
+| L-08 | ✅ FIXED | Avatar upload: `get_current_user` → `require_role(MEMBER+)` |
+| L-09 | ✅ FIXED | Delete account: `get_current_user` → `require_role(MEMBER+)` |
+| L-10 | ✅ FIXED | DM send: redundant `len(file_data)` check guards against lying `file_size` param |
+| L-15 | ✅ FIXED | DM endpoint: `file.read(DM_MAX_ATTACHMENT_SIZE + 1)` — bounded read |
+| L-22 | ✅ FIXED | DM edit: `AND is_recalled = false` in UPDATE WHERE clause inside advisory lock |
+| L-23 | ✅ FIXED | DM file cleanup: CAS-style `clear_message_attachment_if_present()` — idempotent |
+| L-33 | ✅ FIXED | (Session 1) `category_id`/`sig_id` UUID pattern validation |
+| L-35 | ✅ FIXED | (Session 1) `captcha_id` max_length=100 |
+| L-36 | ✅ FIXED | (Session 1) `QuestionSchema` numeric bounds |
+| L-44 | ✅ FIXED | Cursor parsing exception details suppressed; returns generic 422 |
+| L-47 | ✅ FIXED | `about.py` avatar proxy: `int(content_length)` wrapped in `try/except (ValueError, TypeError)` |
+| L-48 | ✅ FIXED | Event retry: unique `event_id` (UUID4) stored per failure; dedup via Redis SET NX |
+| L-49 | ✅ FIXED | `_redact_kwargs()` strips `content/message/body/password/token` before Redis persistence |
+| L-57 | ✅ FIXED | Migration `m50sf320003`: redundant `categories_name_key` constraint dropped |
+| L-58 | ✅ FIXED | Migration `m50sf320003`: `org_chart_overrides.updated_by` FK → `ON DELETE SET NULL` |
+| L-59 | ✅ FIXED | Migration `m50sf320003`: `update_updated_at_column()` trigger on 9 tables |
+
+**Tests added:** 133 new tests across 6 new test files (all passing).
+- `test_m01_m04_ws_auth_fixes.py`: 12 tests (M-01~M-04)
+- `test_m09_api_permissions.py`: 26 tests (M-09/10/38, L-05~L-09)
+- `test_m12_dm_file_fixes.py`: 17 tests (M-12/48, L-10/15/22/23)
+- `test_m18_sql_input_validation.py`: 34 tests (M-18/19/31/34/35/47, L-44/47)
+- `test_m39_celery_event_fixes.py`: 13 tests (M-39/40/41, L-48/49)
+- `test_m50_schema_fixes.py`: 31 tests (M-50/51/52/53, L-57/58/59)
 
 ---
 
@@ -434,36 +489,54 @@ Additional schema hardening (L-33, L-35, L-36): `category_id`/`sig_id` UUID patt
 
 ### Before Production (must-fix — ALL HIGH items resolved):
 1. ~~**H-01**~~ ✅ Fixed
-2. ~~**H-02**~~ ✅ Fixed — CSP uses `${MINIO_CSP_ORIGIN}` envsubst template
-3. ~~**H-03**~~ ✅ Fixed — HSTS added to all header configs
-4. ~~**H-04**~~ ✅ Fixed — Production guards + aligned docker-compose defaults
-5. ~~**H-05**~~ ✅ Fixed — nginx entrypoint auto-enables HTTPS if certs present
+2. ~~**H-02**~~ ✅ Fixed
+3. ~~**H-03**~~ ✅ Fixed
+4. ~~**H-04**~~ ✅ Fixed
+5. ~~**H-05**~~ ✅ Fixed
 6. ~~**H-06**~~ ✅ Fixed
 7. ~~**H-07**~~ ✅ Fixed
-8. ~~**H-08**~~ ✅ Fixed — ON DELETE rules for all user FK constraints
-9. ~~**H-09**~~ ✅ Fixed — CHECK constraints on all enum-like columns
-10. ~~**H-10**~~ ✅ Fixed — Deleted-SIG filter on all search functions
+8. ~~**H-08**~~ ✅ Fixed
+9. ~~**H-09**~~ ✅ Fixed
+10. ~~**H-10**~~ ✅ Fixed
 
-### Before Public Launch (should-fix — remaining items):
-11. **M-01** — Atomic WS ticket consumption (`redis.getdel`)
-12. **M-02** — Rate limit password change
-13. **M-03** — Periodic WS session re-validation
-14. ~~**M-05/06/07**~~ ✅ Fixed
-15. ~~**M-08**~~ ✅ Fixed
-16. **M-12** — Derive Content-Type from magic bytes (album/DM uploads trust client Content-Type)
-17. ~~**M-13**~~ ✅ Fixed
-18. ~~**M-16/17**~~ ✅ Fixed
-19. ~~**M-26/27**~~ ✅ Fixed
-20. ~~**M-28/29/30**~~ ✅ Fixed
-21. **M-38** — Fix task result ownership (fail-closed when TTL expires)
-22. **M-40** — Set `task_reject_on_worker_lost=True`
-23. ~~**M-42/43/44**~~ ✅ Fixed
-24. ~~**M-46**~~ ✅ Fixed
-25. **M-49** — Scope `proxy_request_buffering off` to upload paths only
-26. **M-50** — Add CHECK constraint on dm_messages (content OR attachment)
-27. **L-07/08/09** — Add GUEST role exclusion to preferences/avatar/delete endpoints
+### Before Public Launch (should-fix):
+11. ~~**M-01**~~ ✅ Fixed
+12. ~~**M-02**~~ ✅ Fixed
+13. ~~**M-03**~~ ✅ Fixed
+14. ~~**M-04**~~ ✅ Fixed
+15. ~~**M-05/06/07**~~ ✅ Fixed
+16. ~~**M-08**~~ ✅ Fixed
+17. ~~**M-09**~~ ✅ Fixed
+18. ~~**M-10**~~ ✅ Fixed
+19. ~~**M-12**~~ ✅ Fixed
+20. ~~**M-13**~~ ✅ Fixed
+21. ~~**M-16/17**~~ ✅ Fixed
+22. ~~**M-18/19**~~ ✅ Fixed
+23. ~~**M-20**~~ ✅ Fixed
+24. ~~**M-26/27**~~ ✅ Fixed
+25. ~~**M-28/29/30**~~ ✅ Fixed
+26. ~~**M-31**~~ ✅ Fixed
+27. ~~**M-34/35**~~ ✅ Fixed
+28. ~~**M-38**~~ ✅ Fixed
+29. ~~**M-39/40/41**~~ ✅ Fixed
+30. ~~**M-42/43/44**~~ ✅ Fixed
+31. ~~**M-46**~~ ✅ Fixed
+32. ~~**M-47/48**~~ ✅ Fixed
+33. ~~**M-50/51/52/53**~~ ✅ Fixed
+34. **M-49** — Scope `proxy_request_buffering off` to upload paths only (nginx config)
+35. ~~**L-07/08/09**~~ ✅ Fixed
 
-### Post-Launch Hardening:
-28. All remaining MEDIUM findings
-29. All LOW findings (except L-31/32/34/35/36/42 ✅ Fixed)
-30. Periodic dependency version audits
+### Post-Launch Hardening (remaining open items):
+- **M-04** ✅ Fixed
+- **M-11** — CORS origins: deployment config (set `BACKEND_CORS_ORIGINS` in production `.env`)
+- **M-21** — Dev override: bind FastAPI to 127.0.0.1 (docker-compose.override.yml)
+- **M-22** — Datadog socket mount: remove if not using Datadog
+- **M-23** — Redis CI auth: add password to CI service definition
+- **M-24** — f-string logging: convert to `%s` format
+- **M-25** — nginx dev: add rate limiting to dev config
+- **M-36** — N+1 presigned URL: concurrent generation with asyncio.gather
+- **M-37** — Cursor pagination signing: add HMAC to cursor
+- **M-45** — Audit log retention: Celery task to purge logs older than N days
+- **M-49** — nginx proxy_request_buffering: scope to upload paths
+- All remaining LOW findings (L-01~L-04, L-11~L-14, L-16~L-21, L-24~L-30, L-37~L-41, L-43, L-45, L-46, L-50~L-56, L-60)
+- Periodic dependency version audits
