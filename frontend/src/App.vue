@@ -29,15 +29,14 @@ function onConsentAccepted() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-surface-alt flex flex-col overflow-x-hidden">
+  <div class="min-h-screen bg-surface-alt flex flex-col">
     <AppNavbar />
 
     <main
       :class="[
-        'flex-1 flex flex-col w-full',
-        isFullWidth ? '' : 'max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
+        'flex-1 flex flex-col w-full min-w-0',
+        isFullWidth ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8',
       ]"
-      style="min-width: 0"
     >
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
@@ -56,34 +55,3 @@ function onConsentAccepted() {
     />
   </div>
 </template>
-
-<style>
-html {
-  margin-left: calc(100vw - 100%);
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
-}
-
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.page-enter-from,
-.page-leave-to {
-  opacity: 0;
-}
-
-@media (min-width: 1024px) {
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #f1f1f1;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
-  }
-}
-</style>
