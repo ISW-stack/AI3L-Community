@@ -147,14 +147,14 @@ onUnmounted(() => {
             >{{ t('nav.sigs') }}</router-link
           >
           <router-link
-            to="/forms"
-            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >{{ t('nav.forms') }}</router-link
-          >
-          <router-link
             to="/albums"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.albums') }}</router-link
+          >
+          <router-link
+            to="/forms"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.forms') }}</router-link
           >
 
           <template v-if="auth.isAuthenticated && !auth.isGuest">
@@ -476,18 +476,18 @@ onUnmounted(() => {
             {{ t('nav.sigs') }}
           </router-link>
           <router-link
-            to="/forms"
-            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-            @click="mobileMenuOpen = false"
-          >
-            {{ t('nav.forms') }}
-          </router-link>
-          <router-link
             to="/albums"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.albums') }}
+          </router-link>
+          <router-link
+            to="/forms"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.forms') }}
           </router-link>
 
           <template v-if="auth.isAuthenticated">

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { User } from 'lucide-vue-next'
 
 const props = withDefaults(
   defineProps<{
@@ -58,6 +59,6 @@ const initial = computed(() => (props.name ? props.name.charAt(0).toUpperCase() 
       class="w-full h-full object-cover"
       @error="imgFailed = true"
     />
-    <span v-else>{{ initial }}</span>
+    <User v-else class="w-1/2 h-1/2 text-brand-400" aria-hidden="true" />
   </div>
 </template>

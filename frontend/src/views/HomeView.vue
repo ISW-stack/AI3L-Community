@@ -305,7 +305,7 @@ onMounted(() => {
         </div>
 
         <!-- Right sidebar -->
-        <div class="space-y-6">
+        <div class="space-y-6 sticky top-20 self-start">
           <!-- Unread notifications summary -->
           <BaseCard
             v-if="notifStore.unreadCount > 0"
