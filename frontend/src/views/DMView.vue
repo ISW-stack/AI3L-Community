@@ -326,7 +326,7 @@ const activeConvUser = computed(() => {
     >
       <!-- Left: Conversation List -->
       <div
-        class="w-full sm:w-80 border-r border-border flex-shrink-0 overflow-y-auto"
+        class="w-full sm:w-80 border-r border-border shrink-0 overflow-y-auto"
         :class="{ 'hidden sm:block': dmStore.activeConversationId || activeOtherUserId }"
       >
         <ConversationList
