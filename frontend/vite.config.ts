@@ -11,6 +11,28 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('/vue/') || id.includes('vue-router') || id.includes('pinia') || id.includes('@vue/')) {
+              return 'vue-vendor'
+            }
+            if (id.includes('vue-i18n') || id.includes('@intlify/')) {
+              return 'vue-i18n'
+            }
+            if (id.includes('@tiptap/') || id.includes('prosemirror')) {
+              return 'tiptap'
+            }
+            if (id.includes('lucide')) {
+              return 'lucide'
+            }
+          }
+        },
+      },
+    },
+  },
   server: {
     // DEV_PORT / DEV_HOST are set by docker-compose.override.yml when running in Docker.
     // Fall back to local defaults so `npm run dev` on the host still works unchanged.

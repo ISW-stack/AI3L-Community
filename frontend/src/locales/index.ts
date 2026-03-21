@@ -1,21 +1,5 @@
 import { createI18n } from 'vue-i18n'
 import en from './en'
-import zhTW from './zhTW'
-import zhCN from './zhCN'
-import ja from './ja'
-import fr from './fr'
-import es from './es'
-import de from './de'
-import ar from './ar'
-import pt from './pt'
-import ru from './ru'
-import hi from './hi'
-import ko from './ko'
-import id from './id'
-import it from './it'
-import vi from './vi'
-import tr from './tr'
-import nan from './nan'
 
 export const SUPPORTED_LOCALES = [
   'en',
@@ -116,32 +100,64 @@ function detectInitialLocale(): SupportedLocale {
   return 'en'
 }
 
+type LocaleMessages = typeof en
+
+// Lazy locale loaders — each returns a dynamic import
+const localeLoaders: Record<string, () => Promise<{ default: LocaleMessages }>> = {
+  'zh-TW': () => import('./zhTW'),
+  'zh-CN': () => import('./zhCN'),
+  ja: () => import('./ja'),
+  fr: () => import('./fr'),
+  es: () => import('./es'),
+  de: () => import('./de'),
+  ar: () => import('./ar'),
+  pt: () => import('./pt'),
+  ru: () => import('./ru'),
+  hi: () => import('./hi'),
+  ko: () => import('./ko'),
+  id: () => import('./id'),
+  it: () => import('./it'),
+  vi: () => import('./vi'),
+  tr: () => import('./tr'),
+  nan: () => import('./nan'),
+}
+
+// Aliases that share the same locale file
+const localeAliases: Record<string, string> = {
+  zh: 'zh-TW',
+  'zh-HK': 'zh-TW',
+  'zh-hans': 'zh-CN',
+}
+
+const loadedLocales = new Set<string>(['en'])
+
+export async function loadLocaleMessages(locale: string): Promise<void> {
+  const resolved = localeAliases[locale] ?? locale
+  if (loadedLocales.has(resolved)) {
+    // Already loaded — just set aliases if needed
+    if (resolved !== locale) {
+      i18n.global.setLocaleMessage(locale, i18n.global.getLocaleMessage(resolved))
+    }
+    return
+  }
+  const loader = localeLoaders[resolved]
+  if (!loader) return
+  const messages = await loader()
+  i18n.global.setLocaleMessage(resolved, messages.default)
+  loadedLocales.add(resolved)
+  // Set aliases pointing to this locale
+  for (const [alias, target] of Object.entries(localeAliases)) {
+    if (target === resolved) {
+      i18n.global.setLocaleMessage(alias, messages.default)
+    }
+  }
+}
+
 export const i18n = createI18n({
   legacy: false,
   locale: detectInitialLocale(),
   fallbackLocale: 'en',
-  messages: {
-    en,
-    'zh-TW': zhTW,
-    'zh-CN': zhCN,
-    zh: zhTW,
-    'zh-HK': zhTW,
-    'zh-hans': zhCN,
-    ja,
-    fr,
-    es,
-    de,
-    ar,
-    pt,
-    ru,
-    hi,
-    ko,
-    id,
-    it,
-    vi,
-    tr,
-    nan,
-  },
+  messages: { en },
   silentFallbackWarn: !import.meta.env.DEV,
   silentTranslationWarn: !import.meta.env.DEV,
 })

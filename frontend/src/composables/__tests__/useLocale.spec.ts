@@ -10,6 +10,7 @@ vi.mock('@/locales', () => ({
   },
   SUPPORTED_LOCALES: ['en', 'zh-TW', 'zh-CN', 'ja', 'fr', 'es', 'de'],
   LOCALE_OPTIONS: [],
+  loadLocaleMessages: vi.fn().mockResolvedValue(undefined),
 }))
 
 describe('syncLocaleFromProfile', () => {
@@ -21,7 +22,7 @@ describe('syncLocaleFromProfile', () => {
   it('should set locale when given a valid preferred_language', async () => {
     const { syncLocaleFromProfile } = await import('../useLocale')
 
-    syncLocaleFromProfile('zh-TW')
+    await syncLocaleFromProfile('zh-TW')
 
     expect(mockLocale.value).toBe('zh-TW')
     expect(localStorage.getItem('locale')).toBe('zh-TW')
@@ -31,7 +32,7 @@ describe('syncLocaleFromProfile', () => {
   it('should not change locale when given undefined', async () => {
     const { syncLocaleFromProfile } = await import('../useLocale')
 
-    syncLocaleFromProfile(undefined)
+    await syncLocaleFromProfile(undefined)
 
     expect(mockLocale.value).toBe('en')
     expect(localStorage.getItem('locale')).toBeNull()
@@ -40,7 +41,7 @@ describe('syncLocaleFromProfile', () => {
   it('should not change locale when given an unsupported language', async () => {
     const { syncLocaleFromProfile } = await import('../useLocale')
 
-    syncLocaleFromProfile('ko')
+    await syncLocaleFromProfile('ko')
 
     expect(mockLocale.value).toBe('en')
     expect(localStorage.getItem('locale')).toBeNull()
@@ -49,7 +50,7 @@ describe('syncLocaleFromProfile', () => {
   it('should not change locale when given empty string', async () => {
     const { syncLocaleFromProfile } = await import('../useLocale')
 
-    syncLocaleFromProfile('')
+    await syncLocaleFromProfile('')
 
     expect(mockLocale.value).toBe('en')
   })
@@ -59,8 +60,7 @@ describe('syncLocaleFromProfile', () => {
     // which would throw outside a component setup context
     const { syncLocaleFromProfile } = await import('../useLocale')
 
-    // Should not throw
-    expect(() => syncLocaleFromProfile('ja')).not.toThrow()
+    await expect(syncLocaleFromProfile('ja')).resolves.not.toThrow()
     expect(mockLocale.value).toBe('ja')
   })
 })
