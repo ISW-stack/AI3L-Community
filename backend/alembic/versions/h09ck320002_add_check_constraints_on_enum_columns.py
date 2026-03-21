@@ -38,7 +38,7 @@ _CHECKS = [
     (
         "ck_file_scans_status",
         "file_scans",
-        "status IN ('pending', 'clean', 'malicious', 'unknown', 'error')",
+        "status IN ('pending', 'clean', 'malicious', 'unknown', 'error', 'skipped')",
     ),
 ]
 
