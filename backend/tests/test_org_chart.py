@@ -1,13 +1,15 @@
 """Tests for org chart and members endpoints."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 _EP = "app.api.v1.endpoints.about"
 _SVC = "app.services.org_chart"
 _SIG_REPO = "app.repositories.sig_repo"
+_INVALIDATE = "app.services.sig.invalidate_org_chart_cache"
 
 _SIG_ID = uuid.uuid4()
 _CAT_ID = uuid.uuid4()
@@ -578,3 +580,218 @@ class TestOverrideFieldClearing:
             assert "custom_title" not in provided
         finally:
             _clear_overrides()
+
+
+# ── SIG mutations invalidate org chart cache ─────────────────────────────
+
+
+def _make_sig_row():
+    """Create a fake SIG row returned by sig_repo.insert / conn.fetchrow."""
+    now = datetime.now(timezone.utc)
+    return {
+        "id": _SIG_ID,
+        "name": "Test SIG",
+        "description": "desc",
+        "created_by": _USER_ID,
+        "member_count": 1,
+        "is_deleted": False,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+def _make_member_row():
+    """Create a fake member row returned by sig_repo.join_member / update_member_role_in_conn."""
+    now = datetime.now(timezone.utc)
+    return {
+        "id": uuid.uuid4(),
+        "sig_id": _SIG_ID,
+        "user_id": _USER_ID,
+        "role": "MEMBER",
+        "is_deleted": False,
+        "created_at": now,
+        "updated_at": now,
+        "display_name": "Alice",
+        "username": "alice",
+        "avatar_url": None,
+        "org_chart_bio": None,
+    }
+
+
+class TestSigMutationsInvalidateOrgChartCache:
+    """Verify that SIG create/update/delete/join/leave/role-change
+    invalidate the org chart Redis cache."""
+
+    @pytest.mark.anyio
+    async def test_create_sig_invalidates_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.insert", new_callable=AsyncMock, return_value=_make_sig_row()),
+            patch("app.repositories.sig_repo.add_member", new_callable=AsyncMock),
+            patch("app.repositories.sig_repo.find_creator_display_name", new_callable=AsyncMock, return_value="Alice"),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            await sig_service.create_sig("Test SIG", "desc", str(_USER_ID))
+
+        mock_inv.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_update_sig_invalidates_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        sig_row = _make_sig_row()
+        sig_row["creator_display_name"] = "Alice"
+        mock_conn.fetchrow = AsyncMock(return_value=sig_row)
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            result = await sig_service.update_sig(_SIG_ID, name="Updated")
+
+        assert result is not None
+        mock_inv.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_update_sig_not_found_skips_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            result = await sig_service.update_sig(_SIG_ID, name="Updated")
+
+        assert result is None
+        mock_inv.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_soft_delete_sig_invalidates_cache(self):
+        from app.services import sig as sig_service
+
+        with (
+            patch("app.repositories.sig_repo.soft_delete", new_callable=AsyncMock, return_value=True),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            result = await sig_service.soft_delete_sig(_SIG_ID)
+
+        assert result is True
+        mock_inv.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_soft_delete_sig_not_found_skips_cache(self):
+        from app.services import sig as sig_service
+
+        with (
+            patch("app.repositories.sig_repo.soft_delete", new_callable=AsyncMock, return_value=False),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            result = await sig_service.soft_delete_sig(_SIG_ID)
+
+        assert result is False
+        mock_inv.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_join_sig_invalidates_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value=None),
+            patch("app.repositories.sig_repo.join_member", new_callable=AsyncMock, return_value=_make_member_row()),
+            patch("app.converters.sig_converter.async_resolve_avatar_url", new_callable=AsyncMock, return_value=None),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            await sig_service.join_sig(_SIG_ID, str(_USER_ID))
+
+        mock_inv.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_leave_sig_invalidates_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
+        mock_conn.fetchval = AsyncMock(return_value="MEMBER")
+        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER"),
+            patch("app.repositories.sig_repo.delete_member", new_callable=AsyncMock, return_value=True),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            result = await sig_service.leave_sig(_SIG_ID, str(_USER_ID))
+
+        assert result is True
+        mock_inv.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_remove_member_invalidates_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        caller_id = str(uuid.uuid4())
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER"),
+            patch("app.repositories.sig_repo.delete_member", new_callable=AsyncMock, return_value=True),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            result = await sig_service.remove_member(
+                _SIG_ID, str(_USER_ID), caller_id=caller_id, caller_role="SUPER_ADMIN"
+            )
+
+        assert result is True
+        mock_inv.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_assign_sub_admin_invalidates_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        caller_id = str(uuid.uuid4())
+        member_row = _make_member_row()
+        member_row["role"] = "SUB_ADMIN"
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER"),
+            patch("app.repositories.sig_repo.update_member_role_in_conn", new_callable=AsyncMock, return_value=member_row),
+            patch("app.converters.sig_converter.async_resolve_avatar_url", new_callable=AsyncMock, return_value=None),
+            patch("app.core.event_bus.emit", new_callable=AsyncMock),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            await sig_service.assign_sub_admin(
+                _SIG_ID, str(_USER_ID), caller_id=caller_id, caller_role="SUPER_ADMIN"
+            )
+
+        mock_inv.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_demote_sub_admin_invalidates_cache(self, mock_pool, mock_conn):
+        from app.services import sig as sig_service
+
+        caller_id = str(uuid.uuid4())
+        member_row = _make_member_row()
+        member_row["role"] = "MEMBER"
+
+        with (
+            patch("app.services.sig.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="SUB_ADMIN"),
+            patch("app.repositories.sig_repo.update_member_role_in_conn", new_callable=AsyncMock, return_value=member_row),
+            patch("app.converters.sig_converter.async_resolve_avatar_url", new_callable=AsyncMock, return_value=None),
+            patch("app.core.event_bus.emit", new_callable=AsyncMock),
+            patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
+        ):
+            await sig_service.demote_sub_admin(
+                _SIG_ID, str(_USER_ID), caller_id=caller_id, caller_role="SUPER_ADMIN"
+            )
+
+        mock_inv.assert_called_once()

@@ -14,6 +14,13 @@ _EP = "app.api.v1.endpoints.sigs"
 _SVC = "app.services.sig"
 
 
+@pytest.fixture(autouse=True)
+def _mock_org_chart_cache():
+    """Prevent org chart cache invalidation from requiring Redis in unit tests."""
+    with patch("app.services.sig.invalidate_org_chart_cache", new_callable=AsyncMock):
+        yield
+
+
 def _override_auth(role="MEMBER", user_id=None):
     from app.core.deps import get_current_user
     from app.main import app

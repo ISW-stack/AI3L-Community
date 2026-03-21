@@ -8,6 +8,7 @@ from app.converters.sig_converter import async_row_to_member, row_to_sig
 from app.core.database import get_pool
 from app.core.event_bus import emit
 from app.repositories import sig_repo
+from app.services.org_chart import invalidate_org_chart_cache
 
 
 async def create_sig(name: str, description: str | None, creator_id: str) -> dict:
@@ -26,7 +27,9 @@ async def create_sig(name: str, description: str | None, creator_id: str) -> dic
             creator_name = await sig_repo.find_creator_display_name(creator_uuid, conn)
 
             logger.info("SIG created", extra={"sig_id": str(sig_id), "name": name})
-            return row_to_sig(row, creator_name)
+            result = row_to_sig(row, creator_name)
+    await invalidate_org_chart_cache()
+    return result
 
 
 async def list_sigs(offset: int = 0, limit: int = 50) -> tuple[list[dict], int]:
@@ -100,13 +103,16 @@ async def update_sig(
             if not row:
                 return None
             logger.info("SIG updated", extra={"sig_id": str(sig_id)})
-            return row_to_sig(dict(row), dict(row).get("creator_display_name"))
+            result = row_to_sig(dict(row), dict(row).get("creator_display_name"))
+    await invalidate_org_chart_cache()
+    return result
 
 
 async def soft_delete_sig(sig_id: uuid.UUID) -> bool:
     deleted = await sig_repo.soft_delete(sig_id)
     if deleted:
         logger.info("SIG soft-deleted", extra={"sig_id": str(sig_id)})
+        await invalidate_org_chart_cache()
     return deleted
 
 
@@ -144,7 +150,9 @@ async def remove_member(
                     "SIG member removed",
                     extra={"sig_id": str(sig_id), "user_id": user_id},
                 )
-            return deleted
+    if deleted:
+        await invalidate_org_chart_cache()
+    return deleted
 
 
 async def leave_sig(sig_id: uuid.UUID, user_id: str) -> bool:
@@ -165,7 +173,9 @@ async def leave_sig(sig_id: uuid.UUID, user_id: str) -> bool:
             deleted = await sig_repo.delete_member(sig_id, user_uuid, conn)
             if deleted:
                 logger.info("User left SIG", extra={"sig_id": str(sig_id), "user_id": user_id})
-            return deleted
+    if deleted:
+        await invalidate_org_chart_cache()
+    return deleted
 
 
 async def join_sig(sig_id: uuid.UUID, user_id: str) -> dict:
@@ -183,7 +193,9 @@ async def join_sig(sig_id: uuid.UUID, user_id: str) -> dict:
             if row is None:
                 raise ValueError("SIG not found.")
             logger.info("User joined SIG", extra={"sig_id": str(sig_id), "user_id": user_id})
-            return await async_row_to_member(row)
+            result = await async_row_to_member(row)
+    await invalidate_org_chart_cache()
+    return result
 
 
 async def list_my_sigs(user_id: str) -> list[dict]:
@@ -232,6 +244,7 @@ async def demote_sub_admin(
 
     logger.info("Sub-admin demoted", extra={"sig_id": str(sig_id), "user_id": user_id})
     await emit("sig.role_changed", user_id=user_id, sig_id=str(sig_id), new_role="MEMBER")
+    await invalidate_org_chart_cache()
     return await async_row_to_member(row)
 
 
@@ -268,6 +281,7 @@ async def assign_sub_admin(
 
     logger.info("Sub-admin assigned", extra={"sig_id": str(sig_id), "user_id": user_id})
     await emit("sig.role_changed", user_id=user_id, sig_id=str(sig_id), new_role="SUB_ADMIN")
+    await invalidate_org_chart_cache()
     return await async_row_to_member(row)
 
 
