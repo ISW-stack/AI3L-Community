@@ -237,17 +237,17 @@ _Last updated: 2026-03-21 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +265,238 |
-| Total lines removed (all commits) | -42,008 |
-| Backend source lines (excl. tests) | 25,340 |
-| Frontend source lines (excl. tests) | 57,463 |
+| Total lines added (all commits) | +266,924 |
+| Total lines removed (all commits) | -43,788 |
+| Backend source lines (excl. tests) | 25,368 |
+| Frontend source lines (excl. tests) | 57,456 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 95119
-    "TypeScript" : 83346
+    "Python" : 95032
+    "TypeScript" : 83339
     "Vue" : 21462
     "CSS" : 126
 ```
@@ -260,11 +260,11 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 2,903 | 25,340 | 66,747 |
-| Frontend (Vitest) | 2,716 | 57,463 | 47,345 |
-| **Total** | **5,619** | **82,803** | **114,092** |
+| Backend (pytest) | 2,902 | 25,368 | 66,632 |
+| Frontend (Vitest) | 2,716 | 57,456 | 47,345 |
+| **Total** | **5,618** | **82,824** | **113,977** |
 
-Test-to-source ratio: **1.38** (114,092 lines of tests for every 82,803 lines of source)
+Test-to-source ratio: **1.38** (113,977 lines of tests for every 82,824 lines of source)
 
 ### Additional Metrics
 
@@ -282,15 +282,15 @@ Test-to-source ratio: **1.38** (114,092 lines of tests for every 82,803 lines of
 | `frontend/src/views/about/OrgChartView.vue` | 829 |
 | `frontend/src/composables/usePostDetail.ts` | 810 |
 | `frontend/src/views/forum/PostDetailView.vue` | 766 |
-| `backend/app/repositories/post_repo.py` | 753 |
+| `backend/app/repositories/post_repo.py` | 759 |
 
 ### Contributions by Author
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 365 | +262,422 | -40,143 |
+| Isaries | 367 | +264,085 | -41,900 |
 | SW9526 | 29 | +6,191 | -2,058 |
-| github-actions[bot] | 24 | +300 | -300 |
+| github-actions[bot] | 25 | +323 | -323 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
 
