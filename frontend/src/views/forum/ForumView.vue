@@ -41,7 +41,6 @@ const {
   immediateSearch,
   clearSearch,
   toggleAdvanced,
-  loadMore,
   init,
   cleanup,
 } = usePostList({

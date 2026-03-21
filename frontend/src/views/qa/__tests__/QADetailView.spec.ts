@@ -305,7 +305,7 @@ describe('QADetailView', () => {
       data: [{ comment_id: 'c1', vote: 1 }],
     })
 
-    const { wrapper } = await mountQADetail()
+    await mountQADetail()
 
     // getUserVotes was called and processed
     expect(mockGetUserVotes).toHaveBeenCalledWith('q1')
@@ -342,7 +342,7 @@ describe('QADetailView', () => {
       id: 'c-new',
       content: '<p>New answer</p>',
     })
-    const { wrapper } = await mountQADetail()
+    await mountQADetail()
 
     // Clear mocks to track the post-submit calls
     mockGetPost.mockClear()
