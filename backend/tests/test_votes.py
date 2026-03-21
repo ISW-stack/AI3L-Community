@@ -28,35 +28,25 @@ async def test_upsert_vote_new_downvote(mock_conn):
 
 @pytest.mark.asyncio
 async def test_upsert_vote_remove_existing(mock_conn):
-    """Removing a vote (vote=0) when one exists."""
+    """Removing a vote (vote=0) uses atomic CTE (single fetchrow)."""
     from app.repositories import vote_repo
 
-    # First call: get existing vote
-    mock_conn.fetchrow = AsyncMock(
-        side_effect=[
-            {"vote": 1},  # existing vote
-            {"vote_score": 0},  # after removal
-        ]
-    )
-    mock_conn.execute = AsyncMock()
+    # CTE DELETE + UPDATE returns the new vote_score in one call
+    mock_conn.fetchrow = AsyncMock(return_value={"vote_score": 0})
     result = await vote_repo.upsert_vote(mock_conn, uuid.uuid4(), uuid.uuid4(), 0)
     assert result == 0
-    mock_conn.execute.assert_called_once()  # DELETE
+    mock_conn.fetchrow.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_upsert_vote_remove_nonexistent(mock_conn):
-    """Removing a vote (vote=0) when none exists."""
+    """Removing a vote (vote=0) when none exists still returns score via CTE."""
     from app.repositories import vote_repo
 
-    mock_conn.fetchrow = AsyncMock(
-        side_effect=[
-            None,  # no existing vote
-            {"vote_score": 0},  # current score
-        ]
-    )
+    # CTE deletes nothing, COALESCE(SUM, 0) = 0, score unchanged
+    mock_conn.fetchrow = AsyncMock(return_value={"vote_score": 5})
     result = await vote_repo.upsert_vote(mock_conn, uuid.uuid4(), uuid.uuid4(), 0)
-    assert result == 0
+    assert result == 5
 
 
 # --- get_user_vote tests ---

@@ -1,4 +1,5 @@
 import api from '@/composables/api'
+import { assertShape } from '@/utils/apiValidation'
 import type { ConversationListResponse, MessageListResponse, DMMessage } from '@/types/dm'
 
 export async function listConversations(params: {
@@ -6,7 +7,7 @@ export async function listConversations(params: {
   page_size?: number
 }): Promise<ConversationListResponse> {
   const { data } = await api.get('/dm/conversations', { params })
-  return data as ConversationListResponse
+  return assertShape<ConversationListResponse>(data, ['conversations', 'total'], 'listConversations')
 }
 
 export async function listMessages(
@@ -14,7 +15,7 @@ export async function listMessages(
   params: { page?: number; page_size?: number },
 ): Promise<MessageListResponse> {
   const { data } = await api.get(`/dm/conversations/${conversationId}/messages`, { params })
-  return data as MessageListResponse
+  return assertShape<MessageListResponse>(data, ['messages', 'total'], 'listMessages')
 }
 
 export async function sendMessage(
@@ -28,7 +29,7 @@ export async function sendMessage(
   const { data } = await api.post(`/dm/conversations/${userId}/messages`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
-  return data as DMMessage
+  return assertShape<DMMessage>(data, ['id', 'sender_id', 'content'], 'sendMessage')
 }
 
 export async function editMessage(messageId: string, content: string): Promise<DMMessage> {

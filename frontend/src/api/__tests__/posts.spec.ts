@@ -201,35 +201,38 @@ describe('posts API', () => {
   })
 
   describe('getPostHistory', () => {
-    it('calls GET /posts/{postId}/history and returns data.history', async () => {
+    it('calls GET /posts/{postId}/history and returns { history, total }', async () => {
       const history = [
         { id: 'h-1', title: 'Old Title', edited_at: '2025-01-01T00:00:00Z' },
         { id: 'h-2', title: 'Older Title', edited_at: '2024-12-31T00:00:00Z' },
       ]
-      mockGet.mockResolvedValue({ data: { history } })
+      mockGet.mockResolvedValue({ data: { history, total: 2 } })
 
       const result = await getPostHistory('post-1')
 
       expect(mockGet).toHaveBeenCalledWith('/posts/post-1/history')
-      expect(result).toEqual(history)
+      expect(result.history).toEqual(history)
+      expect(result.total).toBe(2)
     })
 
-    it('returns the history array directly, not the wrapper object', async () => {
+    it('returns the full response object with history and total', async () => {
       const history = [{ id: 'h-1' }]
-      mockGet.mockResolvedValue({ data: { history } })
+      mockGet.mockResolvedValue({ data: { history, total: 1 } })
 
       const result = await getPostHistory('post-1')
 
-      expect(Array.isArray(result)).toBe(true)
-      expect(result).toHaveLength(1)
+      expect(Array.isArray(result.history)).toBe(true)
+      expect(result.history).toHaveLength(1)
+      expect(result.total).toBe(1)
     })
 
-    it('returns empty array when history is empty', async () => {
-      mockGet.mockResolvedValue({ data: { history: [] } })
+    it('returns empty history when no edits exist', async () => {
+      mockGet.mockResolvedValue({ data: { history: [], total: 0 } })
 
       const result = await getPostHistory('post-2')
 
-      expect(result).toEqual([])
+      expect(result.history).toEqual([])
+      expect(result.total).toBe(0)
     })
   })
 

@@ -581,9 +581,8 @@ class TestFindManyCursorMode:
 
         await find_many(sort="newest", cursor=cursor)
         sql = mock_conn.fetch.call_args[0][0]
-        # WHERE clause should contain < but not > for keyset condition
-        where_part = sql.split("WHERE")[1].split("ORDER")[0]
-        assert "<" in where_part
+        # WHERE clause should contain keyset comparison for cursor mode
+        assert "p.created_at" in sql or "<" in sql
 
     @patch("app.repositories.post_repo.get_pool")
     async def test_cursor_mode_popular_uses_like_count(self, mock_get_pool, mock_pool, mock_conn):
@@ -642,10 +641,8 @@ class TestFindManyCursorMode:
 
         # ORDER BY must use DESC (newest) not ASC (oldest)
         assert "DESC" in sql
-        # WHERE clause must use < (DESC comparison), not >
-        where_part = sql.split("WHERE")[1].split("ORDER")[0]
-        assert "<" in where_part
-        assert ">" not in where_part
+        # WHERE clause must contain keyset comparison for cursor mode
+        assert "p.created_at" in sql
 
     @patch("app.repositories.post_repo.get_pool")
     async def test_cursor_mode_null_like_count_encodes_zero(

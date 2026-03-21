@@ -44,7 +44,7 @@ describe('sigs API', () => {
 
       const result = await listSigs()
 
-      expect(mockGet).toHaveBeenCalledWith('/sigs')
+      expect(mockGet).toHaveBeenCalledWith('/sigs', { params: undefined })
       expect(result).toEqual(mockData)
     })
   })

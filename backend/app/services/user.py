@@ -342,6 +342,24 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                         "WHERE user_id = $1 AND is_deleted = false",
                         user_id,
                     )
+
+                    # DM cleanup: recall all messages, delete DM data
+                    await conn.execute(
+                        "UPDATE dm_messages SET is_recalled = true, content = NULL "
+                        "WHERE sender_id = $1 AND is_recalled = false",
+                        user_id,
+                    )
+                    await conn.execute(
+                        "DELETE FROM dm_messages WHERE conversation_id IN "
+                        "(SELECT id FROM conversations "
+                        "WHERE participant_a = $1 OR participant_b = $1)",
+                        user_id,
+                    )
+                    await conn.execute(
+                        "DELETE FROM conversations "
+                        "WHERE participant_a = $1 OR participant_b = $1",
+                        user_id,
+                    )
             except Exception:
                 logger.warning(
                     "Failed to clean up related data during anonymization",
@@ -412,14 +430,16 @@ async def bulk_change_role(user_ids: list[uuid.UUID], role: str) -> int:
     """
     from app.core.database import get_pool
 
-    # Prevent orphaning the system by demoting all SUPER_ADMINs
-    if role != "SUPER_ADMIN" and user_ids:
-        remaining = await user_repo.count_super_admins_excluding(user_ids)
-        if remaining == 0:
-            raise ValueError("Cannot demote: this would remove the last Super Admin in the system.")
-
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # Prevent orphaning the system by demoting all SUPER_ADMINs
+            # Check inside transaction to prevent TOCTOU race
+            if role != "SUPER_ADMIN" and user_ids:
+                remaining = await user_repo.count_super_admins_excluding(user_ids, conn)
+                if remaining == 0:
+                    raise ValueError(
+                        "Cannot demote: this would remove the last Super Admin in the system."
+                    )
             count = await user_repo.bulk_update_role(user_ids, role, conn)
     return count

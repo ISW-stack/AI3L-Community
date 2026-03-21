@@ -109,8 +109,9 @@ async function fetchMyApplication() {
     myApplication.value = data.application
   } catch (e: unknown) {
     // 404/401 expected for guests without user records — ignore
-    if (e instanceof Error && 'response' in e) {
-      const status = (e as any).response?.status
+    const { isAxiosError } = await import('axios')
+    if (isAxiosError(e)) {
+      const status = e.response?.status
       if (status !== 404 && status !== 401) {
         console.error('Failed to fetch application status:', e)
       }

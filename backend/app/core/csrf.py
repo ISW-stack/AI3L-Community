@@ -94,6 +94,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
         # Verify the CSRF token is bound to the current session JTI
         jwt_token = request.cookies.get("access_token")
+        if not jwt_token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                jwt_token = auth_header[7:]
         if jwt_token:
             payload = decode_access_token(jwt_token)
             if payload and payload.get("jti"):

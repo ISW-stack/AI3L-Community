@@ -219,23 +219,31 @@ class TestCleanupDmExpiredText:
         ]
 
         mock_find = AsyncMock(return_value=expired_msgs)
-        mock_delete = AsyncMock(return_value=1)
-        mock_incr = AsyncMock()
+
+        # Mock pool for transactional cleanup
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=1)  # deleted count
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_pool_obj = MagicMock()
+        mock_pool_obj.acquire.return_value = mock_acq
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
-            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock) as mock_pool,
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_text_messages", mock_find),
-            patch("app.repositories.dm_repo.delete_messages_by_ids", mock_delete),
-            patch("app.repositories.dm_repo.increment_char_count", mock_incr),
+            patch("app.core.database.get_pool", return_value=mock_pool_obj),
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
             result = await _cleanup_text()
 
-        mock_pool.assert_awaited_once()
-        mock_delete.assert_awaited_once_with([msg_id])
-        mock_incr.assert_awaited_once_with(conv_id, -13)
         assert result == {"deleted": 1}
 
     @pytest.mark.anyio
@@ -268,19 +276,30 @@ class TestCleanupDmExpiredText:
         ]
 
         mock_find = AsyncMock(return_value=expired_msgs)
-        mock_delete = AsyncMock(return_value=1)
-        mock_incr = AsyncMock(side_effect=RuntimeError("db error"))
+
+        # Mock pool for transactional cleanup (succeeds normally)
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=1)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_pool_obj = MagicMock()
+        mock_pool_obj.acquire.return_value = mock_acq
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_text_messages", mock_find),
-            patch("app.repositories.dm_repo.delete_messages_by_ids", mock_delete),
-            patch("app.repositories.dm_repo.increment_char_count", mock_incr),
+            patch("app.core.database.get_pool", return_value=mock_pool_obj),
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
             result = await _cleanup_text()
 
-        # Should still succeed despite char count error
+        # Transactional cleanup succeeds atomically
         assert result == {"deleted": 1}

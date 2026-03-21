@@ -90,9 +90,13 @@ async def update_profile(user_id: uuid.UUID, **fields: Any) -> dict | None:
     set_parts: list[str] = []
     values: list = []
     idx = 1
+    import re
+
     for field_name, value in fields.items():
         if field_name not in _ALLOWED_FIELDS:
             continue
+        if not re.match(r"^[a-z_]+$", field_name):
+            raise ValueError(f"Invalid field name: {field_name}")
         # Include the field whether the value is a string or None (clear).
         set_parts.append(f"{field_name} = ${idx}")
         values.append(value)
@@ -348,17 +352,22 @@ async def count_by_role(role: str) -> int:
         return int(result)
 
 
-async def count_super_admins_excluding(user_ids: list[uuid.UUID]) -> int:
+async def count_super_admins_excluding(
+    user_ids: list[uuid.UUID], conn: Any = None
+) -> int:
     """Count SUPER_ADMIN users not in the given list (non-deleted)."""
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        result = await conn.fetchval(
-            "SELECT COUNT(*) FROM users "
-            "WHERE role = 'SUPER_ADMIN' AND is_deleted = false "
-            "AND id != ALL($1::uuid[])",
-            user_ids,
-        )
-        return int(result)
+    query = (
+        "SELECT COUNT(*) FROM users "
+        "WHERE role = 'SUPER_ADMIN' AND is_deleted = false "
+        "AND id != ALL($1::uuid[])"
+    )
+    if conn:
+        result = await conn.fetchval(query, user_ids)
+    else:
+        pool = get_pool()
+        async with pool.acquire() as c:
+            result = await c.fetchval(query, user_ids)
+    return int(result)
 
 
 async def get_storage_used(user_id: uuid.UUID) -> int:

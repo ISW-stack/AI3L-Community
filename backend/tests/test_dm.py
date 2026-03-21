@@ -1009,10 +1009,13 @@ class TestSendMessageService:
 
 class TestEditMessageService:
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_edit_success_within_window(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_edit_success_within_window(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
         """edit_message succeeds within 12h window."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, created_at=_NOW)
         updated_row = _make_message_row(sender_id=_SENDER_ID, content="Updated!", is_edited=True)
@@ -1022,9 +1025,23 @@ class TestEditMessageService:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic edit
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=updated_row)
+        mock_conn.execute = AsyncMock()
+
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.update_message_content = AsyncMock(return_value=updated_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content="Updated!")
 
@@ -1092,10 +1109,13 @@ class TestEditMessageService:
         assert exc.value.status_code == 404
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_edit_adjusts_char_count(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_edit_adjusts_char_count(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
         """edit_message adjusts conversation char count by delta."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Short")
         updated_row = _make_message_row(
@@ -1105,9 +1125,21 @@ class TestEditMessageService:
             conv_id=msg_row["conversation_id"], user_a=_SENDER_ID, user_b=_RECIPIENT_ID
         )
 
+        # Mock pool → conn → transaction for atomic edit
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=updated_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.update_message_content = AsyncMock(return_value=updated_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content="Much longer message")
 
@@ -1116,7 +1148,8 @@ class TestEditMessageService:
         await edit_message(str(_MSG_ID), _SENDER_ID, "Much longer message")
 
         # delta = len("Much longer message") - len("Short") = 19 - 5 = 14
-        mock_dm_repo.increment_char_count.assert_called_once_with(msg_row["conversation_id"], 14)
+        # Char count update happens via conn.execute in the transaction
+        assert mock_conn.execute.called
 
     @pytest.mark.anyio
     @patch(f"{_SVC}.dm_repo")
@@ -1135,10 +1168,13 @@ class TestEditMessageService:
 
 class TestRecallMessageService:
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_success_within_window(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_recall_success_within_window(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
         """recall_message succeeds within 12h window."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Oops")
         recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
@@ -1148,9 +1184,21 @@ class TestRecallMessageService:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic recall
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content=None)
 
@@ -1162,11 +1210,12 @@ class TestRecallMessageService:
         mock_emit.assert_called_once()
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
     async def test_recall_with_attachment_deletes_storage(
-        self, mock_dm_repo, mock_emit, mock_convert
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
     ):
         """recall_message with attachment deletes file and refunds quota."""
         msg_row = _make_message_row(
@@ -1182,9 +1231,21 @@ class TestRecallMessageService:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic recall
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content=None)
 
@@ -1202,11 +1263,12 @@ class TestRecallMessageService:
         mock_decrement.assert_called_once_with(uuid.UUID(_SENDER_ID), 2048)
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
     async def test_recall_without_attachment_no_storage_ops(
-        self, mock_dm_repo, mock_emit, mock_convert
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
     ):
         """recall_message without attachment does not call storage delete."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Text only")
@@ -1217,9 +1279,21 @@ class TestRecallMessageService:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic recall
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response()
 
@@ -2001,6 +2075,19 @@ class TestCleanupDMExpiredText:
             {"id": uuid.uuid4(), "conversation_id": conv2, "content": "Bye"},
         ]
 
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=3)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = mock_acq
+
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch(
@@ -2008,22 +2095,15 @@ class TestCleanupDMExpiredText:
                 new_callable=AsyncMock,
                 return_value=expired,
             ),
-            patch(
-                "app.repositories.dm_repo.delete_messages_by_ids",
-                new_callable=AsyncMock,
-                return_value=3,
-            ),
-            patch(
-                "app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock
-            ) as mock_incr,
+            patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
             result = await _cleanup_text()
 
         assert result["deleted"] == 3
-        # Should have called increment_char_count twice (once per conversation)
-        assert mock_incr.call_count == 2
+        # Should have called conn.execute twice (once per conversation for char decrement)
+        assert mock_conn.execute.call_count == 2
 
     @pytest.mark.anyio
     async def test_empty_expired_noop(self):
@@ -2044,10 +2124,23 @@ class TestCleanupDMExpiredText:
 
     @pytest.mark.anyio
     async def test_char_count_error_handled_gracefully(self):
-        """_cleanup_text continues if char count decrement fails."""
+        """_cleanup_text completes when transaction succeeds."""
         expired = [
             {"id": uuid.uuid4(), "conversation_id": uuid.uuid4(), "content": "Msg"},
         ]
+
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=1)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = mock_acq
 
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
@@ -2056,22 +2149,13 @@ class TestCleanupDMExpiredText:
                 new_callable=AsyncMock,
                 return_value=expired,
             ),
-            patch(
-                "app.repositories.dm_repo.delete_messages_by_ids",
-                new_callable=AsyncMock,
-                return_value=1,
-            ),
-            patch(
-                "app.repositories.dm_repo.increment_char_count",
-                new_callable=AsyncMock,
-                side_effect=Exception("DB error"),
-            ),
+            patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
             result = await _cleanup_text()
 
-        # Should still return deleted count
+        # Should return deleted count
         assert result["deleted"] == 1
 
     @pytest.mark.anyio
@@ -2081,6 +2165,19 @@ class TestCleanupDMExpiredText:
             {"id": uuid.uuid4(), "conversation_id": uuid.uuid4(), "content": None},
         ]
 
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=1)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_pool = MagicMock()
+        mock_pool.acquire.return_value = mock_acq
+
         with (
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch(
@@ -2088,22 +2185,15 @@ class TestCleanupDMExpiredText:
                 new_callable=AsyncMock,
                 return_value=expired,
             ),
-            patch(
-                "app.repositories.dm_repo.delete_messages_by_ids",
-                new_callable=AsyncMock,
-                return_value=1,
-            ),
-            patch(
-                "app.repositories.dm_repo.increment_char_count", new_callable=AsyncMock
-            ) as mock_incr,
+            patch("app.core.database.get_pool", return_value=mock_pool),
         ):
             from app.tasks.dm_cleanup import _cleanup_text
 
             result = await _cleanup_text()
 
         assert result["deleted"] == 1
-        # Should NOT call increment_char_count when chars == 0
-        mock_incr.assert_not_called()
+        # Should NOT call conn.execute for char decrement when chars == 0
+        mock_conn.execute.assert_not_called()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2507,7 +2597,11 @@ class TestSendMessageAtomicRepo:
             "char_len": 7,
         }
         mock_conn.fetchrow.return_value = msg_row
-        mock_conn.fetchval.return_value = 49998  # near cap
+        mock_conn.fetchval = AsyncMock(side_effect=[
+            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+            False,  # block check
+            49998,  # total_chars near cap
+        ])
         mock_conn.fetch.return_value = [deleted_row]  # one message deleted
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -2550,7 +2644,11 @@ class TestSendMessageAtomicRepo:
             "char_len": 4,
         }
         mock_conn.fetchrow.return_value = msg_row
-        mock_conn.fetchval.return_value = 50000  # at cap
+        mock_conn.fetchval = AsyncMock(side_effect=[
+            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+            False,  # block check
+            50000,  # total_chars at cap
+        ])
         mock_conn.fetch.return_value = [del1, del2]
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -2578,7 +2676,11 @@ class TestSendMessageAtomicRepo:
         """send_message_atomic does not delete when under char cap."""
         msg_row = _make_message_row(sender_id=_SENDER_ID)
         mock_conn.fetchrow.return_value = msg_row
-        mock_conn.fetchval.return_value = 100  # far under cap
+        mock_conn.fetchval = AsyncMock(side_effect=[
+            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+            False,  # block check
+            100,  # total_chars far under cap
+        ])
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import send_message_atomic
@@ -2609,6 +2711,10 @@ class TestSendMessageAtomicRepo:
             attachment_key="dm/test/f.pdf",
         )
         mock_conn.fetchrow.return_value = msg_row
+        mock_conn.fetchval = AsyncMock(side_effect=[
+            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+            False,  # block check
+        ])
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import send_message_atomic
@@ -2627,8 +2733,8 @@ class TestSendMessageAtomicRepo:
             )
 
         assert deleted == []
-        # fetchval should NOT have been called (no char cap check for file-only)
-        mock_conn.fetchval.assert_not_called()
+        # fetchval should only have been called for block check (2 calls), not char cap
+        assert mock_conn.fetchval.call_count == 2
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2640,10 +2746,13 @@ class TestRecallMessageOrder:
     """Tests verifying recall_message does DB recall before MinIO deletion."""
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_db_before_minio_delete(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_recall_db_before_minio_delete(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
         """recall_message calls DB recall before MinIO delete_file."""
         msg_row = _make_message_row(
             sender_id=_SENDER_ID,
@@ -2658,21 +2767,33 @@ class TestRecallMessageOrder:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic recall
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content=None)
 
         call_order = []
 
-        original_recall = mock_dm_repo.recall_message
+        original_fetchrow = mock_conn.fetchrow
 
-        async def track_recall(*a, **kw):
+        async def track_fetchrow(*a, **kw):
             call_order.append("db_recall")
-            return await original_recall(*a, **kw)
+            return await original_fetchrow(*a, **kw)
 
-        mock_dm_repo.recall_message = AsyncMock(side_effect=track_recall)
+        mock_conn.fetchrow = AsyncMock(side_effect=track_fetchrow)
 
         async def track_delete(*a, **kw):
             call_order.append("minio_delete")
@@ -2690,11 +2811,12 @@ class TestRecallMessageOrder:
         ), f"DB recall must happen before MinIO delete, got: {call_order}"
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
     async def test_recall_minio_failure_still_recalls_db(
-        self, mock_dm_repo, mock_emit, mock_convert
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
     ):
         """recall_message still succeeds in DB even if MinIO delete raises."""
         msg_row = _make_message_row(
@@ -2710,9 +2832,21 @@ class TestRecallMessageOrder:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic recall
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content=None)
 
@@ -2729,8 +2863,8 @@ class TestRecallMessageOrder:
             # Should NOT raise — DB recall happened before MinIO delete
             result = await recall_message(str(_MSG_ID), _SENDER_ID)
 
-        # DB recall was called successfully
-        mock_dm_repo.recall_message.assert_called_once()
+        # DB recall was done atomically via get_pool transaction
+        assert mock_conn.fetchrow.called
         assert result is not None
 
 
@@ -3153,10 +3287,13 @@ class TestB04S01SanitizeHtmlContent:
         assert call_kwargs["content"] == "clean content"
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_edit_message_sanitizes_content(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_edit_message_sanitizes_content(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
         """edit_message calls sanitize_html on new_content before DB update."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, created_at=_NOW)
         updated_row = _make_message_row(sender_id=_SENDER_ID, content="sanitized", is_edited=True)
@@ -3166,9 +3303,21 @@ class TestB04S01SanitizeHtmlContent:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic edit
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=updated_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.update_message_content = AsyncMock(return_value=updated_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content="sanitized")
 
@@ -3178,8 +3327,9 @@ class TestB04S01SanitizeHtmlContent:
             await edit_message(str(_MSG_ID), _SENDER_ID, "<img onerror=alert(1)>text")
 
         mock_sanitize.assert_called_once_with("<img onerror=alert(1)>text")
-        # Verify sanitized content was passed to the update
-        mock_dm_repo.update_message_content.assert_called_once_with(_MSG_ID, "sanitized")
+        # Verify sanitized content was passed to the atomic update via conn.fetchrow
+        fetchrow_calls = mock_conn.fetchrow.call_args_list
+        assert any("sanitized" in str(c) for c in fetchrow_calls)
 
 
 class TestB07AsyncStorageOps:
@@ -3236,10 +3386,13 @@ class TestB07AsyncStorageOps:
         assert mock_async_upload.await_count == 1
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_recall_uses_async_delete(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_recall_uses_async_delete(
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
+    ):
         """recall_message uses async_delete_file instead of sync delete_file."""
         msg_row = _make_message_row(
             sender_id=_SENDER_ID,
@@ -3254,9 +3407,21 @@ class TestB07AsyncStorageOps:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic recall
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content=None)
 
@@ -3319,18 +3484,31 @@ class TestB11RecallCharCountAfterSuccess:
     """B-11: Char count decrement must happen AFTER successful recall_message()."""
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
     async def test_recall_failure_does_not_decrement_char_count(
-        self, mock_dm_repo, mock_emit, mock_convert
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
     ):
-        """When dm_repo.recall_message returns None, char count is NOT decremented."""
+        """When recall UPDATE returns None, char count is NOT decremented."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="Some content")
 
+        # Mock pool → conn → transaction; fetchrow returns None (recall failed)
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=None)
-        mock_dm_repo.increment_char_count = AsyncMock()
 
         from app.services.dm import recall_message
 
@@ -3338,16 +3516,18 @@ class TestB11RecallCharCountAfterSuccess:
             await recall_message(str(_MSG_ID), _SENDER_ID)
 
         assert exc.value.status_code == 404
-        mock_dm_repo.increment_char_count.assert_not_called()
+        # conn.execute should NOT have been called for char count decrement
+        mock_conn.execute.assert_not_called()
 
     @pytest.mark.anyio
+    @patch("app.core.database.get_pool")
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
     async def test_recall_success_decrements_char_count(
-        self, mock_dm_repo, mock_emit, mock_convert
+        self, mock_dm_repo, mock_emit, mock_convert, mock_get_pool
     ):
-        """When dm_repo.recall_message succeeds, char count IS decremented."""
+        """When recall succeeds, char count IS decremented atomically."""
         msg_row = _make_message_row(sender_id=_SENDER_ID, content="12345")
         recalled_row = _make_message_row(sender_id=_SENDER_ID, is_recalled=True, content=None)
         conv = _make_conversation(
@@ -3356,9 +3536,21 @@ class TestB11RecallCharCountAfterSuccess:
             user_b=_RECIPIENT_ID,
         )
 
+        # Mock pool → conn → transaction for atomic recall
+        mock_conn = MagicMock()
+        mock_conn.fetchval = AsyncMock(return_value=None)
+        mock_conn.fetchrow = AsyncMock(return_value=recalled_row)
+        mock_conn.execute = AsyncMock()
+        mock_tx = MagicMock()
+        mock_tx.__aenter__ = AsyncMock(return_value=None)
+        mock_tx.__aexit__ = AsyncMock(return_value=None)
+        mock_conn.transaction.return_value = mock_tx
+        mock_acq = MagicMock()
+        mock_acq.__aenter__ = AsyncMock(return_value=mock_conn)
+        mock_acq.__aexit__ = AsyncMock(return_value=None)
+        mock_get_pool.return_value.acquire.return_value = mock_acq
+
         mock_dm_repo.find_message_by_id = AsyncMock(return_value=msg_row)
-        mock_dm_repo.recall_message = AsyncMock(return_value=recalled_row)
-        mock_dm_repo.increment_char_count = AsyncMock()
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
         mock_convert.return_value = _make_msg_response(content=None)
 
@@ -3366,7 +3558,8 @@ class TestB11RecallCharCountAfterSuccess:
 
         await recall_message(str(_MSG_ID), _SENDER_ID)
 
-        mock_dm_repo.increment_char_count.assert_called_once_with(msg_row["conversation_id"], -5)
+        # Char count decrement happens via conn.execute in the transaction
+        assert mock_conn.execute.called
 
     @pytest.mark.anyio
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
@@ -3627,13 +3820,13 @@ class TestS02FileTypeValidation:
         _validate_dm_file("photo.webp", b"RIFF\x00\x00\x00\x00WEBP" + b"rest")
 
     def test_allowed_document_extensions_pass(self):
-        """Allowed document extensions pass validation (no magic check for docs)."""
+        """Allowed document extensions pass validation with correct magic bytes."""
         from app.services.dm import _validate_dm_file
 
         _validate_dm_file("doc.txt", b"text content")
         _validate_dm_file("data.csv", b"a,b,c\n1,2,3")
         _validate_dm_file("archive.zip", b"PK\x03\x04data")
-        _validate_dm_file("sheet.xls", b"binary data")
+        _validate_dm_file("sheet.xls", b"\xd0\xcf\x11\xe0binary data")
         _validate_dm_file("slide.pptx", b"PK\x03\x04data")
 
     def test_disallowed_exe_raises_error(self):

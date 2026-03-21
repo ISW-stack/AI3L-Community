@@ -5,7 +5,7 @@ from loguru import logger
 
 from app.converters.comment_converter import async_row_to_comment
 from app.core.blacklist import get_blocked_user_ids
-from app.core.constants import MAX_COMMENTS_PER_POST
+from app.core.constants import MAX_COMMENT_LENGTH, MAX_COMMENTS_PER_POST
 from app.core.database import get_pool
 from app.core.event_bus import emit
 from app.core.redis import get_redis
@@ -19,6 +19,9 @@ async def create_comment(
     parent_id: str | None = None,
     mentions: list[str] | None = None,
 ) -> dict:
+    if len(content) > MAX_COMMENT_LENGTH:
+        raise ValueError(f"Comment exceeds maximum length of {MAX_COMMENT_LENGTH} characters.")
+
     # Block check: cannot comment if blocked by or blocking the post author
     from app.repositories import post_repo
 

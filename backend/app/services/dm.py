@@ -46,6 +46,19 @@ _DM_MAGIC_CHECK_EXTENSIONS: dict[str, str] = {
     ".gif": "image/gif",
     ".webp": "image/webp",
     ".pdf": "application/pdf",
+    ".zip": "application/zip",
+    ".docx": "application/zip",
+    ".xlsx": "application/zip",
+    ".pptx": "application/zip",
+    ".doc": "application/msword",
+    ".xls": "application/msword",
+    ".ppt": "application/msword",
+}
+
+# Magic bytes for types not covered by validate_magic_number
+_MAGIC_BYTES: dict[str, list[bytes]] = {
+    "application/zip": [b"PK\x03\x04", b"PK\x05\x06"],
+    "application/msword": [b"\xd0\xcf\x11\xe0"],
 }
 
 
@@ -67,12 +80,22 @@ def _validate_dm_file(file_name: str, file_data: bytes) -> None:
 
     # For types with known magic signatures, verify content matches extension
     expected_type = _DM_MAGIC_CHECK_EXTENSIONS.get(ext)
-    if expected_type and not validate_magic_number(file_data, expected_type):
-        raise AppError(
-            ErrorCode.FILE_001,
-            400,
-            "File content does not match its extension (invalid magic number).",
-        )
+    if expected_type:
+        # Use inline magic byte check for ZIP/OLE types not in validate_magic_number
+        magic_patterns = _MAGIC_BYTES.get(expected_type)
+        if magic_patterns:
+            if not any(file_data.startswith(m) for m in magic_patterns):
+                raise AppError(
+                    ErrorCode.FILE_001,
+                    400,
+                    "File content does not match its extension (invalid magic number).",
+                )
+        elif not validate_magic_number(file_data, expected_type):
+            raise AppError(
+                ErrorCode.FILE_001,
+                400,
+                "File content does not match its extension (invalid magic number).",
+            )
 
 
 async def send_message(
@@ -282,15 +305,32 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
     old_content = row.get("content") or ""
     char_delta = len(new_content) - len(old_content)
 
-    # 6. Update message content
-    updated_row = await dm_repo.update_message_content(uuid.UUID(message_id), new_content)
-    if not updated_row:
-        raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
-
-    # 7. Update char count
+    # 6-7. Update message content + char count atomically
     conversation_id = row["conversation_id"]
-    if char_delta != 0:
-        await dm_repo.increment_char_count(conversation_id, char_delta)
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.fetchval(
+                "SELECT pg_advisory_xact_lock(hashtext($1::text))",
+                str(conversation_id),
+            )
+            updated_row = await conn.fetchrow(
+                "UPDATE dm_messages SET content = $1, updated_at = NOW() "
+                "WHERE id = $2 RETURNING *",
+                new_content,
+                uuid.UUID(message_id),
+            )
+            if not updated_row:
+                raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+            if char_delta != 0:
+                await conn.execute(
+                    "UPDATE conversations SET total_chars = GREATEST(0, total_chars + $1) "
+                    "WHERE id = $2",
+                    char_delta,
+                    conversation_id,
+                )
 
     # 8. Convert and generate presigned URL
     msg = await async_row_to_message(updated_row)
@@ -337,17 +377,33 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
     if created_at < cutoff:
         raise AppError(ErrorCode.DM_002, 403, "Recall window has expired.")
 
-    # 4. Recall message in DB first (before external I/O)
+    # 4. Recall message + decrement char count atomically
     conversation_id = row["conversation_id"]
     content_len = len(row.get("content") or "")
 
-    recalled_row = await dm_repo.recall_message(uuid.UUID(message_id))
-    if not recalled_row:
-        raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+    from app.core.database import get_pool
 
-    # B-11: Decrement char count AFTER successful recall (not before)
-    if content_len > 0:
-        await dm_repo.increment_char_count(conversation_id, -content_len)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.fetchval(
+                "SELECT pg_advisory_xact_lock(hashtext($1::text))",
+                str(conversation_id),
+            )
+            recalled_row = await conn.fetchrow(
+                "UPDATE dm_messages SET is_recalled = true, content = NULL, "
+                "updated_at = NOW() WHERE id = $1 RETURNING *",
+                uuid.UUID(message_id),
+            )
+            if not recalled_row:
+                raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+            if content_len > 0:
+                await conn.execute(
+                    "UPDATE conversations SET total_chars = GREATEST(0, total_chars - $1) "
+                    "WHERE id = $2",
+                    content_len,
+                    conversation_id,
+                )
 
     # 5. If has attachment: delete from MinIO and refund storage quota (after DB recall)
     if row.get("attachment_key"):

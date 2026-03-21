@@ -93,7 +93,7 @@ describe('qa API', () => {
       const result = await getUserVotes('post-1')
 
       expect(mockGet).toHaveBeenCalledWith('/qa/post-1/votes')
-      expect(result.data).toEqual(votes)
+      expect(result).toEqual(votes)
     })
 
     it('includes postId in the URL path', async () => {
@@ -109,7 +109,7 @@ describe('qa API', () => {
 
       const result = await getUserVotes('post-1')
 
-      expect(result.data).toEqual([])
+      expect(result).toEqual([])
     })
 
     it('returns multiple votes for a post', async () => {
@@ -121,9 +121,9 @@ describe('qa API', () => {
 
       const result = await getUserVotes('post-1')
 
-      expect(result.data).toHaveLength(2)
-      expect(result.data[0]).toEqual({ comment_id: 'c-1', vote: 1 })
-      expect(result.data[1]).toEqual({ comment_id: 'c-2', vote: -1 })
+      expect(result).toHaveLength(2)
+      expect(result[0]).toEqual({ comment_id: 'c-1', vote: 1 })
+      expect(result[1]).toEqual({ comment_id: 'c-2', vote: -1 })
     })
   })
 })

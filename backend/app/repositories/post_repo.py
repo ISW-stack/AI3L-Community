@@ -265,7 +265,7 @@ async def find_many(
 
     order_by = _SORT_MAP.get(effective_sort, _SORT_MAP["newest"])
 
-    where = "WHERE p.is_deleted = false"
+    where = "WHERE p.is_deleted = false AND (p.sig_id IS NULL OR NOT EXISTS (SELECT 1 FROM sigs s WHERE s.id = p.sig_id AND s.is_deleted = true))"
     params: list = []
     idx = 1
 

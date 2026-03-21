@@ -77,7 +77,7 @@ async def apply_for_membership(
 
 @router.get("/admin/applications", response_model=ApplicationListResponse)
 async def get_applications(
-    status_filter: str | None = Query(None, alias="status"),
+    status_filter: str | None = Query(None, alias="status", pattern="^(PENDING|APPROVED|REJECTED)$"),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),

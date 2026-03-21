@@ -8,5 +8,5 @@ export interface QAQuestion extends Post {
 
 export interface CommentVote {
   comment_id: string
-  user_vote: -1 | 0 | 1
+  vote: -1 | 0 | 1
 }

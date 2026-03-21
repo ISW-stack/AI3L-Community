@@ -173,9 +173,13 @@ async def update(form_id: uuid.UUID, updates: dict[str, Any], conn: Any) -> tupl
     Accepts a dict of {column_name: value}. All keys are validated against
     a whitelist before building the parameterised query.
     """
+    import re
+
     for key in updates:
         if key not in _ALLOWED_FORM_FIELDS:
             raise ValueError(f"Disallowed field in form update: {key}")
+        if not re.match(r"^[a-z_]+$", key):
+            raise ValueError(f"Invalid field name: {key}")
 
     # Always bump updated_at
     columns = list(updates.keys())

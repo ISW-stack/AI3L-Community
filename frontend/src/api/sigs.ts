@@ -22,8 +22,15 @@ export interface SigFormsResponse {
   total: number
 }
 
-export async function listSigs() {
-  const { data } = await api.get('/sigs')
+export async function listSigs(params?: { page?: number; page_size?: number }) {
+  let query: Record<string, number> | undefined
+  if (params?.page != null && params?.page_size != null) {
+    query = {
+      offset: (params.page - 1) * params.page_size,
+      limit: params.page_size,
+    }
+  }
+  const { data } = await api.get('/sigs', { params: query })
   return data as SigsListResponse
 }
 

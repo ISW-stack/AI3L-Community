@@ -113,8 +113,7 @@ async function fetchAnswers() {
 async function fetchUserVotes() {
   if (!auth.isAuthenticated || auth.isGuest) return
   try {
-    const res = await getUserVotes(postId.value)
-    const votes = res.data
+    const votes = await getUserVotes(postId.value)
     for (const v of votes) {
       if (voteState.value[v.comment_id]) {
         voteState.value[v.comment_id].user_vote = v.vote

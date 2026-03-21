@@ -190,13 +190,13 @@ export const useDMStore = defineStore('dm', () => {
         !msg.read_at ? { ...msg, read_at: readAt } : msg,
       )
     }
-    // Update conversation unread count (immutable pattern)
-    conversations.value = conversations.value.map((c) => {
-      if (c.id !== conversationId) return c
-      const prevUnread = c.unread_count
-      unreadCount.value = Math.max(0, unreadCount.value - prevUnread)
-      return { ...c, unread_count: 0 }
-    })
+    // Calculate delta before updating conversations (no side-effects in .map)
+    const conv = conversations.value.find((c) => c.id === conversationId)
+    const prevUnread = conv?.unread_count ?? 0
+    conversations.value = conversations.value.map((c) =>
+      c.id === conversationId ? { ...c, unread_count: 0 } : c,
+    )
+    unreadCount.value = Math.max(0, unreadCount.value - prevUnread)
   }
 
   function setActiveConversation(id: string | null) {

@@ -72,6 +72,11 @@ async def async_user_to_response(user: dict) -> UserResponse:
         preferred_language=user.get("preferred_language", "en"),
         is_banned=user.get("is_banned", False),
         ban_reason=user.get("ban_reason"),
+        created_at=(
+            user["created_at"].isoformat()
+            if user.get("created_at") and hasattr(user["created_at"], "isoformat")
+            else user.get("created_at")
+        ),
     )
 
 
@@ -109,4 +114,9 @@ def user_to_response(user: dict) -> UserResponse:
         preferred_language=user.get("preferred_language", "en"),
         is_banned=user.get("is_banned", False),
         ban_reason=user.get("ban_reason"),
+        created_at=(
+            user["created_at"].isoformat()
+            if user.get("created_at") and hasattr(user["created_at"], "isoformat")
+            else user.get("created_at")
+        ),
     )

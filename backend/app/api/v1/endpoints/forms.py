@@ -1,7 +1,7 @@
 import uuid
 
 import asyncpg
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.core.constants import (
     DEFAULT_PAGE_SIZE_STANDALONE_FORMS,
@@ -363,11 +363,19 @@ async def get_form_responses(
 async def submit_form_response(
     form_id: uuid.UUID,
     req: FormSubmitRequest,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ) -> FormSubmitResponse:
     user_id = current_user["sub"]
     if not await check_rate_limit(f"rl:form_submit:{user_id}:{form_id}", *RATE_LIMIT_FORM_SUBMIT):
         raise AppError(ErrorCode.SYS_429, 429, "Too many submissions. Try again later.")
+    # Additional IP-based rate limit for guests (each guest session gets unique ID)
+    if current_user.get("role") == "GUEST":
+        from app.core.rate_limit import get_client_ip
+
+        client_ip = get_client_ip(request) or "unknown"
+        if not await check_rate_limit(f"rl:form_submit_ip:{client_ip}:{form_id}", 5, 3600):
+            raise AppError(ErrorCode.SYS_429, 429, "Too many submissions from this IP.")
     try:
         result = await submit_response(
             form_id=form_id,

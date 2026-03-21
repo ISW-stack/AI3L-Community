@@ -87,11 +87,19 @@ onMounted(() => {
     })
     resizeObserver.observe(scrollContainer.value)
   }
+  document.addEventListener('click', handleClickOutside)
 })
+
+function handleClickOutside(event: Event) {
+  if (openMenuId.value && !(event.target as HTMLElement).closest('[data-message-menu]')) {
+    openMenuId.value = null
+  }
+}
 
 onUnmounted(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
+  document.removeEventListener('click', handleClickOutside)
 })
 
 function isMine(msg: DMMessage): boolean {
@@ -417,6 +425,7 @@ defineExpose({ scrollToBottom })
               :class="isMine(item.message) ? '-left-8' : '-right-8'"
             >
               <button
+                data-message-menu
                 @click="toggleMenu(item.message!.id)"
                 class="p-1 rounded-full hover:bg-surface-alt text-muted hover:text-foreground transition"
                 aria-label="Message actions"
@@ -426,6 +435,7 @@ defineExpose({ scrollToBottom })
 
               <!-- Dropdown -->
               <div
+                data-message-menu
                 v-if="openMenuId === item.message!.id"
                 class="absolute z-10 bg-surface border border-border rounded-lg shadow-lg py-1 w-36"
                 :class="isMine(item.message!) ? 'left-0' : 'right-0'"

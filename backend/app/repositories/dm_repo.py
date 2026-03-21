@@ -438,6 +438,27 @@ async def send_message_atomic(
                 str(conversation_id),
             )
 
+            # 1b. Re-check block status inside transaction to close TOCTOU gap
+            blocked = await conn.fetchval(
+                "SELECT EXISTS("
+                "SELECT 1 FROM blocks WHERE "
+                "(blocker_id = $1 AND blocked_id = $2) OR "
+                "(blocker_id = $2 AND blocked_id = $1)"
+                ")",
+                sender_id,
+                # Extract recipient from conversation
+                await conn.fetchval(
+                    "SELECT CASE WHEN participant_a = $1 THEN participant_b "
+                    "ELSE participant_a END FROM conversations WHERE id = $2",
+                    sender_id,
+                    conversation_id,
+                ),
+            )
+            if blocked:
+                from app.core.errors import AppError, ErrorCode
+
+                raise AppError(ErrorCode.DM_001, 403, "Cannot message this user (blocked).")
+
             # 2. Enforce char cap — delete oldest messages if needed
             deleted: list[dict] = []
             if content_len > 0:

@@ -223,7 +223,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
       if (card) {
         segments.push({ type: card.type, content: card.id })
       } else {
-        segments.push({ type: 'html', content: part })
+        segments.push({ type: 'html', content: DOMPurify.sanitize(part) })
       }
     }
     return segments
@@ -268,7 +268,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   async function fetchHistory() {
     try {
-      history.value = await getPostHistory(postId.value)
+      const result = await getPostHistory(postId.value)
+      history.value = result.history
       showHistory.value = true
     } catch (e: unknown) {
       toastStore.show(getErrorMessage(e, 'Failed to load edit history.'), 'error')

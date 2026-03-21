@@ -72,15 +72,21 @@ async def warmup_block_cache(pool: asyncpg.Pool, redis: Any) -> None:
 
 async def update_block_cache(redis: Any, blocker_id: str, blocked_id: str, *, added: bool) -> None:
     """Update Redis block sets when a block is added/removed."""
+    key1 = f"block:set:{blocker_id}"
+    key2 = f"block:set:{blocked_id}"
     if added:
         pipe = redis.pipeline()
-        pipe.sadd(f"block:set:{blocker_id}", blocked_id)
-        pipe.sadd(f"block:set:{blocked_id}", blocker_id)
+        pipe.sadd(key1, blocked_id)
+        pipe.sadd(key2, blocker_id)
+        pipe.expire(key1, 86400)
+        pipe.expire(key2, 86400)
         await pipe.execute()
     else:
         pipe = redis.pipeline()
-        pipe.srem(f"block:set:{blocker_id}", blocked_id)
-        pipe.srem(f"block:set:{blocked_id}", blocker_id)
+        pipe.srem(key1, blocked_id)
+        pipe.srem(key2, blocker_id)
+        pipe.expire(key1, 86400)
+        pipe.expire(key2, 86400)
         await pipe.execute()
 
 

@@ -22,6 +22,7 @@ class UserResponse(BaseModel):
     preferred_language: str = "en"
     is_banned: bool = False
     ban_reason: str | None = None
+    created_at: str | None = None
     preferences: dict | None = None
 
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { getMembers } from '@/api/about'
@@ -57,6 +57,13 @@ function handleSearch() {
     fetchMembers()
   }, 300)
 }
+
+onUnmounted(() => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+})
 
 function navigateToProfile(userId: string) {
   router.push(`/users/${userId}`)

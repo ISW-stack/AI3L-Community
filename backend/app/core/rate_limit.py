@@ -33,8 +33,8 @@ def get_client_ip(request: Request) -> str | None:
     # X-Forwarded-For may contain multiple IPs: "client, proxy1, proxy2"
     forwarded_for = request.headers.get("x-forwarded-for")
     if forwarded_for:
-        # Take the first (leftmost) IP — the original client
-        ip = forwarded_for.split(",")[0].strip()
+        # Take the last (rightmost) IP — the one appended by our trusted nginx proxy
+        ip = forwarded_for.split(",")[-1].strip()
         if _is_valid_ip(ip):
             return ip
 

@@ -77,19 +77,25 @@ async def _cleanup_text() -> dict:
         content_len = len(msg.get("content") or "")
         conv_chars[cid] = conv_chars.get(cid, 0) + content_len
 
-    deleted = await dm_repo.delete_messages_by_ids(msg_ids)
+    # Delete messages and decrement char counts in a single transaction
+    from app.core.database import get_pool
 
-    # Decrement char counts
-    for cid, chars in conv_chars.items():
-        if chars > 0:
-            try:
-                await dm_repo.increment_char_count(cid, -chars)
-            except Exception:
-                logger.warning(
-                    "Failed to decrement char count after text cleanup",
-                    exc_info=True,
-                    extra={"conversation_id": str(cid)},
-                )
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            deleted = await conn.fetchval(
+                "WITH d AS (DELETE FROM dm_messages WHERE id = ANY($1::uuid[]) RETURNING id) "
+                "SELECT COUNT(*) FROM d",
+                msg_ids,
+            )
+            for cid, chars in conv_chars.items():
+                if chars > 0:
+                    await conn.execute(
+                        "UPDATE conversations SET total_chars = GREATEST(0, total_chars - $1) "
+                        "WHERE id = $2",
+                        chars,
+                        cid,
+                    )
 
     logger.info("DM text cleanup complete", extra={"deleted": deleted})
     return {"deleted": deleted}

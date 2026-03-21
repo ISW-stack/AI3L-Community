@@ -8,7 +8,7 @@ from loguru import logger
 
 from app.converters.post_converter import async_row_to_post, row_to_history
 from app.core.blacklist import get_blocked_user_ids
-from app.core.constants import MAX_POSTS_PER_DAY, POST_VIEW_DEDUP_TTL
+from app.core.constants import MAX_KEYWORDS, MAX_POSTS_PER_DAY, POST_VIEW_DEDUP_TTL
 from app.core.database import get_pool
 from app.core.errors import RateLimitError
 from app.core.event_bus import emit
@@ -48,6 +48,9 @@ async def create_post(
     allow_comments: bool = True,
     post_type: str = "post",
 ) -> dict:
+    if keywords and len(keywords) > MAX_KEYWORDS:
+        raise ValueError(f"Too many keywords (max {MAX_KEYWORDS}).")
+
     if not await _atomic_check_and_increment_post_limit(user_id):
         raise RateLimitError(f"Daily post limit ({MAX_POSTS_PER_DAY}) exceeded.")
 

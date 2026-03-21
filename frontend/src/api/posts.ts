@@ -71,7 +71,7 @@ export async function searchPosts(payload: {
 
 export async function getPostHistory(postId: string) {
   const { data } = await api.get(`/posts/${postId}/history`)
-  return data.history as HistoryItem[]
+  return data as { history: HistoryItem[]; total: number }
 }
 
 export async function getTrendingPosts(type?: 'post' | 'question') {

@@ -18,6 +18,7 @@ export interface UserProfile {
   is_banned: boolean
   ban_reason: string | null
   created_at: string
+  preferences?: Record<string, unknown> | null
 }
 
 export interface PublicUser {

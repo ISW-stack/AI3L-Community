@@ -22,6 +22,8 @@ class CommentResponse(BaseModel):
     parent_id: str | None = None
     mentions: list[str] | None = None
     reactions: dict | None = None
+    vote_score: int = 0
+    is_best_answer: bool = False
     created_at: str
     updated_at: str
 

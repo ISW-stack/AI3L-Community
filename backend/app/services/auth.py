@@ -108,7 +108,10 @@ async def validate_session(user_id: str, role: str, jti: str) -> bool:
 
     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
     stored_jti = await redis.get(session_key)
-    return bool(stored_jti == jti)
+    if not stored_jti:
+        return False
+    stored_jti_str = stored_jti.decode() if isinstance(stored_jti, bytes) else stored_jti
+    return secrets.compare_digest(stored_jti_str, jti)
 
 
 _GUEST_COUNTER_KEY = "meta:guest_counter"

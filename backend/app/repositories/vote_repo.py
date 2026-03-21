@@ -9,32 +9,22 @@ async def upsert_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote
     Returns the new vote_score.
     """
     if vote == 0:
-        # Remove vote and adjust score
-        old = await conn.fetchrow(
-            "SELECT vote FROM comment_votes WHERE comment_id = $1 AND user_id = $2",
+        # Remove vote and adjust score atomically via CTE
+        row = await conn.fetchrow(
+            """
+            WITH deleted AS (
+                DELETE FROM comment_votes
+                WHERE comment_id = $1 AND user_id = $2
+                RETURNING vote
+            )
+            UPDATE comments SET vote_score = vote_score - COALESCE(
+                (SELECT SUM(vote) FROM deleted), 0
+            )
+            WHERE id = $1
+            RETURNING vote_score
+            """,
             comment_id,
             user_id,
-        )
-        if old:
-            await conn.execute(
-                "DELETE FROM comment_votes WHERE comment_id = $1 AND user_id = $2",
-                comment_id,
-                user_id,
-            )
-            row = await conn.fetchrow(
-                """
-                UPDATE comments SET vote_score = vote_score - $1
-                WHERE id = $2
-                RETURNING vote_score
-                """,
-                old["vote"],
-                comment_id,
-            )
-            return row["vote_score"] if row else 0
-        # No existing vote, nothing to remove
-        row = await conn.fetchrow(
-            "SELECT vote_score FROM comments WHERE id = $1",
-            comment_id,
         )
         return row["vote_score"] if row else 0
 

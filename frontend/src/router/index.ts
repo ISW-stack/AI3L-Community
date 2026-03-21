@@ -278,7 +278,7 @@ const router = createRouter({
       path: '/sigs/:sigId/forms/new',
       name: 'form-create',
       component: () => import('@/views/forms/FormBuilderView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresMember: true },
     },
     {
       path: '/forms/:formId',
@@ -290,7 +290,7 @@ const router = createRouter({
       path: '/forms/:formId/edit',
       name: 'form-edit',
       component: () => import('@/views/forms/FormBuilderView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresMember: true },
     },
     {
       path: '/:pathMatch(.*)*',

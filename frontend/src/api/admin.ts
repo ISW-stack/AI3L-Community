@@ -120,8 +120,18 @@ export interface ApplicationsResponse {
   total: number
 }
 
-export async function listApplications(params?: { status?: string }) {
-  const { data } = await api.get('/admin/applications', { params })
+export async function listApplications(params?: {
+  status?: string
+  page?: number
+  page_size?: number
+}) {
+  const query: Record<string, string | number> = {}
+  if (params?.status) query.status = params.status
+  if (params?.page != null && params?.page_size != null) {
+    query.offset = (params.page - 1) * params.page_size
+    query.limit = params.page_size
+  }
+  const { data } = await api.get('/admin/applications', { params: query })
   return data as ApplicationsResponse
 }
 

@@ -402,10 +402,13 @@ async def create_comment_endpoint(
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Comment rate limit exceeded.")
 
+    from app.core.file_validation import sanitize_html
+
+    sanitized_content = sanitize_html(req.content)
     comment = await create_comment(
         album_id=str(album_id),
         user_id=current_user["sub"],
-        content=req.content,
+        content=sanitized_content,
         photo_id=req.photo_id,
         parent_id=req.parent_id,
     )

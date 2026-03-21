@@ -60,9 +60,7 @@ class Settings(BaseSettings):
         ""  # Browser-accessible URL for presigned URLs (e.g. http://localhost:19000 in dev)
     )
 
-    # Celery
-    CELERY_BROKER_URL: str = "redis://:changeme_redis@redis:6379/1"
-    CELERY_RESULT_BACKEND: str = "redis://:changeme_redis@redis:6379/2"
+    # Celery — URLs built dynamically from Redis settings via @property below
 
     # Super Admin (bootstrap)
     SUPER_ADMIN_USERNAME: str = "superadmin"
@@ -122,6 +120,11 @@ class Settings(BaseSettings):
                     "JWT_SECRET_KEY contains 'changeme' — refusing to start in production. "
                     "Set a strong, unique secret."
                 )
+            if "changeme" in self.SECRET_KEY:
+                raise ValueError(
+                    "SECRET_KEY contains 'changeme' — refusing to start in production. "
+                    "Set a strong, unique secret."
+                )
             if "changeme" in self.SUPER_ADMIN_PASSWORD:
                 raise ValueError(
                     "SUPER_ADMIN_PASSWORD contains 'changeme' — refusing to start in production. "
@@ -131,6 +134,14 @@ class Settings(BaseSettings):
         if self.COOKIE_SECURE is None:
             self.COOKIE_SECURE = self.FASTAPI_ENV == "production"
         return self
+
+    @property
+    def CELERY_BROKER_URL(self) -> str:
+        return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/1"
+
+    @property
+    def CELERY_RESULT_BACKEND(self) -> str:
+        return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/2"
 
     @property
     def is_development(self) -> bool:
