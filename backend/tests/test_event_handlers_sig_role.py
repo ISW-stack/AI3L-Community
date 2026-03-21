@@ -7,6 +7,7 @@ import pytest
 
 from app.event_handlers import _on_sig_role_changed
 
+
 # Shared Redis mock helper for tests that call invalidate_org_chart_cache()
 def _make_redis_mock():
     redis = AsyncMock()

@@ -632,9 +632,7 @@ class TestFilesStructuredErrors:
                 resp = await client.post(
                     "/api/v1/files/upload/editor",
                     headers={"Authorization": "Bearer fake"},
-                    files={
-                        "file": ("test.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 100, "image/png")
-                    },
+                    files={"file": ("test.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 100, "image/png")},
                 )
                 _assert_structured_error(resp, "SYS_429", 429)
         finally:

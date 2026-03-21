@@ -347,7 +347,11 @@ class TestFileProxyContentDisposition:
             patch(
                 "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(MagicMock(read=MagicMock(side_effect=[image_data, b""]), close=MagicMock()), "image/png", len(image_data)),
+                return_value=(
+                    MagicMock(read=MagicMock(side_effect=[image_data, b""]), close=MagicMock()),
+                    "image/png",
+                    len(image_data),
+                ),
             ),
         ):
             mock_scan.find_by_key = AsyncMock(return_value={"status": "clean"})
@@ -377,7 +381,11 @@ class TestFileProxyContentDisposition:
             patch(
                 "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(MagicMock(read=MagicMock(side_effect=[pdf_data, b""]), close=MagicMock()), "application/pdf", len(pdf_data)),
+                return_value=(
+                    MagicMock(read=MagicMock(side_effect=[pdf_data, b""]), close=MagicMock()),
+                    "application/pdf",
+                    len(pdf_data),
+                ),
             ),
         ):
             mock_scan.find_by_key = AsyncMock(return_value={"status": "clean"})
@@ -420,7 +428,11 @@ class TestFileProxyContentDisposition:
             patch(
                 "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(MagicMock(read=MagicMock(side_effect=[image_data, b""]), close=MagicMock()), "image/png", len(image_data)),
+                return_value=(
+                    MagicMock(read=MagicMock(side_effect=[image_data, b""]), close=MagicMock()),
+                    "image/png",
+                    len(image_data),
+                ),
             ),
         ):
             mock_scan.find_by_key = AsyncMock(return_value={"status": "clean"})

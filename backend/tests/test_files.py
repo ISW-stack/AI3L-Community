@@ -1226,7 +1226,13 @@ class TestServeFileFailClose:
             patch(
                 "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(MagicMock(read=MagicMock(side_effect=[b"fake-image-data", b""]), close=MagicMock()), "image/png", 15),
+                return_value=(
+                    MagicMock(
+                        read=MagicMock(side_effect=[b"fake-image-data", b""]), close=MagicMock()
+                    ),
+                    "image/png",
+                    15,
+                ),
             ),
         ):
             resp = await client.get(
@@ -1256,7 +1262,13 @@ class TestServeFileFailClose:
             patch(
                 "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(MagicMock(read=MagicMock(side_effect=[b"fake-image-data", b""]), close=MagicMock()), "image/png", 15),
+                return_value=(
+                    MagicMock(
+                        read=MagicMock(side_effect=[b"fake-image-data", b""]), close=MagicMock()
+                    ),
+                    "image/png",
+                    15,
+                ),
             ),
         ):
             resp = await client.get(
