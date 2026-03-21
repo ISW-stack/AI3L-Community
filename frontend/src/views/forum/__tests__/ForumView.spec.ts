@@ -133,6 +133,7 @@ function createTestRouter() {
 function createStubs() {
   return {
     BaseCard: { template: '<div class="base-card"><slot /></div>', props: ['hoverable'] },
+    BaseBreadcrumb: { template: '<nav class="breadcrumb" />', props: ['items'] },
     BaseButton: {
       template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')"><slot /></button>',
       props: ['loading', 'variant', 'size'],
@@ -148,6 +149,48 @@ function createStubs() {
     },
     FloatingCreateButton: { template: '<div class="fab" />', props: ['to'] },
     ForumLeftSidebar: { template: '<div class="forum-left-sidebar" />' },
+    SearchPanel: {
+      template:
+        '<div class="search-panel"><input type="text" :value="keyword" @input="$emit(\'update:keyword\', $event.target.value); $emit(\'search-input\')" @keyup.enter="$emit(\'immediate-search\')" /><button class="search-btn" @click="$emit(\'immediate-search\')">Search</button><button class="advanced-btn" @click="$emit(\'toggle-advanced\')">Advanced</button></div>',
+      props: [
+        'keyword',
+        'dateFrom',
+        'dateTo',
+        'logic',
+        'showAdvanced',
+        'isSearchLoading',
+        'isSearching',
+        'dateRangeInvalid',
+        'placeholder',
+      ],
+      emits: [
+        'update:keyword',
+        'update:dateFrom',
+        'update:dateTo',
+        'update:logic',
+        'search-input',
+        'immediate-search',
+        'toggle-advanced',
+        'clear-search',
+      ],
+    },
+    CategoryFilter: {
+      template:
+        '<div class="category-filter"><button v-for="cat in categories" :key="cat.id" @click="$emit(\'select\', cat.id)">{{ cat.name }} ({{ cat.post_count }})</button></div>',
+      props: ['categories', 'activeCategory', 'mode', 'allLabel'],
+      emits: ['select'],
+    },
+    SortControls: {
+      template:
+        '<div class="sort-controls"><button v-for="opt in options" :key="opt.value" @click="$emit(\'select\', opt.value)">{{ opt.label }}</button></div>',
+      props: ['currentSort', 'options', 'activeCategoryName'],
+      emits: ['select'],
+    },
+    TrendingSidebar: {
+      template:
+        '<div class="trending-sidebar" v-if="posts.length"><span v-for="p in posts" :key="p.id">{{ p.title }}</span></div>',
+      props: ['posts', 'title', 'linkPrefix'],
+    },
   }
 }
 
@@ -281,7 +324,7 @@ describe('ForumView', () => {
     expect(mockSearchPosts).not.toHaveBeenCalled()
   })
 
-  it('shows search loading spinner during debounce', async () => {
+  it('sets isSearchLoading during debounce', async () => {
     const { wrapper } = await mountForum()
 
     const searchInput = wrapper.find('input[type="text"]')
@@ -289,11 +332,9 @@ describe('ForumView', () => {
     await searchInput.trigger('input')
     await nextTick()
 
-    // Spinner should be visible during debounce
-    const spinner = wrapper
-      .find('input[type="text"]')
-      .element.parentElement?.querySelector('svg.animate-spin')
-    expect(spinner).toBeTruthy()
+    // During debounce, isSearchLoading should be true (exposed on the composable)
+    const vm = wrapper.vm as { isSearchLoading: boolean }
+    expect(vm.isSearchLoading).toBe(true)
   })
 
   it('immediate search via button click bypasses debounce', async () => {
@@ -316,14 +357,16 @@ describe('ForumView', () => {
     )
   })
 
-  it('toggles advanced search panel', async () => {
+  it('toggles advanced search panel via SearchPanel emit', async () => {
     const { wrapper } = await mountForum()
     const advancedBtn = wrapper.findAll('button').find((b) => b.text().includes('Advanced'))
     expect(advancedBtn).toBeTruthy()
     await advancedBtn!.trigger('click')
     await nextTick()
-    const dateInputs = wrapper.findAll('input[type="date"]')
-    expect(dateInputs.length).toBe(2)
+
+    // After clicking Advanced, the showAdvanced state should be toggled to true
+    const vm = wrapper.vm as { showAdvanced: boolean }
+    expect(vm.showAdvanced).toBe(true)
   })
 
   it('shows empty state when no posts returned', async () => {
@@ -624,24 +667,21 @@ describe('ForumView', () => {
     wrapper.unmount()
   })
 
-  it('cursor is reset to null before filter-change fetch', async () => {
+  it('cursor is reset before filter-change fetch (no cursor in new call)', async () => {
     const { wrapper } = await mountForum()
-    // After initial load, nextCursor should be 'cursor-abc'
-    const vmBefore = wrapper.vm as { nextCursor: string | null }
-    expect(vmBefore.nextCursor).toBe('cursor-abc')
 
     // Set up new fetch that returns no more pages
+    vi.clearAllMocks()
     mockListPosts.mockResolvedValue({ posts: [fakePosts[0]], next_cursor: null, has_more: false })
 
-    const vm = wrapper.vm as { sortBy: string; nextCursor: string | null }
+    const vm = wrapper.vm as { sortBy: string }
     vm.sortBy = 'oldest'
-    // After the watch triggers resetScrollState, cursor should be null
-    await nextTick()
-    expect(vm.nextCursor).toBeNull()
-
     await flushPromises()
-    // After fresh fetch, cursor is still null (no more pages)
-    expect(vm.nextCursor).toBeNull()
+
+    // After sort change, listPosts should be called WITHOUT a cursor param
+    expect(mockListPosts).toHaveBeenCalledTimes(1)
+    const callArgs = mockListPosts.mock.calls[0][0] as Record<string, unknown>
+    expect(callArgs).not.toHaveProperty('cursor')
   })
 
   it('clearSearch resets isSearching before fetching', async () => {
@@ -671,7 +711,7 @@ describe('ForumView', () => {
   })
 
   describe('timer cleanup on unmount', () => {
-    it('clears searchDebounceTimer on unmount', async () => {
+    it('clears pending debounce timer on unmount', async () => {
       const { wrapper } = await mountForum()
       const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
 
@@ -680,34 +720,19 @@ describe('ForumView', () => {
       await searchInput.setValue('cleanup test')
       await searchInput.trigger('input')
 
-      // Timer should be pending now
-      const vm = wrapper.vm as unknown as {
-        searchDebounceTimer: ReturnType<typeof setTimeout> | null
-      }
-      expect(vm.searchDebounceTimer).not.toBeNull()
-
-      // Unmount the component
+      // Unmount the component — cleanup() calls clearTimeout
       wrapper.unmount()
 
-      // clearTimeout should have been called
+      // clearTimeout should have been called during cleanup
       expect(clearTimeoutSpy).toHaveBeenCalled()
       clearTimeoutSpy.mockRestore()
     })
 
-    it('sets searchDebounceTimer to null on unmount', async () => {
+    it('unmount does not throw when no timer is pending', async () => {
       const { wrapper } = await mountForum()
 
-      // Trigger a debounced search to start the timer
-      const searchInput = wrapper.find('input[type="text"]')
-      await searchInput.setValue('null test')
-      await searchInput.trigger('input')
-
-      // Unmount the component — the onUnmounted hook sets timer to null
-      wrapper.unmount()
-
-      // After unmount, the timer should have been cleared
-      // We can verify that clearTimeout was called without errors
-      // (the timer is set to null inside onUnmounted)
+      // Unmount without starting any debounce timer
+      expect(() => wrapper.unmount()).not.toThrow()
     })
   })
 

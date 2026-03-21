@@ -24,6 +24,7 @@ _SORT_MAP = {
     "oldest": "p.is_pinned DESC, p.created_at ASC",
     "most_comments": "p.is_pinned DESC, p.comment_count DESC, p.created_at DESC",
     "popular": "p.is_pinned DESC, p.like_count DESC, p.created_at DESC",
+    "most_answers": "p.is_pinned DESC, p.answer_count DESC, p.created_at DESC",
 }
 
 # Search results should NOT prioritise pinned posts — relevance / date matters more.
@@ -32,12 +33,13 @@ _SEARCH_SORT_MAP = {
     "oldest": "p.created_at ASC",
     "most_comments": "p.comment_count DESC, p.created_at DESC",
     "popular": "p.like_count DESC, p.created_at DESC",
+    "most_answers": "p.answer_count DESC, p.created_at DESC",
 }
 
 # Sorts that support cursor pagination and the comparison direction they use
 # "popular" maps to like_count; otherwise created_at is the primary key
 _CURSOR_SORT_ASC = {"oldest"}  # use > comparison
-_CURSOR_SORT_DESC = {"newest", "popular", "most_comments"}  # use < comparison
+_CURSOR_SORT_DESC = {"newest", "popular", "most_comments", "most_answers", "unanswered"}  # use < comparison
 
 
 def _encode_cursor(primary_val: str, row_id: uuid.UUID, sort: str) -> str:
@@ -254,7 +256,14 @@ async def find_many(
       has_more     – bool or None (cursor mode only)
     """
     pool = get_pool()
-    order_by = _SORT_MAP.get(sort, _SORT_MAP["newest"])
+    # "unanswered" is a filter (answer_count=0) + newest ordering
+    effective_sort = sort
+    unanswered_filter = False
+    if sort == "unanswered":
+        unanswered_filter = True
+        effective_sort = "newest"
+
+    order_by = _SORT_MAP.get(effective_sort, _SORT_MAP["newest"])
 
     where = "WHERE p.is_deleted = false"
     params: list = []
@@ -285,6 +294,9 @@ async def find_many(
         params.append(exclude_user_ids)
         idx += 1
 
+    if unanswered_filter:
+        where += " AND p.answer_count = 0"
+
     # ------------------------------------------------------------------ cursor mode
     if cursor is not None:
         cursor_sort, primary_val, cursor_id = _decode_cursor(cursor)
@@ -292,7 +304,12 @@ async def find_many(
         # Use the sort embedded in the cursor as the canonical sort.  This prevents
         # a mismatch between the ORDER BY direction and the keyset WHERE comparison
         # when the caller passes a different `sort` query-param alongside a cursor.
-        cursor_order_by = _SORT_MAP.get(cursor_sort, _SORT_MAP["newest"])
+        effective_cursor_sort = "newest" if cursor_sort == "unanswered" else cursor_sort
+        cursor_order_by = _SORT_MAP.get(effective_cursor_sort, _SORT_MAP["newest"])
+
+        # "unanswered" cursor also needs the answer_count=0 filter
+        if cursor_sort == "unanswered":
+            where += " AND p.answer_count = 0"
 
         use_asc = cursor_sort in _CURSOR_SORT_ASC
         cmp = ">" if use_asc else "<"
@@ -311,8 +328,13 @@ async def find_many(
             comment_count_val = int(primary_val)
             where += f" AND (p.comment_count, p.id) {cmp} (${idx}, ${idx + 1})"
             params.extend([comment_count_val, cursor_id])
+        elif cursor_sort == "most_answers":
+            # primary key is answer_count (integer)
+            answer_count_val = int(primary_val)
+            where += f" AND (p.answer_count, p.id) {cmp} (${idx}, ${idx + 1})"
+            params.extend([answer_count_val, cursor_id])
         else:
-            # primary key is created_at (timestamptz)
+            # primary key is created_at (timestamptz) — newest, oldest, unanswered
             created_at_val = datetime.fromisoformat(primary_val)
             where += f" AND (p.created_at, p.id) {cmp} (${idx}, ${idx + 1})"
             params.extend([created_at_val, cursor_id])
@@ -346,6 +368,13 @@ async def find_many(
                 comment_count_raw = last.get("comment_count")
                 next_cursor = _encode_cursor(
                     str(comment_count_raw if comment_count_raw is not None else 0),
+                    last["id"],
+                    cursor_sort,
+                )
+            elif cursor_sort == "most_answers":
+                answer_count_raw = last.get("answer_count")
+                next_cursor = _encode_cursor(
+                    str(answer_count_raw if answer_count_raw is not None else 0),
                     last["id"],
                     cursor_sort,
                 )
@@ -395,19 +424,29 @@ async def find_many(
         has_more_val = page < total_pages
         if has_more_val and result:
             last = result[-1]
+            # Use original sort name (incl. "unanswered") for cursor encoding
+            cursor_sort_name = sort
             if sort == "popular":
                 lc_raw = last.get("like_count")
                 next_cursor_val = _encode_cursor(
-                    str(lc_raw if lc_raw is not None else 0), last["id"], sort
+                    str(lc_raw if lc_raw is not None else 0), last["id"], cursor_sort_name
                 )
             elif sort == "most_comments":
                 cc_raw = last.get("comment_count")
                 next_cursor_val = _encode_cursor(
-                    str(cc_raw if cc_raw is not None else 0), last["id"], sort
+                    str(cc_raw if cc_raw is not None else 0), last["id"], cursor_sort_name
+                )
+            elif effective_sort == "most_answers" and sort != "unanswered":
+                ac_raw = last.get("answer_count")
+                next_cursor_val = _encode_cursor(
+                    str(ac_raw if ac_raw is not None else 0), last["id"], cursor_sort_name
                 )
             else:
+                # newest, oldest, unanswered — all use created_at
                 created_at_last: datetime = last["created_at"]
-                next_cursor_val = _encode_cursor(created_at_last.isoformat(), last["id"], sort)
+                next_cursor_val = _encode_cursor(
+                    created_at_last.isoformat(), last["id"], cursor_sort_name
+                )
 
         return {
             "posts": result,
@@ -433,7 +472,10 @@ async def search(
 ) -> tuple[list[dict], int, int]:
     pool = get_pool()
     offset = (page - 1) * page_size
-    order_by = _SEARCH_SORT_MAP.get(sort, _SEARCH_SORT_MAP["newest"])
+
+    # "unanswered" is a filter (answer_count=0) + newest ordering
+    effective_search_sort = "newest" if sort == "unanswered" else sort
+    order_by = _SEARCH_SORT_MAP.get(effective_search_sort, _SEARCH_SORT_MAP["newest"])
 
     conditions = ["p.is_deleted = false"]
     params: list = []
@@ -485,6 +527,9 @@ async def search(
         conditions.append(f"p.user_id != ALL(${idx}::uuid[])")
         params.append(exclude_user_ids)
         idx += 1
+
+    if sort == "unanswered":
+        conditions.append("p.answer_count = 0")
 
     where = "WHERE " + " AND ".join(conditions)
 
@@ -570,20 +615,27 @@ async def find_trending(
     limit: int = 5,
     days: int = 7,
     exclude_user_ids: list[uuid.UUID] | None = None,
+    post_type: str | None = None,
 ) -> list[dict]:
     pool = get_pool()
     params: list = [days, limit]
-    exclusion_clause = ""
+    idx = 3
+    extra_clauses = ""
     if exclude_user_ids:
-        exclusion_clause = " AND p.user_id != ALL($3::uuid[])"
+        extra_clauses += f" AND p.user_id != ALL(${idx}::uuid[])"
         params.append(exclude_user_ids)
+        idx += 1
+    if post_type:
+        extra_clauses += f" AND p.type = ${idx}"
+        params.append(post_type)
+        idx += 1
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             f"""
             {_POST_SELECT}
             WHERE p.is_deleted = false
               AND p.created_at >= NOW() - make_interval(days => $1)
-              {exclusion_clause}
+              {extra_clauses}
             ORDER BY p.comment_count DESC, p.created_at DESC
             LIMIT $2
             """,

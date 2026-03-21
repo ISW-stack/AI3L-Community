@@ -243,7 +243,7 @@ describe('posts API', () => {
 
       const result = await getTrendingPosts()
 
-      expect(mockGet).toHaveBeenCalledWith('/posts/trending')
+      expect(mockGet).toHaveBeenCalledWith('/posts/trending', { params: {} })
       expect(result).toEqual(mockData)
     })
 
@@ -253,7 +253,15 @@ describe('posts API', () => {
       await getTrendingPosts()
 
       expect(mockGet).toHaveBeenCalledTimes(1)
-      expect(mockGet).toHaveBeenCalledWith('/posts/trending')
+      expect(mockGet).toHaveBeenCalledWith('/posts/trending', { params: {} })
+    })
+
+    it('passes type param when provided', async () => {
+      mockGet.mockResolvedValue({ data: [] })
+
+      await getTrendingPosts('question')
+
+      expect(mockGet).toHaveBeenCalledWith('/posts/trending', { params: { type: 'question' } })
     })
   })
 

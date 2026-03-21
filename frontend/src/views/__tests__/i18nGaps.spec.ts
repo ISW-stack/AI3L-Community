@@ -26,15 +26,30 @@ vi.mock('@/api/social', () => ({
 
 // ── Mock posts API ──
 const mockListPosts = vi.fn()
+const mockGetTrendingPosts = vi.fn()
 vi.mock('@/api/posts', () => ({
   listPosts: (...args: unknown[]) => mockListPosts(...args),
-  searchPosts: vi.fn(),
-  getTrendingPosts: vi.fn(),
+  searchPosts: vi.fn().mockResolvedValue({ posts: [], has_more: false }),
+  getTrendingPosts: (...args: unknown[]) => mockGetTrendingPosts(...args),
   getPublicStats: vi.fn(),
   createPost: vi.fn(),
   getPost: vi.fn(),
   deletePost: vi.fn(),
 }))
+
+vi.mock('@/api/categories', () => ({
+  listCategories: vi.fn().mockResolvedValue([]),
+}))
+
+// Stub IntersectionObserver (not available in jsdom)
+vi.stubGlobal(
+  'IntersectionObserver',
+  class {
+    observe = vi.fn()
+    disconnect = vi.fn()
+    unobserve = vi.fn()
+  },
+)
 
 vi.mock('@/composables/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
@@ -73,6 +88,25 @@ function createStubs() {
       template: '<div class="qa-card">{{ question?.title }}</div>',
       props: ['question'],
     },
+    SearchPanel: {
+      template: '<div class="search-panel" />',
+      props: ['keyword', 'dateFrom', 'dateTo', 'logic', 'showAdvanced', 'isSearchLoading', 'isSearching', 'dateRangeInvalid', 'placeholder'],
+    },
+    CategoryFilter: {
+      template: '<div class="category-filter" />',
+      props: ['categories', 'activeCategory', 'mode', 'allLabel'],
+    },
+    SortControls: {
+      template: '<div class="sort-controls" />',
+      props: ['currentSort', 'options', 'activeCategoryName'],
+    },
+    TrendingSidebar: {
+      template: '<div class="trending-sidebar" />',
+      props: ['posts', 'title', 'linkPrefix'],
+    },
+    FloatingCreateButton: { template: '<div class="fab" />', props: ['to'] },
+    BaseBreadcrumb: { template: '<nav />', props: ['items'] },
+    BaseCard: { template: '<div class="base-card"><slot /></div>' },
   }
 }
 
@@ -188,7 +222,8 @@ describe('i18n gaps — FriendsView', () => {
 describe('i18n gaps — QAListView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockListPosts.mockResolvedValue({ posts: [], total: 0, total_pages: 1 })
+    mockListPosts.mockResolvedValue({ posts: [], next_cursor: null, has_more: false })
+    mockGetTrendingPosts.mockResolvedValue([])
   })
 
   it('renders page title using i18n key', async () => {
@@ -208,10 +243,10 @@ describe('i18n gaps — QAListView', () => {
     expect(title).not.toBe('')
   })
 
-  it('renders ask question button with i18n key', async () => {
+  it('renders floating create button for authenticated members', async () => {
     const wrapper = await mountQAList()
-    // The "Ask a Question" button should exist for authenticated members
-    const buttons = wrapper.findAll('button')
-    expect(buttons.length).toBeGreaterThan(0)
+    // The FloatingCreateButton should exist for authenticated members
+    const fab = wrapper.find('.fab')
+    expect(fab.exists()).toBe(true)
   })
 })

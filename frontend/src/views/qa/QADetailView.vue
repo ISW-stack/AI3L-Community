@@ -9,7 +9,7 @@ import DOMPurify from 'dompurify'
 import type { Post, Comment } from '@/types'
 import { getPost, deletePost as apiDeletePost } from '@/api/posts'
 import { listComments, createComment } from '@/api/comments'
-import { markBestAnswer, unmarkBestAnswer, voteOnAnswer } from '@/api/qa'
+import { markBestAnswer, unmarkBestAnswer, voteOnAnswer, getUserVotes } from '@/api/qa'
 import { getErrorMessage } from '@/utils/error'
 import { renderMentions, isContentEmpty } from '@/utils/html'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -73,7 +73,7 @@ const sortedAnswers = computed(() => {
     const scoreB = voteState.value[b.id]?.score ?? 0
     if (scoreB !== scoreA) return scoreB - scoreA
     // Then by date
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 })
 
@@ -97,12 +97,12 @@ async function fetchAnswers() {
     })
     // Only root-level comments are "answers" in Q&A
     answers.value = data.comments.filter((c) => !c.parent_id)
-    answersTotal.value = answers.value.length
-    answersTotalPages.value = Math.ceil((data.total ?? answers.value.length) / PAGE_SIZE)
+    answersTotal.value = data.total ?? answers.value.length
+    answersTotalPages.value = Math.ceil(answersTotal.value / PAGE_SIZE)
     // Initialize vote state for answers
     for (const a of answers.value) {
       if (!voteState.value[a.id]) {
-        voteState.value[a.id] = { user_vote: 0, score: 0 }
+        voteState.value[a.id] = { user_vote: 0, score: a.vote_score ?? 0 }
       }
     }
   } catch (e: unknown) {
@@ -110,9 +110,25 @@ async function fetchAnswers() {
   }
 }
 
-function goToAnswersPage(p: number) {
+async function fetchUserVotes() {
+  if (!auth.isAuthenticated || auth.isGuest) return
+  try {
+    const res = await getUserVotes(postId.value)
+    const votes = res.data
+    for (const v of votes) {
+      if (voteState.value[v.comment_id]) {
+        voteState.value[v.comment_id].user_vote = v.vote
+      }
+    }
+  } catch {
+    /* silent - votes are non-critical */
+  }
+}
+
+async function goToAnswersPage(p: number) {
   answersPage.value = p
-  fetchAnswers()
+  await fetchAnswers()
+  await fetchUserVotes()
 }
 
 async function submitAnswer() {
@@ -198,9 +214,9 @@ function isOwnAnswer(comment: Comment): boolean {
   return !!(auth.user && comment.author.id === auth.user.id)
 }
 
-onMounted(() => {
-  fetchPost()
-  fetchAnswers()
+onMounted(async () => {
+  await Promise.all([fetchPost(), fetchAnswers()])
+  await fetchUserVotes()
 })
 </script>
 

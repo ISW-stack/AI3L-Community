@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ChevronUp, ChevronDown } from 'lucide-vue-next'
+import { useLocale } from '@/composables/useLocale'
+
+const { t } = useLocale()
 
 const props = defineProps<{
   commentId: string
@@ -35,7 +38,7 @@ function handleDownVote() {
           : 'text-muted hover:text-brand-600 hover:bg-brand-50',
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
       ]"
-      :aria-label="'Vote up'"
+      :aria-label="t('qa.voteUp')"
       @click="handleUpVote"
     >
       <ChevronUp class="w-5 h-5" />
@@ -56,7 +59,7 @@ function handleDownVote() {
           : 'text-muted hover:text-danger-600 hover:bg-danger-50',
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
       ]"
-      :aria-label="'Vote down'"
+      :aria-label="t('qa.voteDown')"
       @click="handleDownVote"
     >
       <ChevronDown class="w-5 h-5" />

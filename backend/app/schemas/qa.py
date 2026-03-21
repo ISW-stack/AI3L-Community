@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import uuid
+
 from pydantic import BaseModel, Field
 
 
 class MarkBestAnswerRequest(BaseModel):
-    comment_id: str
+    comment_id: uuid.UUID
 
 
 class VoteRequest(BaseModel):

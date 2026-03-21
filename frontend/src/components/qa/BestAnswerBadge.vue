@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Check } from 'lucide-vue-next'
+import { useLocale } from '@/composables/useLocale'
+
+const { t } = useLocale()
 
 defineProps<{
   isOwner: boolean
@@ -27,7 +30,7 @@ function handleUnmark() {
       class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium"
     >
       <Check class="w-3.5 h-3.5" />
-      Best Answer
+      {{ t('qa.bestAnswer') }}
     </span>
     <button
       v-if="isOwner && isBest"
@@ -35,7 +38,7 @@ function handleUnmark() {
       class="text-xs text-muted hover:text-danger-600 hover:underline ml-1"
       @click="handleUnmark"
     >
-      Unmark
+      {{ t('qa.unmarkBest') }}
     </button>
     <button
       v-if="isOwner && !isBest"
@@ -43,7 +46,7 @@ function handleUnmark() {
       class="text-xs text-muted hover:text-green-600 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
       @click="handleMark"
     >
-      Mark as Best Answer
+      {{ t('qa.markBest') }}
     </button>
   </div>
 </template>

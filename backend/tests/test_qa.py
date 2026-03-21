@@ -20,7 +20,7 @@ async def test_mark_best_answer_success():
     from app.services.qa import mark_best_answer
 
     post_id = uuid.uuid4()
-    comment_id = str(uuid.uuid4())
+    comment_id = uuid.uuid4()
     user_id = str(uuid.uuid4())
 
     post_row = {
@@ -31,7 +31,7 @@ async def test_mark_best_answer_success():
         "title": "Test Question",
     }
     comment_row = {
-        "id": uuid.UUID(comment_id),
+        "id": comment_id,
         "user_id": uuid.uuid4(),
         "post_id": post_id,
     }
@@ -57,7 +57,7 @@ async def test_mark_best_answer_success():
     ):
         result = await mark_best_answer(post_id, comment_id, user_id)
         assert result["post_id"] == str(post_id)
-        assert result["best_answer_id"] == comment_id
+        assert result["best_answer_id"] == str(comment_id)
 
 
 @pytest.mark.asyncio
@@ -91,7 +91,7 @@ async def test_mark_best_answer_not_question():
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
         with pytest.raises(AppError) as exc_info:
-            await mark_best_answer(post_id, str(uuid.uuid4()), user_id)
+            await mark_best_answer(post_id, uuid.uuid4(), user_id)
         assert exc_info.value.status_code == 400
 
 
@@ -127,7 +127,7 @@ async def test_mark_best_answer_not_author():
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
         with pytest.raises(AppError) as exc_info:
-            await mark_best_answer(post_id, str(uuid.uuid4()), user_id)
+            await mark_best_answer(post_id, uuid.uuid4(), user_id)
         assert exc_info.value.status_code == 403
 
 
@@ -151,7 +151,7 @@ async def test_mark_best_answer_post_not_found():
 
     with patch(f"{_SVC}.get_pool", return_value=mock_pool):
         with pytest.raises(AppError) as exc_info:
-            await mark_best_answer(uuid.uuid4(), str(uuid.uuid4()), str(uuid.uuid4()))
+            await mark_best_answer(uuid.uuid4(), uuid.uuid4(), str(uuid.uuid4()))
         assert exc_info.value.status_code == 404
 
 
@@ -169,6 +169,7 @@ async def test_unmark_best_answer_success():
     post_row = {
         "id": post_id,
         "user_id": uuid.UUID(user_id),
+        "type": "question",
         "best_answer_id": best_answer,
     }
 
@@ -202,6 +203,7 @@ async def test_unmark_best_answer_nothing_to_unmark():
     post_row = {
         "id": post_id,
         "user_id": uuid.UUID(user_id),
+        "type": "question",
         "best_answer_id": None,
     }
 
@@ -751,3 +753,163 @@ async def test_get_user_votes_no_pool_parameter():
     param_names = list(sig.parameters.keys())
     assert "pool" not in param_names, "pool parameter should have been removed"
     assert param_names[0] == "post_id", "First parameter should be post_id"
+
+
+# --- B3: MarkBestAnswerRequest UUID validation ---
+
+
+def test_mark_best_answer_request_valid_uuid():
+    """B3: MarkBestAnswerRequest accepts a valid UUID string."""
+    from app.schemas.qa import MarkBestAnswerRequest
+
+    uid = uuid.uuid4()
+    req = MarkBestAnswerRequest(comment_id=str(uid))
+    assert req.comment_id == uid
+
+
+def test_mark_best_answer_request_invalid_uuid():
+    """B3: MarkBestAnswerRequest rejects an invalid UUID string with ValidationError."""
+    from pydantic import ValidationError as PydanticValidationError
+
+    from app.schemas.qa import MarkBestAnswerRequest
+
+    with pytest.raises(PydanticValidationError):
+        MarkBestAnswerRequest(comment_id="not-a-uuid")
+
+
+def test_mark_best_answer_request_empty_string():
+    """B3: MarkBestAnswerRequest rejects an empty string."""
+    from pydantic import ValidationError as PydanticValidationError
+
+    from app.schemas.qa import MarkBestAnswerRequest
+
+    with pytest.raises(PydanticValidationError):
+        MarkBestAnswerRequest(comment_id="")
+
+
+@pytest.mark.asyncio
+async def test_mark_best_answer_comment_id_is_uuid_type():
+    """B3: mark_best_answer accepts uuid.UUID for comment_id parameter."""
+    import inspect
+
+    from app.services.qa import mark_best_answer
+
+    sig = inspect.signature(mark_best_answer)
+    assert sig.parameters["comment_id"].annotation is uuid.UUID
+
+
+# --- B6: unmark_best_answer post type verification ---
+
+
+@pytest.mark.asyncio
+async def test_unmark_best_answer_not_question():
+    """B6: unmark_best_answer rejects non-question posts with 400."""
+    from app.services.qa import unmark_best_answer
+
+    post_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+
+    post_row = {
+        "id": post_id,
+        "user_id": uuid.UUID(user_id),
+        "type": "post",
+        "best_answer_id": uuid.uuid4(),
+    }
+
+    mock_conn = AsyncMock()
+    mock_conn.fetchrow = AsyncMock(return_value=post_row)
+
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    mock_conn.transaction = MagicMock(return_value=tx)
+
+    mock_pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=mock_conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    mock_pool.acquire.return_value = cm
+
+    with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+        with pytest.raises(AppError) as exc_info:
+            await unmark_best_answer(post_id, user_id)
+        assert exc_info.value.status_code == 400
+        assert "QA_003" in str(exc_info.value.detail)
+        assert "not a question" in str(exc_info.value.detail).lower()
+
+
+@pytest.mark.asyncio
+async def test_unmark_best_answer_discussion_type_rejected():
+    """B6: unmark_best_answer rejects 'discussion' type posts."""
+    from app.services.qa import unmark_best_answer
+
+    post_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+
+    post_row = {
+        "id": post_id,
+        "user_id": uuid.UUID(user_id),
+        "type": "discussion",
+        "best_answer_id": uuid.uuid4(),
+    }
+
+    mock_conn = AsyncMock()
+    mock_conn.fetchrow = AsyncMock(return_value=post_row)
+
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    mock_conn.transaction = MagicMock(return_value=tx)
+
+    mock_pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=mock_conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    mock_pool.acquire.return_value = cm
+
+    with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+        with pytest.raises(AppError) as exc_info:
+            await unmark_best_answer(post_id, user_id)
+        assert exc_info.value.status_code == 400
+
+
+# --- B7: vote_on_answer error code ---
+
+
+@pytest.mark.asyncio
+async def test_vote_on_non_question_uses_qa_004():
+    """B7: Voting on non-question answer uses QA_004 error code, not SYS_422."""
+    from app.services.qa import vote_on_answer
+
+    comment_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+
+    comment_row = {
+        "id": comment_id,
+        "user_id": uuid.uuid4(),
+        "post_id": uuid.uuid4(),
+        "post_type": "post",
+    }
+
+    mock_conn = AsyncMock()
+    mock_conn.fetchrow = AsyncMock(return_value=comment_row)
+    tx = AsyncMock()
+    tx.__aenter__ = AsyncMock(return_value=tx)
+    tx.__aexit__ = AsyncMock(return_value=False)
+    mock_conn.transaction = MagicMock(return_value=tx)
+
+    mock_pool = MagicMock()
+    cm = AsyncMock()
+    cm.__aenter__ = AsyncMock(return_value=mock_conn)
+    cm.__aexit__ = AsyncMock(return_value=False)
+    mock_pool.acquire.return_value = cm
+
+    with (
+        patch(f"{_SVC}.get_pool", return_value=mock_pool),
+        patch(f"{_SVC}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+    ):
+        with pytest.raises(AppError) as exc_info:
+            await vote_on_answer(comment_id, user_id, 1)
+        assert exc_info.value.status_code == 400
+        assert "QA_004" in str(exc_info.value.detail)
+        assert "SYS_422" not in str(exc_info.value.detail)

@@ -3,23 +3,17 @@ import type { Post } from '@/types'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
 import { MessageCircle } from 'lucide-vue-next'
+import { useLocale } from '@/composables/useLocale'
+import { formatDateTime } from '@/utils/date'
 
 defineProps<{
   question: Post
 }>()
 
+const { t, currentLocale: locale } = useLocale()
+
 function formatDate(dateStr: string): string {
-  const now = Date.now()
-  const diff = now - new Date(dateStr).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return 'just now'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString()
+  return formatDateTime(dateStr, locale.value)
 }
 </script>
 
@@ -32,7 +26,7 @@ function formatDate(dateStr: string): string {
           <span class="text-lg font-bold text-foreground tabular-nums">{{
             question.view_count
           }}</span>
-          <span class="text-[10px] text-muted uppercase tracking-wide">views</span>
+          <span class="text-[10px] text-muted uppercase tracking-wide">{{ t('qa.views') }}</span>
         </div>
 
         <!-- Answer count -->
@@ -42,7 +36,7 @@ function formatDate(dateStr: string): string {
         >
           <span class="text-lg font-bold tabular-nums">{{ question.answer_count }}</span>
           <span class="text-[10px] uppercase tracking-wide">
-            {{ question.answer_count === 1 ? 'answer' : 'answers' }}
+            {{ t('qa.answerCount', { count: question.answer_count }, question.answer_count) }}
           </span>
         </div>
 
@@ -56,9 +50,11 @@ function formatDate(dateStr: string): string {
               v-if="question.best_answer_id"
               class="!text-[10px] !bg-green-100 !text-green-700"
             >
-              Answered
+              {{ t('qa.answered') }}
             </BaseBadge>
-            <BaseBadge v-else variant="neutral" class="!text-[10px]"> Unanswered </BaseBadge>
+            <BaseBadge v-else variant="neutral" class="!text-[10px]">
+              {{ t('qa.unanswered') }}
+            </BaseBadge>
             <BaseBadge v-if="question.category_name" variant="neutral" class="!text-[10px]">
               {{ question.category_name }}
             </BaseBadge>

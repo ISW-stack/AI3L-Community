@@ -75,7 +75,7 @@ async def get_posts_list(
     category_id: str | None = None,
     sig_id: str | None = None,
     author_id: str | None = None,
-    sort: str = Query("newest", pattern="^(newest|oldest|most_comments|popular)$"),
+    sort: str = Query("newest", pattern="^(newest|oldest|most_comments|popular|most_answers|unanswered)$"),
     cursor: str | None = Query(None, description="Opaque cursor for keyset pagination"),
     type: str | None = Query(None, pattern="^(post|question)$"),
     current_user: dict = Depends(get_current_user),
@@ -126,6 +126,7 @@ async def search_posts_endpoint(
         page=req.page,
         page_size=req.page_size,
         sort=req.sort,
+        post_type=req.type,
         viewer_id=current_user["sub"],
     )
     return PostListResponse(
@@ -139,9 +140,12 @@ async def search_posts_endpoint(
 
 @router.get("/trending", response_model=list[PostResponse])
 async def get_trending(
+    type: str | None = Query(None, pattern="^(post|question)$"),
     current_user: dict = Depends(get_current_user),
 ) -> list[PostResponse]:
-    posts = await get_trending_posts(limit=5, days=7, viewer_id=current_user["sub"])
+    posts = await get_trending_posts(
+        limit=5, days=7, viewer_id=current_user["sub"], post_type=type
+    )
     return [PostResponse(**cast(dict[str, Any], p)) for p in posts]
 
 

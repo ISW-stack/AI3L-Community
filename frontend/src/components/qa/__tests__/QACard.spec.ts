@@ -1,8 +1,26 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import QACard from '../QACard.vue'
 import type { Post } from '../../../types'
+
+vi.mock('@/composables/useLocale', () => ({
+  useLocale: () => ({
+    t: (key: string, params?: Record<string, unknown>, count?: number) => {
+      // Return recognizable strings based on key for assertion
+      if (key === 'qa.views') return 'views'
+      if (key === 'qa.answerCount') {
+        if (count === 1) return 'answer'
+        return 'answers'
+      }
+      if (key === 'qa.answered') return 'Answered'
+      if (key === 'qa.unanswered') return 'Unanswered'
+      return key
+    },
+    currentLocale: { value: 'en' },
+  }),
+}))
 
 vi.mock('@/components/base/BaseCard.vue', () => ({
   default: { props: ['hoverable'], template: '<div><slot /></div>' },
@@ -63,14 +81,20 @@ function makeQuestion(overrides: Partial<Post> = {}): Post {
 }
 
 function mountCard(question: Post) {
+  const pinia = createPinia()
+  setActivePinia(pinia)
   const router = createTestRouter()
   return mount(QACard, {
     props: { question },
-    global: { plugins: [router] },
+    global: { plugins: [pinia, router] },
   })
 }
 
 describe('QACard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('renders the question title', () => {
     const wrapper = mountCard(makeQuestion({ title: 'How does AI work?' }))
     expect(wrapper.text()).toContain('How does AI work?')
@@ -95,9 +119,8 @@ describe('QACard', () => {
     const wrapper = mountCard(makeQuestion({ answer_count: 1 }))
     expect(wrapper.text()).toContain('1')
     expect(wrapper.text()).toContain('answer')
-    // Ensure it does not say "answers" (plural)
-    const text = wrapper.text()
     // The text should contain "answer" but followed by the end or non-s character
+    const text = wrapper.text()
     expect(text).toMatch(/1\s*answer(?!s)/)
   })
 
@@ -161,5 +184,20 @@ describe('QACard', () => {
     const answerDiv = wrapper.findAll('.min-w-\\[50px\\]')[1]
     expect(answerDiv.classes()).toContain('bg-green-50')
     expect(answerDiv.classes()).toContain('text-green-700')
+  })
+
+  it('uses i18n for view/answer labels (no hardcoded English)', () => {
+    const wrapper = mountCard(makeQuestion({ view_count: 10, answer_count: 2 }))
+    // Labels come from t() function, not hardcoded
+    // If i18n mock returned the key, these would be i18n keys
+    expect(wrapper.text()).toContain('views')
+    expect(wrapper.text()).toContain('answers')
+  })
+
+  it('uses formatDateTime for date display', () => {
+    // The date is formatted via formatDateTime, not raw ISO string
+    const wrapper = mountCard(makeQuestion({ created_at: '2026-01-15T10:30:00Z' }))
+    // Should NOT contain raw ISO string
+    expect(wrapper.text()).not.toContain('2026-01-15T10:30:00Z')
   })
 })

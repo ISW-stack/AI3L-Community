@@ -1,319 +1,68 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { Post, Category } from '@/types'
-import { listPosts, searchPosts, getTrendingPosts } from '@/api/posts'
-import { listCategories } from '@/api/categories'
-import { getErrorMessage } from '@/utils/error'
-import { useToastStore } from '@/stores/toast'
-import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
+import { usePostList } from '@/composables/usePostList'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import ForumLeftSidebar from '@/components/forum/ForumLeftSidebar.vue'
-
-const PAGE_SIZE = 20
+import SearchPanel from '@/components/shared/SearchPanel.vue'
+import CategoryFilter from '@/components/shared/CategoryFilter.vue'
+import SortControls from '@/components/shared/SortControls.vue'
+import TrendingSidebar from '@/components/shared/TrendingSidebar.vue'
 
 const { t } = useI18n()
-const toast = useToastStore()
-const route = useRoute()
-const router = useRouter()
 
-// Accumulated posts list (infinite scroll appends here)
-const posts = ref<Post[]>([])
-const categories = ref<Category[]>([])
-const trendingPosts = ref<Post[]>([])
-
-// Cursor pagination state
-const nextCursor = ref<string | null>(null)
-const hasMore = ref(true)
-
-// Loading states
-const loading = ref(false)
-const isLoadingMore = ref(false)
-
-// Filters (restored from URL query params)
-const categoryFilter = ref<string | null>((route.query.category as string) || null)
-const searchKeyword = ref((route.query.q as string) || '')
-const searchDateFrom = ref((route.query.from as string) || '')
-const searchDateTo = ref((route.query.to as string) || '')
-const searchLogic = ref((route.query.logic as string) || 'AND')
-const sortBy = ref((route.query.sort as string) || 'newest')
-const isSearching = ref(false)
-const isSearchLoading = ref(false)
-const showAdvanced = ref(false)
-const searchPage = ref(1)
-
-// Debounce timer for search-as-you-type
-let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
-
-// Sentinel element for IntersectionObserver
-const sentinelRef = ref<HTMLElement | null>(null)
-
-const dateRangeInvalid = computed(
-  () => !!searchDateFrom.value && !!searchDateTo.value && searchDateFrom.value > searchDateTo.value,
-)
-
-const activeCategoryName = computed(() => {
-  if (!categoryFilter.value) return null
-  const cat = categories.value.find((c) => c.id === categoryFilter.value)
-  return cat ? cat.name : null
+const {
+  posts,
+  categories,
+  trendingPosts,
+  loading,
+  isLoadingMore,
+  hasMore,
+  isSearching,
+  isSearchLoading,
+  showAdvanced,
+  categoryFilter,
+  searchKeyword,
+  searchDateFrom,
+  searchDateTo,
+  searchLogic,
+  sortBy,
+  dateRangeInvalid,
+  activeCategoryName,
+  sentinelRef,
+  selectCategory,
+  selectSort,
+  onSearchInput,
+  immediateSearch,
+  clearSearch,
+  toggleAdvanced,
+  loadMore,
+  init,
+  cleanup,
+} = usePostList({
+  postType: 'post',
+  defaultSort: 'newest',
+  i18nErrorKeys: {
+    fetchPosts: 'forum.fetchPostsError',
+    fetchCategories: 'forum.fetchCategoriesError',
+    fetchTrending: 'forum.fetchTrendingError',
+    searchError: 'forum.searchError',
+  },
 })
 
-async function fetchCategories() {
-  try {
-    categories.value = await listCategories()
-  } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('forum.fetchCategoriesError')), 'error')
-  }
-}
+const sortOptions = [
+  { value: 'newest', label: t('forum.sort.newest') },
+  { value: 'oldest', label: t('forum.sort.oldest') },
+  { value: 'most_comments', label: t('forum.sort.mostDiscussed') },
+]
 
-async function fetchTrending() {
-  try {
-    trendingPosts.value = await getTrendingPosts()
-  } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('forum.fetchTrendingError')), 'error')
-  }
-}
-
-function syncQueryParams() {
-  const query: Record<string, string> = {}
-  if (categoryFilter.value) query.category = categoryFilter.value
-  if (searchKeyword.value) query.q = searchKeyword.value
-  if (searchDateFrom.value) query.from = searchDateFrom.value
-  if (searchDateTo.value) query.to = searchDateTo.value
-  if (searchLogic.value !== 'AND') query.logic = searchLogic.value
-  if (sortBy.value !== 'newest') query.sort = sortBy.value
-  router.replace({ query })
-}
-
-function resetScrollState() {
-  posts.value = []
-  nextCursor.value = null
-  hasMore.value = true
-}
-
-// Initial fetch or filter-reset fetch (no cursor, replaces posts)
-async function fetchPosts() {
-  loading.value = true
-  try {
-    const params: {
-      cursor?: string
-      page_size?: number
-      category_id?: string
-      sort?: string
-      type?: 'post' | 'question'
-    } = {
-      page_size: PAGE_SIZE,
-      sort: sortBy.value,
-      type: 'post',
-    }
-    if (categoryFilter.value) params.category_id = categoryFilter.value
-    const data = await listPosts(params)
-    posts.value = data.posts
-    nextCursor.value = data.next_cursor ?? null
-    hasMore.value = data.has_more ?? false
-    isSearching.value = false
-  } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('forum.fetchPostsError')), 'error')
-  } finally {
-    loading.value = false
-  }
-  syncQueryParams()
-}
-
-// Append next page via cursor
-async function fetchMorePosts() {
-  if (isLoadingMore.value || !hasMore.value || !nextCursor.value) return
-  isLoadingMore.value = true
-  try {
-    const params: {
-      cursor?: string
-      page_size?: number
-      category_id?: string
-      sort?: string
-      type?: 'post' | 'question'
-    } = {
-      cursor: nextCursor.value,
-      page_size: PAGE_SIZE,
-      sort: sortBy.value,
-      type: 'post',
-    }
-    if (categoryFilter.value) params.category_id = categoryFilter.value
-    const data = await listPosts(params)
-    posts.value = [...posts.value, ...data.posts]
-    nextCursor.value = data.next_cursor ?? null
-    hasMore.value = data.has_more ?? false
-  } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('forum.fetchPostsError')), 'error')
-  } finally {
-    isLoadingMore.value = false
-  }
-}
-
-// Initial search or filter-reset search (no cursor, replaces posts)
-async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: boolean } = {}) {
-  searchPage.value = 1
-  if (resetBeforeSearch) resetScrollState()
-  if (!searchKeyword.value && !searchDateFrom.value && !searchDateTo.value) {
-    await fetchPosts()
-    return
-  }
-  loading.value = true
-  isSearching.value = true
-  try {
-    const body: Parameters<typeof searchPosts>[0] = {
-      page: 1,
-      page_size: PAGE_SIZE,
-      logic: searchLogic.value,
-      sort: sortBy.value,
-    }
-    if (searchKeyword.value) body.keyword = searchKeyword.value
-    if (categoryFilter.value) body.category_id = categoryFilter.value
-    if (searchDateFrom.value && !dateRangeInvalid.value) body.date_from = searchDateFrom.value
-    if (searchDateTo.value && !dateRangeInvalid.value) body.date_to = searchDateTo.value
-    const data = await searchPosts(body)
-    posts.value = data.posts
-    nextCursor.value = null
-    hasMore.value = data.has_more ?? false
-  } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('forum.searchError')), 'error')
-  } finally {
-    loading.value = false
-  }
-  syncQueryParams()
-}
-
-// Append next page of search results via page number
-async function fetchMoreSearchResults() {
-  if (isLoadingMore.value || !hasMore.value) return
-  isLoadingMore.value = true
-  try {
-    const nextPage = searchPage.value + 1
-    const body: Parameters<typeof searchPosts>[0] = {
-      page: nextPage,
-      page_size: PAGE_SIZE,
-      logic: searchLogic.value,
-      sort: sortBy.value,
-    }
-    if (searchKeyword.value) body.keyword = searchKeyword.value
-    if (categoryFilter.value) body.category_id = categoryFilter.value
-    if (searchDateFrom.value && !dateRangeInvalid.value) body.date_from = searchDateFrom.value
-    if (searchDateTo.value && !dateRangeInvalid.value) body.date_to = searchDateTo.value
-    const data = await searchPosts(body)
-    posts.value = [...posts.value, ...data.posts]
-    hasMore.value = data.has_more ?? false
-    if (data.posts.length > 0) searchPage.value = nextPage
-  } catch (e: unknown) {
-    toast.show(getErrorMessage(e, t('forum.searchError')), 'error')
-  } finally {
-    isLoadingMore.value = false
-  }
-}
-
-// Called by IntersectionObserver when sentinel enters viewport
-function loadMore() {
-  if (loading.value || isLoadingMore.value || !hasMore.value) return
-  if (isSearching.value) {
-    fetchMoreSearchResults()
-  } else {
-    fetchMorePosts()
-  }
-}
-
-function clearSearch() {
-  searchKeyword.value = ''
-  searchDateFrom.value = ''
-  searchDateTo.value = ''
-  searchLogic.value = 'AND'
-  categoryFilter.value = null
-  sortBy.value = 'newest'
-  isSearching.value = false
-  resetScrollState()
-  fetchPosts()
-}
-
-async function performSearch() {
-  isSearchLoading.value = true
-  try {
-    await doSearch()
-  } finally {
-    isSearchLoading.value = false
-  }
-}
-
-function immediateSearch() {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer)
-    searchDebounceTimer = null
-  }
-  isSearchLoading.value = false
-  performSearch()
-}
-
-function onSearchInput() {
-  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
-  isSearchLoading.value = true
-  searchDebounceTimer = setTimeout(() => {
-    searchDebounceTimer = null
-    performSearch()
-  }, 300)
-}
-
-function selectCategory(catId: string | null) {
-  categoryFilter.value = catId
-}
-
-function selectSort(sort: string) {
-  sortBy.value = sort
-}
-
-function toggleAdvanced() {
-  showAdvanced.value = !showAdvanced.value
-}
-
-watch(categoryFilter, () => {
-  resetScrollState()
-  if (!isSearching.value) {
-    fetchPosts()
-  } else {
-    doSearch({ resetBeforeSearch: false })
-  }
-})
-
-watch(sortBy, () => {
-  resetScrollState()
-  if (isSearching.value) {
-    doSearch({ resetBeforeSearch: false })
-  } else {
-    fetchPosts()
-  }
-})
-
-// Wire up IntersectionObserver on the sentinel element
-useInfiniteScroll(sentinelRef, loadMore)
-
-onMounted(() => {
-  fetchCategories()
-  fetchTrending()
-  if (searchKeyword.value || searchDateFrom.value || searchDateTo.value) {
-    doSearch()
-  } else {
-    fetchPosts()
-  }
-})
-
-onUnmounted(() => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer)
-    searchDebounceTimer = null
-  }
-})
+onMounted(init)
+onUnmounted(cleanup)
 </script>
 
 <template>
@@ -327,38 +76,14 @@ onUnmounted(() => {
       </div>
 
       <!-- Mobile Category Pills -->
-      <div class="lg:hidden mb-4 relative">
-        <div class="overflow-x-auto no-scrollbar">
-          <div class="flex gap-2 pb-2">
-            <button
-              class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
-              :class="
-                !categoryFilter
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-surface-alt text-muted hover:bg-surface-alt'
-              "
-              @click="selectCategory(null)"
-            >
-              {{ t('common.all') }}
-            </button>
-            <button
-              v-for="cat in categories"
-              :key="cat.id"
-              class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition"
-              :class="
-                categoryFilter === cat.id
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-surface-alt text-muted hover:bg-surface-alt'
-              "
-              @click="selectCategory(cat.id)"
-            >
-              {{ cat.name }} ({{ cat.post_count }})
-            </button>
-          </div>
-        </div>
-        <div
-          class="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none"
-        ></div>
+      <div class="lg:hidden mb-4">
+        <CategoryFilter
+          :categories="categories"
+          :active-category="categoryFilter"
+          mode="pills"
+          :all-label="t('common.all')"
+          @select="selectCategory"
+        />
       </div>
 
       <!-- 3-column layout -->
@@ -372,128 +97,32 @@ onUnmounted(() => {
 
         <!-- Main Feed Column -->
         <div class="w-full lg:flex-1 xl:w-[640px] xl:flex-none 2xl:w-[680px] min-w-0">
-          <!-- Search & Filter Bar -->
-          <BaseCard class="mb-6 space-y-3">
-            <div class="flex flex-col sm:flex-row gap-3">
-              <div class="relative flex-1">
-                <input
-                  v-model="searchKeyword"
-                  type="text"
-                  :placeholder="t('forum.searchPlaceholder')"
-                  class="w-full px-3 py-2 pr-9 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
-                  @input="onSearchInput"
-                  @keyup.enter="immediateSearch"
-                />
-                <svg
-                  v-if="isSearchLoading"
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin h-4 w-4 text-brand-600"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  role="status"
-                  :aria-label="t('forum.searchLoading')"
-                >
-                  <circle
-                    class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle>
-                  <path
-                    class="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  ></path>
-                </svg>
-              </div>
-              <BaseButton @click="immediateSearch">{{ t('common.search') }}</BaseButton>
-              <button
-                class="text-sm text-brand-600 hover:text-brand-700 hover:underline shrink-0"
-                @click="toggleAdvanced"
-              >
-                {{ showAdvanced ? t('forum.hideAdvanced') : t('forum.advanced') }}
-              </button>
-            </div>
+          <SearchPanel
+            :keyword="searchKeyword"
+            :date-from="searchDateFrom"
+            :date-to="searchDateTo"
+            :logic="searchLogic"
+            :show-advanced="showAdvanced"
+            :is-search-loading="isSearchLoading"
+            :is-searching="isSearching"
+            :date-range-invalid="dateRangeInvalid"
+            :placeholder="t('forum.searchPlaceholder')"
+            @update:keyword="searchKeyword = $event"
+            @update:date-from="searchDateFrom = $event"
+            @update:date-to="searchDateTo = $event"
+            @update:logic="searchLogic = $event"
+            @search-input="onSearchInput"
+            @immediate-search="immediateSearch"
+            @toggle-advanced="toggleAdvanced"
+            @clear-search="clearSearch"
+          />
 
-            <!-- Advanced Search (collapsible) -->
-            <div v-if="showAdvanced" class="space-y-3 border-t border-border pt-3">
-              <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                <input
-                  v-model="searchDateFrom"
-                  type="date"
-                  class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                />
-                <span class="text-muted text-sm hidden sm:inline">{{ t('common.to') }}</span>
-                <input
-                  v-model="searchDateTo"
-                  type="date"
-                  class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                />
-                <select
-                  v-model="searchLogic"
-                  class="px-3 py-2 border border-border rounded-lg text-sm w-20 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
-                >
-                  <option value="AND">{{ t('forum.searchLogic.and') }}</option>
-                  <option value="OR">{{ t('forum.searchLogic.or') }}</option>
-                </select>
-              </div>
-              <p v-if="dateRangeInvalid" class="text-sm text-danger-600">
-                {{ t('forum.dateRangeError') }}
-              </p>
-              <div class="flex gap-2">
-                <BaseButton :disabled="dateRangeInvalid" @click="doSearch">
-                  {{ t('forum.applyFilters') }}
-                </BaseButton>
-                <BaseButton v-if="isSearching" variant="secondary" @click="clearSearch">
-                  {{ t('forum.clearFilters') }}
-                </BaseButton>
-              </div>
-            </div>
-          </BaseCard>
-
-          <!-- Sort Button Group -->
-          <div class="flex items-center gap-1 mb-4">
-            <span class="text-sm text-muted mr-2">{{ t('forum.sortLabel') }}</span>
-            <button
-              class="px-3 py-1.5 text-sm font-medium rounded-l-lg border transition"
-              :class="
-                sortBy === 'newest'
-                  ? 'bg-brand-600 text-white border-brand-600'
-                  : 'bg-surface text-foreground border-border hover:bg-surface-alt'
-              "
-              @click="selectSort('newest')"
-            >
-              {{ t('forum.sort.newest') }}
-            </button>
-            <button
-              class="px-3 py-1.5 text-sm font-medium border-y transition"
-              :class="
-                sortBy === 'oldest'
-                  ? 'bg-brand-600 text-white border-brand-600'
-                  : 'bg-surface text-foreground border-border hover:bg-surface-alt'
-              "
-              @click="selectSort('oldest')"
-            >
-              {{ t('forum.sort.oldest') }}
-            </button>
-            <button
-              class="px-3 py-1.5 text-sm font-medium rounded-r-lg border transition"
-              :class="
-                sortBy === 'most_comments'
-                  ? 'bg-brand-600 text-white border-brand-600'
-                  : 'bg-surface text-foreground border-border hover:bg-surface-alt'
-              "
-              @click="selectSort('most_comments')"
-            >
-              {{ t('forum.sort.mostDiscussed') }}
-            </button>
-            <span v-if="activeCategoryName" class="ml-3 text-sm text-muted">
-              {{ t('common.in') }}
-              <span class="font-medium text-foreground">{{ activeCategoryName }}</span>
-            </span>
-          </div>
+          <SortControls
+            :current-sort="sortBy"
+            :options="sortOptions"
+            :active-category-name="activeCategoryName"
+            @select="selectSort"
+          />
 
           <SkeletonLoader v-if="loading" :lines="3" variant="card" />
           <EmptyState
@@ -541,7 +170,10 @@ onUnmounted(() => {
           </div>
 
           <!-- No More Posts -->
-          <p v-if="!hasMore && posts.length > 0" class="mt-4 text-sm text-muted text-center py-4">
+          <p
+            v-if="!hasMore && posts.length > 0"
+            class="mt-4 text-sm text-muted text-center py-4"
+          >
             {{ t('forum.noMorePosts') }}
           </p>
         </div>
@@ -564,59 +196,21 @@ onUnmounted(() => {
               <h3 class="text-sm font-semibold text-foreground mb-3">
                 {{ t('forum.sidebar.categoriesTitle') }}
               </h3>
-              <ul class="space-y-1">
-                <li>
-                  <button
-                    class="w-full text-left px-3 py-2 rounded-lg text-sm transition"
-                    :class="
-                      !categoryFilter
-                        ? 'bg-brand-50 text-brand-700 font-medium'
-                        : 'text-foreground hover:bg-surface-alt'
-                    "
-                    @click="selectCategory(null)"
-                  >
-                    {{ t('forum.sidebar.allPosts') }}
-                  </button>
-                </li>
-                <li v-for="cat in categories" :key="cat.id">
-                  <button
-                    class="w-full text-left px-3 py-2 rounded-lg text-sm transition flex justify-between items-center"
-                    :class="
-                      categoryFilter === cat.id
-                        ? 'bg-brand-50 text-brand-700 font-medium'
-                        : 'text-foreground hover:bg-surface-alt'
-                    "
-                    @click="selectCategory(cat.id)"
-                  >
-                    <span>{{ cat.name }}</span>
-                    <span class="text-xs text-muted">{{ cat.post_count }}</span>
-                  </button>
-                </li>
-              </ul>
+              <CategoryFilter
+                :categories="categories"
+                :active-category="categoryFilter"
+                mode="list"
+                :all-label="t('forum.sidebar.allPosts')"
+                @select="selectCategory"
+              />
             </BaseCard>
 
             <!-- Trending Posts -->
-            <BaseCard v-if="trendingPosts.length > 0">
-              <h3 class="text-sm font-semibold text-foreground mb-3">
-                {{ t('forum.sidebar.trendingTitle') }}
-              </h3>
-              <ul class="space-y-3">
-                <li v-for="tp in trendingPosts" :key="tp.id">
-                  <router-link
-                    :to="`/forum/${tp.id}`"
-                    class="block hover:bg-surface-alt rounded-lg px-2 py-1.5 -mx-2 transition"
-                  >
-                    <p class="text-sm text-foreground font-medium line-clamp-2">{{ tp.title }}</p>
-                    <div class="flex items-center gap-3 mt-1 text-xs text-muted">
-                      <span>{{
-                        t('forum.sidebar.commentCount', { count: tp.comment_count })
-                      }}</span>
-                      <span>{{ t('forum.sidebar.viewCount', { count: tp.view_count }) }}</span>
-                    </div>
-                  </router-link>
-                </li>
-              </ul>
-            </BaseCard>
+            <TrendingSidebar
+              :posts="trendingPosts"
+              :title="t('forum.sidebar.trendingTitle')"
+              link-prefix="/forum"
+            />
           </div>
         </aside>
       </div>

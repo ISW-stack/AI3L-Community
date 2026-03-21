@@ -14,12 +14,11 @@ from app.repositories import vote_repo
 
 async def mark_best_answer(
     post_id: uuid.UUID,
-    comment_id: str,
+    comment_id: uuid.UUID,
     user_id: str,
 ) -> dict:
     """Mark a comment as the best answer for a question post."""
     pool = get_pool()
-    comment_uuid = uuid.UUID(comment_id)
 
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -41,10 +40,10 @@ async def mark_best_answer(
             # Verify comment exists and belongs to this post
             comment = await conn.fetchrow(
                 "SELECT id, user_id, post_id FROM comments " "WHERE id = $1 AND is_deleted = false",
-                comment_uuid,
+                comment_id,
             )
             if not comment or comment["post_id"] != post_id:
-                raise NotFoundError("Comment", comment_id)
+                raise NotFoundError("Comment", str(comment_id))
 
             # Unmark previous best answer if any
             if post["best_answer_id"]:
@@ -56,11 +55,11 @@ async def mark_best_answer(
             # Mark new best answer
             await conn.execute(
                 "UPDATE comments SET is_best_answer = true WHERE id = $1",
-                comment_uuid,
+                comment_id,
             )
             await conn.execute(
                 "UPDATE posts SET best_answer_id = $1 WHERE id = $2",
-                comment_uuid,
+                comment_id,
                 post_id,
             )
 
@@ -84,7 +83,7 @@ async def mark_best_answer(
             extra={"error": str(e), "post_id": str(post_id)},
         )
 
-    return {"post_id": str(post_id), "best_answer_id": comment_id}
+    return {"post_id": str(post_id), "best_answer_id": str(comment_id)}
 
 
 async def unmark_best_answer(
@@ -96,12 +95,14 @@ async def unmark_best_answer(
     async with pool.acquire() as conn:
         async with conn.transaction():
             post = await conn.fetchrow(
-                "SELECT id, user_id, best_answer_id FROM posts "
+                "SELECT id, user_id, type, best_answer_id FROM posts "
                 "WHERE id = $1 AND is_deleted = false FOR UPDATE",
                 post_id,
             )
             if not post:
                 raise AppError(ErrorCode.QA_003, 404, "Question not found.")
+            if post["type"] != "question":
+                raise AppError(ErrorCode.QA_003, 400, "This post is not a question.")
             if str(post["user_id"]) != user_id:
                 raise AppError(
                     ErrorCode.QA_001, 403, "Only the question author can unmark the best answer."
@@ -149,7 +150,7 @@ async def vote_on_answer(
                 raise NotFoundError("Comment", str(comment_id))
             if comment["post_type"] != "question":
                 raise AppError(
-                    ErrorCode.SYS_422, 400, "Voting is only available on question answers."
+                    ErrorCode.QA_004, 400, "Voting is only available on question answers."
                 )
 
             # Cannot vote on own answer

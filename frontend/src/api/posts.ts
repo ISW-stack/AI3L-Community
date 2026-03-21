@@ -63,6 +63,7 @@ export async function searchPosts(payload: {
   cursor?: string
   page?: number
   page_size?: number
+  type?: 'post' | 'question'
 }) {
   const { data } = await api.post('/posts/search', payload)
   return data as PostListResponse
@@ -73,8 +74,10 @@ export async function getPostHistory(postId: string) {
   return data.history as HistoryItem[]
 }
 
-export async function getTrendingPosts() {
-  const { data } = await api.get('/posts/trending')
+export async function getTrendingPosts(type?: 'post' | 'question') {
+  const params: Record<string, string> = {}
+  if (type) params.type = type
+  const { data } = await api.get('/posts/trending', { params })
   return data as Post[]
 }
 

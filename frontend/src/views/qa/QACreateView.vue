@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLocale } from '@/composables/useLocale'
 import type { Category } from '@/types'
@@ -24,6 +25,7 @@ interface QuestionDraft {
 const { t } = useLocale()
 const router = useRouter()
 const toast = useToastStore()
+const auth = useAuthStore()
 
 const keywordsInput = ref('')
 const categories = ref<Category[]>([])
@@ -36,7 +38,7 @@ const {
   loadDraft,
   clearDraft,
 } = useDraft<QuestionDraft>({
-  key: 'ai3l_question_draft',
+  key: `ai3l_question_draft_${auth.user?.id ?? 'anon'}`,
   defaultValue: {
     title: '',
     content: '',

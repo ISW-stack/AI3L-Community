@@ -104,6 +104,8 @@ function makeComment(overrides: Partial<Comment> = {}): Comment {
     parent_id: null,
     mentions: null,
     reactions: null,
+    vote_score: 0,
+    is_best_answer: false,
     created_at: '2026-01-01T01:00:00Z',
     updated_at: '2026-01-01T01:00:00Z',
     ...overrides,

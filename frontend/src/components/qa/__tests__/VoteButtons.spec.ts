@@ -1,6 +1,14 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import VoteButtons from '../VoteButtons.vue'
+
+vi.mock('@/composables/useLocale', () => ({
+  useLocale: () => ({
+    t: (key: string) => key,
+    currentLocale: { value: 'en' },
+  }),
+}))
 
 vi.mock('lucide-vue-next', () => ({
   ChevronUp: { name: 'ChevronUp', template: '<svg data-testid="chevron-up" />' },
@@ -13,10 +21,16 @@ function mountVoteButtons(props: {
   userVote: -1 | 0 | 1
   disabled: boolean
 }) {
-  return mount(VoteButtons, { props })
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  return mount(VoteButtons, { props, global: { plugins: [pinia] } })
 }
 
 describe('VoteButtons', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   describe('rendering', () => {
     it('displays the score', () => {
       const wrapper = mountVoteButtons({
@@ -229,6 +243,20 @@ describe('VoteButtons', () => {
       })
       const scoreEl = wrapper.find('.font-semibold')
       expect(scoreEl.classes()).toContain('text-muted')
+    })
+  })
+
+  describe('aria labels', () => {
+    it('uses i18n keys for aria-labels', () => {
+      const wrapper = mountVoteButtons({
+        commentId: 'c1',
+        score: 0,
+        userVote: 0,
+        disabled: false,
+      })
+      const buttons = wrapper.findAll('button')
+      expect(buttons[0].attributes('aria-label')).toBe('qa.voteUp')
+      expect(buttons[1].attributes('aria-label')).toBe('qa.voteDown')
     })
   })
 })
