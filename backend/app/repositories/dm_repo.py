@@ -61,6 +61,7 @@ async def find_conversations(
 
     Each row includes conversation fields, other user info, last message,
     and unread count.  Uses COUNT(*) OVER() for total.
+    Conversations with blocked users (bilateral) are excluded.
     Returns (rows, total).
     """
     pool = get_pool()
@@ -115,7 +116,18 @@ async def find_conversations(
                 LIMIT 1
             ) lm ON TRUE
             LEFT JOIN users lm_u ON lm_u.id = lm.sender_id
-            WHERE c.participant_a = $1 OR c.participant_b = $1
+            WHERE (c.participant_a = $1 OR c.participant_b = $1)
+              AND NOT EXISTS (
+                  SELECT 1 FROM blocks b
+                  WHERE (b.blocker_id = $1
+                         AND b.blocked_id = CASE WHEN c.participant_a = $1
+                                                  THEN c.participant_b
+                                                  ELSE c.participant_a END)
+                     OR (b.blocked_id = $1
+                         AND b.blocker_id = CASE WHEN c.participant_a = $1
+                                                  THEN c.participant_b
+                                                  ELSE c.participant_a END)
+              )
             ORDER BY c.updated_at DESC
             LIMIT $2 OFFSET $3
             """,
@@ -128,13 +140,7 @@ async def find_conversations(
             total = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
-            total = await conn.fetchval(
-                """
-                SELECT COUNT(*) FROM conversations
-                WHERE participant_a = $1 OR participant_b = $1
-                """,
-                user_id,
-            )
+            total = 0
             result = []
 
         return result, total

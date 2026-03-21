@@ -4,14 +4,14 @@ on:
   push:
     branches: [main]
 
-# Allow the workflow to write back to the repository.
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   update-stats:
     name: Compute & update README stats
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout (full history)

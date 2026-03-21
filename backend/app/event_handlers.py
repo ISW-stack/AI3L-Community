@@ -1,6 +1,5 @@
 """Event handler registration — composition root for the event bus."""
 
-import asyncio
 import uuid
 from typing import Any
 
@@ -257,11 +256,6 @@ async def _on_sig_role_changed(user_id: str, sig_id: str, new_role: str, **_kwar
         raise  # Let event bus retry
 
 
-_SIG_MEMBER_BATCH_SIZE = 200
-_SIG_NOTIFICATION_MAX = 500
-_SIG_NOTIFICATION_CONCURRENCY = 20
-
-
 async def _on_post_created_in_sig(
     sig_id: str,
     post_id: str,
@@ -269,96 +263,21 @@ async def _on_post_created_in_sig(
     post_title: str,
     **_kwargs: Any,
 ) -> None:
-    """Notify all SIG members (except the author) about a new post.
-
-    Uses asyncio.Semaphore to limit concurrency and a hard cap to prevent
-    blocking the event bus for very large SIGs.
+    """Offload SIG member notifications to a Celery task to avoid blocking
+    the event bus for large SIGs (L-50).
     """
-    from app.repositories import sig_repo
-    from app.services.notification import create_notification
-    from app.services.user import get_user_by_id
+    try:
+        from app.tasks.event_retry import notify_sig_members_new_post
 
-    author = await get_user_by_id(uuid.UUID(author_id))
-    author_name = author["display_name"] if author else "Someone"
-
-    sem = asyncio.Semaphore(_SIG_NOTIFICATION_CONCURRENCY)
-    succeeded = 0
-    failed = 0
-    notified_count = 0
-    cap_reached = False
-
-    async def _notify_member(target_uid: str) -> bool:
-        """Send a notification to a single member. Returns True on success."""
-        async with sem:
-            if await _is_blocked(target_uid, author_id):
-                return True  # blocked, skip silently
-            if not await _check_idempotent(target_uid, "post", post_id, "SIG_NEW_POST"):
-                return True  # deduplicated, not a failure
-            try:
-                await create_notification(
-                    user_id=target_uid,
-                    trigger_user_id=author_id,
-                    action_type="SIG_NEW_POST",
-                    entity_type="post",
-                    entity_id=post_id,
-                    message=f'{author_name} posted "{post_title[:50]}" in your SIG',
-                )
-                return True
-            except (ConnectionError, OSError, TimeoutError) as e:
-                logger.warning(
-                    "Transient error sending SIG new post notification (retryable)",
-                    extra={"target_uid": target_uid, "error": str(e)},
-                )
-                return False
-            except Exception:
-                logger.error("Failed to send SIG new post notification", exc_info=True)
-                return False
-
-    offset = 0
-    while True:
-        members, _total = await sig_repo.find_members(
-            uuid.UUID(sig_id), offset=offset, limit=_SIG_MEMBER_BATCH_SIZE
+        notify_sig_members_new_post.delay(sig_id, post_id, author_id, post_title)
+        logger.info(
+            "SIG notification task dispatched",
+            extra={"sig_id": sig_id, "post_id": post_id},
         )
-        if not members:
-            break
-
-        tasks: list[asyncio.Task[bool]] = []
-        for m in members:
-            target_uid = str(m["user_id"])
-            if target_uid == author_id:
-                continue
-            notified_count += 1
-            if notified_count > _SIG_NOTIFICATION_MAX:
-                cap_reached = True
-                break
-            tasks.append(asyncio.create_task(_notify_member(target_uid)))
-
-        if tasks:
-            results = await asyncio.gather(*tasks)
-            for ok in results:
-                if ok:
-                    succeeded += 1
-                else:
-                    failed += 1
-
-        if cap_reached:
-            logger.warning(
-                "SIG notification cap reached",
-                extra={"sig_id": sig_id, "cap": _SIG_NOTIFICATION_MAX},
-            )
-            break
-
-        # Stop when the batch is smaller than page size (last page)
-        if len(members) < _SIG_MEMBER_BATCH_SIZE:
-            break
-
-        offset += _SIG_MEMBER_BATCH_SIZE
-
-    if failed:
-        logger.error(
-            "post.created_in_sig notifications summary",
-            extra={"succeeded": succeeded, "failed": failed},
-        )
+    except ImportError:
+        logger.warning("Celery not available — skipping SIG notification dispatch")
+    except Exception:
+        logger.error("Failed to dispatch SIG notification task", exc_info=True)
 
 
 async def _on_audit_action(

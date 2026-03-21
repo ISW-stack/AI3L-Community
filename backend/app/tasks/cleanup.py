@@ -201,6 +201,38 @@ def cleanup_old_file_scans(self: Any, days: int = 30) -> dict[str, Any]:
     return result
 
 
+@celery.task(name="cleanup_old_audit_logs", bind=True, max_retries=1)
+def cleanup_old_audit_logs(self: Any, days: int = 90) -> dict[str, Any]:
+    """Daily task: delete audit log entries older than *days* days."""
+
+    async def _run() -> dict:
+        await _ensure_pool()
+        from app.repositories import audit_repo
+
+        deleted = await audit_repo.delete_old_logs(days)
+        return {"deleted": deleted, "retention_days": days}
+
+    result: dict[str, Any] = _run_async(_run())
+    logger.info("Old audit logs cleanup complete: %s", result)
+    return result
+
+
+@celery.task(name="cleanup_old_read_notifications", bind=True, max_retries=1)
+def cleanup_old_read_notifications(self: Any, days: int = 90) -> dict[str, Any]:
+    """Weekly task: delete read notifications older than *days* days."""
+
+    async def _run() -> dict:
+        await _ensure_pool()
+        from app.repositories import notification_repo
+
+        deleted = await notification_repo.delete_old_read_notifications(days)
+        return {"deleted": deleted, "retention_days": days}
+
+    result: dict[str, Any] = _run_async(_run())
+    logger.info("Old read notifications cleanup complete: %s", result)
+    return result
+
+
 @celery.task(name="cleanup_orphan_files", bind=True, max_retries=1)
 def cleanup_orphan_files(self: Any) -> dict[str, Any]:
     """Weekly task: delete unreferenced editor files older than 7 days."""

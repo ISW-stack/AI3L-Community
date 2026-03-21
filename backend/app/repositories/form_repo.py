@@ -222,6 +222,54 @@ async def count_active(sig_id: uuid.UUID) -> int:
         )
 
 
+async def count_active_in_conn(conn: Any, sig_id: uuid.UUID) -> int:
+    """Count active forms for a SIG using an existing connection (for transactional use)."""
+    return int(
+        await conn.fetchval(
+            "SELECT COUNT(*) FROM forms WHERE sig_id = $1 AND is_deleted = false",
+            sig_id,
+        )
+    )
+
+
+async def insert_in_conn(
+    conn: Any,
+    form_id: uuid.UUID,
+    sig_id: uuid.UUID | None,
+    user_id: uuid.UUID,
+    title: str,
+    description: str | None,
+    banner_url: str | None,
+    deadline: datetime | None,
+    max_respondents: int | None,
+    questions: list[dict],
+    allow_non_members: bool = False,
+) -> dict:
+    """Insert a form using an existing connection (for transactional use)."""
+    row = await conn.fetchrow(
+        """
+        INSERT INTO forms (id, sig_id, created_by, title, description, banner_url,
+                           deadline, max_respondents, questions, allow_non_members)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+        RETURNING *
+        """,
+        form_id,
+        sig_id,
+        user_id,
+        title,
+        description,
+        banner_url,
+        deadline,
+        max_respondents,
+        json.dumps(questions),
+        allow_non_members,
+    )
+    creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
+    result = dict(row)
+    result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
+    return result
+
+
 async def find_by_sig(
     sig_id: uuid.UUID, page: int = 1, page_size: int = 20
 ) -> tuple[list[tuple[dict, int]], int]:

@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from loguru import logger
 
@@ -42,8 +43,8 @@ async def list_audit_logs(
     page: int = 1,
     page_size: int = 50,
     user_id_filter: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> tuple[list[dict], int]:
     """Return paginated audit logs. Optionally filter by user_id and date range."""
     filter_uuid = uuid.UUID(user_id_filter) if user_id_filter else None

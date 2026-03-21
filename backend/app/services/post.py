@@ -58,26 +58,34 @@ async def create_post(
     cat_uuid = uuid.UUID(category_id) if category_id else None
     sig_uuid = uuid.UUID(sig_id) if sig_id else None
 
-    if sig_uuid:
-        from app.repositories import sig_repo
-
-        member_role = await sig_repo.get_member_role(sig_uuid, uuid.UUID(user_id))
-        if not member_role:
-            await _rollback_daily_post_count(user_id)
-            raise PermissionError("You must be a member of this SIG to post in it.")
-
     try:
-        row = await post_repo.insert(
-            post_id,
-            uuid.UUID(user_id),
-            title,
-            content,
-            cat_uuid,
-            sig_uuid,
-            keywords,
-            allow_comments,
-            post_type=post_type,
-        )
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                if sig_uuid:
+                    from app.repositories import sig_repo
+
+                    member_role = await sig_repo.get_member_role_in_conn(
+                        sig_uuid, uuid.UUID(user_id), conn
+                    )
+                    if not member_role:
+                        await _rollback_daily_post_count(user_id)
+                        raise PermissionError("You must be a member of this SIG to post in it.")
+
+                row = await post_repo.insert_in_conn(
+                    conn,
+                    post_id,
+                    uuid.UUID(user_id),
+                    title,
+                    content,
+                    cat_uuid,
+                    sig_uuid,
+                    keywords,
+                    allow_comments,
+                    post_type=post_type,
+                )
+    except (PermissionError, ValueError):
+        raise
     except asyncpg.exceptions.ForeignKeyViolationError:
         await _rollback_daily_post_count(user_id)
         raise ValueError("Category not found or has been deleted.")

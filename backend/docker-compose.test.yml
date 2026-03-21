@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: test_password
       POSTGRES_DB: ai3l_test
     ports:
-      - "25432:5432"
+      - "127.0.0.1:25432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ai3l_test -d ai3l_test"]
       interval: 5s
@@ -22,7 +22,7 @@ services:
   redis-test:
     image: redis:7-alpine
     ports:
-      - "26379:6379"
+      - "127.0.0.1:26379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

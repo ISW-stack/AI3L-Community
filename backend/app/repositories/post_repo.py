@@ -107,6 +107,43 @@ async def insert(
         return dict(row)
 
 
+async def insert_in_conn(
+    conn: Any,
+    post_id: uuid.UUID,
+    user_id: uuid.UUID,
+    title: str,
+    content: str,
+    category_id: uuid.UUID | None,
+    sig_id: uuid.UUID | None,
+    keywords: list[str] | None,
+    allow_comments: bool,
+    post_type: str = "post",
+) -> dict:
+    """Insert a post using an existing connection (for transactional use)."""
+    row = await conn.fetchrow(
+        f"""
+        WITH inserted AS (
+            INSERT INTO posts (
+                id, user_id, title, content, category_id, sig_id, keywords, allow_comments, type
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING *
+        )
+        {_POST_SELECT.replace("FROM posts p", "FROM inserted p")}
+        """,
+        post_id,
+        user_id,
+        title,
+        content,
+        category_id,
+        sig_id,
+        keywords,
+        allow_comments,
+        post_type,
+    )
+    return dict(row)
+
+
 async def find_by_id(post_id: uuid.UUID) -> dict | None:
     pool = get_pool()
     async with pool.acquire() as conn:

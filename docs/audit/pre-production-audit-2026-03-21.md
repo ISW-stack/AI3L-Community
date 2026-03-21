@@ -485,6 +485,48 @@ Additional schema hardening (L-33, L-35, L-36): `category_id`/`sig_id` UUID patt
 
 ---
 
+### Session 3 fixes (30 findings — 2026-03-22)
+
+| ID | Status | Fix |
+|----|--------|-----|
+| M-21 | ✅ FIXED | FastAPI dev port bound to `127.0.0.1:18000` in docker-compose.override.yml |
+| M-22 | ✅ FIXED | Datadog agent service + volume removed from docker-compose.yml |
+| M-23 | ✅ FIXED | Redis CI service: `--requirepass testredis`; test env uses password |
+| M-24 | ✅ FIXED | f-string logging in `main.py` startup handlers → `%s` format + `exc_info=True` |
+| M-25 | ✅ FIXED | Dev nginx: `limit_req_zone` + `limit_req` on `/api/` location |
+| M-36 | ✅ FIXED | Admin user list presigned URLs: `asyncio.gather()` for concurrent generation |
+| M-45 | ✅ FIXED | `cleanup_old_audit_logs` Celery task (daily, 90-day retention) + `audit_repo.delete_old_logs()` |
+| M-49 | ✅ FIXED | Global `proxy_request_buffering off` removed; scoped to upload locations only |
+| L-01 | ✅ FIXED | Password change: `response.delete_cookie("access_token")` + `csrf_token` |
+| L-02 | ✅ FIXED | Invite code entropy: `uuid4().hex[:16]` (64 bits, was 32 bits) |
+| L-11 | ✅ FIXED | Avatar presigned URL expiry: 3600s (1 hour, was 7 days) |
+| L-12 | ✅ FIXED | Editor file serving: `StreamingResponse` with 64KB chunks (was full file load) |
+| L-17 | ✅ FIXED | `update_album` permission check + update wrapped in single transaction |
+| L-18 | ✅ FIXED | `approve_member` passes `required_current_status="PENDING"` to prevent race |
+| L-19 | ✅ FIXED | `create_form` active count check + insert in same transaction |
+| L-20 | ✅ FIXED | `create_post` SIG membership check + insert in same transaction (`insert_in_conn`) |
+| L-24 | ✅ FIXED | `audit_repo.find_many` date params: `str | None` → `date | None` |
+| L-26 | ✅ FIXED | Dev nginx: `limit_conn ws_conn 5` on WebSocket location |
+| L-28 | ✅ FIXED | Test compose: DB/Redis ports bound to `127.0.0.1` |
+| L-29 | ✅ FIXED | MinIO bucket: `mc anonymous set none` in minio-init service |
+| L-30 | ✅ FIXED | `update-stats.yml`: `contents: write` scoped to job level only |
+| L-38 | ✅ FIXED | `cleanup_old_read_notifications` Celery task (weekly, 90-day retention) |
+| L-40 | ✅ FIXED | User search: `search_users_for_coauthor` accepts `exclude_ids` set for blocked users |
+| L-41 | ✅ FIXED | DM conversation list: `NOT EXISTS (SELECT 1 FROM blocks ...)` bilateral filter |
+| L-45 | ✅ FIXED | File scan error: generic "not verified as safe" message (no internal status leak) |
+| L-46 | ✅ FIXED | Album cover upload: MinIO file cleaned up on DB failure (try/except + delete) |
+| L-50 | ✅ FIXED | `_on_post_created_in_sig`: asyncio.Semaphore(20) + 500 cap; Celery task variant added |
+| L-51 | ✅ FIXED | `client_header_timeout 10s` + `client_body_timeout 10s` in nginx.conf |
+| M-11 | ✅ VERIFIED | CORS origins already configured via `CORS_ORIGINS` env var |
+| L-52 | ✅ VERIFIED | TrustedHostMiddleware enabled in production via `TRUSTED_HOSTS` env var |
+
+**Tests added:** 87 new tests across 3 test files (all passing).
+- `test_session3_auth_config.py`: 28 tests (M-24, L-01/02/11, M-45, L-38, L-24)
+- `test_session3_business_logic.py`: 17 tests (L-17/18/19/20/24/46, M-36)
+- `test_session3_dm_search_file.py`: 42 tests (L-12/40/41/45/50, L-51, M-49/21/28 + config smoke tests)
+
+---
+
 ## Recommended Fix Priority
 
 ### Before Production (must-fix — ALL HIGH items resolved):
@@ -523,20 +565,41 @@ Additional schema hardening (L-33, L-35, L-36): `category_id`/`sig_id` UUID patt
 31. ~~**M-46**~~ ✅ Fixed
 32. ~~**M-47/48**~~ ✅ Fixed
 33. ~~**M-50/51/52/53**~~ ✅ Fixed
-34. **M-49** — Scope `proxy_request_buffering off` to upload paths only (nginx config)
+34. ~~**M-49**~~ ✅ Fixed
 35. ~~**L-07/08/09**~~ ✅ Fixed
 
 ### Post-Launch Hardening (remaining open items):
 - **M-04** ✅ Fixed
-- **M-11** — CORS origins: deployment config (set `BACKEND_CORS_ORIGINS` in production `.env`)
-- **M-21** — Dev override: bind FastAPI to 127.0.0.1 (docker-compose.override.yml)
-- **M-22** — Datadog socket mount: remove if not using Datadog
-- **M-23** — Redis CI auth: add password to CI service definition
-- **M-24** — f-string logging: convert to `%s` format
-- **M-25** — nginx dev: add rate limiting to dev config
-- **M-36** — N+1 presigned URL: concurrent generation with asyncio.gather
-- **M-37** — Cursor pagination signing: add HMAC to cursor
-- **M-45** — Audit log retention: Celery task to purge logs older than N days
-- **M-49** — nginx proxy_request_buffering: scope to upload paths
-- All remaining LOW findings (L-01~L-04, L-11~L-14, L-16~L-21, L-24~L-30, L-37~L-41, L-43, L-45, L-46, L-50~L-56, L-60)
+- **M-11** ✅ Already configured (explicit CORS_ORIGINS in config.py)
+- ~~**M-21**~~ ✅ Fixed
+- ~~**M-22**~~ ✅ Fixed
+- ~~**M-23**~~ ✅ Fixed
+- ~~**M-24**~~ ✅ Fixed
+- ~~**M-25**~~ ✅ Fixed
+- ~~**M-36**~~ ✅ Fixed
+- **M-37** — Cursor pagination signing: add HMAC to cursor (deferred — low risk in authenticated API)
+- ~~**M-45**~~ ✅ Fixed
+- ~~**M-49**~~ ✅ Fixed
+- ~~**L-01**~~ ✅ Fixed
+- ~~**L-02**~~ ✅ Fixed
+- ~~**L-11**~~ ✅ Fixed
+- ~~**L-12**~~ ✅ Fixed
+- ~~**L-17**~~ ✅ Fixed
+- ~~**L-18**~~ ✅ Fixed
+- ~~**L-19**~~ ✅ Fixed
+- ~~**L-20**~~ ✅ Fixed
+- ~~**L-24**~~ ✅ Fixed
+- ~~**L-26**~~ ✅ Fixed
+- ~~**L-28**~~ ✅ Fixed
+- ~~**L-29**~~ ✅ Fixed
+- ~~**L-30**~~ ✅ Fixed
+- ~~**L-38**~~ ✅ Fixed
+- ~~**L-40**~~ ✅ Fixed
+- ~~**L-41**~~ ✅ Fixed
+- ~~**L-45**~~ ✅ Fixed
+- ~~**L-46**~~ ✅ Fixed
+- ~~**L-50**~~ ✅ Fixed
+- ~~**L-51**~~ ✅ Fixed
+- ~~**L-52**~~ ✅ Already configured (TrustedHostMiddleware in production)
+- Remaining open LOW items: L-03/04 (by design), L-13/14 (edge cases), L-16 (feature request), L-21 (already addressed in M-05), L-25 (deferred), L-27 (by design), L-37/39/43 (feature requests), L-53/55/56 (dependency tooling), L-60 (historical migration)
 - Periodic dependency version audits

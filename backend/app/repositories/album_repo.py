@@ -266,21 +266,31 @@ async def find_members(
 
 
 async def update_member_status(
-    conn: Any, member_id: uuid.UUID, status: str, album_id: uuid.UUID | None = None
+    conn: Any,
+    member_id: uuid.UUID,
+    status: str,
+    album_id: uuid.UUID | None = None,
+    required_current_status: str | None = None,
 ) -> bool:
+    conditions = ["id = $2"]
+    params: list = [status, member_id]
+    idx = 3
+
     if album_id is not None:
-        result = await conn.execute(
-            "UPDATE album_members SET status = $1 WHERE id = $2 AND album_id = $3",
-            status,
-            member_id,
-            album_id,
-        )
-    else:
-        result = await conn.execute(
-            "UPDATE album_members SET status = $1 WHERE id = $2",
-            status,
-            member_id,
-        )
+        conditions.append(f"album_id = ${idx}")
+        params.append(album_id)
+        idx += 1
+
+    if required_current_status is not None:
+        conditions.append(f"status = ${idx}")
+        params.append(required_current_status)
+        idx += 1
+
+    where = " AND ".join(conditions)
+    result = await conn.execute(
+        f"UPDATE album_members SET status = $1 WHERE {where}",
+        *params,
+    )
     return bool(result == "UPDATE 1")
 
 

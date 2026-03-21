@@ -81,36 +81,45 @@ async def create_form(
     if deadline and deadline < datetime.now(timezone.utc):
         raise FormDeadlineError()
 
-    if sig_id is None:
-        # Standalone form — enforce per-user limit
-        pool = get_pool()
-        async with pool.acquire() as conn:
-            active_count = await form_repo.count_active_standalone_by_user(conn, uuid.UUID(user_id))
-        if active_count >= MAX_ACTIVE_STANDALONE_FORMS_PER_USER:
-            raise ValueError(
-                f"Maximum active standalone forms per user "
-                f"({MAX_ACTIVE_STANDALONE_FORMS_PER_USER}) reached."
-            )
-        # Standalone forms are always open to all authenticated users
-        allow_non_members = True
-    else:
-        active_count = await form_repo.count_active(uuid.UUID(sig_id))
-        if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
-            raise ValueError(f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached.")
-
     form_id = uuid.uuid4()
-    result = await form_repo.insert(
-        form_id,
-        uuid.UUID(sig_id) if sig_id else None,
-        uuid.UUID(user_id),
-        title,
-        description,
-        banner_url,
-        deadline,
-        max_respondents,
-        questions,
-        allow_non_members,
-    )
+    pool = get_pool()
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            if sig_id is None:
+                # Standalone form — enforce per-user limit atomically
+                active_count = await form_repo.count_active_standalone_by_user(
+                    conn, uuid.UUID(user_id)
+                )
+                if active_count >= MAX_ACTIVE_STANDALONE_FORMS_PER_USER:
+                    raise ValueError(
+                        f"Maximum active standalone forms per user "
+                        f"({MAX_ACTIVE_STANDALONE_FORMS_PER_USER}) reached."
+                    )
+                # Standalone forms are always open to all authenticated users
+                allow_non_members = True
+            else:
+                active_count = await form_repo.count_active_in_conn(
+                    conn, uuid.UUID(sig_id)
+                )
+                if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
+                    raise ValueError(
+                        f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached."
+                    )
+
+            result = await form_repo.insert_in_conn(
+                conn,
+                form_id,
+                uuid.UUID(sig_id) if sig_id else None,
+                uuid.UUID(user_id),
+                title,
+                description,
+                banner_url,
+                deadline,
+                max_respondents,
+                questions,
+                allow_non_members,
+            )
     return row_to_form(result, 0)
 
 

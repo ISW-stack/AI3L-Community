@@ -5,7 +5,7 @@
 services:
   fastapi:
     ports:
-      - "18000:8000"
+      - "127.0.0.1:18000:8000"
     volumes:
       - ./backend:/app
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -92,7 +92,9 @@ services:
         mc alias set myminio http://minio:9000
         $${MINIO_ROOT_USER:-minioadmin}
         $${MINIO_ROOT_PASSWORD:-changeme_minio} &&
-        mc admin config reset myminio identity_openid:_ || true
+        mc admin config reset myminio identity_openid:_ || true &&
+        mc mb --ignore-existing myminio/$${MINIO_BUCKET:-ai3l-community} &&
+        mc anonymous set none myminio/$${MINIO_BUCKET:-ai3l-community}
     env_file:
       - .env
     restart: "no"

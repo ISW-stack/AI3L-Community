@@ -106,27 +106,28 @@ async def update_album(
     album_uuid = uuid.UUID(album_id)
 
     async with pool.acquire() as conn:
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        async with conn.transaction():
+            album = await album_repo.find_album_by_id(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
-        is_creator = str(album["created_by"]) == user_id
+            is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
+            is_creator = str(album["created_by"]) == user_id
 
-        # Check album-level admin
-        member = await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id))
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
+            # Check album-level admin
+            member = await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id))
+            is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
-        if not (is_creator or is_site_admin or is_album_admin):
-            raise AppError(ErrorCode.SYS_403, 403, "Not authorized to update this album.")
+            if not (is_creator or is_site_admin or is_album_admin):
+                raise AppError(ErrorCode.SYS_403, 403, "Not authorized to update this album.")
 
-        fields: dict = {}
-        if title is not _UNSET:
-            fields["title"] = title
-        if description is not _UNSET:
-            fields["description"] = description
+            fields: dict = {}
+            if title is not _UNSET:
+                fields["title"] = title
+            if description is not _UNSET:
+                fields["description"] = description
 
-        row = await album_repo.update_album(conn, album_uuid, **fields)
+            row = await album_repo.update_album(conn, album_uuid, **fields)
 
     if not row:
         raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
@@ -287,6 +288,8 @@ async def upload_cover(
         )
 
     pool = get_pool()
+
+    # Phase 1: Validate permissions and quota (inside transaction)
     async with pool.acquire() as conn:
         async with conn.transaction():
             album = await album_repo.find_album_by_id(conn, album_uuid)
@@ -306,32 +309,52 @@ async def upload_cover(
             if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
                 raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
 
-            # Upload to MinIO
-            ext = ""
-            if "." in filename:
-                ext = filename.rsplit(".", 1)[-1].lower()
-            file_uuid = str(uuid.uuid4())
-            storage_key = album_cover_key(album_id, file_uuid, ext)
-            await async_upload_file(file_data, storage_key, content_type)
+    # Phase 2: Upload to MinIO (outside transaction — not transactional)
+    ext = ""
+    if "." in filename:
+        ext = filename.rsplit(".", 1)[-1].lower()
+    file_uuid = str(uuid.uuid4())
+    storage_key = album_cover_key(album_id, file_uuid, ext)
+    await async_upload_file(file_data, storage_key, content_type)
 
-            # Delete old cover file from storage if it was a dedicated cover (not a photo key)
-            old_cover_key = album.get("cover_photo_url")
-            if old_cover_key and "/cover/" in old_cover_key:
-                try:
-                    await delete_file(old_cover_key)
-                    # Refund old cover size — we don't track it per-file,
-                    # so we skip refund for simplicity (cover is small)
-                except Exception:
-                    logger.warning("Failed to delete old cover", extra={"key": old_cover_key})
+    # Phase 3: Update DB (new transaction). If this fails, clean up the MinIO file.
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                # Delete old cover file from storage if it was a dedicated cover (not a photo key)
+                old_cover_key = album.get("cover_photo_url")
+                if old_cover_key and "/cover/" in old_cover_key:
+                    try:
+                        await delete_file(old_cover_key)
+                    except Exception:
+                        logger.warning("Failed to delete old cover", extra={"key": old_cover_key})
 
-            # Increment storage
-            await conn.execute(
-                "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
-                file_size,
-                user_uuid,
+                # Increment storage
+                await conn.execute(
+                    "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
+                    file_size,
+                    user_uuid,
+                )
+
+                await album_repo.set_cover_photo(conn, album_uuid, storage_key)
+    except AppError:
+        raise
+    except Exception:
+        # DB failed after MinIO upload succeeded — clean up orphaned file
+        logger.error(
+            "DB update failed after cover upload, cleaning up MinIO file",
+            extra={"album_id": album_id, "key": storage_key},
+            exc_info=True,
+        )
+        try:
+            await delete_file(storage_key)
+        except Exception:
+            logger.error(
+                "Failed to clean up orphaned cover file from MinIO",
+                extra={"key": storage_key},
+                exc_info=True,
             )
-
-            await album_repo.set_cover_photo(conn, album_uuid, storage_key)
+        raise AppError(ErrorCode.SYS_500, 500, "Failed to update album cover. Please try again.")
 
     logger.info("Album cover uploaded", extra={"album_id": album_id, "user_id": user_id})
 
@@ -453,7 +476,8 @@ async def approve_member(
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to approve members.")
 
         updated = await album_repo.update_member_status(
-            conn, member_uuid, "ACCEPTED", album_id=album_uuid
+            conn, member_uuid, "ACCEPTED", album_id=album_uuid,
+            required_current_status="PENDING",
         )
         if not updated:
             raise AppError(ErrorCode.ALBUM_001, 404, "Pending member not found in this album.")

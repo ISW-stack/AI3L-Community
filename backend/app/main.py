@@ -88,22 +88,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 environment=settings.FASTAPI_ENV,
             )
             logger.info("Sentry SDK initialized")
-        except Exception as e:
-            logger.warning(f"Sentry init failed: {e}")
+        except Exception:
+            logger.warning("Sentry init failed", exc_info=True)
 
     await init_db_pool(settings.DATABASE_URL)
     await init_redis(settings.REDIS_URL)
 
     try:
         init_storage()
-    except Exception as e:
-        logger.warning(f"Storage init skipped: {e}")
+    except Exception:
+        logger.warning("Storage init skipped", exc_info=True)
 
     # Bootstrap Super Admin (requires DB to be ready)
     try:
         await bootstrap_super_admin()
-    except Exception as e:
-        logger.warning(f"Super Admin bootstrap skipped: {e}")
+    except Exception:
+        logger.warning("Super Admin bootstrap skipped", exc_info=True)
 
     # Warm up block cache (requires DB + Redis)
     try:
@@ -112,8 +112,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         from app.core.redis import get_redis as _get_redis
 
         await warmup_block_cache(_get_pool(), _get_redis())
-    except Exception as e:
-        logger.warning(f"Block cache warmup skipped: {e}")
+    except Exception:
+        logger.warning("Block cache warmup skipped", exc_info=True)
 
     # Register event bus handlers
     from app.event_handlers import register_all
@@ -125,8 +125,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     try:
         await start_redis_subscriber()
-    except Exception as e:
-        logger.warning(f"WebSocket Redis subscriber start skipped: {e}")
+    except Exception:
+        logger.warning("WebSocket Redis subscriber start skipped", exc_info=True)
 
     logger.info("All dependencies initialized")
 

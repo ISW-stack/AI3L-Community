@@ -6,10 +6,12 @@ from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
+from starlette.responses import StreamingResponse
 from loguru import logger
 
 from app.core.async_storage import delete_file as async_delete_file
 from app.core.async_storage import download_file as async_download_file
+from app.core.async_storage import download_file_metadata as async_download_metadata
 from app.core.async_storage import generate_presigned_url as async_presigned_url
 from app.core.async_storage import get_file_size as async_get_file_size
 from app.core.async_storage import upload_file as async_upload_file
@@ -238,7 +240,7 @@ async def delete_editor_file(
 async def serve_file(
     key: str,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
-) -> Response:
+) -> StreamingResponse:
     """Serve file content from storage via proxy.
 
     Editor files (editor/*) are accessible to any authenticated user.
@@ -276,10 +278,14 @@ async def serve_file(
                 "File is being scanned. Please try again shortly.",
             )
         if scan and scan["status"] in ("unknown", "error"):
+            logger.warning(
+                "File blocked due to unverified scan status",
+                extra={"key": key, "scan_status": scan["status"]},
+            )
             raise AppError(
                 ErrorCode.FILE_001,
                 status.HTTP_403_FORBIDDEN,
-                "This file has not been verified as safe. Scan status: " + scan["status"],
+                "This file has not been verified as safe.",
             )
     except (HTTPException, AppError):
         raise
@@ -287,7 +293,7 @@ async def serve_file(
         logger.warning("Failed to check scan status for key=%s", key, exc_info=True)
 
     try:
-        data, content_type = await async_download_file(key)
+        streaming_body, content_type, content_length = await async_download_metadata(key)
     except ClientError:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "File not found.")
 
@@ -299,14 +305,30 @@ async def serve_file(
     # Images can be viewed inline; everything else forces download
     disposition = "inline" if content_type and content_type.startswith("image/") else "attachment"
 
-    return Response(
-        content=data,
+    _STREAM_CHUNK_SIZE = 64 * 1024  # 64 KB chunks
+
+    async def _stream_chunks():  # type: ignore[return]
+        try:
+            while True:
+                chunk = await run_in_threadpool(streaming_body.read, _STREAM_CHUNK_SIZE)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            streaming_body.close()
+
+    headers = {
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Disposition": f'{disposition}; filename="{safe_filename}"',
+        "Content-Security-Policy": "sandbox",
+    }
+    if content_length:
+        headers["Content-Length"] = str(content_length)
+
+    return StreamingResponse(
+        content=_stream_chunks(),
         media_type=content_type,
-        headers={
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Content-Disposition": f'{disposition}; filename="{safe_filename}"',
-            "Content-Security-Policy": "sandbox",
-        },
+        headers=headers,
     )
 
 

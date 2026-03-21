@@ -84,4 +84,14 @@ celery.conf.beat_schedule = {
         "schedule": 3600.0,  # every hour
         "options": {"soft_time_limit": 300, "time_limit": 600, "expires": 3600},
     },
+    "cleanup-old-audit-logs": {
+        "task": "cleanup_old_audit_logs",
+        "schedule": 86400.0,  # daily
+        "options": {"soft_time_limit": 60, "time_limit": 120, "expires": 86400},
+    },
+    "cleanup-old-read-notifications": {
+        "task": "cleanup_old_read_notifications",
+        "schedule": 604800.0,  # weekly
+        "options": {"soft_time_limit": 60, "time_limit": 120, "expires": 604800},
+    },
 }

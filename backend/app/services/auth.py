@@ -286,7 +286,7 @@ async def consume_invite_code(code: str, user_id: str | None = None) -> bool:
 
 async def create_invite_code(user_id: str) -> tuple[str, datetime]:
     """Generate a new invite code. Returns (code, expires_at)."""
-    code = f"INV-{uuid.uuid4().hex[:8].upper()}"
+    code = f"INV-{uuid.uuid4().hex[:16].upper()}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await auth_repo.insert_invite_code(uuid.uuid4(), code, uuid.UUID(user_id), expires_at)
     logger.info("Invite code created", extra={"user_id": user_id, "code": mask_pii(code, 4)})

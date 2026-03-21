@@ -121,6 +121,19 @@ def download_file(key: str) -> tuple[bytes, str]:
     return data, content_type
 
 
+def download_file_metadata(key: str) -> tuple[Any, str, int]:
+    """Get a streaming body + content_type + content_length from MinIO.
+
+    Returns (streaming_body, content_type, content_length).
+    The caller is responsible for reading/closing the streaming body.
+    """
+    client = get_storage()
+    resp = client.get_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
+    content_type = resp.get("ContentType", "application/octet-stream")
+    content_length = int(resp.get("ContentLength", 0))
+    return resp["Body"], content_type, content_length
+
+
 def delete_file(key: str) -> None:
     """Delete file from MinIO."""
     client = get_storage()

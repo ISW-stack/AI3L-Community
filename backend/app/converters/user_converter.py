@@ -14,7 +14,7 @@ def resolve_avatar_url(avatar_url: str | None) -> str | None:
     try:
         from app.core.storage import generate_presigned_url
 
-        return generate_presigned_url(avatar_url, expires_in=86400 * 7)  # 7-day URL
+        return generate_presigned_url(avatar_url, expires_in=3600)  # 1-hour URL
     except Exception:
         return avatar_url
 
@@ -31,7 +31,7 @@ async def async_resolve_avatar_url(avatar_url: str | None) -> str | None:
     try:
         from app.core.async_storage import generate_presigned_url
 
-        return await generate_presigned_url(avatar_url, expires_in=86400 * 7)  # 7-day URL
+        return await generate_presigned_url(avatar_url, expires_in=3600)  # 1-hour URL
     except Exception:
         return avatar_url
 

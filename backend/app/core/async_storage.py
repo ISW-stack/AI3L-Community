@@ -4,6 +4,7 @@ import asyncio
 
 from app.core.storage import delete_file as _sync_delete
 from app.core.storage import download_file as _sync_download
+from app.core.storage import download_file_metadata as _sync_download_metadata
 from app.core.storage import generate_presigned_url as _sync_presigned
 from app.core.storage import get_file_size as _sync_get_file_size
 from app.core.storage import get_storage
@@ -38,6 +39,15 @@ async def download_file(key: str) -> tuple[bytes, str]:
     """Download file from MinIO. Returns (data, content_type)."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_download, key)
+
+
+async def download_file_metadata(key: str) -> tuple:
+    """Get streaming body, content_type, and content_length from MinIO.
+
+    Returns (streaming_body, content_type, content_length).
+    """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _sync_download_metadata, key)
 
 
 async def generate_presigned_url(key: str, expires_in: int) -> str:

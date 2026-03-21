@@ -257,24 +257,43 @@ async def search_users(query: str, limit: int = 20) -> list[dict]:
         return [dict(r) for r in rows]
 
 
-async def search_users_for_coauthor(query: str, limit: int = 5) -> list[dict]:
+async def search_users_for_coauthor(
+    query: str, limit: int = 5, exclude_ids: set[str] | None = None
+) -> list[dict]:
     """Search active, non-banned users for co-author invitation.
 
     Uses _escape_ilike to neutralise ILIKE wildcards (%, _) in user input
     and ESCAPE '\\' so the database applies the escaping correctly.
+
+    When *exclude_ids* is provided, those users (blocked/blocking) are
+    filtered out of the results.
     """
     pool = get_pool()
     pattern = f"%{_escape_ilike(query)}%"
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT id, username, display_name, avatar_url FROM users"
-            " WHERE is_deleted = false AND is_banned = false"
-            " AND (display_name ILIKE $1 ESCAPE '\\' OR username ILIKE $1 ESCAPE '\\')"
-            " ORDER BY display_name"
-            " LIMIT $2",
-            pattern,
-            limit,
-        )
+        if exclude_ids:
+            exclude_uuids = [uuid.UUID(uid) for uid in exclude_ids]
+            rows = await conn.fetch(
+                "SELECT id, username, display_name, avatar_url FROM users"
+                " WHERE is_deleted = false AND is_banned = false"
+                " AND (display_name ILIKE $1 ESCAPE '\\' OR username ILIKE $1 ESCAPE '\\')"
+                " AND id != ALL($3::uuid[])"
+                " ORDER BY display_name"
+                " LIMIT $2",
+                pattern,
+                limit,
+                exclude_uuids,
+            )
+        else:
+            rows = await conn.fetch(
+                "SELECT id, username, display_name, avatar_url FROM users"
+                " WHERE is_deleted = false AND is_banned = false"
+                " AND (display_name ILIKE $1 ESCAPE '\\' OR username ILIKE $1 ESCAPE '\\')"
+                " ORDER BY display_name"
+                " LIMIT $2",
+                pattern,
+                limit,
+            )
         return [dict(r) for r in rows]
 
 

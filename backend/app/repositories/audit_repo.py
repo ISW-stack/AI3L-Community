@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from app.core.database import get_pool
 
@@ -31,8 +32,8 @@ async def find_many(
     page: int = 1,
     page_size: int = 50,
     user_id_filter: uuid.UUID | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> tuple[list[dict], int]:
     pool = get_pool()
     offset = (page - 1) * page_size
@@ -77,3 +78,14 @@ async def find_many(
             *params,
         )
         return [dict(r) for r in rows], total
+
+
+async def delete_old_logs(days: int = 90) -> int:
+    """Delete audit log entries older than *days* days. Returns count deleted."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM audit_logs WHERE created_at < NOW() - make_interval(days => $1)",
+            days,
+        )
+        return int(result.split()[-1]) if result else 0

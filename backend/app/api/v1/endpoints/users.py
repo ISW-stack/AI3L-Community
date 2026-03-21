@@ -1,7 +1,8 @@
+import asyncio
 import uuid
 from datetime import date as DateType
 
-from fastapi import APIRouter, Depends, Query, Request, UploadFile, status
+from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile, status
 
 from app.converters.user_converter import async_user_to_public_response, async_user_to_response
 from app.core.constants import MAX_AVATAR_SIZE
@@ -126,6 +127,7 @@ async def upload_avatar(
 @router.put("/me/password", response_model=MessageResponse)
 async def change_my_password(
     request: Request,
+    response: Response,
     req: ChangePasswordRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
@@ -154,6 +156,14 @@ async def change_my_password(
 
     # Revoke ALL sessions (all devices) so user must re-login everywhere
     await revoke_user_sessions(current_user["sub"])
+
+    # Clear auth cookies so this client is immediately logged out
+    from app.core.config import settings
+
+    domain = settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None
+    response.delete_cookie(key="access_token", path="/", domain=domain)
+    response.delete_cookie(key="csrf_token", path="/", domain=domain)
+
     return MessageResponse(message="Password changed successfully. Please log in again.")
 
 
@@ -225,9 +235,21 @@ async def search_users(
 ) -> list[dict]:
     """Search users by display name or username for co-author invitation."""
     from app.converters.user_converter import async_resolve_avatar_url
+    from app.core.blacklist import get_blocked_user_ids
+    from app.core.database import get_pool
+    from app.core.redis import get_redis
     from app.repositories.user_repo import search_users_for_coauthor
 
-    rows = await search_users_for_coauthor(q, limit)
+    # Fetch blocked user IDs to exclude from results
+    exclude_ids: set[str] = set()
+    try:
+        redis = get_redis()
+        pool = get_pool()
+        exclude_ids = await get_blocked_user_ids(redis, current_user["sub"], pool=pool)
+    except Exception:
+        pass  # Redis/DB failure → don't filter
+
+    rows = await search_users_for_coauthor(q, limit, exclude_ids=exclude_ids)
 
     return [
         {
@@ -431,7 +453,7 @@ async def get_all_users(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> UserListResponse:
     users, total = await list_users(page=page, page_size=page_size, search=search)
-    user_responses = [await async_user_to_response(u) for u in users]
+    user_responses = list(await asyncio.gather(*[async_user_to_response(u) for u in users]))
     return UserListResponse(users=user_responses, total=total)
 
 
@@ -586,7 +608,7 @@ async def get_audit_logs(
         page=page,
         page_size=page_size,
         user_id_filter=user_id,
-        date_from=date_from.isoformat() if date_from else None,
-        date_to=date_to.isoformat() if date_to else None,
+        date_from=date_from,
+        date_to=date_to,
     )
     return {"logs": logs, "total": total, "page": page, "page_size": page_size}

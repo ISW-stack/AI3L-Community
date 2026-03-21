@@ -157,6 +157,18 @@ async def bulk_delete(user_id: uuid.UUID, notification_ids: list[uuid.UUID] | No
         return int(result.split()[-1]) if result else 0
 
 
+async def delete_old_read_notifications(days: int = 90) -> int:
+    """Delete read notifications older than *days* days. Returns count deleted."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "DELETE FROM notifications WHERE is_read = true "
+            "AND created_at < NOW() - make_interval(days => $1)",
+            days,
+        )
+        return int(result.split()[-1]) if result else 0
+
+
 async def count_unread(user_id: uuid.UUID) -> int:
     pool = get_pool()
     async with pool.acquire() as conn:
