@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import QAListView from '../QAListView.vue'
@@ -87,9 +86,7 @@ const fakeCategories = [
   { id: 'cat2', name: 'Language Learning', post_count: 5 },
 ]
 
-const fakeTrending = [
-  makeQuestion({ id: 'tq1', title: 'Trending Question', answer_count: 12 }),
-]
+const fakeTrending = [makeQuestion({ id: 'tq1', title: 'Trending Question', answer_count: 12 })]
 
 // ---------------------------------------------------------------------------
 // Helpers

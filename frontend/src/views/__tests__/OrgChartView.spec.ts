@@ -398,9 +398,7 @@ describe('OrgChartView', () => {
     const wrapper = mountView('SUPER_ADMIN', 'other-id')
     await flushPromises()
     const buttons = wrapper.findAll('button[title]')
-    const settingsBtn = buttons.filter((b) =>
-      b.attributes('title')?.includes('display settings'),
-    )
+    const settingsBtn = buttons.filter((b) => b.attributes('title')?.includes('display settings'))
     expect(settingsBtn.length).toBeGreaterThan(0)
   })
 
@@ -408,9 +406,7 @@ describe('OrgChartView', () => {
     const wrapper = mountView('MEMBER', 'other-id')
     await flushPromises()
     const buttons = wrapper.findAll('button[title]')
-    const settingsBtn = buttons.filter((b) =>
-      b.attributes('title')?.includes('display settings'),
-    )
+    const settingsBtn = buttons.filter((b) => b.attributes('title')?.includes('display settings'))
     expect(settingsBtn.length).toBe(0)
   })
 
@@ -443,9 +439,7 @@ describe('OrgChartView', () => {
 
     // Bio edit button should now be visible inside the member panel
     const buttonsAfter = wrapper.findAll('button[title]')
-    const bioBtnAfter = buttonsAfter.filter((b) =>
-      b.attributes('title')?.includes('Edit your bio'),
-    )
+    const bioBtnAfter = buttonsAfter.filter((b) => b.attributes('title')?.includes('Edit your bio'))
     expect(bioBtnAfter.length).toBeGreaterThan(0)
   })
 

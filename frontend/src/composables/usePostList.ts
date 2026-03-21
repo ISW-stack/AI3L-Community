@@ -92,9 +92,7 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
 
   const dateRangeInvalid = computed(
     () =>
-      !!searchDateFrom.value &&
-      !!searchDateTo.value &&
-      searchDateFrom.value > searchDateTo.value,
+      !!searchDateFrom.value && !!searchDateTo.value && searchDateFrom.value > searchDateTo.value,
   )
 
   const activeCategoryName = computed(() => {

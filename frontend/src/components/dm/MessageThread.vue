@@ -207,7 +207,7 @@ defineExpose({ scrollToBottom })
   <div
     ref="scrollContainer"
     @scroll="handleScroll"
-    class="flex-1 overflow-y-auto px-4 py-4 space-y-1 relative"
+    class="flex-1 overflow-y-auto px-4 py-4 space-y-1 relative min-h-0"
   >
     <!-- Load more -->
     <div v-if="hasMore" class="text-center pb-3">

@@ -90,7 +90,17 @@ function createStubs() {
     },
     SearchPanel: {
       template: '<div class="search-panel" />',
-      props: ['keyword', 'dateFrom', 'dateTo', 'logic', 'showAdvanced', 'isSearchLoading', 'isSearching', 'dateRangeInvalid', 'placeholder'],
+      props: [
+        'keyword',
+        'dateFrom',
+        'dateTo',
+        'logic',
+        'showAdvanced',
+        'isSearchLoading',
+        'isSearching',
+        'dateRangeInvalid',
+        'placeholder',
+      ],
     },
     CategoryFilter: {
       template: '<div class="category-filter" />',
@@ -110,7 +120,6 @@ function createStubs() {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function createTestRouter(_initialRoute?: string) {
   return createRouter({
     history: createMemoryHistory(),

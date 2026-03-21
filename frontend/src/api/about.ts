@@ -37,10 +37,7 @@ export async function updateSigDescription(
   })
 }
 
-export async function updateMemberBio(
-  sigId: string,
-  orgChartBio: string | null,
-): Promise<void> {
+export async function updateMemberBio(sigId: string, orgChartBio: string | null): Promise<void> {
   await api.put(`/about/org-chart/sigs/${sigId}/members/me/bio`, {
     org_chart_bio: orgChartBio,
   })
