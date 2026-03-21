@@ -56,6 +56,7 @@ class TestQuotaRaceBlocked:
             mock_album_repo.find_member = AsyncMock(
                 return_value={"status": "ACCEPTED", "role": "MEMBER"}
             )
+            mock_album_repo.count_photos = AsyncMock(return_value=0)
             mock_album_repo.insert_photo = AsyncMock(
                 return_value={"id": uuid.uuid4(), "storage_key": "test"}
             )
@@ -127,6 +128,7 @@ class TestQuotaExceeded:
             mock_album_repo.find_member = AsyncMock(
                 return_value={"status": "ACCEPTED", "role": "MEMBER"}
             )
+            mock_album_repo.count_photos = AsyncMock(return_value=0)
 
             from app.services.album import upload_file_zip
 

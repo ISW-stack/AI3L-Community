@@ -7,6 +7,7 @@ from typing import Any, cast
 from fastapi import APIRouter, Depends, Query, UploadFile, status
 
 from app.core.constants import (
+    ALBUM_MAX_ZIP_SIZE_BYTES,
     DEFAULT_PAGE_SIZE_ALBUM_COMMENTS,
     DEFAULT_PAGE_SIZE_ALBUM_PHOTOS,
     DEFAULT_PAGE_SIZE_ALBUMS,
@@ -313,7 +314,7 @@ async def upload_file_endpoint(
     total = 0
     while chunk := await file.read(8192):
         total += len(chunk)
-        if total > MAX_ALBUM_UPLOAD_BYTES:
+        if total > ALBUM_MAX_ZIP_SIZE_BYTES:
             raise AppError(ErrorCode.SYS_422, 422, "File too large.")
         chunks.append(chunk)
     file_data = b"".join(chunks)

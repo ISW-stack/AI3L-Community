@@ -14,13 +14,15 @@ defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   upload: [file: File]
+  uploadZip: [file: File]
 }>()
 
 const selectedFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
 const error = ref('')
 
-const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/zip'
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/zip,application/x-zip-compressed'
+const ZIP_TYPES = new Set(['application/zip', 'application/x-zip-compressed'])
 
 const fileInfo = computed(() => {
   if (!selectedFile.value) return null
@@ -54,12 +56,21 @@ function handleFileChange(event: Event) {
   }
 }
 
+const isZipFile = computed(() => {
+  if (!selectedFile.value) return false
+  return ZIP_TYPES.has(selectedFile.value.type) || selectedFile.value.name.toLowerCase().endsWith('.zip')
+})
+
 function handleUpload() {
   if (!selectedFile.value) {
     error.value = t('albums.selectFileFirst')
     return
   }
-  emit('upload', selectedFile.value)
+  if (isZipFile.value) {
+    emit('uploadZip', selectedFile.value)
+  } else {
+    emit('upload', selectedFile.value)
+  }
   resetState()
   emit('update:modelValue', false)
 }
@@ -109,6 +120,10 @@ function resetState() {
           class="w-full max-h-48 object-contain bg-surface-alt"
         />
       </div>
+
+      <BaseAlert v-if="isZipFile" type="info">
+        {{ t('albums.zipUploadHint') }}
+      </BaseAlert>
 
       <div v-if="fileInfo" class="text-sm text-muted">
         <p>

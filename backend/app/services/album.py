@@ -670,14 +670,19 @@ async def upload_file_zip(
     filename: str,
     content_type: str,
 ) -> dict:
-    """Upload a ZIP file to an album (no thumbnail)."""
+    """Upload a ZIP file to an album (no thumbnail).
+
+    Security: validates ZIP structure, checks for zip bombs, strips Mac junk,
+    blocks path traversal and dangerous file types.
+    """
     from app.core.storage import album_zip_key
+    from app.core.zip_validation import validate_zip
 
     pool = get_pool()
     album_uuid = uuid.UUID(album_id)
     user_uuid = uuid.UUID(user_id)
 
-    # Validate type
+    # 1. Validate content type
     if content_type not in ALBUM_ALLOWED_ZIP_TYPES:
         raise AppError(
             ErrorCode.ALBUM_003,
@@ -685,22 +690,27 @@ async def upload_file_zip(
             "Only ZIP files are allowed for file uploads.",
         )
 
-    # Validate magic bytes
-    if not validate_magic_number(file_data, "application/zip"):
-        # ZIP and DOCX share PK signature, use the generic check
-        if not file_data[:4] == b"PK\x03\x04":
-            raise AppError(
-                ErrorCode.ALBUM_003,
-                400,
-                "File content does not match ZIP format.",
-            )
-
+    # 2. Validate compressed size
     file_size = len(file_data)
     if file_size > ALBUM_MAX_ZIP_SIZE_BYTES:
         raise AppError(
             ErrorCode.ALBUM_002,
             400,
             f"ZIP file size exceeds {ALBUM_MAX_ZIP_SIZE_BYTES // (1024 * 1024)}MB limit.",
+        )
+
+    # 3. Comprehensive ZIP security validation (bomb, traversal, junk, extensions)
+    result = validate_zip(file_data, strip_mac_junk=True)
+    upload_data = result.clean_data or file_data
+    upload_size = len(upload_data)
+
+    if result.stripped_entries:
+        logger.info(
+            "Stripped Mac junk from ZIP",
+            extra={
+                "album_id": album_id,
+                "stripped_count": len(result.stripped_entries),
+            },
         )
 
     async with pool.acquire() as conn:
@@ -713,13 +723,22 @@ async def upload_file_zip(
             raise AppError(ErrorCode.SYS_403, 403, "Must be an approved album member to upload.")
 
         async with conn.transaction():
+            # Check album photo count
+            photo_count = await album_repo.count_photos(conn, album_uuid)
+            if photo_count >= ALBUM_MAX_PHOTOS:
+                raise AppError(
+                    ErrorCode.ALBUM_002,
+                    400,
+                    f"Album has reached the maximum of {ALBUM_MAX_PHOTOS} photos.",
+                )
+
             # Lock user row to prevent concurrent uploads bypassing quota
             quota_row = await conn.fetchrow(
                 "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
                 user_uuid,
             )
             storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
-            if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
+            if storage_used + upload_size > settings.MAX_USER_STORAGE_BYTES:
                 raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
 
             ext = ""
@@ -728,15 +747,14 @@ async def upload_file_zip(
             file_uuid = str(uuid.uuid4())
             storage_key = album_zip_key(album_id, file_uuid, ext)
 
-            # Use async storage to avoid blocking the event loop
             from app.core.async_storage import upload_file as async_upload_file
 
-            await async_upload_file(file_data, storage_key, content_type)
+            await async_upload_file(upload_data, storage_key, content_type)
 
             # Increment storage within same transaction
             await conn.execute(
                 "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
-                file_size,
+                upload_size,
                 user_uuid,
             )
 
@@ -748,14 +766,14 @@ async def upload_file_zip(
                 user_uuid,
                 storage_key,
                 filename,
-                file_size,
+                upload_size,
                 content_type,
                 is_zip=True,
             )
 
     logger.info(
         "Album ZIP uploaded",
-        extra={"album_id": album_id, "photo_id": str(photo_id), "size": file_size},
+        extra={"album_id": album_id, "photo_id": str(photo_id), "size": upload_size},
     )
 
     async with pool.acquire() as conn:

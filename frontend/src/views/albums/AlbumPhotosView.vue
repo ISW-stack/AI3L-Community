@@ -6,6 +6,7 @@ import { useAlbumLayout } from '@/composables/useAlbumLayout'
 import {
   listAlbumPhotos,
   uploadAlbumPhoto,
+  uploadAlbumFile,
   deleteAlbumPhoto,
   setAlbumCoverFromPhoto,
 } from '@/api/albums'
@@ -81,6 +82,22 @@ async function handleUpload(file: File) {
     const formData = new FormData()
     formData.append('file', file)
     await uploadAlbumPhoto(album.value.id, formData)
+    toast.show(t('albums.uploadSuccess'), 'success')
+    await fetchPhotos()
+  } catch (e: unknown) {
+    toast.show(getErrorMessage(e, t('albums.uploadError')), 'error')
+  } finally {
+    uploading.value = false
+  }
+}
+
+async function handleUploadZip(file: File) {
+  if (!album.value) return
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    await uploadAlbumFile(album.value.id, formData)
     toast.show(t('albums.uploadSuccess'), 'success')
     await fetchPhotos()
   } catch (e: unknown) {
@@ -189,6 +206,6 @@ watch(page, fetchPhotos)
       @set-cover="handleSetCover"
     />
 
-    <PhotoUploadModal v-model="showUploadModal" @upload="handleUpload" />
+    <PhotoUploadModal v-model="showUploadModal" @upload="handleUpload" @upload-zip="handleUploadZip" />
   </div>
 </template>

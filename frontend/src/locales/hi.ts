@@ -1449,7 +1449,9 @@ export default {
     // Photo upload modal
     uploadPhotoTitle: 'Upload Photo',
     selectFile: 'Select file',
-    acceptedFormats: 'Accepted: JPEG, PNG, GIF, WebP, or ZIP archive',
+    acceptedFormats: 'Accepted: JPEG, PNG, GIF, WebP, or ZIP archive (max 100 MB)',
+    zipUploadHint:
+      'ZIP files are scanned for security. Mac system files (__MACOSX, .DS_Store) will be automatically removed. Executable files (.exe, .bat, .js, etc.) are not allowed inside the archive.',
     fileLabel: 'File:',
     sizeLabel: 'Size:',
     selectFileFirst: 'Please select a file first.',

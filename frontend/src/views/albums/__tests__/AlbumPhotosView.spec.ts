@@ -8,12 +8,14 @@ import type { Album } from '@/types/album'
 
 const mockListAlbumPhotos = vi.fn()
 const mockUploadAlbumPhoto = vi.fn()
+const mockUploadAlbumFile = vi.fn()
 const mockDeleteAlbumPhoto = vi.fn()
 const mockSetAlbumCoverFromPhoto = vi.fn()
 
 vi.mock('@/api/albums', () => ({
   listAlbumPhotos: (...args: unknown[]) => mockListAlbumPhotos(...args),
   uploadAlbumPhoto: (...args: unknown[]) => mockUploadAlbumPhoto(...args),
+  uploadAlbumFile: (...args: unknown[]) => mockUploadAlbumFile(...args),
   deleteAlbumPhoto: (...args: unknown[]) => mockDeleteAlbumPhoto(...args),
   setAlbumCoverFromPhoto: (...args: unknown[]) => mockSetAlbumCoverFromPhoto(...args),
 }))

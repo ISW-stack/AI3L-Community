@@ -90,10 +90,11 @@ export async function uploadAlbumPhoto(albumId: string, formData: FormData): Pro
   return data
 }
 
-export async function uploadAlbumFile(albumId: string, formData: FormData): Promise<void> {
-  await api.post(`/albums/${albumId}/files`, formData, {
+export async function uploadAlbumFile(albumId: string, formData: FormData): Promise<AlbumPhoto> {
+  const { data } = await api.post<AlbumPhoto>(`/albums/${albumId}/files`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
+  return data
 }
 
 export async function updateAlbumPhoto(

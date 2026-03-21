@@ -1266,6 +1266,10 @@ class TestB20UpdateAlbumNoneValues:
         album = _fake_album_row(album_id=album_uuid, user_id=user_id)
 
         mock_conn = AsyncMock()
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
         mock_pool = MagicMock()
         mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
 
@@ -1349,6 +1353,10 @@ class TestB20UpdateAlbumNoneValues:
         album = _fake_album_row(album_id=album_uuid, user_id=user_id)
 
         mock_conn = AsyncMock()
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
         mock_pool = MagicMock()
         mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
 
