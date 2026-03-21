@@ -137,6 +137,12 @@ const router = createRouter({
           component: () => import('@/views/admin/IpBansView.vue'),
           meta: { requiresSuperAdmin: true },
         },
+        {
+          path: 'site-settings',
+          name: 'admin-site-settings',
+          component: () => import('@/views/admin/SiteSettingsView.vue'),
+          meta: { requiresSuperAdmin: true },
+        },
       ],
     },
     // Forms directory & standalone create (before /forms/:formId)

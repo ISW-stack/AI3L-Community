@@ -42,3 +42,19 @@ export async function updateMemberBio(sigId: string, orgChartBio: string | null)
     org_chart_bio: orgChartBio,
   })
 }
+
+export async function getAboutIntro(): Promise<{ photo_url: string; bio: string }> {
+  const res = await api.get('/about/intro')
+  return res.data
+}
+
+export async function updateAboutIntroPhoto(file: File): Promise<{ photo_url: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await api.put('/about/admin/intro/photo', form)
+  return res.data
+}
+
+export async function updateAboutIntroBio(bio: string): Promise<void> {
+  await api.put('/about/admin/intro/bio', { bio })
+}

@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Ban,
+  Settings,
 } from 'lucide-vue-next'
 
 const { t } = useI18n()
@@ -37,6 +38,12 @@ const navItems: NavItem[] = [
   { labelKey: 'nav.contributors', to: '/admin/contributors', icon: Users2, superAdminOnly: true },
   { labelKey: 'nav.auditLogs', to: '/admin/audit-logs', icon: Shield, superAdminOnly: true },
   { labelKey: 'nav.ipBans', to: '/admin/ip-bans', icon: Ban, superAdminOnly: true },
+  {
+    labelKey: 'nav.siteSettings',
+    to: '/admin/site-settings',
+    icon: Settings,
+    superAdminOnly: true,
+  },
 ]
 
 function closeSidebar() {

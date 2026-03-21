@@ -7,8 +7,9 @@ from collections import OrderedDict
 from typing import Any
 
 import requests as _requests  # type: ignore[import-untyped]
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, UploadFile
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
@@ -32,6 +33,7 @@ from app.schemas.org_chart import (
 )
 from app.services import contributor as contributor_service
 from app.services import org_chart as org_chart_service
+from app.services import site_settings as site_settings_service
 
 router = APIRouter(prefix="/about", tags=["about"])
 
@@ -255,6 +257,100 @@ async def update_my_org_chart_bio(
     updated = await org_chart_service.update_member_bio(sig_id, user_id, body.org_chart_bio)
     if not updated:
         raise AppError(ErrorCode.SYS_404, 404, "Membership not found.")
+    return {"status": "ok"}
+
+
+# ── About Introduction (photo + bio) ──────────────────────────────────
+
+
+@router.get("/intro")
+async def get_about_intro(
+    _current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Return the about introduction photo URL and bio text."""
+    data = await site_settings_service.get_about_intro()
+    photo_url = ""
+    if data["photo_key"]:
+        from app.core.storage import generate_presigned_url
+
+        photo_url = generate_presigned_url(data["photo_key"])
+    return {"photo_url": photo_url, "bio": data["bio"]}
+
+
+_MAX_INTRO_PHOTO_BYTES = 5 * 1024 * 1024  # 5 MB
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+# Magic byte signatures for image validation
+_IMAGE_MAGIC: dict[bytes, str] = {
+    b"\xff\xd8\xff": "jpg",
+    b"\x89PNG": "png",
+    b"RIFF": "webp",  # WebP starts with RIFF....WEBP
+}
+
+
+def _detect_image_ext(data: bytes) -> str | None:
+    """Return file extension from magic bytes, or None if not a known image."""
+    if len(data) < 12:
+        return None
+    if data[:3] == b"\xff\xd8\xff":
+        return "jpg"
+    if data[:4] == b"\x89PNG":
+        return "png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+class _BioUpdateRequest(BaseModel):
+    bio: str = Field(default="", max_length=5000)
+
+
+@router.put("/admin/intro/photo")
+async def update_about_intro_photo(
+    file: UploadFile,
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Upload or replace the about introduction photo. SUPER_ADMIN only."""
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise AppError(ErrorCode.SYS_422, 422, "Only JPEG, PNG, or WebP images are allowed.")
+
+    data = await file.read()
+    if len(data) > _MAX_INTRO_PHOTO_BYTES:
+        raise AppError(ErrorCode.SYS_422, 422, "Image must be under 5 MB.")
+
+    # Validate actual file content via magic bytes (don't trust client content_type)
+    ext = _detect_image_ext(data)
+    if ext is None:
+        raise AppError(ErrorCode.SYS_422, 422, "File content is not a valid image.")
+
+    key = f"site/about-intro-{uuid.uuid4()}.{ext}"
+
+    from app.core.storage import delete_file, generate_presigned_url, upload_file
+
+    # Delete old photo from storage if one exists
+    old_data = await site_settings_service.get_about_intro()
+    old_key = old_data["photo_key"]
+
+    upload_file(data, key, file.content_type or "image/jpeg")
+    await site_settings_service.update_about_intro_photo(key)
+
+    if old_key:
+        try:
+            delete_file(old_key)
+        except Exception:
+            pass  # best-effort cleanup; orphan file cleaner will catch it
+
+    photo_url = generate_presigned_url(key)
+    return {"photo_url": photo_url}
+
+
+@router.put("/admin/intro/bio")
+async def update_about_intro_bio(
+    body: _BioUpdateRequest,
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Update the about introduction bio text. SUPER_ADMIN only."""
+    await site_settings_service.update_about_intro_bio(body.bio)
     return {"status": "ok"}
 
 
