@@ -237,18 +237,18 @@ _Last updated: 2026-03-21 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +250,801 |
-| Total lines removed (all commits) | -38,966 |
+| Total lines added (all commits) | +251,191 |
+| Total lines removed (all commits) | -39,376 |
 | Backend source lines (excl. tests) | 24,078 |
-| Frontend source lines (excl. tests) | 56,596 |
+| Frontend source lines (excl. tests) | 56,580 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
     "Python" : 86535
-    "TypeScript" : 81612
-    "Vue" : 21137
+    "TypeScript" : 81621
+    "Vue" : 21108
     "CSS" : 109
 ```
 
@@ -261,10 +261,10 @@ pie title Lines of Code by Language
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
 | Backend (pytest) | 2,524 | 24,078 | 59,787 |
-| Frontend (Vitest) | 2,645 | 56,596 | 46,153 |
-| **Total** | **5,169** | **80,674** | **105,940** |
+| Frontend (Vitest) | 2,645 | 56,580 | 46,149 |
+| **Total** | **5,169** | **80,658** | **105,936** |
 
-Test-to-source ratio: **1.31** (105,940 lines of tests for every 80,674 lines of source)
+Test-to-source ratio: **1.31** (105,936 lines of tests for every 80,658 lines of source)
 
 ### Additional Metrics
 
@@ -279,18 +279,18 @@ Test-to-source ratio: **1.31** (105,940 lines of tests for every 80,674 lines of
 | File | Lines |
 | --- | ---: |
 | `backend/app/services/album.py` | 986 |
-| `frontend/src/views/about/OrgChartView.vue` | 839 |
+| `frontend/src/views/about/OrgChartView.vue` | 823 |
 | `frontend/src/composables/usePostDetail.ts` | 810 |
 | `frontend/src/views/forum/PostDetailView.vue` | 761 |
-| `frontend/src/components/AppNavbar.vue` | 718 |
+| `frontend/src/components/AppNavbar.vue` | 715 |
 
 ### Contributions by Author
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 335 | +248,308 | -37,389 |
-| SW9526 | 23 | +5,823 | -1,670 |
-| github-actions[bot] | 20 | +251 | -251 |
+| Isaries | 341 | +248,402 | -37,538 |
+| SW9526 | 29 | +6,191 | -2,058 |
+| github-actions[bot] | 21 | +273 | -273 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
 
