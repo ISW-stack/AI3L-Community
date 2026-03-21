@@ -40,13 +40,18 @@ class TestCookieSecureAutoDerive:
         s = _make_settings(FASTAPI_ENV="test")
         assert s.COOKIE_SECURE is False
 
+    _SAFE_PROD = dict(
+        JWT_SECRET_KEY="prod_secret_key_safe",
+        SECRET_KEY="real_secret_key_prod_32chars_long_ok",
+        SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
+        POSTGRES_PASSWORD="real_pg_password",
+        REDIS_PASSWORD="real_redis_password",
+        MINIO_ROOT_PASSWORD="real_minio_password",
+    )
+
     def test_production_defaults_to_true(self) -> None:
         """In production mode, COOKIE_SECURE defaults to True."""
-        s = _make_settings(
-            FASTAPI_ENV="production",
-            JWT_SECRET_KEY="prod_secret_key_safe",
-            SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
-        )
+        s = _make_settings(FASTAPI_ENV="production", **self._SAFE_PROD)
         assert s.COOKIE_SECURE is True
 
     def test_explicit_true_overrides_development(self) -> None:
@@ -59,8 +64,7 @@ class TestCookieSecureAutoDerive:
         _make_settings(
             FASTAPI_ENV="production",
             COOKIE_SECURE=False,
-            JWT_SECRET_KEY="prod_secret_key_safe",
-            SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
+            **self._SAFE_PROD,
         )
 
     def test_unknown_env_defaults_to_false(self) -> None:
@@ -77,11 +81,7 @@ class TestCookieSecureAutoDerive:
         s = _make_settings(FASTAPI_ENV="development")
         assert isinstance(s.COOKIE_SECURE, bool)
 
-        s2 = _make_settings(
-            FASTAPI_ENV="production",
-            JWT_SECRET_KEY="prod_secret_key_safe",
-            SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
-        )
+        s2 = _make_settings(FASTAPI_ENV="production", **self._SAFE_PROD)
         assert isinstance(s2.COOKIE_SECURE, bool)
 
 

@@ -477,7 +477,10 @@ async def search(
     effective_search_sort = "newest" if sort == "unanswered" else sort
     order_by = _SEARCH_SORT_MAP.get(effective_search_sort, _SEARCH_SORT_MAP["newest"])
 
-    conditions = ["p.is_deleted = false"]
+    conditions = [
+        "p.is_deleted = false",
+        "(p.sig_id IS NULL OR NOT EXISTS (SELECT 1 FROM sigs s WHERE s.id = p.sig_id AND s.is_deleted = true))",
+    ]
     params: list = []
     idx = 1
 
@@ -680,6 +683,9 @@ async def get_search_suggestions(query: str, limit: int = 5) -> list[dict]:
             SELECT DISTINCT title, id
             FROM posts
             WHERE is_deleted = FALSE
+              AND (sig_id IS NULL OR NOT EXISTS (
+                  SELECT 1 FROM sigs s WHERE s.id = posts.sig_id AND s.is_deleted = true
+              ))
               AND (title ILIKE $1 ESCAPE '\\' OR EXISTS (
                   SELECT 1 FROM unnest(keywords) AS kw WHERE kw ILIKE $1 ESCAPE '\\'
               ))
@@ -698,7 +704,11 @@ async def get_keyword_suggestions(query: str, limit: int = 5) -> list[str]:
         sql = """
             SELECT DISTINCT kw
             FROM posts, unnest(keywords) AS kw
-            WHERE posts.is_deleted = FALSE AND kw ILIKE $1 ESCAPE '\\'
+            WHERE posts.is_deleted = FALSE
+              AND (posts.sig_id IS NULL OR NOT EXISTS (
+                  SELECT 1 FROM sigs s WHERE s.id = posts.sig_id AND s.is_deleted = true
+              ))
+              AND kw ILIKE $1 ESCAPE '\\'
             ORDER BY kw
             LIMIT $2
         """

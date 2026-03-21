@@ -107,11 +107,12 @@ class TestStartupSecurityChecks:
     @pytest.mark.anyio
     async def test_startup_aborts_on_default_secret_key_in_production(self) -> None:
         """In production mode, startup must call sys.exit(1) when SECRET_KEY is default."""
+        from types import SimpleNamespace
         from unittest.mock import AsyncMock, patch
 
-        from app.core.config import Settings
-
-        prod_settings = Settings(
+        # Use SimpleNamespace to bypass Settings validator (which already blocks
+        # changeme passwords in production). This test covers the lifespan layer.
+        prod_settings = SimpleNamespace(
             FASTAPI_ENV="production",
             SECRET_KEY="changeme_secret_key_at_least_32_characters_long",
             POSTGRES_PASSWORD="strong_password",
@@ -120,6 +121,16 @@ class TestStartupSecurityChecks:
             JWT_SECRET_KEY="strong_jwt",
             SUPER_ADMIN_PASSWORD="strong_admin",
             COOKIE_SECURE=True,
+            MINIO_PUBLIC_URL="https://cdn.example.com",
+            is_development=False,
+            SENTRY_DSN="",
+            DD_TRACE_ENABLED=False,
+            DD_AGENT_HOST="",
+            LOG_LEVEL="DEBUG",
+            LOG_FORMAT="json",
+            DATABASE_URL="postgresql+asyncpg://u:p@h:5432/d",
+            REDIS_URL="redis://:p@h:6379/0",
+            TRUSTED_HOSTS="",
         )
 
         exit_called_with: list[int] = []

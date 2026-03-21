@@ -130,6 +130,21 @@ class Settings(BaseSettings):
                     "SUPER_ADMIN_PASSWORD contains 'changeme' — refusing to start in production. "
                     "Set a strong, unique password."
                 )
+            if "changeme" in self.POSTGRES_PASSWORD:
+                raise ValueError(
+                    "POSTGRES_PASSWORD contains 'changeme' — refusing to start in production. "
+                    "Set a strong, unique password."
+                )
+            if "changeme" in self.REDIS_PASSWORD:
+                raise ValueError(
+                    "REDIS_PASSWORD contains 'changeme' — refusing to start in production. "
+                    "Set a strong, unique password."
+                )
+            if "changeme" in self.MINIO_ROOT_PASSWORD:
+                raise ValueError(
+                    "MINIO_ROOT_PASSWORD contains 'changeme' — refusing to start in production. "
+                    "Set a strong, unique password."
+                )
         # Auto-derive COOKIE_SECURE from FASTAPI_ENV when not explicitly set
         if self.COOKIE_SECURE is None:
             self.COOKIE_SECURE = self.FASTAPI_ENV == "production"

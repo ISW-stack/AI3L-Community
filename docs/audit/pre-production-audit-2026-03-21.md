@@ -385,13 +385,20 @@ The following areas were explicitly audited and confirmed correct:
 
 ## Fix Status (updated 2026-03-21)
 
-### Fixed in this session (26 findings)
+### Fixed in this session (33 findings)
 
 | ID | Status | Fix |
 |----|--------|-----|
 | H-01 | ✅ FIXED | `_get_body_limit()` path-based size map in `main.py`; albums/DM→50MB, files→20MB |
+| H-02 | ✅ FIXED | `security-headers.conf.template` uses `${MINIO_CSP_ORIGIN}` envsubst variable; `docker-entrypoint.sh` processes template at startup |
+| H-03 | ✅ FIXED | HSTS header added to both dev `security-headers.conf` and production `.conf.template` (`max-age=31536000; includeSubDomains`) |
+| H-04 | ✅ FIXED | Production guards added for `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `MINIO_ROOT_PASSWORD` in config validator; docker-compose defaults aligned (`changeme_postgres`, `changeme_redis`, `changeme_minio`) |
+| H-05 | ✅ FIXED | `nginx/docker-entrypoint.sh` auto-enables HTTPS if TLS certs exist (`/etc/nginx/ssl/fullchain.pem`); docker-compose updated with entrypoint + `MINIO_CSP_ORIGIN` env var |
 | H-06 | ✅ FIXED | `anonymize_user()` collects avatar + DM attachment keys before deletion, deletes from MinIO after transaction |
 | H-07 | ✅ FIXED | `pattern=r"^[a-zA-Z0-9_-]+$"` added to all username fields in user/auth schemas |
+| H-08 | ✅ FIXED | Migration `h08fk320001`: ON DELETE SET NULL for posts/comments/audit_logs/forms/form_responses/post_reports/sigs/invite_codes user_id FKs (columns made nullable); ON DELETE CASCADE for privacy_consents/membership_applications |
+| H-09 | ✅ FIXED | Migration `h09ck320002`: CHECK constraints on `users.role`, `membership_applications.status`, `post_reports.status`, `sig_members.role`, `file_scans.status` |
+| H-10 | ✅ FIXED | `post_repo.search()`, `get_search_suggestions()`, `get_keyword_suggestions()` now filter out posts from deleted SIGs (same clause as `find_many`) |
 | M-05 | ✅ FIXED | `dm_friends_only` check inlined inside transaction; no longer uses separate connection |
 | M-06 | ✅ FIXED | `edit_message` re-reads message inside advisory lock for accurate char_delta |
 | M-07 | ✅ FIXED | `recall_message` re-reads message inside advisory lock for accurate content_len |
@@ -418,23 +425,24 @@ The following areas were explicitly audited and confirmed correct:
 
 Additional schema hardening (L-33, L-35, L-36): `category_id`/`sig_id` UUID pattern, `captcha_id` max_length=100, `QuestionSchema` numeric bounds all applied.
 
-**Tests added:** 158 new tests across 6 new/updated test files (all passing).
+**Tests added:** 189 new tests across 7 new/updated test files (all passing).
+- `test_h_fixes_2026_03_21.py`: 31 tests (H-02/03/04/05/08/09/10)
 
 ---
 
 ## Recommended Fix Priority
 
-### Before Production (must-fix — remaining items):
+### Before Production (must-fix — ALL HIGH items resolved):
 1. ~~**H-01**~~ ✅ Fixed
-2. **H-02** — Replace localhost in CSP with production MinIO URL
-3. **H-03** — Add HSTS to security headers
-4. **H-04** — Fix docker-compose default passwords
-5. **H-05** — Enable HTTPS, provision TLS certificates
+2. ~~**H-02**~~ ✅ Fixed — CSP uses `${MINIO_CSP_ORIGIN}` envsubst template
+3. ~~**H-03**~~ ✅ Fixed — HSTS added to all header configs
+4. ~~**H-04**~~ ✅ Fixed — Production guards + aligned docker-compose defaults
+5. ~~**H-05**~~ ✅ Fixed — nginx entrypoint auto-enables HTTPS if certs present
 6. ~~**H-06**~~ ✅ Fixed
 7. ~~**H-07**~~ ✅ Fixed
-8. **H-08** — Add ON DELETE rules to user FK constraints (migration)
-9. **H-09** — Add CHECK constraints on role/status columns (migration)
-10. **H-10** — Add SIG membership filter to search (or document all-public policy)
+8. ~~**H-08**~~ ✅ Fixed — ON DELETE rules for all user FK constraints
+9. ~~**H-09**~~ ✅ Fixed — CHECK constraints on all enum-like columns
+10. ~~**H-10**~~ ✅ Fixed — Deleted-SIG filter on all search functions
 
 ### Before Public Launch (should-fix — remaining items):
 11. **M-01** — Atomic WS ticket consumption (`redis.getdel`)

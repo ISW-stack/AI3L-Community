@@ -171,7 +171,11 @@ class TestSettings:
         s = self._make_settings(
             FASTAPI_ENV="production",
             JWT_SECRET_KEY="a_real_production_secret_key_here",
+            SECRET_KEY="real_secret_key_prod_32chars_long_ok",
             SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+            POSTGRES_PASSWORD="real_pg_password",
+            REDIS_PASSWORD="real_redis_password",
+            MINIO_ROOT_PASSWORD="real_minio_password",
         )
         assert s.is_development is False
 
@@ -207,7 +211,11 @@ class TestSettings:
             self._make_settings(
                 FASTAPI_ENV="production",
                 JWT_SECRET_KEY="a_real_production_secret_key_here",
+                SECRET_KEY="real_secret_key_prod_32chars_long_ok",
                 SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+                POSTGRES_PASSWORD="real_pg_password",
+                REDIS_PASSWORD="real_redis_password",
+                MINIO_ROOT_PASSWORD="real_minio_password",
             )
         env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
         assert len(env_warnings) == 0
