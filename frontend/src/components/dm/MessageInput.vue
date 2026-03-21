@@ -57,6 +57,13 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+function handleFocus() {
+  // Scroll input into view when virtual keyboard opens on mobile
+  setTimeout(() => {
+    textarea.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, 300)
+}
+
 function handleCancelEdit() {
   emit('cancel-edit')
 }
@@ -92,7 +99,7 @@ function formatFileSize(bytes: number): string {
 </script>
 
 <template>
-  <div class="border-t border-border bg-surface px-4 py-3">
+  <div class="border-t border-border bg-surface px-4 py-3" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px))">
     <!-- Edit mode banner -->
     <div
       v-if="editMode"
@@ -134,7 +141,7 @@ function formatFileSize(bytes: number): string {
       <button
         v-if="!editMode"
         @click="triggerFileSelect"
-        class="p-2 text-muted hover:text-foreground transition rounded-md hover:bg-surface-alt shrink-0"
+        class="p-2.5 sm:p-2 text-muted hover:text-foreground active:text-foreground transition rounded-md hover:bg-surface-alt shrink-0 touch-manipulation"
         :disabled="disabled"
         aria-label="Attach file"
       >
@@ -157,12 +164,13 @@ function formatFileSize(bytes: number): string {
           name="message"
           @keydown="handleKeydown"
           @input="checkOverflow"
+          @focus="handleFocus"
           :placeholder="editMode ? 'Edit your message...' : 'Type a message...'"
           :disabled="disabled"
           :maxlength="MAX_CHARS"
           rows="1"
-          class="w-full resize-none rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition disabled:opacity-50 overflow-y-auto"
-          style="max-height: 120px; min-height: 38px; field-sizing: content"
+          class="w-full resize-none rounded-lg border border-border bg-surface-alt px-3 py-2.5 sm:py-2 text-base sm:text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition disabled:opacity-50 overflow-y-auto"
+          style="max-height: 120px; min-height: 44px; field-sizing: content"
         ></textarea>
         <div
           v-if="isOverflowing"
@@ -183,7 +191,7 @@ function formatFileSize(bytes: number): string {
       <button
         @click="handleSend"
         :disabled="!canSend || disabled"
-        class="p-2 rounded-lg transition shrink-0"
+        class="p-2.5 sm:p-2 rounded-lg transition shrink-0 touch-manipulation"
         :class="
           canSend && !disabled
             ? 'bg-brand-600 text-white hover:bg-brand-700'

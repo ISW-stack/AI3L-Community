@@ -322,11 +322,11 @@ const activeConvUser = computed(() => {
 
     <div
       class="flex bg-surface border border-border rounded-lg shadow overflow-hidden"
-      style="height: calc(100vh - 220px)"
+      style="height: calc(100vh - 220px); height: calc(100dvh - 220px)"
     >
       <!-- Left: Conversation List -->
       <div
-        class="w-80 border-r border-border flex-shrink-0 overflow-y-auto"
+        class="w-full sm:w-80 border-r border-border flex-shrink-0 overflow-y-auto"
         :class="{ 'hidden sm:block': dmStore.activeConversationId || activeOtherUserId }"
       >
         <ConversationList
@@ -339,7 +339,7 @@ const activeConvUser = computed(() => {
 
       <!-- Right: Messages or Empty State -->
       <div
-        class="flex-1 flex flex-col min-w-0 min-h-0"
+        class="w-full sm:flex-1 flex flex-col min-w-0 min-h-0"
         :class="{ 'hidden sm:flex': !dmStore.activeConversationId && !activeOtherUserId }"
       >
         <template v-if="dmStore.activeConversationId || activeOtherUserId">
@@ -360,12 +360,12 @@ const activeConvUser = computed(() => {
               data-testid="thread-header-profile-link"
             >
               <div
-                class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+                class="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
               >
                 <img
                   v-if="activeConvUser.avatar_url"
                   :src="activeConvUser.avatar_url"
-                  class="w-8 h-8 rounded-full object-cover"
+                  class="w-9 h-9 sm:w-8 sm:h-8 rounded-full object-cover"
                   :alt="`${activeConvUser.display_name}'s avatar`"
                 />
                 <span v-else class="text-xs font-semibold text-muted">

@@ -285,7 +285,7 @@ defineExpose({ scrollToBottom })
             <img
               v-if="item.message.sender.avatar_url && !avatarFailed[item.message.sender.id]"
               :src="item.message.sender.avatar_url"
-              class="w-8 h-8 rounded-full object-cover"
+              class="w-full h-full rounded-full object-cover"
               :alt="`${item.message.sender.display_name}'s avatar`"
               @error="handleAvatarError(item.message.sender.id)"
             />
@@ -295,7 +295,7 @@ defineExpose({ scrollToBottom })
           </div>
 
           <!-- Bubble -->
-          <div class="max-w-[70%] min-w-0 relative group">
+          <div class="max-w-[85%] sm:max-w-[70%] min-w-0 relative group">
             <!-- Recalled message -->
             <div
               v-if="item.message.is_recalled"
@@ -314,7 +314,7 @@ defineExpose({ scrollToBottom })
                   : 'bg-surface-alt text-foreground border border-border rounded-bl-sm'
               "
             >
-              <p v-if="item.message.content" class="whitespace-pre-wrap wrap-anywhere">
+              <p v-if="item.message.content" class="whitespace-pre-wrap break-words">
                 {{ item.message.content }}
               </p>
 
@@ -363,7 +363,7 @@ defineExpose({ scrollToBottom })
                         class="w-3.5 h-3.5 shrink-0"
                         aria-hidden="true"
                       />
-                      <span class="truncate max-w-45">{{ item.message.attachment_name }}</span>
+                      <span class="truncate max-w-32 sm:max-w-45">{{ item.message.attachment_name }}</span>
                       <span v-if="item.message.attachment_size" class="shrink-0">
                         ({{ formatFileSize(item.message.attachment_size) }})
                       </span>
@@ -421,13 +421,19 @@ defineExpose({ scrollToBottom })
             <!-- Action menu for own messages -->
             <div
               v-if="canEditOrRecall(item.message)"
-              class="absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              :class="isMine(item.message) ? '-left-8' : '-right-8'"
+              class="absolute top-0 transition-opacity"
+              :class="[
+                isMine(item.message) ? '-left-9 sm:-left-8' : '-right-9 sm:-right-8',
+                openMenuId === item.message!.id
+                  ? 'opacity-100'
+                  : 'opacity-40 sm:opacity-0 sm:group-hover:opacity-100',
+              ]"
+              data-testid="message-action-wrapper"
             >
               <button
                 data-message-menu
                 @click="toggleMenu(item.message!.id)"
-                class="p-1 rounded-full hover:bg-surface-alt text-muted hover:text-foreground transition"
+                class="p-2 sm:p-1 rounded-full hover:bg-surface-alt active:bg-surface-alt text-muted hover:text-foreground transition touch-manipulation"
                 aria-label="Message actions"
               >
                 <MoreHorizontal class="w-4 h-4" aria-hidden="true" />
@@ -437,20 +443,20 @@ defineExpose({ scrollToBottom })
               <div
                 data-message-menu
                 v-if="openMenuId === item.message!.id"
-                class="absolute z-10 bg-surface border border-border rounded-lg shadow-lg py-1 w-36"
+                class="absolute z-10 bg-surface border border-border rounded-lg shadow-lg py-1 w-36 max-w-[calc(100vw-2rem)]"
                 :class="isMine(item.message!) ? 'left-0' : 'right-0'"
               >
                 <button
                   v-if="item.message!.content"
                   @click="handleEdit(item.message!)"
-                  class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-surface-alt transition"
+                  class="w-full flex items-center gap-2 px-3 py-2.5 sm:py-1.5 text-sm text-foreground hover:bg-surface-alt active:bg-surface-alt transition touch-manipulation"
                 >
                   <Pencil class="w-3.5 h-3.5" aria-hidden="true" />
                   Edit
                 </button>
                 <button
                   @click="handleRecall(item.message!)"
-                  class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-danger-600 hover:bg-surface-alt transition"
+                  class="w-full flex items-center gap-2 px-3 py-2.5 sm:py-1.5 text-sm text-danger-600 hover:bg-surface-alt active:bg-surface-alt transition touch-manipulation"
                 >
                   <Trash2 class="w-3.5 h-3.5" aria-hidden="true" />
                   Recall

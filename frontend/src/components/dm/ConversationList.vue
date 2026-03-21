@@ -64,18 +64,18 @@ function handleAvatarError(convId: string) {
         v-for="conv in conversations"
         :key="conv.id"
         @click="handleSelect(conv)"
-        class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-alt border-b border-border/50 transition"
+        class="w-full flex items-center gap-3 px-4 py-3.5 sm:py-3 text-left hover:bg-surface-alt active:bg-surface-alt border-b border-border/50 transition touch-manipulation"
         :class="{ 'bg-brand-50/50': activeId === conv.id }"
         :aria-current="activeId === conv.id ? 'true' : undefined"
       >
         <!-- Avatar -->
         <div
-          class="shrink-0 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+          class="shrink-0 w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
         >
           <img
             v-if="conv.other_user.avatar_url && !avatarFailed[conv.id]"
             :src="conv.other_user.avatar_url"
-            class="w-10 h-10 rounded-full object-cover"
+            class="w-full h-full rounded-full object-cover"
             :alt="`${conv.other_user.display_name}'s avatar`"
             @error="handleAvatarError(conv.id)"
           />
@@ -102,7 +102,7 @@ function handleAvatarError(convId: string) {
         <!-- Unread badge -->
         <span
           v-if="conv.unread_count > 0"
-          class="shrink-0 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-danger-500 rounded-full"
+          class="shrink-0 flex items-center justify-center min-w-[22px] h-[22px] sm:min-w-[20px] sm:h-5 px-1.5 text-[11px] sm:text-[10px] font-bold text-white bg-danger-500 rounded-full"
           role="status"
           :aria-label="`${conv.unread_count} unread message${conv.unread_count === 1 ? '' : 's'}`"
         >

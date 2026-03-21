@@ -87,7 +87,7 @@ function toggleSidebar() {
     <Transition name="sidebar-panel">
       <aside
         v-if="sidebarOpen"
-        class="mobile-sidebar fixed inset-y-0 left-0 w-[70vw] max-w-[280px] bg-surface border-r border-border flex flex-col z-50 lg:hidden overflow-y-auto"
+        class="mobile-sidebar fixed inset-y-0 left-0 w-[80vw] max-w-[300px] bg-surface border-r border-border flex flex-col z-50 lg:hidden overflow-y-auto"
       >
         <div class="flex items-center justify-between px-4 py-6 border-b border-border">
           <h2 class="text-sm font-semibold uppercase tracking-wider">
@@ -108,7 +108,7 @@ function toggleSidebar() {
             <router-link
               v-if="!item.superAdminOnly || auth.isSuperAdmin"
               :to="item.to"
-              class="sidebar-link flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg text-muted hover:text-foreground hover:bg-surface-alt"
+              class="sidebar-link flex items-center gap-3 px-3 py-3 text-sm rounded-lg text-muted hover:text-foreground hover:bg-surface-alt active:bg-surface-alt touch-manipulation"
               @click="closeSidebar"
             >
               <component :is="item.icon" class="w-5 h-5 shrink-0" />
@@ -127,7 +127,7 @@ function toggleSidebar() {
       <div class="lg:hidden sticky top-0 z-20 bg-surface border-b border-border px-4 py-3">
         <button
           @click="toggleSidebar"
-          class="flex items-center gap-2 text-sm text-muted hover:text-foreground transition"
+          class="flex items-center gap-2 text-sm text-muted hover:text-foreground active:text-foreground transition p-1 -ml-1 rounded-md touch-manipulation"
           :aria-label="t('admin.layout.toggleSidebar')"
         >
           <Menu class="w-5 h-5" aria-hidden="true" />

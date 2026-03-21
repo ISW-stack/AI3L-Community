@@ -95,7 +95,7 @@ function onTouchEnd(event: TouchEvent) {
       "
     ></div>
     <button
-      class="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-surface border border-border rounded-full w-6 h-6 flex items-center justify-center text-xs text-muted hover:text-brand-600 hover:border-brand-500 shadow-sm z-10"
+      class="absolute opacity-40 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-surface border border-border rounded-full w-8 h-8 sm:w-6 sm:h-6 flex items-center justify-center text-sm sm:text-xs text-muted hover:text-brand-600 hover:border-brand-500 shadow-sm z-10 touch-manipulation"
       :aria-label="t('forms.builder.insertQuestionHere')"
       @click="emit('insert-at')"
     >
@@ -107,7 +107,7 @@ function onTouchEnd(event: TouchEvent) {
   <div
     :id="`question-card-${index}`"
     :draggable="!isSchemaLocked"
-    class="bg-surface rounded-lg shadow p-5 border-l-4 transition-all duration-200"
+    class="bg-surface rounded-lg shadow p-4 sm:p-5 border-l-4 transition-all duration-200"
     :class="[
       isSchemaLocked ? 'border-gray-300 opacity-75' : 'border-brand-500',
       dragIndex === index ? 'opacity-50 scale-95' : '',
@@ -124,7 +124,7 @@ function onTouchEnd(event: TouchEvent) {
         <!-- Drag handle -->
         <span
           v-if="!isSchemaLocked"
-          class="cursor-grab active:cursor-grabbing text-muted hover:text-foreground select-none text-lg leading-none shrink-0"
+          class="cursor-grab active:cursor-grabbing text-muted hover:text-foreground select-none text-xl sm:text-lg leading-none shrink-0 p-1 sm:p-0 touch-manipulation"
           :aria-label="t('forms.builder.dragHandle')"
           @touchstart="onTouchStart($event)"
           @touchmove="onTouchMove($event)"
@@ -161,7 +161,7 @@ function onTouchEnd(event: TouchEvent) {
           @click="emit('move-up')"
           :disabled="index === 0"
           :aria-label="t('accessibility.moveQuestionUp')"
-          class="text-muted hover:text-foreground disabled:opacity-30 px-1"
+          class="text-muted hover:text-foreground disabled:opacity-30 px-1.5 py-1 sm:px-1 sm:py-0 touch-manipulation"
         >
           &uarr;
         </button>
@@ -169,7 +169,7 @@ function onTouchEnd(event: TouchEvent) {
           @click="emit('move-down')"
           :disabled="index === totalQuestions - 1"
           :aria-label="t('accessibility.moveQuestionDown')"
-          class="text-muted hover:text-foreground disabled:opacity-30 px-1"
+          class="text-muted hover:text-foreground disabled:opacity-30 px-1.5 py-1 sm:px-1 sm:py-0 touch-manipulation"
         >
           &darr;
         </button>
@@ -177,7 +177,7 @@ function onTouchEnd(event: TouchEvent) {
         <button
           @click="emit('duplicate')"
           :aria-label="t('forms.builder.duplicateQuestion')"
-          class="text-muted hover:text-brand-600 px-1"
+          class="text-muted hover:text-brand-600 px-1.5 py-1 sm:px-1 sm:py-0 touch-manipulation"
           :title="t('forms.builder.duplicateQuestion')"
         >
           &#x2398;
@@ -185,7 +185,7 @@ function onTouchEnd(event: TouchEvent) {
         <button
           @click="emit('remove')"
           :aria-label="t('accessibility.deleteQuestion')"
-          class="text-danger-500 hover:text-danger-600 px-1 ml-2"
+          class="text-danger-500 hover:text-danger-600 px-1.5 py-1 sm:px-1 sm:py-0 ml-2 touch-manipulation"
         >
           &times;
         </button>
@@ -200,7 +200,7 @@ function onTouchEnd(event: TouchEvent) {
           <select
             v-model="question.type"
             :disabled="isSchemaLocked"
-            class="w-full border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            class="w-full border border-border rounded-lg px-2 py-2 sm:py-1.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option v-for="qt in QUESTION_TYPES" :key="qt.value" :value="qt.value">
               {{ t(qt.key) }}
@@ -217,7 +217,7 @@ function onTouchEnd(event: TouchEvent) {
             type="text"
             name="question-label"
             :placeholder="t('forms.builder.labelPlaceholder')"
-            class="w-full border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            class="w-full border border-border rounded-lg px-2 py-2 sm:py-1.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>

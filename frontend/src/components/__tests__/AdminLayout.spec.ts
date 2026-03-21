@@ -200,8 +200,8 @@ describe('AdminLayout', () => {
       const allSidebars = wrapper.findAll('aside')
       // Mobile sidebar is the second aside
       const mobileSidebar = allSidebars[1]
-      expect(mobileSidebar.classes()).toContain('w-[70vw]')
-      expect(mobileSidebar.classes()).toContain('max-w-[280px]')
+      expect(mobileSidebar.classes()).toContain('w-[80vw]')
+      expect(mobileSidebar.classes()).toContain('max-w-[300px]')
       expect(mobileSidebar.classes()).toContain('overflow-y-auto')
     })
 

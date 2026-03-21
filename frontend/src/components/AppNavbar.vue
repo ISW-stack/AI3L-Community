@@ -118,6 +118,7 @@ onUnmounted(() => {
 <template>
   <nav
     class="sticky top-0 z-50 backdrop-blur-md bg-surface/80 border-b border-border"
+    style="padding-top: env(safe-area-inset-top, 0px)"
     :aria-label="t('nav.ariaLabel')"
   >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

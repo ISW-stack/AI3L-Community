@@ -38,10 +38,10 @@ const variantClass = computed(() => {
 
 const sizeClass = computed(() => {
   const map: Record<string, string> = {
-    sm: 'px-3 py-2.5 text-xs rounded-md',
-    md: 'px-4 py-2.5 text-sm rounded-lg',
-    lg: 'px-6 py-2.5 text-sm rounded-lg',
-    full: 'w-full py-2.5 text-sm rounded-lg font-medium',
+    sm: 'px-3 py-2.5 text-xs rounded-md min-h-[36px] sm:min-h-0',
+    md: 'px-4 py-2.5 text-sm rounded-lg min-h-[44px] sm:min-h-0',
+    lg: 'px-6 py-2.5 text-sm rounded-lg min-h-[44px] sm:min-h-0',
+    full: 'w-full py-2.5 text-sm rounded-lg font-medium min-h-[44px] sm:min-h-0',
   }
   return map[props.size]
 })
@@ -50,7 +50,7 @@ const sizeClass = computed(() => {
 <template>
   <button
     :class="[
-      'inline-flex items-center justify-center font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
+      'inline-flex items-center justify-center font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 touch-manipulation',
       variantClass,
       sizeClass,
       (disabled || loading) && 'opacity-50 cursor-not-allowed',
