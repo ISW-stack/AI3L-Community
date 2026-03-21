@@ -1,5 +1,6 @@
 """Tests for about endpoints — contributors list, avatar proxy, and admin CRUD."""
 
+import asyncio
 import time
 import uuid
 from datetime import datetime, timezone
@@ -9,6 +10,7 @@ import pytest
 
 _EP = "app.api.v1.endpoints.about"
 _SVC = "app.services.contributor"
+_RATE_LIMIT = "app.api.v1.endpoints.about.check_rate_limit"
 
 _FAKE_ID = uuid.uuid4()
 _FAKE_ID2 = uuid.uuid4()
@@ -102,6 +104,7 @@ class TestContributorAvatar:
         from app.api.v1.endpoints import about as about_module
 
         about_module._avatar_cache.clear()
+        about_module._cache_total_bytes = 0
 
         try:
             _override_auth("MEMBER")
@@ -117,6 +120,7 @@ class TestContributorAvatar:
                     return_value=_FAKE_CONTRIBUTOR,
                 ),
                 patch(f"{_EP}._requests.get", return_value=mock_response),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
             ):
                 resp = await client.get(
                     f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
@@ -126,6 +130,7 @@ class TestContributorAvatar:
                 assert resp.headers.get("content-type") == "image/png"
         finally:
             about_module._avatar_cache.clear()
+            about_module._cache_total_bytes = 0
             _clear_overrides()
 
     @pytest.mark.anyio
@@ -549,6 +554,7 @@ class TestAvatarCacheByteBounding:
                     return_value=_FAKE_CONTRIBUTOR,
                 ),
                 patch(f"{_EP}._requests.get", return_value=mock_response),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
             ):
                 resp = await client.get(
                     f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
@@ -605,3 +611,346 @@ class TestAvatarCacheByteBounding:
             self._reset_cache(about_module)
             about_module._MAX_CACHE_BYTES = original_max_bytes
             about_module._MAX_CACHE_ENTRIES = original_max_entries
+
+
+class TestAvatarExpiredEviction:
+    """Tests that expired cache entries are proactively evicted on read miss."""
+
+    def _reset_cache(self, about_module):
+        about_module._avatar_cache.clear()
+        about_module._cache_total_bytes = 0
+
+    @pytest.mark.anyio
+    async def test_expired_entry_evicted_on_read(self, client):
+        """When a cached avatar expires, the entry is removed from cache immediately."""
+        from app.api.v1.endpoints import about as about_module
+
+        self._reset_cache(about_module)
+        try:
+            _override_auth("MEMBER")
+
+            # Seed an expired entry
+            expired_time = time.time() - about_module._CACHE_TTL_SECONDS - 100
+            cid = str(_FAKE_ID)
+            old_data = b"old-avatar-data"
+            about_module._avatar_cache[cid] = (old_data, "image/png", expired_time)
+            about_module._cache_total_bytes = len(old_data)
+
+            # Mock the external fetch to succeed with new data
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.content = b"new-avatar"
+            mock_response.headers = {"content-type": "image/png"}
+
+            with (
+                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(f"{_EP}._requests.get", return_value=mock_response),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 200
+            # New entry should be cached, byte counter should reflect new data only
+            assert cid in about_module._avatar_cache
+            assert about_module._cache_total_bytes == len(b"new-avatar")
+        finally:
+            self._reset_cache(about_module)
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_expired_entry_bytes_freed_even_on_fetch_failure(self, client):
+        """Expired entry is evicted even if the GitHub fetch fails."""
+        from app.api.v1.endpoints import about as about_module
+
+        self._reset_cache(about_module)
+        try:
+            _override_auth("MEMBER")
+
+            expired_time = time.time() - about_module._CACHE_TTL_SECONDS - 100
+            cid = str(_FAKE_ID)
+            old_data = b"stale-data-12345"
+            about_module._avatar_cache[cid] = (old_data, "image/png", expired_time)
+            about_module._cache_total_bytes = len(old_data)
+
+            # Mock fetch to fail
+            import requests as real_requests
+
+            with (
+                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(f"{_EP}._requests.get", side_effect=real_requests.RequestException("timeout")),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
+
+            assert resp.status_code == 502
+            # Expired entry should have been evicted even though fetch failed
+            assert cid not in about_module._avatar_cache
+            assert about_module._cache_total_bytes == 0
+        finally:
+            self._reset_cache(about_module)
+            _clear_overrides()
+
+
+class TestAvatarSizeLimit:
+    """Tests that oversized avatar downloads are rejected."""
+
+    def _reset_cache(self, about_module):
+        about_module._avatar_cache.clear()
+        about_module._cache_total_bytes = 0
+
+    @pytest.mark.anyio
+    async def test_avatar_too_large_by_content_length(self, client):
+        """Avatar with Content-Length exceeding limit returns 502."""
+        from app.api.v1.endpoints import about as about_module
+
+        self._reset_cache(about_module)
+        try:
+            _override_auth("MEMBER")
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {
+                "content-type": "image/png",
+                "content-length": str(about_module._MAX_AVATAR_DOWNLOAD_BYTES + 1),
+            }
+            mock_response.content = b"x"
+
+            with (
+                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(f"{_EP}._requests.get", return_value=mock_response),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 502
+            assert b"Avatar too large" in resp.content
+        finally:
+            self._reset_cache(about_module)
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_avatar_too_large_by_body(self, client):
+        """Avatar with body exceeding limit (no Content-Length) returns 502."""
+        from app.api.v1.endpoints import about as about_module
+
+        self._reset_cache(about_module)
+        original_limit = about_module._MAX_AVATAR_DOWNLOAD_BYTES
+        try:
+            _override_auth("MEMBER")
+            about_module._MAX_AVATAR_DOWNLOAD_BYTES = 10  # tiny limit for test
+
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.headers = {"content-type": "image/png"}
+            mock_response.content = b"x" * 11  # exceeds 10-byte limit
+
+            with (
+                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(f"{_EP}._requests.get", return_value=mock_response),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 502
+        finally:
+            about_module._MAX_AVATAR_DOWNLOAD_BYTES = original_limit
+            self._reset_cache(about_module)
+            _clear_overrides()
+
+
+class TestAvatarRateLimit:
+    """Tests that avatar endpoint is rate-limited."""
+
+    @pytest.mark.anyio
+    async def test_rate_limited_returns_429(self, client):
+        """Avatar requests exceeding rate limit return 429."""
+        from app.api.v1.endpoints import about as about_module
+
+        about_module._avatar_cache.clear()
+        about_module._cache_total_bytes = 0
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=False),
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 429
+        finally:
+            about_module._avatar_cache.clear()
+            about_module._cache_total_bytes = 0
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_cached_hit_not_rate_limited(self, client):
+        """Cache hits bypass rate limiting (rate_limit not called)."""
+        from app.api.v1.endpoints import about as about_module
+
+        about_module._avatar_cache.clear()
+        about_module._cache_total_bytes = 0
+        try:
+            _override_auth("MEMBER")
+            # Seed valid cache entry
+            cid = str(_FAKE_ID)
+            about_module._avatar_cache[cid] = (b"cached-img", "image/png", time.time())
+            about_module._cache_total_bytes = 10
+
+            with (
+                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=False) as mock_rl,
+            ):
+                resp = await client.get(
+                    f"/api/v1/about/contributors/{_FAKE_ID}/avatar",
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 200
+            # Rate limiter should NOT have been called (cache hit)
+            mock_rl.assert_not_called()
+        finally:
+            about_module._avatar_cache.clear()
+            about_module._cache_total_bytes = 0
+            _clear_overrides()
+
+
+class TestGitHubUsernameValidation:
+    """Tests that github_username is validated against GitHub format."""
+
+    @pytest.mark.anyio
+    async def test_create_rejects_invalid_username(self, client):
+        """github_username with path traversal is rejected by schema validation."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            resp = await client.post(
+                "/api/v1/about/admin/contributors",
+                json={
+                    "github_username": "../evil",
+                    "display_name": "Evil",
+                    "role": "Contributor",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_create_rejects_spaces(self, client):
+        """github_username with spaces is rejected."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            resp = await client.post(
+                "/api/v1/about/admin/contributors",
+                json={
+                    "github_username": "has space",
+                    "display_name": "User",
+                    "role": "Contributor",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_create_accepts_valid_username(self, client):
+        """Valid GitHub username format is accepted."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            new_row = {**_FAKE_CONTRIBUTOR, "github_username": "valid-user123"}
+            with (
+                patch(f"{_SVC}.github_username_exists", new_callable=AsyncMock, return_value=False),
+                patch(f"{_SVC}.create_contributor", new_callable=AsyncMock, return_value=new_row),
+            ):
+                resp = await client.post(
+                    "/api/v1/about/admin/contributors",
+                    json={
+                        "github_username": "valid-user123",
+                        "display_name": "Valid",
+                        "role": "Contributor",
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 201
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_create_rejects_leading_hyphen(self, client):
+        """github_username starting with hyphen is rejected."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            resp = await client.post(
+                "/api/v1/about/admin/contributors",
+                json={
+                    "github_username": "-leadinghyphen",
+                    "display_name": "User",
+                    "role": "Contributor",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_create_rejects_trailing_hyphen(self, client):
+        """github_username ending with hyphen is rejected."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            resp = await client.post(
+                "/api/v1/about/admin/contributors",
+                json={
+                    "github_username": "trailinghyphen-",
+                    "display_name": "User",
+                    "role": "Contributor",
+                },
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_update_rejects_invalid_username(self, client):
+        """Update with invalid github_username is rejected."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            resp = await client.put(
+                f"/api/v1/about/admin/contributors/{_FAKE_ID}",
+                json={"github_username": "has space"},
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 422
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_single_char_username_accepted(self, client):
+        """Single character username is valid on GitHub."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            new_row = {**_FAKE_CONTRIBUTOR, "github_username": "x"}
+            with (
+                patch(f"{_SVC}.github_username_exists", new_callable=AsyncMock, return_value=False),
+                patch(f"{_SVC}.create_contributor", new_callable=AsyncMock, return_value=new_row),
+            ):
+                resp = await client.post(
+                    "/api/v1/about/admin/contributors",
+                    json={"github_username": "x", "display_name": "X", "role": "Dev"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+            assert resp.status_code == 201
+        finally:
+            _clear_overrides()

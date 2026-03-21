@@ -32,51 +32,50 @@ async def upsert_override(
     custom_description: str | None = None,
     display_order: int | None = None,
     is_visible: bool | None = None,
+    *,
+    _provided_fields: set[str] | None = None,
 ) -> dict:
+    """Upsert an org chart override.
+
+    ``_provided_fields`` lists field names explicitly sent by the caller
+    (including those set to ``None``).  Fields NOT in this set keep their
+    current DB value on UPDATE; fields present in it are written as-is —
+    allowing the caller to clear a value to NULL.
+
+    On INSERT every field is written (missing ones default to 0 / true).
+    """
+    provided = _provided_fields or set()
     pool = get_pool()
     async with pool.acquire() as conn:
-        existing = await conn.fetchrow(
-            "SELECT * FROM org_chart_overrides WHERE entity_type = $1 AND entity_id = $2",
+        row = await conn.fetchrow(
+            """
+            INSERT INTO org_chart_overrides
+                (entity_type, entity_id, custom_title, custom_description,
+                 display_order, is_visible, updated_by)
+            VALUES ($1, $2, $3, $4, COALESCE($5, 0), COALESCE($6, true), $7)
+            ON CONFLICT (entity_type, entity_id) DO UPDATE SET
+                custom_title = CASE WHEN $8 THEN $3
+                                    ELSE org_chart_overrides.custom_title END,
+                custom_description = CASE WHEN $9 THEN $4
+                                          ELSE org_chart_overrides.custom_description END,
+                display_order = CASE WHEN $10 THEN COALESCE($5, 0)
+                                     ELSE org_chart_overrides.display_order END,
+                is_visible = CASE WHEN $11 THEN COALESCE($6, true)
+                                  ELSE org_chart_overrides.is_visible END,
+                updated_by = $7,
+                updated_at = NOW()
+            RETURNING *
+            """,
             entity_type,
             entity_id,
+            custom_title,
+            custom_description,
+            display_order,
+            is_visible,
+            updated_by,
+            "custom_title" in provided,        # $8
+            "custom_description" in provided,  # $9
+            "display_order" in provided,       # $10
+            "is_visible" in provided,          # $11
         )
-
-        if existing:
-            row = await conn.fetchrow(
-                """
-                UPDATE org_chart_overrides
-                SET custom_title = COALESCE($1, custom_title),
-                    custom_description = COALESCE($2, custom_description),
-                    display_order = COALESCE($3, display_order),
-                    is_visible = COALESCE($4, is_visible),
-                    updated_by = $5,
-                    updated_at = NOW()
-                WHERE entity_type = $6 AND entity_id = $7
-                RETURNING *
-                """,
-                custom_title,
-                custom_description,
-                display_order,
-                is_visible,
-                updated_by,
-                entity_type,
-                entity_id,
-            )
-        else:
-            row = await conn.fetchrow(
-                """
-                INSERT INTO org_chart_overrides
-                    (entity_type, entity_id, custom_title, custom_description,
-                     display_order, is_visible, updated_by)
-                VALUES ($1, $2, $3, $4, COALESCE($5, 0), COALESCE($6, true), $7)
-                RETURNING *
-                """,
-                entity_type,
-                entity_id,
-                custom_title,
-                custom_description,
-                display_order,
-                is_visible,
-                updated_by,
-            )
         return dict(row)

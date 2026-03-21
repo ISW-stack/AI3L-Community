@@ -8,6 +8,7 @@ class OrgChartMemberResponse(BaseModel):
     avatar_url: str | None = None
     role: str
     org_chart_bio: str | None = None
+    member_override: "OrgChartOverrideResponse | None" = None
 
 
 class OrgChartSigResponse(BaseModel):

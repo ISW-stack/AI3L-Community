@@ -7,11 +7,12 @@ from collections import OrderedDict
 from typing import Any
 
 import requests as _requests  # type: ignore[import-untyped]
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
+from app.core.rate_limit import check_rate_limit
 from app.repositories import sig_repo
 from app.schemas.about import (
     ContributorAdminListResponse,
@@ -39,6 +40,7 @@ _avatar_cache: OrderedDict[str, tuple[bytes, str, float]] = OrderedDict()
 _CACHE_TTL_SECONDS: int = 3600  # 1 hour
 _MAX_CACHE_ENTRIES: int = 50
 _MAX_CACHE_BYTES: int = 10 * 1024 * 1024  # 10 MB total
+_MAX_AVATAR_DOWNLOAD_BYTES: int = 5 * 1024 * 1024  # 5 MB per avatar
 _cache_total_bytes: int = 0
 _cache_lock = asyncio.Lock()
 
@@ -81,6 +83,7 @@ async def get_contributor_avatar(
         return Response(status_code=404, content=b"Contributor not found")
 
     # Check cache (under lock for thread safety)
+    global _cache_total_bytes
     now = time.time()
     async with _cache_lock:
         cached = _avatar_cache.get(contributor_id)
@@ -89,6 +92,14 @@ async def get_contributor_avatar(
             if now - cached_at < _CACHE_TTL_SECONDS:
                 _avatar_cache.move_to_end(contributor_id)
                 return Response(content=data, media_type=content_type)
+            # Evict expired entry immediately so it stops consuming memory
+            _cache_total_bytes -= len(data)
+            del _avatar_cache[contributor_id]
+
+    # Rate-limit outbound GitHub fetches per user: 30 requests per 60 seconds
+    user_id = _current_user.get("sub", contributor_id)
+    if not await check_rate_limit(f"rl:avatar:{user_id}", 30, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many avatar requests.")
 
     # Fetch from GitHub — allow_redirects=True handles multi-level redirects.
     # SSRF is not a concern since the URL is derived from a hardcoded GitHub
@@ -108,16 +119,17 @@ async def get_contributor_avatar(
         if not content_type.startswith("image/"):
             return Response(status_code=502, content=b"Invalid content type from upstream")
 
-        data = resp.content
+        # Enforce download size limit to prevent memory exhaustion
+        content_length = resp.headers.get("content-length")
+        if content_length and int(content_length) > _MAX_AVATAR_DOWNLOAD_BYTES:
+            return Response(status_code=502, content=b"Avatar too large")
 
-        global _cache_total_bytes
+        data = resp.content
+        if len(data) > _MAX_AVATAR_DOWNLOAD_BYTES:
+            return Response(status_code=502, content=b"Avatar too large")
+
         new_size = len(data)
         async with _cache_lock:
-            # Subtract old entry size if refreshing an existing key (TTL expired)
-            if contributor_id in _avatar_cache:
-                old_data = _avatar_cache[contributor_id][0]
-                _cache_total_bytes -= len(old_data)
-                del _avatar_cache[contributor_id]
             # Evict oldest entries until there is room (byte limit)
             while _avatar_cache and _cache_total_bytes + new_size > _MAX_CACHE_BYTES:
                 _oldest_key, _oldest_val = _avatar_cache.popitem(last=False)
@@ -171,11 +183,18 @@ async def update_override(
     entity_type: str,
     entity_id: uuid.UUID,
     body: OrgChartOverrideUpdateRequest,
+    request: Request,
     current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
 ) -> OrgChartOverrideResponse:
     """Update org chart override (title, order, visibility). SUPER_ADMIN only."""
     if entity_type not in ("sig", "category", "sig_member"):
         raise AppError(ErrorCode.SYS_422, 422, "Invalid entity_type.")
+
+    # Determine which fields were explicitly sent in the JSON body so the
+    # repository can distinguish "not provided" from "set to null".
+    raw_body = await request.json()
+    provided_fields = set(raw_body.keys()) & {"custom_title", "custom_description", "display_order", "is_visible"}
+
     result = await org_chart_service.update_override(
         entity_type=entity_type,
         entity_id=entity_id,
@@ -184,6 +203,7 @@ async def update_override(
         custom_description=body.custom_description,
         display_order=body.display_order,
         is_visible=body.is_visible,
+        provided_fields=provided_fields,
     )
     return OrgChartOverrideResponse(
         entity_type=result["entity_type"],
@@ -291,9 +311,12 @@ async def admin_update_contributor(
     _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
 ) -> ContributorAdminResponse:
     """Update an existing contributor."""
+    global _cache_total_bytes
+    github_username_changed = False
     if body.github_username is not None:
         existing = await contributor_service.get_contributor(contributor_id)
         if existing and existing["github_username"] != body.github_username:
+            github_username_changed = True
             if await contributor_service.github_username_exists(body.github_username):
                 raise AppError(ErrorCode.SYS_409, 409, "GitHub username already exists.")
 
@@ -307,13 +330,13 @@ async def admin_update_contributor(
     if row is None:
         raise AppError(ErrorCode.SYS_404, 404, "Contributor not found.")
 
-    # Clear avatar cache if github_username changed
-    global _cache_total_bytes
-    cid_str = str(contributor_id)
-    async with _cache_lock:
-        if body.github_username is not None and cid_str in _avatar_cache:
-            _cache_total_bytes -= len(_avatar_cache[cid_str][0])
-            del _avatar_cache[cid_str]
+    # Clear avatar cache only if github_username actually changed
+    if github_username_changed:
+        cid_str = str(contributor_id)
+        async with _cache_lock:
+            if cid_str in _avatar_cache:
+                _cache_total_bytes -= len(_avatar_cache[cid_str][0])
+                del _avatar_cache[cid_str]
 
     return ContributorAdminResponse(
         id=str(row["id"]),

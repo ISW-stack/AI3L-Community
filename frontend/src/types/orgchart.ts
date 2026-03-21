@@ -5,6 +5,7 @@ export interface OrgChartMember {
   avatar_url: string | null
   role: string
   org_chart_bio: string | null
+  member_override: OrgChartOverride | null
 }
 
 export interface OrgChartOverride {

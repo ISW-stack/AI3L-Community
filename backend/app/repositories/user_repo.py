@@ -383,7 +383,7 @@ async def find_all_members(
 
         if search:
             escaped = _escape_ilike(search)
-            base_where += f" AND (u.display_name ILIKE ${idx} OR u.username ILIKE ${idx})"
+            base_where += f" AND (u.display_name ILIKE ${idx} ESCAPE '\\' OR u.username ILIKE ${idx} ESCAPE '\\')"
             params.append(f"%{escaped}%")
             idx += 1
 

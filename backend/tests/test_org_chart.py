@@ -13,6 +13,8 @@ _SIG_ID = uuid.uuid4()
 _CAT_ID = uuid.uuid4()
 _USER_ID = uuid.uuid4()
 
+_HIDDEN_MEMBER_ID = uuid.uuid4()
+
 _FAKE_SIG = {
     "id": str(_SIG_ID),
     "name": "AI & NLP",
@@ -27,6 +29,7 @@ _FAKE_SIG = {
             "avatar_url": None,
             "role": "ADMIN",
             "org_chart_bio": None,
+            "member_override": None,
         }
     ],
     "override": None,
@@ -424,5 +427,154 @@ class TestUpdateMemberBio:
                 )
 
             assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+
+# ── Sig-member visibility filtering ──────────────────────────────────────
+
+
+class TestSigMemberVisibilityFiltering:
+    """Tests that hidden sig_member overrides are filtered for non-super-admin.
+
+    These test the service layer directly since filtering happens there.
+    """
+
+    _SIG_WITH_HIDDEN_MEMBER = {
+        "id": str(_SIG_ID),
+        "name": "Test SIG",
+        "description": None,
+        "org_chart_description": None,
+        "member_count": 2,
+        "members": [
+            {
+                "user_id": str(_USER_ID),
+                "display_name": "Alice",
+                "username": "alice",
+                "avatar_url": None,
+                "role": "ADMIN",
+                "org_chart_bio": None,
+                "member_override": None,
+            },
+            {
+                "user_id": str(_HIDDEN_MEMBER_ID),
+                "display_name": "Hidden Bob",
+                "username": "bob",
+                "avatar_url": None,
+                "role": "MEMBER",
+                "org_chart_bio": None,
+                "member_override": {
+                    "entity_type": "sig_member",
+                    "entity_id": str(_HIDDEN_MEMBER_ID),
+                    "custom_title": None,
+                    "custom_description": None,
+                    "display_order": 0,
+                    "is_visible": False,
+                },
+            },
+        ],
+        "override": None,
+    }
+
+    @pytest.mark.anyio
+    async def test_hidden_member_filtered_for_member(self):
+        """Non-super-admin does not see members with is_visible=False override."""
+        from app.services import org_chart as org_chart_service
+
+        full_data = {"sigs": [self._SIG_WITH_HIDDEN_MEMBER], "categories": [_FAKE_CAT]}
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+        mock_redis.set = AsyncMock()
+
+        with (
+            patch("app.core.redis.get_redis", return_value=mock_redis),
+            patch("app.services.org_chart._build_full_org_chart", new_callable=AsyncMock, return_value=full_data),
+        ):
+            result = await org_chart_service.get_org_chart(is_super_admin=False)
+
+        members = result["sigs"][0]["members"]
+        assert len(members) == 1
+        assert members[0]["display_name"] == "Alice"
+
+    @pytest.mark.anyio
+    async def test_hidden_member_visible_for_super_admin(self):
+        """SUPER_ADMIN sees members with is_visible=False override."""
+        from app.services import org_chart as org_chart_service
+
+        full_data = {"sigs": [self._SIG_WITH_HIDDEN_MEMBER], "categories": [_FAKE_CAT]}
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+        mock_redis.set = AsyncMock()
+
+        with (
+            patch("app.core.redis.get_redis", return_value=mock_redis),
+            patch("app.services.org_chart._build_full_org_chart", new_callable=AsyncMock, return_value=full_data),
+        ):
+            result = await org_chart_service.get_org_chart(is_super_admin=True)
+
+        members = result["sigs"][0]["members"]
+        assert len(members) == 2
+
+
+# ── Override field clearing (BUG-1 fix) ──────────────────────────────────
+
+
+class TestOverrideFieldClearing:
+    """Tests that override fields can be explicitly cleared to null."""
+
+    @pytest.mark.anyio
+    async def test_can_clear_custom_title_to_null(self, client):
+        """Sending custom_title: null clears the field (not ignored by COALESCE)."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            fake_result = {
+                "entity_type": "sig",
+                "entity_id": _SIG_ID,
+                "custom_title": None,
+                "custom_description": None,
+                "display_order": 0,
+                "is_visible": True,
+            }
+            with patch(f"{_SVC}.update_override", new_callable=AsyncMock) as mock_update:
+                mock_update.return_value = fake_result
+                resp = await client.put(
+                    f"/api/v1/about/org-chart/override/sig/{_SIG_ID}",
+                    json={"custom_title": None},
+                )
+
+            assert resp.status_code == 200
+            call_kwargs = mock_update.call_args[1]
+            assert "custom_title" in call_kwargs.get("provided_fields", set())
+            assert call_kwargs["custom_title"] is None
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_unprovided_fields_not_in_provided_set(self, client):
+        """Fields not included in JSON body are not in provided_fields."""
+        try:
+            _override_auth("SUPER_ADMIN")
+            fake_result = {
+                "entity_type": "sig",
+                "entity_id": _SIG_ID,
+                "custom_title": "Existing Title",
+                "custom_description": None,
+                "display_order": 1,
+                "is_visible": True,
+            }
+            with patch(f"{_SVC}.update_override", new_callable=AsyncMock) as mock_update:
+                mock_update.return_value = fake_result
+                resp = await client.put(
+                    f"/api/v1/about/org-chart/override/sig/{_SIG_ID}",
+                    json={"display_order": 1},
+                )
+
+            assert resp.status_code == 200
+            call_kwargs = mock_update.call_args[1]
+            provided = call_kwargs.get("provided_fields", set())
+            assert "display_order" in provided
+            assert "custom_title" not in provided
         finally:
             _clear_overrides()

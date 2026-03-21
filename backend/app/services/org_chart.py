@@ -33,7 +33,17 @@ async def get_org_chart(is_super_admin: bool = False) -> dict:
         return full_data
 
     # Filter out hidden entries for non-SuperAdmin callers
-    visible_sigs = [s for s in full_data["sigs"] if s.get("override") is None or s["override"].get("is_visible", True)]
+    visible_sigs = []
+    for s in full_data["sigs"]:
+        if s.get("override") is not None and not s["override"].get("is_visible", True):
+            continue  # whole SIG hidden
+        # Filter hidden individual members within the SIG
+        filtered_members = [
+            m for m in s.get("members", [])
+            if m.get("member_override") is None or m["member_override"].get("is_visible", True)
+        ]
+        visible_sigs.append({**s, "members": filtered_members})
+
     visible_cats = [c for c in full_data["categories"] if c.get("override") is None or c["override"].get("is_visible", True)]
     return {"sigs": visible_sigs, "categories": visible_cats}
 
@@ -63,6 +73,8 @@ async def _build_full_org_chart() -> dict:
         members = []
         for m in s.get("members", []):
             avatar = await async_resolve_avatar_url(m.get("avatar_url"))
+            member_key = ("sig_member", str(m["user_id"]))
+            member_override = override_map.get(member_key)
             members.append({
                 "user_id": str(m["user_id"]),
                 "display_name": m["display_name"],
@@ -70,6 +82,7 @@ async def _build_full_org_chart() -> dict:
                 "avatar_url": avatar,
                 "role": m["role"],
                 "org_chart_bio": m.get("org_chart_bio"),
+                "member_override": _format_override(member_override) if member_override else None,
             })
         sig_results.append({
             "id": sid,
@@ -126,6 +139,8 @@ async def update_override(
     custom_description: str | None = None,
     display_order: int | None = None,
     is_visible: bool | None = None,
+    *,
+    provided_fields: set[str] | None = None,
 ) -> dict:
     result = await org_chart_repo.upsert_override(
         entity_type=entity_type,
@@ -135,6 +150,7 @@ async def update_override(
         custom_description=custom_description,
         display_order=display_order,
         is_visible=is_visible,
+        _provided_fields=provided_fields,
     )
     await invalidate_org_chart_cache()
     return result
