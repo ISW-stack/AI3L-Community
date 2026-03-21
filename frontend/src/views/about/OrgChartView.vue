@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import DOMPurify from 'dompurify'
 import { useAuthStore } from '@/stores/auth'
 import { getOrgChart, updateOverride, updateSigDescription, updateMemberBio } from '@/api/about'
 import type { OrgChartResponse, OrgChartSig, OrgChartCategory, OrgChartMember } from '@/types/orgchart'
@@ -382,9 +383,8 @@ onMounted(fetchData)
                           v-if="m.org_chart_bio"
                           class="text-xs text-muted mt-0.5 line-clamp-1"
                           :title="m.org_chart_bio"
-                        >
-                          {{ m.org_chart_bio }}
-                        </p>
+                          v-html="DOMPurify.sanitize(m.org_chart_bio)"
+                        ></p>
                       </div>
                       <!-- Edit bio button -->
                       <button
