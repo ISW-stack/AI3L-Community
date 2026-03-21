@@ -41,6 +41,7 @@ const {
   immediateSearch,
   clearSearch,
   toggleAdvanced,
+  loadMore,
   init,
   cleanup,
 } = usePostList({
@@ -62,6 +63,8 @@ const sortOptions = [
 
 onMounted(init)
 onUnmounted(cleanup)
+
+defineExpose({ loadMore })
 </script>
 
 <template>
