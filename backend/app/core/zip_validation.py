@@ -211,7 +211,8 @@ def validate_zip(data: bytes, *, strip_mac_junk: bool = True) -> ZipValidationRe
                     raise AppError(
                         ErrorCode.ALBUM_003,
                         400,
-                        "ZIP contains an entry with a suspiciously high compression ratio (possible zip bomb).",
+                        "ZIP contains an entry with a suspiciously high compression ratio"
+                        " (possible zip bomb).",
                     )
 
         # 7. All-junk ZIP

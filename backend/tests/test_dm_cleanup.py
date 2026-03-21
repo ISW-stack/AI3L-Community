@@ -138,7 +138,10 @@ class TestCleanupDmExpiredFiles:
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock) as mock_pool,
             patch("app.repositories.dm_repo.find_expired_file_messages", mock_find),
-            patch("app.repositories.dm_repo.clear_message_attachment_if_present", mock_clear_if_present),
+            patch(
+                "app.repositories.dm_repo.clear_message_attachment_if_present",
+                mock_clear_if_present,
+            ),
             patch("app.repositories.user_repo.decrement_storage_used", mock_decrement),
             patch("app.core.async_storage.delete_file", mock_delete_file),
         ):

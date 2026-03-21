@@ -38,8 +38,6 @@ const sizePx = computed(() => {
   const map: Record<string, number> = { xs: 20, sm: 32, md: 40, lg: 80 }
   return map[props.size ?? 'sm'] ?? 32
 })
-
-const initial = computed(() => (props.name ? props.name.charAt(0).toUpperCase() : '?'))
 </script>
 
 <template>

@@ -421,9 +421,7 @@ async def get_trending_posts(
     post_type: str | None = None,
 ) -> list[dict]:
     exclude = await _get_exclude_user_ids(viewer_id)
-    rows = await post_repo.find_trending(
-        limit, days, exclude_user_ids=exclude, post_type=post_type
-    )
+    rows = await post_repo.find_trending(limit, days, exclude_user_ids=exclude, post_type=post_type)
     return list(await asyncio.gather(*[async_row_to_post(r) for r in rows]))
 
 

@@ -71,9 +71,7 @@ class TestM09CoAuthorOwnershipCheck:
 
         with patch(f"{_COAUTHOR_SVC}.get_pool", return_value=mock_pool):
             with pytest.raises(ForbiddenError):
-                await list_all_co_authors(
-                    post_id=post_id, user_id=caller_id, is_admin=False
-                )
+                await list_all_co_authors(post_id=post_id, user_id=caller_id, is_admin=False)
 
     @pytest.mark.anyio
     async def test_owner_can_list_all_co_authors(self):
@@ -102,9 +100,7 @@ class TestM09CoAuthorOwnershipCheck:
                 return_value=[],
             ),
         ):
-            result = await list_all_co_authors(
-                post_id=post_id, user_id=owner_id, is_admin=False
-            )
+            result = await list_all_co_authors(post_id=post_id, user_id=owner_id, is_admin=False)
             assert result == []
 
     @pytest.mark.anyio
@@ -135,9 +131,7 @@ class TestM09CoAuthorOwnershipCheck:
                 return_value=[],
             ),
         ):
-            result = await list_all_co_authors(
-                post_id=post_id, user_id=admin_id, is_admin=True
-            )
+            result = await list_all_co_authors(post_id=post_id, user_id=admin_id, is_admin=True)
             assert result == []
 
     @pytest.mark.anyio
@@ -160,9 +154,7 @@ class TestM09CoAuthorOwnershipCheck:
 
         with patch(f"{_COAUTHOR_SVC}.get_pool", return_value=mock_pool):
             with pytest.raises(NotFoundError):
-                await list_all_co_authors(
-                    post_id=post_id, user_id=caller_id, is_admin=False
-                )
+                await list_all_co_authors(post_id=post_id, user_id=caller_id, is_admin=False)
 
 
 # ── M-10: QA rate limiting ──────────────────────────────────────────────
@@ -212,7 +204,7 @@ class TestM10QaRateLimiting:
     @pytest.mark.anyio
     async def test_mark_best_answer_passes_under_limit(self, client: AsyncClient):
         """When rate limit passes, endpoint proceeds to service layer."""
-        uid = _override_auth("MEMBER")
+        _override_auth("MEMBER")
         try:
             with (
                 patch(
@@ -223,7 +215,10 @@ class TestM10QaRateLimiting:
                 patch(
                     f"{_QA_EP}.mark_best_answer",
                     new_callable=AsyncMock,
-                    return_value={"post_id": str(uuid.uuid4()), "best_answer_id": str(uuid.uuid4())},
+                    return_value={
+                        "post_id": str(uuid.uuid4()),
+                        "best_answer_id": str(uuid.uuid4()),
+                    },
                 ),
             ):
                 resp = await client.post(
@@ -264,7 +259,7 @@ class TestM38TaskOwnershipFailClosed:
     @pytest.mark.anyio
     async def test_member_gets_403_when_owner_mismatch(self, client: AsyncClient):
         """MEMBER user gets 403 when task belongs to a different user."""
-        uid = _override_auth("MEMBER")
+        _override_auth("MEMBER")
         try:
             mock_redis = AsyncMock()
             mock_redis.get = AsyncMock(return_value=str(uuid.uuid4()))  # different user
@@ -340,7 +335,7 @@ class TestL05FileScanOwnership:
     @pytest.mark.anyio
     async def test_non_owner_cannot_check_scan_status(self, client: AsyncClient):
         """A MEMBER who doesn't own the file gets 403."""
-        uid = _override_auth("MEMBER")
+        _override_auth("MEMBER")
         try:
             # Key belongs to a different user
             other_user = str(uuid.uuid4())
@@ -505,7 +500,7 @@ class TestL08AvatarUploadBlocksGuest:
         """MEMBER should pass the role check (service may error, but not 403)."""
         from app.core.errors import ServiceValidationError
 
-        uid = _override_auth("MEMBER")
+        _override_auth("MEMBER")
         try:
             # Raise a known service error after the role check passes
             with patch(
@@ -543,7 +538,7 @@ class TestL09DeleteAccountBlocksGuest:
     @pytest.mark.anyio
     async def test_member_allowed_to_delete_account(self, client: AsyncClient):
         """MEMBER should pass the role check (proceeds to service layer)."""
-        uid = _override_auth("MEMBER")
+        _override_auth("MEMBER")
         try:
             with (
                 patch(

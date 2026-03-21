@@ -183,7 +183,7 @@ describe('NotificationsView', () => {
   it('does not call markRead for already-read notification', async () => {
     const { wrapper } = await mountNotifications()
     const notifButtons = wrapper
-      .findAll('button')
+      .findAll('[role="button"]')
       .filter((b) => b.text().includes('Bob commented on your post'))
     expect(notifButtons.length).toBeGreaterThan(0)
     // n2 is already read
@@ -455,7 +455,7 @@ describe('NotificationsView', () => {
     const pushSpy = vi.spyOn(router, 'push')
 
     const notifBtn = wrapper
-      .findAll('button')
+      .findAll('[role="button"]')
       .find((b) => b.text().includes('You have a new friend request'))
     expect(notifBtn).toBeTruthy()
     await notifBtn!.trigger('click')
@@ -470,7 +470,7 @@ describe('NotificationsView', () => {
 
     // Click on Alice's notification (entity_type: 'post', entity_id: 'p1')
     const notifBtn = wrapper
-      .findAll('button')
+      .findAll('[role="button"]')
       .find((b) => b.text().includes('Alice liked your post'))
     expect(notifBtn).toBeTruthy()
     await notifBtn!.trigger('click')
@@ -501,7 +501,9 @@ describe('NotificationsView', () => {
     const { wrapper, router } = await mountNotifications()
     const pushSpy = vi.spyOn(router, 'push')
 
-    const notifBtn = wrapper.findAll('button').find((b) => b.text().includes('System notice'))
+    const notifBtn = wrapper
+      .findAll('[role="button"]')
+      .find((b) => b.text().includes('System notice'))
     expect(notifBtn).toBeTruthy()
     await notifBtn!.trigger('click')
     await flushPromises()

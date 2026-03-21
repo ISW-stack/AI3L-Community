@@ -176,6 +176,7 @@ export default {
     inviteCodes: 'Пригласительные коды',
     auditLogs: 'Журнал аудита',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'Участники проекта',
     profile: 'Профиль',
     logOut: 'Выйти',
@@ -932,6 +933,8 @@ export default {
     title: 'О AI3L Community',
     description:
       'AI3L Community — небольшая академическая платформа обмена, посвящённая AI в обучении языкам и грамотности. Она организована и созвана профессором Юй-Цзю Лань из Национального университета Тайваня (NTNU). Этот общественный проект призван объединить исследователей и практиков, разделяющих интерес к изучению возможностей AI в языковом образовании и развитии грамотности.',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'Участники проекта',
       loading: 'Загрузка участников...',
@@ -1264,6 +1267,21 @@ export default {
         deleteFailed: 'Не удалось удалить участника.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1285,6 +1303,7 @@ export default {
     inviteCodes: 'Коды приглашения',
     contributors: 'Участники проекта',
     auditLogs: 'Журнал аудита',
+    siteSettings: 'Site Settings',
     friends: 'Друзья',
     following: 'Подписки',
     blockedUsers: 'Заблокированные',

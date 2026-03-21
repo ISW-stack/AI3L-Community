@@ -227,10 +227,12 @@ async def validation_exception_handler(
     for error in exc.errors():
         loc = error.get("loc", ())
         field = str(loc[-1]) if loc else "unknown"
-        errors.append({
-            "field": field,
-            "message": error.get("msg", "Invalid value"),
-        })
+        errors.append(
+            {
+                "field": field,
+                "message": error.get("msg", "Invalid value"),
+            }
+        )
     return JSONResponse(
         status_code=422,
         content={"code": "VALIDATION_ERROR", "errors": errors},

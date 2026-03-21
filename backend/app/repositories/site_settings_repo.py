@@ -1,21 +1,19 @@
+from typing import cast
+
 from app.core.database import get_pool
 
 
 async def get(key: str) -> str | None:
     pool = get_pool()
     async with pool.acquire() as conn:
-        val = await conn.fetchval(
-            "SELECT value FROM site_settings WHERE key = $1", key
-        )
-        return val
+        val = await conn.fetchval("SELECT value FROM site_settings WHERE key = $1", key)
+        return cast(str | None, val)
 
 
 async def get_many(keys: list[str]) -> dict[str, str]:
     pool = get_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            "SELECT key, value FROM site_settings WHERE key = ANY($1)", keys
-        )
+        rows = await conn.fetch("SELECT key, value FROM site_settings WHERE key = ANY($1)", keys)
         return {r["key"]: r["value"] for r in rows}
 
 

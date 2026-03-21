@@ -21,7 +21,8 @@ const selectedFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
 const error = ref('')
 
-const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/zip,application/x-zip-compressed'
+const ACCEPTED_TYPES =
+  'image/jpeg,image/png,image/gif,image/webp,application/zip,application/x-zip-compressed'
 const ZIP_TYPES = new Set(['application/zip', 'application/x-zip-compressed'])
 
 const fileInfo = computed(() => {
@@ -58,7 +59,9 @@ function handleFileChange(event: Event) {
 
 const isZipFile = computed(() => {
   if (!selectedFile.value) return false
-  return ZIP_TYPES.has(selectedFile.value.type) || selectedFile.value.name.toLowerCase().endsWith('.zip')
+  return (
+    ZIP_TYPES.has(selectedFile.value.type) || selectedFile.value.name.toLowerCase().endsWith('.zip')
+  )
 })
 
 function handleUpload() {

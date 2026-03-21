@@ -5,7 +5,6 @@ Covers:
 - RequestValidationError handler returns sanitized 422 responses
 """
 
-import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -101,11 +100,10 @@ class TestValidationExceptionHandler:
         GET /api/v1/posts?page=-1 or similar — the exact endpoint doesn't matter,
         we just need to trigger a Pydantic validation error.
         """
-        from app.main import RequestValidationError, app, validation_exception_handler
-
         # Directly invoke the handler to test its output format
         from fastapi import Request as FRequest
-        from pydantic import ValidationError
+
+        from app.main import RequestValidationError, validation_exception_handler
 
         exc = RequestValidationError(
             errors=[

@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.event_handlers import (
+from app.event_handlers import _on_post_created_in_sig
+from app.tasks.event_retry import (
     _SIG_NOTIFICATION_CONCURRENCY,
     _SIG_NOTIFICATION_MAX,
-    _on_post_created_in_sig,
 )
 
 

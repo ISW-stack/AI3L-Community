@@ -1,16 +1,15 @@
 import io
 import re
 import uuid
+from collections.abc import AsyncGenerator
 
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import Response
-from starlette.responses import StreamingResponse
 from loguru import logger
+from starlette.responses import StreamingResponse
 
 from app.core.async_storage import delete_file as async_delete_file
-from app.core.async_storage import download_file as async_download_file
 from app.core.async_storage import download_file_metadata as async_download_metadata
 from app.core.async_storage import generate_presigned_url as async_presigned_url
 from app.core.async_storage import get_file_size as async_get_file_size
@@ -307,7 +306,7 @@ async def serve_file(
 
     _STREAM_CHUNK_SIZE = 64 * 1024  # 64 KB chunks
 
-    async def _stream_chunks():  # type: ignore[return]
+    async def _stream_chunks() -> AsyncGenerator[bytes, None]:  # type: ignore[return]
         try:
             while True:
                 chunk = await run_in_threadpool(streaming_body.read, _STREAM_CHUNK_SIZE)

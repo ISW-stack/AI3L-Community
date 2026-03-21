@@ -206,6 +206,10 @@ watch(page, fetchPhotos)
       @set-cover="handleSetCover"
     />
 
-    <PhotoUploadModal v-model="showUploadModal" @upload="handleUpload" @upload-zip="handleUploadZip" />
+    <PhotoUploadModal
+      v-model="showUploadModal"
+      @upload="handleUpload"
+      @upload-zip="handleUploadZip"
+    />
   </div>
 </template>

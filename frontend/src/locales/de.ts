@@ -177,6 +177,7 @@ export default {
     inviteCodes: 'Einladungscodes',
     auditLogs: 'Prüfprotokolle',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'Mitwirkende',
     profile: 'Profil',
     logOut: 'Abmelden',
@@ -940,6 +941,8 @@ export default {
     title: 'Über AI3L Community',
     description:
       'AI3L Community ist eine kleine akademische Austauschplattform für den Bereich Künstliche Intelligenz im Sprachenlernen und in der Alphabetisierung. Sie wird von Professorin Yu-Ju Lan von der National Taiwan Normal University (NTNU) organisiert und geleitet. Dieses gemeinschaftlich getragene Projekt hat das Ziel, Forschende und Praktikerinnen und Praktiker zusammenzubringen, die ein gemeinsames Interesse daran teilen, zu erkunden, wie KI die Sprachbildung und die Entwicklung von Lesekompetenz unterstützen kann.',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'Mitwirkende',
       loading: 'Mitwirkende werden geladen...',
@@ -1272,6 +1275,21 @@ export default {
         deleteFailed: 'Mitwirkender konnte nicht gelöscht werden.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1293,6 +1311,7 @@ export default {
     inviteCodes: 'Einladungscodes',
     contributors: 'Mitwirkende',
     auditLogs: 'Audit-Protokolle',
+    siteSettings: 'Site Settings',
     friends: 'Freunde',
     following: 'Abonniert',
     blockedUsers: 'Gesperrte Benutzer',

@@ -176,6 +176,7 @@ export default {
     inviteCodes: 'Codici invito',
     auditLogs: 'Log di controllo',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'Contributori',
     profile: 'Profilo',
     logOut: 'Esci',
@@ -934,6 +935,8 @@ export default {
     title: 'Informazioni su AI3L Community',
     description:
       "AI3L Community è una piccola piattaforma di scambio accademico dedicata all'IA nell'apprendimento linguistico e nella literacy. È organizzata e coordinata dalla Professoressa Yu-Ju Lan della National Taiwan Normal University (NTNU). Questo progetto a guida comunitaria mira a riunire ricercatori e professionisti che condividono l'interesse per l'esplorazione di come l'IA possa supportare l'educazione linguistica e lo sviluppo della literacy.",
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'Contributori',
       loading: 'Caricamento contributori...',
@@ -1266,6 +1269,21 @@ export default {
         deleteFailed: 'Eliminazione del contributore non riuscita.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1287,6 +1305,7 @@ export default {
     inviteCodes: 'Codici invito',
     contributors: 'Contributori',
     auditLogs: 'Log di audit',
+    siteSettings: 'Site Settings',
     friends: 'Amici',
     following: 'Seguiti',
     blockedUsers: 'Utenti bloccati',

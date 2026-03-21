@@ -1,6 +1,5 @@
 """Tests for session 3 audit fixes: L-17, L-18, L-19, L-20, L-24, L-46, M-36."""
 
-import asyncio
 import inspect
 import types
 import uuid
@@ -347,9 +346,7 @@ class TestL19FormCreateAtomicCount:
                 questions=[{"id": "q1", "type": "text", "label": "Q"}],
             )
 
-        mock_repo.count_active_standalone_by_user.assert_awaited_once_with(
-            conn, uuid.UUID(user_id)
-        )
+        mock_repo.count_active_standalone_by_user.assert_awaited_once_with(conn, uuid.UUID(user_id))
         mock_repo.insert_in_conn.assert_awaited_once()
         assert mock_repo.insert_in_conn.call_args[0][0] is conn
         conn.transaction.assert_called_once()
@@ -403,10 +400,22 @@ class TestL20PostCreateSigMembershipAtomic:
         with (
             patch("app.services.post.get_pool", return_value=pool),
             patch("app.services.post.post_repo") as mock_post_repo,
-            patch("app.services.post._atomic_check_and_increment_post_limit", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.services.post._atomic_check_and_increment_post_limit",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
             patch("app.services.post.emit", new_callable=AsyncMock),
-            patch("app.services.post.async_row_to_post", new_callable=AsyncMock, return_value={"id": "x"}),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER") as mock_sig,
+            patch(
+                "app.services.post.async_row_to_post",
+                new_callable=AsyncMock,
+                return_value={"id": "x"},
+            ),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value="MEMBER",
+            ) as mock_sig,
         ):
             mock_post_repo.insert_in_conn = AsyncMock(return_value={"id": uuid.uuid4()})
 
@@ -428,10 +437,18 @@ class TestL20PostCreateSigMembershipAtomic:
         with (
             patch("app.services.post.get_pool", return_value=pool),
             patch("app.services.post.post_repo") as mock_post_repo,
-            patch("app.services.post._atomic_check_and_increment_post_limit", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.services.post._atomic_check_and_increment_post_limit",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
             patch("app.services.post._rollback_daily_post_count", new_callable=AsyncMock),
             patch("app.services.post.async_row_to_post", new_callable=AsyncMock),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
         ):
             from app.services.post import create_post
 
@@ -450,9 +467,17 @@ class TestL20PostCreateSigMembershipAtomic:
         with (
             patch("app.services.post.get_pool", return_value=pool),
             patch("app.services.post.post_repo") as mock_post_repo,
-            patch("app.services.post._atomic_check_and_increment_post_limit", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.services.post._atomic_check_and_increment_post_limit",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
             patch("app.services.post.emit", new_callable=AsyncMock),
-            patch("app.services.post.async_row_to_post", new_callable=AsyncMock, return_value={"id": "p1"}),
+            patch(
+                "app.services.post.async_row_to_post",
+                new_callable=AsyncMock,
+                return_value={"id": "p1"},
+            ),
         ):
             mock_post_repo.insert_in_conn = AsyncMock(return_value=MagicMock())
 
@@ -732,16 +757,40 @@ class TestM36PresignedURLGather:
         """async_user_to_response must be called for each user via gather."""
         from app.schemas.user import UserResponse
 
-        user1 = {"id": uuid.uuid4(), "username": "alice", "display_name": "Alice", "role": "MEMBER", "avatar_url": "a.png"}
-        user2 = {"id": uuid.uuid4(), "username": "bob", "display_name": "Bob", "role": "MEMBER", "avatar_url": "b.png"}
+        user1 = {
+            "id": uuid.uuid4(),
+            "username": "alice",
+            "display_name": "Alice",
+            "role": "MEMBER",
+            "avatar_url": "a.png",
+        }
+        user2 = {
+            "id": uuid.uuid4(),
+            "username": "bob",
+            "display_name": "Bob",
+            "role": "MEMBER",
+            "avatar_url": "b.png",
+        }
 
         fake_resp = UserResponse(
-            id=str(uuid.uuid4()), username="x", display_name="X", role="MEMBER", avatar_url=None,
+            id=str(uuid.uuid4()),
+            username="x",
+            display_name="X",
+            role="MEMBER",
+            avatar_url=None,
         )
 
         with (
-            patch("app.api.v1.endpoints.users.list_users", new_callable=AsyncMock, return_value=([user1, user2], 2)),
-            patch("app.api.v1.endpoints.users.async_user_to_response", new_callable=AsyncMock, return_value=fake_resp) as mock_convert,
+            patch(
+                "app.api.v1.endpoints.users.list_users",
+                new_callable=AsyncMock,
+                return_value=([user1, user2], 2),
+            ),
+            patch(
+                "app.api.v1.endpoints.users.async_user_to_response",
+                new_callable=AsyncMock,
+                return_value=fake_resp,
+            ) as mock_convert,
         ):
             from app.api.v1.endpoints.users import get_all_users
 

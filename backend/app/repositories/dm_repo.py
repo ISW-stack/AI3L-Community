@@ -1,6 +1,7 @@
 """Direct-message repository — conversations & messages (raw SQL)."""
 
 import uuid
+from typing import cast
 
 from app.core.database import get_pool
 
@@ -614,7 +615,7 @@ async def clear_message_attachment_if_present(message_id: uuid.UUID) -> bool:
             message_id,
         )
         # asyncpg returns e.g. "UPDATE 1" or "UPDATE 0"
-        return result == "UPDATE 1"
+        return cast(bool, result == "UPDATE 1")
 
 
 async def find_expired_text_messages(cutoff: object) -> list[dict]:

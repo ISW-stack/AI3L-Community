@@ -1,5 +1,4 @@
 import uuid
-from typing import Any
 
 from app.core.database import get_pool
 
@@ -73,9 +72,9 @@ async def upsert_override(
             display_order,
             is_visible,
             updated_by,
-            "custom_title" in provided,        # $8
+            "custom_title" in provided,  # $8
             "custom_description" in provided,  # $9
-            "display_order" in provided,       # $10
-            "is_visible" in provided,          # $11
+            "display_order" in provided,  # $10
+            "is_visible" in provided,  # $11
         )
         return dict(row)

@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -276,8 +276,10 @@ class TestUpdateSigDescription:
         """SIG ADMIN can update org chart description."""
         try:
             payload, uid = _override_auth("MEMBER")
-            with patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role, \
-                 patch(f"{_SVC}.update_sig_description", new_callable=AsyncMock) as mock_update:
+            with (
+                patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role,
+                patch(f"{_SVC}.update_sig_description", new_callable=AsyncMock) as mock_update,
+            ):
                 mock_role.return_value = "ADMIN"
                 mock_update.return_value = True
                 resp = await client.put(
@@ -295,8 +297,10 @@ class TestUpdateSigDescription:
         """SIG SUB_ADMIN can update org chart description."""
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role, \
-                 patch(f"{_SVC}.update_sig_description", new_callable=AsyncMock) as mock_update:
+            with (
+                patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role,
+                patch(f"{_SVC}.update_sig_description", new_callable=AsyncMock) as mock_update,
+            ):
                 mock_role.return_value = "SUB_ADMIN"
                 mock_update.return_value = True
                 resp = await client.put(
@@ -366,8 +370,10 @@ class TestUpdateMemberBio:
         """SIG member can update their own org chart bio."""
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role, \
-                 patch(f"{_SVC}.update_member_bio", new_callable=AsyncMock) as mock_update:
+            with (
+                patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role,
+                patch(f"{_SVC}.update_member_bio", new_callable=AsyncMock) as mock_update,
+            ):
                 mock_role.return_value = "MEMBER"
                 mock_update.return_value = True
                 resp = await client.put(
@@ -401,8 +407,10 @@ class TestUpdateMemberBio:
         """Returns 404 when membership record not found by update."""
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role, \
-                 patch(f"{_SVC}.update_member_bio", new_callable=AsyncMock) as mock_update:
+            with (
+                patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role,
+                patch(f"{_SVC}.update_member_bio", new_callable=AsyncMock) as mock_update,
+            ):
                 mock_role.return_value = "MEMBER"
                 mock_update.return_value = False
                 resp = await client.put(
@@ -419,8 +427,10 @@ class TestUpdateMemberBio:
         """Passing null bio clears the field."""
         try:
             _override_auth("MEMBER")
-            with patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role, \
-                 patch(f"{_SVC}.update_member_bio", new_callable=AsyncMock) as mock_update:
+            with (
+                patch(f"{_SIG_REPO}.get_member_role", new_callable=AsyncMock) as mock_role,
+                patch(f"{_SVC}.update_member_bio", new_callable=AsyncMock) as mock_update,
+            ):
                 mock_role.return_value = "ADMIN"
                 mock_update.return_value = True
                 resp = await client.put(
@@ -491,7 +501,11 @@ class TestSigMemberVisibilityFiltering:
 
         with (
             patch("app.core.redis.get_redis", return_value=mock_redis),
-            patch("app.services.org_chart._build_full_org_chart", new_callable=AsyncMock, return_value=full_data),
+            patch(
+                "app.services.org_chart._build_full_org_chart",
+                new_callable=AsyncMock,
+                return_value=full_data,
+            ),
         ):
             result = await org_chart_service.get_org_chart(is_super_admin=False)
 
@@ -512,7 +526,11 @@ class TestSigMemberVisibilityFiltering:
 
         with (
             patch("app.core.redis.get_redis", return_value=mock_redis),
-            patch("app.services.org_chart._build_full_org_chart", new_callable=AsyncMock, return_value=full_data),
+            patch(
+                "app.services.org_chart._build_full_org_chart",
+                new_callable=AsyncMock,
+                return_value=full_data,
+            ),
         ):
             result = await org_chart_service.get_org_chart(is_super_admin=True)
 
@@ -628,9 +646,17 @@ class TestSigMutationsInvalidateOrgChartCache:
 
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.insert", new_callable=AsyncMock, return_value=_make_sig_row()),
+            patch(
+                "app.repositories.sig_repo.insert",
+                new_callable=AsyncMock,
+                return_value=_make_sig_row(),
+            ),
             patch("app.repositories.sig_repo.add_member", new_callable=AsyncMock),
-            patch("app.repositories.sig_repo.find_creator_display_name", new_callable=AsyncMock, return_value="Alice"),
+            patch(
+                "app.repositories.sig_repo.find_creator_display_name",
+                new_callable=AsyncMock,
+                return_value="Alice",
+            ),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):
             await sig_service.create_sig("Test SIG", "desc", str(_USER_ID))
@@ -674,7 +700,9 @@ class TestSigMutationsInvalidateOrgChartCache:
         from app.services import sig as sig_service
 
         with (
-            patch("app.repositories.sig_repo.soft_delete", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.repositories.sig_repo.soft_delete", new_callable=AsyncMock, return_value=True
+            ),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):
             result = await sig_service.soft_delete_sig(_SIG_ID)
@@ -687,7 +715,9 @@ class TestSigMutationsInvalidateOrgChartCache:
         from app.services import sig as sig_service
 
         with (
-            patch("app.repositories.sig_repo.soft_delete", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.sig_repo.soft_delete", new_callable=AsyncMock, return_value=False
+            ),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):
             result = await sig_service.soft_delete_sig(_SIG_ID)
@@ -701,9 +731,21 @@ class TestSigMutationsInvalidateOrgChartCache:
 
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value=None),
-            patch("app.repositories.sig_repo.join_member", new_callable=AsyncMock, return_value=_make_member_row()),
-            patch("app.converters.sig_converter.async_resolve_avatar_url", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "app.repositories.sig_repo.join_member",
+                new_callable=AsyncMock,
+                return_value=_make_member_row(),
+            ),
+            patch(
+                "app.converters.sig_converter.async_resolve_avatar_url",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):
             await sig_service.join_sig(_SIG_ID, str(_USER_ID))
@@ -721,8 +763,14 @@ class TestSigMutationsInvalidateOrgChartCache:
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
             patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER"),
-            patch("app.repositories.sig_repo.delete_member", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value="MEMBER",
+            ),
+            patch(
+                "app.repositories.sig_repo.delete_member", new_callable=AsyncMock, return_value=True
+            ),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):
             result = await sig_service.leave_sig(_SIG_ID, str(_USER_ID))
@@ -739,8 +787,14 @@ class TestSigMutationsInvalidateOrgChartCache:
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
             patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER"),
-            patch("app.repositories.sig_repo.delete_member", new_callable=AsyncMock, return_value=True),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value="MEMBER",
+            ),
+            patch(
+                "app.repositories.sig_repo.delete_member", new_callable=AsyncMock, return_value=True
+            ),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):
             result = await sig_service.remove_member(
@@ -761,9 +815,21 @@ class TestSigMutationsInvalidateOrgChartCache:
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
             patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="MEMBER"),
-            patch("app.repositories.sig_repo.update_member_role_in_conn", new_callable=AsyncMock, return_value=member_row),
-            patch("app.converters.sig_converter.async_resolve_avatar_url", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value="MEMBER",
+            ),
+            patch(
+                "app.repositories.sig_repo.update_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value=member_row,
+            ),
+            patch(
+                "app.converters.sig_converter.async_resolve_avatar_url",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("app.core.event_bus.emit", new_callable=AsyncMock),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):
@@ -784,9 +850,21 @@ class TestSigMutationsInvalidateOrgChartCache:
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
             patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
-            patch("app.repositories.sig_repo.get_member_role_in_conn", new_callable=AsyncMock, return_value="SUB_ADMIN"),
-            patch("app.repositories.sig_repo.update_member_role_in_conn", new_callable=AsyncMock, return_value=member_row),
-            patch("app.converters.sig_converter.async_resolve_avatar_url", new_callable=AsyncMock, return_value=None),
+            patch(
+                "app.repositories.sig_repo.get_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value="SUB_ADMIN",
+            ),
+            patch(
+                "app.repositories.sig_repo.update_member_role_in_conn",
+                new_callable=AsyncMock,
+                return_value=member_row,
+            ),
+            patch(
+                "app.converters.sig_converter.async_resolve_avatar_url",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("app.core.event_bus.emit", new_callable=AsyncMock),
             patch(_INVALIDATE, new_callable=AsyncMock) as mock_inv,
         ):

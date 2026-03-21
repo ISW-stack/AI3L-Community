@@ -1,12 +1,10 @@
 """Tests for audit session 3 fixes: DM, search, file streaming, SIG notifications, config."""
 
-import asyncio
 import uuid
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # L-12: Editor file streaming response
@@ -717,9 +715,9 @@ class TestDockerComposeConfig:
         for port_mapping in port_lines:
             # Each port mapping that has a colon should start with 127.0.0.1
             if port_mapping.count(":") >= 2:
-                assert port_mapping.startswith("127.0.0.1"), (
-                    f"Port {port_mapping} is not bound to 127.0.0.1"
-                )
+                assert port_mapping.startswith(
+                    "127.0.0.1"
+                ), f"Port {port_mapping} is not bound to 127.0.0.1"
 
     def test_no_unbound_ports_in_test_compose(self) -> None:
         """All port mappings in test compose must be bound to 127.0.0.1."""
@@ -730,6 +728,6 @@ class TestDockerComposeConfig:
         port_lines = re.findall(r'-\s*["\']?(\d[\d.:]+\d)["\']?', content)
         for port_mapping in port_lines:
             if port_mapping.count(":") >= 2:
-                assert port_mapping.startswith("127.0.0.1"), (
-                    f"Port {port_mapping} is not bound to 127.0.0.1"
-                )
+                assert port_mapping.startswith(
+                    "127.0.0.1"
+                ), f"Port {port_mapping} is not bound to 127.0.0.1"

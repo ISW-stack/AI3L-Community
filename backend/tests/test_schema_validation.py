@@ -24,7 +24,6 @@ from app.schemas.user import (
     UserUpdateRequest,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -319,9 +318,7 @@ class TestQuestionSchemaBounds:
             _minimal_question(max_size_mb=51)
 
     def test_options_list_max_length(self):
-        opts = [
-            QuestionOption(id=f"o{i}", label=f"Option {i}") for i in range(51)
-        ]
+        opts = [QuestionOption(id=f"o{i}", label=f"Option {i}") for i in range(51)]
         with pytest.raises(ValidationError):
             _minimal_question(type="single_choice", options=opts)
 
@@ -363,9 +360,7 @@ class TestBannerUrlValidation:
 
     def test_data_url_rejected(self):
         with pytest.raises(ValidationError):
-            _valid_form_create(
-                banner_url="data:text/html,<script>alert(1)</script>"
-            )
+            _valid_form_create(banner_url="data:text/html,<script>alert(1)</script>")
 
     def test_ftp_url_rejected(self):
         with pytest.raises(ValidationError):
@@ -516,9 +511,7 @@ class TestPostUuidPatternValidation:
 
 class TestFriendRequestUuidPattern:
     def test_valid_uuid(self):
-        FriendRequestCreateRequest(
-            user_id="550e8400-e29b-41d4-a716-446655440000"
-        )
+        FriendRequestCreateRequest(user_id="550e8400-e29b-41d4-a716-446655440000")
 
     def test_invalid_uuid(self):
         with pytest.raises(ValidationError):
@@ -526,9 +519,7 @@ class TestFriendRequestUuidPattern:
 
     def test_uppercase_uuid_rejected(self):
         with pytest.raises(ValidationError):
-            FriendRequestCreateRequest(
-                user_id="550E8400-E29B-41D4-A716-446655440000"
-            )
+            FriendRequestCreateRequest(user_id="550E8400-E29B-41D4-A716-446655440000")
 
 
 # ===========================================================================

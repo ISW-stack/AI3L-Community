@@ -75,7 +75,7 @@ describe('BaseAvatar', () => {
   })
 
   describe('image error fallback', () => {
-    it('should show initials when image fails to load', async () => {
+    it('should show icon when image fails to load', async () => {
       const wrapper = mount(BaseAvatar, {
         props: { src: 'https://example.com/broken.jpg', name: 'Alice' },
       })
@@ -85,7 +85,7 @@ describe('BaseAvatar', () => {
       await nextTick()
 
       expect(wrapper.find('img').exists()).toBe(false)
-      expect(wrapper.find('span').text()).toBe('A')
+      expect(wrapper.find('svg').exists()).toBe(true)
     })
 
     it('should recover when src changes after error', async () => {
@@ -104,19 +104,21 @@ describe('BaseAvatar', () => {
     })
   })
 
-  describe('initials fallback', () => {
-    it('should show first letter uppercase when no src', () => {
+  describe('icon fallback', () => {
+    it('should show icon when no src', () => {
       const wrapper = mount(BaseAvatar, {
         props: { name: 'alice' },
       })
-      expect(wrapper.find('span').text()).toBe('A')
+      expect(wrapper.find('svg').exists()).toBe(true)
+      expect(wrapper.find('img').exists()).toBe(false)
     })
 
-    it('should show ? when name is empty string', () => {
+    it('should show icon when name is empty string', () => {
       const wrapper = mount(BaseAvatar, {
         props: { name: '' },
       })
-      expect(wrapper.find('span').text()).toBe('?')
+      expect(wrapper.find('svg').exists()).toBe(true)
+      expect(wrapper.find('img').exists()).toBe(false)
     })
   })
 

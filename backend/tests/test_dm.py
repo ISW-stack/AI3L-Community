@@ -2607,11 +2607,13 @@ class TestSendMessageAtomicRepo:
             "char_len": 7,
         }
         mock_conn.fetchrow.return_value = msg_row
-        mock_conn.fetchval = AsyncMock(side_effect=[
-            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
-            False,  # block check
-            49998,  # total_chars near cap
-        ])
+        mock_conn.fetchval = AsyncMock(
+            side_effect=[
+                uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+                False,  # block check
+                49998,  # total_chars near cap
+            ]
+        )
         mock_conn.fetch.return_value = [deleted_row]  # one message deleted
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -2654,11 +2656,13 @@ class TestSendMessageAtomicRepo:
             "char_len": 4,
         }
         mock_conn.fetchrow.return_value = msg_row
-        mock_conn.fetchval = AsyncMock(side_effect=[
-            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
-            False,  # block check
-            50000,  # total_chars at cap
-        ])
+        mock_conn.fetchval = AsyncMock(
+            side_effect=[
+                uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+                False,  # block check
+                50000,  # total_chars at cap
+            ]
+        )
         mock_conn.fetch.return_value = [del1, del2]
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
@@ -2686,11 +2690,13 @@ class TestSendMessageAtomicRepo:
         """send_message_atomic does not delete when under char cap."""
         msg_row = _make_message_row(sender_id=_SENDER_ID)
         mock_conn.fetchrow.return_value = msg_row
-        mock_conn.fetchval = AsyncMock(side_effect=[
-            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
-            False,  # block check
-            100,  # total_chars far under cap
-        ])
+        mock_conn.fetchval = AsyncMock(
+            side_effect=[
+                uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+                False,  # block check
+                100,  # total_chars far under cap
+            ]
+        )
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import send_message_atomic
@@ -2721,10 +2727,12 @@ class TestSendMessageAtomicRepo:
             attachment_key="dm/test/f.pdf",
         )
         mock_conn.fetchrow.return_value = msg_row
-        mock_conn.fetchval = AsyncMock(side_effect=[
-            uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
-            False,  # block check
-        ])
+        mock_conn.fetchval = AsyncMock(
+            side_effect=[
+                uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
+                False,  # block check
+            ]
+        )
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import send_message_atomic

@@ -40,16 +40,12 @@ def upgrade() -> None:
         if needs_nullable:
             op.alter_column(table, column, nullable=True)
         op.drop_constraint(constraint, table, type_="foreignkey")
-        op.create_foreign_key(
-            constraint, table, "users", [column], ["id"], ondelete="SET NULL"
-        )
+        op.create_foreign_key(constraint, table, "users", [column], ["id"], ondelete="SET NULL")
 
     # ── CASCADE FKs ───────────────────────────────────────────────────
     for table, column, constraint in _CASCADE_FKS:
         op.drop_constraint(constraint, table, type_="foreignkey")
-        op.create_foreign_key(
-            constraint, table, "users", [column], ["id"], ondelete="CASCADE"
-        )
+        op.create_foreign_key(constraint, table, "users", [column], ["id"], ondelete="CASCADE")
 
 
 def downgrade() -> None:

@@ -176,6 +176,7 @@ export default {
     inviteCodes: 'Kode Undangan',
     auditLogs: 'Log Audit',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'Kontributor',
     profile: 'Profil',
     logOut: 'Keluar',
@@ -936,6 +937,8 @@ export default {
     title: 'Tentang AI3L Community',
     description:
       'AI3L Community adalah platform pertukaran akademik kecil untuk AI dalam Pembelajaran Bahasa dan Literasi. Platform ini diorganisasi dan dipimpin oleh Profesor Yu-Ju Lan dari National Taiwan Normal University (NTNU). Proyek berbasis komunitas ini bertujuan untuk menyatukan para peneliti dan praktisi yang memiliki minat dalam mengeksplorasi bagaimana AI dapat mendukung pendidikan bahasa dan pengembangan literasi.',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'Kontributor',
       loading: 'Memuat kontributor...',
@@ -1268,6 +1271,21 @@ export default {
         deleteFailed: 'Gagal menghapus kontributor.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1289,6 +1307,7 @@ export default {
     inviteCodes: 'Kode Undangan',
     contributors: 'Kontributor',
     auditLogs: 'Log Audit',
+    siteSettings: 'Site Settings',
     friends: 'Teman',
     following: 'Diikuti',
     blockedUsers: 'Pengguna Diblokir',

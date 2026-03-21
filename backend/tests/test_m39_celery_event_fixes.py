@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -28,9 +28,9 @@ class TestM39BeatScheduleExpires:
         for name, entry in celery.conf.beat_schedule.items():
             schedule_seconds = entry["schedule"]
             expires = entry["options"]["expires"]
-            assert expires == schedule_seconds, (
-                f"Beat task '{name}': expires ({expires}) != schedule ({schedule_seconds})"
-            )
+            assert (
+                expires == schedule_seconds
+            ), f"Beat task '{name}': expires ({expires}) != schedule ({schedule_seconds})"
 
 
 class TestM40RejectOnWorkerLost:
@@ -174,9 +174,7 @@ class TestL48EventIdDedup:
         mock_redis.expire = AsyncMock(return_value=True)
 
         with patch("app.core.redis.get_redis", return_value=mock_redis):
-            await _persist_failed_event(
-                "test.event", "handler", {"key": "val"}, retry_count=0
-            )
+            await _persist_failed_event("test.event", "handler", {"key": "val"}, retry_count=0)
 
         raw_entry = mock_redis.lpush.call_args[0][1]
         entry = json.loads(raw_entry)
@@ -198,9 +196,7 @@ class TestL48EventIdDedup:
         ids = []
         with patch("app.core.redis.get_redis", return_value=mock_redis):
             for _ in range(3):
-                await _persist_failed_event(
-                    "test.event", "handler", {"key": "val"}, retry_count=0
-                )
+                await _persist_failed_event("test.event", "handler", {"key": "val"}, retry_count=0)
 
         for call in mock_redis.lpush.call_args_list:
             entry = json.loads(call[0][1])

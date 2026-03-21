@@ -42,10 +42,8 @@ class TestAlbumRepoRegexGuard:
         from app.repositories.album_repo import update_album
 
         fake_album_id = uuid.uuid4()
-        mock_conn.fetchrow = AsyncMock(
-            side_effect=[{"id": fake_album_id, "title": "new"}, None]
-        )
-        result = await update_album(mock_conn, fake_album_id, title="new")
+        mock_conn.fetchrow = AsyncMock(side_effect=[{"id": fake_album_id, "title": "new"}, None])
+        await update_album(mock_conn, fake_album_id, title="new")
         call_args = mock_conn.fetchrow.call_args_list[0]
         query = call_args[0][0]
         assert "title = $1" in query
@@ -74,7 +72,7 @@ class TestAlbumRepoRegexGuard:
         mock_conn.fetchrow = AsyncMock(
             return_value={"id": fake_id, "description": "updated", "uploaded_by_name": "test"}
         )
-        result = await update_photo(mock_conn, fake_id, description="updated")
+        await update_photo(mock_conn, fake_id, description="updated")
         call_args = mock_conn.fetchrow.call_args_list[0]
         query = call_args[0][0]
         assert "description = $1" in query
@@ -102,13 +100,9 @@ class TestPreferencesRepoRegexGuard:
 
         original = preferences_repo._ALLOWED_PREFERENCE_COLUMNS
         try:
-            preferences_repo._ALLOWED_PREFERENCE_COLUMNS = frozenset(
-                original | {"bad;col"}
-            )
+            preferences_repo._ALLOWED_PREFERENCE_COLUMNS = frozenset(original | {"bad;col"})
             with patch.object(preferences_repo, "get_pool", return_value=mock_pool):
-                result = await preferences_repo.upsert_preferences(
-                    uuid.uuid4(), {"bad;col": True}
-                )
+                result = await preferences_repo.upsert_preferences(uuid.uuid4(), {"bad;col": True})
                 assert "theme" in result
         finally:
             preferences_repo._ALLOWED_PREFERENCE_COLUMNS = original
@@ -127,9 +121,7 @@ class TestPreferencesRepoRegexGuard:
             }
         )
         with patch.object(preferences_repo, "get_pool", return_value=mock_pool):
-            result = await preferences_repo.upsert_preferences(
-                uuid.uuid4(), {"theme": "dark"}
-            )
+            result = await preferences_repo.upsert_preferences(uuid.uuid4(), {"theme": "dark"})
             assert result["theme"] == "dark"
 
 
@@ -343,7 +335,9 @@ class TestCursorParsing:
                 body = resp.json()
                 detail = body.get("detail", {})
                 # detail may be a dict with 'message' or a string
-                msg = detail.get("message", str(detail)) if isinstance(detail, dict) else str(detail)
+                msg = (
+                    detail.get("message", str(detail)) if isinstance(detail, dict) else str(detail)
+                )
                 assert "Invalid cursor" in msg
                 assert "Traceback" not in msg
                 assert "binascii" not in msg
@@ -396,12 +390,13 @@ class TestPasswordChangeErrorSanitization:
     async def test_safe_password_error_passed_through(self, client):
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
-            ), patch(
-                f"{_USERS_EP}.change_password",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Password must be at least 12 characters."),
+            with (
+                patch(f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_USERS_EP}.change_password",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Password must be at least 12 characters."),
+                ),
             ):
                 resp = await client.put(
                     "/api/v1/users/me/password",
@@ -416,12 +411,13 @@ class TestPasswordChangeErrorSanitization:
     async def test_unsafe_error_replaced_with_generic(self, client):
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
-            ), patch(
-                f"{_USERS_EP}.change_password",
-                new_callable=AsyncMock,
-                side_effect=ValueError("relation 'users' does not exist"),
+            with (
+                patch(f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_USERS_EP}.change_password",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("relation 'users' does not exist"),
+                ),
             ):
                 resp = await client.put(
                     "/api/v1/users/me/password",
@@ -438,12 +434,13 @@ class TestPasswordChangeErrorSanitization:
     async def test_current_password_error_passed_through(self, client):
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
-            ), patch(
-                f"{_USERS_EP}.change_password",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Current password is incorrect."),
+            with (
+                patch(f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_USERS_EP}.change_password",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Current password is incorrect."),
+                ),
             ):
                 resp = await client.put(
                     "/api/v1/users/me/password",
@@ -458,12 +455,13 @@ class TestPasswordChangeErrorSanitization:
     async def test_incorrect_prefix_passed_through(self, client):
         try:
             _override_auth("MEMBER")
-            with patch(
-                f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True
-            ), patch(
-                f"{_USERS_EP}.change_password",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Incorrect current password."),
+            with (
+                patch(f"{_USERS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_USERS_EP}.change_password",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Incorrect current password."),
+                ),
             ):
                 resp = await client.put(
                     "/api/v1/users/me/password",
@@ -522,9 +520,7 @@ class TestAboutAvatarContentLength:
                 )()
                 mock_loop.return_value.run_in_executor = AsyncMock(return_value=sync_resp)
 
-                resp = await client.get(
-                    f"/api/v1/about/contributors/{contributor_id}/avatar"
-                )
+                resp = await client.get(f"/api/v1/about/contributors/{contributor_id}/avatar")
                 # Should succeed (content-length parse failure -> 0, under limit)
                 assert resp.status_code == 200
         finally:

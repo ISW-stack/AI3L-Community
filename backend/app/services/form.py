@@ -99,9 +99,7 @@ async def create_form(
                 # Standalone forms are always open to all authenticated users
                 allow_non_members = True
             else:
-                active_count = await form_repo.count_active_in_conn(
-                    conn, uuid.UUID(sig_id)
-                )
+                active_count = await form_repo.count_active_in_conn(conn, uuid.UUID(sig_id))
                 if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
                     raise ValueError(
                         f"Maximum active forms per SIG ({MAX_ACTIVE_FORMS_PER_SIG}) reached."

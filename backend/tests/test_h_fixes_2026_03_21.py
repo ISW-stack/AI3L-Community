@@ -1,12 +1,8 @@
 """Tests for HIGH audit fixes (H-02 through H-10) — 2026-03-21."""
 
 import importlib.util
-import os
-import sys
-import uuid
-from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -77,7 +73,9 @@ class TestSearchDeletedSigFilter:
     """H-10: search/suggestions must not return posts from deleted SIGs."""
 
     @patch("app.repositories.post_repo.get_pool")
-    async def test_search_query_includes_deleted_sig_filter(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_search_query_includes_deleted_sig_filter(
+        self, mock_get_pool, mock_pool, mock_conn
+    ):
         from app.repositories.post_repo import search
 
         # Return empty so we hit the count branch — simpler mocking
@@ -92,7 +90,9 @@ class TestSearchDeletedSigFilter:
         assert "s.is_deleted" in sql, "Search SQL should filter by s.is_deleted"
 
     @patch("app.repositories.post_repo.get_pool")
-    async def test_search_suggestions_includes_deleted_sig_filter(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_search_suggestions_includes_deleted_sig_filter(
+        self, mock_get_pool, mock_pool, mock_conn
+    ):
         from app.repositories.post_repo import get_search_suggestions
 
         mock_conn.fetch.return_value = []
@@ -105,7 +105,9 @@ class TestSearchDeletedSigFilter:
         assert "s.is_deleted" in sql
 
     @patch("app.repositories.post_repo.get_pool")
-    async def test_keyword_suggestions_includes_deleted_sig_filter(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_keyword_suggestions_includes_deleted_sig_filter(
+        self, mock_get_pool, mock_pool, mock_conn
+    ):
         from app.repositories.post_repo import get_keyword_suggestions
 
         mock_conn.fetch.return_value = []
@@ -132,7 +134,9 @@ class TestSearchDeletedSigFilter:
         assert "machine learning" in mock_conn.fetch.call_args[0]
 
     @patch("app.repositories.post_repo.get_pool")
-    async def test_search_no_keyword_still_has_sig_filter(self, mock_get_pool, mock_pool, mock_conn):
+    async def test_search_no_keyword_still_has_sig_filter(
+        self, mock_get_pool, mock_pool, mock_conn
+    ):
         from app.repositories.post_repo import search
 
         mock_conn.fetch.return_value = []
@@ -173,9 +177,17 @@ class TestMigrationStructure:
         m = _load_migration(_H08_FILE)
         all_tables = [t for t, *_ in m._SET_NULL_FKS] + [t for t, *_ in m._CASCADE_FKS]
         required = [
-            "posts", "comments", "audit_logs", "notifications",
-            "invite_codes", "membership_applications", "forms",
-            "form_responses", "post_reports", "sigs", "privacy_consents",
+            "posts",
+            "comments",
+            "audit_logs",
+            "notifications",
+            "invite_codes",
+            "membership_applications",
+            "forms",
+            "form_responses",
+            "post_reports",
+            "sigs",
+            "privacy_consents",
         ]
         for table in required:
             assert table in all_tables, f"Migration missing FK for {table}"

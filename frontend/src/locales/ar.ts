@@ -175,6 +175,7 @@ export default {
     inviteCodes: 'رموز الدعوة',
     auditLogs: 'سجلات التدقيق',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'المساهمون',
     profile: 'الملف الشخصي',
     logOut: 'تسجيل الخروج',
@@ -926,6 +927,8 @@ export default {
     title: 'حول AI3L Community',
     description:
       'AI3L Community هي منصة تبادل أكاديمي صغيرة للذكاء الاصطناعي في تعلم اللغة والقراءة والكتابة. تنظمها وتترأسها الأستاذة يوجو لان من الجامعة الوطنية للمعلمين في تايوان (NTNU). يهدف هذا المشروع المجتمعي إلى جمع الباحثين والممارسين المهتمين باستكشاف كيفية دعم الذكاء الاصطناعي لتعليم اللغات وتطوير القراءة والكتابة.',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'المساهمون',
       loading: 'جارٍ تحميل المساهمين...',
@@ -1257,6 +1260,21 @@ export default {
         deleteFailed: 'فشل حذف المساهم.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1278,6 +1296,7 @@ export default {
     inviteCodes: 'رموز الدعوة',
     contributors: 'المساهمون',
     auditLogs: 'سجلات التدقيق',
+    siteSettings: 'Site Settings',
     friends: 'الأصدقاء',
     following: 'المتابَعون',
     blockedUsers: 'المستخدمون المحظورون',

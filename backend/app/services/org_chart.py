@@ -39,12 +39,17 @@ async def get_org_chart(is_super_admin: bool = False) -> dict:
             continue  # whole SIG hidden
         # Filter hidden individual members within the SIG
         filtered_members = [
-            m for m in s.get("members", [])
+            m
+            for m in s.get("members", [])
             if m.get("member_override") is None or m["member_override"].get("is_visible", True)
         ]
         visible_sigs.append({**s, "members": filtered_members})
 
-    visible_cats = [c for c in full_data["categories"] if c.get("override") is None or c["override"].get("is_visible", True)]
+    visible_cats = [
+        c
+        for c in full_data["categories"]
+        if c.get("override") is None or c["override"].get("is_visible", True)
+    ]
     return {"sigs": visible_sigs, "categories": visible_cats}
 
 
@@ -75,39 +80,47 @@ async def _build_full_org_chart() -> dict:
             avatar = await async_resolve_avatar_url(m.get("avatar_url"))
             member_key = ("sig_member", str(m["user_id"]))
             member_override = override_map.get(member_key)
-            members.append({
-                "user_id": str(m["user_id"]),
-                "display_name": m["display_name"],
-                "username": m["username"],
-                "avatar_url": avatar,
-                "role": m["role"],
-                "org_chart_bio": m.get("org_chart_bio"),
-                "member_override": _format_override(member_override) if member_override else None,
-            })
-        sig_results.append({
-            "id": sid,
-            "name": s["name"],
-            "description": s.get("description"),
-            "org_chart_description": s.get("org_chart_description"),
-            "member_count": s.get("member_count", 0),
-            "members": members,
-            "override": _format_override(override) if override else None,
-        })
+            members.append(
+                {
+                    "user_id": str(m["user_id"]),
+                    "display_name": m["display_name"],
+                    "username": m["username"],
+                    "avatar_url": avatar,
+                    "role": m["role"],
+                    "org_chart_bio": m.get("org_chart_bio"),
+                    "member_override": (
+                        _format_override(member_override) if member_override else None
+                    ),
+                }
+            )
+        sig_results.append(
+            {
+                "id": sid,
+                "name": s["name"],
+                "description": s.get("description"),
+                "org_chart_description": s.get("org_chart_description"),
+                "member_count": s.get("member_count", 0),
+                "members": members,
+                "override": _format_override(override) if override else None,
+            }
+        )
 
     cat_results = []
     for c in categories:
         cid = str(c["id"])
         override = override_map.get(("category", cid))
         creator_avatar = await async_resolve_avatar_url(c.get("creator_avatar_url"))
-        cat_results.append({
-            "id": cid,
-            "name": c["name"],
-            "description": c.get("description"),
-            "creator_id": str(c["created_by"]) if c.get("created_by") else None,
-            "creator_display_name": c.get("creator_display_name"),
-            "creator_avatar_url": creator_avatar,
-            "override": _format_override(override) if override else None,
-        })
+        cat_results.append(
+            {
+                "id": cid,
+                "name": c["name"],
+                "description": c.get("description"),
+                "creator_id": str(c["created_by"]) if c.get("created_by") else None,
+                "creator_display_name": c.get("creator_display_name"),
+                "creator_avatar_url": creator_avatar,
+                "override": _format_override(override) if override else None,
+            }
+        )
 
     return {"sigs": sig_results, "categories": cat_results}
 
@@ -119,15 +132,17 @@ async def get_members(
     result = []
     for m in members:
         avatar = await async_resolve_avatar_url(m.get("avatar_url"))
-        result.append({
-            "id": str(m["id"]),
-            "username": m["username"],
-            "display_name": m["display_name"],
-            "avatar_url": avatar,
-            "role": m["role"],
-            "affiliation": m.get("affiliation"),
-            "bio": m.get("bio"),
-        })
+        result.append(
+            {
+                "id": str(m["id"]),
+                "username": m["username"],
+                "display_name": m["display_name"],
+                "avatar_url": avatar,
+                "role": m["role"],
+                "affiliation": m.get("affiliation"),
+                "bio": m.get("bio"),
+            }
+        )
     return result, total
 
 

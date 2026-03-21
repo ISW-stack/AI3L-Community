@@ -200,7 +200,12 @@ const {
         </div>
         <template v-if="!isStandalone">
           <label class="flex items-center gap-2 text-sm text-foreground mt-4">
-            <input type="checkbox" name="allow-non-members" v-model="allowNonMembers" class="rounded" />
+            <input
+              type="checkbox"
+              name="allow-non-members"
+              v-model="allowNonMembers"
+              class="rounded"
+            />
             {{ t('forms.builder.allowNonMembers') }}
           </label>
           <p class="text-xs text-muted mt-1">

@@ -98,7 +98,10 @@ onMounted(() => {
         </div>
 
         <!-- Bio -->
-        <div v-if="intro.bio" class="flex-1 text-sm text-foreground leading-relaxed whitespace-pre-line">
+        <div
+          v-if="intro.bio"
+          class="flex-1 text-sm text-foreground leading-relaxed whitespace-pre-line"
+        >
           {{ intro.bio }}
         </div>
         <div v-else class="flex-1 text-sm text-muted italic">

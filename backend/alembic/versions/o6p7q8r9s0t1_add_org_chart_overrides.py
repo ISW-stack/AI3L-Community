@@ -20,7 +20,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "org_chart_overrides",
-        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), primary_key=True),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            server_default=sa.text("gen_random_uuid()"),
+            primary_key=True,
+        ),
         sa.Column("entity_type", sa.String(20), nullable=False),
         sa.Column("entity_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("custom_title", sa.String(200), nullable=True),
@@ -28,8 +33,18 @@ def upgrade() -> None:
         sa.Column("display_order", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("is_visible", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("updated_by", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("NOW()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("NOW()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("NOW()"),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["updated_by"], ["users.id"]),
         sa.UniqueConstraint("entity_type", "entity_id", name="uq_org_chart_overrides_entity"),
     )

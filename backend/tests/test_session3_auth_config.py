@@ -9,7 +9,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # M-24: f-string logging -> %s format
 # ---------------------------------------------------------------------------
@@ -33,9 +32,7 @@ class TestM24LoggingFormat:
                     continue
                 # Check for logger.error/warning/info calls with f-strings
                 # Pattern: logger.<level>(f"...") or logger.<level>(f'...')
-                fstring_log = re.findall(
-                    r'logger\.\w+\(\s*f["\']', func_source
-                )
+                fstring_log = re.findall(r'logger\.\w+\(\s*f["\']', func_source)
                 assert not fstring_log, (
                     f"Exception handler '{node.name}' uses f-string logging. "
                     f"Should use %-format: logger.error('msg %s', var)"
@@ -54,9 +51,7 @@ class TestM24LoggingFormat:
 
         source = inspect.getsource(validation_exception_handler)
         fstring_log = re.findall(r'logger\.\w+\(\s*f["\']', source)
-        assert not fstring_log, (
-            "validation_exception_handler uses f-string logging"
-        )
+        assert not fstring_log, "validation_exception_handler uses f-string logging"
 
     def test_unhandled_exception_handler_no_fstring_logging(self) -> None:
         """Specifically verify the unhandled_exception_handler source has no f-string logs."""
@@ -64,9 +59,7 @@ class TestM24LoggingFormat:
 
         source = inspect.getsource(unhandled_exception_handler)
         fstring_log = re.findall(r'logger\.\w+\(\s*f["\']', source)
-        assert not fstring_log, (
-            "unhandled_exception_handler uses f-string logging"
-        )
+        assert not fstring_log, "unhandled_exception_handler uses f-string logging"
 
 
 # ---------------------------------------------------------------------------
@@ -136,17 +129,15 @@ class TestL01PasswordChangeClearsCookies:
 
             # Check that the Set-Cookie header deletes the access_token
             set_cookie_headers = resp.headers.get_list("set-cookie")
-            access_token_cookies = [
-                c for c in set_cookie_headers if "access_token" in c
-            ]
-            assert len(access_token_cookies) > 0, (
-                "Response must include Set-Cookie header for access_token deletion"
-            )
+            access_token_cookies = [c for c in set_cookie_headers if "access_token" in c]
+            assert (
+                len(access_token_cookies) > 0
+            ), "Response must include Set-Cookie header for access_token deletion"
 
             # Verify the cookie is being deleted (max-age=0 or expires in the past)
             cookie_str = access_token_cookies[0].lower()
             is_deleted = (
-                'max-age=0' in cookie_str
+                "max-age=0" in cookie_str
                 or '""' in cookie_str
                 or "expires=thu, 01 jan 1970" in cookie_str
             )
@@ -196,12 +187,10 @@ class TestL01PasswordChangeClearsCookies:
             assert resp.status_code == 200
 
             set_cookie_headers = resp.headers.get_list("set-cookie")
-            csrf_cookies = [
-                c for c in set_cookie_headers if "csrf_token" in c
-            ]
-            assert len(csrf_cookies) > 0, (
-                "Response must include Set-Cookie header for csrf_token deletion"
-            )
+            csrf_cookies = [c for c in set_cookie_headers if "csrf_token" in c]
+            assert (
+                len(csrf_cookies) > 0
+            ), "Response must include Set-Cookie header for csrf_token deletion"
         finally:
             _clear_overrides()
 
@@ -228,13 +217,13 @@ class TestL02InviteCodeEntropy:
 
         assert code.startswith("INV-"), f"Code should start with 'INV-', got: {code}"
         hex_part = code[4:]  # strip "INV-"
-        assert len(hex_part) == 16, (
-            f"Hex portion should be 16 chars (64 bits), got {len(hex_part)}: {hex_part}"
-        )
+        assert (
+            len(hex_part) == 16
+        ), f"Hex portion should be 16 chars (64 bits), got {len(hex_part)}: {hex_part}"
         # Verify it's valid hexadecimal
-        assert re.fullmatch(r"[0-9A-F]{16}", hex_part), (
-            f"Hex portion should be uppercase hex, got: {hex_part}"
-        )
+        assert re.fullmatch(
+            r"[0-9A-F]{16}", hex_part
+        ), f"Hex portion should be uppercase hex, got: {hex_part}"
 
     @pytest.mark.asyncio
     async def test_invite_code_not_8_chars(self) -> None:
@@ -249,9 +238,7 @@ class TestL02InviteCodeEntropy:
             code, _ = await create_invite_code(str(uuid.uuid4()))
 
         hex_part = code[4:]
-        assert len(hex_part) != 8, (
-            "Invite code should NOT be 8 hex chars (old weak entropy)"
-        )
+        assert len(hex_part) != 8, "Invite code should NOT be 8 hex chars (old weak entropy)"
 
     @pytest.mark.asyncio
     async def test_invite_codes_are_unique(self) -> None:
@@ -309,9 +296,7 @@ class TestL11AvatarPresignedUrlExpiry:
         ):
             result = resolve_avatar_url("avatars/user-id/abc123.jpg")
 
-        mock_generate.assert_called_once_with(
-            "avatars/user-id/abc123.jpg", expires_in=3600
-        )
+        mock_generate.assert_called_once_with("avatars/user-id/abc123.jpg", expires_in=3600)
         assert result == "https://example.com/signed-url"
 
     def test_resolve_avatar_url_skips_http_urls(self) -> None:
@@ -340,9 +325,7 @@ class TestL11AvatarPresignedUrlExpiry:
         ):
             result = await async_resolve_avatar_url("avatars/user-id/abc123.jpg")
 
-        mock_generate.assert_called_once_with(
-            "avatars/user-id/abc123.jpg", expires_in=3600
-        )
+        mock_generate.assert_called_once_with("avatars/user-id/abc123.jpg", expires_in=3600)
         assert result == "https://example.com/signed-url"
 
     def test_generate_presigned_url_default_expiry_is_3600(self) -> None:
@@ -381,9 +364,7 @@ class TestM45AuditLogRetention:
             for name, entry in schedule.items()
             if entry.get("task") == "cleanup_old_audit_logs"
         }
-        assert len(audit_entries) > 0, (
-            "No beat_schedule entry found for cleanup_old_audit_logs"
-        )
+        assert len(audit_entries) > 0, "No beat_schedule entry found for cleanup_old_audit_logs"
 
     def test_cleanup_old_audit_logs_daily_schedule(self) -> None:
         """Audit log cleanup should run daily (86400s)."""
@@ -391,9 +372,9 @@ class TestM45AuditLogRetention:
 
         for name, entry in celery.conf.beat_schedule.items():
             if entry.get("task") == "cleanup_old_audit_logs":
-                assert entry["schedule"] == 86400.0, (
-                    f"Expected daily schedule (86400s), got {entry['schedule']}"
-                )
+                assert (
+                    entry["schedule"] == 86400.0
+                ), f"Expected daily schedule (86400s), got {entry['schedule']}"
                 break
         else:
             pytest.fail("cleanup_old_audit_logs not found in beat_schedule")
@@ -402,13 +383,9 @@ class TestM45AuditLogRetention:
         """audit_repo.delete_old_logs() must exist and accept 'days' parameter."""
         from app.repositories import audit_repo
 
-        assert hasattr(audit_repo, "delete_old_logs"), (
-            "audit_repo missing delete_old_logs function"
-        )
+        assert hasattr(audit_repo, "delete_old_logs"), "audit_repo missing delete_old_logs function"
         sig = inspect.signature(audit_repo.delete_old_logs)
-        assert "days" in sig.parameters, (
-            "delete_old_logs must accept a 'days' parameter"
-        )
+        assert "days" in sig.parameters, "delete_old_logs must accept a 'days' parameter"
 
     def test_audit_repo_delete_old_logs_default_90_days(self) -> None:
         """Default retention should be 90 days."""
@@ -451,17 +428,17 @@ class TestL38NotificationsCleanup:
             for name, entry in schedule.items()
             if entry.get("task") == "cleanup_old_read_notifications"
         }
-        assert len(notif_entries) > 0, (
-            "No beat_schedule entry found for cleanup_old_read_notifications"
-        )
+        assert (
+            len(notif_entries) > 0
+        ), "No beat_schedule entry found for cleanup_old_read_notifications"
 
     def test_notification_repo_delete_old_read_notifications_exists(self) -> None:
         """notification_repo.delete_old_read_notifications() must exist."""
         from app.repositories import notification_repo
 
-        assert hasattr(notification_repo, "delete_old_read_notifications"), (
-            "notification_repo missing delete_old_read_notifications function"
-        )
+        assert hasattr(
+            notification_repo, "delete_old_read_notifications"
+        ), "notification_repo missing delete_old_read_notifications function"
 
     def test_notification_repo_accepts_days_parameter(self) -> None:
         """delete_old_read_notifications must accept a 'days' parameter."""
@@ -491,9 +468,7 @@ class TestL38NotificationsCleanup:
         for name, entry in celery.conf.beat_schedule.items():
             if entry.get("task") == "cleanup_old_read_notifications":
                 opts = entry.get("options", {})
-                assert "expires" in opts, (
-                    f"Beat task '{name}' missing 'expires' option"
-                )
+                assert "expires" in opts, f"Beat task '{name}' missing 'expires' option"
                 break
         else:
             pytest.fail("cleanup_old_read_notifications not found in beat_schedule")

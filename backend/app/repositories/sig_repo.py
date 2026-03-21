@@ -1,5 +1,5 @@
 import uuid
-from typing import Any
+from typing import Any, cast
 
 from app.core.database import get_pool
 
@@ -402,15 +402,13 @@ async def find_all_sigs_with_leaders() -> list[dict]:
     """Return all active SIGs with their ADMIN and SUB_ADMIN members."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        sigs = await conn.fetch(
-            """
+        sigs = await conn.fetch("""
             SELECT s.id, s.name, s.description, s.org_chart_description,
                    s.member_count, s.created_by
             FROM sigs s
             WHERE s.is_deleted = false
             ORDER BY s.name ASC
-            """
-        )
+            """)
         if not sigs:
             return []
 
@@ -444,9 +442,7 @@ async def find_all_sigs_with_leaders() -> list[dict]:
         return result
 
 
-async def update_org_chart_description(
-    sig_id: uuid.UUID, description: str | None
-) -> bool:
+async def update_org_chart_description(sig_id: uuid.UUID, description: str | None) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
@@ -455,12 +451,10 @@ async def update_org_chart_description(
             description,
             sig_id,
         )
-        return result == "UPDATE 1"
+        return cast(bool, result == "UPDATE 1")
 
 
-async def update_org_chart_bio(
-    sig_id: uuid.UUID, user_id: uuid.UUID, bio: str | None
-) -> bool:
+async def update_org_chart_bio(sig_id: uuid.UUID, user_id: uuid.UUID, bio: str | None) -> bool:
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
@@ -470,7 +464,7 @@ async def update_org_chart_bio(
             sig_id,
             user_id,
         )
-        return result == "UPDATE 1"
+        return cast(bool, result == "UPDATE 1")
 
 
 async def find_members(

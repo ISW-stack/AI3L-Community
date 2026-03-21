@@ -2,9 +2,7 @@ import re
 
 from pydantic import BaseModel, Field, field_validator
 
-_DANGEROUS_CHARS_RE = re.compile(
-    r"[\x00-\x1f\u200b\u200c\u200d\u202e\ufeff]"
-)
+_DANGEROUS_CHARS_RE = re.compile(r"[\x00-\x1f\u200b\u200c\u200d\u202e\ufeff]")
 
 
 class CaptchaResponse(BaseModel):
@@ -29,8 +27,7 @@ class GuestLoginRequest(BaseModel):
     def check_display_name(cls, v: str) -> str:
         if _DANGEROUS_CHARS_RE.search(v):
             raise ValueError(
-                "Display name must not contain control characters "
-                "or zero-width characters."
+                "Display name must not contain control characters " "or zero-width characters."
             )
         return v
 

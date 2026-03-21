@@ -24,6 +24,7 @@ from app.schemas.about import (
     ContributorUpdateRequest,
 )
 from app.schemas.org_chart import (
+    MemberCardResponse,
     MemberOrgChartBioUpdateRequest,
     MembersListResponse,
     OrgChartOverrideResponse,
@@ -181,7 +182,7 @@ async def list_members(
     members, total = await org_chart_service.get_members(
         offset=offset, limit=page_size, search=search or None
     )
-    return MembersListResponse(members=members, total=total)
+    return MembersListResponse(members=[MemberCardResponse(**m) for m in members], total=total)
 
 
 @router.put("/org-chart/override/{entity_type}/{entity_id}")
@@ -199,7 +200,12 @@ async def update_override(
     # Determine which fields were explicitly sent in the JSON body so the
     # repository can distinguish "not provided" from "set to null".
     raw_body = await request.json()
-    provided_fields = set(raw_body.keys()) & {"custom_title", "custom_description", "display_order", "is_visible"}
+    provided_fields = set(raw_body.keys()) & {
+        "custom_title",
+        "custom_description",
+        "display_order",
+        "is_visible",
+    }
 
     result = await org_chart_service.update_override(
         entity_type=entity_type,

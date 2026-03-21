@@ -2,10 +2,9 @@
 
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # M-01: WebSocket ticket uses atomic getdel (no TOCTOU)
@@ -154,6 +153,7 @@ async def test_session_revalidation_closes_on_no_session():
     """M-03: Session revalidation sends FORCE_LOGOUT when no session keys exist."""
     from app.api.v1.endpoints.ws import WS_SESSION_REVALIDATION_INTERVAL
 
+    assert WS_SESSION_REVALIDATION_INTERVAL > 0
     mock_redis = AsyncMock()
     mock_redis.keys = AsyncMock(return_value=[])  # No active sessions
 

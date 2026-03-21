@@ -133,7 +133,9 @@ async def change_my_password(
 ) -> MessageResponse:
     """Change password: verify current, validate new, update, destroy session."""
     if not await check_rate_limit(f"rl:password_change:{current_user['sub']}", 5, 300):
-        raise AppError(ErrorCode.SYS_429, 429, "Too many password change attempts. Try again later.")
+        raise AppError(
+            ErrorCode.SYS_429, 429, "Too many password change attempts. Try again later."
+        )
     try:
         await change_password(
             user_id=uuid.UUID(current_user["sub"]),
@@ -144,8 +146,7 @@ async def change_my_password(
         msg = str(e)
         # Only pass through known safe error prefixes from validate_password_policy
         if not any(
-            msg.startswith(prefix)
-            for prefix in ("Password ", "Current ", "New ", "Incorrect ")
+            msg.startswith(prefix) for prefix in ("Password ", "Current ", "New ", "Incorrect ")
         ):
             msg = "Invalid input."
         raise AppError(ErrorCode.SYS_422, 400, msg)

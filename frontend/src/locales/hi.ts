@@ -176,6 +176,7 @@ export default {
     inviteCodes: 'आमंत्रण कोड',
     auditLogs: 'ऑडिट लॉग',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'योगदानकर्ता',
     profile: 'प्रोफ़ाइल',
     logOut: 'लॉग आउट',
@@ -931,6 +932,8 @@ export default {
     title: 'AI3L Community के बारे में',
     description:
       'AI3L Community भाषा शिक्षण और साक्षरता में AI के लिए एक छोटा शैक्षणिक आदान-प्रदान प्लेटफ़ॉर्म है। इसका आयोजन और संचालन National Taiwan Normal University (NTNU) की प्रोफेसर यु-जु लान द्वारा किया जाता है। यह समुदाय-संचालित परियोजना उन शोधकर्ताओं और व्यवसायियों को एकजुट करना चाहती है जो भाषा शिक्षा और साक्षरता विकास में AI की भूमिका की खोज में रुचि रखते हैं।',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'योगदानकर्ता',
       loading: 'योगदानकर्ता लोड हो रहे हैं...',
@@ -1263,6 +1266,21 @@ export default {
         deleteFailed: 'योगदानकर्ता हटाने में विफल।',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1284,6 +1302,7 @@ export default {
     inviteCodes: 'आमंत्रण कोड',
     contributors: 'योगदानकर्ता',
     auditLogs: 'ऑडिट लॉग',
+    siteSettings: 'Site Settings',
     friends: 'मित्र',
     following: 'फ़ॉलो कर रहे हैं',
     blockedUsers: 'ब्लॉक किए गए उपयोगकर्ता',

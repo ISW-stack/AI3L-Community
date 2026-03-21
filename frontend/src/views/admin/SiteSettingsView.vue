@@ -115,7 +115,11 @@ onMounted(fetchIntro)
                 @click="triggerFileInput"
               >
                 <Upload :size="16" class="mr-1.5" />
-                {{ photoUrl ? t('admin.siteSettings.changePhoto') : t('admin.siteSettings.uploadPhoto') }}
+                {{
+                  photoUrl
+                    ? t('admin.siteSettings.changePhoto')
+                    : t('admin.siteSettings.uploadPhoto')
+                }}
               </BaseButton>
               <p class="text-xs text-muted mt-1.5">{{ t('admin.siteSettings.photoHint') }}</p>
               <input

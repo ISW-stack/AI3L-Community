@@ -176,6 +176,7 @@ export default {
     inviteCodes: 'Davet Kodları',
     auditLogs: 'Denetim Günlükleri',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'Katkıda Bulunanlar',
     profile: 'Profil',
     logOut: 'Çıkış Yap',
@@ -933,6 +934,8 @@ export default {
     title: 'AI3L Community Hakkında',
     description:
       'AI3L Community, Dil Öğrenme ve Okuryazarlıkta Yapay Zeka için küçük bir akademik değişim platformudur. NTNU (Ulusal Tayvan Normal Üniversitesi) bünyesinde Prof. Yu-Ju Lan tarafından organize edilmektedir. Bu topluluk odaklı proje, yapay zekanın dil eğitimi ve okuryazarlık gelişimini nasıl destekleyebileceğini araştırmaya ilgi duyan araştırmacı ve uygulayıcıları bir araya getirmeyi amaçlamaktadır.',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'Katkıda Bulunanlar',
       loading: 'Katkıda bulunanlar yükleniyor...',
@@ -1265,6 +1268,21 @@ export default {
         deleteFailed: 'Katkıda bulunan silinemedi.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1286,6 +1304,7 @@ export default {
     inviteCodes: 'Davet Kodları',
     contributors: 'Katkıda Bulunanlar',
     auditLogs: 'Denetim Kayıtları',
+    siteSettings: 'Site Settings',
     friends: 'Arkadaşlar',
     following: 'Takip Edilenler',
     blockedUsers: 'Engellenen Kullanıcılar',

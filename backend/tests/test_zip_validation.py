@@ -98,11 +98,13 @@ class TestZipBomb:
 
 class TestMacJunk:
     def test_macosx_folder_stripped(self) -> None:
-        data = _make_zip({
-            "photos/img1.jpg": b"\xff\xd8\xff" + b"\x00" * 100,
-            "__MACOSX/photos/._img1.jpg": b"\x00" * 50,
-            "__MACOSX/.DS_Store": b"\x00" * 30,
-        })
+        data = _make_zip(
+            {
+                "photos/img1.jpg": b"\xff\xd8\xff" + b"\x00" * 100,
+                "__MACOSX/photos/._img1.jpg": b"\x00" * 50,
+                "__MACOSX/.DS_Store": b"\x00" * 30,
+            }
+        )
         result = validate_zip(data, strip_mac_junk=True)
         assert len(result.stripped_entries) == 2
         assert "__MACOSX/photos/._img1.jpg" in result.stripped_entries
@@ -116,45 +118,55 @@ class TestMacJunk:
         assert "__MACOSX/photos/._img1.jpg" not in names
 
     def test_ds_store_stripped(self) -> None:
-        data = _make_zip({
-            "folder/file.txt": b"content",
-            "folder/.DS_Store": b"\x00" * 20,
-        })
+        data = _make_zip(
+            {
+                "folder/file.txt": b"content",
+                "folder/.DS_Store": b"\x00" * 20,
+            }
+        )
         result = validate_zip(data, strip_mac_junk=True)
         assert ".DS_Store" in result.stripped_entries[0]
         assert result.total_entries == 1
 
     def test_resource_fork_stripped(self) -> None:
-        data = _make_zip({
-            "doc.pdf": b"%PDF-1.4" + b"\x00" * 100,
-            "._doc.pdf": b"\x00" * 40,
-        })
+        data = _make_zip(
+            {
+                "doc.pdf": b"%PDF-1.4" + b"\x00" * 100,
+                "._doc.pdf": b"\x00" * 40,
+            }
+        )
         result = validate_zip(data, strip_mac_junk=True)
         assert len(result.stripped_entries) == 1
         assert "._doc.pdf" in result.stripped_entries[0]
 
     def test_thumbs_db_stripped(self) -> None:
-        data = _make_zip({
-            "photo.jpg": b"\xff\xd8\xff" + b"\x00" * 100,
-            "Thumbs.db": b"\x00" * 50,
-        })
+        data = _make_zip(
+            {
+                "photo.jpg": b"\xff\xd8\xff" + b"\x00" * 100,
+                "Thumbs.db": b"\x00" * 50,
+            }
+        )
         result = validate_zip(data, strip_mac_junk=True)
         assert "Thumbs.db" in result.stripped_entries
 
     def test_all_junk_zip_rejected(self) -> None:
-        data = _make_zip({
-            "__MACOSX/._something": b"\x00" * 10,
-            ".DS_Store": b"\x00" * 10,
-        })
+        data = _make_zip(
+            {
+                "__MACOSX/._something": b"\x00" * 10,
+                ".DS_Store": b"\x00" * 10,
+            }
+        )
         with pytest.raises(AppError, match="only Mac system files"):
             validate_zip(data)
 
     def test_no_strip_when_disabled(self) -> None:
         """When strip_mac_junk=False, junk is detected but data is returned as-is."""
-        data = _make_zip({
-            "file.txt": b"content",
-            "__MACOSX/._file.txt": b"\x00" * 10,
-        })
+        data = _make_zip(
+            {
+                "file.txt": b"content",
+                "__MACOSX/._file.txt": b"\x00" * 10,
+            }
+        )
         result = validate_zip(data, strip_mac_junk=False)
         # Junk is still detected (for logging/reporting)
         assert len(result.stripped_entries) == 1
@@ -275,13 +287,15 @@ class TestNestedZip:
 
 class TestCombinedScenarios:
     def test_mac_junk_with_valid_content(self) -> None:
-        data = _make_zip({
-            "photos/vacation1.jpg": b"\xff\xd8\xff" + b"\x00" * 200,
-            "photos/vacation2.png": b"\x89PNG" + b"\x00" * 200,
-            "__MACOSX/photos/._vacation1.jpg": b"\x00" * 30,
-            "__MACOSX/._DS_Store": b"\x00" * 20,
-            ".DS_Store": b"\x00" * 10,
-        })
+        data = _make_zip(
+            {
+                "photos/vacation1.jpg": b"\xff\xd8\xff" + b"\x00" * 200,
+                "photos/vacation2.png": b"\x89PNG" + b"\x00" * 200,
+                "__MACOSX/photos/._vacation1.jpg": b"\x00" * 30,
+                "__MACOSX/._DS_Store": b"\x00" * 20,
+                ".DS_Store": b"\x00" * 10,
+            }
+        )
         result = validate_zip(data)
         assert result.total_entries == 2
         assert len(result.stripped_entries) == 3
@@ -294,9 +308,11 @@ class TestCombinedScenarios:
         assert result.stripped_entries == []
 
     def test_desktop_ini_stripped(self) -> None:
-        data = _make_zip({
-            "file.txt": b"content",
-            "desktop.ini": b"[ViewState]",
-        })
+        data = _make_zip(
+            {
+                "file.txt": b"content",
+                "desktop.ini": b"[ViewState]",
+            }
+        )
         result = validate_zip(data)
         assert "desktop.ini" in result.stripped_entries

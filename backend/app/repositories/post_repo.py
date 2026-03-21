@@ -39,7 +39,13 @@ _SEARCH_SORT_MAP = {
 # Sorts that support cursor pagination and the comparison direction they use
 # "popular" maps to like_count; otherwise created_at is the primary key
 _CURSOR_SORT_ASC = {"oldest"}  # use > comparison
-_CURSOR_SORT_DESC = {"newest", "popular", "most_comments", "most_answers", "unanswered"}  # use < comparison
+_CURSOR_SORT_DESC = {
+    "newest",
+    "popular",
+    "most_comments",
+    "most_answers",
+    "unanswered",
+}  # use < comparison
 
 
 def _encode_cursor(primary_val: str, row_id: uuid.UUID, sort: str) -> str:
@@ -302,7 +308,10 @@ async def find_many(
 
     order_by = _SORT_MAP.get(effective_sort, _SORT_MAP["newest"])
 
-    where = "WHERE p.is_deleted = false AND (p.sig_id IS NULL OR NOT EXISTS (SELECT 1 FROM sigs s WHERE s.id = p.sig_id AND s.is_deleted = true))"
+    where = (
+        "WHERE p.is_deleted = false AND (p.sig_id IS NULL OR NOT EXISTS "
+        "(SELECT 1 FROM sigs s WHERE s.id = p.sig_id AND s.is_deleted = true))"
+    )
     params: list = []
     idx = 1
 

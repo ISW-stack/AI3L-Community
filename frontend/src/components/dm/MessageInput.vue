@@ -99,7 +99,10 @@ function formatFileSize(bytes: number): string {
 </script>
 
 <template>
-  <div class="border-t border-border bg-surface px-4 py-3" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px))">
+  <div
+    class="border-t border-border bg-surface px-4 py-3"
+    style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px))"
+  >
     <!-- Edit mode banner -->
     <div
       v-if="editMode"

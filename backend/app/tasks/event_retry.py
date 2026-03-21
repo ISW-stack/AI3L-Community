@@ -166,8 +166,9 @@ def notify_sig_members_new_post(
     """
     from app.tasks.async_runner import run_async
 
-    return run_async(
-        _async_notify_sig_members(sig_id, post_id, author_id, post_title)
+    return cast(
+        dict[str, int],
+        run_async(_async_notify_sig_members(sig_id, post_id, author_id, post_title)),
     )
 
 

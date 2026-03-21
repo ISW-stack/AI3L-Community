@@ -7,7 +7,7 @@ endpoint-level size limit, edit is_recalled re-verify, idempotent cleanup.
 import sys
 import types
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -69,6 +69,7 @@ def _make_message_row(
 
 # ── Celery module mock for dm_cleanup tests ─────────────────────────────────
 
+
 @pytest.fixture()
 def _celery_modules():
     """Inject fake celery modules so task imports succeed without a broker."""
@@ -120,10 +121,12 @@ class TestM12ContentTypeDerived:
 
         # Build mock pool for block/friendship checks
         mock_conn = MagicMock()
-        mock_conn.transaction = MagicMock(return_value=MagicMock(
-            __aenter__=AsyncMock(return_value=None),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_conn.transaction = MagicMock(
+            return_value=MagicMock(
+                __aenter__=AsyncMock(return_value=None),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
         mock_acq = MagicMock(
             __aenter__=AsyncMock(return_value=mock_conn),
             __aexit__=AsyncMock(return_value=None),
@@ -133,14 +136,38 @@ class TestM12ContentTypeDerived:
 
         with (
             patch("app.core.database.get_pool", return_value=mock_pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.dm_repo.get_dm_friends_only", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.dm_repo.get_dm_friends_only",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
             patch("app.core.async_storage.upload_file", mock_upload),
-            patch("app.repositories.dm_repo.find_or_create_conversation", new_callable=AsyncMock, return_value=conv),
-            patch("app.repositories.dm_repo.send_message_atomic", new_callable=AsyncMock, return_value=(msg_row, [])),
+            patch(
+                "app.repositories.dm_repo.find_or_create_conversation",
+                new_callable=AsyncMock,
+                return_value=conv,
+            ),
+            patch(
+                "app.repositories.dm_repo.send_message_atomic",
+                new_callable=AsyncMock,
+                return_value=(msg_row, []),
+            ),
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
-            patch("app.converters.dm_converter.async_row_to_message", new_callable=AsyncMock, return_value={"id": "x"}),
+            patch(
+                "app.converters.dm_converter.async_row_to_message",
+                new_callable=AsyncMock,
+                return_value={"id": "x"},
+            ),
             patch("app.core.storage.generate_presigned_url", return_value="https://mock-url"),
             patch(f"{_SVC}.emit", new_callable=AsyncMock),
             patch("app.services.dm.validate_magic_number", return_value=True),
@@ -160,9 +187,9 @@ class TestM12ContentTypeDerived:
         # Verify upload was called with derived type, not "text/plain"
         mock_upload.assert_awaited_once()
         call_args = mock_upload.call_args
-        assert call_args[0][2] == "image/jpeg", (
-            f"Expected derived Content-Type 'image/jpeg', got '{call_args[0][2]}'"
-        )
+        assert (
+            call_args[0][2] == "image/jpeg"
+        ), f"Expected derived Content-Type 'image/jpeg', got '{call_args[0][2]}'"
 
     @pytest.mark.anyio
     async def test_txt_extension_uses_mimetypes_fallback(self):
@@ -172,10 +199,12 @@ class TestM12ContentTypeDerived:
         msg_row = _make_message_row(sender_id=_SENDER_ID)
 
         mock_conn = MagicMock()
-        mock_conn.transaction = MagicMock(return_value=MagicMock(
-            __aenter__=AsyncMock(return_value=None),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_conn.transaction = MagicMock(
+            return_value=MagicMock(
+                __aenter__=AsyncMock(return_value=None),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
         mock_acq = MagicMock(
             __aenter__=AsyncMock(return_value=mock_conn),
             __aexit__=AsyncMock(return_value=None),
@@ -185,14 +214,38 @@ class TestM12ContentTypeDerived:
 
         with (
             patch("app.core.database.get_pool", return_value=mock_pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.dm_repo.get_dm_friends_only", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.dm_repo.get_dm_friends_only",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
             patch("app.core.async_storage.upload_file", mock_upload),
-            patch("app.repositories.dm_repo.find_or_create_conversation", new_callable=AsyncMock, return_value=conv),
-            patch("app.repositories.dm_repo.send_message_atomic", new_callable=AsyncMock, return_value=(msg_row, [])),
+            patch(
+                "app.repositories.dm_repo.find_or_create_conversation",
+                new_callable=AsyncMock,
+                return_value=conv,
+            ),
+            patch(
+                "app.repositories.dm_repo.send_message_atomic",
+                new_callable=AsyncMock,
+                return_value=(msg_row, []),
+            ),
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
-            patch("app.converters.dm_converter.async_row_to_message", new_callable=AsyncMock, return_value={"id": "x"}),
+            patch(
+                "app.converters.dm_converter.async_row_to_message",
+                new_callable=AsyncMock,
+                return_value={"id": "x"},
+            ),
             patch("app.core.storage.generate_presigned_url", return_value="https://mock-url"),
             patch(f"{_SVC}.emit", new_callable=AsyncMock),
         ):
@@ -211,9 +264,9 @@ class TestM12ContentTypeDerived:
         mock_upload.assert_awaited_once()
         call_args = mock_upload.call_args
         # .txt should derive to text/plain via mimetypes
-        assert call_args[0][2] == "text/plain", (
-            f"Expected derived Content-Type 'text/plain', got '{call_args[0][2]}'"
-        )
+        assert (
+            call_args[0][2] == "text/plain"
+        ), f"Expected derived Content-Type 'text/plain', got '{call_args[0][2]}'"
 
     @pytest.mark.anyio
     async def test_pdf_extension_derives_application_pdf(self):
@@ -223,10 +276,12 @@ class TestM12ContentTypeDerived:
         msg_row = _make_message_row(sender_id=_SENDER_ID)
 
         mock_conn = MagicMock()
-        mock_conn.transaction = MagicMock(return_value=MagicMock(
-            __aenter__=AsyncMock(return_value=None),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_conn.transaction = MagicMock(
+            return_value=MagicMock(
+                __aenter__=AsyncMock(return_value=None),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
         mock_acq = MagicMock(
             __aenter__=AsyncMock(return_value=mock_conn),
             __aexit__=AsyncMock(return_value=None),
@@ -236,14 +291,38 @@ class TestM12ContentTypeDerived:
 
         with (
             patch("app.core.database.get_pool", return_value=mock_pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.dm_repo.get_dm_friends_only", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.dm_repo.get_dm_friends_only",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
             patch("app.core.async_storage.upload_file", mock_upload),
-            patch("app.repositories.dm_repo.find_or_create_conversation", new_callable=AsyncMock, return_value=conv),
-            patch("app.repositories.dm_repo.send_message_atomic", new_callable=AsyncMock, return_value=(msg_row, [])),
+            patch(
+                "app.repositories.dm_repo.find_or_create_conversation",
+                new_callable=AsyncMock,
+                return_value=conv,
+            ),
+            patch(
+                "app.repositories.dm_repo.send_message_atomic",
+                new_callable=AsyncMock,
+                return_value=(msg_row, []),
+            ),
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
-            patch("app.converters.dm_converter.async_row_to_message", new_callable=AsyncMock, return_value={"id": "x"}),
+            patch(
+                "app.converters.dm_converter.async_row_to_message",
+                new_callable=AsyncMock,
+                return_value={"id": "x"},
+            ),
             patch("app.core.storage.generate_presigned_url", return_value="https://mock-url"),
             patch(f"{_SVC}.emit", new_callable=AsyncMock),
             patch("app.services.dm.validate_magic_number", return_value=True),
@@ -262,9 +341,9 @@ class TestM12ContentTypeDerived:
 
         mock_upload.assert_awaited_once()
         call_args = mock_upload.call_args
-        assert call_args[0][2] == "application/pdf", (
-            f"Expected derived Content-Type 'application/pdf', got '{call_args[0][2]}'"
-        )
+        assert (
+            call_args[0][2] == "application/pdf"
+        ), f"Expected derived Content-Type 'application/pdf', got '{call_args[0][2]}'"
 
 
 # ===========================================================================
@@ -282,10 +361,12 @@ class TestM48OrphanFileCleanup:
         mock_delete = AsyncMock()
 
         mock_conn = MagicMock()
-        mock_conn.transaction = MagicMock(return_value=MagicMock(
-            __aenter__=AsyncMock(return_value=None),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_conn.transaction = MagicMock(
+            return_value=MagicMock(
+                __aenter__=AsyncMock(return_value=None),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
         mock_acq = MagicMock(
             __aenter__=AsyncMock(return_value=mock_conn),
             __aexit__=AsyncMock(return_value=None),
@@ -297,12 +378,28 @@ class TestM48OrphanFileCleanup:
 
         with (
             patch("app.core.database.get_pool", return_value=mock_pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.dm_repo.get_dm_friends_only", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.dm_repo.get_dm_friends_only",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
             patch("app.core.async_storage.upload_file", mock_upload),
             patch("app.core.async_storage.delete_file", mock_delete),
-            patch("app.repositories.dm_repo.find_or_create_conversation", new_callable=AsyncMock, return_value=conv),
+            patch(
+                "app.repositories.dm_repo.find_or_create_conversation",
+                new_callable=AsyncMock,
+                return_value=conv,
+            ),
             patch(
                 "app.repositories.dm_repo.send_message_atomic",
                 new_callable=AsyncMock,
@@ -333,10 +430,12 @@ class TestM48OrphanFileCleanup:
         mock_delete = AsyncMock()
 
         mock_conn = MagicMock()
-        mock_conn.transaction = MagicMock(return_value=MagicMock(
-            __aenter__=AsyncMock(return_value=None),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_conn.transaction = MagicMock(
+            return_value=MagicMock(
+                __aenter__=AsyncMock(return_value=None),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
         mock_acq = MagicMock(
             __aenter__=AsyncMock(return_value=mock_conn),
             __aexit__=AsyncMock(return_value=None),
@@ -346,8 +445,16 @@ class TestM48OrphanFileCleanup:
 
         with (
             patch("app.core.database.get_pool", return_value=mock_pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.dm_repo.get_dm_friends_only", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.dm_repo.get_dm_friends_only",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch("app.core.async_storage.delete_file", mock_delete),
             patch(
                 "app.repositories.dm_repo.find_or_create_conversation",
@@ -374,10 +481,12 @@ class TestM48OrphanFileCleanup:
         mock_delete = AsyncMock(side_effect=RuntimeError("MinIO unreachable"))
 
         mock_conn = MagicMock()
-        mock_conn.transaction = MagicMock(return_value=MagicMock(
-            __aenter__=AsyncMock(return_value=None),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_conn.transaction = MagicMock(
+            return_value=MagicMock(
+                __aenter__=AsyncMock(return_value=None),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
         mock_acq = MagicMock(
             __aenter__=AsyncMock(return_value=mock_conn),
             __aexit__=AsyncMock(return_value=None),
@@ -389,12 +498,28 @@ class TestM48OrphanFileCleanup:
 
         with (
             patch("app.core.database.get_pool", return_value=mock_pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.dm_repo.get_dm_friends_only", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.user_repo.get_storage_used", new_callable=AsyncMock, return_value=0),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.dm_repo.get_dm_friends_only",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.user_repo.get_storage_used",
+                new_callable=AsyncMock,
+                return_value=0,
+            ),
             patch("app.core.async_storage.upload_file", mock_upload),
             patch("app.core.async_storage.delete_file", mock_delete),
-            patch("app.repositories.dm_repo.find_or_create_conversation", new_callable=AsyncMock, return_value=conv),
+            patch(
+                "app.repositories.dm_repo.find_or_create_conversation",
+                new_callable=AsyncMock,
+                return_value=conv,
+            ),
             patch(
                 "app.repositories.dm_repo.send_message_atomic",
                 new_callable=AsyncMock,
@@ -429,10 +554,12 @@ class TestL10RedundantSizeCheck:
     async def test_oversized_data_rejected_despite_small_file_size(self):
         """If file_size says 100 but data is 60MB, the redundant len() check catches it."""
         mock_conn = MagicMock()
-        mock_conn.transaction = MagicMock(return_value=MagicMock(
-            __aenter__=AsyncMock(return_value=None),
-            __aexit__=AsyncMock(return_value=None),
-        ))
+        mock_conn.transaction = MagicMock(
+            return_value=MagicMock(
+                __aenter__=AsyncMock(return_value=None),
+                __aexit__=AsyncMock(return_value=None),
+            )
+        )
         mock_acq = MagicMock(
             __aenter__=AsyncMock(return_value=mock_conn),
             __aexit__=AsyncMock(return_value=None),
@@ -445,8 +572,16 @@ class TestL10RedundantSizeCheck:
 
         with (
             patch("app.core.database.get_pool", return_value=mock_pool),
-            patch("app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=False),
-            patch("app.repositories.dm_repo.get_dm_friends_only", new_callable=AsyncMock, return_value=False),
+            patch(
+                "app.repositories.social_repo.is_blocked",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "app.repositories.dm_repo.get_dm_friends_only",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
         ):
             from app.services.dm import send_message
 
@@ -475,7 +610,6 @@ class TestL15EndpointSizeLimit:
 
     def test_endpoint_rejects_oversized_file(self, client):
         """Uploading a file larger than DM_MAX_ATTACHMENT_SIZE returns 413."""
-        from app.core.constants import DM_MAX_ATTACHMENT_SIZE
         from app.core.deps import require_role
         from app.main import app
 
@@ -488,12 +622,7 @@ class TestL15EndpointSizeLimit:
         app.dependency_overrides[require_role("MEMBER", "ADMIN", "SUPER_ADMIN")] = override
 
         try:
-            # Create a file just over the limit
-            over_limit_size = DM_MAX_ATTACHMENT_SIZE + 1
             # We can't actually send 50MB+ in a test, so mock the UploadFile.read
-            from io import BytesIO
-            from unittest.mock import patch as sync_patch
-
             # Instead, verify that the endpoint code uses read(limit+1) pattern
             # by checking the source code
             import inspect
@@ -501,9 +630,9 @@ class TestL15EndpointSizeLimit:
             from app.api.v1.endpoints.dm import send_message as ep_send
 
             source = inspect.getsource(ep_send)
-            assert "DM_MAX_ATTACHMENT_SIZE + 1" in source, (
-                "Endpoint should read with size limit: file.read(DM_MAX_ATTACHMENT_SIZE + 1)"
-            )
+            assert (
+                "DM_MAX_ATTACHMENT_SIZE + 1" in source
+            ), "Endpoint should read with size limit: file.read(DM_MAX_ATTACHMENT_SIZE + 1)"
         finally:
             app.dependency_overrides.clear()
 
@@ -514,9 +643,9 @@ class TestL15EndpointSizeLimit:
         from app.api.v1.endpoints.dm import send_message as ep_send
 
         source = inspect.getsource(ep_send)
-        assert "ErrorCode.DM_005" in source, (
-            "Endpoint should use ErrorCode.DM_005 for file too large errors"
-        )
+        assert (
+            "ErrorCode.DM_005" in source
+        ), "Endpoint should use ErrorCode.DM_005 for file too large errors"
 
 
 # ===========================================================================
@@ -534,9 +663,9 @@ class TestL22EditReVerifiesRecalled:
         from app.services.dm import edit_message
 
         source = inspect.getsource(edit_message)
-        assert "is_recalled = false" in source, (
-            "edit_message UPDATE should include 'AND is_recalled = false'"
-        )
+        assert (
+            "is_recalled = false" in source
+        ), "edit_message UPDATE should include 'AND is_recalled = false'"
 
     @pytest.mark.anyio
     async def test_edit_recalled_message_inside_transaction_raises(self):
@@ -565,7 +694,11 @@ class TestL22EditReVerifiesRecalled:
         mock_pool.acquire.return_value = mock_acq
 
         with (
-            patch("app.repositories.dm_repo.find_message_by_id", new_callable=AsyncMock, return_value=row),
+            patch(
+                "app.repositories.dm_repo.find_message_by_id",
+                new_callable=AsyncMock,
+                return_value=row,
+            ),
             patch("app.core.database.get_pool", return_value=mock_pool),
             patch("app.services.dm.sanitize_html", side_effect=lambda x: x),
         ):
@@ -608,7 +741,10 @@ class TestL23IdempotentCleanup:
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_file_messages", mock_find),
-            patch("app.repositories.dm_repo.clear_message_attachment_if_present", mock_clear_if_present),
+            patch(
+                "app.repositories.dm_repo.clear_message_attachment_if_present",
+                mock_clear_if_present,
+            ),
             patch("app.repositories.user_repo.decrement_storage_used", mock_decrement),
             patch("app.core.async_storage.delete_file", mock_delete_file),
         ):
@@ -644,7 +780,10 @@ class TestL23IdempotentCleanup:
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_file_messages", mock_find),
-            patch("app.repositories.dm_repo.clear_message_attachment_if_present", mock_clear_if_present),
+            patch(
+                "app.repositories.dm_repo.clear_message_attachment_if_present",
+                mock_clear_if_present,
+            ),
             patch("app.repositories.user_repo.decrement_storage_used", mock_decrement),
             patch("app.core.async_storage.delete_file", mock_delete_file),
         ):
@@ -679,7 +818,10 @@ class TestL23IdempotentCleanup:
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_file_messages", mock_find),
-            patch("app.repositories.dm_repo.clear_message_attachment_if_present", mock_clear_if_present),
+            patch(
+                "app.repositories.dm_repo.clear_message_attachment_if_present",
+                mock_clear_if_present,
+            ),
             patch("app.repositories.user_repo.decrement_storage_used", mock_decrement),
             patch("app.core.async_storage.delete_file", mock_delete_file),
         ):

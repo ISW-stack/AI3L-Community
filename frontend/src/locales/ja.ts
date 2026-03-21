@@ -175,6 +175,7 @@ export default {
     inviteCodes: '招待コード',
     auditLogs: '監査ログ',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'コントリビューター',
     profile: 'プロフィール',
     logOut: 'ログアウト',
@@ -927,6 +928,8 @@ export default {
     title: 'AI3L Community について',
     description:
       'AI3L Community は、言語学習とリテラシーにおける AI をテーマとした小規模な学術交流プラットフォームです。台湾師範大学（NTNU）の藍玉珠教授が主催・運営しています。このコミュニティ主導のプロジェクトは、AI が語学教育とリテラシー向上をどのように支援できるかを探求することに関心を持つ研究者および実践者を結集することを目的としています。',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'コントリビューター',
       loading: 'コントリビューターを読み込み中...',
@@ -1259,6 +1262,21 @@ export default {
         deleteFailed: 'コントリビューターの削除に失敗しました。',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1280,6 +1298,7 @@ export default {
     inviteCodes: '招待コード',
     contributors: 'コントリビューター',
     auditLogs: '監査ログ',
+    siteSettings: 'Site Settings',
     friends: '友達',
     following: 'フォロー中',
     blockedUsers: 'ブロックしたユーザー',

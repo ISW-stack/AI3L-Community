@@ -213,50 +213,32 @@ describe('Issue #10: QuestionEditor mobile enhancements', () => {
   // QuestionEditor has many dependencies, so we test via CSS class assertions
   // by reading the source file
   it('QuestionEditor has responsive padding (p-4 sm:p-5)', () => {
-    const src = readFileSync(
-      resolve(__dirname, '../components/forms/QuestionEditor.vue'),
-      'utf-8',
-    )
+    const src = readFileSync(resolve(__dirname, '../components/forms/QuestionEditor.vue'), 'utf-8')
     expect(src).toContain('p-4 sm:p-5')
   })
 
   it('drag handle has touch-manipulation class', () => {
-    const src = readFileSync(
-      resolve(__dirname, '../components/forms/QuestionEditor.vue'),
-      'utf-8',
-    )
+    const src = readFileSync(resolve(__dirname, '../components/forms/QuestionEditor.vue'), 'utf-8')
     expect(src).toContain('touch-manipulation')
   })
 
   it('action buttons have responsive padding (px-1.5 py-1 sm:px-1 sm:py-0)', () => {
-    const src = readFileSync(
-      resolve(__dirname, '../components/forms/QuestionEditor.vue'),
-      'utf-8',
-    )
+    const src = readFileSync(resolve(__dirname, '../components/forms/QuestionEditor.vue'), 'utf-8')
     expect(src).toContain('px-1.5 py-1 sm:px-1 sm:py-0')
   })
 
   it('form fields have responsive text size (text-base sm:text-sm)', () => {
-    const src = readFileSync(
-      resolve(__dirname, '../components/forms/QuestionEditor.vue'),
-      'utf-8',
-    )
+    const src = readFileSync(resolve(__dirname, '../components/forms/QuestionEditor.vue'), 'utf-8')
     expect(src).toContain('text-base sm:text-sm')
   })
 
   it('insert-question button is semi-visible on mobile (opacity-40)', () => {
-    const src = readFileSync(
-      resolve(__dirname, '../components/forms/QuestionEditor.vue'),
-      'utf-8',
-    )
+    const src = readFileSync(resolve(__dirname, '../components/forms/QuestionEditor.vue'), 'utf-8')
     expect(src).toContain('opacity-40 sm:opacity-0')
   })
 
   it('insert-question button has larger touch target on mobile (w-8 h-8)', () => {
-    const src = readFileSync(
-      resolve(__dirname, '../components/forms/QuestionEditor.vue'),
-      'utf-8',
-    )
+    const src = readFileSync(resolve(__dirname, '../components/forms/QuestionEditor.vue'), 'utf-8')
     expect(src).toContain('w-8 h-8 sm:w-6 sm:h-6')
   })
 })

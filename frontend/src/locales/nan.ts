@@ -173,6 +173,7 @@ export default {
     inviteCodes: '邀請碼',
     auditLogs: '稽核紀錄',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: '貢獻者',
     profile: '個人資料',
     logOut: '登出',
@@ -916,6 +917,8 @@ export default {
     title: '關於 AI3L Community',
     description:
       'AI3L Community 是一个專注於 AI 語言學習 kah 素養ê小型學術交流平台，由國立台灣師範大學藍玉如教授主持。這个社群驅動ê專案旨在集合對 AI 支援語言教育 kah 素養發展有興趣ê研究者 kah 實務工作者。',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: '貢獻者',
       loading: '載入貢獻者中...',
@@ -1247,6 +1250,21 @@ export default {
         deleteFailed: '刪除貢獻者失敗。',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1268,6 +1286,7 @@ export default {
     inviteCodes: '邀請碼',
     contributors: '貢獻者',
     auditLogs: '稽核紀錄',
+    siteSettings: 'Site Settings',
     friends: '好友',
     following: '追蹤中',
     blockedUsers: '封鎖名單',

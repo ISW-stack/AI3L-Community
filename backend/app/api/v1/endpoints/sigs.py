@@ -9,7 +9,6 @@ from app.core.constants import (
     RATE_LIMIT_SIG_JOIN,
     RATE_LIMIT_SIG_MANAGE,
 )
-
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html

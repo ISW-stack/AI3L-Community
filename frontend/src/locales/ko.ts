@@ -175,6 +175,7 @@ export default {
     inviteCodes: '초대 코드',
     auditLogs: '감사 로그',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: '기여자',
     profile: '프로필',
     logOut: '로그아웃',
@@ -926,6 +927,8 @@ export default {
     title: 'AI3L Community 소개',
     description:
       'AI3L Community는 AI in Language Learning and Literacy를 위한 소규모 학술 교류 플랫폼입니다. 국립 대만 사범대학교(NTNU)의 Yü-Ju Lan 교수가 주관 및 운영합니다. 이 커뮤니티 기반 프로젝트는 AI가 어떻게 언어 교육과 리터러시 개발을 지원할 수 있는지에 관심 있는 연구자 및 실무자들을 한데 모으는 것을 목표로 합니다.',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: '기여자',
       loading: '기여자 정보를 불러오는 중...',
@@ -1258,6 +1261,21 @@ export default {
         deleteFailed: '기여자 삭제에 실패했습니다.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1279,6 +1297,7 @@ export default {
     inviteCodes: '초대 코드',
     contributors: '기여자',
     auditLogs: '감사 로그',
+    siteSettings: 'Site Settings',
     friends: '친구',
     following: '팔로잉',
     blockedUsers: '차단한 사용자',

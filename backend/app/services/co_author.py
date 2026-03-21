@@ -349,9 +349,7 @@ async def list_all_co_authors(
         if not post:
             raise NotFoundError("Post", str(post_id))
         if str(post["user_id"]) != user_id and not is_admin:
-            raise ForbiddenError(
-                "Only the post owner or an admin can view all co-author statuses."
-            )
+            raise ForbiddenError("Only the post owner or an admin can view all co-author statuses.")
 
         rows = await co_author_repo.find_all_co_authors_by_post(conn, post_id)
     return [await to_co_author_response(r) for r in rows]

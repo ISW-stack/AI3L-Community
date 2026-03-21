@@ -476,7 +476,10 @@ async def approve_member(
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to approve members.")
 
         updated = await album_repo.update_member_status(
-            conn, member_uuid, "ACCEPTED", album_id=album_uuid,
+            conn,
+            member_uuid,
+            "ACCEPTED",
+            album_id=album_uuid,
             required_current_status="PENDING",
         )
         if not updated:

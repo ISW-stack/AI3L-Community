@@ -1,6 +1,5 @@
 """Tests for about endpoints — contributors list, avatar proxy, and admin CRUD."""
 
-import asyncio
 import time
 import uuid
 from datetime import datetime, timezone
@@ -643,7 +642,11 @@ class TestAvatarExpiredEviction:
             mock_response.headers = {"content-type": "image/png"}
 
             with (
-                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
                 patch(f"{_EP}._requests.get", return_value=mock_response),
                 patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
             ):
@@ -679,8 +682,14 @@ class TestAvatarExpiredEviction:
             import requests as real_requests
 
             with (
-                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
-                patch(f"{_EP}._requests.get", side_effect=real_requests.RequestException("timeout")),
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
+                patch(
+                    f"{_EP}._requests.get", side_effect=real_requests.RequestException("timeout")
+                ),
                 patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
             ):
                 resp = await client.get(
@@ -721,7 +730,11 @@ class TestAvatarSizeLimit:
             mock_response.content = b"x"
 
             with (
-                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
                 patch(f"{_EP}._requests.get", return_value=mock_response),
                 patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
             ):
@@ -752,7 +765,11 @@ class TestAvatarSizeLimit:
             mock_response.content = b"x" * 11  # exceeds 10-byte limit
 
             with (
-                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
                 patch(f"{_EP}._requests.get", return_value=mock_response),
                 patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=True),
             ):
@@ -780,7 +797,11 @@ class TestAvatarRateLimit:
         try:
             _override_auth("MEMBER")
             with (
-                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
                 patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=False),
             ):
                 resp = await client.get(
@@ -808,7 +829,11 @@ class TestAvatarRateLimit:
             about_module._cache_total_bytes = 10
 
             with (
-                patch(f"{_SVC}.get_contributor", new_callable=AsyncMock, return_value=_FAKE_CONTRIBUTOR),
+                patch(
+                    f"{_SVC}.get_contributor",
+                    new_callable=AsyncMock,
+                    return_value=_FAKE_CONTRIBUTOR,
+                ),
                 patch(_RATE_LIMIT, new_callable=AsyncMock, return_value=False) as mock_rl,
             ):
                 resp = await client.get(

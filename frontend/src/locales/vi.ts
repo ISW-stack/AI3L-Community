@@ -176,6 +176,7 @@ export default {
     inviteCodes: 'Mã mời',
     auditLogs: 'Nhật ký kiểm toán',
     ipBans: 'IP Bans',
+    siteSettings: 'Site Settings',
     contributors: 'Người đóng góp',
     profile: 'Hồ sơ',
     logOut: 'Đăng xuất',
@@ -930,6 +931,8 @@ export default {
     title: 'Giới thiệu AI3L Community',
     description:
       'AI3L Community là một nền tảng trao đổi học thuật nhỏ về AI trong Học Ngôn Ngữ và Văn Chương. Nền tảng được tổ chức và điều phối bởi Giáo sư Yu-Ju Lan từ Đại học Sư phạm Quốc gia Đài Loan (NTNU). Dự án do cộng đồng dẫn dắt này nhằm mục đích tập hợp các nhà nghiên cứu và nhà thực hành có chung mối quan tâm trong việc khám phá cách AI có thể hỗ trợ giáo dục ngôn ngữ và phát triển văn chương.',
+    introduction: 'Introduction',
+    introEmpty: 'No introduction available yet.',
     contributors: {
       title: 'Người đóng góp',
       loading: 'Đang tải danh sách người đóng góp...',
@@ -1262,6 +1265,21 @@ export default {
         deleteFailed: 'Xóa người đóng góp thất bại.',
       },
     },
+    siteSettings: {
+      title: 'Site Settings',
+      aboutIntro: 'About Page Introduction',
+      photoLabel: 'Photo',
+      bioLabel: 'Bio',
+      bioPlaceholder: 'Enter introduction text...',
+      uploadPhoto: 'Upload Photo',
+      changePhoto: 'Change Photo',
+      saveBio: 'Save Bio',
+      photoUpdated: 'Photo updated.',
+      bioUpdated: 'Bio updated.',
+      photoFailed: 'Failed to upload photo.',
+      bioFailed: 'Failed to save bio.',
+      photoHint: 'JPEG, PNG, or WebP. Max 5 MB.',
+    },
   },
 
   // ── Errors (backend error codes) ──
@@ -1283,6 +1301,7 @@ export default {
     inviteCodes: 'Mã mời',
     contributors: 'Người đóng góp',
     auditLogs: 'Nhật ký kiểm toán',
+    siteSettings: 'Site Settings',
     friends: 'Bạn bè',
     following: 'Đang theo dõi',
     blockedUsers: 'Người dùng bị chặn',

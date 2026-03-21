@@ -10,17 +10,14 @@ from app.core.constants import (
     MAX_ORCID_LENGTH,
 )
 
-_DANGEROUS_CHARS_RE = re.compile(
-    r"[\x00-\x1f\u200b\u200c\u200d\u202e\ufeff]"
-)
+_DANGEROUS_CHARS_RE = re.compile(r"[\x00-\x1f\u200b\u200c\u200d\u202e\ufeff]")
 
 
 def _validate_display_name_chars(v: str) -> str:
     """Reject control characters and zero-width characters in display names."""
     if _DANGEROUS_CHARS_RE.search(v):
         raise ValueError(
-            "Display name must not contain control characters "
-            "or zero-width characters."
+            "Display name must not contain control characters " "or zero-width characters."
         )
     return v
 
@@ -74,9 +71,7 @@ class UserUpdateRequest(BaseModel):
 
 
 class CreateAccountRequest(BaseModel):
-    username: str = Field(
-        ..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$"
-    )
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., max_length=100)
     invite_code: str = Field(..., min_length=1)
@@ -90,9 +85,7 @@ class CreateAccountRequest(BaseModel):
 
 
 class ApplyMemberRequest(BaseModel):
-    username: str = Field(
-        ..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$"
-    )
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., max_length=100)
     description: str = Field(..., max_length=500)
@@ -104,9 +97,7 @@ class ApplyMemberRequest(BaseModel):
 
 
 class AdminCreateAccountRequest(BaseModel):
-    username: str = Field(
-        ..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$"
-    )
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., max_length=100)
     role: str = Field(default="MEMBER", pattern="^(MEMBER|ADMIN)$")

@@ -5,8 +5,6 @@ These tests verify:
 2. The SQL logic behind each fix is sound (constraint semantics, not live DB).
 """
 
-import importlib
-import re
 import types
 
 
@@ -122,9 +120,7 @@ class TestM51SigMembersPartialUnique:
         new_row = {"sig_id": "A", "user_id": "B", "is_deleted": False}
 
         # Only rows with is_deleted=False are in the index
-        index_entries = [
-            r for r in [existing, new_row] if not r["is_deleted"]
-        ]
+        index_entries = [r for r in [existing, new_row] if not r["is_deleted"]]
         # There should be exactly 1 active entry — no conflict
         keys = [(r["sig_id"], r["user_id"]) for r in index_entries]
         assert len(keys) == len(set(keys)), "No duplicate in partial index"
@@ -134,9 +130,7 @@ class TestM51SigMembersPartialUnique:
         row1 = {"sig_id": "A", "user_id": "B", "is_deleted": False}
         row2 = {"sig_id": "A", "user_id": "B", "is_deleted": False}
 
-        index_entries = [
-            r for r in [row1, row2] if not r["is_deleted"]
-        ]
+        index_entries = [r for r in [row1, row2] if not r["is_deleted"]]
         keys = [(r["sig_id"], r["user_id"]) for r in index_entries]
         assert len(keys) != len(set(keys)), "Duplicate active rows should conflict"
 

@@ -371,9 +371,7 @@ async def count_by_role(role: str) -> int:
         return int(result)
 
 
-async def count_super_admins_excluding(
-    user_ids: list[uuid.UUID], conn: Any = None
-) -> int:
+async def count_super_admins_excluding(user_ids: list[uuid.UUID], conn: Any = None) -> int:
     """Count SUPER_ADMIN users not in the given list (non-deleted)."""
     query = (
         "SELECT COUNT(*) FROM users "
@@ -411,7 +409,10 @@ async def find_all_members(
 
         if search:
             escaped = _escape_ilike(search)
-            base_where += f" AND (u.display_name ILIKE ${idx} ESCAPE '\\' OR u.username ILIKE ${idx} ESCAPE '\\')"
+            base_where += (
+                f" AND (u.display_name ILIKE ${idx} ESCAPE '\\'"
+                f" OR u.username ILIKE ${idx} ESCAPE '\\')"
+            )
             params.append(f"%{escaped}%")
             idx += 1
 
