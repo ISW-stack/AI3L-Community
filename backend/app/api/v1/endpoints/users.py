@@ -16,6 +16,7 @@ from app.core.errors import (
 )
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
+from app.core.rate_limit import check_rate_limit
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
 from app.schemas.auth import MessageResponse
@@ -98,7 +99,7 @@ async def update_my_profile(
 @router.put("/me/avatar", response_model=UserResponse)
 async def upload_avatar(
     file: UploadFile,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> UserResponse:
     """Upload avatar image (PNG/JPEG, max 2MB)."""
     data = await file.read(MAX_AVATAR_SIZE + 1)
@@ -129,6 +130,8 @@ async def change_my_password(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
     """Change password: verify current, validate new, update, destroy session."""
+    if not await check_rate_limit(f"rl:password_change:{current_user['sub']}", 5, 300):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many password change attempts. Try again later.")
     try:
         await change_password(
             user_id=uuid.UUID(current_user["sub"]),
@@ -136,7 +139,14 @@ async def change_my_password(
             new_password=req.new_password,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        msg = str(e)
+        # Only pass through known safe error prefixes from validate_password_policy
+        if not any(
+            msg.startswith(prefix)
+            for prefix in ("Password ", "Current ", "New ", "Incorrect ")
+        ):
+            msg = "Invalid input."
+        raise AppError(ErrorCode.SYS_422, 400, msg)
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
@@ -168,7 +178,7 @@ async def accept_privacy_consent(
 @router.delete("/me", response_model=MessageResponse)
 async def delete_my_account(
     request: Request,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
     """GDPR anonymization: overwrite PII and invalidate session."""
     user_id = uuid.UUID(current_user["sub"])
@@ -417,7 +427,7 @@ async def get_public_profile(
 async def get_all_users(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),
-    search: str | None = Query(None),
+    search: str | None = Query(None, max_length=200),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> UserListResponse:
     users, total = await list_users(page=page, page_size=page_size, search=search)

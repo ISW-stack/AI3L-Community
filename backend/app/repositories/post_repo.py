@@ -66,8 +66,8 @@ def _decode_cursor(cursor: str) -> tuple[str, str, uuid.UUID]:
             raise ValueError("bad cursor format")
         sort, primary_val, id_str = parts
         return sort, primary_val, uuid.UUID(id_str)
-    except Exception as exc:
-        raise ValueError(f"Invalid cursor: {exc}") from exc
+    except Exception:
+        raise ValueError("Invalid cursor.")
 
 
 async def insert(
@@ -477,10 +477,7 @@ async def search(
     effective_search_sort = "newest" if sort == "unanswered" else sort
     order_by = _SEARCH_SORT_MAP.get(effective_search_sort, _SEARCH_SORT_MAP["newest"])
 
-    conditions = [
-        "p.is_deleted = false",
-        "(p.sig_id IS NULL OR NOT EXISTS (SELECT 1 FROM sigs s WHERE s.id = p.sig_id AND s.is_deleted = true))",
-    ]
+    conditions = ["p.is_deleted = false"]
     params: list = []
     idx = 1
 
@@ -683,9 +680,6 @@ async def get_search_suggestions(query: str, limit: int = 5) -> list[dict]:
             SELECT DISTINCT title, id
             FROM posts
             WHERE is_deleted = FALSE
-              AND (sig_id IS NULL OR NOT EXISTS (
-                  SELECT 1 FROM sigs s WHERE s.id = posts.sig_id AND s.is_deleted = true
-              ))
               AND (title ILIKE $1 ESCAPE '\\' OR EXISTS (
                   SELECT 1 FROM unnest(keywords) AS kw WHERE kw ILIKE $1 ESCAPE '\\'
               ))
@@ -704,11 +698,7 @@ async def get_keyword_suggestions(query: str, limit: int = 5) -> list[str]:
         sql = """
             SELECT DISTINCT kw
             FROM posts, unnest(keywords) AS kw
-            WHERE posts.is_deleted = FALSE
-              AND (posts.sig_id IS NULL OR NOT EXISTS (
-                  SELECT 1 FROM sigs s WHERE s.id = posts.sig_id AND s.is_deleted = true
-              ))
-              AND kw ILIKE $1 ESCAPE '\\'
+            WHERE posts.is_deleted = FALSE AND kw ILIKE $1 ESCAPE '\\'
             ORDER BY kw
             LIMIT $2
         """

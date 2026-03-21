@@ -143,10 +143,11 @@ async def send_message(
         if ext in _DM_BLOCKED_EXTENSIONS:
             raise AppError(ErrorCode.SYS_422, 400, f"File type '{ext}' is not allowed.")
 
-        file_data = await file.read()
+        # L-15: Read with size limit to avoid unbounded memory usage
+        file_data = await file.read(DM_MAX_ATTACHMENT_SIZE + 1)
         file_size = len(file_data)
         if file_size > DM_MAX_ATTACHMENT_SIZE:
-            raise AppError(ErrorCode.SYS_422, 422, "File too large (max 50 MB).")
+            raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
         if file_size == 0:
             raise AppError(ErrorCode.SYS_422, 422, "Empty file.")
         file_name = file.filename or "attachment"

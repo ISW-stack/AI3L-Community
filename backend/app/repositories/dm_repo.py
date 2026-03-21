@@ -14,26 +14,25 @@ async def find_or_create_conversation(user_a: uuid.UUID, user_b: uuid.UUID) -> d
     low, high = sorted([user_a, user_b])
     pool = get_pool()
     async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute(
-                """
-                INSERT INTO conversations (participant_a, participant_b)
-                VALUES ($1, $2)
-                ON CONFLICT ON CONSTRAINT uq_conversation_pair DO NOTHING
-                """,
-                low,
-                high,
-            )
-            row = await conn.fetchrow(
-                """
-                SELECT id, participant_a, participant_b, total_chars, created_at, updated_at
-                FROM conversations
-                WHERE participant_a = $1 AND participant_b = $2
-                """,
-                low,
-                high,
-            )
-            return dict(row)
+        await conn.execute(
+            """
+            INSERT INTO conversations (participant_a, participant_b)
+            VALUES ($1, $2)
+            ON CONFLICT ON CONSTRAINT uq_conversation_pair DO NOTHING
+            """,
+            low,
+            high,
+        )
+        row = await conn.fetchrow(
+            """
+            SELECT id, participant_a, participant_b, total_chars, created_at, updated_at
+            FROM conversations
+            WHERE participant_a = $1 AND participant_b = $2
+            """,
+            low,
+            high,
+        )
+        return dict(row)
 
 
 async def find_conversation_by_id(conversation_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:
@@ -587,6 +586,29 @@ async def clear_message_attachment(message_id: uuid.UUID) -> None:
             """,
             message_id,
         )
+
+
+async def clear_message_attachment_if_present(message_id: uuid.UUID) -> bool:
+    """CAS-style clear: NULL out attachment fields only if attachment_key is not already NULL.
+
+    Returns True if fields were actually cleared, False if already NULL (idempotent).
+    """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            UPDATE dm_messages
+            SET attachment_key = NULL,
+                attachment_name = NULL,
+                attachment_size = NULL,
+                attachment_expires_at = NULL
+            WHERE id = $1
+              AND attachment_key IS NOT NULL
+            """,
+            message_id,
+        )
+        # asyncpg returns e.g. "UPDATE 1" or "UPDATE 0"
+        return result == "UPDATE 1"
 
 
 async def find_expired_text_messages(cutoff: object) -> list[dict]:

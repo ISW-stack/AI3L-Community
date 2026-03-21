@@ -14,6 +14,8 @@ router = APIRouter()
 WS_MAX_MESSAGE_SIZE = 64 * 1024  # 64 KB max message size
 WS_MSG_RATE_LIMIT = 60  # max messages per window
 WS_MSG_RATE_WINDOW = 60  # window in seconds
+WS_MAX_CONNECTIONS_PER_USER = 5  # max concurrent WS connections per user
+WS_SESSION_REVALIDATION_INTERVAL = 300  # seconds (5 minutes)
 
 # In-memory connection registry: user_id -> set of WebSocket connections
 _connections: dict[str, set[WebSocket]] = defaultdict(set)
@@ -24,12 +26,10 @@ async def _authenticate_ws(ticket: str) -> dict | None:
     """Validate a one-time WebSocket ticket from Redis."""
     redis = get_redis()
     key = f"ws:ticket:{ticket}"
-    data = await redis.get(key)
+    # Atomic get-and-delete to prevent TOCTOU race (M-01)
+    data = await redis.getdel(key)
     if data is None:
         return None
-
-    # Delete immediately — one-time use
-    await redis.delete(key)
 
     try:
         return dict(json.loads(data))
@@ -48,12 +48,18 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     role = payload["role"]
 
     await ws.accept()
+
+    # M-04: Per-user connection limit
     async with _connections_lock:
+        if len(_connections.get(user_id, set())) >= WS_MAX_CONNECTIONS_PER_USER:
+            await ws.close(code=4006, reason="Too many connections")
+            return
         _connections[user_id].add(ws)
     logger.info("WebSocket connected", extra={"user_id": user_id, "role": role})
 
     guest_timeout_task = None
     ping_task = None
+    revalidation_task = None
     # Use mutable container so closures share the same reference
     activity = {"last": asyncio.get_event_loop().time()}
     try:
@@ -93,6 +99,24 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                     return
 
         ping_task = asyncio.create_task(ping_loop())
+
+        # M-03: Periodic session re-validation for long-lived connections
+        async def _session_revalidation() -> None:
+            """Periodically verify user session is still valid."""
+            while True:
+                await asyncio.sleep(WS_SESSION_REVALIDATION_INTERVAL)
+                try:
+                    r = get_redis()
+                    session_keys = await r.keys(f"session:{user_id}:*")
+                    if not session_keys:
+                        logger.info("WebSocket session expired", extra={"user_id": user_id})
+                        await ws.send_json({"type": "FORCE_LOGOUT"})
+                        await ws.close(code=4003, reason="Session expired")
+                        return
+                except Exception:
+                    pass  # Best-effort check
+
+        revalidation_task = asyncio.create_task(_session_revalidation())
 
         msg_count = 0
         msg_window_start = asyncio.get_event_loop().time()
@@ -144,6 +168,8 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
             ping_task.cancel()
         if guest_timeout_task:
             guest_timeout_task.cancel()
+        if revalidation_task:
+            revalidation_task.cancel()
         async with _connections_lock:
             _connections[user_id].discard(ws)
             if not _connections[user_id]:

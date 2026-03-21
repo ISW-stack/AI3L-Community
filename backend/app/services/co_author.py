@@ -332,10 +332,27 @@ async def list_co_authors(post_id: uuid.UUID) -> list[dict]:
     return [await to_co_author_response(r) for r in rows]
 
 
-async def list_all_co_authors(post_id: uuid.UUID) -> list[dict]:
-    """List ALL co-authors for a post (all statuses)."""
+async def list_all_co_authors(
+    post_id: uuid.UUID, user_id: str, is_admin: bool = False
+) -> list[dict]:
+    """List ALL co-authors for a post (all statuses).
+
+    Only the post owner or an admin can see all statuses (including PENDING).
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
+        # Verify post exists and check ownership
+        post = await conn.fetchrow(
+            "SELECT id, user_id FROM posts WHERE id = $1 AND is_deleted = false",
+            post_id,
+        )
+        if not post:
+            raise NotFoundError("Post", str(post_id))
+        if str(post["user_id"]) != user_id and not is_admin:
+            raise ForbiddenError(
+                "Only the post owner or an admin can view all co-author statuses."
+            )
+
         rows = await co_author_repo.find_all_co_authors_by_post(conn, post_id)
     return [await to_co_author_response(r) for r in rows]
 

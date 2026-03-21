@@ -42,6 +42,11 @@ def retry_failed_events() -> None:
     run_async(_async_retry())
 
 
+# L-48: TTL for dedup keys (10 minutes — covers multiple retry cycles)
+_DEDUP_TTL = 600
+_DEDUP_PREFIX = "event_bus:dedup:"
+
+
 async def _async_retry() -> None:
     from app.core.event_bus import _handlers
     from app.core.redis import get_redis
@@ -55,6 +60,7 @@ async def _async_retry() -> None:
     retried = 0
     dropped = 0
     re_failed = 0
+    deduped = 0
 
     # Pop one event at a time — unprocessed events stay in Redis if worker crashes
     for _ in range(MAX_EVENTS_PER_RUN):
@@ -67,6 +73,17 @@ async def _async_retry() -> None:
         except json.JSONDecodeError:
             dropped += 1
             continue
+
+        # L-48: Skip already-processed events using event_id dedup
+        event_id = entry.get("event_id")
+        if event_id:
+            dedup_key = f"{_DEDUP_PREFIX}{event_id}"
+            already_seen: Any = await cast(
+                Awaitable[Any], redis.set(dedup_key, "1", nx=True, ex=_DEDUP_TTL)
+            )
+            if not already_seen:
+                deduped += 1
+                continue
 
         retry_count = entry.get("retry_count", 0)
         if retry_count >= MAX_EVENT_RETRIES:
@@ -115,8 +132,13 @@ async def _async_retry() -> None:
             )
             re_failed += 1
 
-    if retried or dropped or re_failed:
+    if retried or dropped or re_failed or deduped:
         logger.info(
             "Event retry complete",
-            extra={"retried": retried, "dropped": dropped, "re_failed": re_failed},
+            extra={
+                "retried": retried,
+                "dropped": dropped,
+                "re_failed": re_failed,
+                "deduped": deduped,
+            },
         )

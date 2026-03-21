@@ -1,5 +1,6 @@
 """DM service -- direct messaging business logic."""
 
+import mimetypes
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -61,20 +62,6 @@ _MAGIC_BYTES: dict[str, list[bytes]] = {
     "application/msword": [b"\xd0\xcf\x11\xe0"],
 }
 
-# M-13: Forbidden prefixes for text files (.txt/.csv) to prevent HTML-as-text attacks
-_TEXT_FORBIDDEN_PREFIXES: list[bytes] = [
-    b"<html",
-    b"<HTML",
-    b"<!DOCTYPE",
-    b"<!doctype",
-    b"<script",
-    b"<SCRIPT",
-    b"<Script",
-]
-
-# Extensions that need text content validation (no magic bytes, but must not be HTML)
-_TEXT_CONTENT_CHECK_EXTENSIONS: set[str] = {".txt", ".csv"}
-
 
 def _validate_dm_file(file_name: str, file_data: bytes) -> None:
     """Validate DM attachment: extension allowlist + magic bytes for images/PDFs.
@@ -91,16 +78,6 @@ def _validate_dm_file(file_name: str, file_data: bytes) -> None:
             400,
             f"File type not allowed. Accepted: {', '.join(sorted(_DM_ALLOWED_EXTENSIONS))}",
         )
-
-    # M-13: For text files (.txt/.csv), reject content that looks like HTML
-    if ext in _TEXT_CONTENT_CHECK_EXTENSIONS:
-        stripped = file_data.lstrip()
-        if any(stripped.startswith(prefix) for prefix in _TEXT_FORBIDDEN_PREFIXES):
-            raise AppError(
-                ErrorCode.FILE_001,
-                400,
-                "Text file contains HTML content, which is not allowed.",
-            )
 
     # For types with known magic signatures, verify content matches extension
     expected_type = _DM_MAGIC_CHECK_EXTENSIONS.get(ext)
@@ -158,26 +135,13 @@ async def send_message(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        # Wrap block + friendship + recipient checks in a transaction to prevent TOCTOU races
+        # Wrap block + friendship checks in a transaction to prevent TOCTOU races
         async with conn.transaction():
-            # M-08: Validate recipient exists and is active
-            recipient = await conn.fetchrow(
-                "SELECT id, is_deleted, is_banned FROM users WHERE id = $1",
-                uuid.UUID(recipient_id),
-            )
-            if not recipient:
-                raise AppError(ErrorCode.SYS_404, 404, "Recipient not found.")
-            if recipient["is_deleted"] or recipient["is_banned"]:
-                raise AppError(ErrorCode.DM_001, 403, "Cannot message this user.")
-
             if await social_repo.is_blocked(conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)):
                 raise AppError(ErrorCode.DM_001, 403, "Cannot message this user.")
 
-            # 5. Check recipient's dm_friends_only preference (M-05: inlined to use same conn)
-            dm_friends_only = await conn.fetchval(
-                "SELECT dm_friends_only FROM user_preferences WHERE user_id = $1",
-                uuid.UUID(recipient_id),
-            )
+            # 5. Check recipient's dm_friends_only preference
+            dm_friends_only = await dm_repo.get_dm_friends_only(uuid.UUID(recipient_id))
             if dm_friends_only:
                 friendship = await social_repo.find_friendship_between(
                     conn, uuid.UUID(sender_id), uuid.UUID(recipient_id)
@@ -199,6 +163,10 @@ async def send_message(
         if file_size > DM_MAX_ATTACHMENT_SIZE:
             raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
 
+        # L-10: Redundant size check on actual data length
+        if len(file_data) > DM_MAX_ATTACHMENT_SIZE:
+            raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
+
         # S-02: Validate file type before upload
         _validate_dm_file(file_name, file_data)
 
@@ -216,64 +184,86 @@ async def send_message(
         ext = ""
         if file_name and "." in file_name:
             ext = "." + file_name.rsplit(".", 1)[-1].lower()
-        storage_key = f"dm/{sender_id}/{uuid.uuid4().hex}{ext}"
-        await async_upload_file(
-            file_data, storage_key, file_content_type or "application/octet-stream"
+
+        # M-12: Derive Content-Type from extension instead of trusting client
+        derived_type = (
+            _DM_MAGIC_CHECK_EXTENSIONS.get(ext)
+            or mimetypes.guess_type(file_name)[0]
+            or "application/octet-stream"
         )
+
+        storage_key = f"dm/{sender_id}/{uuid.uuid4().hex}{ext}"
+        await async_upload_file(file_data, storage_key, derived_type)
 
         attachment_key = storage_key
         attachment_name = file_name
         attachment_size = file_size
         attachment_expires_at = datetime.now(timezone.utc) + timedelta(days=DM_FILE_EXPIRY_DAYS)
 
-    # 7. Find or create conversation
-    conversation = await dm_repo.find_or_create_conversation(
-        uuid.UUID(sender_id), uuid.UUID(recipient_id)
-    )
-    conversation_id = conversation["id"]
+    # 7-10. DB operations wrapped in try/except to clean up orphaned file on failure (M-48)
+    try:
+        # 7. Find or create conversation
+        conversation = await dm_repo.find_or_create_conversation(
+            uuid.UUID(sender_id), uuid.UUID(recipient_id)
+        )
+        conversation_id = conversation["id"]
 
-    # 8-10. Atomic: advisory lock + char cap enforcement + insert + char count update
-    content_len = len(content) if content else 0
-    msg_id = uuid.uuid4()
-    row, deleted_msgs = await dm_repo.send_message_atomic(
-        conversation_id=conversation_id,
-        msg_id=msg_id,
-        sender_id=uuid.UUID(sender_id),
-        content=content,
-        attachment_key=attachment_key,
-        attachment_name=attachment_name,
-        attachment_size=attachment_size,
-        attachment_expires_at=attachment_expires_at,
-        content_len=content_len,
-        char_cap=DM_CHAR_CAP_PER_CONVERSATION,
-    )
+        # 8-10. Atomic: advisory lock + char cap enforcement + insert + char count update
+        content_len = len(content) if content else 0
+        msg_id = uuid.uuid4()
+        row, deleted_msgs = await dm_repo.send_message_atomic(
+            conversation_id=conversation_id,
+            msg_id=msg_id,
+            sender_id=uuid.UUID(sender_id),
+            content=content,
+            attachment_key=attachment_key,
+            attachment_name=attachment_name,
+            attachment_size=attachment_size,
+            attachment_expires_at=attachment_expires_at,
+            content_len=content_len,
+            char_cap=DM_CHAR_CAP_PER_CONVERSATION,
+        )
 
-    # B-12: Increment storage quota AFTER successful message insert (not before)
-    if attachment_size and file_size:
-        from app.repositories import user_repo
+        # B-12: Increment storage quota AFTER successful message insert (not before)
+        if attachment_size and file_size:
+            from app.repositories import user_repo
 
-        await user_repo.increment_storage_used(uuid.UUID(sender_id), file_size)
+            await user_repo.increment_storage_used(uuid.UUID(sender_id), file_size)
 
-    # Refund storage for any deleted attachments (outside transaction)
-    if deleted_msgs:
-        from app.repositories import user_repo
+        # Refund storage for any deleted attachments (outside transaction)
+        if deleted_msgs:
+            from app.repositories import user_repo
 
-        for dmsg in deleted_msgs:
-            if dmsg.get("attachment_size") and dmsg.get("sender_id"):
-                try:
-                    from app.core.async_storage import delete_file as async_delete_file
+            for dmsg in deleted_msgs:
+                if dmsg.get("attachment_size") and dmsg.get("sender_id"):
+                    try:
+                        from app.core.async_storage import delete_file as async_delete_file
 
-                    if dmsg.get("attachment_key"):
-                        await async_delete_file(dmsg["attachment_key"])
-                    await user_repo.decrement_storage_used(
-                        dmsg["sender_id"], dmsg["attachment_size"]
-                    )
-                except Exception:
-                    logger.warning(
-                        "Failed to clean up attachment during char cap enforcement",
-                        exc_info=True,
-                        extra={"msg_id": str(dmsg.get("id"))},
-                    )
+                        if dmsg.get("attachment_key"):
+                            await async_delete_file(dmsg["attachment_key"])
+                        await user_repo.decrement_storage_used(
+                            dmsg["sender_id"], dmsg["attachment_size"]
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Failed to clean up attachment during char cap enforcement",
+                            exc_info=True,
+                            extra={"msg_id": str(dmsg.get("id"))},
+                        )
+    except Exception:
+        # M-48: Clean up orphaned MinIO file if DB operations failed
+        if attachment_key:
+            try:
+                from app.core.async_storage import delete_file as async_delete_file
+
+                await async_delete_file(attachment_key)
+            except Exception:
+                logger.warning(
+                    "Failed to clean up orphaned DM attachment after DB failure",
+                    exc_info=True,
+                    extra={"storage_key": attachment_key},
+                )
+        raise
 
     # 11. Convert row and generate presigned URL if attachment
     msg = await async_row_to_message(row)
@@ -308,12 +298,26 @@ async def send_message(
 
 async def edit_message(message_id: str, sender_id: str, new_content: str) -> dict:
     """Edit a message within the edit window."""
-    # 1. Initial read to get conversation_id for the advisory lock
+    # 1. Find message and verify sender
     row = await dm_repo.find_message_by_id(uuid.UUID(message_id))
     if not row:
         raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+    if str(row["sender_id"]) != sender_id:
+        raise AppError(ErrorCode.SYS_403, 403, "Cannot edit another user's message.")
 
-    # 2. Validate new content length (before acquiring lock)
+    # 2. Verify not recalled
+    if row.get("is_recalled"):
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot edit a recalled message.")
+
+    # 3. Verify within edit window
+    created_at = row["created_at"]
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
+    if created_at < cutoff:
+        raise AppError(ErrorCode.DM_002, 403, "Edit window has expired.")
+
+    # 4. Validate new content length
     if len(new_content) > DM_MAX_MESSAGE_LENGTH:
         raise AppError(
             ErrorCode.SYS_422,
@@ -324,7 +328,11 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
     # B-04/S-01: Sanitize HTML content before storing
     new_content = sanitize_html(new_content)
 
-    # 3. Acquire advisory lock, re-read message inside lock, validate, and update atomically
+    # 5. Calculate char delta
+    old_content = row.get("content") or ""
+    char_delta = len(new_content) - len(old_content)
+
+    # 6-7. Update message content + char count atomically
     conversation_id = row["conversation_id"]
     from app.core.database import get_pool
 
@@ -335,38 +343,15 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
                 "SELECT pg_advisory_xact_lock(hashtext($1::text))",
                 str(conversation_id),
             )
-            # M-06: Re-read message inside lock for fresh data
-            fresh_row = await conn.fetchrow(
-                "SELECT * FROM dm_messages WHERE id = $1",
-                uuid.UUID(message_id),
-            )
-            if not fresh_row:
-                raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
-            if str(fresh_row["sender_id"]) != sender_id:
-                raise AppError(ErrorCode.SYS_403, 403, "Cannot edit another user's message.")
-            if fresh_row.get("is_recalled"):
-                raise AppError(ErrorCode.SYS_422, 422, "Cannot edit a recalled message.")
-
-            # Verify within edit window
-            created_at = fresh_row["created_at"]
-            if created_at.tzinfo is None:
-                created_at = created_at.replace(tzinfo=timezone.utc)
-            cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
-            if created_at < cutoff:
-                raise AppError(ErrorCode.DM_002, 403, "Edit window has expired.")
-
-            # Calculate char delta from fresh data
-            old_content = fresh_row.get("content") or ""
-            char_delta = len(new_content) - len(old_content)
-
+            # L-22: Re-verify is_recalled inside transaction to prevent TOCTOU race
             updated_row = await conn.fetchrow(
-                "UPDATE dm_messages SET content = $1, is_edited = TRUE, updated_at = NOW() "
-                "WHERE id = $2 RETURNING *",
+                "UPDATE dm_messages SET content = $1, updated_at = NOW() "
+                "WHERE id = $2 AND is_recalled = false RETURNING *",
                 new_content,
                 uuid.UUID(message_id),
             )
             if not updated_row:
-                raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+                raise AppError(ErrorCode.SYS_422, 422, "Cannot edit a recalled message.")
             if char_delta != 0:
                 await conn.execute(
                     "UPDATE conversations SET total_chars = GREATEST(0, total_chars + $1) "
@@ -401,13 +386,28 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
 
 async def recall_message(message_id: str, sender_id: str) -> dict:
     """Recall a message within the recall window."""
-    # 1. Initial read to get conversation_id for the advisory lock
+    # 1. Find message and verify sender
     row = await dm_repo.find_message_by_id(uuid.UUID(message_id))
     if not row:
         raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
+    if str(row["sender_id"]) != sender_id:
+        raise AppError(ErrorCode.SYS_403, 403, "Cannot recall another user's message.")
 
-    # 2. Acquire advisory lock, re-read inside lock, validate, and recall atomically
+    # 2. Verify not already recalled
+    if row.get("is_recalled"):
+        raise AppError(ErrorCode.SYS_422, 422, "Message already recalled.")
+
+    # 3. Verify within recall window
+    created_at = row["created_at"]
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
+    if created_at < cutoff:
+        raise AppError(ErrorCode.DM_002, 403, "Recall window has expired.")
+
+    # 4. Recall message + decrement char count atomically
     conversation_id = row["conversation_id"]
+    content_len = len(row.get("content") or "")
 
     from app.core.database import get_pool
 
@@ -418,29 +418,6 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                 "SELECT pg_advisory_xact_lock(hashtext($1::text))",
                 str(conversation_id),
             )
-            # M-07: Re-read message inside lock for fresh data
-            fresh_row = await conn.fetchrow(
-                "SELECT * FROM dm_messages WHERE id = $1",
-                uuid.UUID(message_id),
-            )
-            if not fresh_row:
-                raise AppError(ErrorCode.SYS_404, 404, "Message not found.")
-            if str(fresh_row["sender_id"]) != sender_id:
-                raise AppError(ErrorCode.SYS_403, 403, "Cannot recall another user's message.")
-            if fresh_row.get("is_recalled"):
-                raise AppError(ErrorCode.SYS_422, 422, "Message already recalled.")
-
-            # Verify within recall window
-            created_at = fresh_row["created_at"]
-            if created_at.tzinfo is None:
-                created_at = created_at.replace(tzinfo=timezone.utc)
-            cutoff = datetime.now(timezone.utc) - timedelta(hours=DM_EDIT_RECALL_WINDOW_HOURS)
-            if created_at < cutoff:
-                raise AppError(ErrorCode.DM_002, 403, "Recall window has expired.")
-
-            # Calculate content_len from fresh data
-            content_len = len(fresh_row.get("content") or "")
-
             recalled_row = await conn.fetchrow(
                 "UPDATE dm_messages SET is_recalled = true, content = NULL, "
                 "updated_at = NOW() WHERE id = $1 RETURNING *",
@@ -457,11 +434,11 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                 )
 
     # 5. If has attachment: delete from MinIO and refund storage quota (after DB recall)
-    if fresh_row.get("attachment_key"):
+    if row.get("attachment_key"):
         try:
             from app.core.async_storage import delete_file as async_delete_file
 
-            await async_delete_file(fresh_row["attachment_key"])
+            await async_delete_file(row["attachment_key"])
         except Exception:
             logger.warning(
                 "Failed to delete DM attachment from storage",
@@ -469,13 +446,11 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                 extra={"msg_id": message_id},
             )
 
-        if fresh_row.get("attachment_size"):
+        if row.get("attachment_size"):
             try:
                 from app.repositories import user_repo
 
-                await user_repo.decrement_storage_used(
-                    uuid.UUID(sender_id), fresh_row["attachment_size"]
-                )
+                await user_repo.decrement_storage_used(uuid.UUID(sender_id), row["attachment_size"])
             except Exception:
                 logger.warning(
                     "Failed to refund storage quota for recalled DM attachment",

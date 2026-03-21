@@ -331,6 +331,16 @@ async def get_scan_status(
     if ".." in key or not _SAFE_KEY_RE.match(key):
         raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
 
+    # Ownership check: only the uploader or admin can check scan status
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    owns_file = key.startswith(f"editor/{current_user['sub']}/")
+    if not is_admin and not owns_file:
+        raise AppError(
+            ErrorCode.SYS_403,
+            status.HTTP_403_FORBIDDEN,
+            "You do not have permission to check this file's scan status.",
+        )
+
     scan = await file_scan_repo.find_by_key(key)
     if not scan:
         return {"status": "unknown", "positives": None, "total": None}

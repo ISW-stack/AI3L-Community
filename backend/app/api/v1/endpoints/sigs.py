@@ -3,7 +3,13 @@ from typing import Any, cast
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from app.core.constants import RATE_LIMIT_SIG_CRUD, RATE_LIMIT_SIG_JOIN, RATE_LIMIT_SIG_MANAGE
+from app.core.constants import (
+    MAX_PAGE_NUMBER,
+    RATE_LIMIT_SIG_CRUD,
+    RATE_LIMIT_SIG_JOIN,
+    RATE_LIMIT_SIG_MANAGE,
+)
+
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
@@ -45,7 +51,7 @@ router = APIRouter(prefix="/sigs", tags=["sigs"])
 @router.get("", response_model=SigListResponse)
 async def get_sigs(
     response: Response,
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=MAX_PAGE_NUMBER * 100),
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> SigListResponse:
@@ -253,7 +259,7 @@ async def demote_sig_sub_admin(
 @router.get("/{sig_id}/members", response_model=SigMemberListResponse)
 async def get_sig_members(
     sig_id: uuid.UUID,
-    offset: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0, le=MAX_PAGE_NUMBER * 100),
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> SigMemberListResponse:

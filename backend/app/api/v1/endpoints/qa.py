@@ -3,6 +3,8 @@ import uuid
 from fastapi import APIRouter, Depends, status
 
 from app.core.deps import get_current_user, require_role
+from app.core.errors import AppError, ErrorCode
+from app.core.rate_limit import check_rate_limit
 from app.schemas.qa import MarkBestAnswerRequest, VoteRequest
 from app.services.qa import get_user_votes, mark_best_answer, unmark_best_answer, vote_on_answer
 
@@ -16,6 +18,8 @@ async def mark_best_answer_endpoint(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """Mark a comment as the best answer for a question."""
+    if not await check_rate_limit(f"rl:qa_action:{current_user['sub']}", 30, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     return await mark_best_answer(
         post_id=post_id,
         comment_id=req.comment_id,
@@ -43,6 +47,8 @@ async def vote_on_answer_endpoint(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """Vote on an answer (upvote, downvote, or remove vote)."""
+    if not await check_rate_limit(f"rl:qa_action:{current_user['sub']}", 30, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     return await vote_on_answer(
         comment_id=comment_id,
         user_id=current_user["sub"],

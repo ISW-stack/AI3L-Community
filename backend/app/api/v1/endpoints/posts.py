@@ -92,8 +92,8 @@ async def get_posts_list(
             post_type=type,
             viewer_id=current_user["sub"],
         )
-    except ValueError as exc:
-        raise AppError(ErrorCode.SYS_422, 400, str(exc))
+    except ValueError:
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid cursor.")
 
     if cursor is not None:
         return PostListResponse(

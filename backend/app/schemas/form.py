@@ -7,12 +7,12 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class QuestionOption(BaseModel):
-    id: str = Field(..., max_length=100)
-    label: str = Field(..., max_length=500)
+    id: str
+    label: str
 
 
 class QuestionSchema(BaseModel):
-    id: str = Field(..., max_length=100)
+    id: str
     type: Literal[
         "text",
         "textarea",
@@ -22,16 +22,16 @@ class QuestionSchema(BaseModel):
         "rating",
         "file_upload",
     ]
-    label: str = Field(..., max_length=500)
+    label: str
     required: bool = True
     placeholder: str | None = Field(None, max_length=500)
-    max_length: int | None = Field(None, ge=1, le=10000)
-    options: list[QuestionOption] | None = Field(None, max_length=50)
-    min: int | None = Field(None, ge=0, le=100)
-    max: int | None = Field(None, ge=1, le=100)
+    max_length: int | None = None
+    options: list[QuestionOption] | None = None
+    min: int | None = None
+    max: int | None = None
     labels: dict[str, str] | None = None
-    allowed_types: list[str] | None = Field(None, max_length=20)
-    max_size_mb: int | None = Field(None, ge=1, le=50)
+    allowed_types: list[str] | None = None
+    max_size_mb: int | None = None
 
     @model_validator(mode="after")
     def validate_choice_options(self) -> "QuestionSchema":
@@ -46,42 +46,24 @@ class QuestionSchema(BaseModel):
         return self
 
 
-def _validate_banner_url(v: str | None) -> str | None:
-    """Reject non-http(s) URLs to prevent javascript:/data: injection."""
-    if v is not None:
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("Banner URL must use http or https scheme.")
-    return v
-
-
 class FormCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
     description: str | None = Field(None, max_length=5000)
-    banner_url: str | None = Field(None, max_length=2000)
+    banner_url: str | None = None
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)
-    questions: list[QuestionSchema] = Field(..., min_length=1, max_length=100)
+    questions: list[QuestionSchema] = Field(..., min_length=1)
     allow_non_members: bool = False
-
-    @field_validator("banner_url")
-    @classmethod
-    def check_banner_url(cls, v: str | None) -> str | None:
-        return _validate_banner_url(v)
 
 
 class FormUpdateRequest(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
     description: str | None = Field(None, max_length=5000)
-    banner_url: str | None = Field(None, max_length=2000)
+    banner_url: str | None = None
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)
-    questions: list[QuestionSchema] | None = Field(None, max_length=100)
+    questions: list[QuestionSchema] | None = None
     allow_non_members: bool | None = None
-
-    @field_validator("banner_url")
-    @classmethod
-    def check_banner_url(cls, v: str | None) -> str | None:
-        return _validate_banner_url(v)
 
 
 class FormResponseSchema(BaseModel):
@@ -127,6 +109,29 @@ class FormResponseListResponse(BaseModel):
 
 class FormSubmitRequest(BaseModel):
     answers: dict[str, Any]
+
+    @field_validator("answers")
+    @classmethod
+    def validate_answers(cls, v: dict[str, Any]) -> dict[str, Any]:
+        if len(v) > 200:
+            raise ValueError("Too many answers (max 200).")
+        for key, val in v.items():
+            if not key or len(key) > 100:
+                raise ValueError("Answer key must be 1-100 characters.")
+            if val is None:
+                continue
+            if isinstance(val, (str, int, float, bool)):
+                if isinstance(val, str) and len(val) > 50000:
+                    raise ValueError("Answer value too long (max 50000 chars).")
+                continue
+            if isinstance(val, list):
+                if len(val) > 100:
+                    raise ValueError("Answer list too long (max 100 items).")
+                if not all(isinstance(item, str) for item in val):
+                    raise ValueError("Answer list items must be strings.")
+                continue
+            raise ValueError(f"Unsupported answer value type: {type(val).__name__}")
+        return v
 
 
 class FormSubmitResponse(BaseModel):

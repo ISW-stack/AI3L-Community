@@ -1,5 +1,6 @@
 """Activity Albums endpoints."""
 
+import mimetypes
 import uuid
 from typing import Any, cast
 
@@ -164,8 +165,9 @@ async def upload_cover_endpoint(
             raise AppError(ErrorCode.SYS_422, 422, "File too large.")
         chunks.append(chunk)
     file_data = b"".join(chunks)
-    content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "cover"
+    # M-12: Derive Content-Type from extension instead of trusting client
+    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
     album = await upload_cover(
         album_id=str(album_id),
@@ -280,8 +282,9 @@ async def upload_photo_endpoint(
             raise AppError(ErrorCode.SYS_422, 422, "File too large.")
         chunks.append(chunk)
     file_data = b"".join(chunks)
-    content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "unknown"
+    # M-12: Derive Content-Type from extension instead of trusting client
+    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
     photo = await upload_photo(
         album_id=str(album_id),
@@ -314,8 +317,9 @@ async def upload_file_endpoint(
             raise AppError(ErrorCode.SYS_422, 422, "File too large.")
         chunks.append(chunk)
     file_data = b"".join(chunks)
-    content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "unknown.zip"
+    # M-12: Derive Content-Type from extension instead of trusting client
+    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
     result = await upload_file_zip(
         album_id=str(album_id),

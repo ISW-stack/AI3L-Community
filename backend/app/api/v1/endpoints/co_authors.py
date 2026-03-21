@@ -108,7 +108,10 @@ async def list_all_co_authors_endpoint(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CoAuthorListResponse:
     """List all co-authors for a post (all statuses). Only for post management."""
-    result = await list_all_co_authors(post_id=post_id)
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    result = await list_all_co_authors(
+        post_id=post_id, user_id=current_user["sub"], is_admin=is_admin
+    )
     return CoAuthorListResponse(co_authors=[CoAuthorResponse(**r) for r in result])
 
 

@@ -120,8 +120,12 @@ async def get_contributor_avatar(
             return Response(status_code=502, content=b"Invalid content type from upstream")
 
         # Enforce download size limit to prevent memory exhaustion
-        content_length = resp.headers.get("content-length")
-        if content_length and int(content_length) > _MAX_AVATAR_DOWNLOAD_BYTES:
+        content_length_raw = resp.headers.get("content-length")
+        try:
+            content_length = int(content_length_raw) if content_length_raw else 0
+        except (ValueError, TypeError):
+            content_length = 0
+        if content_length > _MAX_AVATAR_DOWNLOAD_BYTES:
             return Response(status_code=502, content=b"Avatar too large")
 
         data = resp.content
@@ -165,7 +169,7 @@ async def get_org_chart(
 
 @router.get("/members", response_model=MembersListResponse)
 async def list_members(
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(24, ge=1, le=100),
     search: str = Query("", max_length=200),
     _current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),

@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from app.core.database import get_pool
@@ -5,6 +6,7 @@ from app.core.database import get_pool
 _ALLOWED_PREFERENCE_COLUMNS = frozenset(
     {"theme", "notify_mentions", "notify_replies", "notify_sig_posts", "dm_friends_only"}
 )
+_SAFE_COLUMN_RE = re.compile(r"^[a-z_]+$")
 
 
 async def get_preferences(user_id: uuid.UUID) -> dict | None:
@@ -28,8 +30,12 @@ async def upsert_preferences(user_id: uuid.UUID, data: dict) -> dict:
 
     pool = get_pool()
 
-    # Build SET clause from provided fields
-    fields = {k: v for k, v in data.items() if k in _ALLOWED_PREFERENCE_COLUMNS and v is not None}
+    # Build SET clause from provided fields (regex guard as defense-in-depth)
+    fields = {
+        k: v
+        for k, v in data.items()
+        if k in _ALLOWED_PREFERENCE_COLUMNS and v is not None and _SAFE_COLUMN_RE.match(k)
+    }
 
     if not fields:
         # Nothing to update; return existing or defaults

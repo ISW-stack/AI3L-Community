@@ -423,6 +423,7 @@ class TestPasswordChange:
             with (
                 patch("app.repositories.user_repo.get_pool", return_value=mock_pool),
                 patch("app.services.auth.get_redis", return_value=mock_redis),
+                patch(f"{_EP}.users.check_rate_limit", new_callable=AsyncMock, return_value=True),
             ):
                 resp = await client.put(
                     "/api/v1/users/me/password",
@@ -444,7 +445,10 @@ class TestPasswordChange:
 
         try:
             _override_auth("MEMBER")
-            with patch("app.repositories.user_repo.get_pool", return_value=mock_pool):
+            with (
+                patch("app.repositories.user_repo.get_pool", return_value=mock_pool),
+                patch(f"{_EP}.users.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            ):
                 resp = await client.put(
                     "/api/v1/users/me/password",
                     json={"current_password": "WrongPass1", "new_password": "NewPass1"},

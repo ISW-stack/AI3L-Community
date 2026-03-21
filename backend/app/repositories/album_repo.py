@@ -1,7 +1,10 @@
 """Album repository — raw SQL queries for albums, members, photos, and comments."""
 
+import re
 import uuid
 from typing import Any
+
+_SAFE_COLUMN_RE = re.compile(r"^[a-z_]+$")
 
 # ── Albums ──────────────────────────────────────────────────────────────────
 
@@ -96,7 +99,7 @@ async def update_album(conn: Any, album_id: uuid.UUID, **fields: Any) -> dict | 
     values: list[Any] = []
     idx = 1
     for field_name, value in fields.items():
-        if field_name not in _ALLOWED:
+        if field_name not in _ALLOWED or not _SAFE_COLUMN_RE.match(field_name):
             continue
         set_parts.append(f"{field_name} = ${idx}")
         values.append(value)
@@ -409,7 +412,7 @@ async def update_photo(conn: Any, photo_id: uuid.UUID, **fields: Any) -> dict | 
     values: list[Any] = []
     idx = 1
     for field_name, value in fields.items():
-        if field_name not in _ALLOWED:
+        if field_name not in _ALLOWED or not _SAFE_COLUMN_RE.match(field_name):
             continue
         set_parts.append(f"{field_name} = ${idx}")
         values.append(value)

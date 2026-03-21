@@ -41,12 +41,17 @@ def _ensure_loop() -> asyncio.AbstractEventLoop:
         return _worker_loop
 
 
-def run_async(coro: Any) -> Any:
+def run_async(coro: Any, timeout: float = 600) -> Any:
     """Run an async coroutine from a sync Celery task context.
 
     Uses a persistent per-worker event loop so that asyncpg connections
     created under that loop remain valid across multiple task invocations.
+
+    Args:
+        coro: The coroutine to run.
+        timeout: Maximum seconds to wait (default matches Celery task_time_limit).
+            Raises ``concurrent.futures.TimeoutError`` if exceeded.
     """
     loop = _ensure_loop()
     future = asyncio.run_coroutine_threadsafe(coro, loop)
-    return future.result()
+    return future.result(timeout=timeout)

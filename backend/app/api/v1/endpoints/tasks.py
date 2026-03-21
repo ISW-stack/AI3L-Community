@@ -22,7 +22,10 @@ async def get_task_status(
 
         redis = get_redis()
         owner_id = await redis.get(f"task_owner:{task_id}")
-        if owner_id is not None and owner_id != current_user["sub"]:
+        if owner_id is None:
+            # TTL expired — fail closed
+            raise AppError(ErrorCode.SYS_403, 403, "Task ownership could not be verified.")
+        if owner_id != current_user["sub"]:
             raise AppError(ErrorCode.SYS_403, 403, "You do not have access to this task.")
 
     result = AsyncResult(task_id, app=celery)

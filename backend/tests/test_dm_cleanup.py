@@ -130,7 +130,7 @@ class TestCleanupDmExpiredFiles:
         ]
 
         mock_find = AsyncMock(return_value=expired_msgs)
-        mock_clear = AsyncMock()
+        mock_clear_if_present = AsyncMock(return_value=True)
         mock_decrement = AsyncMock()
         mock_delete_file = AsyncMock()
 
@@ -138,7 +138,7 @@ class TestCleanupDmExpiredFiles:
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock) as mock_pool,
             patch("app.repositories.dm_repo.find_expired_file_messages", mock_find),
-            patch("app.repositories.dm_repo.clear_message_attachment", mock_clear),
+            patch("app.repositories.dm_repo.clear_message_attachment_if_present", mock_clear_if_present),
             patch("app.repositories.user_repo.decrement_storage_used", mock_decrement),
             patch("app.core.async_storage.delete_file", mock_delete_file),
         ):
@@ -149,7 +149,7 @@ class TestCleanupDmExpiredFiles:
         mock_pool.assert_awaited_once()
         mock_delete_file.assert_awaited_once_with("dm/test/file.pdf")
         mock_decrement.assert_awaited_once_with(sender_id, 1024)
-        mock_clear.assert_awaited_once_with(msg_id)
+        mock_clear_if_present.assert_awaited_once_with(msg_id)
         assert result == {"deleted": 1, "errors": 0}
 
     @pytest.mark.anyio
@@ -170,7 +170,7 @@ class TestCleanupDmExpiredFiles:
 
     @pytest.mark.anyio
     async def test_cleanup_files_error_counted(self):
-        """Errors during file deletion are counted, not raised."""
+        """Errors during clear_message_attachment_if_present are counted, not raised."""
         msg_id = uuid.uuid4()
         expired_msgs = [
             {
@@ -182,13 +182,13 @@ class TestCleanupDmExpiredFiles:
         ]
 
         mock_find = AsyncMock(return_value=expired_msgs)
-        mock_delete_file = AsyncMock(side_effect=RuntimeError("storage error"))
+        mock_clear = AsyncMock(side_effect=RuntimeError("DB error"))
 
         with (
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.dm_repo.find_expired_file_messages", mock_find),
-            patch("app.core.async_storage.delete_file", mock_delete_file),
+            patch("app.repositories.dm_repo.clear_message_attachment_if_present", mock_clear),
         ):
             from app.tasks.dm_cleanup import _cleanup_files
 

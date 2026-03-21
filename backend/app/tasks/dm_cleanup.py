@@ -31,11 +31,26 @@ async def _cleanup_files() -> dict:
 
     for msg in expired:
         try:
+            # L-23: Idempotent cleanup — clear attachment fields first (CAS-style)
+            # so a concurrent/duplicate run won't double-decrement storage quota.
+            cleared = await dm_repo.clear_message_attachment_if_present(msg["id"])
+            if not cleared:
+                # Already cleaned up by a previous run
+                deleted += 1
+                continue
+
             if msg.get("attachment_key"):
-                await delete_file(msg["attachment_key"])
+                try:
+                    await delete_file(msg["attachment_key"])
+                except Exception:
+                    # S3 delete is idempotent; log but continue with quota refund
+                    logger.warning(
+                        "Failed to delete DM file from storage (may already be gone)",
+                        exc_info=True,
+                        extra={"msg_id": str(msg["id"])},
+                    )
                 if msg.get("attachment_size") and msg.get("sender_id"):
                     await user_repo.decrement_storage_used(msg["sender_id"], msg["attachment_size"])
-            await dm_repo.clear_message_attachment(msg["id"])
             deleted += 1
         except Exception:
             errors += 1

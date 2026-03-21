@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+import uuid as _uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, cast
@@ -90,6 +91,23 @@ async def emit(event: str, **kwargs: Any) -> EmitResult:
     return result
 
 
+# L-49: Keys whose values must be redacted before persisting to Redis
+_REDACT_KEYS = frozenset({"content", "message", "body", "password", "token"})
+
+
+def _redact_kwargs(kwargs: dict) -> dict:
+    """Remove sensitive values from event kwargs before persisting."""
+    redacted: dict = {}
+    for k, v in kwargs.items():
+        if k in _REDACT_KEYS:
+            redacted[k] = "[REDACTED]"
+        elif isinstance(v, dict):
+            redacted[k] = _redact_kwargs(v)
+        else:
+            redacted[k] = v
+    return redacted
+
+
 async def _persist_failed_event(
     event: str, handler_name: str, kwargs: dict, *, retry_count: int = 0
 ) -> None:
@@ -100,9 +118,10 @@ async def _persist_failed_event(
         redis = get_redis()
         entry = json.dumps(
             {
+                "event_id": str(_uuid.uuid4()),  # L-48: dedup key
                 "event": event,
                 "handler": handler_name,
-                "kwargs": {k: v for k, v in kwargs.items()},
+                "kwargs": _redact_kwargs(kwargs),  # L-49: redact sensitive fields
                 "retry_count": retry_count,
                 "timestamp": time.time(),
             },

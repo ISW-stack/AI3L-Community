@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 
-from app.core.deps import get_current_user
+from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
 from app.repositories import notification_repo
@@ -28,7 +28,7 @@ async def get_notifications(
     unread: bool = Query(False),
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> NotificationListResponse:
     if not await check_rate_limit(f"rl:notif:{current_user['sub']}", 60, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
@@ -48,7 +48,7 @@ async def get_notifications(
 @router.put("/{notification_id}/read", response_model=MessageResponse)
 async def read_notification(
     notification_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
     updated = await mark_as_read(notification_id, current_user["sub"])
     if not updated:
@@ -59,7 +59,7 @@ async def read_notification(
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def bulk_delete_notifications(
     req: BulkDeleteNotificationsRequest | None = None,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> Response:
     if not await check_rate_limit(f"rl:notif_del:{current_user['sub']}", 30, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
@@ -71,7 +71,7 @@ async def bulk_delete_notifications(
 @router.delete("/{notification_id}", response_model=MessageResponse)
 async def delete_notification_endpoint(
     notification_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
     deleted = await delete_notification(notification_id, current_user["sub"])
     if not deleted:
@@ -81,7 +81,7 @@ async def delete_notification_endpoint(
 
 @router.put("/read-all", response_model=MessageResponse)
 async def read_all_notifications(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> MessageResponse:
     if not await check_rate_limit(f"rl:notif_read_all:{current_user['sub']}", 10, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
