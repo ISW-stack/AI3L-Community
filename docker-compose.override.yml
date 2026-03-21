@@ -78,5 +78,26 @@ services:
       - "127.0.0.1:19000:9000"
       - "127.0.0.1:19001:9001"
 
+  # One-shot: resets stale OpenID config from minio-data volume.
+  # Harmless no-op once the bad config is gone.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mc alias set myminio http://minio:9000
+        $${MINIO_ROOT_USER:-minioadmin}
+        $${MINIO_ROOT_PASSWORD:-changeme_minio} &&
+        mc admin config reset myminio identity_openid:_ || true
+    env_file:
+      - .env
+    restart: "no"
+    networks:
+      - ai3l-network
+
 volumes:
   nginx-html:   # shared volume: build-frontend writes here, nginx reads from it
