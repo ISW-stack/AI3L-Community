@@ -943,7 +943,7 @@ export default {
     description:
       "AI3L Community est une petite plateforme d'échange académique dédiée à l'IA dans l'apprentissage des langues et la littératie. Elle est organisée et animée par la professeure Yu-Ju Lan de l'Université nationale normale de Taïwan (NTNU). Ce projet communautaire vise à rassembler des chercheurs et des praticiens partageant un intérêt pour l'exploration du rôle de l'IA dans l'éducation linguistique et le développement de la littératie.",
     introduction: 'Introduction',
-    introEmpty: 'No introduction available yet.',
+    introEmpty: 'Aucune introduction disponible pour le moment.',
     contributors: {
       title: 'Contributeurs',
       loading: 'Chargement des contributeurs...',
@@ -1047,8 +1047,6 @@ export default {
       },
       banModal: {
         title: "Bannir l'utilisateur",
-        deleted: '{username} has been deleted.',
-        deleteFailed: 'Failed to delete user.',
         message: 'Bannir {username} ? Cela révoquera immédiatement sa session.',
         reasonLabel: 'Motif du bannissement',
         reasonPlaceholder: 'Motif du bannissement',
@@ -1056,14 +1054,15 @@ export default {
       },
       banBtn: 'Bannir',
       unbanBtn: 'Débannir',
-      deleteBtn: 'Delete',
+      deleteBtn: 'Supprimer',
       deleteModal: {
-        title: 'Delete User Account',
-        message: 'Permanently anonymize {username}? This cannot be undone. Type DELETE to confirm.',
-        reasonLabel: 'Reason (optional)',
-        reasonPlaceholder: 'Reason for deletion',
-        typeLabel: 'Type DELETE to confirm',
-        confirmBtn: 'Delete Account',
+        title: 'Supprimer le compte utilisateur',
+        message:
+          "Anonymiser définitivement {username} ? Cette action est irréversible. Tapez SUPPRIMER pour confirmer.",
+        reasonLabel: 'Motif (facultatif)',
+        reasonPlaceholder: 'Motif de la suppression',
+        typeLabel: 'Tapez SUPPRIMER pour confirmer',
+        confirmBtn: 'Supprimer le compte',
       },
       message: {
         loadFailed: 'Échec du chargement de la liste des utilisateurs.',
@@ -1077,8 +1076,8 @@ export default {
         unbanFailed: "Échec du débannissement de l'utilisateur.",
         bulkRoleUpdated: 'Rôle mis à jour pour {count} utilisateur(s).',
         bulkRoleFailed: 'Échec de la mise à jour en masse des rôles.',
-        deleted: '{username} has been deleted.',
-        deleteFailed: 'Failed to delete user.',
+        deleted: "{username} a été supprimé.",
+        deleteFailed: "Échec de la suppression de l'utilisateur.",
       },
     },
     ipBans: {

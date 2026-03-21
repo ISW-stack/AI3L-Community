@@ -144,18 +144,18 @@ class TestTaskStatus:
 
     @pytest.mark.anyio
     async def test_task_status_allowed_for_member(self, client, _mock_celery):
-        """GET /tasks/{id}/status -> 200 for MEMBER users (needed for CSV export polling)."""
+        """GET /tasks/{id}/status -> 200 for MEMBER users who own the task."""
         mock_result = MagicMock()
         mock_result.state = "PENDING"
         mock_result.result = None
 
         _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
 
-        mock_redis = AsyncMock()
-        mock_redis.get = AsyncMock(return_value=None)
-
         try:
-            _override_auth("MEMBER")
+            # Capture the user ID so Redis can return it as the task owner
+            _, uid = _override_auth("MEMBER")
+            mock_redis = AsyncMock()
+            mock_redis.get = AsyncMock(return_value=uid)
             with patch("app.core.redis.get_redis", return_value=mock_redis):
                 resp = await client.get(
                     "/api/v1/tasks/task-789/status",
@@ -301,7 +301,7 @@ class TestTaskOwnership:
 
     @pytest.mark.anyio
     async def test_member_access_task_without_ownership_record(self, client, _mock_celery):
-        """MEMBER can access task when no ownership record exists in Redis (expired/missing)."""
+        """MEMBER gets 403 when ownership record is missing (fail closed for security)."""
         mock_result = MagicMock()
         mock_result.state = "PENDING"
         mock_result.result = None
@@ -317,24 +317,24 @@ class TestTaskOwnership:
                     "/api/v1/tasks/task-noowner-001/status",
                     headers={"Authorization": "Bearer fake"},
                 )
-            # When no ownership record exists, allow access (task may be old or non-export)
-            assert resp.status_code == 200
+            # No ownership record → fail closed (403)
+            assert resp.status_code == 403
         finally:
             _clear_overrides()
 
     @pytest.mark.anyio
     async def test_nonexistent_task_returns_pending(self, client, _mock_celery):
-        """Non-existent task returns PENDING state (Celery default for unknown task IDs)."""
+        """MEMBER with task ownership returns PENDING for non-existent task IDs."""
         mock_result = MagicMock()
         mock_result.state = "PENDING"
         mock_result.result = None
         _mock_celery.AsyncResult = MagicMock(return_value=mock_result)
 
-        mock_redis = AsyncMock()
-        mock_redis.get = AsyncMock(return_value=None)
-
         try:
-            _override_auth("MEMBER")
+            # Capture UID so Redis can confirm task ownership
+            _, uid = _override_auth("MEMBER")
+            mock_redis = AsyncMock()
+            mock_redis.get = AsyncMock(return_value=uid)
             with patch("app.core.redis.get_redis", return_value=mock_redis):
                 resp = await client.get(
                     f"/api/v1/tasks/{uuid.uuid4()}/status",

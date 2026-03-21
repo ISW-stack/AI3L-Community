@@ -36,6 +36,7 @@ class TestErrorCodes:
             "QA_001",
             "QA_002",
             "QA_003",
+            "QA_004",
             "DM_001",
             "DM_002",
             "DM_003",

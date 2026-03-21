@@ -7,12 +7,12 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class QuestionOption(BaseModel):
-    id: str
-    label: str
+    id: str = Field(..., max_length=100)
+    label: str = Field(..., max_length=500)
 
 
 class QuestionSchema(BaseModel):
-    id: str
+    id: str = Field(..., max_length=100)
     type: Literal[
         "text",
         "textarea",
@@ -22,16 +22,16 @@ class QuestionSchema(BaseModel):
         "rating",
         "file_upload",
     ]
-    label: str
+    label: str = Field(..., max_length=500)
     required: bool = True
     placeholder: str | None = Field(None, max_length=500)
-    max_length: int | None = None
-    options: list[QuestionOption] | None = None
-    min: int | None = None
-    max: int | None = None
+    max_length: int | None = Field(None, ge=1, le=10000)
+    options: list[QuestionOption] | None = Field(None, max_length=50)
+    min: int | None = Field(None, ge=0, le=100)
+    max: int | None = Field(None, ge=1, le=100)
     labels: dict[str, str] | None = None
-    allowed_types: list[str] | None = None
-    max_size_mb: int | None = None
+    allowed_types: list[str] | None = Field(None, max_length=20)
+    max_size_mb: int | None = Field(None, ge=1, le=50)
 
     @model_validator(mode="after")
     def validate_choice_options(self) -> "QuestionSchema":
@@ -52,8 +52,19 @@ class FormCreateRequest(BaseModel):
     banner_url: str | None = None
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)
-    questions: list[QuestionSchema] = Field(..., min_length=1)
+    questions: list[QuestionSchema] = Field(..., min_length=1, max_length=100)
     allow_non_members: bool = False
+
+    @field_validator("banner_url")
+    @classmethod
+    def validate_banner_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if len(v) > 2048:
+            raise ValueError("Banner URL must be 2048 characters or fewer.")
+        if not v.startswith(("http://", "https://", "/")):
+            raise ValueError("Banner URL must start with http://, https://, or /.")
+        return v
 
 
 class FormUpdateRequest(BaseModel):
@@ -62,8 +73,19 @@ class FormUpdateRequest(BaseModel):
     banner_url: str | None = None
     deadline: datetime | None = None
     max_respondents: int | None = Field(None, gt=0)
-    questions: list[QuestionSchema] | None = None
+    questions: list[QuestionSchema] | None = Field(None, max_length=100)
     allow_non_members: bool | None = None
+
+    @field_validator("banner_url")
+    @classmethod
+    def validate_banner_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if len(v) > 2048:
+            raise ValueError("Banner URL must be 2048 characters or fewer.")
+        if not v.startswith(("http://", "https://", "/")):
+            raise ValueError("Banner URL must start with http://, https://, or /.")
+        return v
 
 
 class FormResponseSchema(BaseModel):

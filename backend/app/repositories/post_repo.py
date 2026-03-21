@@ -523,7 +523,7 @@ async def search(
     effective_search_sort = "newest" if sort == "unanswered" else sort
     order_by = _SEARCH_SORT_MAP.get(effective_search_sort, _SEARCH_SORT_MAP["newest"])
 
-    conditions = ["p.is_deleted = false"]
+    conditions = ["p.is_deleted = false", "(s.id IS NULL OR s.is_deleted = false)"]
     params: list = []
     idx = 1
 
@@ -723,13 +723,15 @@ async def get_search_suggestions(query: str, limit: int = 5) -> list[dict]:
     pool = get_pool()
     async with pool.acquire() as conn:
         sql = """
-            SELECT DISTINCT title, id
-            FROM posts
-            WHERE is_deleted = FALSE
-              AND (title ILIKE $1 ESCAPE '\\' OR EXISTS (
-                  SELECT 1 FROM unnest(keywords) AS kw WHERE kw ILIKE $1 ESCAPE '\\'
+            SELECT DISTINCT p.title, p.id
+            FROM posts p
+            LEFT JOIN sigs s ON p.sig_id = s.id
+            WHERE p.is_deleted = FALSE
+              AND (s.id IS NULL OR s.is_deleted = FALSE)
+              AND (p.title ILIKE $1 ESCAPE '\\' OR EXISTS (
+                  SELECT 1 FROM unnest(p.keywords) AS kw WHERE kw ILIKE $1 ESCAPE '\\'
               ))
-            ORDER BY title
+            ORDER BY p.title
             LIMIT $2
         """
         escaped = _escape_ilike(query)
@@ -743,8 +745,12 @@ async def get_keyword_suggestions(query: str, limit: int = 5) -> list[str]:
     async with pool.acquire() as conn:
         sql = """
             SELECT DISTINCT kw
-            FROM posts, unnest(keywords) AS kw
-            WHERE posts.is_deleted = FALSE AND kw ILIKE $1 ESCAPE '\\'
+            FROM posts p
+            LEFT JOIN sigs s ON p.sig_id = s.id,
+            unnest(p.keywords) AS kw
+            WHERE p.is_deleted = FALSE
+              AND (s.id IS NULL OR s.is_deleted = FALSE)
+              AND kw ILIKE $1 ESCAPE '\\'
             ORDER BY kw
             LIMIT $2
         """

@@ -1224,9 +1224,9 @@ class TestServeFileFailClose:
                 return_value={"status": "clean", "positives": 0, "total": 70},
             ),
             patch(
-                "app.api.v1.endpoints.files.async_download_file",
+                "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(b"fake-image-data", "image/png"),
+                return_value=(MagicMock(read=MagicMock(side_effect=[b"fake-image-data", b""]), close=MagicMock()), "image/png", 15),
             ),
         ):
             resp = await client.get(
@@ -1254,9 +1254,9 @@ class TestServeFileFailClose:
                 return_value={"status": "skipped", "positives": None, "total": None},
             ),
             patch(
-                "app.api.v1.endpoints.files.async_download_file",
+                "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(b"fake-image-data", "image/png"),
+                return_value=(MagicMock(read=MagicMock(side_effect=[b"fake-image-data", b""]), close=MagicMock()), "image/png", 15),
             ),
         ):
             resp = await client.get(

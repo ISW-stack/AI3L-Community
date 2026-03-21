@@ -44,7 +44,7 @@ class TestCreatePost:
         new_callable=AsyncMock,
         return_value=True,
     )
-    @patch("app.repositories.post_repo.get_pool")
+    @patch("app.services.post.get_pool")
     async def test_create_post_success(
         self, mock_get_pool, mock_atomic_limit, mock_pool, mock_conn
     ):
@@ -80,7 +80,7 @@ class TestCreatePost:
         return_value=True,
     )
     @patch("app.services.post._rollback_daily_post_count", new_callable=AsyncMock)
-    @patch("app.repositories.post_repo.get_pool")
+    @patch("app.services.post.get_pool")
     async def test_create_post_fk_violation_raises_value_error(
         self, mock_get_pool, mock_rollback, mock_atomic_limit, mock_pool, mock_conn
     ):
@@ -102,10 +102,9 @@ class TestCreatePost:
         return_value=True,
     )
     @patch("app.services.post.emit", new_callable=AsyncMock, side_effect=RuntimeError("Redis down"))
-    @patch("app.repositories.post_repo.get_pool")
-    @patch("app.repositories.sig_repo.get_pool")
+    @patch("app.services.post.get_pool")
     async def test_create_post_emit_failure_does_not_propagate(
-        self, mock_sig_pool, mock_get_pool, mock_emit, mock_atomic_limit, mock_pool, mock_conn
+        self, mock_get_pool, mock_emit, mock_atomic_limit, mock_pool, mock_conn
     ):
         """If emit raises, create_post still returns the post (fire-and-forget)."""
         from app.services.post import create_post
@@ -115,7 +114,6 @@ class TestCreatePost:
         # First fetchrow: sig_repo.get_member_role returns role; second: post insert
         mock_conn.fetchrow = AsyncMock(side_effect=[{"role": "MEMBER"}, post_row])
         mock_get_pool.return_value = mock_pool
-        mock_sig_pool.return_value = mock_pool
 
         # sig_id triggers emit; should not raise even though emit fails
         result = await create_post(user_id, "Title", "Content", sig_id=str(uuid.uuid4()))
@@ -131,9 +129,9 @@ class TestCreatePostSigMembership:
         return_value=True,
     )
     @patch("app.services.post._rollback_daily_post_count", new_callable=AsyncMock)
-    @patch("app.repositories.sig_repo.get_pool")
+    @patch("app.services.post.get_pool")
     async def test_create_post_non_sig_member_raises(
-        self, mock_sig_pool, mock_rollback, mock_atomic_limit, mock_pool, mock_conn
+        self, mock_get_pool, mock_rollback, mock_atomic_limit, mock_pool, mock_conn
     ):
         from app.services.post import create_post
 
@@ -142,7 +140,7 @@ class TestCreatePostSigMembership:
 
         # sig_repo.get_member_role uses fetchrow; returns None → not a member
         mock_conn.fetchrow = AsyncMock(return_value=None)
-        mock_sig_pool.return_value = mock_pool
+        mock_get_pool.return_value = mock_pool
 
         with pytest.raises(PermissionError, match="must be a member"):
             await create_post(user_id, "Title", "Content", sig_id=sig_id)
@@ -826,7 +824,7 @@ class TestGetPostsEndpoint:
 
     @patch("app.api.v1.endpoints.posts.list_posts")
     async def test_get_posts_invalid_cursor_returns_400(self, mock_list, client):
-        """GET /posts?cursor=invalid returns 400."""
+        """GET /posts?cursor=invalid returns 422 (SYS_422 code, 422 status)."""
         from app.core.deps import get_current_user
 
         mock_list.side_effect = ValueError("Invalid cursor: bad format")
@@ -840,7 +838,7 @@ class TestGetPostsEndpoint:
         response = await client.get("/api/v1/posts?cursor=!!bad!!")
         app.dependency_overrides.clear()
 
-        assert response.status_code == 400
+        assert response.status_code == 422
         assert "Invalid cursor" in response.json()["detail"]["message"]
 
     @patch("app.api.v1.endpoints.posts.list_posts")

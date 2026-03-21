@@ -69,7 +69,7 @@ class TestAsyncResolveAvatarUrl:
         ) as mock_presign:
             result = await async_resolve_avatar_url("avatars/user123.png")
             assert result == "https://minio/signed-async"
-            mock_presign.assert_awaited_once_with("avatars/user123.png", expires_in=86400 * 7)
+            mock_presign.assert_awaited_once_with("avatars/user123.png", expires_in=3600)
 
     @pytest.mark.anyio
     async def test_presigned_url_exception_returns_key(self):
@@ -142,6 +142,11 @@ class TestAvatarCacheByteCounterRefresh:
             mock_response.content = b"new_data!!!!"  # 12 bytes
             mock_response.headers = {"content-type": "image/png"}
 
+            mock_redis = AsyncMock()
+            mock_redis.get = AsyncMock(return_value=None)
+            mock_redis.set = AsyncMock(return_value=True)
+            mock_redis.delete = AsyncMock(return_value=1)
+            mock_redis.eval = AsyncMock(return_value=1)
             with (
                 patch(
                     "app.services.contributor.get_contributor",
@@ -152,6 +157,8 @@ class TestAvatarCacheByteCounterRefresh:
                     "app.api.v1.endpoints.about._requests.get",
                     return_value=mock_response,
                 ),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
+                patch("app.core.rate_limit.get_redis", return_value=mock_redis),
             ):
                 resp = await client.get(
                     f"/api/v1/about/contributors/{contributor_id}/avatar",

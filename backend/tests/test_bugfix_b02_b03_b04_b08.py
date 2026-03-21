@@ -231,9 +231,9 @@ class TestB03PendingScanBlocked:
                     return_value={"status": "clean", "positives": 0, "total": 70},
                 ),
                 patch(
-                    f"{_EP_FILES}.async_download_file",
+                    f"{_EP_FILES}.async_download_metadata",
                     new_callable=AsyncMock,
-                    return_value=(b"PNG data", "image/png"),
+                    return_value=(MagicMock(read=MagicMock(side_effect=[b"PNG data", b""]), close=MagicMock()), "image/png", 8),
                 ),
             ):
                 resp = await client.get(
@@ -257,9 +257,9 @@ class TestB03PendingScanBlocked:
                     return_value=None,
                 ),
                 patch(
-                    f"{_EP_FILES}.async_download_file",
+                    f"{_EP_FILES}.async_download_metadata",
                     new_callable=AsyncMock,
-                    return_value=(b"PNG data", "image/png"),
+                    return_value=(MagicMock(read=MagicMock(side_effect=[b"PNG data", b""]), close=MagicMock()), "image/png", 8),
                 ),
             ):
                 resp = await client.get(

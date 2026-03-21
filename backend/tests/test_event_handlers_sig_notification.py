@@ -1,7 +1,7 @@
-"""Tests for Bug #7: _on_post_created_in_sig concurrency and cap limits."""
+"""Tests for _on_post_created_in_sig Celery dispatch and Celery task constants."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -28,30 +28,21 @@ class TestSigNotificationConstants:
 
 
 class TestSigNotificationConcurrency:
-    """Verify notifications are sent concurrently via asyncio.gather."""
+    """Verify _on_post_created_in_sig dispatches the Celery task correctly."""
 
     @pytest.mark.anyio
     async def test_notifies_all_members_except_author(self):
-        """All SIG members except the author should receive notifications."""
+        """_on_post_created_in_sig dispatches the Celery task with the right args.
+
+        The actual member filtering (excluding author) is handled by the Celery
+        task (notify_sig_members_new_post), not by the event handler itself.
+        """
         author_id = str(uuid.uuid4())
         sig_id = str(uuid.uuid4())
         post_id = str(uuid.uuid4())
-        member1_id = str(uuid.uuid4())
-        member2_id = str(uuid.uuid4())
 
-        members = [_make_member(author_id), _make_member(member1_id), _make_member(member2_id)]
-
-        mock_find_members = AsyncMock(return_value=(members, len(members)))
-        mock_get_user = AsyncMock(return_value={"display_name": "Author"})
-        mock_create = AsyncMock()
-        mock_check = AsyncMock(return_value=True)
-
-        with (
-            patch("app.repositories.sig_repo.find_members", mock_find_members),
-            patch("app.services.user.get_user_by_id", mock_get_user),
-            patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
-        ):
+        mock_task = MagicMock()
+        with patch("app.tasks.event_retry.notify_sig_members_new_post", mock_task):
             await _on_post_created_in_sig(
                 sig_id=sig_id,
                 post_id=post_id,
@@ -59,31 +50,19 @@ class TestSigNotificationConcurrency:
                 post_title="Test Post",
             )
 
-        # Author should NOT receive a notification — only member1 and member2
-        assert mock_create.await_count == 2
+        mock_task.delay.assert_called_once_with(sig_id, post_id, author_id, "Test Post")
 
     @pytest.mark.anyio
     async def test_handles_create_notification_failure(self):
-        """Failures in individual notifications should not break the entire batch."""
+        """If .delay() raises, the handler catches it and does not propagate."""
         author_id = str(uuid.uuid4())
         sig_id = str(uuid.uuid4())
         post_id = str(uuid.uuid4())
-        member_ids = [str(uuid.uuid4()) for _ in range(3)]
 
-        members = [_make_member(mid) for mid in member_ids]
+        mock_task = MagicMock()
+        mock_task.delay.side_effect = RuntimeError("broker unavailable")
 
-        mock_find_members = AsyncMock(return_value=(members, len(members)))
-        mock_get_user = AsyncMock(return_value={"display_name": "Author"})
-        # First call succeeds, second fails, third succeeds
-        mock_create = AsyncMock(side_effect=[None, RuntimeError("DB error"), None])
-        mock_check = AsyncMock(return_value=True)
-
-        with (
-            patch("app.repositories.sig_repo.find_members", mock_find_members),
-            patch("app.services.user.get_user_by_id", mock_get_user),
-            patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
-        ):
+        with patch("app.tasks.event_retry.notify_sig_members_new_post", mock_task):
             # Should NOT raise
             await _on_post_created_in_sig(
                 sig_id=sig_id,
@@ -92,7 +71,7 @@ class TestSigNotificationConcurrency:
                 post_title="Test Post",
             )
 
-        assert mock_create.await_count == 3
+        mock_task.delay.assert_called_once()
 
 
 class TestSigNotificationCap:
@@ -136,7 +115,16 @@ class TestSigNotificationCap:
 
     @pytest.mark.anyio
     async def test_cap_logs_warning(self):
-        """When the cap is reached, a warning should be logged."""
+        """When the cap is reached inside the Celery task, a warning is logged.
+
+        The cap logic lives in _async_notify_sig_members (event_retry.py).
+        Here we verify the task's logger emits the warning when total > cap.
+        """
+        from app.tasks.event_retry import (
+            _SIG_MEMBER_BATCH_SIZE,
+            _async_notify_sig_members,
+        )
+
         author_id = str(uuid.uuid4())
         sig_id = str(uuid.uuid4())
         post_id = str(uuid.uuid4())
@@ -144,33 +132,28 @@ class TestSigNotificationCap:
         total_members = _SIG_NOTIFICATION_MAX + 50
         all_members = [_make_member() for _ in range(total_members)]
 
-        async def _find_members(sig_id_arg, offset=0, limit=200):
+        async def _find_members(sig_id_arg, offset=0, limit=_SIG_MEMBER_BATCH_SIZE):
             batch = all_members[offset : offset + limit]
             return (batch, total_members)
 
-        mock_find_members = AsyncMock(side_effect=_find_members)
         mock_get_user = AsyncMock(return_value={"display_name": "Author"})
         mock_create = AsyncMock()
         mock_check = AsyncMock(return_value=True)
 
         with (
-            patch("app.repositories.sig_repo.find_members", mock_find_members),
+            patch("app.repositories.sig_repo.find_members", AsyncMock(side_effect=_find_members)),
             patch("app.services.user.get_user_by_id", mock_get_user),
             patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
-            patch("app.event_handlers.logger") as mock_logger,
+            patch("app.tasks.event_retry._check_idempotent_for_sig", mock_check),
+            patch("app.tasks.event_retry._is_blocked_for_sig", AsyncMock(return_value=False)),
+            patch("app.tasks.event_retry.logger") as mock_logger,
+            patch("app.tasks.cleanup._ensure_pool", AsyncMock()),
         ):
-            await _on_post_created_in_sig(
-                sig_id=sig_id,
-                post_id=post_id,
-                author_id=author_id,
-                post_title="Test Post",
-            )
+            await _async_notify_sig_members(sig_id, post_id, author_id, "Test Post")
 
-            # Should have logged a warning about cap being reached
-            warning_calls = mock_logger.warning.call_args_list
-            cap_warnings = [c for c in warning_calls if "cap" in str(c).lower()]
-            assert len(cap_warnings) >= 1
+        warning_calls = mock_logger.warning.call_args_list
+        cap_warnings = [c for c in warning_calls if "cap" in str(c).lower()]
+        assert len(cap_warnings) >= 1
 
     @pytest.mark.anyio
     async def test_small_sig_no_cap_warning(self):
@@ -206,7 +189,9 @@ class TestSigNotificationCap:
 
     @pytest.mark.anyio
     async def test_deduplication_still_works(self):
-        """Idempotency checks should still filter out duplicate notifications."""
+        """Idempotency checks inside the Celery task filter duplicate notifications."""
+        from app.tasks.event_retry import _async_notify_sig_members
+
         author_id = str(uuid.uuid4())
         sig_id = str(uuid.uuid4())
         post_id = str(uuid.uuid4())
@@ -222,14 +207,11 @@ class TestSigNotificationCap:
             patch("app.repositories.sig_repo.find_members", mock_find_members),
             patch("app.services.user.get_user_by_id", mock_get_user),
             patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
+            patch("app.tasks.event_retry._check_idempotent_for_sig", mock_check),
+            patch("app.tasks.event_retry._is_blocked_for_sig", AsyncMock(return_value=False)),
+            patch("app.tasks.cleanup._ensure_pool", AsyncMock()),
         ):
-            await _on_post_created_in_sig(
-                sig_id=sig_id,
-                post_id=post_id,
-                author_id=author_id,
-                post_title="Test Post",
-            )
+            await _async_notify_sig_members(sig_id, post_id, author_id, "Test Post")
 
         # Only 2 notifications should be created (third was deduplicated)
         assert mock_create.await_count == 2

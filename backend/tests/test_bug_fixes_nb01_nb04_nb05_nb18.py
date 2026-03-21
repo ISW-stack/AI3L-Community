@@ -319,43 +319,18 @@ class TestViewSyncTransactions:
 # ---------------------------------------------------------------------------
 
 
-def _make_member(user_id: str | None = None) -> dict:
-    return {"user_id": uuid.UUID(user_id) if user_id else uuid.uuid4()}
-
-
 class TestSigNotificationPagination:
-    """N-B05: Pagination terminates based on batch size, not stale total."""
+    """N-B05: SIG notification dispatches to Celery task (no in-process batch processing)."""
 
     @pytest.mark.asyncio
-    async def test_terminates_on_short_batch(self):
-        """Loop stops when batch size < page size (last page)."""
-        author_id = str(uuid.uuid4())
+    async def test_dispatches_celery_task(self):
+        """_on_post_created_in_sig calls notify_sig_members_new_post.delay()."""
         sig_id = str(uuid.uuid4())
         post_id = str(uuid.uuid4())
+        author_id = str(uuid.uuid4())
 
-        # Batch 1: 200 members (full), Batch 2: 50 members (short — last page)
-        batch1 = [_make_member() for _ in range(200)]
-        batch2 = [_make_member() for _ in range(50)]
-
-        call_count = 0
-
-        async def _find_members(sid, offset=0, limit=200):
-            nonlocal call_count
-            call_count += 1
-            if offset == 0:
-                return (batch1, 999)  # stale total
-            return (batch2, 999)
-
-        mock_get_user = AsyncMock(return_value={"display_name": "Author"})
-        mock_create = AsyncMock()
-        mock_check = AsyncMock(return_value=True)
-
-        with (
-            patch("app.repositories.sig_repo.find_members", AsyncMock(side_effect=_find_members)),
-            patch("app.services.user.get_user_by_id", mock_get_user),
-            patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
-        ):
+        mock_task = MagicMock()
+        with patch("app.tasks.event_retry.notify_sig_members_new_post", mock_task):
             from app.event_handlers import _on_post_created_in_sig
 
             await _on_post_created_in_sig(
@@ -364,124 +339,65 @@ class TestSigNotificationPagination:
                 author_id=author_id,
                 post_title="Test",
             )
-
-        # Should have queried exactly 2 batches
-        assert call_count == 2
-        # Total notifications = 250 members (none is the author)
-        assert mock_create.await_count == 250
+        mock_task.delay.assert_called_once_with(sig_id, post_id, author_id, "Test")
 
     @pytest.mark.asyncio
-    async def test_does_not_use_stale_total_to_stop_early(self):
-        """Even with a low total from first query, all batches are fetched."""
-        author_id = str(uuid.uuid4())
+    async def test_dispatches_with_correct_args(self):
+        """All four positional args are forwarded to .delay() in the right order."""
         sig_id = str(uuid.uuid4())
         post_id = str(uuid.uuid4())
+        author_id = str(uuid.uuid4())
+        title = "My Post Title"
 
-        # Two full batches, then empty. total=100 in first response is stale.
-        batch1 = [_make_member() for _ in range(200)]
-        batch2 = [_make_member() for _ in range(200)]
-
-        async def _find_members(sid, offset=0, limit=200):
-            if offset == 0:
-                return (batch1, 100)  # stale: says 100 but there are 400
-            elif offset == 200:
-                return (batch2, 400)
-            return ([], 400)
-
-        mock_get_user = AsyncMock(return_value={"display_name": "Author"})
-        mock_create = AsyncMock()
-        mock_check = AsyncMock(return_value=True)
-
-        with (
-            patch("app.repositories.sig_repo.find_members", AsyncMock(side_effect=_find_members)),
-            patch("app.services.user.get_user_by_id", mock_get_user),
-            patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
-        ):
+        mock_task = MagicMock()
+        with patch("app.tasks.event_retry.notify_sig_members_new_post", mock_task):
             from app.event_handlers import _on_post_created_in_sig
 
             await _on_post_created_in_sig(
                 sig_id=sig_id,
                 post_id=post_id,
                 author_id=author_id,
-                post_title="Test",
+                post_title=title,
             )
-
-        # All 400 members should be notified (old code would stop at offset 100)
-        assert mock_create.await_count == 400
+        args = mock_task.delay.call_args.args
+        assert args == (sig_id, post_id, author_id, title)
 
     @pytest.mark.asyncio
-    async def test_terminates_on_empty_batch(self):
-        """Loop stops when an empty batch is returned."""
-        author_id = str(uuid.uuid4())
+    async def test_error_does_not_propagate(self):
+        """Errors during dispatch are caught and logged; the function does not raise."""
+        mock_task = MagicMock()
+        mock_task.delay.side_effect = RuntimeError("broker down")
+        with patch("app.tasks.event_retry.notify_sig_members_new_post", mock_task):
+            from app.event_handlers import _on_post_created_in_sig
+
+            # Must not raise
+            await _on_post_created_in_sig(
+                sig_id="s",
+                post_id="p",
+                author_id="a",
+                post_title="T",
+            )
+        mock_task.delay.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_kwargs_are_ignored(self):
+        """Extra **kwargs passed to the handler are silently ignored."""
         sig_id = str(uuid.uuid4())
         post_id = str(uuid.uuid4())
+        author_id = str(uuid.uuid4())
 
-        batch1 = [_make_member() for _ in range(200)]
-
-        call_count = 0
-
-        async def _find_members(sid, offset=0, limit=200):
-            nonlocal call_count
-            call_count += 1
-            if offset == 0:
-                return (batch1, 200)
-            return ([], 200)
-
-        mock_get_user = AsyncMock(return_value={"display_name": "Author"})
-        mock_create = AsyncMock()
-        mock_check = AsyncMock(return_value=True)
-
-        with (
-            patch("app.repositories.sig_repo.find_members", AsyncMock(side_effect=_find_members)),
-            patch("app.services.user.get_user_by_id", mock_get_user),
-            patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
-        ):
+        mock_task = MagicMock()
+        with patch("app.tasks.event_retry.notify_sig_members_new_post", mock_task):
             from app.event_handlers import _on_post_created_in_sig
 
             await _on_post_created_in_sig(
                 sig_id=sig_id,
                 post_id=post_id,
                 author_id=author_id,
-                post_title="Test",
+                post_title="T",
+                extra_field="ignored",
             )
-
-        # First batch is full size (200), so loop continues; second is empty, so stops
-        assert call_count == 2
-        assert mock_create.await_count == 200
-
-    @pytest.mark.asyncio
-    async def test_single_partial_batch(self):
-        """A SIG with fewer members than page size fetches exactly one batch."""
-        author_id = str(uuid.uuid4())
-        sig_id = str(uuid.uuid4())
-        post_id = str(uuid.uuid4())
-
-        members = [_make_member() for _ in range(10)]
-
-        mock_find = AsyncMock(return_value=(members, 10))
-        mock_get_user = AsyncMock(return_value={"display_name": "Author"})
-        mock_create = AsyncMock()
-        mock_check = AsyncMock(return_value=True)
-
-        with (
-            patch("app.repositories.sig_repo.find_members", mock_find),
-            patch("app.services.user.get_user_by_id", mock_get_user),
-            patch("app.services.notification.create_notification", mock_create),
-            patch("app.event_handlers._check_idempotent", mock_check),
-        ):
-            from app.event_handlers import _on_post_created_in_sig
-
-            await _on_post_created_in_sig(
-                sig_id=sig_id,
-                post_id=post_id,
-                author_id=author_id,
-                post_title="Test",
-            )
-
-        mock_find.assert_awaited_once()
-        assert mock_create.await_count == 10
+        mock_task.delay.assert_called_once_with(sig_id, post_id, author_id, "T")
 
 
 # ---------------------------------------------------------------------------

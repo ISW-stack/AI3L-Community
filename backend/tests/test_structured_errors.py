@@ -620,98 +620,88 @@ class TestFormsStructuredErrors:
 
 
 class TestFilesStructuredErrors:
-    @patch(
-        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
-    )
-    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_upload_rate_limit_returns_sys_429(
-        self, mock_session, mock_user, client: AsyncClient, auth_headers
-    ):
-        headers, user_id, _ = auth_headers("MEMBER")
-        with patch(
-            f"{_FILES_EP}.check_rate_limit",
-            new_callable=AsyncMock,
-            return_value=False,
-        ):
-            resp = await client.post(
-                "/api/v1/files/upload/editor",
-                headers=headers,
-                files={"file": ("test.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 100, "image/png")},
+    @pytest.mark.anyio
+    async def test_upload_rate_limit_returns_sys_429(self, client: AsyncClient):
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_FILES_EP}.check_rate_limit",
+                new_callable=AsyncMock,
+                return_value=False,
+            ):
+                resp = await client.post(
+                    "/api/v1/files/upload/editor",
+                    headers={"Authorization": "Bearer fake"},
+                    files={
+                        "file": ("test.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 100, "image/png")
+                    },
+                )
+                _assert_structured_error(resp, "SYS_429", 429)
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_serve_file_invalid_key_returns_sys_422(self, client: AsyncClient):
+        try:
+            _override_auth("ADMIN")
+            resp = await client.get(
+                "/api/v1/files/content/..%2F..%2Fetc%2Fpasswd",
+                headers={"Authorization": "Bearer fake"},
             )
-            _assert_structured_error(resp, "SYS_429", 429)
+            _assert_structured_error(resp, "SYS_422", 400)
+        finally:
+            _clear_overrides()
 
-    @patch(
-        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
-    )
-    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_serve_file_invalid_key_returns_sys_422(
-        self, mock_session, mock_user, client: AsyncClient, auth_headers
-    ):
-        headers, user_id, _ = auth_headers("ADMIN")
-        resp = await client.get(
-            "/api/v1/files/content/..%2F..%2Fetc%2Fpasswd",
-            headers=headers,
-        )
-        _assert_structured_error(resp, "SYS_422", 400)
-
-    @patch(
-        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
-    )
-    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_presigned_invalid_key_returns_sys_422(
-        self, mock_session, mock_user, client: AsyncClient, auth_headers
-    ):
-        headers, user_id, _ = auth_headers("ADMIN")
-        resp = await client.get(
-            "/api/v1/files/presigned/..%2F..%2Fetc%2Fpasswd",
-            headers=headers,
-        )
-        _assert_structured_error(resp, "SYS_422", 400)
-
-    @patch(
-        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
-    )
-    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_scan_status_invalid_key_returns_sys_422(
-        self, mock_session, mock_user, client: AsyncClient, auth_headers
-    ):
-        headers, user_id, _ = auth_headers("MEMBER")
-        resp = await client.get(
-            "/api/v1/files/scan-status/..%2F..%2Fetc%2Fpasswd",
-            headers=headers,
-        )
-        _assert_structured_error(resp, "SYS_422", 400)
-
-    @patch(
-        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
-    )
-    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_delete_file_not_found_returns_sys_404(
-        self, mock_session, mock_user, client: AsyncClient, auth_headers
-    ):
-        headers, user_id, _ = auth_headers("ADMIN")
-        with patch(
-            f"{_FILES_EP}.async_get_file_size",
-            new_callable=AsyncMock,
-            return_value=0,
-        ):
-            resp = await client.delete(
-                f"/api/v1/files/content/editor/{user_id}/test.png",
-                headers=headers,
+    @pytest.mark.anyio
+    async def test_presigned_invalid_key_returns_sys_422(self, client: AsyncClient):
+        try:
+            _override_auth("ADMIN")
+            resp = await client.get(
+                "/api/v1/files/presigned/..%2F..%2Fetc%2Fpasswd",
+                headers={"Authorization": "Bearer fake"},
             )
-            _assert_structured_error(resp, "SYS_404", 404)
+            _assert_structured_error(resp, "SYS_422", 400)
+        finally:
+            _clear_overrides()
 
-    @patch(
-        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
-    )
-    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_delete_file_forbidden_returns_sys_403(
-        self, mock_session, mock_user, client: AsyncClient, auth_headers
-    ):
-        headers, user_id, _ = auth_headers("MEMBER")
+    @pytest.mark.anyio
+    async def test_scan_status_invalid_key_returns_sys_422(self, client: AsyncClient):
+        try:
+            _override_auth("MEMBER")
+            resp = await client.get(
+                "/api/v1/files/scan-status/..%2F..%2Fetc%2Fpasswd",
+                headers={"Authorization": "Bearer fake"},
+            )
+            _assert_structured_error(resp, "SYS_422", 400)
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_file_not_found_returns_sys_404(self, client: AsyncClient):
+        try:
+            _, user_id = _override_auth("ADMIN")
+            with patch(
+                f"{_FILES_EP}.async_get_file_size",
+                new_callable=AsyncMock,
+                return_value=0,
+            ):
+                resp = await client.delete(
+                    f"/api/v1/files/content/editor/{user_id}/test.png",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                _assert_structured_error(resp, "SYS_404", 404)
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_delete_file_forbidden_returns_sys_403(self, client: AsyncClient):
         other_user = str(uuid.uuid4())
-        resp = await client.delete(
-            f"/api/v1/files/content/editor/{other_user}/test.png",
-            headers=headers,
-        )
-        _assert_structured_error(resp, "SYS_403", 403)
+        try:
+            _override_auth("MEMBER")
+            resp = await client.delete(
+                f"/api/v1/files/content/editor/{other_user}/test.png",
+                headers={"Authorization": "Bearer fake"},
+            )
+            _assert_structured_error(resp, "SYS_403", 403)
+        finally:
+            _clear_overrides()

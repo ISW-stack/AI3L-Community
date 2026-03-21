@@ -1,6 +1,7 @@
 """B15: Audit log date range validation — date_from/date_to are validated as YYYY-MM-DD."""
 
 import uuid
+from datetime import date
 from unittest.mock import AsyncMock, patch
 
 
@@ -42,8 +43,8 @@ class TestAuditLogDateValidation:
                 page=1,
                 page_size=20,
                 user_id_filter=None,
-                date_from="2025-01-01",
-                date_to="2025-12-31",
+                date_from=date(2025, 1, 1),
+                date_to=date(2025, 12, 31),
             )
         finally:
             self._clear()
@@ -142,7 +143,7 @@ class TestAuditLogDateValidation:
                 page=1,
                 page_size=20,
                 user_id_filter=None,
-                date_from="2025-01-01",
+                date_from=date(2025, 1, 1),
                 date_to=None,
             )
         finally:
@@ -167,7 +168,7 @@ class TestAuditLogDateValidation:
                 page_size=20,
                 user_id_filter=None,
                 date_from=None,
-                date_to="2025-12-31",
+                date_to=date(2025, 12, 31),
             )
         finally:
             self._clear()

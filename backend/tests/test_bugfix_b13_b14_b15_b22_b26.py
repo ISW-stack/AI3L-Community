@@ -308,12 +308,15 @@ class TestB22SigDescriptionSanitized:
         mock_conn.fetchrow = AsyncMock(side_effect=[sig_row, creator_row])
         mock_conn.execute = AsyncMock(return_value="INSERT 1")
 
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
         try:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP_SIGS}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP_SIGS}.sanitize_html", return_value="clean desc") as mock_sanitize,
                 patch("app.services.sig.get_pool", return_value=mock_pool),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
             ):
                 resp = await client.post(
                     "/api/v1/sigs",
@@ -380,12 +383,15 @@ class TestB22SigDescriptionSanitized:
         mock_conn.fetchrow = AsyncMock(side_effect=[sig_row, creator_row])
         mock_conn.execute = AsyncMock(return_value="INSERT 1")
 
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
         try:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP_SIGS}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP_SIGS}.sanitize_html", return_value="clean") as mock_sanitize,
                 patch("app.services.sig.get_pool", return_value=mock_pool),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
             ):
                 await client.post(
                     "/api/v1/sigs",

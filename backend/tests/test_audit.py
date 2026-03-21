@@ -1,7 +1,7 @@
 """Tests for app.services.audit — log_action, list_audit_logs, endpoint access control."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 from httpx import AsyncClient
@@ -151,8 +151,8 @@ class TestAuditLogsEndpoint:
                 page=2,
                 page_size=25,
                 user_id_filter=user_filter,
-                date_from="2025-01-01",
-                date_to="2025-12-31",
+                date_from=date(2025, 1, 1),
+                date_to=date(2025, 12, 31),
             )
         finally:
             app.dependency_overrides.pop(get_current_user, None)

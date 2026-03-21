@@ -170,7 +170,7 @@ class TestSearchEndpointUsesRepo:
                 data = resp.json()
                 assert len(data) == 1
                 assert data[0]["username"] == "alice"
-                mock_search.assert_called_once_with("alice", 5)
+                mock_search.assert_called_once_with("alice", 5, exclude_ids=set())
         finally:
             app.dependency_overrides.clear()
 

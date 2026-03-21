@@ -305,12 +305,26 @@ class TestStandaloneFormServiceLayer:
         mock_pool = MagicMock()
         mock_conn = AsyncMock()
         mock_conn.fetchrow = AsyncMock(return_value={"cnt": 10})
+
+        # transaction() must return a sync context manager (not a coroutine)
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=tx)
+
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=mock_conn)
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_pool.acquire.return_value = cm
 
-        with patch(f"{_SVC}.get_pool", return_value=mock_pool):
+        with (
+            patch(f"{_SVC}.get_pool", return_value=mock_pool),
+            patch(
+                f"{_SVC}.form_repo.count_active_standalone_by_user",
+                new_callable=AsyncMock,
+                return_value=10,
+            ),
+        ):
             with pytest.raises(ValueError, match="Maximum active standalone forms per user"):
                 await create_form(
                     sig_id=None,
@@ -332,6 +346,13 @@ class TestStandaloneFormServiceLayer:
         mock_pool = MagicMock()
         mock_conn = AsyncMock()
         mock_conn.fetchrow = AsyncMock(return_value={"cnt": 0})
+
+        # transaction() must return a sync context manager (not a coroutine)
+        tx = AsyncMock()
+        tx.__aenter__ = AsyncMock(return_value=tx)
+        tx.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=tx)
+
         cm = AsyncMock()
         cm.__aenter__ = AsyncMock(return_value=mock_conn)
         cm.__aexit__ = AsyncMock(return_value=False)
@@ -353,13 +374,19 @@ class TestStandaloneFormServiceLayer:
             "is_deleted": False,
             "created_at": now,
             "updated_at": now,
+            "creator_display_name": "Test User",
         }
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(
-                f"{_SVC}.form_repo.insert",
+                f"{_SVC}.form_repo.count_active_standalone_by_user",
                 new_callable=AsyncMock,
-                return_value={**fake_row, "creator_display_name": "Test User"},
+                return_value=0,
+            ),
+            patch(
+                f"{_SVC}.form_repo.insert_in_conn",
+                new_callable=AsyncMock,
+                return_value=fake_row,
             ) as mock_insert,
         ):
             await create_form(
@@ -373,10 +400,13 @@ class TestStandaloneFormServiceLayer:
                 questions=[{"id": "q1", "type": "text", "label": "Name"}],
                 allow_non_members=False,  # Should be forced to True
             )
-            # Verify insert was called with allow_non_members=True
+            # Verify insert_in_conn was called with allow_non_members=True
+            # Signature: insert_in_conn(conn, form_id, sig_id, user_id, title,
+            #                           description, banner_url, deadline,
+            #                           max_respondents, questions, allow_non_members)
             call_args = mock_insert.call_args
-            assert call_args[0][1] is None  # sig_id is None
-            assert call_args[0][9] is True  # allow_non_members forced True
+            assert call_args[0][2] is None  # sig_id (index 2) is None
+            assert call_args[0][10] is True  # allow_non_members (index 10) forced True
 
     @pytest.mark.anyio
     async def test_submit_response_standalone_skips_sig_check(self):

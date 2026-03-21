@@ -7,6 +7,12 @@ import pytest
 
 from app.event_handlers import _on_sig_role_changed
 
+# Shared Redis mock helper for tests that call invalidate_org_chart_cache()
+def _make_redis_mock():
+    redis = AsyncMock()
+    redis.delete = AsyncMock(return_value=1)
+    return redis
+
 
 class TestOnSigRoleChanged:
     """Unit tests for _on_sig_role_changed handler."""
@@ -117,6 +123,7 @@ class TestSigServiceEmitsRoleChangedEvent:
             ),
             patch("app.services.sig.emit", mock_emit),
             patch("app.services.sig.async_row_to_member", mock_row_to_member),
+            patch("app.core.redis.get_redis", return_value=_make_redis_mock()),
         ):
             await demote_sub_admin(
                 sig_id,
@@ -157,6 +164,7 @@ class TestSigServiceEmitsRoleChangedEvent:
             patch("app.services.sig.get_pool") as mock_get_pool,
             patch("app.services.sig.emit", mock_emit),
             patch("app.services.sig.async_row_to_member", mock_row_to_member),
+            patch("app.core.redis.get_redis", return_value=_make_redis_mock()),
         ):
             mock_pool = MagicMock()
             mock_pool.acquire = MagicMock(return_value=_AsyncContextManager(MagicMock()))

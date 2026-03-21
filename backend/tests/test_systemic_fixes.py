@@ -70,6 +70,8 @@ class TestSigJoinRaceCondition:
 
         member_row = _make_member_row(sig_id, uuid.UUID(user_id))
 
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
         with (
             patch("app.services.sig.get_pool", return_value=mock_pool),
             patch(
@@ -82,6 +84,7 @@ class TestSigJoinRaceCondition:
                 new_callable=AsyncMock,
                 return_value=member_row,
             ) as mock_join,
+            patch("app.core.redis.get_redis", return_value=mock_redis),
         ):
             result = await join_sig(sig_id, user_id)
 

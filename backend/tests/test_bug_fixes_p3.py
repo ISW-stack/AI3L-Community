@@ -340,6 +340,12 @@ class TestAvatarProxyRedirect:
         mock_response.headers = {"content-type": "image/png"}
         mock_response.content = b"\x89PNG\r\n\x1a\n"  # PNG header
 
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_redis.delete = AsyncMock(return_value=1)
+        mock_redis.eval = AsyncMock(return_value=1)
+
         try:
             _override_auth("MEMBER")
             # Clear any stale cache entries
@@ -354,6 +360,8 @@ class TestAvatarProxyRedirect:
                     return_value=fake_contributor,
                 ),
                 patch(f"{_EP}._requests.get", return_value=mock_response) as mock_get,
+                patch("app.core.redis.get_redis", return_value=mock_redis),
+                patch("app.core.rate_limit.get_redis", return_value=mock_redis),
             ):
                 resp = await client.get(
                     f"/api/v1/about/contributors/{contributor_id}/avatar",
@@ -392,7 +400,12 @@ class TestSigUpdateTOCTOU:
         mock_svc_pool.return_value = mock_pool
         mock_repo_pool.return_value = mock_pool
 
-        with pytest.raises(PermissionError, match="Not authorized"):
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
+        with (
+            patch("app.core.redis.get_redis", return_value=mock_redis),
+            pytest.raises(PermissionError, match="Not authorized"),
+        ):
             await update_sig(
                 sig_id,
                 name="Updated",
@@ -426,12 +439,15 @@ class TestSigUpdateTOCTOU:
         mock_conn.fetchrow = AsyncMock(side_effect=[sig_row, sig_row])
         mock_svc_pool.return_value = mock_pool
 
-        result = await update_sig(
-            sig_id,
-            name="Updated",
-            caller_id=caller_id,
-            caller_role="ADMIN",
-        )
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
+        with patch("app.core.redis.get_redis", return_value=mock_redis):
+            result = await update_sig(
+                sig_id,
+                name="Updated",
+                caller_id=caller_id,
+                caller_role="ADMIN",
+            )
         assert result is not None
 
     @patch("app.services.sig.get_pool")
@@ -462,12 +478,15 @@ class TestSigUpdateTOCTOU:
         mock_svc_pool.return_value = mock_pool
         mock_repo_pool.return_value = mock_pool
 
-        result = await update_sig(
-            sig_id,
-            name="Updated",
-            caller_id=caller_id,
-            caller_role="MEMBER",
-        )
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
+        with patch("app.core.redis.get_redis", return_value=mock_redis):
+            result = await update_sig(
+                sig_id,
+                name="Updated",
+                caller_id=caller_id,
+                caller_role="MEMBER",
+            )
         assert result is not None
 
     @patch("app.services.sig.get_pool")
@@ -494,7 +513,10 @@ class TestSigUpdateTOCTOU:
         mock_conn.fetchrow = AsyncMock(side_effect=[sig_row, sig_row])
         mock_svc_pool.return_value = mock_pool
 
-        result = await update_sig(sig_id, name="Updated")
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
+        with patch("app.core.redis.get_redis", return_value=mock_redis):
+            result = await update_sig(sig_id, name="Updated")
         assert result is not None
 
 

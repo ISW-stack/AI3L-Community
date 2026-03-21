@@ -120,7 +120,7 @@ async def test_service_list_all_co_authors():
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_pool.return_value.acquire.return_value = cm
 
-        result = await list_all_co_authors(post_id)
+        result = await list_all_co_authors(post_id, user_id=str(uuid.uuid4()), is_admin=True)
         assert len(result) == 2
         assert result[0]["post_id"] == str(post_id)
 
@@ -150,7 +150,7 @@ async def test_service_list_all_co_authors_uses_correct_repo():
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_pool.return_value.acquire.return_value = cm
 
-        await list_all_co_authors(post_id)
+        await list_all_co_authors(post_id, user_id=str(uuid.uuid4()), is_admin=True)
         mock_find_all.assert_called_once()
         mock_find_accepted.assert_not_called()
 

@@ -21,10 +21,9 @@ def _ticket_payload(role: str = "MEMBER", user_id: str | None = None) -> dict:
 
 
 def _make_mock_redis(ticket_data: str | None = None):
-    """Return a mock Redis whose .get() returns *ticket_data* once, then None."""
+    """Return a mock Redis whose .getdel() returns *ticket_data* atomically."""
     redis = AsyncMock()
-    redis.get = AsyncMock(return_value=ticket_data)
-    redis.delete = AsyncMock(return_value=1)
+    redis.getdel = AsyncMock(return_value=ticket_data)
     redis.publish = AsyncMock(return_value=1)
 
     pubsub = AsyncMock()
@@ -51,8 +50,7 @@ class TestAuthenticateWs:
 
             result = await _authenticate_ws("abc123")
 
-        redis.get.assert_awaited_once_with("ws:ticket:abc123")
-        redis.delete.assert_awaited_once_with("ws:ticket:abc123")
+        redis.getdel.assert_awaited_once_with("ws:ticket:abc123")
         assert result == payload
 
     @pytest.mark.asyncio
@@ -65,11 +63,11 @@ class TestAuthenticateWs:
             result = await _authenticate_ws("bad-ticket")
 
         assert result is None
-        redis.delete.assert_not_awaited()
+        redis.getdel.assert_awaited_once_with("ws:ticket:bad-ticket")
 
     @pytest.mark.asyncio
     async def test_one_time_use_ticket_deleted(self):
-        """Ticket key is deleted immediately after retrieval."""
+        """Ticket key is atomically consumed (getdel) on first use."""
         payload = _ticket_payload()
         redis = _make_mock_redis(json.dumps(payload))
 
@@ -78,7 +76,7 @@ class TestAuthenticateWs:
 
             await _authenticate_ws("one-time")
 
-        redis.delete.assert_awaited_once_with("ws:ticket:one-time")
+        redis.getdel.assert_awaited_once_with("ws:ticket:one-time")
 
     @pytest.mark.asyncio
     async def test_corrupt_ticket_data_returns_none(self):

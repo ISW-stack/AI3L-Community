@@ -939,8 +939,8 @@ export default {
     title: 'Acerca de AI3L Community',
     description:
       'AI3L Community es una pequeña plataforma de intercambio académico dedicada a la inteligencia artificial en el aprendizaje de idiomas y la alfabetización. Está organizada y dirigida por la profesora Yu-Ju Lan de la Universidad Normal Nacional de Taiwán (NTNU). Este proyecto impulsado por la comunidad tiene como objetivo reunir a investigadores y profesionales que comparten un interés en explorar cómo la IA puede apoyar la educación lingüística y el desarrollo de la alfabetización.',
-    introduction: 'Introduction',
-    introEmpty: 'No introduction available yet.',
+    introduction: 'Introducción',
+    introEmpty: 'Aún no hay introducción disponible.',
     contributors: {
       title: 'Colaboradores',
       loading: 'Cargando colaboradores...',
@@ -1053,12 +1053,13 @@ export default {
       unbanBtn: 'Desbloquear',
       deleteBtn: 'Delete',
       deleteModal: {
-        title: 'Delete User Account',
-        message: 'Permanently anonymize {username}? This cannot be undone. Type DELETE to confirm.',
-        reasonLabel: 'Reason (optional)',
-        reasonPlaceholder: 'Reason for deletion',
-        typeLabel: 'Type DELETE to confirm',
-        confirmBtn: 'Delete Account',
+        title: 'Eliminar cuenta de usuario',
+        message:
+          '¿Anonimizar permanentemente a {username}? Esta acción no se puede deshacer. Escribe ELIMINAR para confirmar.',
+        reasonLabel: 'Motivo (opcional)',
+        reasonPlaceholder: 'Motivo de la eliminación',
+        typeLabel: 'Escribe ELIMINAR para confirmar',
+        confirmBtn: 'Eliminar cuenta',
       },
       message: {
         loadFailed: 'Error al cargar la lista de usuarios.',
@@ -1072,8 +1073,8 @@ export default {
         unbanFailed: 'Error al desbloquear al usuario.',
         bulkRoleUpdated: 'Rol actualizado para {count} usuario(s).',
         bulkRoleFailed: 'Error en la actualización masiva de roles.',
-        deleted: '{username} has been deleted.',
-        deleteFailed: 'Failed to delete user.',
+        deleted: '{username} ha sido eliminado.',
+        deleteFailed: 'Error al eliminar al usuario.',
       },
     },
     ipBans: {

@@ -50,13 +50,12 @@ async def test_create_form_future_deadline_succeeds(mock_pool, mock_conn):
         "banner_url": None,
         "deadline": future,
         "max_respondents": None,
-        "questions": [{"id": "q1", "type": "text", "label": "Name"}],
-        "is_closed": False,
+        "questions": '[{"id": "q1", "type": "text", "label": "Name"}]',
         "is_schema_locked": False,
         "allow_non_members": True,
+        "is_deleted": False,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
-        "deleted_at": None,
         "creator_display_name": "Tester",
     }
 
@@ -68,7 +67,7 @@ async def test_create_form_future_deadline_succeeds(mock_pool, mock_conn):
             return_value=0,
         ),
         patch(
-            "app.services.form.form_repo.insert",
+            "app.services.form.form_repo.insert_in_conn",
             new_callable=AsyncMock,
             return_value=fake_row,
         ),

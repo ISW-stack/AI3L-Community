@@ -134,14 +134,14 @@ class TestGetClientIp:
         assert get_client_ip(request) == "203.0.113.50"
 
     def test_x_forwarded_for_multiple_ips(self):
-        """First IP (original client) should be returned."""
+        """Last IP (appended by trusted proxy) should be returned."""
         from app.core.rate_limit import get_client_ip
 
         request = self._make_request(
             headers={"x-forwarded-for": "203.0.113.50, 70.41.3.18, 150.172.238.178"},
             client_host="10.0.0.1",
         )
-        assert get_client_ip(request) == "203.0.113.50"
+        assert get_client_ip(request) == "150.172.238.178"
 
     def test_x_real_ip_used_when_no_forwarded_for(self):
         from app.core.rate_limit import get_client_ip
@@ -345,9 +345,9 @@ class TestFileProxyContentDisposition:
                 "app.api.v1.endpoints.files.file_scan_repo",
             ) as mock_scan,
             patch(
-                "app.api.v1.endpoints.files.async_download_file",
+                "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(image_data, "image/png"),
+                return_value=(MagicMock(read=MagicMock(side_effect=[image_data, b""]), close=MagicMock()), "image/png", len(image_data)),
             ),
         ):
             mock_scan.find_by_key = AsyncMock(return_value={"status": "clean"})
@@ -375,9 +375,9 @@ class TestFileProxyContentDisposition:
                 "app.api.v1.endpoints.files.file_scan_repo",
             ) as mock_scan,
             patch(
-                "app.api.v1.endpoints.files.async_download_file",
+                "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(pdf_data, "application/pdf"),
+                return_value=(MagicMock(read=MagicMock(side_effect=[pdf_data, b""]), close=MagicMock()), "application/pdf", len(pdf_data)),
             ),
         ):
             mock_scan.find_by_key = AsyncMock(return_value={"status": "clean"})
@@ -418,9 +418,9 @@ class TestFileProxyContentDisposition:
                 "app.api.v1.endpoints.files.file_scan_repo",
             ) as mock_scan,
             patch(
-                "app.api.v1.endpoints.files.async_download_file",
+                "app.api.v1.endpoints.files.async_download_metadata",
                 new_callable=AsyncMock,
-                return_value=(image_data, "image/png"),
+                return_value=(MagicMock(read=MagicMock(side_effect=[image_data, b""]), close=MagicMock()), "image/png", len(image_data)),
             ),
         ):
             mock_scan.find_by_key = AsyncMock(return_value={"status": "clean"})

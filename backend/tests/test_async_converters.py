@@ -193,7 +193,7 @@ class TestAsyncResolveAvatarUrl:
         ) as mock_presign:
             result = await async_resolve_avatar_url("avatars/user123.png")
             assert result == "https://minio/signed-async"
-            mock_presign.assert_called_once_with("avatars/user123.png", expires_in=86400 * 7)
+            mock_presign.assert_called_once_with("avatars/user123.png", expires_in=3600)
 
     @pytest.mark.asyncio
     async def test_exception_returns_raw_key(self):
@@ -767,7 +767,7 @@ class TestSyncBackwardCompatibility:
 
         result = resolve_avatar_url("avatars/test.png")
         assert result == "https://cdn/sync.jpg"
-        mock_presign.assert_called_once_with("avatars/test.png", expires_in=86400 * 7)
+        mock_presign.assert_called_once_with("avatars/test.png", expires_in=3600)
 
     def test_sync_resolve_avatar_url_none(self):
         from app.converters.user_converter import resolve_avatar_url

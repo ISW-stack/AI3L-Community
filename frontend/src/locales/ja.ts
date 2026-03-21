@@ -928,8 +928,8 @@ export default {
     title: 'AI3L Community について',
     description:
       'AI3L Community は、言語学習とリテラシーにおける AI をテーマとした小規模な学術交流プラットフォームです。台湾師範大学（NTNU）の藍玉珠教授が主催・運営しています。このコミュニティ主導のプロジェクトは、AI が語学教育とリテラシー向上をどのように支援できるかを探求することに関心を持つ研究者および実践者を結集することを目的としています。',
-    introduction: 'Introduction',
-    introEmpty: 'No introduction available yet.',
+    introduction: '紹介',
+    introEmpty: 'まだ紹介文はありません。',
     contributors: {
       title: 'コントリビューター',
       loading: 'コントリビューターを読み込み中...',
@@ -1041,12 +1041,13 @@ export default {
       unbanBtn: 'BAN 解除',
       deleteBtn: 'Delete',
       deleteModal: {
-        title: 'Delete User Account',
-        message: 'Permanently anonymize {username}? This cannot be undone. Type DELETE to confirm.',
-        reasonLabel: 'Reason (optional)',
-        reasonPlaceholder: 'Reason for deletion',
-        typeLabel: 'Type DELETE to confirm',
-        confirmBtn: 'Delete Account',
+        title: 'ユーザーアカウント削除',
+        message:
+          '{username} を完全に匿名化しますか？この操作は元に戻せません。DELETE と入力して確認してください。',
+        reasonLabel: '理由（任意）',
+        reasonPlaceholder: '削除の理由',
+        typeLabel: '確認のため DELETE と入力',
+        confirmBtn: 'アカウント削除',
       },
       message: {
         loadFailed: 'ユーザーリストの読み込みに失敗しました。',
@@ -1060,8 +1061,8 @@ export default {
         unbanFailed: 'BAN の解除に失敗しました。',
         bulkRoleUpdated: '{count} 名のユーザーの役割が更新されました。',
         bulkRoleFailed: '一括役割更新に失敗しました。',
-        deleted: '{username} has been deleted.',
-        deleteFailed: 'Failed to delete user.',
+        deleted: '{username} が削除されました。',
+        deleteFailed: 'ユーザーの削除に失敗しました。',
       },
     },
     ipBans: {

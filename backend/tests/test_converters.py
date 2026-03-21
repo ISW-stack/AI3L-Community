@@ -190,7 +190,7 @@ class TestCommentConverter:
         row = self._make_row(author_avatar_url="avatars/user123.png")
         result = self._conv(row)
         assert result["author"]["avatar_url"] == "https://cdn/a.jpg"
-        mock_presign.assert_called_once_with("avatars/user123.png", expires_in=86400 * 7)
+        mock_presign.assert_called_once_with("avatars/user123.png", expires_in=3600)
 
     def test_avatar_url_already_http(self):
         row = self._make_row(author_avatar_url="https://example.com/pic.jpg")
@@ -589,7 +589,7 @@ class TestPostConverter:
         row = self._make_row(author_avatar_url="avatars/author.png")
         result = self._conv(row)
         assert result["author"]["avatar_url"] == "https://cdn/author.jpg"
-        mock_presign.assert_called_once_with("avatars/author.png", expires_in=86400 * 7)
+        mock_presign.assert_called_once_with("avatars/author.png", expires_in=3600)
 
     def test_author_avatar_http_passthrough(self):
         row = self._make_row(author_avatar_url="https://example.com/pic.jpg")
@@ -820,7 +820,7 @@ class TestSigConverter:
         row = self._make_member_row(avatar_url="avatars/member.png")
         result = self._conv_member(row)
         assert result["avatar_url"] == "https://cdn/member.jpg"
-        mock_presign.assert_called_once_with("avatars/member.png", expires_in=86400 * 7)
+        mock_presign.assert_called_once_with("avatars/member.png", expires_in=3600)
 
     def test_member_avatar_http_passthrough(self):
         row = self._make_member_row(avatar_url="https://gravatar.com/x.jpg")
@@ -872,7 +872,7 @@ class TestResolveAvatarUrl:
     def test_minio_key_generates_presigned(self, mock_presign):
         result = self._resolve("avatars/user123.png")
         assert result == "https://minio/signed"
-        mock_presign.assert_called_once_with("avatars/user123.png", expires_in=86400 * 7)
+        mock_presign.assert_called_once_with("avatars/user123.png", expires_in=3600)
 
     @patch(
         "app.core.storage.generate_presigned_url",

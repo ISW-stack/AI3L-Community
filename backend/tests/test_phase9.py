@@ -118,12 +118,15 @@ class TestSigUpdate:
 
         mock_conn.fetchrow = AsyncMock(side_effect=[sig_row, updated_row, creator_row])
 
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
         try:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.sigs.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch("app.services.sig.get_pool", return_value=mock_pool),
                 patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
             ):
                 resp = await client.put(
                     f"/api/v1/sigs/{sig_id}",
@@ -141,12 +144,15 @@ class TestSigUpdate:
         sig_id = uuid.uuid4()
         mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
 
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
         try:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.sigs.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch("app.services.sig.get_pool", return_value=mock_pool),
                 patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
             ):
                 resp = await client.put(
                     f"/api/v1/sigs/{sig_id}",
@@ -170,11 +176,14 @@ class TestSigDelete:
         sig_id = uuid.uuid4()
         mock_conn.execute = AsyncMock(return_value="UPDATE 1")
 
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
         try:
             _override_auth("ADMIN")
             with (
                 patch(f"{_EP}.sigs.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
             ):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}",
@@ -213,12 +222,15 @@ class TestSigLeave:
         mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
         mock_conn.execute = AsyncMock(return_value="DELETE 1")
 
+        mock_redis = AsyncMock()
+        mock_redis.delete = AsyncMock(return_value=1)
         try:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.sigs.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch("app.services.sig.get_pool", return_value=mock_pool),
                 patch("app.repositories.sig_repo.get_pool", return_value=mock_pool),
+                patch("app.core.redis.get_redis", return_value=mock_redis),
             ):
                 resp = await client.delete(
                     f"/api/v1/sigs/{sig_id}/members/me",

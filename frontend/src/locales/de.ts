@@ -942,8 +942,8 @@ export default {
     title: 'Über AI3L Community',
     description:
       'AI3L Community ist eine kleine akademische Austauschplattform für den Bereich Künstliche Intelligenz im Sprachenlernen und in der Alphabetisierung. Sie wird von Professorin Yu-Ju Lan von der National Taiwan Normal University (NTNU) organisiert und geleitet. Dieses gemeinschaftlich getragene Projekt hat das Ziel, Forschende und Praktikerinnen und Praktiker zusammenzubringen, die ein gemeinsames Interesse daran teilen, zu erkunden, wie KI die Sprachbildung und die Entwicklung von Lesekompetenz unterstützen kann.',
-    introduction: 'Introduction',
-    introEmpty: 'No introduction available yet.',
+    introduction: 'Einführung',
+    introEmpty: 'Noch keine Einführung verfügbar.',
     contributors: {
       title: 'Mitwirkende',
       loading: 'Mitwirkende werden geladen...',
@@ -1054,14 +1054,15 @@ export default {
       },
       banBtn: 'Sperren',
       unbanBtn: 'Entsperren',
-      deleteBtn: 'Delete',
+      deleteBtn: 'Löschen',
       deleteModal: {
-        title: 'Delete User Account',
-        message: 'Permanently anonymize {username}? This cannot be undone. Type DELETE to confirm.',
-        reasonLabel: 'Reason (optional)',
-        reasonPlaceholder: 'Reason for deletion',
-        typeLabel: 'Type DELETE to confirm',
-        confirmBtn: 'Delete Account',
+        title: 'Benutzerkonto löschen',
+        message:
+          '{username} dauerhaft anonymisieren? Diese Aktion kann nicht rückgängig gemacht werden. Geben Sie LÖSCHEN ein.',
+        reasonLabel: 'Grund (optional)',
+        reasonPlaceholder: 'Grund für die Löschung',
+        typeLabel: 'Geben Sie LÖSCHEN ein',
+        confirmBtn: 'Konto löschen',
       },
       message: {
         loadFailed: 'Benutzerliste konnte nicht geladen werden.',
@@ -1075,8 +1076,8 @@ export default {
         unbanFailed: 'Benutzer konnte nicht entsperrt werden.',
         bulkRoleUpdated: 'Rolle für {count} Benutzer aktualisiert.',
         bulkRoleFailed: 'Massenaktualisierung der Rollen fehlgeschlagen.',
-        deleted: '{username} has been deleted.',
-        deleteFailed: 'Failed to delete user.',
+        deleted: '{username} wurde gelöscht.',
+        deleteFailed: 'Benutzer konnte nicht gelöscht werden.',
       },
     },
     ipBans: {
