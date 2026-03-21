@@ -70,28 +70,12 @@ def _validate_profile_field_lengths(**fields: str | None) -> None:
 
 async def update_user_profile(
     user_id: uuid.UUID,
-    display_name: str | None = None,
-    bio: str | None = None,
-    affiliation: str | None = None,
-    orcid: str | None = None,
-    avatar_url: str | None = None,
-    preferred_language: str | None = None,
+    **fields: str | None,
 ) -> dict | None:
     _validate_profile_field_lengths(
-        display_name=display_name,
-        bio=bio,
-        affiliation=affiliation,
-        orcid=orcid,
+        **{k: v for k, v in fields.items() if k in _PROFILE_FIELD_LIMITS}
     )
-    return await user_repo.update_profile(
-        user_id,
-        display_name=display_name,
-        bio=bio,
-        affiliation=affiliation,
-        orcid=orcid,
-        avatar_url=avatar_url,
-        preferred_language=preferred_language,
-    )
+    return await user_repo.update_profile(user_id, **fields)
 
 
 async def upload_user_avatar(
