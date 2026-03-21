@@ -314,7 +314,7 @@ defineExpose({ scrollToBottom })
                   : 'bg-surface-alt text-foreground border border-border rounded-bl-sm'
               "
             >
-              <p v-if="item.message.content" class="whitespace-pre-wrap break-words">
+              <p v-if="item.message.content" class="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 {{ item.message.content }}
               </p>
 

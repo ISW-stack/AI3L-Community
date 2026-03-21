@@ -81,9 +81,9 @@ watch(page, fetchForms)
     <BaseBreadcrumb
       :items="[{ label: t('breadcrumb.home'), to: '/' }, { label: t('breadcrumb.formsDirectory') }]"
     />
-    <div class="flex justify-between items-center mb-2">
+    <div class="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-2">
       <h1 class="text-2xl font-bold text-foreground">{{ t('formsDirectory.title') }}</h1>
-      <router-link v-if="canCreate" to="/forms/new">
+      <router-link v-if="canCreate" to="/forms/new" class="shrink-0">
         <BaseButton>{{ t('formsDirectory.createForm') }}</BaseButton>
       </router-link>
     </div>
@@ -99,7 +99,7 @@ watch(page, fetchForms)
 
     <SkeletonLoader v-if="initialLoading" :lines="3" variant="card" />
 
-    <div v-else class="min-h-[200px]">
+    <div v-else class="min-h-[400px]">
       <div
         :class="{ 'opacity-50 pointer-events-none': loading }"
         class="transition-opacity duration-150"

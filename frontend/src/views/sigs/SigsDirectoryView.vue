@@ -49,9 +49,9 @@ onMounted(fetchSigs)
 
 <template>
   <div class="flex-1 w-full flex flex-col justify-start">
-    <div class="flex justify-between items-center mb-6 shrink-0">
+    <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-6 shrink-0">
       <h1 class="text-2xl font-bold text-foreground">{{ t('sigs.directory.title') }}</h1>
-      <router-link v-if="auth.isAdmin" to="/sigs/create">
+      <router-link v-if="auth.isAdmin" to="/sigs/create" class="shrink-0">
         <BaseButton>{{ t('sigs.directory.createBtn') }}</BaseButton>
       </router-link>
     </div>
@@ -60,7 +60,7 @@ onMounted(fetchSigs)
       <BaseInput v-model="searchQuery" :placeholder="t('sigs.directory.searchPlaceholder')" />
     </div>
 
-    <div class="flex-1 w-full flex flex-col min-h-[400px]">
+    <div class="w-full flex flex-col min-h-[400px] max-h-[60vh] overflow-y-auto">
       <SkeletonLoader v-if="loading" :lines="3" variant="card" />
       <EmptyState
         v-else-if="filteredSigs.length === 0"

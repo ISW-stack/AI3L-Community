@@ -261,7 +261,7 @@ describe('FormsDirectoryView', () => {
     await flushPromises()
 
     // The wrapper div should have min-h class
-    const minHeightDiv = wrapper.find('.min-h-\\[200px\\]')
+    const minHeightDiv = wrapper.find('.min-h-\\[400px\\]')
     expect(minHeightDiv.exists()).toBe(true)
   })
 
