@@ -98,6 +98,7 @@ onMounted(fetchMembers)
       <input
         v-model="searchQuery"
         type="text"
+        name="member-search"
         :placeholder="t('members.searchPlaceholder')"
         class="w-full pl-10 pr-4 py-2 text-sm border border-border rounded-lg bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-200"
         @input="handleSearch"

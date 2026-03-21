@@ -215,6 +215,7 @@ function onTouchEnd(event: TouchEvent) {
             v-model="question.label"
             :disabled="isSchemaLocked"
             type="text"
+            name="question-label"
             :placeholder="t('forms.builder.labelPlaceholder')"
             class="w-full border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
@@ -236,6 +237,7 @@ function onTouchEnd(event: TouchEvent) {
           v-model="question.placeholder"
           :disabled="isSchemaLocked"
           type="text"
+          name="question-placeholder"
           :placeholder="t('forms.builder.placeholderLabel')"
           class="w-full border border-border rounded-lg px-2 py-1.5 text-sm"
         />
@@ -245,6 +247,7 @@ function onTouchEnd(event: TouchEvent) {
             v-model.number="question.max_length"
             :disabled="isSchemaLocked"
             type="number"
+            name="max-length"
             min="1"
             :placeholder="t('forms.builder.maxLengthPlaceholder')"
             class="w-24 border border-border rounded-lg px-2 py-1.5 text-sm"
@@ -284,6 +287,7 @@ function onTouchEnd(event: TouchEvent) {
             v-model="opt.label"
             :disabled="isSchemaLocked"
             type="text"
+            name="option-label"
             :placeholder="`Option ${oi + 1}`"
             :aria-label="t('accessibility.optionN', { n: oi + 1 })"
             class="flex-1 border border-border rounded-lg px-2 py-1.5 text-sm"
@@ -314,6 +318,7 @@ function onTouchEnd(event: TouchEvent) {
               v-model.number="question.min"
               :disabled="isSchemaLocked"
               type="number"
+              name="rating-min"
               class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
             />
           </div>
@@ -323,6 +328,7 @@ function onTouchEnd(event: TouchEvent) {
               v-model.number="question.max"
               :disabled="isSchemaLocked"
               type="number"
+              name="rating-max"
               class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
             />
           </div>
@@ -340,6 +346,7 @@ function onTouchEnd(event: TouchEvent) {
             @input="emit('update-allowed-types', $event)"
             :disabled="isSchemaLocked"
             type="text"
+            name="allowed-types"
             :placeholder="t('forms.builder.allowedTypesPlaceholder')"
             class="flex-1 border border-border rounded-lg px-2 py-1.5 text-sm"
           />
@@ -350,6 +357,7 @@ function onTouchEnd(event: TouchEvent) {
             v-model.number="question.max_size_mb"
             :disabled="isSchemaLocked"
             type="number"
+            name="max-size"
             min="1"
             :placeholder="t('forms.builder.maxSizePlaceholder')"
             class="w-24 border border-border rounded-lg px-2 py-1.5 text-sm"

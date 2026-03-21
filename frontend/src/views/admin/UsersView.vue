@@ -283,6 +283,7 @@ onUnmounted(() => {
       <input
         v-model="searchQuery"
         type="text"
+        name="search"
         :placeholder="t('admin.users.searchPlaceholder')"
         class="w-full sm:w-80 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
         @input="onSearchInput"
@@ -302,6 +303,7 @@ onUnmounted(() => {
       }}</span>
       <select
         v-model="bulkRole"
+        name="bulk-role"
         class="text-sm border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
       >
         <option v-for="r in roles" :key="r" :value="r">{{ t(roleKeyMap[r]) }}</option>
@@ -336,6 +338,7 @@ onUnmounted(() => {
                 <input
                   v-if="auth.isSuperAdmin && user.id !== auth.user?.id"
                   type="checkbox"
+                  name="select-user"
                   :checked="selectedIds.has(user.id)"
                   @change="toggleSelect(user.id)"
                   class="rounded shrink-0"
@@ -361,6 +364,7 @@ onUnmounted(() => {
             >
               <select
                 :value="user.role"
+                name="user-role"
                 @change="changeRole(user.id, ($event.target as HTMLSelectElement).value)"
                 class="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
@@ -392,6 +396,7 @@ onUnmounted(() => {
               <th v-if="auth.isSuperAdmin" class="px-4 py-3 w-10 sticky left-0 z-10 bg-surface-alt">
                 <input
                   type="checkbox"
+                  name="select-all"
                   :checked="allSelected"
                   @change="allSelected = ($event.target as HTMLInputElement).checked"
                   class="rounded"
@@ -430,6 +435,7 @@ onUnmounted(() => {
                 <input
                   v-if="user.id !== auth.user?.id"
                   type="checkbox"
+                  name="select-user"
                   :checked="selectedIds.has(user.id)"
                   @change="toggleSelect(user.id)"
                   class="rounded"
@@ -458,6 +464,7 @@ onUnmounted(() => {
                   <select
                     v-if="user.id !== auth.user?.id"
                     :value="user.role"
+                    name="user-role"
                     @change="changeRole(user.id, ($event.target as HTMLSelectElement).value)"
                     class="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
@@ -535,6 +542,7 @@ onUnmounted(() => {
           }}</label>
           <select
             v-model="newRole"
+            name="new-user-role"
             class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="MEMBER">{{ t('admin.users.createModal.roleMember') }}</option>

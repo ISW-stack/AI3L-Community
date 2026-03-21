@@ -179,6 +179,7 @@ const {
             <input
               v-model="deadline"
               type="datetime-local"
+              name="deadline"
               :min="minDeadline"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
             />
@@ -190,6 +191,7 @@ const {
             <input
               v-model.number="maxRespondents"
               type="number"
+              name="max-respondents"
               min="1"
               :placeholder="t('forms.builder.maxRespondentsPlaceholder')"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
@@ -198,7 +200,7 @@ const {
         </div>
         <template v-if="!isStandalone">
           <label class="flex items-center gap-2 text-sm text-foreground mt-4">
-            <input type="checkbox" v-model="allowNonMembers" class="rounded" />
+            <input type="checkbox" name="allow-non-members" v-model="allowNonMembers" class="rounded" />
             {{ t('forms.builder.allowNonMembers') }}
           </label>
           <p class="text-xs text-muted mt-1">

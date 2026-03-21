@@ -256,6 +256,7 @@ const currentRouteName = computed(() => route.name)
                     <input
                       v-model="editTitle"
                       type="text"
+                      name="album-title"
                       class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
                       :placeholder="t('albums.titlePlaceholder')"
                     />
@@ -267,6 +268,7 @@ const currentRouteName = computed(() => route.name)
                     <textarea
                       v-model="editDescription"
                       rows="3"
+                      name="album-description"
                       class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
                       :placeholder="t('albums.descriptionPlaceholder')"
                     ></textarea>

@@ -222,6 +222,7 @@ onMounted(fetchBans)
           <input
             v-model="newExpiresAt"
             type="datetime-local"
+            name="expires-at"
             class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
           />
           <p class="text-xs text-muted mt-1">{{ t('admin.ipBans.createModal.expiresHint') }}</p>

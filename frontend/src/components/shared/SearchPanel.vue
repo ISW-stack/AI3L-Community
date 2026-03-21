@@ -41,6 +41,7 @@ function handleInput(event: Event) {
         <input
           :value="props.keyword"
           type="text"
+          name="search-keyword"
           :placeholder="props.placeholder ?? t('common.searchPlaceholder')"
           class="w-full px-3 py-2 pr-9 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
           @input="handleInput"
@@ -85,6 +86,7 @@ function handleInput(event: Event) {
         <input
           :value="props.dateFrom"
           type="date"
+          name="date-from"
           class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           @input="emit('update:dateFrom', ($event.target as HTMLInputElement).value)"
         />
@@ -92,11 +94,13 @@ function handleInput(event: Event) {
         <input
           :value="props.dateTo"
           type="date"
+          name="date-to"
           class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           @input="emit('update:dateTo', ($event.target as HTMLInputElement).value)"
         />
         <select
           :value="props.logic"
+          name="search-logic"
           class="px-3 py-2 border border-border rounded-lg text-sm w-20 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           @change="emit('update:logic', ($event.target as HTMLSelectElement).value)"
         >

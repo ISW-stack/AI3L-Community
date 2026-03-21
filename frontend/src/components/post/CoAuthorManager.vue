@@ -207,6 +207,7 @@ onMounted(fetchCoAuthors)
         <input
           v-model="searchQuery"
           type="text"
+          name="coauthor-search"
           :placeholder="t('coauthors.searchPlaceholder')"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
           @input="onSearchInput"

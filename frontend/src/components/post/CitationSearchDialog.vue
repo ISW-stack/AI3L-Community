@@ -93,6 +93,7 @@ watch(
         <input
           v-model="query"
           type="text"
+          name="citation-search"
           :placeholder="t('citations.searchPlaceholder')"
           class="w-full pl-9 pr-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground"
           @input="onSearchInput"

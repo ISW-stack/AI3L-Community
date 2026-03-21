@@ -157,6 +157,7 @@ onUnmounted(() => {
     <div class="mb-4">
       <select
         v-model="statusFilter"
+        name="status-filter"
         @change="handleFilterChange"
         class="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       >

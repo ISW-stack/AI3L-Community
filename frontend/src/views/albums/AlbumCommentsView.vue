@@ -158,6 +158,7 @@ watch(page, fetchComments)
             <textarea
               v-model="newComment"
               rows="2"
+              name="new-comment"
               :placeholder="t('albums.commentPlaceholder')"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
             ></textarea>
@@ -224,6 +225,7 @@ watch(page, fetchComments)
             <textarea
               v-model="replyContent"
               rows="2"
+              name="reply"
               :placeholder="t('albums.replyPlaceholder')"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground resize-none"
             ></textarea>

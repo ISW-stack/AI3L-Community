@@ -143,6 +143,7 @@ function formatFileSize(bytes: number): string {
       <input
         ref="fileInput"
         type="file"
+        name="file-attachment"
         class="hidden"
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
         @change="handleFileChange"
@@ -153,6 +154,7 @@ function formatFileSize(bytes: number): string {
         <textarea
           ref="textarea"
           v-model="content"
+          name="message"
           @keydown="handleKeydown"
           @input="checkOverflow"
           :placeholder="editMode ? 'Edit your message...' : 'Type a message...'"

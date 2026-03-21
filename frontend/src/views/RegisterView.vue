@@ -120,6 +120,7 @@ onMounted(() => {
   <div class="flex min-h-[70vh]">
     <div class="fixed top-20 right-4 z-40">
       <select
+        name="locale"
         :value="currentLocale"
         class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
         @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
@@ -249,6 +250,7 @@ onMounted(() => {
               <input
                 v-model="captchaCode"
                 type="text"
+                name="captcha"
                 required
                 maxlength="4"
                 autocomplete="off"

@@ -299,6 +299,7 @@ onMounted(() => loadForm())
             v-if="q.type === 'text'"
             v-model="answers[q.id]"
             type="text"
+            :name="'q-' + q.id"
             :placeholder="q.placeholder || ''"
             :maxlength="q.max_length || undefined"
             :aria-required="q.required"
@@ -312,6 +313,7 @@ onMounted(() => loadForm())
             v-else-if="q.type === 'textarea'"
             v-model="answers[q.id]"
             rows="4"
+            :name="'q-' + q.id"
             :placeholder="q.placeholder || ''"
             :maxlength="q.max_length || undefined"
             :aria-required="q.required"
@@ -347,6 +349,7 @@ onMounted(() => loadForm())
             >
               <input
                 type="checkbox"
+                :name="'q-' + q.id"
                 :value="opt.id"
                 :checked="(answers[q.id] as string[]).includes(opt.id)"
                 @change="toggleMultipleChoice(q.id, opt.id)"
@@ -359,6 +362,7 @@ onMounted(() => loadForm())
           <select
             v-else-if="q.type === 'dropdown'"
             v-model="answers[q.id]"
+            :name="'q-' + q.id"
             :aria-required="q.required"
             class="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-foreground"
             @change="onSelectChange(q.id)"

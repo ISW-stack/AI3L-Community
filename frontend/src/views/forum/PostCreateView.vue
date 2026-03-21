@@ -245,6 +245,7 @@ onBeforeRouteLeave(() => {
         }}</label>
         <select
           v-model="categoryId"
+          name="category"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
         >
           <option :value="null">{{ t('common.none') }}</option>
@@ -258,6 +259,7 @@ onBeforeRouteLeave(() => {
         }}</label>
         <select
           v-model="sigId"
+          name="sig"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
         >
           <option :value="null">{{ t('common.none') }}</option>
@@ -299,6 +301,7 @@ onBeforeRouteLeave(() => {
           <input
             v-model="keywordsInput"
             type="text"
+            name="keywords"
             maxlength="50"
             class="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
             :placeholder="t('post.create.keywordsPlaceholder')"

@@ -469,6 +469,7 @@ const breadcrumbItems = computed(() => {
                   <template v-if="editingComment === node.root.id">
                     <textarea
                       v-model="editCommentContent"
+                      name="edit-comment"
                       rows="3"
                       class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                     ></textarea>
@@ -527,6 +528,7 @@ const breadcrumbItems = computed(() => {
                   <div v-if="inlineReplyTo === node.root.id" class="mt-2">
                     <textarea
                       v-model="inlineReplyContent"
+                      name="reply"
                       rows="2"
                       :placeholder="t('post.comment.writeReply')"
                       class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
@@ -577,6 +579,7 @@ const breadcrumbItems = computed(() => {
                     <template v-if="editingComment === reply.id">
                       <textarea
                         v-model="editCommentContent"
+                        name="edit-comment"
                         rows="3"
                         class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                       ></textarea>
@@ -645,6 +648,7 @@ const breadcrumbItems = computed(() => {
             }}</BaseAlert>
             <textarea
               v-model="newComment"
+              name="new-comment"
               rows="3"
               :placeholder="t('post.comment.writeComment')"
               class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
@@ -686,6 +690,7 @@ const breadcrumbItems = computed(() => {
       <BaseAlert v-if="reportMessage" type="error" class="mb-3">{{ reportMessage }}</BaseAlert>
       <textarea
         v-model="reportReason"
+        name="report-reason"
         rows="4"
         :placeholder="t('post.reportDialog.placeholder')"
         class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm text-foreground mb-3"

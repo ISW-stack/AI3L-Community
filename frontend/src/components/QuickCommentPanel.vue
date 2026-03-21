@@ -136,6 +136,7 @@ fetchRecentComments()
       <div class="flex-1 relative">
         <textarea
           v-model="newComment"
+          name="quick-comment"
           :placeholder="t('post.quickComment.placeholder')"
           rows="1"
           class="w-full rounded-full bg-surface-alt border-none px-4 py-2 text-sm text-foreground placeholder:text-muted resize-none focus:outline-none focus:ring-2 focus:ring-brand-500"

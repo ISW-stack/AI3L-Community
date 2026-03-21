@@ -252,6 +252,7 @@ onMounted(fetchData)
                     }}</label>
                     <input
                       v-model="overrideForm.custom_title"
+                      name="custom-title"
                       class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
                       maxlength="200"
                     />
@@ -263,12 +264,13 @@ onMounted(fetchData)
                     <input
                       v-model.number="overrideForm.display_order"
                       type="number"
+                      name="display-order"
                       class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
                     />
                   </div>
                   <div class="flex items-end gap-2">
                     <label class="flex items-center gap-2 text-sm text-foreground">
-                      <input v-model="overrideForm.is_visible" type="checkbox" />
+                      <input v-model="overrideForm.is_visible" type="checkbox" name="is-visible" />
                       {{ t('orgChart.visible') }}
                     </label>
                   </div>
@@ -297,6 +299,7 @@ onMounted(fetchData)
                 }}</label>
                 <textarea
                   v-model="sigDescForm"
+                  name="sig-description"
                   class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
                   rows="3"
                   maxlength="1000"
@@ -446,6 +449,7 @@ onMounted(fetchData)
                     <label class="text-xs font-medium text-muted">{{ t('orgChart.myBio') }}</label>
                     <textarea
                       v-model="bioForm"
+                      name="bio"
                       class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
                       rows="2"
                       maxlength="500"
@@ -546,6 +550,7 @@ onMounted(fetchData)
                   }}</label>
                   <input
                     v-model="overrideForm.custom_title"
+                    name="custom-title"
                     class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
                     maxlength="200"
                   />
@@ -557,11 +562,12 @@ onMounted(fetchData)
                   <input
                     v-model.number="overrideForm.display_order"
                     type="number"
+                    name="display-order"
                     class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
                   />
                 </div>
                 <label class="flex items-center gap-2 text-sm text-foreground">
-                  <input v-model="overrideForm.is_visible" type="checkbox" />
+                  <input v-model="overrideForm.is_visible" type="checkbox" name="is-visible" />
                   {{ t('orgChart.visible') }}
                 </label>
               </div>

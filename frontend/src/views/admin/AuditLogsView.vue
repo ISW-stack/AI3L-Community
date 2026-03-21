@@ -121,6 +121,7 @@ onMounted(fetchLogs)
           <input
             v-model="filterDateFrom"
             type="date"
+            name="date-from"
             class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           />
         </div>
@@ -131,6 +132,7 @@ onMounted(fetchLogs)
           <input
             v-model="filterDateTo"
             type="date"
+            name="date-to"
             class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
           />
         </div>
@@ -141,6 +143,7 @@ onMounted(fetchLogs)
           <input
             v-model="filterUserId"
             type="text"
+            name="user-id"
             :placeholder="t('admin.auditLogs.filter.userIdPlaceholder')"
             class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none w-full sm:w-48"
           />
