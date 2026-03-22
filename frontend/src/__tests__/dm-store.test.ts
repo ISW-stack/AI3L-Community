@@ -635,6 +635,7 @@ describe('useDMStore', () => {
   describe('readReceiptFromWebSocket', () => {
     it('sets read_at on messages without read_at in active conversation', () => {
       const store = useDMStore()
+      store.setCurrentUserId('user-1')
       store.activeConversationId = 'conv-1'
       store.messages = [
         makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null }),
@@ -923,24 +924,24 @@ describe('useDMStore', () => {
     })
   })
 
-  // ============ BUG-4: readReceiptFromWebSocket immutable update ============
+  // ============ BUG-4: readReceiptFromWebSocket in-place update ============
 
-  describe('readReceiptFromWebSocket immutable update', () => {
-    it('creates new message objects (referential inequality)', () => {
+  describe('readReceiptFromWebSocket in-place update', () => {
+    it('mutates message read_at in place', () => {
       const store = useDMStore()
+      store.setCurrentUserId('user-1')
       store.activeConversationId = 'conv-1'
       const origMsg = makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null })
       store.messages = [origMsg]
 
       store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
 
-      // New object — not the same reference
-      expect(store.messages[0]).not.toBe(origMsg)
       expect(store.messages[0].read_at).toBe('2026-03-17T01:00:00Z')
     })
 
-    it('updates all unread messages', () => {
+    it('updates all unread messages from current user', () => {
       const store = useDMStore()
+      store.setCurrentUserId('user-1')
       store.activeConversationId = 'conv-1'
       store.messages = [
         makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null }),
@@ -956,7 +957,7 @@ describe('useDMStore', () => {
       expect(store.messages[2].read_at).toBe('2026-03-17T01:00:00Z')
     })
 
-    it('creates new conversation objects in the array', () => {
+    it('mutates conversation unread_count in place', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-1'
       const origConv = makeConversation({ id: 'conv-1', unread_count: 3 })
@@ -966,7 +967,6 @@ describe('useDMStore', () => {
 
       store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
 
-      expect(store.conversations[0]).not.toBe(origConv)
       expect(store.conversations[0].unread_count).toBe(0)
     })
   })

@@ -4,7 +4,7 @@ import type { Conversation, DMMessage } from '@/types/dm'
 import * as dmApi from '@/api/dm'
 import { getErrorMessage } from '@/utils/error'
 
-const MAX_MESSAGES = 500
+const MAX_MESSAGES = 200
 
 export const useDMStore = defineStore('dm', () => {
   const conversations = ref<Conversation[]>([])
@@ -69,11 +69,10 @@ export const useDMStore = defineStore('dm', () => {
         // Prepend older messages (pagination loads older pages)
         const existingIds = new Set(messages.value.map((m) => m.id))
         const newMessages = chronological.filter((m) => !existingIds.has(m.id))
-        messages.value = [...newMessages, ...messages.value]
-        // Trim oldest messages if exceeding cap
-        if (messages.value.length > MAX_MESSAGES) {
-          messages.value = messages.value.slice(-MAX_MESSAGES)
+        if (newMessages.length > 0) {
+          messages.value.unshift(...newMessages)
         }
+        _trimMessages()
       }
       messagesTotal.value = res.total
     } catch (e: unknown) {
@@ -96,8 +95,24 @@ export const useDMStore = defineStore('dm', () => {
   }
 
   function _trimMessages() {
-    if (messages.value.length > MAX_MESSAGES) {
-      messages.value = messages.value.slice(-MAX_MESSAGES)
+    const overflow = messages.value.length - MAX_MESSAGES
+    if (overflow > 0) {
+      messages.value.splice(0, overflow)
+    }
+  }
+
+  function _appendMessage(message: DMMessage) {
+    if (!messages.value.some((m) => m.id === message.id)) {
+      messages.value.push(message)
+      _trimMessages()
+    }
+  }
+
+  function _moveConversationToTop(convIdx: number) {
+    if (convIdx > 0) {
+      const conv = conversations.value[convIdx]
+      conversations.value.splice(convIdx, 1)
+      conversations.value.unshift(conv)
     }
   }
 
@@ -113,56 +128,33 @@ export const useDMStore = defineStore('dm', () => {
       }
       // Still add to messages if viewing this conversation
       if (activeConversationId.value === message.conversation_id) {
-        const exists = messages.value.some((m) => m.id === message.id)
-        if (!exists) {
-          messages.value = [...messages.value, message]
-          _trimMessages()
-        }
+        _appendMessage(message)
       }
       return
     }
+
+    const conv = conversations.value[convIdx]
+    conv.last_message = message
+    conv.updated_at = message.created_at
 
     // BUG-2: Own message echoed back via WS — dedup only, no unread increment
     if (message.sender.id === currentUserId.value) {
-      // Update conversation list (move to top, update last_message) but don't touch unread
-      const updated = {
-        ...conversations.value[convIdx],
-        last_message: message,
-        updated_at: message.created_at,
-      }
-      conversations.value = [updated, ...conversations.value.filter((_, i) => i !== convIdx)]
-      // Only add to messages if viewing this conversation and not already present
+      _moveConversationToTop(convIdx)
       if (activeConversationId.value === message.conversation_id) {
-        const exists = messages.value.some((m) => m.id === message.id)
-        if (!exists) {
-          messages.value = [...messages.value, message]
-          _trimMessages()
-        }
+        _appendMessage(message)
       }
       return
     }
 
-    // Other user's message — immutable array update
-    const updated = {
-      ...conversations.value[convIdx],
-      last_message: message,
-      updated_at: message.created_at,
-      unread_count:
-        activeConversationId.value !== message.conversation_id
-          ? (conversations.value[convIdx].unread_count || 0) + 1
-          : conversations.value[convIdx].unread_count,
+    // Other user's message
+    if (activeConversationId.value !== message.conversation_id) {
+      conv.unread_count = (conv.unread_count || 0) + 1
     }
-    conversations.value = [updated, ...conversations.value.filter((_, i) => i !== convIdx)]
+    _moveConversationToTop(convIdx)
 
-    // If viewing this conversation, add message to messages array
     if (activeConversationId.value === message.conversation_id) {
-      const exists = messages.value.some((m) => m.id === message.id)
-      if (!exists) {
-        messages.value = [...messages.value, message]
-        _trimMessages()
-      }
+      _appendMessage(message)
     } else {
-      // Increment global unread count
       unreadCount.value += 1
     }
   }
@@ -182,45 +174,45 @@ export const useDMStore = defineStore('dm', () => {
   function recallFromWebSocket(messageId: string, conversationId: string) {
     const idx = messages.value.findIndex((m) => m.id === messageId)
     if (idx >= 0) {
-      messages.value[idx] = {
-        ...messages.value[idx],
-        is_recalled: true,
-        content: null,
-        attachment_url: null,
-        attachment_name: null,
-      }
+      const msg = messages.value[idx]
+      msg.is_recalled = true
+      msg.content = null
+      msg.attachment_url = null
+      msg.attachment_name = null
     }
     // Update last_message in conversations if applicable
     const conv = conversations.value.find((c) => c.id === conversationId)
-    if (conv && conv.last_message?.id === messageId) {
-      conv.last_message = {
-        ...conv.last_message,
-        is_recalled: true,
-        content: null,
-        attachment_url: null,
-        attachment_name: null,
-      }
+    if (conv?.last_message?.id === messageId) {
+      conv.last_message.is_recalled = true
+      conv.last_message.content = null
+      conv.last_message.attachment_url = null
+      conv.last_message.attachment_name = null
     }
   }
 
-  // BUG-4: Immutable update pattern for reactivity
   function readReceiptFromWebSocket(conversationId: string, readAt: string) {
     if (activeConversationId.value === conversationId) {
-      messages.value = messages.value.map((msg) =>
-        !msg.read_at ? { ...msg, read_at: readAt } : msg,
-      )
+      // Only mark own sent messages as read (DM-06)
+      for (const msg of messages.value) {
+        if (!msg.read_at && msg.sender.id === currentUserId.value) {
+          msg.read_at = readAt
+        }
+      }
     }
-    // Calculate delta before updating conversations (no side-effects in .map)
+    // Calculate delta before updating conversation
     const conv = conversations.value.find((c) => c.id === conversationId)
     const prevUnread = conv?.unread_count ?? 0
-    conversations.value = conversations.value.map((c) =>
-      c.id === conversationId ? { ...c, unread_count: 0 } : c,
-    )
+    if (conv) conv.unread_count = 0
     unreadCount.value = Math.max(0, unreadCount.value - prevUnread)
   }
 
   function setActiveConversation(id: string | null) {
     activeConversationId.value = id
+  }
+
+  function clearMessages() {
+    messages.value = []
+    messagesTotal.value = 0
   }
 
   function resetState() {
@@ -257,6 +249,7 @@ export const useDMStore = defineStore('dm', () => {
     readReceiptFromWebSocket,
     setActiveConversation,
     setCurrentUserId,
+    clearMessages,
     resetState,
   }
 })

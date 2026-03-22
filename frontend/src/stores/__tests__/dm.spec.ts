@@ -220,19 +220,17 @@ describe('useDMStore — H-08 split loading refs', () => {
   })
 })
 
-describe('useDMStore — M-25 addFromWebSocket immutable mutations', () => {
+describe('useDMStore — M-25 addFromWebSocket in-place mutations', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
   })
 
-  it('uses immutable array replacement for own message (no splice)', () => {
+  it('updates conversation in place for own message', () => {
     const store = useDMStore()
     store.setCurrentUserId('user-1')
     const conv = makeConversation({ id: 'conv-1' })
     store.conversations = [conv]
-
-    const originalArray = store.conversations
 
     const msg = makeMessage({
       id: 'msg-new',
@@ -241,19 +239,15 @@ describe('useDMStore — M-25 addFromWebSocket immutable mutations', () => {
     })
     store.addFromWebSocket(msg)
 
-    // Array reference should have changed (immutable replacement)
-    expect(store.conversations).not.toBe(originalArray)
     expect(store.conversations).toHaveLength(1)
     expect(store.conversations[0].last_message).toStrictEqual(msg)
   })
 
-  it('uses immutable array replacement for other user message', () => {
+  it('updates conversation in place for other user message', () => {
     const store = useDMStore()
     store.setCurrentUserId('user-1')
     const conv = makeConversation({ id: 'conv-1', unread_count: 0 })
     store.conversations = [conv]
-
-    const originalArray = store.conversations
 
     const msg = makeMessage({
       id: 'msg-other',
@@ -262,8 +256,6 @@ describe('useDMStore — M-25 addFromWebSocket immutable mutations', () => {
     })
     store.addFromWebSocket(msg)
 
-    // Array reference should have changed (immutable replacement)
-    expect(store.conversations).not.toBe(originalArray)
     expect(store.conversations).toHaveLength(1)
     expect(store.conversations[0].last_message).toStrictEqual(msg)
     // Global unread should increment (not viewing this conversation)
@@ -321,7 +313,7 @@ describe('useDMStore — M-25 addFromWebSocket immutable mutations', () => {
     expect(store.conversations[1].id).toBe('conv-1')
   })
 
-  it('adds message to messages array with immutable pattern for unknown conversation', () => {
+  it('adds message to messages array in place for unknown conversation', () => {
     const store = useDMStore()
     store.setCurrentUserId('user-1')
     store.setActiveConversation('conv-unknown')
@@ -337,10 +329,8 @@ describe('useDMStore — M-25 addFromWebSocket immutable mutations', () => {
       sender: makeSender({ id: 'user-2', display_name: 'Alice' }),
     })
 
-    const originalMessages = store.messages
     store.addFromWebSocket(msg)
 
-    expect(store.messages).not.toBe(originalMessages)
     expect(store.messages).toHaveLength(1)
     expect(store.messages[0].id).toBe('msg-unknown')
   })
