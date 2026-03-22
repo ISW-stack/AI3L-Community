@@ -199,13 +199,13 @@ const router = createRouter({
       path: '/messages',
       name: 'messages',
       component: () => import('@/views/DMView.vue'),
-      meta: { requiresAuth: true, requiresMember: true },
+      meta: { requiresAuth: true, requiresMember: true, fullWidth: true },
     },
     {
       path: '/messages/:userId',
       name: 'dm-user',
       component: () => import('@/views/DMView.vue'),
-      meta: { requiresAuth: true, requiresMember: true },
+      meta: { requiresAuth: true, requiresMember: true, fullWidth: true },
     },
     // Social
     {

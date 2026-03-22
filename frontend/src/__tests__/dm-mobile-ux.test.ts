@@ -212,7 +212,7 @@ describe('Issue #1: DM split-panel mobile layout', () => {
     mockDMStoreState.loading = false
   })
 
-  it('conversation list uses full width on mobile (w-full sm:w-80)', async () => {
+  it('conversation list uses full width on mobile (w-full md:w-80)', async () => {
     const DMView = (await import('@/views/DMView.vue')).default
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -228,12 +228,12 @@ describe('Issue #1: DM split-panel mobile layout', () => {
     await nextTick()
 
     // Find the conversation list container
-    const convListContainer = wrapper.find('.sm\\:w-80')
+    const convListContainer = wrapper.find('.md\\:w-80')
     expect(convListContainer.exists()).toBe(true)
     expect(convListContainer.classes()).toContain('w-full')
   })
 
-  it('message panel uses full width on mobile (w-full sm:flex-1)', async () => {
+  it('message panel uses full width on mobile (w-full md:flex-1)', async () => {
     const DMView = (await import('@/views/DMView.vue')).default
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -248,7 +248,7 @@ describe('Issue #1: DM split-panel mobile layout', () => {
     })
     await nextTick()
 
-    const messagePanel = wrapper.find('.sm\\:flex-1')
+    const messagePanel = wrapper.find('.md\\:flex-1')
     expect(messagePanel.exists()).toBe(true)
     expect(messagePanel.classes()).toContain('w-full')
   })
@@ -435,13 +435,13 @@ describe('Issue #4: Message bubble responsive max-width', () => {
     })
   }
 
-  it('message bubble uses max-w-[85%] on mobile and max-w-[70%] on sm+', () => {
+  it('message bubble uses max-w-[80%] on mobile and md:max-w-[70%] on md+', () => {
     const wrapper = mountThread({
       messages: [makeMessage()],
     })
-    const bubble = wrapper.find('.max-w-\\[85\\%\\]')
+    const bubble = wrapper.find('.max-w-\\[80\\%\\]')
     expect(bubble.exists()).toBe(true)
-    expect(bubble.classes()).toContain('sm:max-w-[70%]')
+    expect(bubble.classes()).toContain('md:max-w-[70%]')
   })
 
   it('message content uses break-words instead of wrap-anywhere', () => {

@@ -302,10 +302,10 @@ const activeConvUser = computed(() => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-6 overflow-x-hidden">
+  <div class="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden w-full">
     <BaseBreadcrumb :items="breadcrumbs" />
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-foreground">Messages</h1>
+    <div class="flex items-center justify-between mb-4 sm:mb-6">
+      <h1 class="text-xl sm:text-2xl font-bold text-foreground">Messages</h1>
       <button
         :disabled="dmFriendsOnlyLoading"
         :title="
@@ -313,7 +313,7 @@ const activeConvUser = computed(() => {
             ? 'Friends-only mode ON — only friends can message you'
             : 'Anyone can message you'
         "
-        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border transition"
+        class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition"
         :class="
           dmFriendsOnly
             ? 'border-brand-300 bg-brand-50 text-brand-700 hover:bg-brand-100'
@@ -330,12 +330,12 @@ const activeConvUser = computed(() => {
 
     <div
       class="flex bg-surface border border-border rounded-lg shadow overflow-hidden"
-      style="height: calc(100vh - 220px); height: calc(100dvh - 220px)"
+      style="height: calc(100vh - 200px); height: calc(100dvh - 200px)"
     >
       <!-- Left: Conversation List -->
       <div
-        class="w-full sm:w-80 border-r border-border shrink-0 overflow-y-auto"
-        :class="{ 'hidden sm:block': dmStore.activeConversationId || activeOtherUserId }"
+        class="w-full md:w-80 md:border-r border-border shrink-0 overflow-y-auto"
+        :class="{ 'hidden md:block': dmStore.activeConversationId || activeOtherUserId }"
       >
         <ConversationList
           :conversations="dmStore.conversations"
@@ -347,14 +347,16 @@ const activeConvUser = computed(() => {
 
       <!-- Right: Messages or Empty State -->
       <div
-        class="w-full sm:flex-1 flex flex-col min-w-0 min-h-0"
-        :class="{ 'hidden sm:flex': !dmStore.activeConversationId && !activeOtherUserId }"
+        class="w-full md:flex-1 flex flex-col min-w-0 min-h-0"
+        :class="{ 'hidden md:flex': !dmStore.activeConversationId && !activeOtherUserId }"
       >
         <template v-if="dmStore.activeConversationId || activeOtherUserId">
           <!-- Thread header -->
-          <div class="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface">
+          <div
+            class="flex items-center gap-3 px-3 sm:px-4 py-3 border-b border-border bg-surface"
+          >
             <button
-              class="sm:hidden p-2 -ml-2 text-muted hover:text-foreground active:bg-surface-alt rounded-lg transition"
+              class="md:hidden p-2 -ml-2 text-muted hover:text-foreground active:bg-surface-alt rounded-lg transition touch-manipulation"
               @click="handleBackToList"
               aria-label="Back to conversations"
             >
@@ -363,24 +365,24 @@ const activeConvUser = computed(() => {
             <router-link
               v-if="activeConvUser"
               :to="`/users/${activeConvUser.id}`"
-              class="flex items-center gap-2 hover:opacity-75 transition"
+              class="flex items-center gap-2 hover:opacity-75 transition min-w-0"
               :title="`View ${activeConvUser.display_name}'s profile`"
               data-testid="thread-header-profile-link"
             >
               <div
-                class="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
+                class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden shrink-0"
               >
                 <img
                   v-if="activeConvUser.avatar_url"
                   :src="activeConvUser.avatar_url"
-                  class="w-9 h-9 sm:w-8 sm:h-8 rounded-full object-cover"
+                  class="w-8 h-8 rounded-full object-cover"
                   :alt="`${activeConvUser.display_name}'s avatar`"
                 />
                 <span v-else class="text-xs font-semibold text-muted">
                   {{ activeConvUser.display_name.charAt(0).toUpperCase() }}
                 </span>
               </div>
-              <span class="text-sm font-medium text-foreground">
+              <span class="text-sm font-medium text-foreground truncate">
                 {{ activeConvUser.display_name }}
               </span>
             </router-link>
@@ -411,7 +413,7 @@ const activeConvUser = computed(() => {
 
         <template v-else>
           <div class="flex-1 flex items-center justify-center">
-            <div class="text-center">
+            <div class="text-center px-4">
               <MessageSquare class="mx-auto h-12 w-12 text-gray-300 mb-4" aria-hidden="true" />
               <h3 class="text-sm font-medium text-foreground mb-1">Select a conversation</h3>
               <p class="text-sm text-muted">

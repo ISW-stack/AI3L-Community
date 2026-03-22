@@ -217,7 +217,7 @@ defineExpose({ scrollToBottom })
   <div
     ref="scrollContainer"
     @scroll="handleScroll"
-    class="flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 space-y-1 relative min-h-0"
+    class="flex-1 overflow-x-hidden overflow-y-auto px-2 sm:px-4 py-4 space-y-1 relative min-h-0"
   >
     <!-- Load more -->
     <div v-if="hasMore" class="text-center pb-3">
@@ -305,7 +305,7 @@ defineExpose({ scrollToBottom })
           </div>
 
           <!-- Bubble -->
-          <div class="max-w-[85%] sm:max-w-[70%] min-w-0 relative group">
+          <div class="max-w-[80%] sm:max-w-[75%] md:max-w-[70%] min-w-0 relative group">
             <!-- Recalled message -->
             <div
               v-if="item.message.is_recalled"
@@ -441,7 +441,7 @@ defineExpose({ scrollToBottom })
               v-if="canEditOrRecall(item.message)"
               class="absolute top-0 transition-opacity"
               :class="[
-                isMine(item.message) ? '-left-9 sm:-left-8' : '-right-9 sm:-right-8',
+                isMine(item.message) ? 'right-full mr-1 md:-left-8 md:right-auto md:mr-0' : 'left-full ml-1 md:-right-8 md:left-auto md:ml-0',
                 openMenuId === item.message!.id
                   ? 'opacity-100'
                   : 'opacity-40 sm:opacity-0 sm:group-hover:opacity-100',
@@ -462,7 +462,7 @@ defineExpose({ scrollToBottom })
                 data-message-menu
                 v-if="openMenuId === item.message!.id"
                 class="absolute z-10 bg-surface border border-border rounded-lg shadow-lg py-1 w-36 max-w-[calc(100vw-2rem)]"
-                :class="isMine(item.message!) ? 'left-0' : 'right-0'"
+                :class="isMine(item.message!) ? 'right-0 md:left-0 md:right-auto' : 'left-0 md:right-0 md:left-auto'"
               >
                 <button
                   v-if="item.message!.content"
