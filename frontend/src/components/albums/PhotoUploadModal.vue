@@ -104,11 +104,13 @@ function resetState() {
       <BaseAlert v-if="error" type="error">{{ error }}</BaseAlert>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{
+        <label for="photo-upload" class="block text-sm font-medium text-foreground mb-1">{{
           t('albums.selectFile')
         }}</label>
         <input
+          id="photo-upload"
           type="file"
+          name="photo-upload"
           :accept="ACCEPTED_TYPES"
           class="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
           @change="handleFileChange"

@@ -289,14 +289,19 @@ onMounted(() => loadForm())
               : '',
           ]"
         >
-          <label class="block text-sm font-medium text-foreground mb-2">
+          <component
+            :is="['single_choice', 'multiple_choice', 'rating'].includes(q.type) ? 'p' : 'label'"
+            :for="['single_choice', 'multiple_choice', 'rating'].includes(q.type) ? undefined : q.type === 'file_upload' ? 'file-input-' + q.id : 'fv-q-' + q.id"
+            class="block text-sm font-medium text-foreground mb-2"
+          >
             {{ q.label
             }}<span v-if="q.required" aria-hidden="true" class="text-danger-500"> *</span>
-          </label>
+          </component>
 
           <!-- Text input -->
           <input
             v-if="q.type === 'text'"
+            :id="'fv-q-' + q.id"
             v-model="answers[q.id]"
             type="text"
             :name="'q-' + q.id"
@@ -311,6 +316,7 @@ onMounted(() => loadForm())
           <!-- Textarea -->
           <textarea
             v-else-if="q.type === 'textarea'"
+            :id="'fv-q-' + q.id"
             v-model="answers[q.id]"
             rows="4"
             :name="'q-' + q.id"
@@ -361,6 +367,7 @@ onMounted(() => loadForm())
           <!-- Dropdown -->
           <select
             v-else-if="q.type === 'dropdown'"
+            :id="'fv-q-' + q.id"
             v-model="answers[q.id]"
             :name="'q-' + q.id"
             :aria-required="q.required"
@@ -404,6 +411,7 @@ onMounted(() => loadForm())
             <input
               :id="`file-input-${q.id}`"
               type="file"
+              :name="'q-file-' + q.id"
               class="sr-only"
               :accept="q.allowed_types?.map((t) => `.${t}`).join(',') || undefined"
               @change="handleFileUpload(q.id, $event)"

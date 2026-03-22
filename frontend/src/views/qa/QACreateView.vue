@@ -190,11 +190,13 @@ onMounted(() => {
       />
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{
+        <label for="qa-category" class="block text-sm font-medium text-foreground mb-1">{{
           t('qa.categoryOptional')
         }}</label>
         <select
+          id="qa-category"
           v-model="categoryId"
+          name="category"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
         >
           <option :value="null">{{ t('qa.categoryNone') }}</option>
@@ -203,12 +205,12 @@ onMounted(() => {
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{ t('qa.details') }}</label>
+        <span class="block text-sm font-medium text-foreground mb-1">{{ t('qa.details') }}</span>
         <TiptapEditor v-model="content" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">
+        <label for="qa-keywords" class="block text-sm font-medium text-foreground mb-1">
           {{ t('qa.keywords') }} ({{ keywords.length }}/15)
         </label>
         <div class="flex gap-2 mb-2 flex-wrap">
@@ -225,8 +227,10 @@ onMounted(() => {
         </div>
         <div class="flex gap-2">
           <input
+            id="qa-keywords"
             v-model="keywordsInput"
             type="text"
+            name="keywords"
             maxlength="50"
             class="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
             :placeholder="t('qa.addKeyword')"

@@ -121,7 +121,7 @@ onMounted(() => {
           />
 
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">{{
+            <label for="guest-captcha" class="block text-sm font-medium text-foreground mb-1">{{
               t('auth.captcha')
             }}</label>
             <div v-if="captchaError" class="text-danger-600 text-sm mb-2">
@@ -132,13 +132,13 @@ onMounted(() => {
             </div>
             <div class="flex gap-3 items-center">
               <input
+                id="guest-captcha"
                 v-model="captchaCode"
                 type="text"
                 name="captcha"
                 required
                 maxlength="4"
                 autocomplete="off"
-                aria-label="Captcha"
                 class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
                 :placeholder="t('auth.captchaPlaceholder')"
               />

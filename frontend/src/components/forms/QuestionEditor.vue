@@ -196,10 +196,12 @@ function onTouchEnd(event: TouchEvent) {
     <div v-if="!isCollapsed" class="mt-2">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label class="block text-xs text-muted mb-1">{{ t('forms.builder.typeLabel') }}</label>
+          <label :for="'q-type-' + question.id" class="block text-xs text-muted mb-1">{{ t('forms.builder.typeLabel') }}</label>
           <select
+            :id="'q-type-' + question.id"
             v-model="question.type"
             :disabled="isSchemaLocked"
+            name="question-type"
             class="w-full border border-border rounded-lg px-2 py-2 sm:py-1.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option v-for="qt in QUESTION_TYPES" :key="qt.value" :value="qt.value">
@@ -208,10 +210,11 @@ function onTouchEnd(event: TouchEvent) {
           </select>
         </div>
         <div class="sm:col-span-2">
-          <label class="block text-xs text-muted mb-1">{{
+          <label :for="'q-label-' + question.id" class="block text-xs text-muted mb-1">{{
             t('forms.builder.labelRequired')
           }}</label>
           <input
+            :id="'q-label-' + question.id"
             v-model="question.label"
             :disabled="isSchemaLocked"
             type="text"
@@ -227,6 +230,7 @@ function onTouchEnd(event: TouchEvent) {
           type="checkbox"
           v-model="question.required"
           :disabled="isSchemaLocked"
+          name="question-required"
           class="rounded"
         />
         {{ t('forms.builder.requiredCheckbox') }}
@@ -242,8 +246,9 @@ function onTouchEnd(event: TouchEvent) {
           class="w-full border border-border rounded-lg px-2 py-1.5 text-sm"
         />
         <div class="flex items-center gap-2">
-          <label class="text-xs text-muted">{{ t('forms.builder.maxLengthLabel') }}</label>
+          <label :for="'q-maxlen-' + question.id" class="text-xs text-muted">{{ t('forms.builder.maxLengthLabel') }}</label>
           <input
+            :id="'q-maxlen-' + question.id"
             v-model.number="question.max_length"
             :disabled="isSchemaLocked"
             type="number"
@@ -313,8 +318,9 @@ function onTouchEnd(event: TouchEvent) {
       <div v-if="question.type === 'rating'">
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
-            <label class="text-xs text-muted">{{ t('forms.builder.minLabel') }}</label
+            <label :for="'q-min-' + question.id" class="text-xs text-muted">{{ t('forms.builder.minLabel') }}</label
             ><input
+              :id="'q-min-' + question.id"
               v-model.number="question.min"
               :disabled="isSchemaLocked"
               type="number"
@@ -323,8 +329,9 @@ function onTouchEnd(event: TouchEvent) {
             />
           </div>
           <div class="flex items-center gap-2">
-            <label class="text-xs text-muted">{{ t('forms.builder.maxLabel') }}</label
+            <label :for="'q-max-' + question.id" class="text-xs text-muted">{{ t('forms.builder.maxLabel') }}</label
             ><input
+              :id="'q-max-' + question.id"
               v-model.number="question.max"
               :disabled="isSchemaLocked"
               type="number"
@@ -340,8 +347,9 @@ function onTouchEnd(event: TouchEvent) {
 
       <div v-if="question.type === 'file_upload'" class="space-y-2">
         <div class="flex items-center gap-2">
-          <label class="text-xs text-muted">{{ t('forms.builder.allowedTypesLabel') }}</label>
+          <label :for="'q-types-' + question.id" class="text-xs text-muted">{{ t('forms.builder.allowedTypesLabel') }}</label>
           <input
+            :id="'q-types-' + question.id"
             :value="(question.allowed_types ?? []).join(', ')"
             @input="emit('update-allowed-types', $event)"
             :disabled="isSchemaLocked"
@@ -352,8 +360,9 @@ function onTouchEnd(event: TouchEvent) {
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-xs text-muted">{{ t('forms.builder.maxSizeLabel') }}</label>
+          <label :for="'q-size-' + question.id" class="text-xs text-muted">{{ t('forms.builder.maxSizeLabel') }}</label>
           <input
+            :id="'q-size-' + question.id"
             v-model.number="question.max_size_mb"
             :disabled="isSchemaLocked"
             type="number"

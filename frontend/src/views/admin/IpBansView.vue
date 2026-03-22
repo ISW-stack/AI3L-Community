@@ -216,10 +216,11 @@ onMounted(fetchBans)
           :placeholder="t('admin.ipBans.createModal.reasonPlaceholder')"
         />
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{
+          <label for="ban-expires-at" class="block text-sm font-medium text-foreground mb-1">{{
             t('admin.ipBans.createModal.expiresLabel')
           }}</label>
           <input
+            id="ban-expires-at"
             v-model="newExpiresAt"
             type="datetime-local"
             name="expires-at"

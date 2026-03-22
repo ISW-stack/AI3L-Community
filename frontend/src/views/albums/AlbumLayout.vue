@@ -239,6 +239,7 @@ const currentRouteName = computed(() => route.name)
             <input
               ref="coverFileInput"
               type="file"
+              name="album-cover"
               accept="image/jpeg,image/png,image/webp,image/gif"
               class="hidden"
               @change="handleCoverFileChange"
@@ -250,10 +251,11 @@ const currentRouteName = computed(() => route.name)
               <template v-if="editing">
                 <div class="space-y-3">
                   <div>
-                    <label class="block text-sm font-medium text-foreground mb-1">{{
+                    <label for="album-edit-title" class="block text-sm font-medium text-foreground mb-1">{{
                       t('albums.titleLabel')
                     }}</label>
                     <input
+                      id="album-edit-title"
                       v-model="editTitle"
                       type="text"
                       name="album-title"
@@ -262,10 +264,11 @@ const currentRouteName = computed(() => route.name)
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-foreground mb-1">{{
+                    <label for="album-edit-desc" class="block text-sm font-medium text-foreground mb-1">{{
                       t('albums.descriptionLabel')
                     }}</label>
                     <textarea
+                      id="album-edit-desc"
                       v-model="editDescription"
                       rows="3"
                       name="album-description"

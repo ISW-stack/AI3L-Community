@@ -89,9 +89,9 @@ onMounted(fetchIntro)
 
         <!-- Photo -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-foreground mb-2">
+          <span class="block text-sm font-medium text-foreground mb-2">
             {{ t('admin.siteSettings.photoLabel') }}
-          </label>
+          </span>
           <div class="flex items-center gap-4">
             <div class="shrink-0">
               <img
@@ -125,6 +125,7 @@ onMounted(fetchIntro)
               <input
                 ref="fileInput"
                 type="file"
+                name="site-photo"
                 accept="image/jpeg,image/png,image/webp"
                 class="hidden"
                 @change="handlePhotoChange"
@@ -135,11 +136,13 @@ onMounted(fetchIntro)
 
         <!-- Bio -->
         <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
+          <label for="site-bio" class="block text-sm font-medium text-foreground mb-2">
             {{ t('admin.siteSettings.bioLabel') }}
           </label>
           <textarea
+            id="site-bio"
             v-model="bio"
+            name="site-bio"
             :placeholder="t('admin.siteSettings.bioPlaceholder')"
             rows="8"
             class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 resize-y"

@@ -140,7 +140,7 @@ const {
 
       <BaseCard padding="lg" class="mb-6 space-y-4">
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{
+          <label for="form-banner" class="block text-sm font-medium text-foreground mb-1">{{
             t('forms.builder.bannerLabel')
           }}</label>
           <div v-if="bannerUrl" class="mb-2">
@@ -154,7 +154,9 @@ const {
             />
           </div>
           <input
+            id="form-banner"
             type="file"
+            name="banner-image"
             accept="image/png,image/jpeg,image/webp"
             @change="uploadBanner"
             class="text-sm text-muted"
@@ -166,17 +168,18 @@ const {
           :placeholder="t('forms.builder.titlePlaceholder')"
         />
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{
+          <span class="block text-sm font-medium text-foreground mb-1">{{
             t('forms.builder.descLabel')
-          }}</label>
+          }}</span>
           <TiptapEditor v-model="description" />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">{{
+            <label for="form-deadline" class="block text-sm font-medium text-foreground mb-1">{{
               t('forms.builder.deadlineLabel')
             }}</label>
             <input
+              id="form-deadline"
               v-model="deadline"
               type="datetime-local"
               name="deadline"
@@ -185,10 +188,11 @@ const {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-foreground mb-1">{{
+            <label for="form-max-respondents" class="block text-sm font-medium text-foreground mb-1">{{
               t('forms.builder.maxRespondentsLabel')
             }}</label>
             <input
+              id="form-max-respondents"
               v-model.number="maxRespondents"
               type="number"
               name="max-respondents"

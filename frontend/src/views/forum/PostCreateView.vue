@@ -240,10 +240,11 @@ onBeforeRouteLeave(() => {
       />
 
       <div v-if="!fromSig">
-        <label class="block text-sm font-medium text-foreground mb-1">{{
+        <label for="post-category" class="block text-sm font-medium text-foreground mb-1">{{
           t('post.create.categoryLabel')
         }}</label>
         <select
+          id="post-category"
           v-model="categoryId"
           name="category"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
@@ -254,10 +255,11 @@ onBeforeRouteLeave(() => {
       </div>
 
       <div v-if="!fromSig && mySigs.length > 0">
-        <label class="block text-sm font-medium text-foreground mb-1">{{
+        <label for="post-sig" class="block text-sm font-medium text-foreground mb-1">{{
           t('post.create.sigLabel')
         }}</label>
         <select
+          id="post-sig"
           v-model="sigId"
           name="sig"
           class="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
@@ -275,14 +277,14 @@ onBeforeRouteLeave(() => {
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{
+        <span class="block text-sm font-medium text-foreground mb-1">{{
           t('post.create.contentLabel')
-        }}</label>
+        }}</span>
         <TiptapEditor v-model="content" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-1">{{
+        <label for="post-keywords" class="block text-sm font-medium text-foreground mb-1">{{
           t('post.create.keywordsLabel', { current: keywords.length, max: 15 })
         }}</label>
         <div class="flex gap-2 mb-2 flex-wrap">
@@ -299,6 +301,7 @@ onBeforeRouteLeave(() => {
         </div>
         <div class="flex gap-2">
           <input
+            id="post-keywords"
             v-model="keywordsInput"
             type="text"
             name="keywords"
@@ -318,6 +321,7 @@ onBeforeRouteLeave(() => {
           id="allow-comments"
           v-model="allowComments"
           type="checkbox"
+          name="allow-comments"
           class="rounded border-border"
         />
         <label for="allow-comments" class="text-sm text-foreground">{{

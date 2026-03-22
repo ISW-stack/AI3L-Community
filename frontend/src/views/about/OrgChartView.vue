@@ -247,10 +247,11 @@ onMounted(fetchData)
               >
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                   <div>
-                    <label class="text-xs font-medium text-muted">{{
+                    <label for="org-custom-title" class="text-xs font-medium text-muted">{{
                       t('orgChart.customTitle')
                     }}</label>
                     <input
+                      id="org-custom-title"
                       v-model="overrideForm.custom_title"
                       name="custom-title"
                       class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
@@ -258,10 +259,11 @@ onMounted(fetchData)
                     />
                   </div>
                   <div>
-                    <label class="text-xs font-medium text-muted">{{
+                    <label for="org-display-order" class="text-xs font-medium text-muted">{{
                       t('orgChart.displayOrder')
                     }}</label>
                     <input
+                      id="org-display-order"
                       v-model.number="overrideForm.display_order"
                       type="number"
                       name="display-order"
@@ -294,10 +296,11 @@ onMounted(fetchData)
 
               <!-- Inline sig description edit -->
               <div v-if="editingSigDesc === sig.id" class="node-edit-form">
-                <label class="text-xs font-medium text-muted">{{
+                <label for="org-sig-desc" class="text-xs font-medium text-muted">{{
                   t('orgChart.sigDescription')
                 }}</label>
                 <textarea
+                  id="org-sig-desc"
                   v-model="sigDescForm"
                   name="sig-description"
                   class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
@@ -446,8 +449,9 @@ onMounted(fetchData)
 
                   <!-- Inline bio edit form -->
                   <div v-if="editingBio?.sigId === sig.id" class="node-edit-form mt-2">
-                    <label class="text-xs font-medium text-muted">{{ t('orgChart.myBio') }}</label>
+                    <label for="org-bio" class="text-xs font-medium text-muted">{{ t('orgChart.myBio') }}</label>
                     <textarea
+                      id="org-bio"
                       v-model="bioForm"
                       name="bio"
                       class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
@@ -545,10 +549,11 @@ onMounted(fetchData)
             >
               <div class="space-y-3 mb-3">
                 <div>
-                  <label class="text-xs font-medium text-muted">{{
+                  <label for="org-custom-title" class="text-xs font-medium text-muted">{{
                     t('orgChart.customTitle')
                   }}</label>
                   <input
+                    id="org-custom-title"
                     v-model="overrideForm.custom_title"
                     name="custom-title"
                     class="w-full mt-1 px-3 py-1.5 text-sm border border-border rounded bg-surface text-foreground"
@@ -556,10 +561,11 @@ onMounted(fetchData)
                   />
                 </div>
                 <div>
-                  <label class="text-xs font-medium text-muted">{{
+                  <label for="org-display-order" class="text-xs font-medium text-muted">{{
                     t('orgChart.displayOrder')
                   }}</label>
                   <input
+                    id="org-display-order"
                     v-model.number="overrideForm.display_order"
                     type="number"
                     name="display-order"

@@ -115,10 +115,11 @@ onMounted(fetchLogs)
     <div v-if="showFilters" class="bg-surface rounded-lg border border-border p-4 mb-4 space-y-3">
       <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">{{
+          <label for="audit-date-from" class="text-sm text-muted whitespace-nowrap">{{
             t('admin.auditLogs.filter.from')
           }}</label>
           <input
+            id="audit-date-from"
             v-model="filterDateFrom"
             type="date"
             name="date-from"
@@ -126,10 +127,11 @@ onMounted(fetchLogs)
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">{{
+          <label for="audit-date-to" class="text-sm text-muted whitespace-nowrap">{{
             t('admin.auditLogs.filter.to')
           }}</label>
           <input
+            id="audit-date-to"
             v-model="filterDateTo"
             type="date"
             name="date-to"
@@ -137,10 +139,11 @@ onMounted(fetchLogs)
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-muted whitespace-nowrap">{{
+          <label for="audit-user-id" class="text-sm text-muted whitespace-nowrap">{{
             t('admin.auditLogs.filter.userId')
           }}</label>
           <input
+            id="audit-user-id"
             v-model="filterUserId"
             type="text"
             name="user-id"

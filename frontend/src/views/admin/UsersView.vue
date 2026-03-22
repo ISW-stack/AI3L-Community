@@ -537,10 +537,11 @@ onUnmounted(() => {
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{
+          <label for="new-user-role" class="block text-sm font-medium text-foreground mb-1">{{
             t('admin.users.createModal.roleLabel')
           }}</label>
           <select
+            id="new-user-role"
             v-model="newRole"
             name="new-user-role"
             class="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"

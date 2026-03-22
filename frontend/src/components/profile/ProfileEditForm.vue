@@ -95,6 +95,7 @@ function formatBytes(bytes: number): string {
         {{ t('profile.changeAvatar') }}
         <input
           type="file"
+          name="avatar-upload"
           accept="image/png,image/jpeg"
           class="hidden"
           @change="emit('upload-avatar', $event)"
@@ -148,12 +149,14 @@ function formatBytes(bytes: number): string {
     <BaseCard padding="lg" class="mb-8">
       <form @submit.prevent="emit('save')" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{
+          <label for="profile-username" class="block text-sm font-medium text-foreground mb-1">{{
             t('profile.form.usernameLabel')
           }}</label>
           <input
+            id="profile-username"
             :value="username"
             disabled
+            name="username"
             class="w-full px-3 py-2 bg-surface-alt border border-border rounded-lg text-muted"
           />
         </div>
@@ -164,9 +167,9 @@ function formatBytes(bytes: number): string {
           :maxlength="100"
         />
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{
+          <span class="block text-sm font-medium text-foreground mb-1">{{
             t('profile.form.bioLabel')
-          }}</label>
+          }}</span>
           <TiptapEditor v-model="bio" />
         </div>
         <BaseInput
@@ -183,9 +186,9 @@ function formatBytes(bytes: number): string {
 
         <!-- Language selector -->
         <div>
-          <label class="block text-sm font-medium text-foreground mb-1">{{
+          <span class="block text-sm font-medium text-foreground mb-1">{{
             t('profile.form.languageLabel')
-          }}</label>
+          }}</span>
           <LanguageSwitcher variant="form" />
         </div>
 
