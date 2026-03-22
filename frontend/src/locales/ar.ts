@@ -165,6 +165,7 @@ export default {
     forms: 'النماذج',
     albums: 'الألبومات',
     friends: 'الأصدقاء',
+    userGuide: 'دليل المستخدم',
     about: 'حول',
     admin: 'الإدارة',
     dashboard: 'لوحة التحكم',

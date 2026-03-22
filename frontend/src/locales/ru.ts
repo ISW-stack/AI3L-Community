@@ -166,6 +166,7 @@ export default {
     forms: 'Формы',
     albums: 'Альбомы',
     friends: 'Друзья',
+    userGuide: 'Руководство',
     about: 'О нас',
     admin: 'Администрирование',
     dashboard: 'Панель управления',

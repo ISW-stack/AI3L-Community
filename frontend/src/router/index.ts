@@ -299,6 +299,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMember: true },
     },
     {
+      path: '/guide',
+      name: 'guide',
+      component: () => import('@/views/guide/UserGuideView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),

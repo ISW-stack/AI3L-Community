@@ -166,6 +166,7 @@ export default {
     forms: 'Biểu mẫu',
     albums: 'Album',
     friends: 'Bạn bè',
+    userGuide: 'Huong dan',
     about: 'Giới thiệu',
     admin: 'Quản trị',
     dashboard: 'Bảng điều khiển',

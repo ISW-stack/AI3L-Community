@@ -166,6 +166,7 @@ export default {
     forms: 'Formlar',
     albums: 'Albümler',
     friends: 'Arkadaşlar',
+    userGuide: 'Kullanici Kilavuzu',
     about: 'Hakkında',
     admin: 'Yönetim',
     dashboard: 'Gösterge Paneli',

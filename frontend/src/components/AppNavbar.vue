@@ -7,7 +7,14 @@ import { useLocale } from '@/composables/useLocale'
 import NotificationBell from '@/components/NotificationBell.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
-import { Menu, X, ChevronDown, GraduationCap, MessageSquare } from 'lucide-vue-next'
+import {
+  Menu,
+  X,
+  ChevronDown,
+  GraduationCap,
+  MessageSquare,
+  BookOpen,
+} from 'lucide-vue-next'
 import { useDMStore } from '@/stores/dm'
 
 const auth = useAuthStore()
@@ -380,9 +387,19 @@ onUnmounted(() => {
                     >
                       {{ t('nav.friends') }}
                     </router-link>
-
-                    <div class="border-t border-border my-1" />
                   </template>
+
+                  <router-link
+                    to="/guide"
+                    class="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-surface-alt transition"
+                    @click="userDropdownOpen = false"
+                    tabindex="-1"
+                  >
+                    <BookOpen class="w-3.5 h-3.5" aria-hidden="true" />
+                    {{ t('nav.userGuide') }}
+                  </router-link>
+
+                  <div class="border-t border-border my-1" />
 
                   <div class="px-4 py-2">
                     <LanguageSwitcher variant="form" />
@@ -621,6 +638,14 @@ onUnmounted(() => {
                 {{ t('nav.friends') }}
               </router-link>
             </template>
+            <router-link
+              to="/guide"
+              class="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+              @click="mobileMenuOpen = false"
+            >
+              <BookOpen class="w-4 h-4" aria-hidden="true" />
+              {{ t('nav.userGuide') }}
+            </router-link>
             <button
               @click="handleLogout"
               class="block w-full text-left px-3 py-2 text-sm text-danger-600 hover:bg-surface-alt rounded-lg transition"

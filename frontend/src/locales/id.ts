@@ -166,6 +166,7 @@ export default {
     forms: 'Formulir',
     albums: 'Album',
     friends: 'Teman',
+    userGuide: 'Panduan Pengguna',
     about: 'Tentang',
     admin: 'Admin',
     dashboard: 'Dasbor',

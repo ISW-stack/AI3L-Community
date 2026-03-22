@@ -166,6 +166,7 @@ export default {
     forms: 'Moduli',
     albums: 'Album',
     friends: 'Amici',
+    userGuide: 'Guida utente',
     about: 'Chi siamo',
     admin: 'Admin',
     dashboard: 'Dashboard',

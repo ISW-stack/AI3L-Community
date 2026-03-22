@@ -165,6 +165,7 @@ export default {
     forms: '양식',
     albums: '앨범',
     friends: '친구',
+    userGuide: '사용자 가이드',
     about: '소개',
     admin: '관리',
     dashboard: '대시보드',

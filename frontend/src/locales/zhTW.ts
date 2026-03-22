@@ -152,6 +152,7 @@ export default {
     forms: '表單',
     albums: '相簿',
     friends: '好友',
+    userGuide: '使用指南',
     about: '關於',
     admin: '管理',
     dashboard: '儀表板',

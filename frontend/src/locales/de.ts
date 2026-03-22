@@ -167,6 +167,7 @@ export default {
     forms: 'Formulare',
     albums: 'Alben',
     friends: 'Freunde',
+    userGuide: 'Benutzerhandbuch',
     about: 'Über uns',
     admin: 'Verwaltung',
     dashboard: 'Dashboard',
