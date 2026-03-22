@@ -443,7 +443,7 @@ onMounted(() => {
             </BaseButton>
           </router-link>
           <router-link to="/guest">
-            <BaseButton variant="ghost" size="lg">
+            <BaseButton variant="secondary" size="lg">
               {{ t('home.unauthenticated.browseGuestBtn') }}
             </BaseButton>
           </router-link>

@@ -287,7 +287,7 @@ onUnmounted(() => {
                 <BaseButton
                   v-if="canLeave"
                   size="sm"
-                  class="bg-warning-50 text-warning-700 hover:bg-warning-100"
+                  variant="soft-danger"
                   @click="promptLeaveSig"
                 >
                   {{ t('sigs.detail.leaveBtn') }}
