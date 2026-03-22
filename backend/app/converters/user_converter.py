@@ -22,16 +22,28 @@ def resolve_avatar_url(avatar_url: str | None) -> str | None:
 async def async_resolve_avatar_url(avatar_url: str | None) -> str | None:
     """Async version of resolve_avatar_url that does not block the event loop.
 
-    Runs the synchronous boto3 presigned URL generation in a thread executor.
+    Caches presigned URLs in Redis for 45 min (75% of 1-hour validity) to avoid
+    redundant boto3 calls for the same storage key across concurrent requests.
     """
     if not avatar_url:
         return None
     if avatar_url.startswith("http://") or avatar_url.startswith("https://"):
         return avatar_url
     try:
+        from app.core.redis import get_redis
+
+        redis = get_redis()
+        cache_key = f"presigned:{avatar_url}"
+        cached = await redis.get(cache_key)
+        if cached:
+            return cached
+
         from app.core.async_storage import generate_presigned_url
 
-        return await generate_presigned_url(avatar_url, expires_in=3600)  # 1-hour URL
+        url = await generate_presigned_url(avatar_url, expires_in=3600)
+        if url:
+            await redis.setex(cache_key, 2700, url)  # cache for 45 min
+        return url
     except Exception:
         return avatar_url
 

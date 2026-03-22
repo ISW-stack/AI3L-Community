@@ -1,6 +1,7 @@
 import json
 import uuid
 from datetime import datetime
+from collections.abc import AsyncIterator
 from typing import Any
 
 from app.core.database import get_pool
@@ -432,27 +433,6 @@ async def has_user_responded(form_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         return existing is not None
 
 
-async def find_all_responses(form_id: uuid.UUID) -> list[dict]:
-    """Fetch all responses for a form (for stats computation)."""
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT id, form_id, user_id, answers, created_at
-            FROM form_responses
-            WHERE form_id = $1
-            """,
-            form_id,
-        )
-        results = []
-        for r in rows:
-            d = dict(r)
-            if isinstance(d.get("answers"), str):
-                d["answers"] = json.loads(d["answers"])
-            results.append(d)
-        return results
-
-
 async def count_total_responses(form_id: uuid.UUID) -> int:
     """Count total responses for a form (lightweight, no data transfer)."""
     pool = get_pool()
@@ -465,14 +445,14 @@ async def count_total_responses(form_id: uuid.UUID) -> int:
         )
 
 
-async def iter_responses_batched(form_id: uuid.UUID, batch_size: int = 500) -> list[dict]:
-    """Fetch all responses in batches using keyset pagination to bound memory.
+async def iter_responses_batched(
+    form_id: uuid.UUID, batch_size: int = 500
+) -> AsyncIterator[dict]:
+    """Yield responses one at a time, fetching from DB in batches.
 
-    Returns the full list but fetches from DB in chunks of *batch_size*
-    using cursor-based iteration so only one batch is in-flight at a time.
+    Uses keyset pagination so only one batch is in memory at a time.
     """
     pool = get_pool()
-    results: list[dict] = []
     last_id: uuid.UUID | None = None
 
     async with pool.acquire() as conn:
@@ -508,11 +488,10 @@ async def iter_responses_batched(form_id: uuid.UUID, batch_size: int = 500) -> l
                 d = dict(r)
                 if isinstance(d.get("answers"), str):
                     d["answers"] = json.loads(d["answers"])
-                results.append(d)
+                yield d
             last_id = rows[-1]["id"]
             if len(rows) < batch_size:
                 break
-    return results
 
 
 async def count_responses(form_id: uuid.UUID, conn: Any) -> int:

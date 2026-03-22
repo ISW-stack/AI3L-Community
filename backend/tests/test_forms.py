@@ -1883,6 +1883,16 @@ class TestGetFormStats:
         assert resp.status_code in (401, 403)
 
 
+def _async_gen_mock(items):
+    """Return an async generator function that yields items — for mocking iter_responses_batched."""
+
+    async def _gen(*args, **kwargs):
+        for item in items:
+            yield item
+
+    return _gen
+
+
 class TestFormStatsService:
     """Unit tests for the get_form_stats service function."""
 
@@ -1957,8 +1967,7 @@ class TestFormStatsService:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
         ):
             result = await get_form_stats(form_id)
@@ -2037,8 +2046,7 @@ class TestFormStatsService:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
         ):
             result = await get_form_stats(form_id)
@@ -2112,8 +2120,7 @@ class TestFormStatsService:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
         ):
             result = await get_form_stats(form_id)
@@ -2186,8 +2193,7 @@ class TestFormStatsService:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
         ):
             result = await get_form_stats(form_id)
@@ -2248,8 +2254,7 @@ class TestFormStatsService:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
         ):
             result = await get_form_stats(form_id)
@@ -2305,8 +2310,7 @@ class TestFormStatsService:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=[],
+                new=_async_gen_mock([]),
             ),
         ):
             result = await get_form_stats(form_id)
@@ -2688,8 +2692,7 @@ class TestFormStatsDropdownType:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
         ):
             result = await get_form_stats(form_id)

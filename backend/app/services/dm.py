@@ -166,11 +166,11 @@ async def send_message(
 
     if file_data and file_name and file_size:
         if file_size > DM_MAX_ATTACHMENT_SIZE:
-            raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
+            raise AppError(ErrorCode.DM_005, 413, "File too large (max 10 MB).")
 
         # L-10: Redundant size check on actual data length
         if len(file_data) > DM_MAX_ATTACHMENT_SIZE:
-            raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
+            raise AppError(ErrorCode.DM_005, 413, "File too large (max 10 MB).")
 
         # S-02: Validate file type before upload
         _validate_dm_file(file_name, file_data)

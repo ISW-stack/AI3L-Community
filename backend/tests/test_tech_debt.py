@@ -514,7 +514,7 @@ class TestCentralizedConstants:
             MAX_ORCID_LENGTH,
         )
 
-        assert MAX_BIO_LENGTH == 50000
+        assert MAX_BIO_LENGTH == 5000
         assert MAX_DISPLAY_NAME_LENGTH == 100
         assert MAX_AFFILIATION_LENGTH == 200
         assert MAX_ORCID_LENGTH == 30
@@ -696,11 +696,11 @@ class TestProfileFieldLengthValidation:
         self._validate(display_name="x" * 100)
 
     def test_bio_too_long_raises(self):
-        with pytest.raises(ValueError, match="bio must be at most 50000"):
-            self._validate(bio="x" * 50001)
+        with pytest.raises(ValueError, match="bio must be at most 5000"):
+            self._validate(bio="x" * 5001)
 
     def test_bio_exactly_at_limit_passes(self):
-        self._validate(bio="x" * 50000)
+        self._validate(bio="x" * 5000)
 
     def test_affiliation_too_long_raises(self):
         with pytest.raises(ValueError, match="affiliation must be at most 200"):
@@ -717,9 +717,9 @@ class TestProfileFieldLengthValidation:
         self._validate(orcid="x" * 30)
 
     def test_bio_html_within_limit_passes(self):
-        """TipTap rich text bio with HTML tags should pass within 50000 char limit."""
+        """TipTap rich text bio with HTML tags should pass within 5000 char limit."""
         html_bio = "<p>" + "x" * 1000 + "</p>" * 50
-        if len(html_bio) <= 50000:
+        if len(html_bio) <= 5000:
             self._validate(bio=html_bio)
 
     @pytest.mark.anyio
@@ -727,8 +727,8 @@ class TestProfileFieldLengthValidation:
         """update_user_profile should raise ValueError before hitting the DB."""
         from app.services.user import update_user_profile
 
-        with pytest.raises(ValueError, match="bio must be at most 50000"):
-            await update_user_profile(uuid.uuid4(), bio="x" * 50001)
+        with pytest.raises(ValueError, match="bio must be at most 5000"):
+            await update_user_profile(uuid.uuid4(), bio="x" * 5001)
 
     @pytest.mark.anyio
     async def test_update_user_profile_rejects_long_display_name(self):
@@ -891,6 +891,16 @@ class TestCleanupPostFilesLogging:
 # ===========================================================================
 
 
+def _async_gen_mock(items):
+    """Return an async generator function that yields items — for mocking iter_responses_batched."""
+
+    async def _gen(*args, **kwargs):
+        for item in items:
+            yield item
+
+    return _gen
+
+
 class TestMalformedRatingLogging:
     """get_form_stats should log warnings for non-integer rating values."""
 
@@ -941,8 +951,7 @@ class TestMalformedRatingLogging:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
             patch("app.services.form.logger") as mock_logger,
         ):
@@ -985,8 +994,7 @@ class TestMalformedRatingLogging:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
             patch("app.services.form.logger") as mock_logger,
         ):
@@ -1025,8 +1033,7 @@ class TestMalformedRatingLogging:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=responses,
+                new=_async_gen_mock(responses),
             ),
             patch("app.services.form.logger") as mock_logger,
         ):

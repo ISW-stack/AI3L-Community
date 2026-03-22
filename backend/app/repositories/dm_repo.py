@@ -561,8 +561,8 @@ async def send_message_atomic(
             return dict(row), deleted
 
 
-async def find_expired_file_messages(cutoff: object) -> list[dict]:
-    """Find messages with expired attachments that still have an attachment_key."""
+async def find_expired_file_messages(cutoff: object, limit: int = 1000) -> list[dict]:
+    """Find messages with expired attachments (bounded by limit)."""
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
@@ -572,8 +572,11 @@ async def find_expired_file_messages(cutoff: object) -> list[dict]:
             WHERE attachment_expires_at IS NOT NULL
               AND attachment_expires_at < $1
               AND attachment_key IS NOT NULL
+            ORDER BY created_at ASC
+            LIMIT $2
             """,
             cutoff,
+            limit,
         )
         return [dict(r) for r in rows]
 
@@ -618,8 +621,8 @@ async def clear_message_attachment_if_present(message_id: uuid.UUID) -> bool:
         return cast(bool, result == "UPDATE 1")
 
 
-async def find_expired_text_messages(cutoff: object) -> list[dict]:
-    """Find text-only messages older than cutoff that haven't been recalled."""
+async def find_expired_text_messages(cutoff: object, limit: int = 1000) -> list[dict]:
+    """Find text-only messages older than cutoff (bounded by limit)."""
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
@@ -629,8 +632,11 @@ async def find_expired_text_messages(cutoff: object) -> list[dict]:
             WHERE created_at < $1
               AND NOT is_recalled
               AND attachment_key IS NULL
+            ORDER BY created_at ASC
+            LIMIT $2
             """,
             cutoff,
+            limit,
         )
         return [dict(r) for r in rows]
 

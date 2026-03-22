@@ -52,25 +52,25 @@ class TestGetBodyLimit:
 
         assert _get_body_limit("/api/v1/albums/upload") == 50 * 1024 * 1024
 
-    def test_dm_path_returns_50mb(self):
+    def test_dm_path_returns_10mb(self):
         from app.main import _get_body_limit
 
-        assert _get_body_limit("/api/v1/dm/") == 50 * 1024 * 1024
+        assert _get_body_limit("/api/v1/dm/") == 10 * 1024 * 1024
 
-    def test_dm_subpath_returns_50mb(self):
+    def test_dm_subpath_returns_10mb(self):
         from app.main import _get_body_limit
 
-        assert _get_body_limit("/api/v1/dm/send") == 50 * 1024 * 1024
+        assert _get_body_limit("/api/v1/dm/send") == 10 * 1024 * 1024
 
-    def test_files_path_returns_20mb(self):
+    def test_files_path_returns_10mb(self):
         from app.main import _get_body_limit
 
-        assert _get_body_limit("/api/v1/files/") == 20 * 1024 * 1024
+        assert _get_body_limit("/api/v1/files/") == 10 * 1024 * 1024
 
-    def test_files_subpath_returns_20mb(self):
+    def test_files_subpath_returns_10mb(self):
         from app.main import _get_body_limit
 
-        assert _get_body_limit("/api/v1/files/upload") == 20 * 1024 * 1024
+        assert _get_body_limit("/api/v1/files/upload") == 10 * 1024 * 1024
 
     def test_unknown_path_returns_default_10mb(self):
         from app.main import MAX_REQUEST_BODY_SIZE, _get_body_limit

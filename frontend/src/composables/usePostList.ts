@@ -8,6 +8,8 @@ import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 
+const MAX_ACCUMULATED_POSTS = 200
+
 export interface UsePostListOptions {
   postType: 'post' | 'question'
   defaultSort: string
@@ -189,7 +191,7 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
       }
       if (categoryFilter.value) params.category_id = categoryFilter.value
       const data = await listPosts(params)
-      posts.value = [...posts.value, ...data.posts]
+      posts.value = [...posts.value, ...data.posts].slice(-MAX_ACCUMULATED_POSTS)
       nextCursor.value = data.next_cursor ?? null
       hasMore.value = data.has_more ?? false
     } catch (e: unknown) {
@@ -256,7 +258,7 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
       if (searchDateTo.value && !dateRangeInvalid.value) body.date_to = searchDateTo.value
       const data = await searchPosts(body)
       if (fetchId !== _searchFetchId) return // stale response
-      posts.value = [...posts.value, ...data.posts]
+      posts.value = [...posts.value, ...data.posts].slice(-MAX_ACCUMULATED_POSTS)
       hasMore.value = data.has_more ?? false
       if (data.posts.length > 0) searchPage.value = nextPage
     } catch (e: unknown) {

@@ -537,8 +537,8 @@ class TestDatabase:
 
         mock_create.assert_called_once_with(
             dsn="postgresql://user:pass@host:5432/db",
-            min_size=10,
-            max_size=30,
+            min_size=2,
+            max_size=20,
             command_timeout=60,
         )
         # Cleanup
@@ -546,7 +546,7 @@ class TestDatabase:
 
     @pytest.mark.asyncio
     async def test_init_db_pool_parameters(self):
-        """Pool should be created with min_size=10, max_size=30, command_timeout=60."""
+        """Pool should be created with min_size=2, max_size=20, command_timeout=60."""
         with patch("app.core.database.asyncpg.create_pool", new_callable=AsyncMock) as mock_create:
             import app.core.database as db_mod
             from app.core.database import init_db_pool
@@ -554,8 +554,8 @@ class TestDatabase:
             await init_db_pool("postgresql://user:pass@host/db")
 
         _, kwargs = mock_create.call_args
-        assert kwargs["min_size"] == 10
-        assert kwargs["max_size"] == 30
+        assert kwargs["min_size"] == 2
+        assert kwargs["max_size"] == 20
         assert kwargs["command_timeout"] == 60
         # Cleanup
         db_mod._pool = None

@@ -303,6 +303,16 @@ class TestB11OrphanCleanupBatching:
 # ---------------------------------------------------------------------------
 
 
+def _async_gen_mock(items):
+    """Return an async generator function that yields items — for mocking iter_responses_batched."""
+
+    async def _gen(*args, **kwargs):
+        for item in items:
+            yield item
+
+    return _gen
+
+
 class TestB12FormStatsBatched:
     """get_form_stats should use batched response fetching."""
 
@@ -336,7 +346,7 @@ class TestB12FormStatsBatched:
         with patch("app.repositories.form_repo.get_pool", return_value=mock_pool):
             from app.repositories.form_repo import iter_responses_batched
 
-            results = await iter_responses_batched(form_id, batch_size=2)
+            results = [r async for r in iter_responses_batched(form_id, batch_size=2)]
 
         assert len(results) == 2
         # Should have been called twice (first batch + empty batch)
@@ -354,7 +364,7 @@ class TestB12FormStatsBatched:
         with patch("app.repositories.form_repo.get_pool", return_value=mock_pool):
             from app.repositories.form_repo import iter_responses_batched
 
-            results = await iter_responses_batched(form_id, batch_size=5)
+            results = [r async for r in iter_responses_batched(form_id, batch_size=5)]
 
         assert len(results) == 1
         assert mock_conn.fetch.call_count == 1
@@ -368,7 +378,7 @@ class TestB12FormStatsBatched:
         with patch("app.repositories.form_repo.get_pool", return_value=mock_pool):
             from app.repositories.form_repo import iter_responses_batched
 
-            results = await iter_responses_batched(form_id)
+            results = [r async for r in iter_responses_batched(form_id)]
 
         assert results == []
 
@@ -413,20 +423,20 @@ class TestB12FormStatsBatched:
             ) as mock_count,
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=[
-                    {"answers": {"q1": "Alice"}},
-                    {"answers": {"q1": "Bob"}},
-                    {"answers": {"q1": ""}},
-                ],
-            ) as mock_iter,
+                new=_async_gen_mock(
+                    [
+                        {"answers": {"q1": "Alice"}},
+                        {"answers": {"q1": "Bob"}},
+                        {"answers": {"q1": ""}},
+                    ]
+                ),
+            ),
         ):
             from app.services.form import get_form_stats
 
             stats = await get_form_stats(form_id)
 
         mock_count.assert_awaited_once_with(form_id)
-        mock_iter.assert_awaited_once_with(form_id)
         assert stats["total_responses"] == 3
         # q1 is text: count should be 2 (non-empty)
         assert stats["question_stats"][0]["stats"]["count"] == 2
@@ -464,12 +474,13 @@ class TestB12FormStatsBatched:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=[
-                    {"answers": {"q1": "opt_r"}},
-                    {"answers": {"q1": "opt_b"}},
-                    {"answers": {"q1": "opt_r"}},
-                ],
+                new=_async_gen_mock(
+                    [
+                        {"answers": {"q1": "opt_r"}},
+                        {"answers": {"q1": "opt_b"}},
+                        {"answers": {"q1": "opt_r"}},
+                    ]
+                ),
             ),
         ):
             from app.services.form import get_form_stats
@@ -506,13 +517,14 @@ class TestB12FormStatsBatched:
             ),
             patch(
                 "app.services.form.form_repo.iter_responses_batched",
-                new_callable=AsyncMock,
-                return_value=[
-                    {"answers": {"q1": 5}},
-                    {"answers": {"q1": 3}},
-                    {"answers": {"q1": 4}},
-                    {"answers": {"q1": 3}},
-                ],
+                new=_async_gen_mock(
+                    [
+                        {"answers": {"q1": 5}},
+                        {"answers": {"q1": 3}},
+                        {"answers": {"q1": 4}},
+                        {"answers": {"q1": 3}},
+                    ]
+                ),
             ),
         ):
             from app.services.form import get_form_stats

@@ -10,11 +10,7 @@ export interface FormHistoryState {
   clear: () => void
 }
 
-const MAX_HISTORY = 50
-
-function deepCloneQuestions(questions: Question[]): Question[] {
-  return JSON.parse(JSON.stringify(questions))
-}
+const MAX_HISTORY = 20
 
 export function useFormHistory(): FormHistoryState {
   const undoStack = ref<string[]>([])
@@ -28,7 +24,7 @@ export function useFormHistory(): FormHistoryState {
   }
 
   function pushState(questions: Question[]): void {
-    const snapshot = JSON.stringify(deepCloneQuestions(questions))
+    const snapshot = JSON.stringify(questions)
     // Avoid pushing duplicate consecutive states
     if (undoStack.value.length > 0 && undoStack.value[undoStack.value.length - 1] === snapshot) {
       return

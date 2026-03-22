@@ -100,13 +100,19 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         # errors must NOT be cached so retries can succeed.
         content_type = response.headers.get("content-type", "")
         if "application/json" in content_type:
-            body = b""
+            # MO-19: Use list + join instead of O(n²) concatenation; cap cache size
+            body_chunks: list[bytes] = []
+            body_size = 0
             async for chunk in response.body_iterator:  # type: ignore[attr-defined]
-                body += chunk if isinstance(chunk, bytes) else chunk.encode()
+                c = chunk if isinstance(chunk, bytes) else chunk.encode()
+                body_size += len(c)
+                body_chunks.append(c)
+            body = b"".join(body_chunks)
 
             status = response.status_code
             cacheable = (200 <= status <= 299) or (400 <= status <= 499 and status != 429)
-            if cacheable:
+            max_cache_size = 512 * 1024  # 512 KB
+            if cacheable and body_size <= max_cache_size:
                 cache_data = json.dumps(
                     {
                         "body": body.decode("utf-8", errors="replace"),
@@ -118,7 +124,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 except Exception:
                     logger.warning("Failed to cache idempotency response", exc_info=True)
             else:
-                # Non-cacheable status — remove the processing marker
+                # Non-cacheable status or too large to cache — remove the processing marker
                 try:
                     await redis.delete(redis_key)
                 except Exception:

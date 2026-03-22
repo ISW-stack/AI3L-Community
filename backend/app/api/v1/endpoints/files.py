@@ -37,7 +37,7 @@ async def upload_editor_file(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FileUploadResponse:
-    """Upload file for rich text editor (PNG, JPEG, PDF, DOCX). Max 20MB."""
+    """Upload file for rich text editor (PNG, JPEG, PDF, DOCX). Max 10MB."""
     user_id = current_user["sub"]
     if not await check_rate_limit(f"rl:upload:{user_id}", *RATE_LIMIT_FILE_UPLOAD):
         raise AppError(ErrorCode.SYS_429, 429, "Too many uploads. Try again later.")
@@ -45,7 +45,7 @@ async def upload_editor_file(
     data = await file.read(MAX_EDITOR_FILE_SIZE + 1)
     if len(data) > MAX_EDITOR_FILE_SIZE:
         raise AppError(
-            ErrorCode.FILE_001, status.HTTP_400_BAD_REQUEST, "File size exceeds 20MB limit."
+            ErrorCode.FILE_001, status.HTTP_400_BAD_REQUEST, "File size exceeds 10MB limit."
         )
     expected_type, data = await run_in_threadpool(validate_editor_file, filename, data)
 

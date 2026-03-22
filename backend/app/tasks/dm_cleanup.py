@@ -25,40 +25,43 @@ async def _cleanup_files() -> dict:
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=DM_FILE_EXPIRY_DAYS)
 
-    expired = await dm_repo.find_expired_file_messages(cutoff)
     deleted = 0
     errors = 0
 
-    for msg in expired:
-        try:
-            # L-23: Idempotent cleanup — clear attachment fields first (CAS-style)
-            # so a concurrent/duplicate run won't double-decrement storage quota.
-            cleared = await dm_repo.clear_message_attachment_if_present(msg["id"])
-            if not cleared:
-                # Already cleaned up by a previous run
-                deleted += 1
-                continue
+    while True:
+        expired = await dm_repo.find_expired_file_messages(cutoff, limit=1000)
+        if not expired:
+            break
 
-            if msg.get("attachment_key"):
-                try:
-                    await delete_file(msg["attachment_key"])
-                except Exception:
-                    # S3 delete is idempotent; log but continue with quota refund
-                    logger.warning(
-                        "Failed to delete DM file from storage (may already be gone)",
-                        exc_info=True,
-                        extra={"msg_id": str(msg["id"])},
-                    )
-                if msg.get("attachment_size") and msg.get("sender_id"):
-                    await user_repo.decrement_storage_used(msg["sender_id"], msg["attachment_size"])
-            deleted += 1
-        except Exception:
-            errors += 1
-            logger.error(
-                "Failed to clean up DM attachment",
-                exc_info=True,
-                extra={"msg_id": str(msg["id"])},
-            )
+        for msg in expired:
+            try:
+                cleared = await dm_repo.clear_message_attachment_if_present(msg["id"])
+                if not cleared:
+                    deleted += 1
+                    continue
+
+                if msg.get("attachment_key"):
+                    try:
+                        await delete_file(msg["attachment_key"])
+                    except Exception:
+                        logger.warning(
+                            "Failed to delete DM file from storage (may already be gone)",
+                            exc_info=True,
+                            extra={"msg_id": str(msg["id"])},
+                        )
+                    if msg.get("attachment_size") and msg.get("sender_id"):
+                        await user_repo.decrement_storage_used(msg["sender_id"], msg["attachment_size"])
+                deleted += 1
+            except Exception:
+                errors += 1
+                logger.error(
+                    "Failed to clean up DM attachment",
+                    exc_info=True,
+                    extra={"msg_id": str(msg["id"])},
+                )
+
+        if len(expired) < 1000:
+            break
 
     logger.info("DM file cleanup complete", extra={"deleted": deleted, "errors": errors})
     return {"deleted": deleted, "errors": errors}
@@ -78,39 +81,44 @@ async def _cleanup_text() -> dict:
     from app.repositories import dm_repo
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=DM_TEXT_EXPIRY_DAYS)
-    expired = await dm_repo.find_expired_text_messages(cutoff)
+    total_deleted = 0
 
-    if not expired:
-        return {"deleted": 0}
-
-    # Group by conversation for char count adjustment
-    conv_chars: dict = {}
-    msg_ids = []
-    for msg in expired:
-        msg_ids.append(msg["id"])
-        cid = msg["conversation_id"]
-        content_len = len(msg.get("content") or "")
-        conv_chars[cid] = conv_chars.get(cid, 0) + content_len
-
-    # Delete messages and decrement char counts in a single transaction
     from app.core.database import get_pool
 
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            deleted = await conn.fetchval(
-                "WITH d AS (DELETE FROM dm_messages WHERE id = ANY($1::uuid[]) RETURNING id) "
-                "SELECT COUNT(*) FROM d",
-                msg_ids,
-            )
-            for cid, chars in conv_chars.items():
-                if chars > 0:
-                    await conn.execute(
-                        "UPDATE conversations SET total_chars = GREATEST(0, total_chars - $1) "
-                        "WHERE id = $2",
-                        chars,
-                        cid,
-                    )
+    while True:
+        expired = await dm_repo.find_expired_text_messages(cutoff, limit=1000)
+        if not expired:
+            break
 
-    logger.info("DM text cleanup complete", extra={"deleted": deleted})
-    return {"deleted": deleted}
+        # Group by conversation for char count adjustment
+        conv_chars: dict = {}
+        msg_ids = []
+        for msg in expired:
+            msg_ids.append(msg["id"])
+            cid = msg["conversation_id"]
+            content_len = len(msg.get("content") or "")
+            conv_chars[cid] = conv_chars.get(cid, 0) + content_len
+
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                deleted = await conn.fetchval(
+                    "WITH d AS (DELETE FROM dm_messages WHERE id = ANY($1::uuid[]) RETURNING id) "
+                    "SELECT COUNT(*) FROM d",
+                    msg_ids,
+                )
+                for cid, chars in conv_chars.items():
+                    if chars > 0:
+                        await conn.execute(
+                            "UPDATE conversations SET total_chars = GREATEST(0, total_chars - $1) "
+                            "WHERE id = $2",
+                            chars,
+                            cid,
+                        )
+
+        total_deleted += deleted
+        if len(expired) < 1000:
+            break
+
+    logger.info("DM text cleanup complete", extra={"deleted": total_deleted})
+    return {"deleted": total_deleted}

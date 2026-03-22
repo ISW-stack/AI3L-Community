@@ -189,10 +189,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 
+# MO-17: Limit concurrent large uploads to bound peak memory
+import asyncio
+
+_UPLOAD_SEMAPHORE = asyncio.Semaphore(3)
+
 _UPLOAD_BODY_LIMITS: dict[str, int] = {
     "/api/v1/albums/": 50 * 1024 * 1024,  # 50 MB
-    "/api/v1/dm/": 50 * 1024 * 1024,  # 50 MB
-    "/api/v1/files/": 20 * 1024 * 1024,  # 20 MB
+    "/api/v1/dm/": 10 * 1024 * 1024,  # 10 MB (DM_MAX_ATTACHMENT_SIZE)
+    "/api/v1/files/": 10 * 1024 * 1024,  # 10 MB (MAX_EDITOR_FILE_SIZE)
 }
 
 
@@ -237,6 +242,17 @@ async def validation_exception_handler(
         status_code=422,
         content={"code": "VALIDATION_ERROR", "errors": errors},
     )
+
+
+@app.middleware("http")
+async def limit_upload_concurrency(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    """Limit concurrent upload requests to prevent memory pressure."""
+    path = request.url.path
+    is_upload = request.method == "POST" and any(path.startswith(p) for p in _UPLOAD_BODY_LIMITS)
+    if is_upload:
+        async with _UPLOAD_SEMAPHORE:
+            return await call_next(request)
+    return await call_next(request)
 
 
 @app.middleware("http")

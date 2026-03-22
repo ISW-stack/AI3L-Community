@@ -484,7 +484,7 @@ class TestFileValidationStructuredErrors:
         from app.core.errors import AppError
         from app.core.file_validation import validate_editor_file
 
-        data = b"\x89PNG\r\n\x1a\n" + b"\x00" * (21 * 1024 * 1024)
+        data = b"\x89PNG\r\n\x1a\n" + b"\x00" * (11 * 1024 * 1024)  # exceeds 10 MB limit
         with pytest.raises(AppError) as exc_info:
             validate_editor_file("test.png", data)
         assert exc_info.value.status_code == 400

@@ -162,57 +162,71 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
         questions = questions_raw or []
 
     total_responses = await form_repo.count_total_responses(form_id)
-    responses = await form_repo.iter_responses_batched(form_id)
 
-    question_stats = []
+    # Build per-question accumulators for single-pass streaming aggregation
+    q_meta: list[dict] = []  # question metadata
+    option_counts_map: dict[str, dict[str, int]] = {}
+    option_labels_map: dict[str, dict[str, str]] = {}
+    rating_sums: dict[str, int] = {}
+    rating_counts: dict[str, int] = {}
+    rating_mins: dict[str, int | None] = {}
+    rating_maxs: dict[str, int | None] = {}
+    rating_dists: dict[str, dict[int, int]] = {}
+    text_counts: dict[str, int] = {}
+    file_counts: dict[str, int] = {}
+
     for q in questions:
         qid = q["id"]
         qtype = q["type"]
-        qlabel = q["label"]
-        stats: dict = {}
+        q_meta.append({"id": qid, "type": qtype, "label": q["label"]})
 
         if qtype in ("single_choice", "multiple_choice", "dropdown"):
-            # Count per option + percentage
-            option_counts: dict[str, int] = {}
-            option_labels: dict[str, str] = {}
+            oc: dict[str, int] = {}
+            ol: dict[str, str] = {}
             for opt in q.get("options") or []:
-                option_counts[opt["id"]] = 0
-                option_labels[opt["id"]] = opt["label"]
+                oc[opt["id"]] = 0
+                ol[opt["id"]] = opt["label"]
+            option_counts_map[qid] = oc
+            option_labels_map[qid] = ol
+        elif qtype == "rating":
+            rating_sums[qid] = 0
+            rating_counts[qid] = 0
+            rating_mins[qid] = None
+            rating_maxs[qid] = None
+            rating_dists[qid] = {}
+        elif qtype in ("text", "textarea"):
+            text_counts[qid] = 0
+        elif qtype == "file_upload":
+            file_counts[qid] = 0
 
-            for resp in responses:
-                answers = resp.get("answers", {})
-                value = answers.get(qid)
-                if value is None:
-                    continue
+    # Stream responses — only one batch in memory at a time
+    async for resp in form_repo.iter_responses_batched(form_id):
+        answers = resp.get("answers", {})
+        for qm in q_meta:
+            qid = qm["id"]
+            qtype = qm["type"]
+            value = answers.get(qid)
+            if value is None:
+                continue
+
+            if qtype in ("single_choice", "multiple_choice", "dropdown"):
+                oc = option_counts_map[qid]
                 if qtype == "multiple_choice" and isinstance(value, list):
                     for v in value:
-                        if v in option_counts:
-                            option_counts[v] += 1
-                elif isinstance(value, str) and value in option_counts:
-                    option_counts[value] += 1
+                        if v in oc:
+                            oc[v] += 1
+                elif isinstance(value, str) and value in oc:
+                    oc[value] += 1
 
-            option_stats = []
-            for opt_id, count in option_counts.items():
-                pct = (count / total_responses * 100) if total_responses > 0 else 0.0
-                option_stats.append(
-                    {
-                        "option_id": opt_id,
-                        "option_label": option_labels.get(opt_id, ""),
-                        "count": count,
-                        "percentage": round(pct, 1),
-                    }
-                )
-            stats["options"] = option_stats
-
-        elif qtype == "rating":
-            values = []
-            distribution: dict[int, int] = {}
-            for resp in responses:
-                answers = resp.get("answers", {})
-                value = answers.get(qid)
+            elif qtype == "rating":
                 if isinstance(value, int) and not isinstance(value, bool):
-                    values.append(value)
-                    distribution[value] = distribution.get(value, 0) + 1
+                    rating_sums[qid] += value
+                    rating_counts[qid] += 1
+                    if rating_mins[qid] is None or value < rating_mins[qid]:
+                        rating_mins[qid] = value
+                    if rating_maxs[qid] is None or value > rating_maxs[qid]:
+                        rating_maxs[qid] = value
+                    rating_dists[qid][value] = rating_dists[qid].get(value, 0) + 1
                 elif value is not None:
                     logger.warning(
                         "Malformed rating value in form response",
@@ -224,40 +238,59 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
                         },
                     )
 
-            if values:
-                stats["average"] = round(sum(values) / len(values), 2)
-                stats["min"] = min(values)
-                stats["max"] = max(values)
+            elif qtype in ("text", "textarea"):
+                if value != "":
+                    text_counts[qid] += 1
+
+            elif qtype == "file_upload":
+                if isinstance(value, dict) and "key" in value:
+                    file_counts[qid] += 1
+
+    # Assemble final stats from accumulators
+    question_stats = []
+    for qm in q_meta:
+        qid = qm["id"]
+        qtype = qm["type"]
+        stats: dict = {}
+
+        if qtype in ("single_choice", "multiple_choice", "dropdown"):
+            option_stats = []
+            for opt_id, count in option_counts_map[qid].items():
+                pct = (count / total_responses * 100) if total_responses > 0 else 0.0
+                option_stats.append(
+                    {
+                        "option_id": opt_id,
+                        "option_label": option_labels_map[qid].get(opt_id, ""),
+                        "count": count,
+                        "percentage": round(pct, 1),
+                    }
+                )
+            stats["options"] = option_stats
+
+        elif qtype == "rating":
+            rc = rating_counts[qid]
+            if rc > 0:
+                stats["average"] = round(rating_sums[qid] / rc, 2)
+                stats["min"] = rating_mins[qid]
+                stats["max"] = rating_maxs[qid]
             else:
                 stats["average"] = 0.0
                 stats["min"] = 0
                 stats["max"] = 0
-            stats["count"] = len(values)
-            stats["distribution"] = distribution
+            stats["count"] = rc
+            stats["distribution"] = rating_dists[qid]
 
         elif qtype in ("text", "textarea"):
-            count = 0
-            for resp in responses:
-                answers = resp.get("answers", {})
-                value = answers.get(qid)
-                if value is not None and value != "":
-                    count += 1
-            stats["count"] = count
+            stats["count"] = text_counts[qid]
 
         elif qtype == "file_upload":
-            count = 0
-            for resp in responses:
-                answers = resp.get("answers", {})
-                value = answers.get(qid)
-                if value is not None and isinstance(value, dict) and "key" in value:
-                    count += 1
-            stats["count"] = count
+            stats["count"] = file_counts[qid]
 
         question_stats.append(
             {
                 "question_id": qid,
                 "question_type": qtype,
-                "question_label": qlabel,
+                "question_label": qm["label"],
                 "stats": stats,
             }
         )

@@ -94,7 +94,7 @@ class TestUpdateProfileValidationError:
             with patch(
                 f"{_EP}.update_user_profile",
                 new_callable=AsyncMock,
-                side_effect=ValueError("bio must be at most 50000 characters (got 50001)."),
+                side_effect=ValueError("bio must be at most 5000 characters (got 5001)."),
             ):
                 resp = await client.put(
                     "/api/v1/users/me",

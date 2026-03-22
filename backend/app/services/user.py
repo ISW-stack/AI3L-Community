@@ -426,13 +426,23 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                         user_id,
                     )
 
-                    # H-06: Collect DM attachment keys before deleting messages
-                    dm_rows = await conn.fetch(
-                        "SELECT attachment_key FROM dm_messages "
-                        "WHERE sender_id = $1 AND attachment_key IS NOT NULL",
-                        user_id,
-                    )
-                    dm_attachment_keys = [r["attachment_key"] for r in dm_rows]
+                    # H-06: Collect DM attachment keys in batches before deleting
+                    dm_attachment_keys: list[str] = []
+                    _BATCH = 1000
+                    while True:
+                        dm_rows = await conn.fetch(
+                            "SELECT attachment_key FROM dm_messages "
+                            "WHERE sender_id = $1 AND attachment_key IS NOT NULL "
+                            "ORDER BY created_at LIMIT $2 OFFSET $3",
+                            user_id,
+                            _BATCH,
+                            len(dm_attachment_keys),
+                        )
+                        if not dm_rows:
+                            break
+                        dm_attachment_keys.extend(r["attachment_key"] for r in dm_rows)
+                        if len(dm_rows) < _BATCH:
+                            break
 
                     # DM cleanup: recall all messages, delete DM data
                     await conn.execute(

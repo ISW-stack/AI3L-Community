@@ -186,14 +186,24 @@ class TestAsyncResolveAvatarUrl:
     async def test_minio_key_calls_async_storage(self):
         from app.converters.user_converter import async_resolve_avatar_url
 
-        with patch(
-            "app.core.async_storage.generate_presigned_url",
-            new_callable=AsyncMock,
-            return_value="https://minio/signed-async",
-        ) as mock_presign:
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=None)  # cache miss
+        mock_redis.setex = AsyncMock()
+
+        with (
+            patch("app.core.redis.get_redis", return_value=mock_redis),
+            patch(
+                "app.core.async_storage.generate_presigned_url",
+                new_callable=AsyncMock,
+                return_value="https://minio/signed-async",
+            ) as mock_presign,
+        ):
             result = await async_resolve_avatar_url("avatars/user123.png")
             assert result == "https://minio/signed-async"
             mock_presign.assert_called_once_with("avatars/user123.png", expires_in=3600)
+            mock_redis.setex.assert_called_once_with(
+                "presigned:avatars/user123.png", 2700, "https://minio/signed-async"
+            )
 
     @pytest.mark.asyncio
     async def test_exception_returns_raw_key(self):

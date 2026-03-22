@@ -4,6 +4,8 @@ import type { Conversation, DMMessage } from '@/types/dm'
 import * as dmApi from '@/api/dm'
 import { getErrorMessage } from '@/utils/error'
 
+const MAX_MESSAGES = 500
+
 export const useDMStore = defineStore('dm', () => {
   const conversations = ref<Conversation[]>([])
   const conversationsTotal = ref(0)
@@ -68,6 +70,10 @@ export const useDMStore = defineStore('dm', () => {
         const existingIds = new Set(messages.value.map((m) => m.id))
         const newMessages = chronological.filter((m) => !existingIds.has(m.id))
         messages.value = [...newMessages, ...messages.value]
+        // Trim oldest messages if exceeding cap
+        if (messages.value.length > MAX_MESSAGES) {
+          messages.value = messages.value.slice(-MAX_MESSAGES)
+        }
       }
       messagesTotal.value = res.total
     } catch (e: unknown) {
@@ -89,6 +95,12 @@ export const useDMStore = defineStore('dm', () => {
     }
   }
 
+  function _trimMessages() {
+    if (messages.value.length > MAX_MESSAGES) {
+      messages.value = messages.value.slice(-MAX_MESSAGES)
+    }
+  }
+
   function addFromWebSocket(message: DMMessage) {
     // Update conversation list
     const convIdx = conversations.value.findIndex((c) => c.id === message.conversation_id)
@@ -104,6 +116,7 @@ export const useDMStore = defineStore('dm', () => {
         const exists = messages.value.some((m) => m.id === message.id)
         if (!exists) {
           messages.value = [...messages.value, message]
+          _trimMessages()
         }
       }
       return
@@ -123,6 +136,7 @@ export const useDMStore = defineStore('dm', () => {
         const exists = messages.value.some((m) => m.id === message.id)
         if (!exists) {
           messages.value = [...messages.value, message]
+          _trimMessages()
         }
       }
       return
@@ -145,6 +159,7 @@ export const useDMStore = defineStore('dm', () => {
       const exists = messages.value.some((m) => m.id === message.id)
       if (!exists) {
         messages.value = [...messages.value, message]
+        _trimMessages()
       }
     } else {
       // Increment global unread count

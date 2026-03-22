@@ -78,6 +78,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   dmStore.setActiveConversation(null)
+  dmStore.messages = []
+  dmStore.messagesTotal = 0
 })
 
 // Watch route changes for userId param

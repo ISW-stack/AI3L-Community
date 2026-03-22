@@ -130,8 +130,11 @@ async def _async_export(form_id: str, task_id: str) -> dict:
                 break
             offset += _BATCH_SIZE
 
-    # Upload CSV to MinIO
-    csv_bytes = output.getvalue().encode("utf-8-sig")
+    # Upload CSV to MinIO — avoid holding both StringIO and bytes simultaneously
+    csv_text = output.getvalue()
+    output.close()  # release StringIO buffer
+    csv_bytes = ("\ufeff" + csv_text).encode("utf-8")  # BOM + single encode
+    del csv_text  # release string before upload
     storage_key = generate_form_export_key(form_id, task_id)
     upload_file(csv_bytes, storage_key, "text/csv")
 

@@ -147,7 +147,7 @@ async def send_message(
         file_data = await file.read(DM_MAX_ATTACHMENT_SIZE + 1)
         file_size = len(file_data)
         if file_size > DM_MAX_ATTACHMENT_SIZE:
-            raise AppError(ErrorCode.DM_005, 413, "File too large (max 50 MB).")
+            raise AppError(ErrorCode.DM_005, 413, "File too large (max 10 MB).")
         if file_size == 0:
             raise AppError(ErrorCode.SYS_422, 422, "Empty file.")
         file_name = file.filename or "attachment"

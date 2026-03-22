@@ -100,14 +100,14 @@ describe('useFormHistory', () => {
       q.type = types[i % types.length]
       history.pushState([q])
     }
-    // MAX_HISTORY = 50: undoStack is capped at 50 entries.
-    // canUndo requires undoStack.length > 1, so exactly 49 undos are possible.
+    // MAX_HISTORY = 20: undoStack is capped at 20 entries.
+    // canUndo requires undoStack.length > 1, so exactly 19 undos are possible.
     expect(history.canUndo.value).toBe(true)
     let undoCount = 0
     while (history.undo() !== null) {
       undoCount++
     }
-    expect(undoCount).toBe(49)
+    expect(undoCount).toBe(19)
     expect(history.canUndo.value).toBe(false)
   })
 

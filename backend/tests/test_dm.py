@@ -2667,7 +2667,7 @@ class TestSendMessageAtomicRepo:
                 attachment_size=None,
                 attachment_expires_at=None,
                 content_len=4,
-                char_cap=50000,
+                char_cap=20000,
             )
 
         # Verify advisory lock was called
@@ -2711,7 +2711,7 @@ class TestSendMessageAtomicRepo:
                 attachment_size=None,
                 attachment_expires_at=None,
                 content_len=11,
-                char_cap=50000,
+                char_cap=20000,
             )
 
         assert len(deleted) == 1
@@ -2742,7 +2742,7 @@ class TestSendMessageAtomicRepo:
             side_effect=[
                 uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
                 False,  # block check
-                50000,  # total_chars at cap
+                20000,  # total_chars at cap
             ]
         )
         mock_conn.fetch.return_value = [del1, del2]
@@ -2760,7 +2760,7 @@ class TestSendMessageAtomicRepo:
                 attachment_size=None,
                 attachment_expires_at=None,
                 content_len=3,
-                char_cap=50000,
+                char_cap=20000,
             )
 
         assert len(deleted) == 2
@@ -2793,7 +2793,7 @@ class TestSendMessageAtomicRepo:
                 attachment_size=None,
                 attachment_expires_at=None,
                 content_len=5,
-                char_cap=50000,
+                char_cap=20000,
             )
 
         assert deleted == []
@@ -2829,7 +2829,7 @@ class TestSendMessageAtomicRepo:
                 attachment_size=1024,
                 attachment_expires_at=None,
                 content_len=0,
-                char_cap=50000,
+                char_cap=20000,
             )
 
         assert deleted == []
@@ -3009,7 +3009,7 @@ class TestNewDMErrorCodes:
 
         assert exc.value.status_code == 413
         assert exc.value.detail["code"] == "DM_005"
-        assert "50 MB" in exc.value.detail["message"]
+        assert "10 MB" in exc.value.detail["message"]
 
     @pytest.mark.anyio
     @patch(f"{_SVC}.dm_repo")

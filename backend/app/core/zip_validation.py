@@ -9,6 +9,7 @@ Checks for:
 - Entry count limits
 """
 
+import tempfile
 import zipfile
 from io import BytesIO
 
@@ -17,8 +18,8 @@ from app.core.errors import AppError, ErrorCode
 # Maximum allowed decompression ratio (uncompressed / compressed)
 MAX_COMPRESSION_RATIO = 100
 
-# Maximum total uncompressed size (1 GB)
-MAX_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024
+# Maximum total uncompressed size (200 MB)
+MAX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024
 
 # Maximum number of entries in a ZIP
 MAX_ZIP_ENTRIES = 1000
@@ -201,7 +202,7 @@ def validate_zip(data: bytes, *, strip_mac_junk: bool = True) -> ZipValidationRe
                 raise AppError(
                     ErrorCode.ALBUM_003,
                     400,
-                    "ZIP total uncompressed size exceeds the 1 GB safety limit.",
+                    "ZIP total uncompressed size exceeds the 200 MB safety limit.",
                 )
 
             # 6. Per-entry compression ratio check
@@ -227,14 +228,15 @@ def validate_zip(data: bytes, *, strip_mac_junk: bool = True) -> ZipValidationRe
         # 8. Strip Mac junk if requested and present
         clean_data: bytes | None = None
         if strip_mac_junk and mac_junk_entries:
-            buf = BytesIO()
-            with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as out_zf:
-                for info in entries:
-                    if info.filename in mac_junk_entries:
-                        continue
-                    # Copy entry data preserving compression
-                    out_zf.writestr(info, zf.read(info.filename))
-            clean_data = buf.getvalue()
+            junk_set = set(mac_junk_entries)
+            with tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024) as tmp:
+                with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as out_zf:
+                    for info in entries:
+                        if info.filename in junk_set:
+                            continue
+                        out_zf.writestr(info, zf.read(info.filename))
+                tmp.seek(0)
+                clean_data = tmp.read()
         else:
             clean_data = data
 

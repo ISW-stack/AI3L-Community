@@ -51,7 +51,8 @@ def generate_thumbnail_task(
     from PIL import Image, ImageOps
 
     # Safety check — limit decompression bomb risk (set once per import)
-    Image.MAX_IMAGE_PIXELS = 50_000_000  # 50MP limit
+    # 20MP × 4 bytes (RGBA) = 80 MB — fits in Celery 256 MB per-child limit
+    Image.MAX_IMAGE_PIXELS = 20_000_000  # 20MP limit
 
     from app.core.config import settings
     from app.core.constants import ALBUM_THUMBNAIL_QUALITY, ALBUM_THUMBNAIL_SIZE
@@ -79,8 +80,9 @@ def generate_thumbnail_task(
             )
             return {"status": "skipped", "reason": "file_too_large"}
 
-        # 2. Resize
+        # 2. Resize — release download buffer before decompression to reduce peak memory
         img: Any = Image.open(io.BytesIO(data))
+        del data  # free ~50 MB download buffer before PIL decompresses bitmap
         img = ImageOps.exif_transpose(img)  # fix orientation
         img.thumbnail(ALBUM_THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
 

@@ -82,6 +82,7 @@ def sanitize_pdf(data: bytes) -> bytes:
 
     buf = BytesIO()
     pdf.save(buf)
+    pdf.close()  # release pikepdf internal structures before returning
     return buf.getvalue()
 
 
@@ -127,7 +128,7 @@ def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
         raise AppError(
             ErrorCode.FILE_001,
             400,
-            "File size exceeds 20MB limit.",
+            "File size exceeds 10MB limit.",
         )
     if not validate_magic_number(data, expected_type):
         raise AppError(
