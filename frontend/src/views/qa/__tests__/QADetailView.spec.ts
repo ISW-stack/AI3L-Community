@@ -384,4 +384,54 @@ describe('QADetailView', () => {
     // goToAnswersPage calls fetchAnswers then fetchUserVotes
     // We can verify by checking the mock call count increases
   })
+
+  // H-07: Re-fetch when route param changes (component reuse)
+  it('re-fetches post and answers when route param changes', async () => {
+    const fakePost2 = {
+      ...fakePost,
+      id: 'q2',
+      title: 'Second question',
+      answer_count: 0,
+      best_answer_id: null,
+    }
+    const fakeComments2 = {
+      comments: [
+        {
+          id: 'c2',
+          content: '<p>Different answer.</p>',
+          author: { id: 'u3', display_name: 'Charlie', username: 'charlie', avatar_url: null },
+          parent_id: null,
+          created_at: '2026-02-01T00:00:00Z',
+          updated_at: '2026-02-01T00:00:00Z',
+          mentions: [],
+          vote_score: 0,
+          is_best_answer: false,
+        },
+      ],
+      total: 1,
+    }
+
+    const { wrapper, router } = await mountQADetail()
+
+    // Verify initial fetch with q1
+    expect(mockGetPost).toHaveBeenCalledWith('q1')
+    expect(wrapper.text()).toContain('How to use AI in education?')
+
+    // Setup mocks for the second question
+    mockGetPost.mockClear()
+    mockListComments.mockClear()
+    mockGetUserVotes.mockClear()
+    mockGetPost.mockResolvedValue(fakePost2)
+    mockListComments.mockResolvedValue(fakeComments2)
+    mockGetUserVotes.mockResolvedValue({ data: [] })
+
+    // Navigate to a different question (component reuse)
+    await router.push('/qa/q2')
+    await flushPromises()
+
+    // The watcher should have triggered re-fetch with the new ID
+    expect(mockGetPost).toHaveBeenCalledWith('q2')
+    expect(mockListComments).toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Second question')
+  })
 })

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { Conversation, DMMessage } from '@/types/dm'
 import * as dmApi from '@/api/dm'
 import { getErrorMessage } from '@/utils/error'
@@ -11,7 +11,9 @@ export const useDMStore = defineStore('dm', () => {
   const activeConversationId = ref<string | null>(null)
   const messages = ref<DMMessage[]>([])
   const messagesTotal = ref(0)
-  const loading = ref(false)
+  const conversationsLoading = ref(false)
+  const messagesLoading = ref(false)
+  const loading = computed(() => conversationsLoading.value || messagesLoading.value)
   const error = ref<string | null>(null)
   const currentUserId = ref('')
 
@@ -28,13 +30,13 @@ export const useDMStore = defineStore('dm', () => {
       const res = await dmApi.getUnreadCount()
       unreadCount.value = res.unread_count
     } catch (e: unknown) {
-      console.error('Failed to fetch DM unread count:', getErrorMessage(e))
+      if (import.meta.env.DEV) console.error('Failed to fetch DM unread count:', getErrorMessage(e))
     }
   }
 
   async function fetchConversations(page = 1, pageSize = 30) {
     const fetchId = ++_convFetchId
-    loading.value = true
+    conversationsLoading.value = true
     error.value = null
     try {
       const res = await dmApi.listConversations({ page, page_size: pageSize })
@@ -45,13 +47,13 @@ export const useDMStore = defineStore('dm', () => {
       if (fetchId !== _convFetchId) return
       error.value = getErrorMessage(e, 'Failed to load conversations.')
     } finally {
-      if (fetchId === _convFetchId) loading.value = false
+      if (fetchId === _convFetchId) conversationsLoading.value = false
     }
   }
 
   async function fetchMessages(conversationId: string, page = 1, pageSize = 30) {
     const fetchId = ++_msgFetchId
-    loading.value = true
+    messagesLoading.value = true
     error.value = null
     try {
       const res = await dmApi.listMessages(conversationId, { page, page_size: pageSize })
@@ -83,7 +85,7 @@ export const useDMStore = defineStore('dm', () => {
         }
       }
     } finally {
-      if (fetchId === _msgFetchId) loading.value = false
+      if (fetchId === _msgFetchId) messagesLoading.value = false
     }
   }
 
@@ -101,7 +103,7 @@ export const useDMStore = defineStore('dm', () => {
       if (activeConversationId.value === message.conversation_id) {
         const exists = messages.value.some((m) => m.id === message.id)
         if (!exists) {
-          messages.value.push(message)
+          messages.value = [...messages.value, message]
         }
       }
       return
@@ -110,36 +112,39 @@ export const useDMStore = defineStore('dm', () => {
     // BUG-2: Own message echoed back via WS — dedup only, no unread increment
     if (message.sender.id === currentUserId.value) {
       // Update conversation list (move to top, update last_message) but don't touch unread
-      const conv = { ...conversations.value[convIdx] }
-      conv.last_message = message
-      conv.updated_at = message.created_at
-      conversations.value.splice(convIdx, 1)
-      conversations.value.unshift(conv)
+      const updated = {
+        ...conversations.value[convIdx],
+        last_message: message,
+        updated_at: message.created_at,
+      }
+      conversations.value = [updated, ...conversations.value.filter((_, i) => i !== convIdx)]
       // Only add to messages if viewing this conversation and not already present
       if (activeConversationId.value === message.conversation_id) {
         const exists = messages.value.some((m) => m.id === message.id)
         if (!exists) {
-          messages.value.push(message)
+          messages.value = [...messages.value, message]
         }
       }
       return
     }
 
-    // Other user's message
-    const conv = { ...conversations.value[convIdx] }
-    conv.last_message = message
-    conv.updated_at = message.created_at
-    if (activeConversationId.value !== message.conversation_id) {
-      conv.unread_count += 1
+    // Other user's message — immutable array update
+    const updated = {
+      ...conversations.value[convIdx],
+      last_message: message,
+      updated_at: message.created_at,
+      unread_count:
+        activeConversationId.value !== message.conversation_id
+          ? (conversations.value[convIdx].unread_count || 0) + 1
+          : conversations.value[convIdx].unread_count,
     }
-    conversations.value.splice(convIdx, 1)
-    conversations.value.unshift(conv)
+    conversations.value = [updated, ...conversations.value.filter((_, i) => i !== convIdx)]
 
     // If viewing this conversation, add message to messages array
     if (activeConversationId.value === message.conversation_id) {
       const exists = messages.value.some((m) => m.id === message.id)
       if (!exists) {
-        messages.value.push(message)
+        messages.value = [...messages.value, message]
       }
     } else {
       // Increment global unread count
@@ -210,7 +215,8 @@ export const useDMStore = defineStore('dm', () => {
     messagesTotal.value = 0
     unreadCount.value = 0
     activeConversationId.value = null
-    loading.value = false
+    conversationsLoading.value = false
+    messagesLoading.value = false
     error.value = null
     currentUserId.value = ''
   }
@@ -222,6 +228,8 @@ export const useDMStore = defineStore('dm', () => {
     activeConversationId,
     messages,
     messagesTotal,
+    conversationsLoading,
+    messagesLoading,
     loading,
     error,
     currentUserId,

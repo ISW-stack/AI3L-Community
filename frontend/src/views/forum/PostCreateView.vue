@@ -50,7 +50,7 @@ const {
   loadDraft,
   clearDraft,
 } = useDraft<PostDraft>({
-  key: draftKey.value,
+  key: () => draftKey.value,
   defaultValue: {
     title: '',
     content: '',

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-_TEST_CSRF = "csrf-test"
+from tests.conftest import _TEST_CSRF_TOKEN, _TEST_JWT_TOKEN
 
 
 def _make_app_client_factory():
@@ -61,8 +61,11 @@ async def client():
         async with AsyncClient(
             transport=transport,
             base_url="http://test",
-            cookies={"csrf_token": _TEST_CSRF},
-            headers={"X-CSRF-Token": _TEST_CSRF},
+            cookies={"csrf_token": _TEST_CSRF_TOKEN},
+            headers={
+                "X-CSRF-Token": _TEST_CSRF_TOKEN,
+                "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
+            },
         ) as ac:
             yield ac
 
@@ -399,7 +402,11 @@ class TestIdempotencyUnauthenticated:
             _ = await client.post(
                 "/api/v1/auth/login",
                 json={"username": "x", "password": "x", "captcha_id": "c", "captcha_code": "1"},
-                headers={"Idempotency-Key": "anon-key-001"},
+                headers={
+                    "Idempotency-Key": "anon-key-001",
+                    "Authorization": "",
+                    "X-CSRF-Token": "",
+                },
                 cookies={"csrf_token": "", "access_token": ""},
             )
         # Redis.get should NOT be called since no auth token (cookie/header empty)
@@ -569,5 +576,38 @@ class TestIdempotencyErrorJsonCached:
 
             # Both responses should have the same status code
             assert resp2.status_code == resp1.status_code
+        finally:
+            _clear_overrides()
+
+
+class TestIdempotencyNXRaceCondition:
+    """H-15: When redis.set(nx=True) returns False, middleware returns 409."""
+
+    @pytest.mark.anyio
+    async def test_nx_false_returns_409(self, client: AsyncClient):
+        """When NX fails (concurrent request claimed the key), return 409 Conflict."""
+        idem_key = "race-condition-key-001"
+
+        mock_redis = AsyncMock()
+        # get returns None (no cached response yet)
+        mock_redis.get = AsyncMock(return_value=None)
+        # set with nx=True returns False/None (another request claimed it)
+        mock_redis.set = AsyncMock(return_value=False)
+
+        _override_auth("MEMBER")
+        try:
+            with patch("app.middleware.idempotency.get_redis", return_value=mock_redis):
+                resp = await client.post(
+                    "/api/v1/posts",
+                    json={"title": "t"},
+                    headers={
+                        "Idempotency-Key": idem_key,
+                        "Authorization": "Bearer faketoken123",
+                    },
+                )
+            assert resp.status_code == 409
+            body = resp.json()
+            assert "processing" in body["detail"]["message"].lower()
+            assert resp.headers.get("Idempotency-Key") == idem_key
         finally:
             _clear_overrides()

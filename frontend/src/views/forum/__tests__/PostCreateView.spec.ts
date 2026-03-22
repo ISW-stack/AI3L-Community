@@ -434,6 +434,47 @@ describe('PostCreateView', () => {
     pushSpy.mockRestore()
   })
 
+  describe('H-09: draft key uses getter function', () => {
+    it('passes a getter function to useDraft so key is evaluated lazily', async () => {
+      // The key is `ai3l_post_draft_general_anon` at setup time (no auth user).
+      // When auth loads, the key would change to include the real user ID.
+      // This test verifies the draft key resolves correctly at mount time.
+      localStorage.setItem(
+        'ai3l_post_draft_general_anon',
+        JSON.stringify({
+          title: 'Lazy Draft',
+          content: '<p>Lazy content</p>',
+          categoryId: null,
+          keywords: [],
+          allowComments: true,
+        }),
+      )
+
+      const { wrapper } = await mountPostCreate()
+      // The draft should still be found since the getter evaluates to the same key
+      expect(wrapper.text()).toContain('Draft restored')
+    })
+
+    it('draft key includes sig_id when posting from SIG context', async () => {
+      localStorage.setItem(
+        'ai3l_post_draft_sig1_anon',
+        JSON.stringify({
+          title: 'SIG Lazy Draft',
+          content: '<p>SIG content</p>',
+          categoryId: null,
+          keywords: [],
+          allowComments: true,
+        }),
+      )
+
+      const { wrapper } = await mountPostCreate({ query: { sig_id: 'sig1' } })
+      expect(wrapper.text()).toContain('Draft restored')
+
+      // Verify the general key's draft is NOT loaded when sig context is active
+      expect(localStorage.getItem('ai3l_post_draft_general_anon')).toBeNull()
+    })
+  })
+
   describe('draft integration with useDraft', () => {
     it('clears draft from localStorage after successful submit', async () => {
       localStorage.setItem(

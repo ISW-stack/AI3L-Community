@@ -109,6 +109,26 @@ async def _get_referenced_keys() -> set[str]:
                 break
             offset += _BATCH_SIZE
 
+        # Process post_history in batches
+        offset = 0
+        while True:
+            rows = await conn.fetch(
+                "SELECT content AS html FROM post_history "
+                "WHERE content IS NOT NULL AND content <> '' "
+                "ORDER BY id LIMIT $1 OFFSET $2",
+                _BATCH_SIZE,
+                offset,
+            )
+            if not rows:
+                break
+            for row in rows:
+                html = row["html"] or ""
+                for match in _FILE_KEY_RE.finditer(html):
+                    keys.add(match.group(1))
+            if len(rows) < _BATCH_SIZE:
+                break
+            offset += _BATCH_SIZE
+
     return keys
 
 

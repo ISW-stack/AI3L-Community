@@ -47,7 +47,7 @@ async function fetchRecommendations() {
     const result = await getRecommendations()
     recommendations.value = result.recommendations.slice(0, 10)
   } catch (e: unknown) {
-    console.error('Failed to fetch recommendations:', getErrorMessage(e))
+    if (import.meta.env.DEV) console.error('Failed to fetch recommendations:', getErrorMessage(e))
   } finally {
     loading.value = false
   }

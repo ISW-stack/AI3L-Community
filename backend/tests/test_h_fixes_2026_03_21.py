@@ -260,9 +260,10 @@ class TestSecurityHeadersTemplate:
         assert "Strict-Transport-Security" in content
         assert "max-age=31536000" in content
 
-    def test_dev_headers_include_hsts(self):
+    def test_fallback_headers_no_hsts(self):
+        """Fallback security-headers.conf must NOT include HSTS (may serve over HTTP)."""
         content = self._read_file("nginx", "snippets", "security-headers.conf")
-        assert "Strict-Transport-Security" in content
+        assert "Strict-Transport-Security" not in content
 
     def test_template_has_upgrade_insecure_requests(self):
         content = self._read_file("nginx", "snippets", "security-headers.conf.template")

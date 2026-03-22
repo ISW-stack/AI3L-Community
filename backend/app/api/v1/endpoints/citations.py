@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.core.constants import RATE_LIMIT_CITATION_SEARCH
-from app.core.deps import get_current_user, require_role
+from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
 from app.schemas.citation import CitationEntryResponse, CitationListResponse, CitationSearchRequest
@@ -35,7 +35,7 @@ async def get_cited_by(
     post_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CitationListResponse:
     """Get posts that cite this post ('Cited by' list)."""
     citations, total = await get_citations_of(post_id=post_id, page=page, page_size=page_size)
@@ -49,7 +49,7 @@ async def get_citing_endpoint(
     post_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CitationListResponse:
     """Get posts this post cites ('References' list)."""
     citations, total = await get_citing(post_id=post_id, page=page, page_size=page_size)

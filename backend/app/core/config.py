@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     TRUSTED_HOSTS: str = ""
 
     # Logging
-    LOG_LEVEL: str = "DEBUG"
+    LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
 
     @property
@@ -113,8 +113,8 @@ class Settings(BaseSettings):
                 f"Treating as non-development.",
                 stacklevel=1,
             )
-        # Block production startup with default/insecure secrets
-        if self.FASTAPI_ENV == "production":
+        # Block startup with default/insecure secrets for any non-dev/non-test environment
+        if self.FASTAPI_ENV not in ("development", "test"):
             if "changeme" in self.JWT_SECRET_KEY:
                 raise ValueError(
                     "JWT_SECRET_KEY contains 'changeme' — refusing to start in production. "
@@ -144,6 +144,10 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "MINIO_ROOT_PASSWORD contains 'changeme' — refusing to start in production. "
                     "Set a strong, unique password."
+                )
+            if len(self.JWT_SECRET_KEY) < 32:
+                raise ValueError(
+                    "JWT_SECRET_KEY must be at least 32 characters for HS256."
                 )
         # Auto-derive COOKIE_SECURE from FASTAPI_ENV when not explicitly set
         if self.COOKIE_SECURE is None:

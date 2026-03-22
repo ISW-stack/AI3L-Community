@@ -23,6 +23,12 @@ fi
 POSTGRES_USER="${POSTGRES_USER:-ai3l}"
 POSTGRES_DB="${POSTGRES_DB:-ai3l_community}"
 
+# Validate database name (only alphanumeric and underscore)
+if ! echo "$POSTGRES_DB" | grep -qE '^[a-zA-Z_][a-zA-Z0-9_]*$'; then
+    echo "ERROR: Invalid database name: $POSTGRES_DB"
+    exit 1
+fi
+
 echo "==> WARNING: This will DROP and re-create the database '$POSTGRES_DB'."
 echo "    Backup file: $BACKUP_FILE"
 read -rp "    Continue? [y/N] " CONFIRM

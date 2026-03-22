@@ -151,8 +151,8 @@ class TestCsrfBindingMiddleware:
             app.dependency_overrides.clear()
 
     @pytest.mark.anyio
-    async def test_no_jwt_cookie_falls_back_to_double_submit(self, _app_client: AsyncClient):
-        """Without access_token cookie, only double-submit check applies."""
+    async def test_no_jwt_cookie_rejected(self, _app_client: AsyncClient):
+        """Without access_token cookie, CSRF is rejected (no session binding possible)."""
         from app.core.deps import get_current_user
         from app.main import app
 
@@ -164,26 +164,16 @@ class TestCsrfBindingMiddleware:
             "jti": "some-jti",
         }
         try:
-            with (
-                patch(
-                    "app.api.v1.endpoints.auth.refresh_session_ttl",
-                    new_callable=AsyncMock,
-                    return_value=True,
-                ),
-                patch(
-                    "app.api.v1.endpoints.auth.check_rate_limit",
-                    new_callable=AsyncMock,
-                    return_value=True,
-                ),
-            ):
-                resp = await _app_client.post(
-                    "/api/v1/auth/heartbeat",
-                    cookies={"csrf_token": plain_token},
-                    headers={"X-CSRF-Token": plain_token},
-                )
-            # Without access_token cookie, JTI binding is skipped
-            # Double-submit passes because cookie == header
-            assert resp.status_code == 200
+            resp = await _app_client.post(
+                "/api/v1/auth/heartbeat",
+                cookies={"csrf_token": plain_token},
+                headers={"X-CSRF-Token": plain_token},
+            )
+            # Without access_token cookie or Bearer header, CSRF is rejected
+            assert resp.status_code == 403
+            detail = resp.json()["detail"]
+            assert detail["code"] == "CSRF_002"
+            assert "no session" in detail["message"]
         finally:
             app.dependency_overrides.clear()
 
@@ -238,3 +228,67 @@ class TestCsrfBindingMiddleware:
         # The CSRF token should be the HMAC of the JTI
         expected_csrf = generate_csrf_token("test-jti-123")
         assert cookies["csrf_token"] == expected_csrf
+
+    @pytest.mark.anyio
+    async def test_no_jwt_via_bearer_also_rejected(self, _app_client: AsyncClient):
+        """Without access_token cookie AND no Bearer header, CSRF is rejected."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        plain_token = "double-submit-only"
+
+        app.dependency_overrides[get_current_user] = lambda: {
+            "sub": str(uuid.uuid4()),
+            "role": "MEMBER",
+            "jti": "some-jti",
+        }
+        try:
+            resp = await _app_client.put(
+                "/api/v1/users/me",
+                json={"display_name": "test"},
+                cookies={"csrf_token": plain_token},
+                headers={"X-CSRF-Token": plain_token},
+            )
+            assert resp.status_code == 403
+            detail = resp.json()["detail"]
+            assert detail["code"] == "CSRF_002"
+        finally:
+            app.dependency_overrides.clear()
+
+    @pytest.mark.anyio
+    async def test_bearer_header_jwt_accepted(self, _app_client: AsyncClient):
+        """JWT in Bearer header (no cookie) passes CSRF session binding."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        jwt_token, csrf_token, uid, jti = self._make_jwt_and_csrf()
+
+        app.dependency_overrides[get_current_user] = lambda: {
+            "sub": uid,
+            "role": "MEMBER",
+            "jti": jti,
+        }
+        try:
+            with (
+                patch(
+                    "app.api.v1.endpoints.auth.refresh_session_ttl",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.api.v1.endpoints.auth.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+            ):
+                resp = await _app_client.post(
+                    "/api/v1/auth/heartbeat",
+                    cookies={"csrf_token": csrf_token},
+                    headers={
+                        "X-CSRF-Token": csrf_token,
+                        "Authorization": f"Bearer {jwt_token}",
+                    },
+                )
+            assert resp.status_code == 200
+        finally:
+            app.dependency_overrides.clear()

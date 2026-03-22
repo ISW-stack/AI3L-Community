@@ -187,7 +187,7 @@ class TestUpdatePost:
 
 
 class TestDeletePost:
-    @patch("app.repositories.post_repo.get_pool")
+    @patch("app.services.post.get_pool")
     async def test_delete_post_admin(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.post import soft_delete_post
 
@@ -195,18 +195,19 @@ class TestDeletePost:
         user_id = str(uuid.uuid4())
         owner_id = uuid.uuid4()
 
-        mock_conn.fetchrow.return_value = {"user_id": owner_id}
+        mock_conn.fetchval.return_value = owner_id
         mock_conn.execute.return_value = "UPDATE 1"
         mock_get_pool.return_value = mock_pool
 
         result = await soft_delete_post(post_id, user_id, is_admin=True)
         assert result is True
-        # Verify execute was called and includes the post_id in arguments
-        mock_conn.execute.assert_called_once()
-        execute_args = mock_conn.execute.call_args[0]
-        assert post_id in execute_args, "post_id must be passed to the execute call"
+        # execute called at least once (soft-delete + citation cleanup)
+        assert mock_conn.execute.call_count >= 1
+        # First execute call should include the post_id
+        first_call_args = mock_conn.execute.call_args_list[0][0]
+        assert post_id in first_call_args, "post_id must be passed to the execute call"
 
-    @patch("app.repositories.post_repo.get_pool")
+    @patch("app.services.post.get_pool")
     async def test_delete_post_owner(self, mock_get_pool, mock_pool, mock_conn):
         from app.services.post import soft_delete_post
 
@@ -217,10 +218,11 @@ class TestDeletePost:
 
         result = await soft_delete_post(post_id, user_id, is_admin=False)
         assert result is True
-        # Verify execute was called and includes the post_id in arguments
-        mock_conn.execute.assert_called_once()
-        execute_args = mock_conn.execute.call_args[0]
-        assert post_id in execute_args, "post_id must be passed to the execute call"
+        # execute called at least once (soft-delete + citation cleanup)
+        assert mock_conn.execute.call_count >= 1
+        # First execute call should include the post_id
+        first_call_args = mock_conn.execute.call_args_list[0][0]
+        assert post_id in first_call_args, "post_id must be passed to the execute call"
 
 
 class TestPinPost:

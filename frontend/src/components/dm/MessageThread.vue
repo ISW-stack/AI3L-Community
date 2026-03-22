@@ -154,6 +154,16 @@ function isFileExpired(expiresAt: string | null): boolean {
   return new Date(expiresAt).getTime() < Date.now()
 }
 
+/**
+ * Validate that a URL is safe for rendering (same-origin relative or http/https).
+ * Rejects javascript:, data:, and other potentially dangerous schemes.
+ */
+function safeAttachmentUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url
+  return null
+}
+
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp'])
 const VIDEO_EXTS = new Set(['mp4', 'webm', 'mov', 'avi'])
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'flac'])
@@ -335,14 +345,17 @@ defineExpose({ scrollToBottom })
                 <template v-else>
                   <!-- Image preview -->
                   <a
-                    v-if="isImage(item.message.attachment_name)"
-                    :href="item.message.attachment_url ?? '#'"
+                    v-if="
+                      isImage(item.message.attachment_name) &&
+                      safeAttachmentUrl(item.message.attachment_url)
+                    "
+                    :href="safeAttachmentUrl(item.message.attachment_url) ?? '#'"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="block mt-1"
                   >
                     <img
-                      :src="item.message.attachment_url ?? ''"
+                      :src="safeAttachmentUrl(item.message.attachment_url) ?? ''"
                       :alt="item.message.attachment_name"
                       class="max-h-48 max-w-full rounded-lg object-cover"
                       loading="lazy"
@@ -350,12 +363,12 @@ defineExpose({ scrollToBottom })
                   </a>
                   <!-- Non-image file -->
                   <div
-                    v-else
+                    v-else-if="safeAttachmentUrl(item.message.attachment_url)"
                     class="flex items-center gap-2 text-xs"
                     :class="isMine(item.message) ? 'text-white/80' : 'text-muted'"
                   >
                     <a
-                      :href="item.message.attachment_url ?? '#'"
+                      :href="safeAttachmentUrl(item.message.attachment_url) ?? '#'"
                       target="_blank"
                       rel="noopener noreferrer"
                       class="flex items-center gap-1.5 hover:underline"

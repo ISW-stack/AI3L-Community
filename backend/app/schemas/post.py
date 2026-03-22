@@ -34,7 +34,7 @@ class PostCreateRequest(BaseModel):
 class PostUpdateRequest(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=300)
     content: str | None = Field(None, min_length=1, max_length=100_000)
-    category_id: str | None = None
+    category_id: str | None = Field(None, pattern=_UUID_PATTERN)
     keywords: list[str] | None = Field(None, max_length=15)
     allow_comments: bool | None = None
     version: int = Field(..., description="Current version for optimistic locking")
@@ -107,8 +107,8 @@ class BulkDeletePostsRequest(BaseModel):
 
 class PostSearchRequest(BaseModel):
     keyword: str | None = Field(None, max_length=200)
-    category_id: str | None = None
-    keywords: list[str] | None = None
+    category_id: str | None = Field(None, pattern=_UUID_PATTERN)
+    keywords: list[str] | None = Field(None, max_length=15)
     date_from: date | None = None
     date_to: date | None = None
     logic: str = Field(default="AND", pattern="^(AND|OR)$")
@@ -119,6 +119,11 @@ class PostSearchRequest(BaseModel):
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
     type: str | None = Field(None, pattern="^(post|question)$")
+
+    @field_validator("keywords")
+    @classmethod
+    def validate_keywords(cls, v: list[str] | None) -> list[str] | None:
+        return _validate_keyword_length(v)
 
 
 class PinPostRequest(BaseModel):

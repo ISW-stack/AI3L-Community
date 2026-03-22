@@ -18,7 +18,7 @@ export const useNotificationStore = defineStore('notifications', () => {
       const data = await listNotifications({ unread: true, page_size: 1 })
       unreadCount.value = data.unread_count
     } catch (e: unknown) {
-      console.error('Failed to fetch unread count:', getErrorMessage(e))
+      if (import.meta.env.DEV) console.error('Failed to fetch unread count:', getErrorMessage(e))
     }
   }
 
@@ -30,7 +30,7 @@ export const useNotificationStore = defineStore('notifications', () => {
       items.value = data.notifications
       unreadCount.value = data.unread_count
     } catch (e: unknown) {
-      console.error('Failed to fetch notifications:', getErrorMessage(e))
+      if (import.meta.env.DEV) console.error('Failed to fetch notifications:', getErrorMessage(e))
     } finally {
       loading.value = false
     }
@@ -45,7 +45,7 @@ export const useNotificationStore = defineStore('notifications', () => {
         unreadCount.value = Math.max(0, unreadCount.value - 1)
       }
     } catch (e: unknown) {
-      console.error('Failed to mark notification as read:', getErrorMessage(e))
+      if (import.meta.env.DEV) console.error('Failed to mark notification as read:', getErrorMessage(e))
     }
   }
 
@@ -55,7 +55,7 @@ export const useNotificationStore = defineStore('notifications', () => {
       items.value.forEach((n) => (n.is_read = true))
       unreadCount.value = 0
     } catch (e: unknown) {
-      console.error('Failed to mark all notifications as read:', getErrorMessage(e))
+      if (import.meta.env.DEV) console.error('Failed to mark all notifications as read:', getErrorMessage(e))
     }
   }
 

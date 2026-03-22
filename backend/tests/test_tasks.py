@@ -168,10 +168,9 @@ class TestTaskStatus:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_task_status_requires_authentication(self, client, _mock_celery):
+    async def test_task_status_requires_authentication(self, unauthed_client, _mock_celery):
         """GET /tasks/{id}/status -> 401 for unauthenticated requests."""
-        _clear_overrides()
-        resp = await client.get("/api/v1/tasks/task-000/status")
+        resp = await unauthed_client.get("/api/v1/tasks/task-000/status")
         assert resp.status_code == 401
 
     @pytest.mark.anyio

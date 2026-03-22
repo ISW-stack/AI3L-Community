@@ -121,7 +121,7 @@ class TestSettings:
 
     def test_default_log_level(self):
         s = self._make_settings()
-        assert s.LOG_LEVEL == "DEBUG"
+        assert s.LOG_LEVEL == "INFO"
 
     def test_default_log_format(self):
         s = self._make_settings()
@@ -197,7 +197,15 @@ class TestSettings:
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            self._make_settings(FASTAPI_ENV="staging")
+            self._make_settings(
+                FASTAPI_ENV="staging",
+                JWT_SECRET_KEY="a_real_production_secret_key_here",
+                SECRET_KEY="real_secret_key_prod_32chars_long_ok",
+                SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+                POSTGRES_PASSWORD="real_pg_password",
+                REDIS_PASSWORD="real_redis_password",
+                MINIO_ROOT_PASSWORD="real_minio_password",
+            )
         env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
         assert len(env_warnings) == 1
         assert "staging" in str(env_warnings[0].message)
@@ -245,6 +253,111 @@ class TestSettings:
     def test_bool_type_coercion(self):
         s = self._make_settings(FASTAPI_DEBUG=True)
         assert isinstance(s.FASTAPI_DEBUG, bool)
+
+    # -- M-02: Non-standard envs must also reject default secrets --
+
+    def test_staging_env_rejects_default_jwt_secret(self):
+        """FASTAPI_ENV='staging' (non-standard) should reject default JWT_SECRET_KEY."""
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            with pytest.raises(ValueError, match="JWT_SECRET_KEY"):
+                self._make_settings(
+                    FASTAPI_ENV="staging",
+                    JWT_SECRET_KEY="changeme_jwt_secret_key",
+                    SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+                    SECRET_KEY="real_secret_key_prod_32chars_long_ok",
+                    POSTGRES_PASSWORD="real_pg_password",
+                    REDIS_PASSWORD="real_redis_password",
+                    MINIO_ROOT_PASSWORD="real_minio_password",
+                )
+
+    def test_staging_env_rejects_default_secret_key(self):
+        """FASTAPI_ENV='staging' should reject default SECRET_KEY."""
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            with pytest.raises(ValueError, match="SECRET_KEY"):
+                self._make_settings(
+                    FASTAPI_ENV="staging",
+                    JWT_SECRET_KEY="a_real_production_secret_key_here",
+                    SECRET_KEY="changeme_secret_key_at_least_32_characters_long",
+                    SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+                    POSTGRES_PASSWORD="real_pg_password",
+                    REDIS_PASSWORD="real_redis_password",
+                    MINIO_ROOT_PASSWORD="real_minio_password",
+                )
+
+    def test_staging_env_rejects_default_admin_password(self):
+        """FASTAPI_ENV='staging' should reject default SUPER_ADMIN_PASSWORD."""
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            with pytest.raises(ValueError, match="SUPER_ADMIN_PASSWORD"):
+                self._make_settings(
+                    FASTAPI_ENV="staging",
+                    JWT_SECRET_KEY="a_real_production_secret_key_here",
+                    SECRET_KEY="real_secret_key_prod_32chars_long_ok",
+                    SUPER_ADMIN_PASSWORD="changeme_admin",
+                    POSTGRES_PASSWORD="real_pg_password",
+                    REDIS_PASSWORD="real_redis_password",
+                    MINIO_ROOT_PASSWORD="real_minio_password",
+                )
+
+    def test_staging_env_allows_strong_secrets(self):
+        """FASTAPI_ENV='staging' should allow strong secrets."""
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            s = self._make_settings(
+                FASTAPI_ENV="staging",
+                JWT_SECRET_KEY="a_real_production_secret_key_here",
+                SECRET_KEY="real_secret_key_prod_32chars_long_ok",
+                SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+                POSTGRES_PASSWORD="real_pg_password",
+                REDIS_PASSWORD="real_redis_password",
+                MINIO_ROOT_PASSWORD="real_minio_password",
+            )
+        assert s.FASTAPI_ENV == "staging"
+
+    def test_test_env_allows_default_secrets(self):
+        """FASTAPI_ENV='test' should still allow default secrets."""
+        s = self._make_settings(
+            FASTAPI_ENV="test",
+            JWT_SECRET_KEY="changeme_jwt_secret_key",
+            SUPER_ADMIN_PASSWORD="changeme_admin",
+        )
+        assert s.FASTAPI_ENV == "test"
+
+    def test_development_env_allows_default_secrets(self):
+        """FASTAPI_ENV='development' should still allow default secrets."""
+        s = self._make_settings(
+            FASTAPI_ENV="development",
+            JWT_SECRET_KEY="changeme_jwt_secret_key",
+            SUPER_ADMIN_PASSWORD="changeme_admin",
+        )
+        assert s.FASTAPI_ENV == "development"
+
+    def test_custom_env_rejects_default_postgres_password(self):
+        """FASTAPI_ENV='custom' should reject default POSTGRES_PASSWORD."""
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            with pytest.raises(ValueError, match="POSTGRES_PASSWORD"):
+                self._make_settings(
+                    FASTAPI_ENV="custom",
+                    JWT_SECRET_KEY="a_real_production_secret_key_here",
+                    SECRET_KEY="real_secret_key_prod_32chars_long_ok",
+                    SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
+                    POSTGRES_PASSWORD="changeme_postgres",
+                    REDIS_PASSWORD="real_redis_password",
+                    MINIO_ROOT_PASSWORD="real_minio_password",
+                )
 
 
 # ---------------------------------------------------------------------------

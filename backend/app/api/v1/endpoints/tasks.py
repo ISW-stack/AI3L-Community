@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
@@ -9,8 +9,8 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 @router.get("/{task_id}/status", response_model=TaskStatusResponse)
 async def get_task_status(
-    task_id: str,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    task_id: str = Path(..., min_length=1, max_length=64),
 ) -> TaskStatusResponse:
     from celery.result import AsyncResult
 

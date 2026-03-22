@@ -30,8 +30,10 @@ const loading = ref(false)
 const error = ref('')
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let isMounted = true
 
 onBeforeUnmount(() => {
+  isMounted = false
   if (debounceTimer) clearTimeout(debounceTimer)
 })
 
@@ -44,14 +46,17 @@ function onSearchInput() {
   loading.value = true
   error.value = ''
   debounceTimer = setTimeout(async () => {
+    if (!isMounted) return
     try {
       const res = await searchForCitation(query.value.trim())
+      if (!isMounted) return
       results.value = res as SearchResult[]
     } catch (e: unknown) {
+      if (!isMounted) return
       error.value = getErrorMessage(e, 'Search failed.')
       results.value = []
     } finally {
-      loading.value = false
+      if (isMounted) loading.value = false
     }
   }, 300)
 }

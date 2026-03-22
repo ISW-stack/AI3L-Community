@@ -171,9 +171,9 @@ class TestCreateStandaloneForm:
 
 class TestListStandaloneForms:
     @pytest.mark.anyio
-    async def test_list_standalone_forms_no_auth(self, client):
+    async def test_list_standalone_forms_no_auth(self, unauthed_client):
         """GET /forms → 401 without authentication."""
-        resp = await client.get("/api/v1/forms")
+        resp = await unauthed_client.get("/api/v1/forms")
         assert resp.status_code == 401
 
     @pytest.mark.anyio
@@ -254,12 +254,16 @@ class TestGetStandaloneFormDetail:
     @pytest.mark.anyio
     async def test_get_standalone_form_detail(self, client):
         """GET /forms/{form_id} → 200 for standalone form."""
+        from app.core.deps import get_optional_current_user
+        from app.main import app
+
         form_id = uuid.uuid4()
         form = _make_standalone_form()
         form["id"] = str(form_id)
 
         try:
-            _override_auth("MEMBER")
+            payload, uid = _override_auth("MEMBER")
+            app.dependency_overrides[get_optional_current_user] = lambda: payload
             with patch(f"{_EP}.get_form_by_id", new_callable=AsyncMock, return_value=form):
                 resp = await client.get(f"/api/v1/forms/{form_id}")
                 assert resp.status_code == 200

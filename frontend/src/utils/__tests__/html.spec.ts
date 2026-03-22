@@ -82,6 +82,28 @@ describe('isValidUrl', () => {
   })
 })
 
+describe('isValidUrl — setLink protection (M-18)', () => {
+  it('rejects javascript: protocol used in setLink prompt', () => {
+    expect(isValidUrl('javascript:alert(document.cookie)')).toBe(false)
+  })
+
+  it('rejects javascript: with mixed case', () => {
+    expect(isValidUrl('JavaScript:alert(1)')).toBe(false)
+  })
+
+  it('rejects data: URIs that could be used for XSS', () => {
+    expect(isValidUrl('data:text/html,<script>alert(1)</script>')).toBe(false)
+  })
+
+  it('accepts standard https link a user would paste', () => {
+    expect(isValidUrl('https://scholar.google.com/article?id=123')).toBe(true)
+  })
+
+  it('accepts http link with port (e.g. MinIO presigned)', () => {
+    expect(isValidUrl('http://localhost:19000/bucket/file.pdf?X-Amz-Signature=abc')).toBe(true)
+  })
+})
+
 describe('extractMentions', () => {
   it('returns empty array when no mentions', () => {
     expect(extractMentions('Hello world')).toEqual([])

@@ -289,25 +289,15 @@ async def upload_cover(
 
     pool = get_pool()
 
-    # Phase 1: Validate permissions and quota (inside transaction)
+    # Phase 1: Validate permissions (no quota lock needed yet)
     async with pool.acquire() as conn:
-        async with conn.transaction():
-            album = await album_repo.find_album_by_id(conn, album_uuid)
-            if not album:
-                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        album = await album_repo.find_album_by_id(conn, album_uuid)
+        if not album:
+            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-            _check_album_admin(
-                album, user_id, user_role, await album_repo.find_member(conn, album_uuid, user_uuid)
-            )
-
-            # Check storage quota
-            quota_row = await conn.fetchrow(
-                "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
-                user_uuid,
-            )
-            storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
-            if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
-                raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
+        _check_album_admin(
+            album, user_id, user_role, await album_repo.find_member(conn, album_uuid, user_uuid)
+        )
 
     # Phase 2: Upload to MinIO (outside transaction — not transactional)
     ext = ""
@@ -317,10 +307,28 @@ async def upload_cover(
     storage_key = album_cover_key(album_id, file_uuid, ext)
     await async_upload_file(file_data, storage_key, content_type)
 
-    # Phase 3: Update DB (new transaction). If this fails, clean up the MinIO file.
+    # Phase 3: Quota check + increment + DB update in ONE transaction (FOR UPDATE
+    # serializes concurrent requests so the quota cannot be bypassed).
     try:
         async with pool.acquire() as conn:
             async with conn.transaction():
+                # Lock user row and verify quota
+                quota_row = await conn.fetchrow(
+                    "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
+                    user_uuid,
+                )
+                storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
+                if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
+                    # Clean up the already-uploaded MinIO file
+                    try:
+                        await delete_file(storage_key)
+                    except Exception:
+                        logger.warning(
+                            "Failed to clean up cover after quota rejection",
+                            extra={"key": storage_key},
+                        )
+                    raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
+
                 # Delete old cover file from storage if it was a dedicated cover (not a photo key)
                 old_cover_key = album.get("cover_photo_url")
                 if old_cover_key and "/cover/" in old_cover_key:
@@ -388,28 +396,31 @@ async def add_member(
     target_uuid = uuid.UUID(target_user_id)
 
     async with pool.acquire() as conn:
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        async with conn.transaction():
+            album = await album_repo.find_album_by_id(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
-        is_creator = str(album["created_by"]) == user_id
-        member = await album_repo.find_member(conn, album_uuid, user_uuid)
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
-
-        if not (is_creator or is_site_admin or is_album_admin):
-            raise AppError(ErrorCode.SYS_403, 403, "Not authorized to add members.")
-
-        # Check target not already member
-        existing = await album_repo.find_member(conn, album_uuid, target_uuid)
-        if existing:
-            raise AppError(
-                ErrorCode.SYS_409, 409, "User is already a member or has a pending request."
+            is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
+            is_creator = str(album["created_by"]) == user_id
+            member = await album_repo.find_member(conn, album_uuid, user_uuid)
+            is_album_admin = (
+                member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
             )
 
-        member_row = await album_repo.insert_member(
-            conn, uuid.uuid4(), album_uuid, target_uuid, role="MEMBER", status="ACCEPTED"
-        )
+            if not (is_creator or is_site_admin or is_album_admin):
+                raise AppError(ErrorCode.SYS_403, 403, "Not authorized to add members.")
+
+            # Check target not already member (inside transaction for atomicity)
+            existing = await album_repo.find_member(conn, album_uuid, target_uuid)
+            if existing:
+                raise AppError(
+                    ErrorCode.SYS_409, 409, "User is already a member or has a pending request."
+                )
+
+            member_row = await album_repo.insert_member(
+                conn, uuid.uuid4(), album_uuid, target_uuid, role="MEMBER", status="ACCEPTED"
+            )
 
     logger.info(
         "Album member added",
@@ -431,20 +442,22 @@ async def join_album(album_id: str, user_id: str) -> dict:
     user_uuid = uuid.UUID(user_id)
 
     async with pool.acquire() as conn:
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        async with conn.transaction():
+            album = await album_repo.find_album_by_id(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        if album.get("is_archived"):
-            raise AppError(ErrorCode.ALBUM_001, 400, "Album is archived.")
+            if album.get("is_archived"):
+                raise AppError(ErrorCode.ALBUM_001, 400, "Album is archived.")
 
-        existing = await album_repo.find_member(conn, album_uuid, user_uuid)
-        if existing:
-            raise AppError(ErrorCode.SYS_409, 409, "Already a member or request pending.")
+            # Check + insert inside transaction for atomicity
+            existing = await album_repo.find_member(conn, album_uuid, user_uuid)
+            if existing:
+                raise AppError(ErrorCode.SYS_409, 409, "Already a member or request pending.")
 
-        member_row = await album_repo.insert_member(
-            conn, uuid.uuid4(), album_uuid, user_uuid, role="MEMBER", status="PENDING"
-        )
+            member_row = await album_repo.insert_member(
+                conn, uuid.uuid4(), album_uuid, user_uuid, role="MEMBER", status="PENDING"
+            )
 
     logger.info("Album join requested", extra={"album_id": album_id, "user_id": user_id})
     return {"id": str(member_row["id"]), "status": "PENDING"}
@@ -880,7 +893,11 @@ async def delete_photo(
         if not (is_uploader or is_creator or is_site_admin):
             raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this photo.")
 
-        # Delete from MinIO (best-effort)
+        # 1. Delete DB record first (authoritative state)
+        deleted = await album_repo.delete_photo(conn, photo_uuid)
+
+    # 2. Best-effort cleanup of storage and quota refund (outside connection scope)
+    if deleted:
         storage_key = photo.get("storage_key")
         thumbnail_key = photo.get("thumbnail_key")
         try:
@@ -898,9 +915,14 @@ async def delete_photo(
         file_size = photo.get("file_size_bytes", 0)
         uploaded_by = photo["uploaded_by"]
         if file_size > 0:
-            await user_repo.decrement_storage_used(uploaded_by, file_size)
-
-        deleted = await album_repo.delete_photo(conn, photo_uuid)
+            try:
+                await user_repo.decrement_storage_used(uploaded_by, file_size)
+            except Exception:
+                logger.warning(
+                    "Failed to refund storage quota after photo deletion",
+                    extra={"photo_id": photo_id, "file_size": file_size},
+                    exc_info=True,
+                )
 
     return deleted
 

@@ -98,15 +98,22 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             auth_header = request.headers.get("authorization", "")
             if auth_header.startswith("Bearer "):
                 jwt_token = auth_header[7:]
-        if jwt_token:
-            payload = decode_access_token(jwt_token)
-            if payload and payload.get("jti"):
-                expected = generate_csrf_token(payload["jti"])
-                if not secrets.compare_digest(expected, header_token):
-                    return JSONResponse(
-                        status_code=403,
-                        content={"detail": "CSRF token not bound to session."},
-                    )
+        if not jwt_token:
+            # No JWT = no session binding possible. Reject state-changing requests.
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": {"code": "CSRF_002", "message": "CSRF validation failed: no session."}
+                },
+            )
+        payload = decode_access_token(jwt_token)
+        if payload and payload.get("jti"):
+            expected = generate_csrf_token(payload["jti"])
+            if not secrets.compare_digest(expected, header_token):
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "CSRF token not bound to session."},
+                )
 
         response = await call_next(request)
         return response

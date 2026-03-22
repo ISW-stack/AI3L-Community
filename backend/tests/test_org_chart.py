@@ -145,9 +145,9 @@ class TestGetOrgChart:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_unauthenticated_blocked(self, client):
+    async def test_unauthenticated_blocked(self, unauthed_client):
         """Unauthenticated requests are rejected."""
-        resp = await client.get("/api/v1/about/org-chart")
+        resp = await unauthed_client.get("/api/v1/about/org-chart")
         assert resp.status_code in (401, 403)
 
 

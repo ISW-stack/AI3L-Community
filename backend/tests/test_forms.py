@@ -1129,6 +1129,81 @@ class TestFormSchemaValidation:
         with pytest.raises(ValueError, match="must be between"):
             _validate_answers(questions, {"q1": 3})
 
+    # --- H-02: FormSubmitRequest accepts dict answers (file_upload) ---
+
+    def test_form_submit_accepts_dict_answer(self):
+        """FormSubmitRequest should accept dict values for file_upload answers."""
+        from app.schemas.form import FormSubmitRequest
+
+        req = FormSubmitRequest(answers={"q1": {"key": "uploads/abc.pdf", "filename": "abc.pdf"}})
+        assert isinstance(req.answers["q1"], dict)
+
+    def test_form_submit_rejects_oversized_dict_answer(self):
+        """FormSubmitRequest rejects dict answers exceeding 50000 chars."""
+        from app.schemas.form import FormSubmitRequest
+
+        huge_dict = {"key": "x" * 60000}
+        with pytest.raises(ValueError, match="Answer dict value too large"):
+            FormSubmitRequest(answers={"q1": huge_dict})
+
+    def test_form_submit_still_rejects_unsupported_types(self):
+        """FormSubmitRequest still rejects unsupported types like set."""
+        from app.schemas.form import FormSubmitRequest
+
+        with pytest.raises(ValueError, match="Unsupported answer value type"):
+            FormSubmitRequest(answers={"q1": {1, 2, 3}})
+
+    # --- H-14: QuestionSchema.labels dict size constraints ---
+
+    def test_labels_valid_dict_passes(self):
+        """QuestionSchema accepts a valid labels dict."""
+        from app.schemas.form import QuestionSchema
+
+        q = QuestionSchema(
+            id="q1",
+            type="rating",
+            label="Rate this",
+            labels={"1": "Bad", "5": "Great"},
+        )
+        assert q.labels == {"1": "Bad", "5": "Great"}
+
+    def test_labels_too_many_entries_rejected(self):
+        """QuestionSchema rejects labels with more than 20 entries."""
+        from app.schemas.form import QuestionSchema
+
+        big_labels = {str(i): f"Label {i}" for i in range(21)}
+        with pytest.raises(ValueError, match="at most 20 entries"):
+            QuestionSchema(
+                id="q1",
+                type="rating",
+                label="Rate this",
+                labels=big_labels,
+            )
+
+    def test_labels_too_long_key_rejected(self):
+        """QuestionSchema rejects labels with a key exceeding 50 characters."""
+        from app.schemas.form import QuestionSchema
+
+        with pytest.raises(ValueError, match="Labels key must be at most 50"):
+            QuestionSchema(
+                id="q1",
+                type="rating",
+                label="Rate this",
+                labels={"x" * 51: "value"},
+            )
+
+    def test_labels_too_long_value_rejected(self):
+        """QuestionSchema rejects labels with a value exceeding 500 characters."""
+        from app.schemas.form import QuestionSchema
+
+        with pytest.raises(ValueError, match="Labels value must be at most 500"):
+            QuestionSchema(
+                id="q1",
+                type="rating",
+                label="Rate this",
+                labels={"key": "v" * 501},
+            )
+
 
 # ──────────────────────────────────────────────────────────────────────
 # NEW TESTS: sanitize_html applied on form create/update
@@ -1800,11 +1875,11 @@ class TestGetFormStats:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_stats_requires_authentication(self, client) -> None:
+    async def test_stats_requires_authentication(self, unauthed_client) -> None:
         """GET /forms/{form_id}/stats → 401 for unauthenticated request."""
         form_id = uuid.uuid4()
         # No _override_auth — no valid session cookie or token
-        resp = await client.get(f"/api/v1/forms/{form_id}/stats")
+        resp = await unauthed_client.get(f"/api/v1/forms/{form_id}/stats")
         assert resp.status_code in (401, 403)
 
 

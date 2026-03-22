@@ -746,6 +746,23 @@ describe('useWebSocket', () => {
       addSpy.mockRestore()
     })
 
+    it('replaces stale handler when second consumer registers', () => {
+      const addSpy = vi.spyOn(document, 'addEventListener')
+      const removeSpy = vi.spyOn(document, 'removeEventListener')
+
+      useWebSocket()
+      // First consumer registers a listener
+      expect(addSpy).toHaveBeenCalledTimes(1)
+
+      useWebSocket()
+      // Second consumer replaces the stale handler: remove old + add new
+      expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function))
+      expect(addSpy).toHaveBeenCalledTimes(2)
+
+      addSpy.mockRestore()
+      removeSpy.mockRestore()
+    })
+
     it('removes visibilitychange listener only when last consumer unmounts', () => {
       const removeSpy = vi.spyOn(document, 'removeEventListener')
 
@@ -753,7 +770,10 @@ describe('useWebSocket', () => {
       useWebSocket()
       useWebSocket()
 
-      // First unmount: listener should NOT be removed (still 1 consumer)
+      // Clear spy to reset call counts from registration-time replacement
+      removeSpy.mockClear()
+
+      // First unmount: listener should NOT be fully removed (still 1 consumer)
       const firstUnmount = onUnmountedCallbacks[0]
       firstUnmount()
       expect(removeSpy).not.toHaveBeenCalledWith('visibilitychange', expect.any(Function))

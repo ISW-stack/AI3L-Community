@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Copy, Check } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
@@ -14,19 +14,29 @@ defineProps<{
 
 const toastStore = useToastStore()
 const copied = ref(false)
+let copyTimer: ReturnType<typeof setTimeout> | null = null
 
 async function copyLink(url: string) {
   try {
     await navigator.clipboard.writeText(url)
     copied.value = true
     toastStore.show(t('share.copySuccess'), 'success')
-    setTimeout(() => {
+    if (copyTimer) clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => {
       copied.value = false
+      copyTimer = null
     }, 2000)
   } catch {
     toastStore.show(t('share.copyError'), 'error')
   }
 }
+
+onUnmounted(() => {
+  if (copyTimer) {
+    clearTimeout(copyTimer)
+    copyTimer = null
+  }
+})
 </script>
 
 <template>

@@ -34,7 +34,7 @@ async def dashboard(
 
 @router.get("/invite-codes")
 async def get_invite_codes(
-    status_filter: str | None = Query(None, alias="status"),
+    status_filter: str | None = Query(None, alias="status", pattern="^(active|consumed|expired)$"),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),

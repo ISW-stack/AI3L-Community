@@ -73,7 +73,25 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             )
 
         # Mark as processing (short TTL to handle crashes)
-        await redis.set(redis_key, json.dumps({"status": "processing"}), ex=30, nx=True)
+        acquired = await redis.set(redis_key, json.dumps({"status": "processing"}), ex=30, nx=True)
+        if not acquired:
+            # Another concurrent request claimed this key
+            conflict_body = json.dumps(
+                {
+                    "detail": {
+                        "code": ErrorCode.SYS_409.value,
+                        "message": "Duplicate request is still processing.",
+                    }
+                }
+            )
+            return Response(
+                content=conflict_body,
+                status_code=409,
+                headers={
+                    "Content-Type": "application/json",
+                    IDEMPOTENCY_HEADER: idem_key,
+                },
+            )
 
         response = await call_next(request)
 

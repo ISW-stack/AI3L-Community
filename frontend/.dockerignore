@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+*.md
+.git/
+.gitignore
+coverage/
+src/**/__tests__/
+src/**/*.spec.ts
+src/**/*.test.ts

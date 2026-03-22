@@ -7,7 +7,7 @@ export function assertShape<T>(data: unknown, requiredKeys: string[], context: s
   if (import.meta.env.DEV && data && typeof data === 'object') {
     for (const key of requiredKeys) {
       if (!(key in data)) {
-        console.warn(`[API] Missing key "${key}" in response for ${context}`, data)
+        console.warn(`[API] Missing key "${key}" in response for ${context}`)
       }
     }
   }

@@ -419,9 +419,9 @@ class TestGetPostsList:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_get_posts_list_forbidden_unauthenticated(self, client):
+    async def test_get_posts_list_forbidden_unauthenticated(self, unauthed_client):
         """GET /posts without auth → 401."""
-        resp = await client.get("/api/v1/posts")
+        resp = await unauthed_client.get("/api/v1/posts")
         assert resp.status_code == 401
 
 

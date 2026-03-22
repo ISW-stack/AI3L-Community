@@ -10,10 +10,14 @@ on:
     paths:
       - "frontend/**"
 
+permissions: {}
+
 jobs:
   lint-and-build:
     name: Lint, Test & Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: frontend
@@ -48,6 +52,8 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: frontend

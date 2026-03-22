@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-_TEST_CSRF = "csrf-perm-test"
+from tests.conftest import _TEST_CSRF_TOKEN, _TEST_JWT_TOKEN
 
 _SIG_A_ID = str(uuid.uuid4())
 _SIG_B_ID = str(uuid.uuid4())
@@ -36,8 +36,11 @@ async def client():
         async with AsyncClient(
             transport=transport,
             base_url="http://test",
-            cookies={"csrf_token": _TEST_CSRF},
-            headers={"X-CSRF-Token": _TEST_CSRF},
+            cookies={"csrf_token": _TEST_CSRF_TOKEN},
+            headers={
+                "X-CSRF-Token": _TEST_CSRF_TOKEN,
+                "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
+            },
         ) as ac:
             yield ac
 

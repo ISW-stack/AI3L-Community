@@ -67,6 +67,12 @@ async def update_status(
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            locked = await conn.fetchval(
+                "SELECT id FROM membership_applications WHERE id = $1 AND status = 'PENDING' FOR UPDATE",  # noqa: E501
+                app_id,
+            )
+            if locked is None:
+                return None
             row = await conn.fetchrow(
                 """
                 UPDATE membership_applications

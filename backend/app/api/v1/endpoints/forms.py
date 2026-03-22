@@ -11,7 +11,7 @@ from app.core.constants import (
     RATE_LIMIT_FORM_SUBMIT,
     RATE_LIMIT_STANDALONE_FORM,
 )
-from app.core.deps import get_current_user, get_optional_current_user, require_role
+from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
@@ -135,7 +135,7 @@ async def list_standalone_forms_endpoint(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(DEFAULT_PAGE_SIZE_STANDALONE_FORMS, ge=1, le=MAX_PAGE_SIZE),
     q: str | None = Query(None, max_length=200),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormListResponse:
     """List standalone forms owned by the current user."""
     forms, total = await list_standalone_forms_svc(
@@ -212,18 +212,13 @@ async def get_form_statistics(
 @router.get("/forms/{form_id}", response_model=FormResponseSchema)
 async def get_form(
     form_id: uuid.UUID,
-    current_user: dict | None = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
 ) -> FormResponseSchema:
-    user_id = current_user["sub"] if current_user else None
+    user_id = current_user["sub"]
     form = await get_form_by_id(form_id, user_id=user_id)
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     if form.get("sig_id"):
-        # SIG forms require authentication
-        if not current_user:
-            raise AppError(
-                ErrorCode.AUTH_001, status.HTTP_401_UNAUTHORIZED, "Authentication required."
-            )
         is_admin = await _is_sig_admin(
             uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
@@ -239,8 +234,7 @@ async def get_form(
                     "Only SIG members can view this form.",
                 )
     else:
-        # Standalone form — accessible without auth; admin check only if logged in
-        is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN") if current_user else False
+        is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     form["user_is_sig_admin"] = is_admin
     return FormResponseSchema(**form)
 
@@ -283,6 +277,7 @@ async def update_existing_form(
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions] if req.questions else None,
             allow_non_members=req.allow_non_members,
+            provided_fields=req.model_fields_set,
         )
     except PermissionError as e:
         raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))

@@ -5,14 +5,24 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-_TEST_CSRF_TOKEN = "test-csrf-token"
+from app.core.csrf import generate_csrf_token
+from app.core.security import create_access_token
+
+# Create a persistent JWT + bound CSRF token for the test client.
+# This ensures state-changing requests pass CSRF session-binding checks.
+_TEST_JWT_UID = str(uuid.uuid4())
+_TEST_JWT_TOKEN, _TEST_JWT_JTI, _ = create_access_token(
+    _TEST_JWT_UID, "MEMBER", timedelta(hours=24)
+)
+_TEST_CSRF_TOKEN = generate_csrf_token(_TEST_JWT_JTI)
 
 
 @pytest.fixture
 async def client() -> AsyncClient:
     """Create a test client without triggering lifespan (no DB/Redis needed).
 
-    Includes CSRF cookie + header by default so tests pass through CSRF middleware.
+    Includes CSRF cookie + header + access_token cookie so tests pass through
+    CSRF middleware (both double-submit and JTI binding checks).
     """
     from app.main import app
 
@@ -27,7 +37,33 @@ async def client() -> AsyncClient:
             transport=transport,
             base_url="http://test",
             cookies={"csrf_token": _TEST_CSRF_TOKEN},
-            headers={"X-CSRF-Token": _TEST_CSRF_TOKEN},
+            headers={
+                "X-CSRF-Token": _TEST_CSRF_TOKEN,
+                "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
+            },
+        ) as ac:
+            yield ac
+
+
+@pytest.fixture
+async def unauthed_client() -> AsyncClient:
+    """Client without access_token cookie — for testing unauthenticated scenarios.
+
+    Has NO access_token cookie so get_current_user will fail with 401.
+    Also has NO CSRF tokens (state-changing requests will be blocked by CSRF).
+    """
+    from app.main import app
+
+    with (
+        patch("app.main.init_db_pool", new_callable=AsyncMock),
+        patch("app.main.init_redis", new_callable=AsyncMock),
+        patch("app.main.close_db_pool", new_callable=AsyncMock),
+        patch("app.main.close_redis", new_callable=AsyncMock),
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
         ) as ac:
             yield ac
 

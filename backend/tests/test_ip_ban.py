@@ -365,7 +365,7 @@ class TestIpBanMiddleware:
             assert "banned" in resp.json()["detail"].lower()
 
     @pytest.mark.anyio
-    async def test_middleware_allows_clean_ip(self, client):
+    async def test_middleware_allows_clean_ip(self, unauthed_client):
         """Request from a clean IP passes through (not blocked by middleware)."""
         with patch(
             f"{_SVC}.is_ip_banned",
@@ -374,7 +374,7 @@ class TestIpBanMiddleware:
         ):
             # The request will pass the middleware but may fail for other reasons
             # (e.g., auth). We just check it's NOT 403 with "banned" message.
-            resp = await client.get("/api/v1/admin/dashboard")
+            resp = await unauthed_client.get("/api/v1/admin/dashboard")
             # Should not be the IP ban 403
             if resp.status_code == 403:
                 assert "banned" not in resp.json().get("detail", "").lower()

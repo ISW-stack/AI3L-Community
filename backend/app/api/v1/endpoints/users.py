@@ -72,7 +72,7 @@ async def get_my_profile(current_user: dict = Depends(get_current_user)) -> User
 @router.put("/me", response_model=UserResponse)
 async def update_my_profile(
     req: UserUpdateRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> UserResponse:
     # Only pass fields that the client explicitly included in the request.
     # This lets the backend distinguish "not provided" (omitted) from
@@ -267,7 +267,7 @@ async def search_users(
 async def get_my_co_author_invitations(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """List pending co-author invitations for the current user."""
     from app.services.co_author import list_pending_invitations
@@ -281,7 +281,7 @@ async def get_my_co_author_invitations(
 @router.put("/me/co-author-invitations/{invitation_id}/accept")
 async def accept_co_author_invitation(
     invitation_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """Accept a co-author invitation."""
     from app.services.co_author import respond_to_invitation
@@ -295,7 +295,7 @@ async def accept_co_author_invitation(
 @router.put("/me/co-author-invitations/{invitation_id}/reject")
 async def reject_co_author_invitation(
     invitation_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """Reject a co-author invitation."""
     from app.services.co_author import respond_to_invitation
@@ -314,7 +314,7 @@ async def bulk_change_role(
     from app.services.audit import log_action
     from app.services.user import bulk_change_role as bulk_change_role_svc
 
-    count = await bulk_change_role_svc(req.user_ids, req.role)
+    count = await bulk_change_role_svc(req.user_ids, req.role, caller_role=current_user["role"])
 
     # Revoke sessions and notify each affected user (same as single role change)
     from app.services.auth import revoke_user_sessions
@@ -337,6 +337,8 @@ async def get_my_application_status(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Return the guest's most recent membership application, if any."""
+    if current_user["role"] != "GUEST":
+        raise AppError(ErrorCode.AUTH_003, 403, "Only guests can view application status.")
     from app.schemas.application import MyApplicationResponse
     from app.services.application import get_my_application
 

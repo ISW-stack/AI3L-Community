@@ -173,9 +173,9 @@ class TestListAlbums:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_list_albums_unauthenticated(self, client):
+    async def test_list_albums_unauthenticated(self, unauthed_client):
         """GET /albums without auth → 401."""
-        resp = await client.get("/api/v1/albums")
+        resp = await unauthed_client.get("/api/v1/albums")
         assert resp.status_code == 401
 
 

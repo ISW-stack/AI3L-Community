@@ -73,12 +73,21 @@ def _clear_overrides():
 
 
 class TestCSRFValidToken:
-    """POST with valid CSRF token succeeds."""
+    """POST with valid CSRF token + JWT succeeds."""
 
     @pytest.mark.anyio
-    async def test_matching_csrf_passes(self, csrf_client: AsyncClient):
-        """Request with matching cookie and header tokens passes CSRF check."""
-        _override_auth("MEMBER")
+    async def test_matching_csrf_passes(self, bare_client: AsyncClient):
+        """Request with matching cookie/header tokens + JWT passes CSRF check."""
+        from datetime import timedelta
+
+        from app.core.csrf import generate_csrf_token
+        from app.core.security import create_access_token
+
+        uid = str(uuid.uuid4())
+        jwt_token, jti, _ = create_access_token(uid, "MEMBER", timedelta(hours=1))
+        csrf_token = generate_csrf_token(jti)
+
+        _override_auth("MEMBER", user_id=uid)
         try:
             with (
                 patch(
@@ -92,7 +101,14 @@ class TestCSRFValidToken:
                     return_value=True,
                 ),
             ):
-                resp = await csrf_client.post("/api/v1/auth/heartbeat")
+                resp = await bare_client.post(
+                    "/api/v1/auth/heartbeat",
+                    cookies={
+                        "csrf_token": csrf_token,
+                        "access_token": jwt_token,
+                    },
+                    headers={"X-CSRF-Token": csrf_token},
+                )
             # Should get 200 (heartbeat success), not 403
             assert resp.status_code == 200
         finally:

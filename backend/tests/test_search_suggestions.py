@@ -153,9 +153,9 @@ class TestSearchSuggestions:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_unauthenticated_returns_401(self, client):
+    async def test_unauthenticated_returns_401(self, unauthed_client):
         """GET /posts/suggestions?q=test without auth → 401."""
-        resp = await client.get("/api/v1/posts/suggestions?q=test")
+        resp = await unauthed_client.get("/api/v1/posts/suggestions?q=test")
         assert resp.status_code == 401
 
 

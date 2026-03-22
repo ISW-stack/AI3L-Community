@@ -53,7 +53,7 @@ class TestCreateSession:
 
         mock_create_token.return_value = ("token123", "jti-abc", None)
         redis = AsyncMock()
-        redis.get = AsyncMock(return_value=None)  # No existing session
+        redis.set = AsyncMock(return_value=None)  # No existing session (SET GET returns None)
         mock_get_redis.return_value = redis
 
         token, jti, ttl = await create_session("user-id-1", "MEMBER")

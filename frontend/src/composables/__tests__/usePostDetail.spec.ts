@@ -51,6 +51,15 @@ vi.mock('@/api/files', () => ({
   getFileScanStatus: vi.fn(),
 }))
 
+vi.mock('@/api/coauthors', () => ({
+  listCoAuthors: vi.fn(),
+}))
+
+vi.mock('@/api/citations', () => ({
+  getCitedBy: vi.fn(),
+  getCiting: vi.fn(),
+}))
+
 vi.mock('dompurify', () => ({
   default: { sanitize: (html: string) => html },
 }))
@@ -60,6 +69,8 @@ import { useToastStore } from '@/stores/toast'
 import { getPost, updatePost, deletePost, getPostHistory, togglePinPost } from '@/api/posts'
 import { listComments, createComment, deleteComment, toggleReaction } from '@/api/comments'
 import { createReport } from '@/api/reports'
+import { listCoAuthors } from '@/api/coauthors'
+import { getCitedBy, getCiting } from '@/api/citations'
 
 const mockGetPost = getPost as ReturnType<typeof vi.fn>
 const mockUpdatePost = updatePost as ReturnType<typeof vi.fn>
@@ -71,6 +82,9 @@ const mockCreateComment = createComment as ReturnType<typeof vi.fn>
 const mockDeleteComment = deleteComment as ReturnType<typeof vi.fn>
 const mockToggleReaction = toggleReaction as ReturnType<typeof vi.fn>
 const mockCreateReport = createReport as ReturnType<typeof vi.fn>
+const mockListCoAuthors = listCoAuthors as ReturnType<typeof vi.fn>
+const mockGetCitedBy = getCitedBy as ReturnType<typeof vi.fn>
+const mockGetCiting = getCiting as ReturnType<typeof vi.fn>
 
 function makePost(overrides: Partial<Post> = {}): Post {
   return {
@@ -141,6 +155,9 @@ describe('usePostDetail', () => {
     setActivePinia(createPinia())
     mockGetPost.mockResolvedValue(makePost())
     mockListComments.mockResolvedValue({ comments: [], total: 0 })
+    mockListCoAuthors.mockResolvedValue({ co_authors: [] })
+    mockGetCitedBy.mockResolvedValue({ citations: [] })
+    mockGetCiting.mockResolvedValue({ citations: [] })
   })
 
   // 0. Instance isolation
@@ -726,6 +743,87 @@ describe('usePostDetail', () => {
       toast.toasts.some((t: { message: string }) => t.message === 'Failed to toggle reaction.'),
     ).toBe(true)
   })
+
+  // H-06: Re-fetch on postId change (component reuse)
+  it('re-fetches post and comments when postId changes', async () => {
+    const post1 = makePost({ id: 'post1', title: 'Post One' })
+    const post2 = makePost({ id: 'post2', title: 'Post Two' })
+    const comments2 = [makeComment({ id: 'c10', post_id: 'post2' })]
+
+    mockGetPost.mockResolvedValue(post1)
+    mockListComments.mockResolvedValue({ comments: [], total: 0 })
+
+    const postId = ref('post1')
+    const mockRouter = { push: vi.fn() }
+    const auth = createDefaultAuth()
+    onMountedCallbacks.length = 0
+
+    const result = usePostDetail({ postId, auth, router: mockRouter })
+
+    // Initial fetch
+    await result.fetchPost()
+    await result.fetchComments()
+    expect(result.post.value?.title).toBe('Post One')
+    expect(mockGetPost).toHaveBeenCalledWith('post1')
+
+    // Prepare mocks for post2
+    mockGetPost.mockClear()
+    mockListComments.mockClear()
+    mockGetPost.mockResolvedValue(post2)
+    mockListComments.mockResolvedValue({ comments: comments2, total: 1 })
+
+    // Change postId — triggers the watcher
+    postId.value = 'post2'
+
+    // Wait for Vue reactivity + async calls to settle
+    await new Promise((r) => setTimeout(r, 0))
+    // Flush all pending promises
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(mockGetPost).toHaveBeenCalledWith('post2')
+    expect(mockListComments).toHaveBeenCalledWith('post2', expect.any(Object))
+    expect(result.post.value?.title).toBe('Post Two')
+    expect(result.comments.value).toEqual(comments2)
+  })
+
+  it('resets state when postId changes', async () => {
+    const post1 = makePost({ id: 'post1', title: 'Post One' })
+    mockGetPost.mockResolvedValue(post1)
+    mockListComments.mockResolvedValue({
+      comments: [makeComment({ id: 'c1' })],
+      total: 1,
+    })
+
+    const postId = ref('post1')
+    const mockRouter = { push: vi.fn() }
+    const auth = createDefaultAuth()
+    onMountedCallbacks.length = 0
+
+    const result = usePostDetail({ postId, auth, router: mockRouter })
+
+    await result.fetchPost()
+    await result.fetchComments()
+    result.editing.value = true
+    result.newComment.value = 'draft'
+    result.showHistory.value = true
+
+    expect(result.post.value).not.toBeNull()
+    expect(result.comments.value).toHaveLength(1)
+
+    // Change postId — triggers reset
+    const post2 = makePost({ id: 'post2', title: 'Post Two' })
+    mockGetPost.mockResolvedValue(post2)
+    mockListComments.mockResolvedValue({ comments: [], total: 0 })
+
+    postId.value = 'post2'
+
+    // The watcher resets state synchronously before re-fetching
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(result.editing.value).toBe(false)
+    expect(result.newComment.value).toBe('')
+    expect(result.showHistory.value).toBe(false)
+  })
 })
 
 describe('usePostDetail — auth reactivity (N-U16)', () => {
@@ -754,6 +852,9 @@ describe('usePostDetail — auth reactivity (N-U16)', () => {
       updated_at: '2026-01-01T00:00:00Z',
     })
     mockListComments.mockResolvedValue({ comments: [], total: 0 })
+    mockListCoAuthors.mockResolvedValue({ co_authors: [] })
+    mockGetCitedBy.mockResolvedValue({ citations: [] })
+    mockGetCiting.mockResolvedValue({ citations: [] })
   })
 
   it('canModify reflects reactive isAdmin updates via MaybeRefOrGetter', () => {

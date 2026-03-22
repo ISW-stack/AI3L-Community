@@ -22,8 +22,8 @@ async function bootstrap() {
   app.use(i18n)
   app.use(router)
 
-  app.config.errorHandler = (err, _instance, info) => {
-    console.error('[Vue Error]', err, info)
+  app.config.errorHandler = (_err, _instance, info) => {
+    if (import.meta.env.DEV) console.error('[Vue Error]', _err, info)
     try {
       const toastStore = useToastStore()
       toastStore.show('An unexpected error occurred.', 'error')

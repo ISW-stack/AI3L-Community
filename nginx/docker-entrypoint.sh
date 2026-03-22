@@ -1,13 +1,14 @@
 #!/bin/sh
 set -e
 
-# ── Process security-headers template if MINIO_CSP_ORIGIN is set ──
-if [ -n "$MINIO_CSP_ORIGIN" ]; then
-    envsubst '$MINIO_CSP_ORIGIN' \
-        < /etc/nginx/snippets/security-headers.conf.template \
-        > /etc/nginx/snippets/security-headers.conf
-    echo "[entrypoint] security-headers.conf generated with MINIO_CSP_ORIGIN=$MINIO_CSP_ORIGIN"
-fi
+# ── Always generate security-headers.conf from template ──────────
+# If MINIO_CSP_ORIGIN is not set, the variable expands to empty string,
+# which is safe — the CSP will simply omit the external storage origin.
+export MINIO_CSP_ORIGIN="${MINIO_CSP_ORIGIN:-}"
+envsubst '$MINIO_CSP_ORIGIN' \
+    < /etc/nginx/snippets/security-headers.conf.template \
+    > /etc/nginx/snippets/security-headers.conf
+echo "[entrypoint] security-headers.conf generated (MINIO_CSP_ORIGIN=${MINIO_CSP_ORIGIN:-<not set>})"
 
 # ── Enable HTTPS if TLS certificates exist ────────────────────────
 CERT_PATH="/etc/nginx/ssl/fullchain.pem"
@@ -15,10 +16,9 @@ KEY_PATH="/etc/nginx/ssl/privkey.pem"
 
 if [ -f "$CERT_PATH" ] && [ -f "$KEY_PATH" ]; then
     echo "[entrypoint] TLS certificates found — enabling HTTPS server block"
-    # Uncomment the HTTPS server blocks in default.conf
-    sed -i 's/^# \(.*\)/\1/' /etc/nginx/conf.d/default.conf
-    # Comment out the dev HTTP server block (listen 80 with server_name _)
-    # The HTTPS block includes its own HTTP→HTTPS redirect
+    # Only uncomment lines that start with '#HTTPS ' (safe prefix marker)
+    # This avoids uncommenting documentation comments
+    sed -i 's/^#HTTPS //' /etc/nginx/conf.d/default.conf
 else
     echo "[entrypoint] No TLS certificates found — running HTTP only (dev mode)"
 fi

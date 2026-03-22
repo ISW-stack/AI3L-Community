@@ -59,7 +59,7 @@ async def vote_on_answer_endpoint(
 @router.get("/{post_id}/votes")
 async def get_user_votes_endpoint(
     post_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> list[dict]:
     """Get all votes by the current user on comments in a post."""
     return await get_user_votes(

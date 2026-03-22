@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import type { Router } from 'vue-router'
 import type { Question, QuestionOption } from '@/types'
 import { getErrorMessage } from '@/utils/error'
@@ -60,6 +60,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   )
 
   let autoSaveTimer: ReturnType<typeof setInterval> | null = null
+  let isDirty = false
 
   // ── Computed ──
   const hasInvalidRating = computed(() =>
@@ -101,6 +102,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
 
   // ── History helpers ──
   function recordHistory(): void {
+    isDirty = true
     history.pushState(questions.value)
     saveDraftNow()
   }
@@ -338,7 +340,11 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
 
   function startAutoSave(): void {
     if (autoSaveTimer !== null) return
-    autoSaveTimer = setInterval(saveDraftNow, 30000)
+    autoSaveTimer = setInterval(() => {
+      if (!isDirty) return
+      saveDraftNow()
+      isDirty = false
+    }, 30000)
   }
 
   function stopAutoSave(): void {
@@ -544,6 +550,12 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     }
     document.addEventListener('keydown', handleKeyboardShortcut)
     startAutoSave()
+    watch(
+      [title, description, bannerUrl, deadline, maxRespondents, allowNonMembers],
+      () => {
+        isDirty = true
+      },
+    )
   })
 
   onUnmounted(() => {

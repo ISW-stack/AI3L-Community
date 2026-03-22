@@ -81,9 +81,9 @@ class TestGetPreferences:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_unauthenticated_returns_401(self, client):
+    async def test_unauthenticated_returns_401(self, unauthed_client):
         """GET /users/me/preferences without auth → 401."""
-        resp = await client.get("/api/v1/users/me/preferences")
+        resp = await unauthed_client.get("/api/v1/users/me/preferences")
         assert resp.status_code == 401
 
 
@@ -193,13 +193,13 @@ class TestUpdatePreferences:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_unauthenticated_returns_401(self, client):
-        """PATCH /users/me/preferences without auth → 401."""
-        resp = await client.patch(
+    async def test_unauthenticated_returns_401(self, unauthed_client):
+        """PATCH /users/me/preferences without auth → 401 or 403 (CSRF)."""
+        resp = await unauthed_client.patch(
             "/api/v1/users/me/preferences",
             json={"theme": "dark"},
         )
-        assert resp.status_code == 401
+        assert resp.status_code in (401, 403)
 
 
 class TestUpdatePreferencesRateLimit:

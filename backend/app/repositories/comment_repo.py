@@ -45,7 +45,7 @@ async def find_post_for_comment(post_id: uuid.UUID, conn: Any) -> dict | None:
     """Check post exists and get comment-relevant fields."""
     row = await conn.fetchrow(
         "SELECT id, allow_comments, comment_count, type "
-        "FROM posts WHERE id = $1 AND is_deleted = false",
+        "FROM posts WHERE id = $1 AND is_deleted = false FOR UPDATE",
         post_id,
     )
     return dict(row) if row else None

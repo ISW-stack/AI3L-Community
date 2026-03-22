@@ -280,8 +280,12 @@ async def update_form(
     max_respondents: int | None = None,
     questions: list[dict] | None = None,
     allow_non_members: bool | None = None,
+    provided_fields: set[str] | None = None,
 ) -> dict | None:
     pool = get_pool()
+    # Fields explicitly provided in the request (allows clearing to None)
+    _provided = provided_fields or set()
+
     async with pool.acquire() as conn:
         async with conn.transaction():
             current = await form_repo.find_for_update(form_id, conn)
@@ -313,6 +317,9 @@ async def update_form(
             ]:
                 if value is not None:
                     updates[field_name] = value
+                elif field_name in _provided:
+                    # Field was explicitly set to null — allow clearing
+                    updates[field_name] = None
 
             if questions is not None:
                 validate_question_schema(questions)

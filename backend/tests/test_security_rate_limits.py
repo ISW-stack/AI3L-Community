@@ -209,9 +209,9 @@ class TestFormsListAuth:
     """GET /forms now requires authentication."""
 
     @pytest.mark.anyio
-    async def test_forms_list_requires_auth(self, client: AsyncClient):
+    async def test_forms_list_requires_auth(self, unauthed_client: AsyncClient):
         """GET /forms → 401 without authentication."""
-        resp = await client.get("/api/v1/forms")
+        resp = await unauthed_client.get("/api/v1/forms")
         assert resp.status_code == 401
 
     @pytest.mark.anyio

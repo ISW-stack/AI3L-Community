@@ -75,9 +75,9 @@ class TestHealthEndpointAuth:
     """M5: /health requires SUPER_ADMIN; /health/live is public."""
 
     @pytest.mark.anyio
-    async def test_health_check_requires_super_admin(self, client: AsyncClient) -> None:
+    async def test_health_check_requires_super_admin(self, unauthed_client: AsyncClient) -> None:
         """GET /health without auth returns 401."""
-        response = await client.get("/api/v1/health")
+        response = await unauthed_client.get("/api/v1/health")
         assert response.status_code == 401
 
     @pytest.mark.anyio

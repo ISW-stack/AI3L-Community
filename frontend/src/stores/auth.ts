@@ -128,6 +128,11 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // Ignore errors on logout
     }
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('ai3l_post_draft_') || key.startsWith('ai3l_form_draft_')) {
+        localStorage.removeItem(key)
+      }
+    })
     clearSession()
   }
 

@@ -43,10 +43,12 @@ async def create_session(user_id: str, role: str) -> tuple[str, str, int]:
     redis = get_redis()
     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
 
-    # Check for existing session before overwriting
-    old_jti = await redis.get(session_key)
+    # Atomically swap the session key and retrieve the previous JTI in one round-trip.
+    # SET ... GET (Redis 6.2+) is atomic, eliminating the read-then-write race where
+    # two concurrent logins could both read the same old_jti and both overwrite it.
+    old_raw = await redis.set(session_key, jti, ex=ttl_seconds, get=True)
+    old_jti = old_raw.decode() if isinstance(old_raw, bytes) else old_raw
     if old_jti:
-        old_jti_str = old_jti.decode() if isinstance(old_jti, bytes) else old_jti
         # Notify the old session via WebSocket Pub/Sub
         await redis.publish(
             f"ws:user:{user_id}",
@@ -58,14 +60,12 @@ async def create_session(user_id: str, role: str) -> tuple[str, str, int]:
             ),
         )
         # Blacklist the old JTI so it cannot be reused
-        old_blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=old_jti_str)
+        old_blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=old_jti)
         await redis.set(old_blacklist_key, "1", ex=28800)
         logger.info(
             "Session overridden — old session invalidated",
             extra={"user_id": user_id, "role": role},
         )
-
-    await redis.set(session_key, jti, ex=ttl_seconds)
 
     logger.info("Session created", extra={"user_id": user_id, "role": role})
     return token, jti, ttl_seconds

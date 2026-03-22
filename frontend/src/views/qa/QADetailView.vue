@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useLocale } from '@/composables/useLocale'
 import { formatDateTime } from '@/utils/date'
@@ -214,6 +214,18 @@ function isOwnAnswer(comment: Comment): boolean {
 }
 
 onMounted(async () => {
+  await Promise.all([fetchPost(), fetchAnswers()])
+  await fetchUserVotes()
+})
+
+// Re-fetch when route param changes (component reuse)
+watch(postId, async () => {
+  post.value = null
+  answers.value = []
+  voteState.value = {}
+  answersPage.value = 1
+  newAnswer.value = ''
+  answerMessage.value = ''
   await Promise.all([fetchPost(), fetchAnswers()])
   await fetchUserVotes()
 })

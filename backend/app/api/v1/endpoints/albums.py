@@ -82,7 +82,7 @@ async def create_album_endpoint(
 async def list_albums_endpoint(
     page: int = Query(1, ge=1, le=MAX_PAGE_NUMBER),
     page_size: int = Query(DEFAULT_PAGE_SIZE_ALBUMS, ge=1, le=MAX_PAGE_SIZE),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> AlbumListResponse:
     albums, total = await list_albums(page=page, page_size=page_size, viewer_id=current_user["sub"])
     return AlbumListResponse(albums=cast(list[Any], albums), total=total)
@@ -91,7 +91,7 @@ async def list_albums_endpoint(
 @router.get("/{album_id}", response_model=AlbumResponse)
 async def get_album_endpoint(
     album_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> AlbumResponse:
     album = await get_album(str(album_id))
     return AlbumResponse(**album)
@@ -169,6 +169,8 @@ async def upload_cover_endpoint(
     filename = file.filename or "cover"
     # M-12: Derive Content-Type from extension instead of trusting client
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    if not content_type.startswith("image/"):
+        content_type = "application/octet-stream"
 
     album = await upload_cover(
         album_id=str(album_id),
@@ -249,7 +251,7 @@ async def list_members_endpoint(
     album_id: uuid.UUID,
     page: int = Query(1, ge=1, le=MAX_PAGE_NUMBER),
     page_size: int = Query(20, ge=1, le=MAX_PAGE_SIZE),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> AlbumMemberListResponse:
     members, total = await list_members(
         album_id=str(album_id),
@@ -286,6 +288,8 @@ async def upload_photo_endpoint(
     filename = file.filename or "unknown"
     # M-12: Derive Content-Type from extension instead of trusting client
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    if not content_type.startswith("image/"):
+        content_type = "application/octet-stream"
 
     photo = await upload_photo(
         album_id=str(album_id),
@@ -337,7 +341,7 @@ async def list_photos_endpoint(
     album_id: uuid.UUID,
     page: int = Query(1, ge=1, le=MAX_PAGE_NUMBER),
     page_size: int = Query(DEFAULT_PAGE_SIZE_ALBUM_PHOTOS, ge=1, le=MAX_PAGE_SIZE),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> AlbumPhotoListResponse:
     photos, total = await list_photos(
         album_id=str(album_id),
@@ -352,7 +356,7 @@ async def list_photos_endpoint(
 async def get_photo_endpoint(
     album_id: uuid.UUID,
     photo_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> AlbumPhotoResponse:
     photo = await get_photo(album_id=str(album_id), photo_id=str(photo_id))
     return AlbumPhotoResponse(**photo)
@@ -425,7 +429,7 @@ async def list_comments_endpoint(
     album_id: uuid.UUID,
     page: int = Query(1, ge=1, le=MAX_PAGE_NUMBER),
     page_size: int = Query(DEFAULT_PAGE_SIZE_ALBUM_COMMENTS, ge=1, le=MAX_PAGE_SIZE),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> AlbumCommentListResponse:
     comments, total = await list_comments(
         album_id=str(album_id),

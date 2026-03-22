@@ -70,6 +70,7 @@ export function useWebSocket() {
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data)
+          if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string') return
           if (msg.type === 'PING') {
             ws?.send(JSON.stringify({ type: 'PONG' }))
             return
@@ -81,23 +82,41 @@ export function useWebSocket() {
             auth.clearSession()
             router.push({ name: 'login' })
           } else if (msg.type === 'NEW_NOTIFICATION') {
-            if (msg.notification) {
+            if (msg.notification && typeof msg.notification === 'object') {
               notificationStore.addFromWebSocket(msg.notification)
             }
             toastStore.show(msg.notification?.message || 'New notification', 'info')
           } else if (msg.type === 'NEW_DM') {
-            dmStore.addFromWebSocket(msg.message)
-            if (dmStore.activeConversationId !== msg.message.conversation_id) {
-              toastStore.show(`New message from ${msg.message.sender.display_name}`, 'info')
+            if (
+              msg.message &&
+              typeof msg.message === 'object' &&
+              typeof msg.message.id === 'string' &&
+              typeof msg.message.conversation_id === 'string'
+            ) {
+              dmStore.addFromWebSocket(msg.message)
+              if (dmStore.activeConversationId !== msg.message.conversation_id) {
+                toastStore.show(
+                  `New message from ${msg.message.sender?.display_name ?? 'someone'}`,
+                  'info',
+                )
+              }
             }
           } else if (msg.type === 'DM_EDITED') {
-            dmStore.updateFromWebSocket(msg.message)
+            if (msg.message && typeof msg.message === 'object' && typeof msg.message.id === 'string') {
+              dmStore.updateFromWebSocket(msg.message)
+            }
           } else if (msg.type === 'DM_RECALLED') {
-            dmStore.recallFromWebSocket(msg.message_id, msg.conversation_id)
+            if (typeof msg.message_id === 'string' && typeof msg.conversation_id === 'string') {
+              dmStore.recallFromWebSocket(msg.message_id, msg.conversation_id)
+            }
           } else if (msg.type === 'DM_READ') {
-            dmStore.readReceiptFromWebSocket(msg.conversation_id, msg.read_at)
+            if (typeof msg.conversation_id === 'string' && typeof msg.read_at === 'string') {
+              dmStore.readReceiptFromWebSocket(msg.conversation_id, msg.read_at)
+            }
           } else if (msg.type === 'SIG_ROLE_CHANGED') {
-            auth.setSigRoleChange(msg.sig_id, msg.new_role)
+            if (typeof msg.sig_id === 'string' && typeof msg.new_role === 'string') {
+              auth.setSigRoleChange(msg.sig_id, msg.new_role)
+            }
           }
         } catch {
           // ignore parse errors
@@ -154,6 +173,11 @@ export function useWebSocket() {
 
   _visibilityConsumers++
   if (_visibilityConsumers === 1) {
+    _currentHandleVisibility = handleVisibility
+    document.addEventListener('visibilitychange', _currentHandleVisibility)
+  } else if (_currentHandleVisibility) {
+    // Replace the stale handler with the latest consumer's closure
+    document.removeEventListener('visibilitychange', _currentHandleVisibility)
     _currentHandleVisibility = handleVisibility
     document.addEventListener('visibilitychange', _currentHandleVisibility)
   }

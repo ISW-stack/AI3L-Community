@@ -161,7 +161,11 @@ async def get_post_by_id(
         # Only increment if not viewed in dedup window (24h)
         is_new = await redis.set(view_key, "1", ex=POST_VIEW_DEDUP_TTL, nx=True)
         if is_new:
-            await post_repo.increment_view_count(post_id)
+            try:
+                await post_repo.increment_view_count(post_id)
+            except Exception:
+                await redis.delete(view_key)
+                raise
     elif increment_view:
         # Fallback: no viewer_id, always increment (backward compat)
         await post_repo.increment_view_count(post_id)
@@ -285,32 +289,54 @@ async def _cleanup_post_files(post_id: uuid.UUID, user_id: str) -> None:
 
 
 async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = False) -> bool:
+    pool = get_pool()
     post_owner_id: str | None = None
-    if is_admin:
-        post_owner_id = await post_repo.find_owner_id(post_id)
-        deleted = await post_repo.soft_delete(post_id)
-    else:
-        deleted = await post_repo.soft_delete(post_id, uuid.UUID(user_id))
+
+    # Perform soft-delete and citation cleanup atomically in one transaction
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            if is_admin:
+                owner_row = await conn.fetchval(
+                    "SELECT user_id FROM posts WHERE id = $1", post_id
+                )
+                post_owner_id = str(owner_row) if owner_row else None
+                result = await conn.execute(
+                    "UPDATE posts SET is_deleted = true, updated_at = NOW() "
+                    "WHERE id = $1 AND is_deleted = false",
+                    post_id,
+                )
+            else:
+                result = await conn.execute(
+                    "UPDATE posts SET is_deleted = true, updated_at = NOW() "
+                    "WHERE id = $1 AND user_id = $2 AND is_deleted = false",
+                    post_id,
+                    uuid.UUID(user_id),
+                )
+            deleted = bool(result == "UPDATE 1")
+
+            if deleted:
+                # Cleanup citations within the same transaction
+                try:
+                    await conn.execute(
+                        "DELETE FROM post_citations "
+                        "WHERE citing_post_id = $1 OR cited_post_id = $1",
+                        post_id,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Post citation cleanup failed",
+                        extra={"post_id": str(post_id)},
+                        exc_info=True,
+                    )
 
     if deleted:
         logger.info("Post deleted", extra={"post_id": str(post_id)})
-        # Best-effort cleanup of embedded files
+        # Best-effort cleanup of embedded files (outside transaction)
         actual_user = post_owner_id if is_admin and post_owner_id else user_id
         try:
             await _cleanup_post_files(post_id, actual_user)
         except Exception:
             logger.warning("Post file cleanup failed", extra={"post_id": str(post_id)})
-
-        # Cleanup citations referencing this post (both directions)
-        try:
-            pool = get_pool()
-            async with pool.acquire() as conn:
-                await conn.execute(
-                    "DELETE FROM post_citations WHERE citing_post_id = $1 OR cited_post_id = $1",
-                    post_id,
-                )
-        except Exception:
-            logger.warning("Post citation cleanup failed", extra={"post_id": str(post_id)})
 
     # Notify post owner when admin deletes their post
     if deleted and is_admin and post_owner_id and post_owner_id != user_id:

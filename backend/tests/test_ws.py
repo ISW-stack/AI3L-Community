@@ -899,3 +899,133 @@ class TestConstants:
         from app.api.v1.endpoints.ws import WS_MSG_RATE_WINDOW
 
         assert WS_MSG_RATE_WINDOW == 60
+
+
+# ===== _session_revalidation =====
+
+
+class TestSessionRevalidation:
+    """Tests for the _session_revalidation inner function (H-01 fix)."""
+
+    @pytest.mark.asyncio
+    async def test_revalidation_checks_correct_session_key_format(self):
+        """Session revalidation uses session:{role}:{user_id} key format."""
+        uid = str(uuid.uuid4())
+        role = "MEMBER"
+        payload = _ticket_payload(role=role, user_id=uid)
+        ws = AsyncMock()
+
+        from fastapi import WebSocketDisconnect
+
+        redis = _make_mock_redis()
+        # exists returns 0 (session expired) to trigger FORCE_LOGOUT
+        redis.exists = AsyncMock(return_value=0)
+
+        # Gate: receive_text blocks until revalidation has run, then disconnects
+        revalidation_ran = asyncio.Event()
+
+        async def blocking_receive():
+            await revalidation_ran.wait()
+            raise WebSocketDisconnect()
+
+        ws.receive_text = AsyncMock(side_effect=blocking_receive)
+
+        base_time = 1000.0
+        mock_loop = MagicMock()
+        mock_loop.time = MagicMock(return_value=base_time)
+
+        async def fake_sleep(duration):
+            if duration >= 300:
+                # Return immediately to trigger the session check, then signal
+                return
+            # For ping loop and other sleeps, just yield control
+            await asyncio.sleep(0)
+
+        # After the revalidation sends FORCE_LOGOUT and closes, set the event
+        original_close = ws.close
+
+        async def close_and_signal(**kwargs):
+            revalidation_ran.set()
+            return await original_close(**kwargs)
+
+        ws.close = AsyncMock(side_effect=close_and_signal)
+
+        with (
+            patch(f"{_EP}._authenticate_ws", new_callable=AsyncMock, return_value=payload),
+            patch(f"{_EP}._connections", defaultdict(set)),
+            patch(f"{_EP}._connections_lock", asyncio.Lock()),
+            patch(f"{_EP}.get_redis", return_value=redis),
+            patch(f"{_EP}.asyncio.sleep", side_effect=fake_sleep),
+            patch(f"{_EP}.asyncio.get_event_loop", return_value=mock_loop),
+        ):
+            from app.api.v1.endpoints.ws import websocket_endpoint
+
+            await websocket_endpoint(ws, ticket="t")
+
+        # Verify that redis.exists was called with the correct key format
+        expected_key = f"session:{role}:{uid}"
+        redis.exists.assert_awaited_with(expected_key)
+
+    @pytest.mark.asyncio
+    async def test_revalidation_no_force_logout_when_session_exists(self):
+        """When session exists, FORCE_LOGOUT is not sent."""
+        uid = str(uuid.uuid4())
+        role = "MEMBER"
+        payload = _ticket_payload(role=role, user_id=uid)
+        ws = AsyncMock()
+
+        from fastapi import WebSocketDisconnect
+
+        redis = _make_mock_redis()
+        # exists returns 1 (session is valid)
+        redis.exists = AsyncMock(return_value=1)
+
+        # Gate: receive_text blocks until revalidation has run, then disconnects
+        revalidation_ran = asyncio.Event()
+
+        async def blocking_receive():
+            await revalidation_ran.wait()
+            raise WebSocketDisconnect()
+
+        ws.receive_text = AsyncMock(side_effect=blocking_receive)
+
+        base_time = 1000.0
+        mock_loop = MagicMock()
+        mock_loop.time = MagicMock(return_value=base_time)
+
+        revalidation_sleep_count = 0
+
+        async def fake_sleep(duration):
+            nonlocal revalidation_sleep_count
+            if duration >= 300:
+                revalidation_sleep_count += 1
+                if revalidation_sleep_count >= 2:
+                    # After second revalidation cycle, unblock receive to end
+                    revalidation_ran.set()
+                    # Suspend this task so receive_text can proceed
+                    await asyncio.Event().wait()
+                return
+            # For ping loop and other sleeps, suspend forever
+            # (they'll be cancelled in the finally block)
+            await asyncio.Event().wait()
+
+        with (
+            patch(f"{_EP}._authenticate_ws", new_callable=AsyncMock, return_value=payload),
+            patch(f"{_EP}._connections", defaultdict(set)),
+            patch(f"{_EP}._connections_lock", asyncio.Lock()),
+            patch(f"{_EP}.get_redis", return_value=redis),
+            patch(f"{_EP}.asyncio.sleep", side_effect=fake_sleep),
+            patch(f"{_EP}.asyncio.get_event_loop", return_value=mock_loop),
+        ):
+            from app.api.v1.endpoints.ws import websocket_endpoint
+
+            await websocket_endpoint(ws, ticket="t")
+
+        # FORCE_LOGOUT should NOT have been sent since session exists
+        for call in ws.send_json.call_args_list:
+            msg = call.args[0] if call.args else call.kwargs.get("data", {})
+            assert msg.get("type") != "FORCE_LOGOUT"
+
+        # Should NOT have been closed with 4003
+        for call in ws.close.call_args_list:
+            assert call.kwargs.get("code") != 4003

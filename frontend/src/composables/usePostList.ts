@@ -87,6 +87,10 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
   // Debounce timer for search-as-you-type
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
+  // Stale-response guard counters
+  let _searchFetchId = 0
+  let _fetchPostsId = 0
+
   // Sentinel element for IntersectionObserver
   const sentinelRef = ref<HTMLElement | null>(null)
 
@@ -136,6 +140,7 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
 
   // Initial fetch or filter-reset fetch (no cursor, replaces posts)
   async function fetchPosts() {
+    const fetchId = ++_fetchPostsId
     loading.value = true
     try {
       const params: {
@@ -151,14 +156,16 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
       }
       if (categoryFilter.value) params.category_id = categoryFilter.value
       const data = await listPosts(params)
+      if (fetchId !== _fetchPostsId) return // stale response
       posts.value = data.posts
       nextCursor.value = data.next_cursor ?? null
       hasMore.value = data.has_more ?? false
       isSearching.value = false
     } catch (e: unknown) {
+      if (fetchId !== _fetchPostsId) return // stale response
       toast.show(getErrorMessage(e, t(i18nErrorKeys.fetchPosts)), 'error')
     } finally {
-      loading.value = false
+      if (fetchId === _fetchPostsId) loading.value = false
     }
     syncQueryParams()
   }
@@ -194,6 +201,7 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
 
   // Initial search or filter-reset search (page-based pagination)
   async function doSearch({ resetBeforeSearch = true }: { resetBeforeSearch?: boolean } = {}) {
+    const fetchId = ++_searchFetchId
     searchPage.value = 1
     if (resetBeforeSearch) resetScrollState()
     if (!searchKeyword.value && !searchDateFrom.value && !searchDateTo.value) {
@@ -215,13 +223,15 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
       if (searchDateFrom.value && !dateRangeInvalid.value) body.date_from = searchDateFrom.value
       if (searchDateTo.value && !dateRangeInvalid.value) body.date_to = searchDateTo.value
       const data = await searchPosts(body)
+      if (fetchId !== _searchFetchId) return // stale response
       posts.value = data.posts
       nextCursor.value = null
       hasMore.value = data.has_more ?? false
     } catch (e: unknown) {
+      if (fetchId !== _searchFetchId) return // stale response
       toast.show(getErrorMessage(e, t(i18nErrorKeys.searchError)), 'error')
     } finally {
-      loading.value = false
+      if (fetchId === _searchFetchId) loading.value = false
     }
     syncQueryParams()
   }
@@ -229,6 +239,7 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
   // Append next page of search results via page number
   async function fetchMoreSearchResults() {
     if (isLoadingMore.value || !hasMore.value) return
+    const fetchId = _searchFetchId // capture current search context
     isLoadingMore.value = true
     try {
       const nextPage = searchPage.value + 1
@@ -244,13 +255,15 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
       if (searchDateFrom.value && !dateRangeInvalid.value) body.date_from = searchDateFrom.value
       if (searchDateTo.value && !dateRangeInvalid.value) body.date_to = searchDateTo.value
       const data = await searchPosts(body)
+      if (fetchId !== _searchFetchId) return // stale response
       posts.value = [...posts.value, ...data.posts]
       hasMore.value = data.has_more ?? false
       if (data.posts.length > 0) searchPage.value = nextPage
     } catch (e: unknown) {
+      if (fetchId !== _searchFetchId) return // stale response
       toast.show(getErrorMessage(e, t(i18nErrorKeys.searchError)), 'error')
     } finally {
-      isLoadingMore.value = false
+      if (fetchId === _searchFetchId) isLoadingMore.value = false
     }
   }
 

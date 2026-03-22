@@ -90,9 +90,9 @@ class TestListContributors:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_list_contributors_unauthenticated(self, client):
+    async def test_list_contributors_unauthenticated(self, unauthed_client):
         """GET /about/contributors without auth → 401."""
-        resp = await client.get("/api/v1/about/contributors")
+        resp = await unauthed_client.get("/api/v1/about/contributors")
         assert resp.status_code == 401
 
 

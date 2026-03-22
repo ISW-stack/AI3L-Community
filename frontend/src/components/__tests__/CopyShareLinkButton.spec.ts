@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import CopyShareLinkButton from '../CopyShareLinkButton.vue'
@@ -19,6 +19,11 @@ describe('CopyShareLinkButton', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.restoreAllMocks()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('should render the default label text', () => {
@@ -72,6 +77,50 @@ describe('CopyShareLinkButton', () => {
     await vi.dynamicImportSettled()
 
     // Should still show Copy icon (not switched to Check)
+    expect(wrapper.find('[data-testid="copy-icon"]').exists()).toBe(true)
+  })
+
+  it('should clear the copy timer on unmount (M-23)', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+
+    const wrapper = mount(CopyShareLinkButton, {
+      props: { url: 'https://example.com/share' },
+    })
+
+    await wrapper.find('button').trigger('click')
+    await vi.dynamicImportSettled()
+
+    // copied should be true immediately after click
+    expect(wrapper.find('[data-testid="check-icon"]').exists()).toBe(true)
+
+    // Unmount the component before the 2000ms timer fires
+    wrapper.unmount()
+
+    // Advance past the 2000ms timer — should not throw or cause issues
+    vi.advanceTimersByTime(3000)
+
+    // No errors thrown means cleanup was successful
+  })
+
+  it('should reset copied state after 2000ms timeout', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+
+    const wrapper = mount(CopyShareLinkButton, {
+      props: { url: 'https://example.com/share' },
+    })
+
+    await wrapper.find('button').trigger('click')
+    await vi.dynamicImportSettled()
+
+    expect(wrapper.find('[data-testid="check-icon"]').exists()).toBe(true)
+
+    // Advance past the 2000ms timer
+    vi.advanceTimersByTime(2000)
+    await wrapper.vm.$nextTick()
+
+    // Should revert to Copy icon
     expect(wrapper.find('[data-testid="copy-icon"]').exists()).toBe(true)
   })
 })

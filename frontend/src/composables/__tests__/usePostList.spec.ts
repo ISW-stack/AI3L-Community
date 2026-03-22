@@ -470,7 +470,157 @@ describe('usePostList', () => {
   })
 
   // -----------------------------------------------------------------------
-  // 15. dateRangeInvalid computed works correctly
+  // 15. M-27: stale search responses are discarded
+  // -----------------------------------------------------------------------
+  it('doSearch discards stale search response when a newer search fires', async () => {
+    let resolveFirst!: (value: unknown) => void
+    const firstPending = new Promise((resolve) => {
+      resolveFirst = resolve
+    })
+    const secondResponse = {
+      posts: [{ id: 'new-1', title: 'New Result' }],
+      total: 1,
+      has_more: false,
+    }
+
+    // First call hangs, second call resolves immediately
+    mockSearchPosts.mockReturnValueOnce(firstPending).mockResolvedValueOnce(secondResponse)
+
+    const { result, wrapper } = mountComposable()
+    result.init()
+    await flushPromises()
+
+    // Start first search
+    result.searchKeyword.value = 'stale query'
+    const firstSearch = result.doSearch()
+
+    // Start second search before first resolves — increments _searchFetchId
+    result.searchKeyword.value = 'fresh query'
+    const secondSearch = result.doSearch()
+    await secondSearch
+
+    // Second search result should be applied
+    expect(result.posts.value).toEqual(secondResponse.posts)
+
+    // Now resolve the first (stale) search
+    resolveFirst({
+      posts: [{ id: 'stale-1', title: 'Stale Result' }],
+      total: 1,
+      has_more: false,
+    })
+    await firstSearch
+
+    // Posts should still be the fresh result, not the stale one
+    expect(result.posts.value).toEqual(secondResponse.posts)
+    expect(result.posts.value[0].id).toBe('new-1')
+    wrapper.unmount()
+  })
+
+  it('fetchPosts discards stale response when a newer fetch fires', async () => {
+    // We test the guard by directly calling doSearch (which delegates to fetchPosts
+    // when no search terms exist), simulating rapid successive calls.
+    let resolveFirst!: (value: unknown) => void
+    const firstPending = new Promise((resolve) => {
+      resolveFirst = resolve
+    })
+    const secondResponse = {
+      posts: [{ id: 'fresh-1', title: 'Fresh Post' }],
+      total: 1,
+      next_cursor: null,
+      has_more: false,
+    }
+
+    const { result, wrapper } = mountComposable()
+    // Init with default
+    mockListPosts.mockResolvedValueOnce(defaultListResponse)
+    result.init()
+    await flushPromises()
+
+    // Set up the stale/fresh sequence for search
+    const staleSearchResponse = {
+      posts: [{ id: 'stale-s1', title: 'Stale Search' }],
+      total: 1,
+      has_more: false,
+    }
+    const freshSearchResponse = {
+      posts: [{ id: 'fresh-s1', title: 'Fresh Search' }],
+      total: 1,
+      has_more: false,
+    }
+
+    // First search hangs, second resolves immediately
+    mockSearchPosts.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFirst = resolve
+      }),
+    )
+    mockSearchPosts.mockResolvedValueOnce(freshSearchResponse)
+
+    // Start first search
+    result.searchKeyword.value = 'query A'
+    const first = result.doSearch()
+
+    // Start second search before first resolves
+    result.searchKeyword.value = 'query B'
+    const second = result.doSearch()
+    await second
+
+    expect(result.posts.value).toEqual(freshSearchResponse.posts)
+
+    // Resolve stale first search
+    resolveFirst(staleSearchResponse)
+    await first
+
+    // Should still show fresh results
+    expect(result.posts.value).toEqual(freshSearchResponse.posts)
+    expect(result.posts.value[0].id).toBe('fresh-s1')
+    wrapper.unmount()
+  })
+
+  it('stale search error does not show toast', async () => {
+    const toastModule = await import('@/stores/toast')
+    const toastStore = toastModule.useToastStore()
+    const showSpy = vi.spyOn(toastStore, 'show')
+
+    let rejectFirst!: (reason: unknown) => void
+    const firstPending = new Promise((_resolve, reject) => {
+      rejectFirst = reject
+    })
+    const secondResponse = {
+      posts: [{ id: 'ok-1', title: 'OK' }],
+      total: 1,
+      has_more: false,
+    }
+
+    mockSearchPosts.mockReturnValueOnce(firstPending).mockResolvedValueOnce(secondResponse)
+
+    const { result, wrapper } = mountComposable()
+    result.init()
+    await flushPromises()
+    showSpy.mockClear()
+
+    // Start first search that will fail
+    result.searchKeyword.value = 'fail query'
+    const firstSearch = result.doSearch()
+
+    // Start second search that succeeds
+    result.searchKeyword.value = 'ok query'
+    const secondSearch = result.doSearch()
+    await secondSearch
+
+    // Reject the first (stale) search
+    rejectFirst(new Error('Network error'))
+    await firstSearch.catch(() => {})
+    await flushPromises()
+
+    // Toast should NOT have been called for the stale error
+    expect(showSpy).not.toHaveBeenCalled()
+    wrapper.unmount()
+    showSpy.mockRestore()
+  })
+
+  // -----------------------------------------------------------------------
+  // 16. dateRangeInvalid computed works correctly
   // -----------------------------------------------------------------------
   it('dateRangeInvalid computed works correctly', async () => {
     const { result, wrapper } = mountComposable()

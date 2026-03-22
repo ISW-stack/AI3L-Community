@@ -668,6 +668,41 @@ export function usePostDetail(options: UsePostDetailOptions) {
     { deep: true },
   )
 
+  // Re-fetch when route param (postId) changes (component reuse)
+  watch(postId, (newId, oldId) => {
+    if (newId === oldId) return
+    // Reset state
+    post.value = null
+    loading.value = true
+    comments.value = []
+    coAuthors.value = []
+    citedBy.value = []
+    citing.value = []
+    history.value = []
+    showHistory.value = false
+    editing.value = false
+    editMessage.value = ''
+    newComment.value = ''
+    commentMessage.value = ''
+    inlineReplyTo.value = null
+    inlineReplyContent.value = ''
+    editingComment.value = null
+    imageScanStatuses.value = {}
+    // Clear scan poll timers
+    scanPollTimers.forEach(clearTimeout)
+    scanPollTimers = []
+    if (overlayDebounceTimer) {
+      clearTimeout(overlayDebounceTimer)
+      overlayDebounceTimer = null
+    }
+    // Re-fetch
+    fetchPost().then(() => scanPostImages())
+    fetchComments()
+    fetchCoAuthors()
+    fetchCitedBy()
+    fetchCiting()
+  })
+
   // --- Leave guard (unsaved edits) ---
   const showLeaveConfirm = ref(false)
   let pendingLeaveNext: ((val?: boolean) => void) | null = null

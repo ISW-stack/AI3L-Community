@@ -39,8 +39,10 @@ const searchResults = ref<Array<{ id: string; display_name: string; avatar_url: 
 )
 const searchLoading = ref(false)
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let isMounted = true
 
 onBeforeUnmount(() => {
+  isMounted = false
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
 })
 
@@ -75,17 +77,20 @@ function onSearchInput() {
   }
   searchLoading.value = true
   searchDebounceTimer = setTimeout(async () => {
+    if (!isMounted) return
     try {
       const res = await searchUsers(searchQuery.value.trim())
+      if (!isMounted) return
       searchResults.value = res as Array<{
         id: string
         display_name: string
         avatar_url: string | null
       }>
     } catch {
+      if (!isMounted) return
       searchResults.value = []
     } finally {
-      searchLoading.value = false
+      if (isMounted) searchLoading.value = false
     }
   }, 300)
 }

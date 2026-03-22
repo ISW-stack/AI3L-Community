@@ -10,10 +10,14 @@ on:
     paths:
       - "backend/**"
 
+permissions: {}
+
 jobs:
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -45,6 +49,8 @@ jobs:
     name: Tests
     needs: lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -82,6 +88,8 @@ jobs:
     name: Integration Tests
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -151,6 +159,8 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend

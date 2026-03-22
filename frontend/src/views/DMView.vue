@@ -31,6 +31,7 @@ const recallTargetId = ref<string | null>(null)
 const editingMessageId = ref<string | null>(null)
 const editingContent = ref('')
 const activeOtherUserId = ref<string | null>(null)
+const currentMsgPage = ref(1)
 
 const currentUserId = computed(() => auth.user?.id ?? '')
 const hasMoreMessages = computed(() => dmStore.messages.length < dmStore.messagesTotal)
@@ -107,6 +108,7 @@ async function selectConversation(conversationId: string, otherUserId: string) {
   dmStore.setActiveConversation(conversationId)
   editingMessageId.value = null
   editingContent.value = ''
+  currentMsgPage.value = 1
   msgPagination.resetPage()
 
   await dmStore.fetchMessages(conversationId, 1, msgPagination.pageSize)
@@ -147,9 +149,13 @@ function handleSelectConversation(conversationId: string, otherUserId: string) {
 }
 
 async function handleLoadMore() {
-  if (!dmStore.activeConversationId || !hasMoreMessages.value) return
-  const nextPage = Math.floor(dmStore.messages.length / msgPagination.pageSize) + 1
-  await dmStore.fetchMessages(dmStore.activeConversationId, nextPage, msgPagination.pageSize)
+  if (!dmStore.activeConversationId || !hasMoreMessages.value || dmStore.messagesLoading) return
+  currentMsgPage.value += 1
+  await dmStore.fetchMessages(
+    dmStore.activeConversationId,
+    currentMsgPage.value,
+    msgPagination.pageSize,
+  )
 }
 
 async function handleSend(content: string, file?: File) {

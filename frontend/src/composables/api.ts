@@ -23,7 +23,7 @@ api.interceptors.request.use((config) => {
     const csrfToken = getCookie('csrf_token')
     if (csrfToken) {
       config.headers['X-CSRF-Token'] = csrfToken
-    } else {
+    } else if (import.meta.env.DEV) {
       console.warn('[CSRF] Token cookie missing for mutating request:', config.url)
     }
   }
@@ -80,15 +80,10 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Generic structured error — show toast with translated message if error code exists
-    if (code) {
-      const errorKey = `errors.${code}`
-      const translated = t(errorKey)
-      useToastStore().show(
-        translated !== errorKey ? translated : message || t('errors.unknown'),
-        'error',
-      )
-    }
+    // Note: Generic error toasts are NOT shown here to avoid duplicates.
+    // Callers display their own error messages via getErrorMessage() in catch blocks.
+    // Only AUTH_* and rate-limit errors above get interceptor-level toasts
+    // because they require cross-cutting behavior (redirect, session clear).
 
     return Promise.reject(error)
   },

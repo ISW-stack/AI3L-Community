@@ -260,7 +260,7 @@ async def get_sig_members(
     sig_id: uuid.UUID,
     offset: int = Query(0, ge=0, le=MAX_PAGE_NUMBER * 100),
     limit: int = Query(50, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> SigMemberListResponse:
     members, total = await list_sig_members(sig_id, offset=offset, limit=limit)
     return SigMemberListResponse(

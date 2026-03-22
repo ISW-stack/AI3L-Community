@@ -132,11 +132,13 @@ function openCitationDialog() {
 }
 
 function insertCitation(citation: { postId: string; title: string }) {
+  if (!editor.value) return
+  const safeTitle = escapeHtml(citation.title)
   editor.value
-    ?.chain()
+    .chain()
     .focus()
     .insertContent(
-      `<a href="/forum/${citation.postId}" data-citation="true">[Cite: ${citation.title}]</a>`,
+      `<a href="/forum/${citation.postId}" data-citation="true">[Cite: ${safeTitle}]</a>`,
     )
     .run()
 }
@@ -144,6 +146,7 @@ function insertCitation(citation: { postId: string; title: string }) {
 function setLink() {
   const url = prompt(t('editor.promptLinkUrl'))
   if (!url || !editor.value) return
+  if (!isValidUrl(url)) return
   editor.value.chain().focus().setLink({ href: url }).run()
 }
 

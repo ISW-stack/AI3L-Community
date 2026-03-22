@@ -341,13 +341,15 @@ describe('api composable', () => {
       )
     })
 
-    it('should show toast for generic structured error codes', async () => {
+    it('should NOT show generic toast for structured error codes (M-26 fix)', async () => {
       const errorHandler = await getErrorInterceptor()
       const error = makeAxiosError(400, { code: 'VALIDATION_001', message: 'Invalid input' })
 
       await expect(errorHandler(error)).rejects.toBe(error)
 
-      expect(mockToastShow).toHaveBeenCalledWith('Invalid input', 'error')
+      // After M-26 fix: generic toasts are removed from interceptor to avoid duplicates.
+      // Callers handle their own error display via getErrorMessage() in catch blocks.
+      expect(mockToastShow).not.toHaveBeenCalled()
     })
 
     it('should not show toast when no code or message in error response', async () => {
@@ -357,6 +359,27 @@ describe('api composable', () => {
       await expect(errorHandler(error)).rejects.toBe(error)
 
       expect(mockToastShow).not.toHaveBeenCalled()
+    })
+
+    it('should still show toast for AUTH codes even after M-26 fix', async () => {
+      const errorHandler = await getErrorInterceptor()
+      const error = makeAxiosError(403, { code: 'AUTH_004', message: 'Banned' })
+
+      await expect(errorHandler(error)).rejects.toBe(error)
+
+      expect(mockToastShow).toHaveBeenCalledWith('Your account has been banned.', 'error')
+    })
+
+    it('should still show toast for 429 rate limit even after M-26 fix', async () => {
+      const errorHandler = await getErrorInterceptor()
+      const error = makeAxiosError(429, { code: 'RATE_LIMIT', message: 'Slow down' })
+
+      await expect(errorHandler(error)).rejects.toBe(error)
+
+      expect(mockToastShow).toHaveBeenCalledWith(
+        'Too many requests. Please try again later.',
+        'warning',
+      )
     })
   })
 })

@@ -2,6 +2,8 @@ import uuid
 
 from app.core.database import get_pool
 
+_VALID_REPORT_STATUSES = {"PENDING", "REVIEWED", "DISMISSED"}
+
 
 async def insert(
     report_id: uuid.UUID, post_id: uuid.UUID, user_id: uuid.UUID, reason: str
@@ -33,6 +35,9 @@ async def find_many(
     limit: int = 50,
 ) -> tuple[list[dict], int]:
     pool = get_pool()
+
+    if status_filter and status_filter not in _VALID_REPORT_STATUSES:
+        status_filter = None
 
     where = ""
     params: list = []

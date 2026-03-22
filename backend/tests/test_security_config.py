@@ -41,7 +41,7 @@ class TestCookieSecureAutoDerive:
         assert s.COOKIE_SECURE is False
 
     _SAFE_PROD = dict(
-        JWT_SECRET_KEY="prod_secret_key_safe",
+        JWT_SECRET_KEY="prod_secret_key_safe_at_least_32chars_long",
         SECRET_KEY="real_secret_key_prod_32chars_long_ok",
         SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
         POSTGRES_PASSWORD="real_pg_password",
@@ -73,7 +73,7 @@ class TestCookieSecureAutoDerive:
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            s = _make_settings(FASTAPI_ENV="staging")
+            s = _make_settings(FASTAPI_ENV="staging", **self._SAFE_PROD)
         assert s.COOKIE_SECURE is False
 
     def test_cookie_secure_none_resolves_to_bool(self) -> None:
@@ -205,7 +205,7 @@ class TestDevSecretWarnings:
         """In production, the dev warning block is skipped (production has its own checks)."""
         prod_settings = _make_settings(
             FASTAPI_ENV="production",
-            JWT_SECRET_KEY="real_jwt_secret_not_default",
+            JWT_SECRET_KEY="real_jwt_secret_not_default_at_least_32chars",
             SECRET_KEY="real_secret_key_not_default_value_here",
             POSTGRES_PASSWORD="strong_pg",
             REDIS_PASSWORD="strong_redis",

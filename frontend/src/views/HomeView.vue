@@ -113,7 +113,7 @@ async function fetchMyApplication() {
     if (isAxiosError(e)) {
       const status = e.response?.status
       if (status !== 404 && status !== 401) {
-        console.error('Failed to fetch application status:', e)
+        if (import.meta.env.DEV) console.error('Failed to fetch application status:', e)
       }
     }
   }
@@ -137,7 +137,7 @@ async function fetchMySigs() {
   try {
     mySigs.value = await listMySigs()
   } catch (e: unknown) {
-    console.error('Failed to fetch SIGs:', getErrorMessage(e))
+    if (import.meta.env.DEV) console.error('Failed to fetch SIGs:', getErrorMessage(e))
   } finally {
     loadingMySigs.value = false
   }
@@ -148,7 +148,7 @@ async function fetchPublicStats() {
   try {
     publicStats.value = await getPublicStats()
   } catch (e: unknown) {
-    console.error('Failed to fetch public stats:', getErrorMessage(e))
+    if (import.meta.env.DEV) console.error('Failed to fetch public stats:', getErrorMessage(e))
   } finally {
     loadingStats.value = false
   }
@@ -161,7 +161,7 @@ async function fetchFeaturedSigs() {
     // Show up to 3 SIGs as featured
     featuredSigs.value = data.sigs.slice(0, 3)
   } catch (e: unknown) {
-    console.error('Failed to fetch featured SIGs:', getErrorMessage(e))
+    if (import.meta.env.DEV) console.error('Failed to fetch featured SIGs:', getErrorMessage(e))
   } finally {
     loadingFeaturedSigs.value = false
   }

@@ -33,6 +33,20 @@ class QuestionSchema(BaseModel):
     allowed_types: list[str] | None = Field(None, max_length=20)
     max_size_mb: int | None = Field(None, ge=1, le=50)
 
+    @field_validator("labels")
+    @classmethod
+    def validate_labels(cls, v: dict[str, str] | None) -> dict[str, str] | None:
+        if v is None:
+            return v
+        if len(v) > 20:
+            raise ValueError("Labels dict must have at most 20 entries.")
+        for key, val in v.items():
+            if len(key) > 50:
+                raise ValueError("Labels key must be at most 50 characters.")
+            if len(val) > 500:
+                raise ValueError("Labels value must be at most 500 characters.")
+        return v
+
     @model_validator(mode="after")
     def validate_choice_options(self) -> "QuestionSchema":
         """Ensure choice-type questions have at least 2 options."""
@@ -151,6 +165,10 @@ class FormSubmitRequest(BaseModel):
                     raise ValueError("Answer list too long (max 100 items).")
                 if not all(isinstance(item, str) for item in val):
                     raise ValueError("Answer list items must be strings.")
+                continue
+            if isinstance(val, dict):
+                if len(str(val)) > 50000:
+                    raise ValueError("Answer dict value too large.")
                 continue
             raise ValueError(f"Unsupported answer value type: {type(val).__name__}")
         return v

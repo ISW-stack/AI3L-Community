@@ -7,6 +7,7 @@ from loguru import logger
 
 from app.core.constants import GUEST_SESSION_TIMEOUT, WS_PING_INTERVAL, WS_PING_TIMEOUT
 from app.core.redis import get_redis
+from app.services.auth import SESSION_KEY_TEMPLATE
 
 router = APIRouter()
 
@@ -107,8 +108,9 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                 await asyncio.sleep(WS_SESSION_REVALIDATION_INTERVAL)
                 try:
                     r = get_redis()
-                    session_keys = await r.keys(f"session:{user_id}:*")
-                    if not session_keys:
+                    session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
+                    session_exists = await r.exists(session_key)
+                    if not session_exists:
                         logger.info("WebSocket session expired", extra={"user_id": user_id})
                         await ws.send_json({"type": "FORCE_LOGOUT"})
                         await ws.close(code=4003, reason="Session expired")

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Paperclip, Send, X } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -30,6 +30,11 @@ const fileError = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const textarea = ref<HTMLTextAreaElement | null>(null)
 const isOverflowing = ref(false)
+let focusTimer: ReturnType<typeof setTimeout> | null = null
+
+onBeforeUnmount(() => {
+  if (focusTimer) clearTimeout(focusTimer)
+})
 
 function checkOverflow() {
   if (textarea.value) {
@@ -58,8 +63,8 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function handleFocus() {
-  // Scroll input into view when virtual keyboard opens on mobile
-  setTimeout(() => {
+  if (focusTimer) clearTimeout(focusTimer)
+  focusTimer = setTimeout(() => {
     textarea.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, 300)
 }
