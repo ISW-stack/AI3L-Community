@@ -51,7 +51,9 @@ export async function getAboutIntro(): Promise<{ photo_url: string; bio: string 
 export async function updateAboutIntroPhoto(file: File): Promise<{ photo_url: string }> {
   const form = new FormData()
   form.append('file', file)
-  const res = await api.put('/about/admin/intro/photo', form)
+  const res = await api.put('/about/admin/intro/photo', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return res.data
 }
 
