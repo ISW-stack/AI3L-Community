@@ -53,7 +53,7 @@ async def find_many(
         idx += 1
 
     if date_to:
-        conditions.append(f"al.created_at <= ${idx}::timestamptz")
+        conditions.append(f"al.created_at < (${idx}::date + interval '1 day')")
         params.append(date_to)
         idx += 1
 

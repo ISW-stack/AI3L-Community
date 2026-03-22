@@ -136,6 +136,8 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
             try:
                 msg = json.loads(data)
             except json.JSONDecodeError:
+                # Count invalid JSON against rate limit
+                msg_count += 1
                 logger.debug(
                     "Invalid JSON from WebSocket client",
                     extra={"user_id": user_id},

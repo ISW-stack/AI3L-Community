@@ -37,7 +37,6 @@ async def _cleanup_files() -> dict:
             try:
                 cleared = await dm_repo.clear_message_attachment_if_present(msg["id"])
                 if not cleared:
-                    deleted += 1
                     continue
 
                 if msg.get("attachment_key"):

@@ -33,7 +33,7 @@ export async function sendMessage(
   const { data } = await api.post(`/dm/conversations/${userId}/messages`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
-  return assertShape<DMMessage>(data, ['id', 'sender', 'content'], 'sendMessage')
+  return assertShape<DMMessage>(data, ['id', 'sender', 'conversation_id'], 'sendMessage')
 }
 
 export async function editMessage(messageId: string, content: string): Promise<DMMessage> {

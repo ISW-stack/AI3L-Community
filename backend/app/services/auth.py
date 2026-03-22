@@ -294,10 +294,19 @@ async def create_invite_code(user_id: str) -> tuple[str, datetime]:
 
 
 async def revoke_user_sessions(user_id: str) -> None:
-    """Revoke all Redis sessions for a user (all roles) in one batch delete."""
+    """Revoke all Redis sessions for a user (all roles): blacklist JTIs then delete keys."""
     redis = get_redis()
     session_keys = [SESSION_KEY_TEMPLATE.format(role=r.value, user_id=user_id) for r in UserRole]
-    await redis.delete(*session_keys)
+
+    # Batch-read all JTIs, blacklist them, then delete session keys
+    stored_jtis = await redis.mget(*session_keys)
+    async with redis.pipeline(transaction=False) as pipe:
+        for jti_raw in stored_jtis:
+            if jti_raw:
+                jti_str = jti_raw.decode() if isinstance(jti_raw, bytes) else jti_raw
+                pipe.set(BLACKLIST_KEY_TEMPLATE.format(jti=jti_str), "1", ex=28800)
+        pipe.delete(*session_keys)
+        await pipe.execute()
     logger.info("All sessions revoked", extra={"user_id": user_id})
 
 

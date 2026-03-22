@@ -14,7 +14,7 @@ const emit = defineEmits<{
 }>()
 
 const MAX_CHARS = 5000
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB (matches backend)
 
 const content = ref(props.editContent ?? '')
 
@@ -82,7 +82,7 @@ function handleFileChange(event: Event) {
   const selected = target.files?.[0]
   if (!selected) return
   if (selected.size > MAX_FILE_SIZE) {
-    fileError.value = 'File too large (max 50 MB)'
+    fileError.value = 'File too large (max 10 MB)'
     target.value = ''
     return
   }

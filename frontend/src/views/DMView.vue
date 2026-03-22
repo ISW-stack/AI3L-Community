@@ -78,8 +78,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   dmStore.setActiveConversation(null)
-  dmStore.messages = []
-  dmStore.messagesTotal = 0
+  dmStore.clearMessages()
 })
 
 // Watch route changes for userId param
@@ -122,21 +121,20 @@ async function selectConversation(conversationId: string, otherUserId: string) {
     return
   }
 
-  // Mark as read
-  try {
-    await dmApi.markConversationRead(conversationId)
-    // Update local unread count (immutable pattern for reactivity)
-    const convIdx = dmStore.conversations.findIndex((c) => c.id === conversationId)
-    if (convIdx >= 0 && dmStore.conversations[convIdx].unread_count > 0) {
+  // Mark as read — skip API call if already read
+  const convIdx = dmStore.conversations.findIndex((c) => c.id === conversationId)
+  if (convIdx >= 0 && dmStore.conversations[convIdx].unread_count > 0) {
+    try {
+      await dmApi.markConversationRead(conversationId)
       const prevUnread = dmStore.conversations[convIdx].unread_count
       dmStore.unreadCount = Math.max(0, dmStore.unreadCount - prevUnread)
       dmStore.conversations[convIdx] = {
         ...dmStore.conversations[convIdx],
         unread_count: 0,
       }
+    } catch {
+      // Non-critical, ignore
     }
-  } catch {
-    // Non-critical, ignore
   }
 
   await nextTick()
@@ -220,7 +218,7 @@ function parseDMError(e: unknown, fallback: string): string {
     if (code === 'DM_002') return 'The edit/recall window (12 hours) has expired.'
     if (code === 'DM_003') return 'You cannot message yourself.'
     if (code === 'DM_004') return 'Storage quota exceeded (1 GB limit).'
-    if (code === 'DM_005') return 'File too large (max 50 MB).'
+    if (code === 'DM_005') return 'File too large (max 10 MB).'
     if (code === 'SYS_422') {
       const msg = resp?.data?.detail?.message ?? ''
       if (msg.includes('already recalled')) return 'This message has already been recalled.'
@@ -261,6 +259,8 @@ async function confirmRecall() {
       content: null,
       attachment_url: null,
       attachment_name: null,
+      attachment_size: null,
+      attachment_expires_at: null,
     }
   }
 

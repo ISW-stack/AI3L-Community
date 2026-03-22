@@ -542,15 +542,57 @@ async def _on_friend_accepted(
         raise
 
 
-async def _on_dm_message_sent(recipient_id: str, message: dict, **_kwargs: Any) -> None:
-    """Push new DM via WebSocket."""
-    try:
-        from app.api.v1.endpoints.ws import send_to_user
+async def _on_dm_message_sent(
+    recipient_id: str,
+    message: dict,
+    sender_id: str | None = None,
+    **_kwargs: Any,
+) -> None:
+    """Push new DM via WebSocket to recipient and sender's other sessions.
 
-        await send_to_user(recipient_id, {"type": "NEW_DM", "message": message})
+    Also creates a persistent DB notification for the recipient (deduped per
+    conversation so only one unread-DM notification exists at a time).
+    """
+    from app.api.v1.endpoints.ws import send_to_user
+
+    ws_payload = {"type": "NEW_DM", "message": message}
+
+    # Push to recipient
+    try:
+        await send_to_user(recipient_id, ws_payload)
     except Exception:
-        logger.error("Failed to push DM via WebSocket", exc_info=True)
+        logger.error("Failed to push DM to recipient via WebSocket", exc_info=True)
         raise
+
+    # Push to sender's other open sessions
+    if sender_id and sender_id != recipient_id:
+        try:
+            await send_to_user(sender_id, ws_payload)
+        except Exception:
+            # Non-fatal: sender's other tabs will see the message on next load
+            logger.warning("Failed to push DM to sender's other sessions", exc_info=True)
+
+    # Persistent DB notification for recipient
+    # Dedup: one notification per conversation until the recipient reads it.
+    conversation_id = message.get("conversation_id")
+    if sender_id and conversation_id:
+        try:
+            from app.services.notification import create_notification
+
+            if await _check_idempotent(recipient_id, "conversation", conversation_id, "NEW_DM"):
+                sender_info = message.get("sender") or {}
+                sender_name = sender_info.get("display_name") or "Someone"
+                await create_notification(
+                    user_id=recipient_id,
+                    trigger_user_id=sender_id,
+                    action_type="NEW_DM",
+                    entity_type="conversation",
+                    entity_id=conversation_id,
+                    message=f"{sender_name} sent you a message",
+                )
+        except Exception:
+            # Non-fatal: WS delivery above is the primary real-time path
+            logger.error("Failed to create DM notification", exc_info=True)
 
 
 async def _on_dm_message_edited(recipient_id: str, message: dict, **_kwargs: Any) -> None:

@@ -306,6 +306,7 @@ async def send_message(
     # 12. Emit event
     await emit(
         "dm.message_sent",
+        sender_id=sender_id,
         recipient_id=recipient_id,
         message=msg,
     )
@@ -374,7 +375,7 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
 
             # 5. Update message
             updated_row = await conn.fetchrow(
-                "UPDATE dm_messages SET content = $1, updated_at = NOW() "
+                "UPDATE dm_messages SET content = $1, is_edited = TRUE, updated_at = NOW() "
                 "WHERE id = $2 AND is_recalled = false RETURNING *",
                 new_content,
                 uuid.UUID(message_id),
@@ -595,11 +596,9 @@ async def mark_read(user_id: str, conversation_id: str) -> str | None:
     if not conv:
         raise AppError(ErrorCode.DM_006, 404, "Conversation not found.")
 
-    count = await dm_repo.mark_messages_read(uuid.UUID(conversation_id), uuid.UUID(user_id))
+    count, read_at = await dm_repo.mark_messages_read(uuid.UUID(conversation_id), uuid.UUID(user_id))
     if count == 0:
         return None
-
-    read_at = datetime.now(timezone.utc).isoformat()
 
     # Find the other participant to send read receipt
     other_id = (

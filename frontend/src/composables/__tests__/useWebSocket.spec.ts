@@ -34,6 +34,7 @@ const {
   mockSetSigRoleChange: vi.fn(),
 }))
 
+
 // ---------------------------------------------------------------------------
 // Module mocks
 // ---------------------------------------------------------------------------
@@ -788,18 +789,121 @@ describe('useWebSocket', () => {
   })
 
   // -------------------------------------------------------------------------
+  // onReconnect callbacks (DM-02)
+  // -------------------------------------------------------------------------
+
+  describe('onReconnect', () => {
+    it('does NOT fire callback on the first connection', async () => {
+      const cb = vi.fn()
+      const { connect, onReconnect } = useWebSocket()
+      onReconnect(cb)
+
+      await connect()
+      MockWebSocket.instances[0].simulateOpen()
+
+      expect(cb).not.toHaveBeenCalled()
+    })
+
+    it('fires callback on reconnection after a prior connection drops', async () => {
+      const cb = vi.fn()
+      const { connect, onReconnect } = useWebSocket()
+      onReconnect(cb)
+
+      // Initial connection
+      await connect()
+      MockWebSocket.instances[0].simulateOpen()
+      expect(cb).not.toHaveBeenCalled()
+
+      // Connection drops → schedules reconnect
+      mockApiPost.mockResolvedValue({ data: { ticket: 'reconnect-ticket' } })
+      MockWebSocket.instances[0].simulateClose()
+
+      // Reconnect fires
+      await vi.advanceTimersByTimeAsync(1000)
+      MockWebSocket.instances[1].simulateOpen()
+
+      expect(cb).toHaveBeenCalledTimes(1)
+    })
+
+    it('fires all registered callbacks on reconnection', async () => {
+      const cb1 = vi.fn()
+      const cb2 = vi.fn()
+      const { connect, onReconnect } = useWebSocket()
+      onReconnect(cb1)
+      onReconnect(cb2)
+
+      await connect()
+      MockWebSocket.instances[0].simulateOpen()
+
+      mockApiPost.mockResolvedValue({ data: { ticket: 'ticket2' } })
+      MockWebSocket.instances[0].simulateClose()
+      await vi.advanceTimersByTimeAsync(1000)
+      MockWebSocket.instances[1].simulateOpen()
+
+      expect(cb1).toHaveBeenCalledTimes(1)
+      expect(cb2).toHaveBeenCalledTimes(1)
+    })
+
+    it('fires callback on each subsequent reconnection', async () => {
+      const cb = vi.fn()
+      const { connect, onReconnect } = useWebSocket()
+      onReconnect(cb)
+
+      await connect()
+      MockWebSocket.instances[0].simulateOpen()
+
+      // First reconnect
+      mockApiPost.mockResolvedValue({ data: { ticket: 't2' } })
+      MockWebSocket.instances[0].simulateClose()
+      await vi.advanceTimersByTimeAsync(1000)
+      MockWebSocket.instances[1].simulateOpen()
+      expect(cb).toHaveBeenCalledTimes(1)
+
+      // Second reconnect
+      mockApiPost.mockResolvedValue({ data: { ticket: 't3' } })
+      MockWebSocket.instances[1].simulateClose()
+      await vi.advanceTimersByTimeAsync(1000)
+      MockWebSocket.instances[2].simulateOpen()
+      expect(cb).toHaveBeenCalledTimes(2)
+    })
+
+    it('continues firing remaining callbacks even if one throws', async () => {
+      const throwing = vi.fn(() => {
+        throw new Error('callback error')
+      })
+      const safe = vi.fn()
+      const { connect, onReconnect } = useWebSocket()
+      onReconnect(throwing)
+      onReconnect(safe)
+
+      await connect()
+      MockWebSocket.instances[0].simulateOpen()
+
+      mockApiPost.mockResolvedValue({ data: { ticket: 'ticket2' } })
+      MockWebSocket.instances[0].simulateClose()
+      await vi.advanceTimersByTimeAsync(1000)
+      MockWebSocket.instances[1].simulateOpen()
+
+      expect(throwing).toHaveBeenCalledTimes(1)
+      expect(safe).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // -------------------------------------------------------------------------
   // Return value
   // -------------------------------------------------------------------------
 
   describe('return value', () => {
-    it('returns connected ref, connect and cleanup functions', () => {
+    it('returns connected ref, connect, cleanup and onReconnect functions', () => {
       const result = useWebSocket()
 
       expect(result).toHaveProperty('connected')
       expect(result).toHaveProperty('connect')
       expect(result).toHaveProperty('cleanup')
+      expect(result).toHaveProperty('onReconnect')
       expect(typeof result.connect).toBe('function')
       expect(typeof result.cleanup).toBe('function')
+      expect(typeof result.onReconnect).toBe('function')
     })
   })
 })

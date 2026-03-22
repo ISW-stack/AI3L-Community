@@ -384,28 +384,33 @@ class TestDMRepoRecallMessage:
 
 class TestDMRepoMarkMessagesRead:
     @pytest.mark.anyio
-    async def test_mark_read_returns_count(self, mock_pool, mock_conn):
-        """mark_messages_read returns count of updated rows."""
-        mock_conn.execute.return_value = "UPDATE 3"
+    async def test_mark_read_returns_count_and_timestamp(self, mock_pool, mock_conn):
+        """mark_messages_read returns (count, read_at) tuple."""
+        from datetime import datetime, timezone
+
+        ts = datetime(2026, 3, 22, 12, 0, 0, tzinfo=timezone.utc)
+        mock_conn.fetchrow.return_value = {"cnt": 3, "read_at": ts}
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import mark_messages_read
 
-            count = await mark_messages_read(_CONV_ID, uuid.UUID(_SENDER_ID))
+            count, read_at = await mark_messages_read(_CONV_ID, uuid.UUID(_SENDER_ID))
 
         assert count == 3
+        assert read_at == ts.isoformat()
 
     @pytest.mark.anyio
     async def test_mark_read_zero_when_none_updated(self, mock_pool, mock_conn):
-        """mark_messages_read returns 0 when no unread messages."""
-        mock_conn.execute.return_value = "UPDATE 0"
+        """mark_messages_read returns (0, None) when no unread messages."""
+        mock_conn.fetchrow.return_value = {"cnt": 0, "read_at": None}
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import mark_messages_read
 
-            count = await mark_messages_read(_CONV_ID, uuid.UUID(_SENDER_ID))
+            count, read_at = await mark_messages_read(_CONV_ID, uuid.UUID(_SENDER_ID))
 
         assert count == 0
+        assert read_at is None
 
 
 class TestDMRepoCountTotalUnread:
@@ -1524,7 +1529,9 @@ class TestMarkReadService:
         """mark_read marks messages and emits dm.messages_read event."""
         conv = _make_conversation(conv_id=_CONV_ID, user_a=_SENDER_ID, user_b=_RECIPIENT_ID)
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
-        mock_dm_repo.mark_messages_read = AsyncMock(return_value=3)
+        mock_dm_repo.mark_messages_read = AsyncMock(
+            return_value=(3, "2026-03-22T12:00:00+00:00")
+        )
 
         from app.services.dm import mark_read
 
@@ -1542,7 +1549,7 @@ class TestMarkReadService:
         """mark_read returns None when no unread messages."""
         conv = _make_conversation(conv_id=_CONV_ID, user_a=_SENDER_ID, user_b=_RECIPIENT_ID)
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
-        mock_dm_repo.mark_messages_read = AsyncMock(return_value=0)
+        mock_dm_repo.mark_messages_read = AsyncMock(return_value=(0, None))
 
         from app.services.dm import mark_read
 
@@ -2295,15 +2302,147 @@ class TestCleanupDMExpiredText:
 class TestDMEventHandlers:
     @pytest.mark.anyio
     async def test_on_dm_message_sent_pushes_new_dm(self):
-        """dm.message_sent handler pushes NEW_DM via WebSocket."""
+        """dm.message_sent handler pushes NEW_DM to recipient (no sender_id → no sender push)."""
         msg = _make_msg_response()
 
         with patch("app.api.v1.endpoints.ws.send_to_user", new_callable=AsyncMock) as mock_send:
-            from app.event_handlers import _on_dm_message_sent
+            with patch(
+                "app.event_handlers._check_idempotent", new_callable=AsyncMock, return_value=False
+            ):
+                from app.event_handlers import _on_dm_message_sent
 
-            await _on_dm_message_sent(recipient_id=_RECIPIENT_ID, message=msg)
+                await _on_dm_message_sent(recipient_id=_RECIPIENT_ID, message=msg)
 
         mock_send.assert_called_once_with(_RECIPIENT_ID, {"type": "NEW_DM", "message": msg})
+
+    @pytest.mark.anyio
+    async def test_on_dm_message_sent_pushes_to_sender_other_sessions(self):
+        """dm.message_sent handler also pushes NEW_DM to sender's other sessions (DM-04)."""
+        msg = _make_msg_response()
+        ws_payload = {"type": "NEW_DM", "message": msg}
+
+        with patch("app.api.v1.endpoints.ws.send_to_user", new_callable=AsyncMock) as mock_send:
+            with patch(
+                "app.event_handlers._check_idempotent", new_callable=AsyncMock, return_value=False
+            ):
+                from app.event_handlers import _on_dm_message_sent
+
+                await _on_dm_message_sent(
+                    sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, message=msg
+                )
+
+        assert mock_send.call_count == 2
+        mock_send.assert_any_call(_RECIPIENT_ID, ws_payload)
+        mock_send.assert_any_call(_SENDER_ID, ws_payload)
+
+    @pytest.mark.anyio
+    async def test_on_dm_message_sent_sender_ws_failure_is_non_fatal(self):
+        """Sender WebSocket failure does not propagate (non-fatal for other sessions)."""
+        msg = _make_msg_response()
+
+        call_count = 0
+
+        async def side_effect(user_id, payload):
+            nonlocal call_count
+            call_count += 1
+            if user_id == _SENDER_ID:
+                raise RuntimeError("sender WS down")
+
+        with patch("app.api.v1.endpoints.ws.send_to_user", side_effect=side_effect):
+            with patch(
+                "app.event_handlers._check_idempotent", new_callable=AsyncMock, return_value=False
+            ):
+                from app.event_handlers import _on_dm_message_sent
+
+                # Should NOT raise even though sender push fails
+                await _on_dm_message_sent(
+                    sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, message=msg
+                )
+
+        assert call_count == 2  # both were attempted
+
+    @pytest.mark.anyio
+    async def test_on_dm_message_sent_creates_notification_when_idempotent(self):
+        """dm.message_sent creates a DB notification for recipient (DM-01)."""
+        msg = _make_msg_response()
+
+        with patch("app.api.v1.endpoints.ws.send_to_user", new_callable=AsyncMock):
+            with patch(
+                "app.event_handlers._check_idempotent", new_callable=AsyncMock, return_value=True
+            ):
+                with patch(
+                    "app.services.notification.create_notification", new_callable=AsyncMock
+                ) as mock_notif:
+                    from app.event_handlers import _on_dm_message_sent
+
+                    await _on_dm_message_sent(
+                        sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, message=msg
+                    )
+
+        mock_notif.assert_called_once_with(
+            user_id=_RECIPIENT_ID,
+            trigger_user_id=_SENDER_ID,
+            action_type="NEW_DM",
+            entity_type="conversation",
+            entity_id=str(_CONV_ID),
+            message="Test User sent you a message",
+        )
+
+    @pytest.mark.anyio
+    async def test_on_dm_message_sent_skips_notification_when_duplicate(self):
+        """dm.message_sent skips DB notification when dedup key already exists (DM-01)."""
+        msg = _make_msg_response()
+
+        with patch("app.api.v1.endpoints.ws.send_to_user", new_callable=AsyncMock):
+            with patch(
+                "app.event_handlers._check_idempotent", new_callable=AsyncMock, return_value=False
+            ):
+                with patch(
+                    "app.services.notification.create_notification", new_callable=AsyncMock
+                ) as mock_notif:
+                    from app.event_handlers import _on_dm_message_sent
+
+                    await _on_dm_message_sent(
+                        sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, message=msg
+                    )
+
+        mock_notif.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_on_dm_message_sent_skips_notification_without_sender_id(self):
+        """dm.message_sent does not attempt notification when sender_id is absent."""
+        msg = _make_msg_response()
+
+        with patch("app.api.v1.endpoints.ws.send_to_user", new_callable=AsyncMock):
+            with patch(
+                "app.services.notification.create_notification", new_callable=AsyncMock
+            ) as mock_notif:
+                from app.event_handlers import _on_dm_message_sent
+
+                await _on_dm_message_sent(recipient_id=_RECIPIENT_ID, message=msg)
+
+        mock_notif.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_on_dm_message_sent_notification_failure_is_non_fatal(self):
+        """Notification DB failure does not propagate (non-fatal)."""
+        msg = _make_msg_response()
+
+        with patch("app.api.v1.endpoints.ws.send_to_user", new_callable=AsyncMock):
+            with patch(
+                "app.event_handlers._check_idempotent", new_callable=AsyncMock, return_value=True
+            ):
+                with patch(
+                    "app.services.notification.create_notification",
+                    new_callable=AsyncMock,
+                    side_effect=RuntimeError("DB down"),
+                ):
+                    from app.event_handlers import _on_dm_message_sent
+
+                    # Should NOT raise
+                    await _on_dm_message_sent(
+                        sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID, message=msg
+                    )
 
     @pytest.mark.anyio
     async def test_on_dm_message_edited_pushes_dm_edited(self):

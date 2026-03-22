@@ -119,6 +119,10 @@ async def send_message(
     if not await check_rate_limit(f"rl:dm:send:{sender_id}", *RATE_LIMIT_DM_SEND):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
+    # Strip whitespace from content
+    if content:
+        content = content.strip()
+
     # Validate: must have content or file
     if not content and not file:
         raise AppError(ErrorCode.SYS_422, 422, "Message must have content or an attachment.")

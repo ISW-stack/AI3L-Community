@@ -301,26 +301,34 @@ async def recall_message(message_id: uuid.UUID) -> dict | None:
         return dict(row) if row else None
 
 
-async def mark_messages_read(conversation_id: uuid.UUID, reader_id: uuid.UUID) -> int:
+async def mark_messages_read(
+    conversation_id: uuid.UUID, reader_id: uuid.UUID
+) -> tuple[int, str | None]:
     """Mark all unread, non-recalled messages from the other user as read.
 
-    Returns count of updated rows.
+    Returns (count of updated rows, read_at ISO timestamp or None).
     """
     pool = get_pool()
     async with pool.acquire() as conn:
-        result = await conn.execute(
+        row = await conn.fetchrow(
             """
-            UPDATE dm_messages
-            SET read_at = NOW()
-            WHERE conversation_id = $1
-              AND sender_id != $2
-              AND read_at IS NULL
-              AND NOT is_recalled
+            WITH updated AS (
+                UPDATE dm_messages
+                SET read_at = NOW()
+                WHERE conversation_id = $1
+                  AND sender_id != $2
+                  AND read_at IS NULL
+                  AND NOT is_recalled
+                RETURNING read_at
+            )
+            SELECT COUNT(*)::int AS cnt, MIN(read_at) AS read_at FROM updated
             """,
             conversation_id,
             reader_id,
         )
-        return int(result.split()[-1]) if result else 0
+        count = row["cnt"] if row else 0
+        read_at = row["read_at"].isoformat() if row and row["read_at"] else None
+        return count, read_at
 
 
 async def count_total_unread(user_id: uuid.UUID) -> int:

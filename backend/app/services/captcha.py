@@ -41,12 +41,10 @@ async def verify_captcha(captcha_id: str, captcha_code: str) -> bool:
     """Verify and consume captcha. Returns True if valid."""
     redis = get_redis()
     key = f"captcha:{captcha_id}"
-    stored_code = await redis.get(key)
+    # Atomic get-and-delete to prevent TOCTOU race
+    stored_code = await redis.getdel(key)
 
     if stored_code is None:
         return False
-
-    # Delete immediately (one-time use)
-    await redis.delete(key)
 
     return bool(stored_code.upper() == captcha_code.upper())

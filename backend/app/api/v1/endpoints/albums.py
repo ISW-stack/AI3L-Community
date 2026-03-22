@@ -419,7 +419,7 @@ async def create_comment_endpoint(
         user_id=current_user["sub"],
         content=sanitized_content,
         photo_id=req.photo_id,
-        parent_id=req.parent_id,
+        parent_id=str(req.parent_id) if req.parent_id else None,
     )
     return AlbumCommentResponse(**comment)
 

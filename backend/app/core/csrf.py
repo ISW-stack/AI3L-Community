@@ -114,6 +114,19 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     status_code=403,
                     content={"detail": "CSRF token not bound to session."},
                 )
+        elif payload is not None:
+            # Token decoded but JTI missing — reject
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": {
+                        "code": "CSRF_003",
+                        "message": "CSRF validation failed: missing JTI.",
+                    }
+                },
+            )
+        # If decode fails (expired/invalid), double-submit check already passed above.
+        # get_current_user will independently reject the request.
 
         response = await call_next(request)
         return response

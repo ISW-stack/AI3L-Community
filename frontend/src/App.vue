@@ -6,10 +6,12 @@ import AppFooter from '@/components/AppFooter.vue'
 import ToastNotification from '@/components/ToastNotification.vue'
 import PrivacyConsentModal from '@/components/PrivacyConsentModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useDMStore } from '@/stores/dm'
 import { useWebSocket } from '@/composables/useWebSocket'
 
 const auth = useAuthStore()
-const { connect, cleanup } = useWebSocket()
+const dmStore = useDMStore()
+const { connect, cleanup, onReconnect } = useWebSocket()
 const route = useRoute()
 
 const isFullWidth = computed(() => route.meta.fullWidth === true)
@@ -22,6 +24,16 @@ watch(
   },
   { immediate: true },
 )
+
+// DM-02: After WebSocket reconnection, re-sync DM state to recover any
+// messages that arrived while the connection was dropped.
+onReconnect(() => {
+  dmStore.fetchUnreadCount()
+  const convId = dmStore.activeConversationId
+  if (convId) {
+    dmStore.fetchMessages(convId, 1, 30)
+  }
+})
 
 function onConsentAccepted() {
   auth.requiresConsent = false

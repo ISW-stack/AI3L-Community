@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from pydantic import BaseModel, Field
 
 
@@ -87,7 +89,7 @@ class AlbumAddMemberRequest(BaseModel):
 class AlbumCommentCreateRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
     photo_id: str | None = None
-    parent_id: str | None = None
+    parent_id: uuid.UUID | None = None
 
 
 class AlbumCommentResponse(BaseModel):

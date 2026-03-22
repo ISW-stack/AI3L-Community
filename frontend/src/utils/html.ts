@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify'
+
 export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '')
 }
@@ -151,5 +153,6 @@ export function renderMentions(html: string, mentions: string[] | null): string 
   }
 
   walkTextNodes(container)
-  return container.innerHTML
+  // Re-sanitize after DOM re-serialization to prevent mXSS
+  return DOMPurify.sanitize(container.innerHTML)
 }

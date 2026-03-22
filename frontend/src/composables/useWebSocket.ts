@@ -34,7 +34,21 @@ export function useWebSocket() {
   let backoff = WS_INITIAL_BACKOFF_MS
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let connecting = false
+  // Tracks whether the WS has ever successfully connected in this instance's
+  // lifetime. Used to distinguish the initial connection from a reconnection.
+  let hasConnectedOnce = false
   const connected = ref(false)
+
+  // Registry of callbacks to invoke after a successful reconnection.
+  const _reconnectCallbacks: (() => void)[] = []
+
+  /** Register a callback to be called each time the WebSocket reconnects
+   *  (i.e. re-establishes after a prior drop). The callback is NOT called
+   *  on the very first connection.
+   */
+  function onReconnect(cb: () => void): void {
+    _reconnectCallbacks.push(cb)
+  }
 
   async function getWsUrl(): Promise<string | null> {
     try {
@@ -63,8 +77,19 @@ export function useWebSocket() {
       ws = new WebSocket(url)
 
       ws.onopen = () => {
+        const isReconnect = hasConnectedOnce
         connected.value = true
         backoff = WS_INITIAL_BACKOFF_MS
+        hasConnectedOnce = true
+        if (isReconnect) {
+          for (const cb of _reconnectCallbacks) {
+            try {
+              cb()
+            } catch {
+              // Ignore errors in individual callbacks to not block others
+            }
+          }
+        }
       }
 
       ws.onmessage = (event) => {
@@ -196,5 +221,5 @@ export function useWebSocket() {
     }
   })
 
-  return { connected, connect, cleanup }
+  return { connected, connect, cleanup, onReconnect }
 }

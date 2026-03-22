@@ -140,7 +140,7 @@ async function handleReaction(reaction: string) {
 
 /** Extract the first <img src="..."> from HTML content */
 const thumbnailUrl = computed(() => {
-  const match = props.post.content.match(/<img[^>]+src=["']([^"']+)["']/)
+  const match = props.post.content.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/)
   return match ? match[1] : null
 })
 

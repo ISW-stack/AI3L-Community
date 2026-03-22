@@ -32,7 +32,7 @@ router = APIRouter(prefix="/posts/{post_id}/comments", tags=["comments"])
 async def get_comments(
     post_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
-    page_size: int = Query(50, ge=1, le=200),
+    page_size: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ) -> CommentListResponse:
     # Verify post exists
@@ -71,7 +71,7 @@ async def create_new_comment(
             post_id=post_id,
             user_id=current_user["sub"],
             content=sanitized_content,
-            parent_id=req.parent_id,
+            parent_id=str(req.parent_id) if req.parent_id else None,
             mentions=req.mentions,
         )
     except ValueError as e:

@@ -90,8 +90,8 @@ services:
       - -c
       - >-
         mc alias set myminio http://minio:9000
-        $${MINIO_ROOT_USER:-minioadmin}
-        $${MINIO_ROOT_PASSWORD:-changeme_minio} &&
+        $${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+        $${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set} &&
         mc admin config reset myminio identity_openid:_ || true &&
         mc mb --ignore-existing myminio/$${MINIO_BUCKET:-ai3l-community} &&
         mc anonymous set none myminio/$${MINIO_BUCKET:-ai3l-community}

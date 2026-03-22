@@ -589,72 +589,102 @@ async def upload_photo(
             f"File size exceeds {ALBUM_MAX_PHOTO_SIZE_BYTES // (1024 * 1024)}MB limit.",
         )
 
+    # Phase 1: Validate permissions and check limits (short read transaction)
     async with pool.acquire() as conn:
-        async with conn.transaction():
-            # 4. Check album exists and membership
-            album = await album_repo.find_album_by_id(conn, album_uuid)
-            if not album:
-                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        # 4. Check album exists and membership
+        album = await album_repo.find_album_by_id(conn, album_uuid)
+        if not album:
+            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-            member = await album_repo.find_member(conn, album_uuid, user_uuid)
-            if not member or member["status"] != "ACCEPTED":
-                raise AppError(
-                    ErrorCode.SYS_403, 403, "Must be an approved album member to upload."
-                )
-
-            # 5. Check album photo count
-            photo_count = await album_repo.count_photos(conn, album_uuid)
-            if photo_count >= ALBUM_MAX_PHOTOS:
-                raise AppError(
-                    ErrorCode.ALBUM_002,
-                    400,
-                    f"Album has reached the maximum of {ALBUM_MAX_PHOTOS} photos.",
-                )
-
-            # 6. Check user storage quota (FOR UPDATE to prevent race condition)
-            quota_row = await conn.fetchrow(
-                "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
-                user_uuid,
-            )
-            storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
-            if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
-                raise AppError(
-                    ErrorCode.ALBUM_002,
-                    400,
-                    "Storage quota exceeded.",
-                )
-
-            # 7. Upload to MinIO
-            ext = ""
-            if "." in filename:
-                ext = filename.rsplit(".", 1)[-1].lower()
-            file_uuid = str(uuid.uuid4())
-            storage_key = album_photo_key(album_id, file_uuid, ext)
-            await async_upload_file(file_data, storage_key, content_type)
-
-            # 8. Increment storage used (within same transaction)
-            await conn.execute(
-                "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
-                file_size,
-                user_uuid,
+        member = await album_repo.find_member(conn, album_uuid, user_uuid)
+        if not member or member["status"] != "ACCEPTED":
+            raise AppError(
+                ErrorCode.SYS_403, 403, "Must be an approved album member to upload."
             )
 
-            # 9. Insert photo record
-            photo_id = uuid.uuid4()
-            row = await album_repo.insert_photo(
-                conn,
-                photo_id,
-                album_uuid,
-                user_uuid,
-                storage_key,
-                filename,
-                file_size,
-                content_type,
+        # 5. Check album photo count (advisory — exact enforcement via FOR UPDATE below)
+        photo_count = await album_repo.count_photos(conn, album_uuid)
+        if photo_count >= ALBUM_MAX_PHOTOS:
+            raise AppError(
+                ErrorCode.ALBUM_002,
+                400,
+                f"Album has reached the maximum of {ALBUM_MAX_PHOTOS} photos.",
             )
 
-            # 10. Auto-set as cover if album has no cover yet
-            if not album.get("cover_photo_url"):
-                await album_repo.set_cover_photo(conn, album_uuid, storage_key)
+    # Phase 2: Upload to MinIO outside any transaction
+    ext = ""
+    if "." in filename:
+        ext = filename.rsplit(".", 1)[-1].lower()
+    file_uuid = str(uuid.uuid4())
+    storage_key = album_photo_key(album_id, file_uuid, ext)
+    await async_upload_file(file_data, storage_key, content_type)
+
+    # Phase 3: Quota check + increment + DB insert in one short transaction
+    photo_id = uuid.uuid4()
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                # 6. Lock user row to prevent concurrent uploads bypassing quota
+                quota_row = await conn.fetchrow(
+                    "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
+                    user_uuid,
+                )
+                storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
+                if storage_used + file_size > settings.MAX_USER_STORAGE_BYTES:
+                    # Clean up the already-uploaded MinIO file
+                    try:
+                        from app.core.async_storage import delete_file
+
+                        await delete_file(storage_key)
+                    except Exception:
+                        logger.warning(
+                            "Failed to clean up photo after quota rejection",
+                            extra={"key": storage_key},
+                        )
+                    raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
+
+                # 7. Increment storage used
+                await conn.execute(
+                    "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
+                    file_size,
+                    user_uuid,
+                )
+
+                # 8. Insert photo record
+                row = await album_repo.insert_photo(
+                    conn,
+                    photo_id,
+                    album_uuid,
+                    user_uuid,
+                    storage_key,
+                    filename,
+                    file_size,
+                    content_type,
+                )
+
+                # 9. Auto-set as cover if album has no cover yet
+                if not album.get("cover_photo_url"):
+                    await album_repo.set_cover_photo(conn, album_uuid, storage_key)
+    except AppError:
+        raise
+    except Exception:
+        # DB failed after MinIO upload succeeded — clean up orphaned file
+        logger.error(
+            "DB insert failed after photo upload, cleaning up MinIO file",
+            extra={"album_id": album_id, "key": storage_key},
+            exc_info=True,
+        )
+        try:
+            from app.core.async_storage import delete_file
+
+            await delete_file(storage_key)
+        except Exception:
+            logger.error(
+                "Failed to clean up orphaned photo file from MinIO",
+                extra={"key": storage_key},
+                exc_info=True,
+            )
+        raise AppError(ErrorCode.SYS_500, 500, "Failed to save photo. Please try again.")
 
     # 11. Dispatch thumbnail generation (lazy import)
     try:
@@ -729,6 +759,9 @@ async def upload_file_zip(
             },
         )
 
+    from app.core.async_storage import upload_file as async_upload_file
+
+    # Phase 1: Validate permissions and check limits (short read transaction)
     async with pool.acquire() as conn:
         album = await album_repo.find_album_by_id(conn, album_uuid)
         if not album:
@@ -738,54 +771,85 @@ async def upload_file_zip(
         if not member or member["status"] != "ACCEPTED":
             raise AppError(ErrorCode.SYS_403, 403, "Must be an approved album member to upload.")
 
-        async with conn.transaction():
-            # Check album photo count
-            photo_count = await album_repo.count_photos(conn, album_uuid)
-            if photo_count >= ALBUM_MAX_PHOTOS:
-                raise AppError(
-                    ErrorCode.ALBUM_002,
-                    400,
-                    f"Album has reached the maximum of {ALBUM_MAX_PHOTOS} photos.",
+        # Check album photo count (advisory — exact enforcement via FOR UPDATE below)
+        photo_count = await album_repo.count_photos(conn, album_uuid)
+        if photo_count >= ALBUM_MAX_PHOTOS:
+            raise AppError(
+                ErrorCode.ALBUM_002,
+                400,
+                f"Album has reached the maximum of {ALBUM_MAX_PHOTOS} photos.",
+            )
+
+    # Phase 2: Upload to MinIO outside any transaction
+    ext = ""
+    if "." in filename:
+        ext = filename.rsplit(".", 1)[-1].lower()
+    file_uuid = str(uuid.uuid4())
+    storage_key = album_zip_key(album_id, file_uuid, ext)
+    await async_upload_file(upload_data, storage_key, content_type)
+
+    # Phase 3: Quota check + increment + DB insert in one short transaction
+    photo_id = uuid.uuid4()
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                # Lock user row to prevent concurrent uploads bypassing quota
+                quota_row = await conn.fetchrow(
+                    "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
+                    user_uuid,
+                )
+                storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
+                if storage_used + upload_size > settings.MAX_USER_STORAGE_BYTES:
+                    # Clean up the already-uploaded MinIO file
+                    try:
+                        from app.core.async_storage import delete_file
+
+                        await delete_file(storage_key)
+                    except Exception:
+                        logger.warning(
+                            "Failed to clean up ZIP after quota rejection",
+                            extra={"key": storage_key},
+                        )
+                    raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
+
+                # Increment storage
+                await conn.execute(
+                    "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
+                    upload_size,
+                    user_uuid,
                 )
 
-            # Lock user row to prevent concurrent uploads bypassing quota
-            quota_row = await conn.fetchrow(
-                "SELECT storage_used_bytes FROM users WHERE id = $1 FOR UPDATE",
-                user_uuid,
+                row = await album_repo.insert_photo(
+                    conn,
+                    photo_id,
+                    album_uuid,
+                    user_uuid,
+                    storage_key,
+                    filename,
+                    upload_size,
+                    content_type,
+                    is_zip=True,
+                )
+    except AppError:
+        raise
+    except Exception:
+        # DB failed after MinIO upload succeeded — clean up orphaned file
+        logger.error(
+            "DB insert failed after ZIP upload, cleaning up MinIO file",
+            extra={"album_id": album_id, "key": storage_key},
+            exc_info=True,
+        )
+        try:
+            from app.core.async_storage import delete_file
+
+            await delete_file(storage_key)
+        except Exception:
+            logger.error(
+                "Failed to clean up orphaned ZIP file from MinIO",
+                extra={"key": storage_key},
+                exc_info=True,
             )
-            storage_used = int(quota_row["storage_used_bytes"]) if quota_row else 0
-            if storage_used + upload_size > settings.MAX_USER_STORAGE_BYTES:
-                raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
-
-            ext = ""
-            if "." in filename:
-                ext = filename.rsplit(".", 1)[-1].lower()
-            file_uuid = str(uuid.uuid4())
-            storage_key = album_zip_key(album_id, file_uuid, ext)
-
-            from app.core.async_storage import upload_file as async_upload_file
-
-            await async_upload_file(upload_data, storage_key, content_type)
-
-            # Increment storage within same transaction
-            await conn.execute(
-                "UPDATE users SET storage_used_bytes = storage_used_bytes + $1 WHERE id = $2",
-                upload_size,
-                user_uuid,
-            )
-
-            photo_id = uuid.uuid4()
-            row = await album_repo.insert_photo(
-                conn,
-                photo_id,
-                album_uuid,
-                user_uuid,
-                storage_key,
-                filename,
-                upload_size,
-                content_type,
-                is_zip=True,
-            )
+        raise AppError(ErrorCode.SYS_500, 500, "Failed to save ZIP. Please try again.")
 
     logger.info(
         "Album ZIP uploaded",

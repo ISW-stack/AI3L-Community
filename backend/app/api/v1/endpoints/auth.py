@@ -286,7 +286,8 @@ async def heartbeat(
         value=csrf_token,
         httponly=False,
         secure=bool(settings.COOKIE_SECURE),
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,  # type: ignore[arg-type]
+        path="/",
         domain=domain,
     )
 

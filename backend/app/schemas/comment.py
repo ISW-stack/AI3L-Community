@@ -1,10 +1,21 @@
-from pydantic import BaseModel, Field
+import uuid as _uuid
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class CommentCreateRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
-    parent_id: str | None = None
+    parent_id: _uuid.UUID | None = None
     mentions: list[str] | None = Field(None, max_length=20)
+
+    @field_validator("mentions")
+    @classmethod
+    def validate_mention_length(cls, v: list[str] | None) -> list[str] | None:
+        if v:
+            for item in v:
+                if len(item) > 50:
+                    raise ValueError("Each mention must be at most 50 characters")
+        return v
 
 
 class CommentAuthorResponse(BaseModel):

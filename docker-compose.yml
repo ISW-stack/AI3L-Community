@@ -3,6 +3,10 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     entrypoint: ["/docker-entrypoint.sh"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       MINIO_CSP_ORIGIN: ${MINIO_CSP_ORIGIN:-}
     ports:
@@ -48,6 +52,10 @@ services:
   fastapi:
     build: ./backend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     expose:
       - "8000"
     env_file:
@@ -115,7 +123,7 @@ services:
       sh -c 'redis-server
       --requirepass "$REDIS_PASSWORD"
       --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
+      --maxmemory-policy volatile-lru
       --appendonly no'
     volumes:
       - redis-data:/data
@@ -136,6 +144,10 @@ services:
   celery:
     build: ./backend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     command: ["celery", "-A", "app.celery_app:celery", "worker", "--loglevel=info", "--concurrency=2", "--max-memory-per-child=256000"]
     env_file:
       - .env
@@ -161,6 +173,10 @@ services:
   celery-beat:
     build: ./backend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     command: ["celery", "-A", "app.celery_app:celery", "beat", "--loglevel=info"]
     env_file:
       - .env

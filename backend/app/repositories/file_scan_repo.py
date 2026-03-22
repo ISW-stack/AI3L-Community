@@ -2,18 +2,22 @@ from app.core.database import get_pool
 
 
 async def insert(file_key: str) -> dict | None:
-    """Insert a new pending file scan record (or return the existing one)."""
+    """Insert a new pending file scan record (skip if already exists)."""
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
             INSERT INTO file_scans (file_key)
             VALUES ($1)
-            ON CONFLICT (file_key) DO UPDATE SET file_key = EXCLUDED.file_key
+            ON CONFLICT (file_key) DO NOTHING
             RETURNING *
             """,
             file_key,
         )
+        if row is None:
+            row = await conn.fetchrow(
+                "SELECT * FROM file_scans WHERE file_key = $1", file_key
+            )
         return dict(row) if row else None
 
 

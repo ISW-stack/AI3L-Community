@@ -192,7 +192,7 @@ export const useDMStore = defineStore('dm', () => {
 
   function readReceiptFromWebSocket(conversationId: string, readAt: string) {
     if (activeConversationId.value === conversationId) {
-      // Only mark own sent messages as read (DM-06)
+      // Only mark own sent messages as read
       for (const msg of messages.value) {
         if (!msg.read_at && msg.sender.id === currentUserId.value) {
           msg.read_at = readAt
@@ -218,8 +218,7 @@ export const useDMStore = defineStore('dm', () => {
   function resetState() {
     conversations.value = []
     conversationsTotal.value = 0
-    messages.value = []
-    messagesTotal.value = 0
+    clearMessages()
     unreadCount.value = 0
     activeConversationId.value = null
     conversationsLoading.value = false

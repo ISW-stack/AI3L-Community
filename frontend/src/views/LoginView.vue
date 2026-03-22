@@ -62,7 +62,7 @@ async function handleLogin() {
     try {
       const url = new URL(redirect, window.location.origin)
       if (url.origin === window.location.origin) {
-        safeRedirect = url.pathname + url.search
+        safeRedirect = url.pathname + url.search + url.hash
       }
     } catch {
       // invalid URL, use default

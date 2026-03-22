@@ -276,7 +276,7 @@ async def serve_file(
                 202,
                 "File is being scanned. Please try again shortly.",
             )
-        if scan and scan["status"] in ("unknown", "error"):
+        if scan and scan["status"] in ("unknown", "error", "skipped"):
             logger.warning(
                 "File blocked due to unverified scan status",
                 extra={"key": key, "scan_status": scan["status"]},
