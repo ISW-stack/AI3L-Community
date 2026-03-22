@@ -1834,11 +1834,11 @@ class TestThumbnailTask:
         MagicMock()  # image_ops — unused but required for test setup
         MagicMock()  # minio — unused but required for test setup
         mock_settings = MagicMock()
-        mock_settings.MINIO_ENDPOINT = "localhost:9000"
-        mock_settings.MINIO_ROOT_USER = "user"
-        mock_settings.MINIO_ROOT_PASSWORD = "pass"
-        mock_settings.MINIO_USE_SSL = False
-        mock_settings.MINIO_BUCKET_NAME = "bucket"
+        mock_settings.S3_ENDPOINT = "localhost:9000"
+        mock_settings.S3_ACCESS_KEY_ID = "user"
+        mock_settings.S3_SECRET_ACCESS_KEY = "pass"
+        mock_settings.S3_USE_SSL = False
+        mock_settings.S3_BUCKET_NAME = "bucket"
 
         # Track the order of calls
         call_order = []
@@ -1899,11 +1899,11 @@ class TestThumbnailTask:
         mock_minio_mod.Minio = mock_minio_class
 
         mock_settings = MagicMock()
-        mock_settings.MINIO_ENDPOINT = "localhost:9000"
-        mock_settings.MINIO_ROOT_USER = "user"
-        mock_settings.MINIO_ROOT_PASSWORD = "pass"
-        mock_settings.MINIO_USE_SSL = False
-        mock_settings.MINIO_BUCKET_NAME = "bucket"
+        mock_settings.S3_ENDPOINT = "localhost:9000"
+        mock_settings.S3_ACCESS_KEY_ID = "user"
+        mock_settings.S3_SECRET_ACCESS_KEY = "pass"
+        mock_settings.S3_USE_SSL = False
+        mock_settings.S3_BUCKET_NAME = "bucket"
 
         saved_minio = sys.modules.get("minio")
         sys.modules["minio"] = mock_minio_mod
@@ -1957,11 +1957,11 @@ class TestThumbnailTask:
         mock_minio_mod.Minio = mock_minio_class
 
         mock_settings = MagicMock()
-        mock_settings.MINIO_ENDPOINT = "localhost:9000"
-        mock_settings.MINIO_ROOT_USER = "user"
-        mock_settings.MINIO_ROOT_PASSWORD = "pass"
-        mock_settings.MINIO_USE_SSL = False
-        mock_settings.MINIO_BUCKET_NAME = "bucket"
+        mock_settings.S3_ENDPOINT = "localhost:9000"
+        mock_settings.S3_ACCESS_KEY_ID = "user"
+        mock_settings.S3_SECRET_ACCESS_KEY = "pass"
+        mock_settings.S3_USE_SSL = False
+        mock_settings.S3_BUCKET_NAME = "bucket"
 
         saved_minio = sys.modules.get("minio")
         sys.modules["minio"] = mock_minio_mod

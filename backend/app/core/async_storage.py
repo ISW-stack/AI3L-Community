@@ -1,4 +1,4 @@
-"""Async wrappers around synchronous storage (boto3/MinIO) operations."""
+"""Async wrappers around synchronous storage (boto3/S3) operations."""
 
 import asyncio
 
@@ -22,7 +22,7 @@ async def get_user_storage_used(user_id: str) -> int:
 
     def _sync_get_used() -> int:
         client = get_storage()
-        bucket = settings.MINIO_BUCKET_NAME
+        bucket = settings.S3_BUCKET_NAME
         total = 0
         for prefix in [f"editor/{user_id}/", f"avatars/{user_id}/"]:
             paginator = client.get_paginator("list_objects_v2")
@@ -36,13 +36,13 @@ async def get_user_storage_used(user_id: str) -> int:
 
 
 async def download_file(key: str) -> tuple[bytes, str]:
-    """Download file from MinIO. Returns (data, content_type)."""
+    """Download file from S3-compatible storage. Returns (data, content_type)."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_download, key)
 
 
 async def download_file_metadata(key: str) -> tuple:
-    """Get streaming body, content_type, and content_length from MinIO.
+    """Get streaming body, content_type, and content_length from storage.
 
     Returns (streaming_body, content_type, content_length).
     """
@@ -61,6 +61,6 @@ async def delete_file(key: str) -> None:
 
 
 async def get_file_size(key: str) -> int:
-    """Return the size in bytes of an object in MinIO. Returns 0 if not found."""
+    """Return the size in bytes of an object in storage. Returns 0 if not found."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_get_file_size, key)

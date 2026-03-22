@@ -76,7 +76,7 @@ class TestPresignedUrlContentDisposition:
             patch("app.core.storage.get_storage", return_value=mock_client),
             patch("app.core.storage.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
             generate_presigned_url("test-key", filename=filename)
 
         return captured_params

@@ -56,21 +56,21 @@ async def health_check(
             DependencyStatus(name="redis", status="unhealthy", error="connection failed")
         )
 
-    # Check MinIO/Storage
+    # Check S3-compatible storage (MinIO / R2)
     try:
         from app.core.storage import get_storage
 
         start = time.perf_counter()
         client = get_storage()
-        client.head_bucket(Bucket=settings.MINIO_BUCKET_NAME)
+        client.head_bucket(Bucket=settings.S3_BUCKET_NAME)
         latency = (time.perf_counter() - start) * 1000
         dependencies.append(
-            DependencyStatus(name="minio", status="healthy", latency_ms=round(latency, 2))
+            DependencyStatus(name="storage", status="healthy", latency_ms=round(latency, 2))
         )
     except Exception:
         overall_healthy = False
         dependencies.append(
-            DependencyStatus(name="minio", status="unhealthy", error="connection failed")
+            DependencyStatus(name="storage", status="unhealthy", error="connection failed")
         )
 
     return HealthResponse(

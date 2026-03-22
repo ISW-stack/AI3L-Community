@@ -150,7 +150,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             "SECRET_KEY": "changeme_secret_key_at_least_32_characters_long",
             "POSTGRES_PASSWORD": "changeme_postgres",
             "REDIS_PASSWORD": "changeme_redis",
-            "MINIO_ROOT_PASSWORD": "changeme_minio",
+            "S3_SECRET_ACCESS_KEY": "changeme_s3",
             "JWT_SECRET_KEY": "changeme_jwt_secret_key",
             "SUPER_ADMIN_PASSWORD": "changeme_admin",
         }
@@ -166,8 +166,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 "SECURITY: COOKIE_SECURE is False — cookies will be sent over HTTP. Set COOKIE_SECURE=true in .env for production"  # noqa: E501
             )
             _insecure = True
-        if not settings.MINIO_PUBLIC_URL:
-            logger.error("SECURITY: MINIO_PUBLIC_URL must be set in production")
+        if not settings.S3_PUBLIC_URL:
+            logger.error("SECURITY: S3_PUBLIC_URL must be set in production")
             _insecure = True
         if _insecure:
             logger.error("Aborting startup due to insecure production configuration.")

@@ -1,7 +1,7 @@
 """Unit tests for the storage module (app.core.storage).
 
 Covers: generate_presigned_url, upload_file, delete_file, get_file_size,
-init_storage bucket creation, and MINIO_PUBLIC_URL rewriting.
+init_storage bucket creation, and S3_PUBLIC_URL rewriting.
 """
 
 from unittest.mock import MagicMock, patch
@@ -27,7 +27,7 @@ class TestGeneratePresignedUrl:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
 
             from app.core.storage import generate_presigned_url
 
@@ -50,7 +50,7 @@ class TestGeneratePresignedUrl:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "bucket"
+            mock_settings.S3_BUCKET_NAME = "bucket"
 
             from app.core.storage import generate_presigned_url
 
@@ -73,7 +73,7 @@ class TestPresignedUrlWithFilename:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "bucket"
+            mock_settings.S3_BUCKET_NAME = "bucket"
 
             from app.core.storage import generate_presigned_url
 
@@ -94,7 +94,7 @@ class TestPresignedUrlWithFilename:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "bucket"
+            mock_settings.S3_BUCKET_NAME = "bucket"
 
             from app.core.storage import generate_presigned_url
 
@@ -109,7 +109,7 @@ class TestPresignedUrlWithFilename:
 
 
 class TestPresignedUrlPublicRewrite:
-    """generate_presigned_url() uses presign client when MINIO_PUBLIC_URL is set."""
+    """generate_presigned_url() uses presign client when S3_PUBLIC_URL is set."""
 
     def test_uses_presign_client_when_available(self):
         """When _s3_presign_client is set, it is used instead of _s3_client."""
@@ -124,7 +124,7 @@ class TestPresignedUrlPublicRewrite:
             patch(f"{_STORAGE}._s3_client", mock_internal),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "bucket"
+            mock_settings.S3_BUCKET_NAME = "bucket"
 
             from app.core.storage import generate_presigned_url
 
@@ -146,7 +146,7 @@ class TestUploadFile:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
 
             from app.core.storage import upload_file
 
@@ -172,7 +172,7 @@ class TestDeleteFile:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
 
             from app.core.storage import delete_file
 
@@ -195,7 +195,7 @@ class TestGetFileSize:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
 
             from app.core.storage import get_file_size
 
@@ -215,7 +215,7 @@ class TestGetFileSize:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
 
             from app.core.storage import get_file_size
 
@@ -235,7 +235,7 @@ class TestGetFileSize:
             patch(f"{_STORAGE}._s3_client", mock_client),
             patch(f"{_STORAGE}.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
 
             from app.core.storage import get_file_size
 
@@ -262,12 +262,12 @@ class TestInitStorage:
             patch(f"{_STORAGE}._s3_presign_client", None),
         ):
             mock_boto3.client.return_value = mock_client
-            mock_settings.MINIO_USE_SSL = False
-            mock_settings.MINIO_ENDPOINT = "minio:9000"
-            mock_settings.MINIO_ROOT_USER = "admin"
-            mock_settings.MINIO_ROOT_PASSWORD = "password"
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
-            mock_settings.MINIO_PUBLIC_URL = ""
+            mock_settings.S3_USE_SSL = False
+            mock_settings.S3_ENDPOINT = "minio:9000"
+            mock_settings.S3_ACCESS_KEY_ID = "admin"
+            mock_settings.S3_SECRET_ACCESS_KEY = "password"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_PUBLIC_URL = ""
 
             from app.core.storage import init_storage
 
@@ -287,12 +287,12 @@ class TestInitStorage:
             patch(f"{_STORAGE}._s3_presign_client", None),
         ):
             mock_boto3.client.return_value = mock_client
-            mock_settings.MINIO_USE_SSL = False
-            mock_settings.MINIO_ENDPOINT = "minio:9000"
-            mock_settings.MINIO_ROOT_USER = "admin"
-            mock_settings.MINIO_ROOT_PASSWORD = "password"
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
-            mock_settings.MINIO_PUBLIC_URL = ""
+            mock_settings.S3_USE_SSL = False
+            mock_settings.S3_ENDPOINT = "minio:9000"
+            mock_settings.S3_ACCESS_KEY_ID = "admin"
+            mock_settings.S3_SECRET_ACCESS_KEY = "password"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_PUBLIC_URL = ""
 
             from app.core.storage import init_storage
 
@@ -301,7 +301,7 @@ class TestInitStorage:
         mock_client.create_bucket.assert_not_called()
 
     def test_creates_presign_client_when_public_url_set(self):
-        """init_storage creates _s3_presign_client when MINIO_PUBLIC_URL is set."""
+        """init_storage creates _s3_presign_client when S3_PUBLIC_URL is set."""
         mock_client = MagicMock()
         mock_client.head_bucket.return_value = {}
 
@@ -321,12 +321,12 @@ class TestInitStorage:
             patch(f"{_STORAGE}._s3_presign_client", None),
         ):
             mock_boto3.client.side_effect = track_client
-            mock_settings.MINIO_USE_SSL = False
-            mock_settings.MINIO_ENDPOINT = "minio:9000"
-            mock_settings.MINIO_ROOT_USER = "admin"
-            mock_settings.MINIO_ROOT_PASSWORD = "password"
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
-            mock_settings.MINIO_PUBLIC_URL = "http://localhost:19000"
+            mock_settings.S3_USE_SSL = False
+            mock_settings.S3_ENDPOINT = "minio:9000"
+            mock_settings.S3_ACCESS_KEY_ID = "admin"
+            mock_settings.S3_SECRET_ACCESS_KEY = "password"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_PUBLIC_URL = "http://localhost:19000"
 
             from app.core.storage import init_storage
 

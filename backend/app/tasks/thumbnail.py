@@ -58,12 +58,12 @@ def generate_thumbnail_task(
     from app.core.constants import ALBUM_THUMBNAIL_QUALITY, ALBUM_THUMBNAIL_SIZE
 
     client = Minio(
-        settings.MINIO_ENDPOINT,
-        access_key=settings.MINIO_ROOT_USER,
-        secret_key=settings.MINIO_ROOT_PASSWORD,
-        secure=settings.MINIO_USE_SSL,
+        settings.S3_ENDPOINT,
+        access_key=settings.S3_ACCESS_KEY_ID,
+        secret_key=settings.S3_SECRET_ACCESS_KEY,
+        secure=settings.S3_USE_SSL,
     )
-    bucket = settings.MINIO_BUCKET_NAME
+    bucket = settings.S3_BUCKET_NAME
 
     try:
         # 1. Download original with size limit

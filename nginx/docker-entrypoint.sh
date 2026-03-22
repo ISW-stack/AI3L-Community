@@ -2,13 +2,13 @@
 set -e
 
 # ── Always generate security-headers.conf from template ──────────
-# If MINIO_CSP_ORIGIN is not set, the variable expands to empty string,
+# If STORAGE_CSP_ORIGIN is not set, the variable expands to empty string,
 # which is safe — the CSP will simply omit the external storage origin.
-export MINIO_CSP_ORIGIN="${MINIO_CSP_ORIGIN:-}"
-envsubst '$MINIO_CSP_ORIGIN' \
+export STORAGE_CSP_ORIGIN="${STORAGE_CSP_ORIGIN:-}"
+envsubst '$STORAGE_CSP_ORIGIN' \
     < /etc/nginx/snippets/security-headers.conf.template \
     > /etc/nginx/snippets/security-headers.conf
-echo "[entrypoint] security-headers.conf generated (MINIO_CSP_ORIGIN=${MINIO_CSP_ORIGIN:-<not set>})"
+echo "[entrypoint] security-headers.conf generated (STORAGE_CSP_ORIGIN=${STORAGE_CSP_ORIGIN:-<not set>})"
 
 # ── Enable HTTPS if TLS certificates exist ────────────────────────
 CERT_PATH="/etc/nginx/ssl/fullchain.pem"

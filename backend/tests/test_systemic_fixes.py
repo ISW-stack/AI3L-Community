@@ -239,12 +239,12 @@ class TestCeleryResultExpires:
 # ===========================================================================
 
 
-class TestHealthMinIO:
-    """GET /health should include minio dependency."""
+class TestHealthStorage:
+    """GET /health should include storage dependency."""
 
     @pytest.mark.anyio
-    async def test_health_healthy_includes_minio(self, client: AsyncClient):
-        """All 3 deps healthy → status healthy, 3 dependencies including minio."""
+    async def test_health_healthy_includes_storage(self, client: AsyncClient):
+        """All 3 deps healthy → status healthy, 3 dependencies including storage."""
         mock_conn = AsyncMock()
         mock_conn.fetchval = AsyncMock(return_value=1)
         cm = AsyncMock()
@@ -275,13 +275,13 @@ class TestHealthMinIO:
         assert data["status"] == "healthy"
         assert len(data["dependencies"]) == 3
         dep_names = [d["name"] for d in data["dependencies"]]
-        assert "minio" in dep_names
-        minio_dep = next(d for d in data["dependencies"] if d["name"] == "minio")
-        assert minio_dep["status"] == "healthy"
+        assert "storage" in dep_names
+        storage_dep = next(d for d in data["dependencies"] if d["name"] == "storage")
+        assert storage_dep["status"] == "healthy"
 
     @pytest.mark.anyio
-    async def test_health_minio_unhealthy(self, client: AsyncClient):
-        """MinIO fails → status unhealthy, minio dep marked unhealthy."""
+    async def test_health_storage_unhealthy(self, client: AsyncClient):
+        """Storage fails → status unhealthy, storage dep marked unhealthy."""
         mock_conn = AsyncMock()
         mock_conn.fetchval = AsyncMock(return_value=1)
         cm = AsyncMock()
@@ -307,8 +307,8 @@ class TestHealthMinIO:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "unhealthy"
-        minio_dep = next(d for d in data["dependencies"] if d["name"] == "minio")
-        assert minio_dep["status"] == "unhealthy"
+        storage_dep = next(d for d in data["dependencies"] if d["name"] == "storage")
+        assert storage_dep["status"] == "unhealthy"
 
 
 # ===========================================================================
@@ -529,12 +529,12 @@ class TestVirusTotalInvalidJSON:
 
 
 class TestStorageURLRewriting:
-    """generate_presigned_url uses _s3_presign_client when MINIO_PUBLIC_URL is set."""
+    """generate_presigned_url uses _s3_presign_client when S3_PUBLIC_URL is set."""
 
     def test_url_rewrite_with_public_url(self):
         from app.core.storage import generate_presigned_url
 
-        # When _s3_presign_client is set (MINIO_PUBLIC_URL was configured at startup),
+        # When _s3_presign_client is set (S3_PUBLIC_URL was configured at startup),
         # generate_presigned_url uses it — the URL is already signed against the public host.
         mock_presign_client = MagicMock()
         public_url = "http://localhost:19000/bucket/key?X-Amz-Signature=abc123"
@@ -544,7 +544,7 @@ class TestStorageURLRewriting:
             patch("app.core.storage._s3_presign_client", mock_presign_client),
             patch("app.core.storage.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
 
             result = generate_presigned_url("test-key")
 
@@ -564,8 +564,8 @@ class TestStorageURLRewriting:
             patch("app.core.storage.get_storage", return_value=mock_client),
             patch("app.core.storage.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "test-bucket"
-            mock_settings.MINIO_PUBLIC_URL = ""
+            mock_settings.S3_BUCKET_NAME = "test-bucket"
+            mock_settings.S3_PUBLIC_URL = ""
 
             result = generate_presigned_url("test-key")
 
@@ -587,7 +587,7 @@ class TestStorageURLRewriting:
             patch("app.core.storage._s3_presign_client", mock_presign_client),
             patch("app.core.storage.settings") as mock_settings,
         ):
-            mock_settings.MINIO_BUCKET_NAME = "mybucket"
+            mock_settings.S3_BUCKET_NAME = "mybucket"
 
             result = generate_presigned_url("avatars/user1/img.png")
 

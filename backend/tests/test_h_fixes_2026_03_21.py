@@ -12,7 +12,7 @@ from app.core.config import Settings
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-# ── H-04: Production guards for POSTGRES/REDIS/MINIO passwords ───────
+# ── H-04: Production guards for POSTGRES/REDIS/S3 passwords ──────────
 
 
 class TestProductionPasswordGuards:
@@ -25,7 +25,7 @@ class TestProductionPasswordGuards:
         SUPER_ADMIN_PASSWORD="Str0ng_Admin!P@ss",
         POSTGRES_PASSWORD="real_pg_password",
         REDIS_PASSWORD="real_redis_password",
-        MINIO_ROOT_PASSWORD="real_minio_password",
+        S3_SECRET_ACCESS_KEY="real_s3_secret",
     )
 
     def test_rejects_changeme_postgres_in_production(self):
@@ -36,9 +36,9 @@ class TestProductionPasswordGuards:
         with pytest.raises(ValueError, match="REDIS_PASSWORD"):
             Settings(**{**self._SAFE_BASE, "REDIS_PASSWORD": "changeme_redis"})
 
-    def test_rejects_changeme_minio_in_production(self):
-        with pytest.raises(ValueError, match="MINIO_ROOT_PASSWORD"):
-            Settings(**{**self._SAFE_BASE, "MINIO_ROOT_PASSWORD": "changeme_minio"})
+    def test_rejects_changeme_s3_in_production(self):
+        with pytest.raises(ValueError, match="S3_SECRET_ACCESS_KEY"):
+            Settings(**{**self._SAFE_BASE, "S3_SECRET_ACCESS_KEY": "changeme_s3"})
 
     def test_allows_strong_passwords_in_production(self):
         s = Settings(**self._SAFE_BASE)
@@ -49,7 +49,7 @@ class TestProductionPasswordGuards:
             FASTAPI_ENV="development",
             POSTGRES_PASSWORD="changeme_postgres",
             REDIS_PASSWORD="changeme_redis",
-            MINIO_ROOT_PASSWORD="changeme_minio",
+            S3_SECRET_ACCESS_KEY="changeme_s3",
         )
         assert s.FASTAPI_ENV == "development"
 
@@ -61,9 +61,9 @@ class TestProductionPasswordGuards:
         with pytest.raises(ValueError, match="REDIS_PASSWORD"):
             Settings(**{**self._SAFE_BASE, "REDIS_PASSWORD": "changeme"})
 
-    def test_rejects_bare_changeme_minio(self):
-        with pytest.raises(ValueError, match="MINIO_ROOT_PASSWORD"):
-            Settings(**{**self._SAFE_BASE, "MINIO_ROOT_PASSWORD": "changeme"})
+    def test_rejects_bare_changeme_s3(self):
+        with pytest.raises(ValueError, match="S3_SECRET_ACCESS_KEY"):
+            Settings(**{**self._SAFE_BASE, "S3_SECRET_ACCESS_KEY": "changeme"})
 
 
 # ── H-10: Search excludes posts from deleted SIGs ────────────────────
@@ -250,9 +250,9 @@ class TestSecurityHeadersTemplate:
         path = _REPO_ROOT / Path(*parts)
         return path.read_text(encoding="utf-8")
 
-    def test_template_uses_minio_csp_variable(self):
+    def test_template_uses_storage_csp_variable(self):
         content = self._read_file("nginx", "snippets", "security-headers.conf.template")
-        assert "${MINIO_CSP_ORIGIN}" in content
+        assert "${STORAGE_CSP_ORIGIN}" in content
         assert "localhost:19000" not in content
 
     def test_template_includes_hsts(self):
@@ -260,10 +260,10 @@ class TestSecurityHeadersTemplate:
         assert "Strict-Transport-Security" in content
         assert "max-age=31536000" in content
 
-    def test_fallback_headers_no_hsts(self):
-        """Fallback security-headers.conf must NOT include HSTS (may serve over HTTP)."""
+    def test_fallback_headers_include_hsts(self):
+        """security-headers.conf includes HSTS (entrypoint overwrites from template)."""
         content = self._read_file("nginx", "snippets", "security-headers.conf")
-        assert "Strict-Transport-Security" not in content
+        assert "Strict-Transport-Security" in content
 
     def test_template_has_upgrade_insecure_requests(self):
         content = self._read_file("nginx", "snippets", "security-headers.conf.template")
@@ -286,7 +286,7 @@ class TestNginxEntrypoint:
     def test_entrypoint_uses_envsubst(self):
         content = self._read_entrypoint()
         assert "envsubst" in content
-        assert "MINIO_CSP_ORIGIN" in content
+        assert "STORAGE_CSP_ORIGIN" in content
 
     def test_entrypoint_checks_tls_certs(self):
         content = self._read_entrypoint()

@@ -93,11 +93,11 @@ class TestSettings:
 
     def test_default_minio_public_url_empty(self):
         s = self._make_settings()
-        assert s.MINIO_PUBLIC_URL == ""
+        assert s.S3_PUBLIC_URL == ""
 
     def test_default_minio_use_ssl_false(self):
         s = self._make_settings()
-        assert s.MINIO_USE_SSL is False
+        assert s.S3_USE_SSL is False
 
     def test_default_sentry_dsn_empty(self):
         s = self._make_settings()
@@ -175,7 +175,7 @@ class TestSettings:
             SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
             POSTGRES_PASSWORD="real_pg_password",
             REDIS_PASSWORD="real_redis_password",
-            MINIO_ROOT_PASSWORD="real_minio_password",
+            S3_SECRET_ACCESS_KEY="real_minio_password",
         )
         assert s.is_development is False
 
@@ -204,7 +204,7 @@ class TestSettings:
                 SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
                 POSTGRES_PASSWORD="real_pg_password",
                 REDIS_PASSWORD="real_redis_password",
-                MINIO_ROOT_PASSWORD="real_minio_password",
+                S3_SECRET_ACCESS_KEY="real_minio_password",
             )
         env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
         assert len(env_warnings) == 1
@@ -223,7 +223,7 @@ class TestSettings:
                 SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
                 POSTGRES_PASSWORD="real_pg_password",
                 REDIS_PASSWORD="real_redis_password",
-                MINIO_ROOT_PASSWORD="real_minio_password",
+                S3_SECRET_ACCESS_KEY="real_minio_password",
             )
         env_warnings = [x for x in w if "FASTAPI_ENV" in str(x.message)]
         assert len(env_warnings) == 0
@@ -270,7 +270,7 @@ class TestSettings:
                     SECRET_KEY="real_secret_key_prod_32chars_long_ok",
                     POSTGRES_PASSWORD="real_pg_password",
                     REDIS_PASSWORD="real_redis_password",
-                    MINIO_ROOT_PASSWORD="real_minio_password",
+                    S3_SECRET_ACCESS_KEY="real_minio_password",
                 )
 
     def test_staging_env_rejects_default_secret_key(self):
@@ -287,7 +287,7 @@ class TestSettings:
                     SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
                     POSTGRES_PASSWORD="real_pg_password",
                     REDIS_PASSWORD="real_redis_password",
-                    MINIO_ROOT_PASSWORD="real_minio_password",
+                    S3_SECRET_ACCESS_KEY="real_minio_password",
                 )
 
     def test_staging_env_rejects_default_admin_password(self):
@@ -304,7 +304,7 @@ class TestSettings:
                     SUPER_ADMIN_PASSWORD="changeme_admin",
                     POSTGRES_PASSWORD="real_pg_password",
                     REDIS_PASSWORD="real_redis_password",
-                    MINIO_ROOT_PASSWORD="real_minio_password",
+                    S3_SECRET_ACCESS_KEY="real_minio_password",
                 )
 
     def test_staging_env_allows_strong_secrets(self):
@@ -320,7 +320,7 @@ class TestSettings:
                 SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
                 POSTGRES_PASSWORD="real_pg_password",
                 REDIS_PASSWORD="real_redis_password",
-                MINIO_ROOT_PASSWORD="real_minio_password",
+                S3_SECRET_ACCESS_KEY="real_minio_password",
             )
         assert s.FASTAPI_ENV == "staging"
 
@@ -356,7 +356,7 @@ class TestSettings:
                     SUPER_ADMIN_PASSWORD="strong_p@ssw0rd!",
                     POSTGRES_PASSWORD="changeme_postgres",
                     REDIS_PASSWORD="real_redis_password",
-                    MINIO_ROOT_PASSWORD="real_minio_password",
+                    S3_SECRET_ACCESS_KEY="real_minio_password",
                 )
 
 

@@ -14,38 +14,44 @@ _s3_presign_client = None  # Client using public URL endpoint for presigned URLs
 
 
 def init_storage() -> None:
-    """Initialize MinIO/S3 client and ensure bucket exists."""
+    """Initialize S3-compatible storage client and ensure bucket exists."""
     global _s3_client, _s3_presign_client
-    endpoint_url = f"{'https' if settings.MINIO_USE_SSL else 'http'}://{settings.MINIO_ENDPOINT}"
+    endpoint_url = f"{'https' if settings.S3_USE_SSL else 'http'}://{settings.S3_ENDPOINT}"
 
     _s3_client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,
-        aws_access_key_id=settings.MINIO_ROOT_USER,
-        aws_secret_access_key=settings.MINIO_ROOT_PASSWORD,
+        aws_access_key_id=settings.S3_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
         config=BotoConfig(signature_version="s3v4"),
-        region_name="us-east-1",
+        region_name=settings.S3_REGION,
     )
 
     # Presign client uses the public URL so the HMAC host matches what the browser sees
-    if settings.MINIO_PUBLIC_URL:
+    if settings.S3_PUBLIC_URL:
         _s3_presign_client = boto3.client(
             "s3",
-            endpoint_url=settings.MINIO_PUBLIC_URL.rstrip("/"),
-            aws_access_key_id=settings.MINIO_ROOT_USER,
-            aws_secret_access_key=settings.MINIO_ROOT_PASSWORD,
+            endpoint_url=settings.S3_PUBLIC_URL.rstrip("/"),
+            aws_access_key_id=settings.S3_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
             config=BotoConfig(signature_version="s3v4"),
-            region_name="us-east-1",
+            region_name=settings.S3_REGION,
         )
 
-    # Ensure bucket exists
-    bucket = settings.MINIO_BUCKET_NAME
+    # Ensure bucket exists (auto-create only in dev; R2 buckets must be pre-created)
+    bucket = settings.S3_BUCKET_NAME
     try:
         _s3_client.head_bucket(Bucket=bucket)
         logger.info("Storage bucket exists", extra={"bucket": bucket})
     except _s3_client.exceptions.ClientError:
-        _s3_client.create_bucket(Bucket=bucket)
-        logger.info("Storage bucket created", extra={"bucket": bucket})
+        if settings.is_development:
+            _s3_client.create_bucket(Bucket=bucket)
+            logger.info("Storage bucket created", extra={"bucket": bucket})
+        else:
+            raise RuntimeError(
+                f"Storage bucket '{bucket}' does not exist. "
+                "Create it manually in your S3/R2 dashboard before starting."
+            )
 
 
 def get_storage() -> Any:
@@ -66,10 +72,10 @@ def close_storage() -> None:
 
 
 def upload_file(data: bytes, key: str, content_type: str) -> str:
-    """Upload file to MinIO. Returns the storage key."""
+    """Upload file to S3-compatible storage. Returns the storage key."""
     client = get_storage()
     client.put_object(
-        Bucket=settings.MINIO_BUCKET_NAME,
+        Bucket=settings.S3_BUCKET_NAME,
         Key=key,
         Body=BytesIO(data),
         ContentLength=len(data),
@@ -82,15 +88,15 @@ def upload_file(data: bytes, key: str, content_type: str) -> str:
 def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | None = None) -> str:
     """Generate presigned download URL.
 
-    When MINIO_PUBLIC_URL is set, uses a client configured with that endpoint so
-    the HMAC signature is computed against the public host (e.g. localhost:19000).
+    When S3_PUBLIC_URL is set, uses a client configured with that endpoint so
+    the HMAC signature is computed against the public host.
     Rewriting the host after signing would break the signature.
 
     When ``filename`` is provided, sets Content-Disposition so the browser uses
     that name for the downloaded file.
     """
     client = _s3_presign_client if _s3_presign_client is not None else get_storage()
-    params: dict = {"Bucket": settings.MINIO_BUCKET_NAME, "Key": key}
+    params: dict = {"Bucket": settings.S3_BUCKET_NAME, "Key": key}
     if filename:
         # ASCII-safe fallback for the filename parameter (non-ASCII chars → _)
         import os
@@ -113,39 +119,39 @@ def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | Non
 
 
 def download_file(key: str) -> tuple[bytes, str]:
-    """Download file from MinIO. Returns (data, content_type)."""
+    """Download file from S3-compatible storage. Returns (data, content_type)."""
     client = get_storage()
-    resp = client.get_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
+    resp = client.get_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
     data = resp["Body"].read()
     content_type = resp.get("ContentType", "application/octet-stream")
     return data, content_type
 
 
 def download_file_metadata(key: str) -> tuple[Any, str, int]:
-    """Get a streaming body + content_type + content_length from MinIO.
+    """Get a streaming body + content_type + content_length from storage.
 
     Returns (streaming_body, content_type, content_length).
     The caller is responsible for reading/closing the streaming body.
     """
     client = get_storage()
-    resp = client.get_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
+    resp = client.get_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
     content_type = resp.get("ContentType", "application/octet-stream")
     content_length = int(resp.get("ContentLength", 0))
     return resp["Body"], content_type, content_length
 
 
 def delete_file(key: str) -> None:
-    """Delete file from MinIO."""
+    """Delete file from S3-compatible storage."""
     client = get_storage()
-    client.delete_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
+    client.delete_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
     logger.info("File deleted", extra={"key": key})
 
 
 def get_file_size(key: str) -> int:
-    """Return the size in bytes of an object in MinIO. Returns 0 if not found."""
+    """Return the size in bytes of an object in storage. Returns 0 if not found."""
     client = get_storage()
     try:
-        resp = client.head_object(Bucket=settings.MINIO_BUCKET_NAME, Key=key)
+        resp = client.head_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
         return int(resp.get("ContentLength", 0))
     except ClientError as e:
         if e.response["Error"]["Code"] == "404":

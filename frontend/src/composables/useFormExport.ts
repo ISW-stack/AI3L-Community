@@ -10,9 +10,12 @@ import { getErrorMessage } from '@/utils/error'
 export function isAllowedDownloadUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
-    const allowedOrigins = [window.location.origin, 'http://localhost:19000']
-    // Also allow MINIO_PUBLIC_URL if configured differently
-    return allowedOrigins.includes(parsed.origin)
+    // Allow same origin + any HTTPS origin (presigned URLs are self-authenticating via signature)
+    if (parsed.origin === window.location.origin) return true
+    if (parsed.protocol === 'https:') return true
+    // Dev: allow local MinIO
+    if (parsed.origin === 'http://localhost:19000') return true
+    return false
   } catch {
     return false
   }

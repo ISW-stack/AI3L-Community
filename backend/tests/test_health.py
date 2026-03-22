@@ -68,7 +68,7 @@ async def test_health_check_healthy(
     assert len(data["dependencies"]) == 3
     assert data["dependencies"][0]["name"] == "postgresql"
     assert data["dependencies"][1]["name"] == "redis"
-    assert data["dependencies"][2]["name"] == "minio"
+    assert data["dependencies"][2]["name"] == "storage"
 
 
 class TestHealthEndpointAuth:
@@ -117,11 +117,11 @@ class TestStartupSecurityChecks:
             SECRET_KEY="changeme_secret_key_at_least_32_characters_long",
             POSTGRES_PASSWORD="strong_password",
             REDIS_PASSWORD="strong_redis",
-            MINIO_ROOT_PASSWORD="strong_minio",
+            S3_SECRET_ACCESS_KEY="strong_minio",
             JWT_SECRET_KEY="strong_jwt",
             SUPER_ADMIN_PASSWORD="strong_admin",
             COOKIE_SECURE=True,
-            MINIO_PUBLIC_URL="https://cdn.example.com",
+            S3_PUBLIC_URL="https://cdn.example.com",
             is_development=False,
             SENTRY_DSN="",
             DD_TRACE_ENABLED=False,
@@ -178,7 +178,7 @@ class TestStartupSecurityChecks:
             SECRET_KEY="very_strong_secret_key_for_production_use",
             POSTGRES_PASSWORD="strong_password",
             REDIS_PASSWORD="strong_redis",
-            MINIO_ROOT_PASSWORD="strong_minio",
+            S3_SECRET_ACCESS_KEY="strong_minio",
             JWT_SECRET_KEY="strong_jwt_key_for_production",
             SUPER_ADMIN_PASSWORD="strong_admin",
             COOKIE_SECURE=False,  # insecure
@@ -229,7 +229,7 @@ class TestStartupSecurityChecks:
             SECRET_KEY="changeme_secret_key_at_least_32_characters_long",
             POSTGRES_PASSWORD="changeme_postgres",
             REDIS_PASSWORD="changeme_redis",
-            MINIO_ROOT_PASSWORD="changeme_minio",
+            S3_SECRET_ACCESS_KEY="changeme_s3",
             JWT_SECRET_KEY="changeme_jwt_secret_key",
             SUPER_ADMIN_PASSWORD="changeme_admin",
             COOKIE_SECURE=False,

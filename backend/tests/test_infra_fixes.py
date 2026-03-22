@@ -4,7 +4,7 @@ Covers:
 - C2: VirusTotal Celery task uses sync storage calls (no bug)
 - H1: SIG soft_delete removes sig_members
 - H5: Request body size limit middleware
-- H12: MINIO_PUBLIC_URL production validation
+- H12: S3_PUBLIC_URL production validation
 - M3: file_scan_repo insert_or_get race condition fix
 - M4: category_repo find_all has LIMIT 500
 - M8: Audit log pagination bounds
@@ -182,46 +182,45 @@ class TestRequestBodySizeLimit:
 
 
 # ===========================================================================
-# H12: MINIO_PUBLIC_URL production validation
+# H12: S3_PUBLIC_URL production validation
 # ===========================================================================
 
 
-class TestMinioPublicUrlValidation:
-    """In production mode, empty MINIO_PUBLIC_URL should abort startup."""
+class TestS3PublicUrlValidation:
+    """In production mode, empty S3_PUBLIC_URL should abort startup."""
 
-    def test_production_check_includes_minio_public_url(self):
-        """The lifespan function should check MINIO_PUBLIC_URL in production."""
+    def test_production_check_includes_s3_public_url(self):
+        """The lifespan function should check S3_PUBLIC_URL in production."""
         source_path = os.path.join(os.path.dirname(__file__), "..", "app", "main.py")
         with open(source_path, encoding="utf-8") as f:
             source = f.read()
 
-        assert "MINIO_PUBLIC_URL" in source
-        assert "MINIO_PUBLIC_URL must be set in production" in source
+        assert "S3_PUBLIC_URL" in source
+        assert "S3_PUBLIC_URL must be set in production" in source
 
-    def test_production_check_exits_on_empty_minio_url(self):
-        """Verify the production security check aborts when MINIO_PUBLIC_URL is empty."""
+    def test_production_check_exits_on_empty_s3_url(self):
+        """Verify the production security check aborts when S3_PUBLIC_URL is empty."""
         source_path = os.path.join(os.path.dirname(__file__), "..", "app", "main.py")
         with open(source_path, encoding="utf-8") as f:
             source = f.read()
 
         tree = ast.parse(source)
 
-        # Find the check: if not settings.MINIO_PUBLIC_URL
+        # Find the check: if not settings.S3_PUBLIC_URL
         found_check = False
         for node in ast.walk(tree):
             if isinstance(node, ast.If):
-                # Look for `not settings.MINIO_PUBLIC_URL`
                 test = node.test
                 if (
                     isinstance(test, ast.UnaryOp)
                     and isinstance(test.op, ast.Not)
                     and isinstance(test.operand, ast.Attribute)
-                    and getattr(test.operand, "attr", "") == "MINIO_PUBLIC_URL"
+                    and getattr(test.operand, "attr", "") == "S3_PUBLIC_URL"
                 ):
                     found_check = True
                     break
 
-        assert found_check, "Production check for MINIO_PUBLIC_URL not found in main.py"
+        assert found_check, "Production check for S3_PUBLIC_URL not found in main.py"
 
 
 # ===========================================================================

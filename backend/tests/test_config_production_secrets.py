@@ -11,7 +11,7 @@ class TestProductionSecretValidation:
         SECRET_KEY="real_secret_key_prod_32chars_long_ok",
         POSTGRES_PASSWORD="real_pg_password",
         REDIS_PASSWORD="real_redis_password",
-        MINIO_ROOT_PASSWORD="real_minio_password",
+        S3_SECRET_ACCESS_KEY="real_minio_password",
     )
 
     def test_rejects_default_jwt_secret_in_production(self):

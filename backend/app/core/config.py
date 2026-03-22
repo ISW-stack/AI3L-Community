@@ -50,15 +50,16 @@ class Settings(BaseSettings):
     # CSRF
     CSRF_HEADER_NAME: str = "X-CSRF-Token"
 
-    # MinIO
-    MINIO_ROOT_USER: str = "minioadmin"
-    MINIO_ROOT_PASSWORD: str = "changeme_minio"
-    MINIO_ENDPOINT: str = "minio:9000"
-    MINIO_BUCKET_NAME: str = "ai3l-uploads"
-    MINIO_USE_SSL: bool = False
-    MINIO_PUBLIC_URL: str = (
+    # S3-compatible storage (MinIO in dev, Cloudflare R2 in prod)
+    S3_ACCESS_KEY_ID: str = "minioadmin"
+    S3_SECRET_ACCESS_KEY: str = "changeme_s3"
+    S3_ENDPOINT: str = "minio:9000"
+    S3_BUCKET_NAME: str = "ai3l-uploads"
+    S3_USE_SSL: bool = False
+    S3_PUBLIC_URL: str = (
         ""  # Browser-accessible URL for presigned URLs (e.g. http://localhost:19000 in dev)
     )
+    S3_REGION: str = "us-east-1"  # "us-east-1" for MinIO dev, "auto" for R2 prod
 
     # Celery — URLs built dynamically from Redis settings via @property below
 
@@ -140,10 +141,10 @@ class Settings(BaseSettings):
                     "REDIS_PASSWORD contains 'changeme' — refusing to start in production. "
                     "Set a strong, unique password."
                 )
-            if "changeme" in self.MINIO_ROOT_PASSWORD:
+            if "changeme" in self.S3_SECRET_ACCESS_KEY:
                 raise ValueError(
-                    "MINIO_ROOT_PASSWORD contains 'changeme' — refusing to start in production. "
-                    "Set a strong, unique password."
+                    "S3_SECRET_ACCESS_KEY contains 'changeme' — refusing to start in production. "
+                    "Set a strong, unique secret."
                 )
             if len(self.JWT_SECRET_KEY) < 32:
                 raise ValueError(

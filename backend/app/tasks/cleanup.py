@@ -1,6 +1,6 @@
 """Celery task: Orphan editor file cleanup.
 
-Deletes files under the editor/ prefix in MinIO that are:
+Deletes files under the editor/ prefix in S3-compatible storage that are:
 1. Not referenced in any post content, comment content, or form description.
 2. Older than 7 days (to avoid deleting in-progress draft files).
 
@@ -137,7 +137,7 @@ def _iter_editor_files() -> Iterator[tuple[str, Any]]:
     from app.core.storage import get_storage
 
     client = get_storage()
-    bucket = settings.MINIO_BUCKET_NAME
+    bucket = settings.S3_BUCKET_NAME
     paginator = client.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=bucket, Prefix="editor/"):
         for obj in page.get("Contents", []):

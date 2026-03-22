@@ -46,7 +46,7 @@ class TestCookieSecureAutoDerive:
         SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
         POSTGRES_PASSWORD="real_pg_password",
         REDIS_PASSWORD="real_redis_password",
-        MINIO_ROOT_PASSWORD="real_minio_password",
+        S3_SECRET_ACCESS_KEY="real_minio_password",
     )
 
     def test_production_defaults_to_true(self) -> None:
@@ -209,10 +209,10 @@ class TestDevSecretWarnings:
             SECRET_KEY="real_secret_key_not_default_value_here",
             POSTGRES_PASSWORD="strong_pg",
             REDIS_PASSWORD="strong_redis",
-            MINIO_ROOT_PASSWORD="strong_minio",
+            S3_SECRET_ACCESS_KEY="strong_minio",
             SUPER_ADMIN_PASSWORD="strong_admin",
             COOKIE_SECURE=True,
-            MINIO_PUBLIC_URL="https://cdn.example.com",
+            S3_PUBLIC_URL="https://cdn.example.com",
         )
 
         exit_called: list[int] = []
