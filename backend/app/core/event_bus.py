@@ -41,23 +41,23 @@ def on(event: str, handler: Callable) -> None:
 
 
 async def emit(event: str, **kwargs: Any) -> EmitResult:
-    """Emit an event. Handlers are retried up to MAX_RETRIES times on failure.
+    """Emit an event. Handlers run concurrently and are retried up to MAX_RETRIES times on failure.
 
     Returns EmitResult with details of any permanently failed handlers.
     Final failures are persisted to Redis (best-effort) for later inspection.
     """
-    result = EmitResult()
+    handlers = _handlers.get(event, [])
+    if not handlers:
+        return EmitResult()
 
-    for handler in _handlers.get(event, []):
+    async def _run_handler(handler: Callable) -> HandlerFailure | None:
         handler_name = getattr(handler, "__name__", repr(handler))
-        success = False
         last_exc: Exception | None = None
 
         for attempt in range(1, MAX_RETRIES + 2):  # 1 initial + MAX_RETRIES retries
             try:
                 await handler(**kwargs)
-                success = True
-                break
+                return None
             except Exception as exc:
                 last_exc = exc
                 logger.warning(
@@ -73,21 +73,23 @@ async def emit(event: str, **kwargs: Any) -> EmitResult:
                 if attempt <= MAX_RETRIES:
                     await asyncio.sleep(RETRY_DELAY)
 
-        if not success:
-            logger.error(
-                "Event handler permanently failed after retries",
-                exc_info=True,
-                extra={
-                    "event": event,
-                    "handler": handler_name,
-                    "max_retries": MAX_RETRIES,
-                },
-            )
-            if last_exc is None:  # pragma: no cover — cannot happen by logic
-                last_exc = Exception("Unknown handler error")
-            result.failures.append(HandlerFailure(event, handler_name, last_exc, MAX_RETRIES + 1))
-            await _persist_failed_event(event, handler_name, kwargs, retry_count=0)
+        logger.error(
+            "Event handler permanently failed after retries",
+            exc_info=True,
+            extra={
+                "event": event,
+                "handler": handler_name,
+                "max_retries": MAX_RETRIES,
+            },
+        )
+        if last_exc is None:  # pragma: no cover — cannot happen by logic
+            last_exc = Exception("Unknown handler error")
+        await _persist_failed_event(event, handler_name, kwargs, retry_count=0)
+        return HandlerFailure(event, handler_name, last_exc, MAX_RETRIES + 1)
 
+    outcomes = await asyncio.gather(*(_run_handler(h) for h in handlers))
+    result = EmitResult()
+    result.failures = [f for f in outcomes if f is not None]
     return result
 
 

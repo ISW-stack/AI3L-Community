@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Path, Request, Response, status
 from loguru import logger
 
 from app.core.config import settings
@@ -133,7 +133,10 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
 
 @router.post("/guest/{invite_code}", response_model=AuthResponse)
 async def login_as_guest(
-    invite_code: str, req: GuestLoginRequest, request: Request, response: Response
+    req: GuestLoginRequest,
+    request: Request,
+    response: Response,
+    invite_code: str = Path(..., min_length=1, max_length=64),
 ) -> AuthResponse:
     # Rate limit: 10 attempts/minute per IP
     ip = get_client_ip(request) or "unknown"
@@ -266,12 +269,27 @@ async def register(req: CreateAccountRequest, request: Request, response: Respon
 
 
 @router.post("/heartbeat", response_model=MessageResponse)
-async def heartbeat(current_user: dict = Depends(get_current_user)) -> MessageResponse:
+async def heartbeat(
+    response: Response, current_user: dict = Depends(get_current_user)
+) -> MessageResponse:
     if not await check_rate_limit(f"rl:heartbeat:{current_user['sub']}", 20, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
     refreshed = await refresh_session_ttl(current_user["sub"], current_user["role"])
     if not refreshed:
         raise AppError(ErrorCode.AUTH_001, 401, "Session not found.")
+
+    # M-03: Regenerate CSRF token on heartbeat so leaked tokens expire
+    csrf_token = generate_csrf_token(current_user["jti"])
+    domain = settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,
+        secure=bool(settings.COOKIE_SECURE),
+        samesite="lax",
+        domain=domain,
+    )
+
     return MessageResponse(message="Session refreshed.")
 
 
@@ -319,7 +337,10 @@ async def generate_invite_code(
     "/invite-code/{code}",
     response_model=MessageResponse,
 )
-async def verify_invite_code(code: str, request: Request) -> MessageResponse:
+async def verify_invite_code(
+    request: Request,
+    code: str = Path(..., min_length=1, max_length=64),
+) -> MessageResponse:
     ip = get_client_ip(request) or "unknown"
     if not await check_rate_limit(f"rl:invite_verify:{ip}", *RATE_LIMIT_INVITE_VERIFY):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
