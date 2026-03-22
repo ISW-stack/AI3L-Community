@@ -78,20 +78,8 @@ export async function listFormResponses(formId: string, page = 1, pageSize = 20)
 }
 
 export async function getMyResponse(formId: string): Promise<FormResponse | null> {
-  try {
-    const { data } = await api.get(`/forms/${formId}/my-response`)
-    return data as FormResponse
-  } catch (e: unknown) {
-    if (
-      e != null &&
-      typeof e === 'object' &&
-      'response' in e &&
-      (e as { response?: { status?: number } }).response?.status === 404
-    ) {
-      return null
-    }
-    throw e
-  }
+  const { data } = await api.get(`/forms/${formId}/my-response`)
+  return (data as FormResponse) ?? null
 }
 
 /** Returns aggregated statistics for a form's responses (computed server-side). */

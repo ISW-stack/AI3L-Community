@@ -1503,7 +1503,7 @@ class TestGetMyResponse:
 
     @pytest.mark.anyio
     async def test_my_response_not_found(self, client) -> None:
-        """GET /forms/{form_id}/my-response → 404 when user has not responded."""
+        """GET /forms/{form_id}/my-response → 200 with null when user has not responded."""
         form_id = uuid.uuid4()
         form = _make_form()
         form["id"] = str(form_id)
@@ -1528,8 +1528,8 @@ class TestGetMyResponse:
                     f"/api/v1/forms/{form_id}/my-response",
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 404
-                assert "no response" in resp.json()["detail"]["message"].lower()
+                assert resp.status_code == 200
+                assert resp.json() is None
         finally:
             _clear_overrides()
 

@@ -147,11 +147,11 @@ async def list_standalone_forms_endpoint(
     )
 
 
-@router.get("/forms/{form_id}/my-response", response_model=FormUserResponseSchema)
+@router.get("/forms/{form_id}/my-response", response_model=FormUserResponseSchema | None)
 async def get_my_response(
     form_id: uuid.UUID,
     current_user: dict = Depends(get_current_user),
-) -> FormUserResponseSchema:
+) -> FormUserResponseSchema | None:
     form = await get_form_by_id(form_id)
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
@@ -173,7 +173,7 @@ async def get_my_response(
                 )
     response = await get_user_response(form_id, current_user["sub"])
     if response is None:
-        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "No response found.")
+        return None
     return FormUserResponseSchema(**response)
 
 
