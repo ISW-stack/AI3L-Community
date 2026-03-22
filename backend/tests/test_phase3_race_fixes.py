@@ -587,7 +587,6 @@ class TestFormUpdateClearFields:
         }
 
         updated_form = {**current_form, "deadline": None}
-        creator_row = {"display_name": "Test User"}
 
         pool, conn = _mock_pool_conn()
 
@@ -759,15 +758,6 @@ class TestDMFriendsOnlyInline:
         pool, conn = _mock_pool_conn()
         # fetchval returns True for dm_friends_only
         conn.fetchval = AsyncMock(return_value=True)
-
-        conv_row = {
-            "id": uuid.uuid4(),
-            "participant_a": uuid.UUID(sender_id),
-            "participant_b": uuid.UUID(recipient_id),
-            "total_chars": 0,
-            "created_at": _NOW,
-            "updated_at": _NOW,
-        }
 
         with (
             patch("app.core.database.get_pool", return_value=pool),

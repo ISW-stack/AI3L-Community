@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.core.errors import AppError, ErrorCode
+from app.core.errors import AppError
 
 _SVC = "app.services.dm"
 _EP = "app.api.v1.endpoints.posts"
@@ -371,7 +371,6 @@ class TestSendMessageQuotaTOCTOU:
 
         # Track all fetchval calls to verify FOR UPDATE in quota check
         fetchval_calls = []
-        original_fetchval = conn.fetchval
 
         async def track_fetchval(*args, **kwargs):
             fetchval_calls.append(args)

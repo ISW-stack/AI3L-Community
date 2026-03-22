@@ -1,3 +1,4 @@
+import asyncio
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -190,8 +191,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 
 # MO-17: Limit concurrent large uploads to bound peak memory
-import asyncio
-
 _UPLOAD_SEMAPHORE = asyncio.Semaphore(3)
 
 _UPLOAD_BODY_LIMITS: dict[str, int] = {

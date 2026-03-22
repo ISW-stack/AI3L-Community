@@ -4,7 +4,7 @@ from typing import Any, cast
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.core.constants import RATE_LIMIT_REACTION, RATE_LIMIT_SEARCH_SUGGESTIONS
-from app.core.deps import get_current_user, require_role
+from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html

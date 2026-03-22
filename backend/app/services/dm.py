@@ -217,7 +217,7 @@ async def send_message(
         if file_data and file_name and file_size:
             from app.core.async_storage import upload_file as async_upload_file
 
-            await async_upload_file(file_data, storage_key, derived_type)  # type: ignore[possibly-undefined]
+            await async_upload_file(file_data, storage_key, derived_type)  # type: ignore
             attachment_key = storage_key  # type: ignore[possibly-undefined]
 
         # 7. Find or create conversation

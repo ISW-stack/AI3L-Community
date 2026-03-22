@@ -10,9 +10,7 @@ import { getErrorMessage } from '@/utils/error'
 export function isAllowedDownloadUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
-    // Allow same origin + any HTTPS origin (presigned URLs are self-authenticating via signature)
     if (parsed.origin === window.location.origin) return true
-    if (parsed.protocol === 'https:') return true
     // Dev: allow local MinIO
     if (parsed.origin === 'http://localhost:19000') return true
     return false

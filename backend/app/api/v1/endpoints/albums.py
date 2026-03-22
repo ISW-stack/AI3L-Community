@@ -17,7 +17,7 @@ from app.core.constants import (
     RATE_LIMIT_ALBUM_COMMENT,
     RATE_LIMIT_ALBUM_UPLOAD,
 )
-from app.core.deps import get_current_user, require_role
+from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
 from app.schemas.album import (

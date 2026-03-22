@@ -24,8 +24,8 @@ def _make_app_client_factory():
         client = AsyncClient(
             transport=transport,
             base_url="http://test",
-            cookies={"csrf_token": _TEST_CSRF},
-            headers={"X-CSRF-Token": _TEST_CSRF},
+            cookies={"csrf_token": _TEST_CSRF_TOKEN},
+            headers={"X-CSRF-Token": _TEST_CSRF_TOKEN},
         )
         return client
 
