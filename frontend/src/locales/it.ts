@@ -259,7 +259,8 @@ export default {
         usernameMin: 'Il nome utente deve essere di almeno 3 caratteri.',
         usernameMax: 'Il nome utente deve essere al massimo di 50 caratteri.',
         passwordMin: 'La password deve essere di almeno 8 caratteri.',
-        passwordPolicy: 'La password deve includere maiuscole, minuscole, cifra e carattere speciale.',
+        passwordPolicy:
+          'La password deve includere maiuscole, minuscole, cifra e carattere speciale.',
         displayNameRequired: 'Il nome visualizzato è obbligatorio.',
         descriptionRequired: 'Descrivi perché vuoi unirti.',
       },
@@ -949,7 +950,7 @@ export default {
   orgChart: {
     title: 'Organigramma',
     subtitle:
-      "Esplora la struttura della AI3L Community: SIG con i loro responsabili e categorie del forum.",
+      'Esplora la struttura della AI3L Community: SIG con i loro responsabili e categorie del forum.',
     sigs: 'Gruppi di Interesse Speciale (SIG)',
     forumCategories: 'Categorie del Forum',
     noSigs: 'Nessun SIG disponibile.',
@@ -1514,7 +1515,7 @@ export default {
     friendsSince: 'Amici da {time}',
     followBack: 'Segui a tua volta',
     unfriendSuccess: 'Amicizia rimossa con successo',
-    unfriendError: 'Impossibile rimuovere l\'amicizia',
+    unfriendError: "Impossibile rimuovere l'amicizia",
     unfollowSuccess: 'Non stai più seguendo',
     unfollowError: 'Impossibile smettere di seguire',
     followSuccess: 'Stai seguendo',
@@ -1524,12 +1525,11 @@ export default {
     declineSuccess: 'Richiesta di amicizia rifiutata',
     declineError: 'Impossibile rifiutare la richiesta di amicizia',
     unblockSuccess: 'Utente sbloccato',
-    unblockError: 'Impossibile sbloccare l\'utente',
+    unblockError: "Impossibile sbloccare l'utente",
     removeFriend: 'Rimuovi amico',
     removeFriendConfirm: 'Sei sicuro di voler rimuovere {name} dalla tua lista di amici?',
     unblockUser: 'Sblocca utente',
-    unblockConfirm:
-      'Sei sicuro di voler sbloccare {name}? Potrà di nuovo interagire con te.',
+    unblockConfirm: 'Sei sicuro di voler sbloccare {name}? Potrà di nuovo interagire con te.',
     blocked: 'Bloccato {time}',
     loadFriendsError: 'Impossibile caricare gli amici',
     loadRequestsError: 'Impossibile caricare le richieste di amicizia',

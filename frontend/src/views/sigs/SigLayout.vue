@@ -284,12 +284,7 @@ onUnmounted(() => {
                   {{ t('sigs.detail.editBtn') }}
                 </BaseButton>
 
-                <BaseButton
-                  v-if="canLeave"
-                  size="sm"
-                  variant="soft-danger"
-                  @click="promptLeaveSig"
-                >
+                <BaseButton v-if="canLeave" size="sm" variant="soft-danger" @click="promptLeaveSig">
                   {{ t('sigs.detail.leaveBtn') }}
                 </BaseButton>
 

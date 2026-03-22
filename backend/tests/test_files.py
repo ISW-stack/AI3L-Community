@@ -281,7 +281,9 @@ class TestStorageUsageEndpoint:
             _clear_overrides_files()
 
     @pytest.mark.anyio
-    async def test_storage_usage_unauthenticated_returns_401(self, unauthed_client: AsyncClient) -> None:
+    async def test_storage_usage_unauthenticated_returns_401(
+        self, unauthed_client: AsyncClient
+    ) -> None:
         """Unauthenticated request to storage-usage endpoint returns 401."""
         resp = await unauthed_client.get("/api/v1/files/storage-usage")
         assert resp.status_code == 401

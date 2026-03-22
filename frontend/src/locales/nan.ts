@@ -1393,8 +1393,7 @@ export default {
     photosCount: '{count} 張相片',
     membersCount: '{count} 位成員',
     deleteAlbum: '刪除相簿',
-    confirmDeleteAlbum:
-      '確定要刪除這个相簿？所有相片 kah 留言都會永久刪除。',
+    confirmDeleteAlbum: '確定要刪除這个相簿？所有相片 kah 留言都會永久刪除。',
     deleteAlbumSuccess: '相簿刪除成功。',
     deleteAlbumError: '相簿刪除失敗。',
     confirmDeletePhoto: '確定要刪除這張相片？',
@@ -1508,8 +1507,7 @@ export default {
     removeFriend: '刪除朋友',
     removeFriendConfirm: '你確定愛刪除 {name} 出你ê朋友名單？',
     unblockUser: '解除封鎖用戶',
-    unblockConfirm:
-      '你確定愛解除封鎖 {name}？伊就會當kap你互動矣。',
+    unblockConfirm: '你確定愛解除封鎖 {name}？伊就會當kap你互動矣。',
     blocked: '{time}封鎖ê',
     loadFriendsError: '朋友名單讀取失敗',
     loadRequestsError: '朋友申請讀取失敗',
@@ -1559,8 +1557,7 @@ export default {
     postAnswer: '發答案',
     postAnswerError: '答案發佈失敗。',
     deleteQuestion: '刪除問題',
-    deleteQuestionConfirm:
-      '你確定愛刪除這個問題？這個動作無法度復原。',
+    deleteQuestionConfirm: '你確定愛刪除這個問題？這個動作無法度復原。',
     deleteError: '問題刪除失敗。',
     loadQuestionError: '問題載入失敗。',
     loadAnswersError: '答案載入失敗。',

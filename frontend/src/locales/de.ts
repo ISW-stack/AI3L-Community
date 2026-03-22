@@ -1507,10 +1507,12 @@ export default {
     noFollowers: 'Noch keine Follower',
     noBlocked: 'Keine gesperrten Nutzer',
     blockLimit: 'Sie können bis zu 5 Nutzer sperren',
-    noFriendsMessage: 'Senden Sie Freundschaftsanfragen, um sich mit anderen Mitgliedern zu verbinden.',
+    noFriendsMessage:
+      'Senden Sie Freundschaftsanfragen, um sich mit anderen Mitgliedern zu verbinden.',
     noFollowersMessage: 'Wenn andere Mitglieder Ihnen folgen, werden sie hier angezeigt.',
     noFollowing: 'Folge niemandem',
-    noFollowingMessage: 'Folgen Sie anderen Mitgliedern, um über deren Aktivitäten informiert zu bleiben.',
+    noFollowingMessage:
+      'Folgen Sie anderen Mitgliedern, um über deren Aktivitäten informiert zu bleiben.',
     noBlockedMessage: 'Sie haben niemanden gesperrt.',
     blockLimitDescription:
       'Sie können bis zu 5 Nutzer sperren. Gesperrte Nutzer können Ihnen keine Freundschaftsanfragen senden, Ihnen folgen oder mit Ihren Inhalten interagieren.',

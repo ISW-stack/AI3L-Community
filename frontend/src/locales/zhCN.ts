@@ -1417,7 +1417,7 @@ export default {
       'ZIP 文件将进行安全扫描。Mac 系统文件（__MACOSX、.DS_Store）将被自动删除。压缩包内不允许包含可执行文件（.exe、.bat、.js 等）。',
     fileLabel: '文件：',
     sizeLabel: '大小：',
-    selectFileFirst: '请先选择一个文件。'
+    selectFileFirst: '请先选择一个文件。',
   },
 
   // ── Social ──

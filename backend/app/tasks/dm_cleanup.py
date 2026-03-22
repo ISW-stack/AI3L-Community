@@ -49,7 +49,9 @@ async def _cleanup_files() -> dict:
                             extra={"msg_id": str(msg["id"])},
                         )
                     if msg.get("attachment_size") and msg.get("sender_id"):
-                        await user_repo.decrement_storage_used(msg["sender_id"], msg["attachment_size"])
+                        await user_repo.decrement_storage_used(
+                            msg["sender_id"], msg["attachment_size"]
+                        )
                 deleted += 1
             except Exception:
                 errors += 1

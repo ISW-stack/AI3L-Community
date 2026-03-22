@@ -196,7 +196,9 @@ function onTouchEnd(event: TouchEvent) {
     <div v-if="!isCollapsed" class="mt-2">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
-          <label :for="'q-type-' + question.id" class="block text-xs text-muted mb-1">{{ t('forms.builder.typeLabel') }}</label>
+          <label :for="'q-type-' + question.id" class="block text-xs text-muted mb-1">{{
+            t('forms.builder.typeLabel')
+          }}</label>
           <select
             :id="'q-type-' + question.id"
             v-model="question.type"
@@ -246,7 +248,9 @@ function onTouchEnd(event: TouchEvent) {
           class="w-full border border-border rounded-lg px-2 py-1.5 text-sm"
         />
         <div class="flex items-center gap-2">
-          <label :for="'q-maxlen-' + question.id" class="text-xs text-muted">{{ t('forms.builder.maxLengthLabel') }}</label>
+          <label :for="'q-maxlen-' + question.id" class="text-xs text-muted">{{
+            t('forms.builder.maxLengthLabel')
+          }}</label>
           <input
             :id="'q-maxlen-' + question.id"
             v-model.number="question.max_length"
@@ -318,7 +322,9 @@ function onTouchEnd(event: TouchEvent) {
       <div v-if="question.type === 'rating'">
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
-            <label :for="'q-min-' + question.id" class="text-xs text-muted">{{ t('forms.builder.minLabel') }}</label
+            <label :for="'q-min-' + question.id" class="text-xs text-muted">{{
+              t('forms.builder.minLabel')
+            }}</label
             ><input
               :id="'q-min-' + question.id"
               v-model.number="question.min"
@@ -329,7 +335,9 @@ function onTouchEnd(event: TouchEvent) {
             />
           </div>
           <div class="flex items-center gap-2">
-            <label :for="'q-max-' + question.id" class="text-xs text-muted">{{ t('forms.builder.maxLabel') }}</label
+            <label :for="'q-max-' + question.id" class="text-xs text-muted">{{
+              t('forms.builder.maxLabel')
+            }}</label
             ><input
               :id="'q-max-' + question.id"
               v-model.number="question.max"
@@ -347,7 +355,9 @@ function onTouchEnd(event: TouchEvent) {
 
       <div v-if="question.type === 'file_upload'" class="space-y-2">
         <div class="flex items-center gap-2">
-          <label :for="'q-types-' + question.id" class="text-xs text-muted">{{ t('forms.builder.allowedTypesLabel') }}</label>
+          <label :for="'q-types-' + question.id" class="text-xs text-muted">{{
+            t('forms.builder.allowedTypesLabel')
+          }}</label>
           <input
             :id="'q-types-' + question.id"
             :value="(question.allowed_types ?? []).join(', ')"
@@ -360,7 +370,9 @@ function onTouchEnd(event: TouchEvent) {
           />
         </div>
         <div class="flex items-center gap-2">
-          <label :for="'q-size-' + question.id" class="text-xs text-muted">{{ t('forms.builder.maxSizeLabel') }}</label>
+          <label :for="'q-size-' + question.id" class="text-xs text-muted">{{
+            t('forms.builder.maxSizeLabel')
+          }}</label>
           <input
             :id="'q-size-' + question.id"
             v-model.number="question.max_size_mb"

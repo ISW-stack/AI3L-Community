@@ -75,7 +75,9 @@ onMounted(fetchReports)
 
     <!-- Filter -->
     <div class="mb-4 flex gap-3 items-center">
-      <label for="reports-status-filter" class="text-sm text-muted">{{ t('admin.reports.filterLabel') }}</label>
+      <label for="reports-status-filter" class="text-sm text-muted">{{
+        t('admin.reports.filterLabel')
+      }}</label>
       <select
         id="reports-status-filter"
         v-model="statusFilter"

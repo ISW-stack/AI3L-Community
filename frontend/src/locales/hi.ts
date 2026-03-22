@@ -1409,8 +1409,7 @@ export default {
     photosCount: '{count} फ़ोटो',
     membersCount: '{count} सदस्य',
     deleteAlbum: 'एल्बम हटाएं',
-    confirmDeleteAlbum:
-      'इस एल्बम को हटाएं? सभी फ़ोटो और टिप्पणियां स्थायी रूप से हटा दी जाएंगी।',
+    confirmDeleteAlbum: 'इस एल्बम को हटाएं? सभी फ़ोटो और टिप्पणियां स्थायी रूप से हटा दी जाएंगी।',
     deleteAlbumSuccess: 'एल्बम सफलतापूर्वक हटाया गया।',
     deleteAlbumError: 'एल्बम हटाने में विफल।',
     confirmDeletePhoto: 'इस फ़ोटो को हटाएं?',

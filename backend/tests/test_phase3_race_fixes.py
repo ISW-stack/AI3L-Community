@@ -190,7 +190,9 @@ class TestUploadCoverQuotaAtomic:
                 new_callable=AsyncMock,
                 return_value=album_row,
             ),
-            patch(f"{_ALBUM_SVC}.album_repo.find_member", new_callable=AsyncMock, return_value=None),
+            patch(
+                f"{_ALBUM_SVC}.album_repo.find_member", new_callable=AsyncMock, return_value=None
+            ),
             patch(
                 "app.core.async_storage.upload_file",
                 new_callable=AsyncMock,
@@ -445,9 +447,7 @@ class TestDeletePhotoDBFirst:
         album_id = uuid.uuid4()
         photo_id = uuid.uuid4()
         user_id = uuid.uuid4()
-        photo_row = _make_photo_row(
-            photo_id=photo_id, album_id=album_id, uploaded_by=user_id
-        )
+        photo_row = _make_photo_row(photo_id=photo_id, album_id=album_id, uploaded_by=user_id)
         album_row = _make_album_row(album_id=album_id, created_by=user_id)
 
         pool, conn = _mock_pool_conn()
@@ -509,9 +509,7 @@ class TestDeletePhotoDBFirst:
         album_id = uuid.uuid4()
         photo_id = uuid.uuid4()
         user_id = uuid.uuid4()
-        photo_row = _make_photo_row(
-            photo_id=photo_id, album_id=album_id, uploaded_by=user_id
-        )
+        photo_row = _make_photo_row(photo_id=photo_id, album_id=album_id, uploaded_by=user_id)
         album_row = _make_album_row(album_id=album_id, created_by=user_id)
 
         pool, conn = _mock_pool_conn()
@@ -796,8 +794,7 @@ class TestDMFriendsOnlyInline:
         # The conn.fetchval should have been called with the dm_friends_only query
         fetchval_calls = conn.fetchval.call_args_list
         dm_query_found = any(
-            "dm_friends_only" in str(c) and "user_preferences" in str(c)
-            for c in fetchval_calls
+            "dm_friends_only" in str(c) and "user_preferences" in str(c) for c in fetchval_calls
         )
         assert dm_query_found, (
             "dm_friends_only should be queried inline on transaction conn, "

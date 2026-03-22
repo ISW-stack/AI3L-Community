@@ -1408,8 +1408,7 @@ export default {
     photosCount: '{count} ảnh',
     membersCount: '{count} thành viên',
     deleteAlbum: 'Xóa Album',
-    confirmDeleteAlbum:
-      'Xóa album này? Tất cả ảnh và bình luận sẽ bị xóa vĩnh viễn.',
+    confirmDeleteAlbum: 'Xóa album này? Tất cả ảnh và bình luận sẽ bị xóa vĩnh viễn.',
     deleteAlbumSuccess: 'Album đã được xóa thành công.',
     deleteAlbumError: 'Xóa album thất bại.',
     confirmDeletePhoto: 'Xóa ảnh này?',
@@ -1523,8 +1522,7 @@ export default {
     removeFriend: 'Xóa bạn bè',
     removeFriendConfirm: 'Bạn có chắc muốn xóa {name} khỏi danh sách bạn bè?',
     unblockUser: 'Bỏ chặn người dùng',
-    unblockConfirm:
-      'Bạn có chắc muốn bỏ chặn {name}? Họ sẽ có thể tương tác với bạn trở lại.',
+    unblockConfirm: 'Bạn có chắc muốn bỏ chặn {name}? Họ sẽ có thể tương tác với bạn trở lại.',
     blocked: 'Đã chặn {time}',
     loadFriendsError: 'Không thể tải danh sách bạn bè',
     loadRequestsError: 'Không thể tải yêu cầu kết bạn',

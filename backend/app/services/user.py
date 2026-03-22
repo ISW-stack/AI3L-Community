@@ -544,9 +544,7 @@ async def list_users(
     return await user_repo.list_all(page=page, page_size=page_size, search=search)
 
 
-async def bulk_change_role(
-    user_ids: list[uuid.UUID], role: str, caller_role: str = ""
-) -> int:
+async def bulk_change_role(user_ids: list[uuid.UUID], role: str, caller_role: str = "") -> int:
     """Change role for multiple users in a single transaction.
 
     Raises ValueError if the operation would remove the last SUPER_ADMIN.

@@ -296,9 +296,7 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
     async with pool.acquire() as conn:
         async with conn.transaction():
             if is_admin:
-                owner_row = await conn.fetchval(
-                    "SELECT user_id FROM posts WHERE id = $1", post_id
-                )
+                owner_row = await conn.fetchval("SELECT user_id FROM posts WHERE id = $1", post_id)
                 post_owner_id = str(owner_row) if owner_row else None
                 result = await conn.execute(
                     "UPDATE posts SET is_deleted = true, updated_at = NOW() "

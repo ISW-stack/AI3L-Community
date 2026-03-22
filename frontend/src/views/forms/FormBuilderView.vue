@@ -188,9 +188,11 @@ const {
             />
           </div>
           <div>
-            <label for="form-max-respondents" class="block text-sm font-medium text-foreground mb-1">{{
-              t('forms.builder.maxRespondentsLabel')
-            }}</label>
+            <label
+              for="form-max-respondents"
+              class="block text-sm font-medium text-foreground mb-1"
+              >{{ t('forms.builder.maxRespondentsLabel') }}</label
+            >
             <input
               id="form-max-respondents"
               v-model.number="maxRespondents"

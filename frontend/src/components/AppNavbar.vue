@@ -7,14 +7,7 @@ import { useLocale } from '@/composables/useLocale'
 import NotificationBell from '@/components/NotificationBell.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
-import {
-  Menu,
-  X,
-  ChevronDown,
-  GraduationCap,
-  MessageSquare,
-  BookOpen,
-} from 'lucide-vue-next'
+import { Menu, X, ChevronDown, GraduationCap, MessageSquare, BookOpen } from 'lucide-vue-next'
 import { useDMStore } from '@/stores/dm'
 
 const auth = useAuthStore()

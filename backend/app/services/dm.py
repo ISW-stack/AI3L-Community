@@ -596,7 +596,9 @@ async def mark_read(user_id: str, conversation_id: str) -> str | None:
     if not conv:
         raise AppError(ErrorCode.DM_006, 404, "Conversation not found.")
 
-    count, read_at = await dm_repo.mark_messages_read(uuid.UUID(conversation_id), uuid.UUID(user_id))
+    count, read_at = await dm_repo.mark_messages_read(
+        uuid.UUID(conversation_id), uuid.UUID(user_id)
+    )
     if count == 0:
         return None
 

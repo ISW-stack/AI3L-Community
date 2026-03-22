@@ -127,7 +127,11 @@ export function useWebSocket() {
               }
             }
           } else if (msg.type === 'DM_EDITED') {
-            if (msg.message && typeof msg.message === 'object' && typeof msg.message.id === 'string') {
+            if (
+              msg.message &&
+              typeof msg.message === 'object' &&
+              typeof msg.message.id === 'string'
+            ) {
               dmStore.updateFromWebSocket(msg.message)
             }
           } else if (msg.type === 'DM_RECALLED') {

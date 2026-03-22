@@ -1404,8 +1404,7 @@ export default {
     photosCount: '사진 {count}장',
     membersCount: '멤버 {count}명',
     deleteAlbum: '앨범 삭제',
-    confirmDeleteAlbum:
-      '이 앨범을 삭제하시겠습니까? 모든 사진과 댓글이 영구 삭제됩니다.',
+    confirmDeleteAlbum: '이 앨범을 삭제하시겠습니까? 모든 사진과 댓글이 영구 삭제됩니다.',
     deleteAlbumSuccess: '앨범이 삭제되었습니다.',
     deleteAlbumError: '앨범 삭제에 실패했습니다.',
     confirmDeletePhoto: '이 사진을 삭제하시겠습니까?',
@@ -1519,8 +1518,7 @@ export default {
     removeFriend: '친구 삭제',
     removeFriendConfirm: '{name}을(를) 친구 목록에서 삭제하시겠습니까?',
     unblockUser: '사용자 차단 해제',
-    unblockConfirm:
-      '{name}의 차단을 해제하시겠습니까? 다시 상호작용할 수 있게 됩니다.',
+    unblockConfirm: '{name}의 차단을 해제하시겠습니까? 다시 상호작용할 수 있게 됩니다.',
     blocked: '{time}에 차단됨',
     loadFriendsError: '친구 목록을 불러오지 못했습니다',
     loadRequestsError: '친구 요청을 불러오지 못했습니다',
@@ -1570,8 +1568,7 @@ export default {
     postAnswer: '답변 게시',
     postAnswerError: '답변 게시에 실패했습니다.',
     deleteQuestion: '질문 삭제',
-    deleteQuestionConfirm:
-      '이 질문을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.',
+    deleteQuestionConfirm: '이 질문을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.',
     deleteError: '질문 삭제에 실패했습니다.',
     loadQuestionError: '질문을 불러오지 못했습니다.',
     loadAnswersError: '답변을 불러오지 못했습니다.',

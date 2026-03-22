@@ -207,7 +207,9 @@ onMounted(fetchCoAuthors)
 
     <!-- Invite internal user -->
     <div v-if="canAddMore" class="space-y-2">
-      <label for="coauthor-search" class="block text-xs font-medium text-muted">{{ t('coauthors.searchLabel') }}</label>
+      <label for="coauthor-search" class="block text-xs font-medium text-muted">{{
+        t('coauthors.searchLabel')
+      }}</label>
       <div class="relative">
         <input
           id="coauthor-search"

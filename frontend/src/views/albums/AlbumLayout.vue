@@ -251,9 +251,11 @@ const currentRouteName = computed(() => route.name)
               <template v-if="editing">
                 <div class="space-y-3">
                   <div>
-                    <label for="album-edit-title" class="block text-sm font-medium text-foreground mb-1">{{
-                      t('albums.titleLabel')
-                    }}</label>
+                    <label
+                      for="album-edit-title"
+                      class="block text-sm font-medium text-foreground mb-1"
+                      >{{ t('albums.titleLabel') }}</label
+                    >
                     <input
                       id="album-edit-title"
                       v-model="editTitle"
@@ -264,9 +266,11 @@ const currentRouteName = computed(() => route.name)
                     />
                   </div>
                   <div>
-                    <label for="album-edit-desc" class="block text-sm font-medium text-foreground mb-1">{{
-                      t('albums.descriptionLabel')
-                    }}</label>
+                    <label
+                      for="album-edit-desc"
+                      class="block text-sm font-medium text-foreground mb-1"
+                      >{{ t('albums.descriptionLabel') }}</label
+                    >
                     <textarea
                       id="album-edit-desc"
                       v-model="editDescription"

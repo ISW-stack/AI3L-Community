@@ -1406,8 +1406,7 @@ export default {
     photosCount: '{count} 枚の写真',
     membersCount: '{count} 名のメンバー',
     deleteAlbum: 'アルバムを削除',
-    confirmDeleteAlbum:
-      'このアルバムを削除しますか？すべての写真とコメントが永久に削除されます。',
+    confirmDeleteAlbum: 'このアルバムを削除しますか？すべての写真とコメントが永久に削除されます。',
     deleteAlbumSuccess: 'アルバムが削除されました。',
     deleteAlbumError: 'アルバムの削除に失敗しました。',
     confirmDeletePhoto: 'この写真を削除しますか？',
@@ -1521,8 +1520,7 @@ export default {
     removeFriend: '友達を削除',
     removeFriendConfirm: '{name}をフレンドリストから削除しますか？',
     unblockUser: 'ユーザーのブロックを解除',
-    unblockConfirm:
-      '{name}のブロックを解除しますか？再びあなたとやり取りできるようになります。',
+    unblockConfirm: '{name}のブロックを解除しますか？再びあなたとやり取りできるようになります。',
     blocked: '{time}にブロック',
     loadFriendsError: '友達の読み込みに失敗しました',
     loadRequestsError: 'フレンドリクエストの読み込みに失敗しました',
@@ -1572,8 +1570,7 @@ export default {
     postAnswer: '回答を投稿',
     postAnswerError: '回答の投稿に失敗しました。',
     deleteQuestion: '質問を削除',
-    deleteQuestionConfirm:
-      'この質問を削除してもよいですか？この操作は元に戻せません。',
+    deleteQuestionConfirm: 'この質問を削除してもよいですか？この操作は元に戻せません。',
     deleteError: '質問の削除に失敗しました。',
     loadQuestionError: '質問の読み込みに失敗しました。',
     loadAnswersError: '回答の読み込みに失敗しました。',

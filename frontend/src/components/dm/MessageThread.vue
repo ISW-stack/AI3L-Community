@@ -441,7 +441,9 @@ defineExpose({ scrollToBottom })
               v-if="canEditOrRecall(item.message)"
               class="absolute top-0 transition-opacity"
               :class="[
-                isMine(item.message) ? 'right-full mr-1 md:-left-8 md:right-auto md:mr-0' : 'left-full ml-1 md:-right-8 md:left-auto md:ml-0',
+                isMine(item.message)
+                  ? 'right-full mr-1 md:-left-8 md:right-auto md:mr-0'
+                  : 'left-full ml-1 md:-right-8 md:left-auto md:ml-0',
                 openMenuId === item.message!.id
                   ? 'opacity-100'
                   : 'opacity-40 sm:opacity-0 sm:group-hover:opacity-100',
@@ -462,7 +464,11 @@ defineExpose({ scrollToBottom })
                 data-message-menu
                 v-if="openMenuId === item.message!.id"
                 class="absolute z-10 bg-surface border border-border rounded-lg shadow-lg py-1 w-36 max-w-[calc(100vw-2rem)]"
-                :class="isMine(item.message!) ? 'right-0 md:left-0 md:right-auto' : 'left-0 md:right-0 md:left-auto'"
+                :class="
+                  isMine(item.message!)
+                    ? 'right-0 md:left-0 md:right-auto'
+                    : 'left-0 md:right-0 md:left-auto'
+                "
               >
                 <button
                   v-if="item.message!.content"

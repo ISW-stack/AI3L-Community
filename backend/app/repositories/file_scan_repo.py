@@ -15,9 +15,7 @@ async def insert(file_key: str) -> dict | None:
             file_key,
         )
         if row is None:
-            row = await conn.fetchrow(
-                "SELECT * FROM file_scans WHERE file_key = $1", file_key
-            )
+            row = await conn.fetchrow("SELECT * FROM file_scans WHERE file_key = $1", file_key)
         return dict(row) if row else None
 
 

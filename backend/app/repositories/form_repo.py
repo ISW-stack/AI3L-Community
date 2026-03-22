@@ -445,9 +445,7 @@ async def count_total_responses(form_id: uuid.UUID) -> int:
         )
 
 
-async def iter_responses_batched(
-    form_id: uuid.UUID, batch_size: int = 500
-) -> AsyncIterator[dict]:
+async def iter_responses_batched(form_id: uuid.UUID, batch_size: int = 500) -> AsyncIterator[dict]:
     """Yield responses one at a time, fetching from DB in batches.
 
     Uses keyset pagination so only one batch is in memory at a time.

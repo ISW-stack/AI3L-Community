@@ -1403,8 +1403,7 @@ export default {
     photosCount: '{count} صورة',
     membersCount: '{count} عضو',
     deleteAlbum: 'حذف الألبوم',
-    confirmDeleteAlbum:
-      'هل تريد حذف هذا الألبوم؟ ستُحذف جميع الصور والتعليقات نهائياً.',
+    confirmDeleteAlbum: 'هل تريد حذف هذا الألبوم؟ ستُحذف جميع الصور والتعليقات نهائياً.',
     deleteAlbumSuccess: 'تم حذف الألبوم بنجاح.',
     deleteAlbumError: 'فشل حذف الألبوم.',
     confirmDeletePhoto: 'هل تريد حذف هذه الصورة؟',
@@ -1518,8 +1517,7 @@ export default {
     removeFriend: 'إزالة الصديق',
     removeFriendConfirm: 'هل أنت متأكد من إزالة {name} من قائمة أصدقائك؟',
     unblockUser: 'رفع حظر المستخدم',
-    unblockConfirm:
-      'هل أنت متأكد من رفع الحظر عن {name}؟ سيتمكن من التفاعل معك مرة أخرى.',
+    unblockConfirm: 'هل أنت متأكد من رفع الحظر عن {name}؟ سيتمكن من التفاعل معك مرة أخرى.',
     blocked: 'محظور {time}',
     loadFriendsError: 'فشل تحميل الأصدقاء',
     loadRequestsError: 'فشل تحميل طلبات الصداقة',
@@ -1569,8 +1567,7 @@ export default {
     postAnswer: 'نشر الإجابة',
     postAnswerError: 'فشل نشر الإجابة.',
     deleteQuestion: 'حذف السؤال',
-    deleteQuestionConfirm:
-      'هل أنت متأكد من حذف هذا السؤال؟ لا يمكن التراجع عن هذا الإجراء.',
+    deleteQuestionConfirm: 'هل أنت متأكد من حذف هذا السؤال؟ لا يمكن التراجع عن هذا الإجراء.',
     deleteError: 'فشل حذف السؤال.',
     loadQuestionError: 'فشل تحميل السؤال.',
     loadAnswersError: 'فشل تحميل الإجابات.',

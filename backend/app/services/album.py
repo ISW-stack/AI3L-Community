@@ -404,9 +404,7 @@ async def add_member(
             is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
             is_creator = str(album["created_by"]) == user_id
             member = await album_repo.find_member(conn, album_uuid, user_uuid)
-            is_album_admin = (
-                member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
-            )
+            is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
             if not (is_creator or is_site_admin or is_album_admin):
                 raise AppError(ErrorCode.SYS_403, 403, "Not authorized to add members.")
@@ -598,9 +596,7 @@ async def upload_photo(
 
         member = await album_repo.find_member(conn, album_uuid, user_uuid)
         if not member or member["status"] != "ACCEPTED":
-            raise AppError(
-                ErrorCode.SYS_403, 403, "Must be an approved album member to upload."
-            )
+            raise AppError(ErrorCode.SYS_403, 403, "Must be an approved album member to upload.")
 
         # 5. Check album photo count (advisory — exact enforcement via FOR UPDATE below)
         photo_count = await album_repo.count_photos(conn, album_uuid)

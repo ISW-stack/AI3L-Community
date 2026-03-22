@@ -550,12 +550,9 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     }
     document.addEventListener('keydown', handleKeyboardShortcut)
     startAutoSave()
-    watch(
-      [title, description, bannerUrl, deadline, maxRespondents, allowNonMembers],
-      () => {
-        isDirty = true
-      },
-    )
+    watch([title, description, bannerUrl, deadline, maxRespondents, allowNonMembers], () => {
+      isDirty = true
+    })
   })
 
   onUnmounted(() => {

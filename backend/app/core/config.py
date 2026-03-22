@@ -147,9 +147,7 @@ class Settings(BaseSettings):
                     "Set a strong, unique secret."
                 )
             if len(self.JWT_SECRET_KEY) < 32:
-                raise ValueError(
-                    "JWT_SECRET_KEY must be at least 32 characters for HS256."
-                )
+                raise ValueError("JWT_SECRET_KEY must be at least 32 characters for HS256.")
         # Auto-derive COOKIE_SECURE from FASTAPI_ENV when not explicitly set
         if self.COOKIE_SECURE is None:
             self.COOKIE_SECURE = self.FASTAPI_ENV == "production"

@@ -216,7 +216,9 @@ onUnmounted(() => {
     <!-- Layout: sidebar + content -->
     <div class="flex gap-8">
       <!-- Desktop sidebar -->
-      <nav class="hidden lg:block w-56 shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+      <nav
+        class="hidden lg:block w-56 shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto"
+      >
         <ul class="space-y-0.5">
           <li v-for="item in currentSidebarItems" :key="item.id">
             <button
@@ -252,12 +254,11 @@ onUnmounted(() => {
 
       <!-- Mobile sidebar drawer -->
       <Transition name="slide">
-        <div
-          v-if="mobileSidebarOpen"
-          class="lg:hidden fixed inset-0 z-50 flex"
-        >
+        <div v-if="mobileSidebarOpen" class="lg:hidden fixed inset-0 z-50 flex">
           <div class="absolute inset-0 bg-black/30" @click="mobileSidebarOpen = false" />
-          <div class="relative ml-auto w-64 max-w-[80vw] bg-surface h-full shadow-xl overflow-y-auto p-4">
+          <div
+            class="relative ml-auto w-64 max-w-[80vw] bg-surface h-full shadow-xl overflow-y-auto p-4"
+          >
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-sm font-semibold text-foreground">Table of Contents</h3>
               <button

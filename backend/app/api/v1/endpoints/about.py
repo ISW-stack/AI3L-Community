@@ -322,7 +322,11 @@ async def update_about_intro_photo(
 
     data = await file.read(_MAX_INTRO_PHOTO_BYTES + 1)
     if len(data) > _MAX_INTRO_PHOTO_BYTES:
-        raise AppError(ErrorCode.FILE_001, 413, f"File too large (max {_MAX_INTRO_PHOTO_BYTES // (1024*1024)} MB).")
+        raise AppError(
+            ErrorCode.FILE_001,
+            413,
+            f"File too large (max {_MAX_INTRO_PHOTO_BYTES // (1024*1024)} MB).",
+        )
 
     # Validate actual file content via magic bytes (don't trust client content_type)
     ext = _detect_image_ext(data)

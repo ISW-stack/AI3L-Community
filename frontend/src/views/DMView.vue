@@ -352,9 +352,7 @@ const activeConvUser = computed(() => {
       >
         <template v-if="dmStore.activeConversationId || activeOtherUserId">
           <!-- Thread header -->
-          <div
-            class="flex items-center gap-3 px-3 sm:px-4 py-3 border-b border-border bg-surface"
-          >
+          <div class="flex items-center gap-3 px-3 sm:px-4 py-3 border-b border-border bg-surface">
             <button
               class="md:hidden p-2 -ml-2 text-muted hover:text-foreground active:bg-surface-alt rounded-lg transition touch-manipulation"
               @click="handleBackToList"

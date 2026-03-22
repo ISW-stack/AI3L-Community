@@ -2,24 +2,24 @@
   <div class="guide-content space-y-10">
     <!-- Getting Started -->
     <section id="guest-getting-started">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Getting Started</h2>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Getting Started
+      </h2>
 
       <h3 class="text-lg font-semibold text-foreground mt-6 mb-3">Guest Login</h3>
       <ol class="list-decimal list-inside space-y-2 text-sm text-foreground/80">
-        <li>
-          Navigate to the <strong>Guest Login</strong> page (<code>/guest</code>).
-        </li>
+        <li>Navigate to the <strong>Guest Login</strong> page (<code>/guest</code>).</li>
         <li>Enter a valid <strong>invite code</strong> provided by an existing member or admin.</li>
         <li>Choose a <strong>display name</strong> for your temporary session.</li>
         <li>
-          Complete the <strong>CAPTCHA</strong> challenge (click the image to refresh if it is hard to
-          read).
+          Complete the <strong>CAPTCHA</strong> challenge (click the image to refresh if it is hard
+          to read).
         </li>
         <li>Click <strong>Enter as Guest</strong>.</li>
       </ol>
       <p class="text-sm text-muted mt-3">
-        Your session is temporary and stored server-side. If you are inactive for an extended period,
-        your session will expire and you will need to log in again.
+        Your session is temporary and stored server-side. If you are inactive for an extended
+        period, your session will expire and you will need to log in again.
       </p>
 
       <h3 class="text-lg font-semibold text-foreground mt-6 mb-3">Registering Instead</h3>
@@ -27,9 +27,7 @@
         If you have an invite code and want full Member access immediately:
       </p>
       <ol class="list-decimal list-inside space-y-2 text-sm text-foreground/80">
-        <li>
-          Go to the <strong>Register</strong> page (<code>/register</code>).
-        </li>
+        <li>Go to the <strong>Register</strong> page (<code>/register</code>).</li>
         <li>Fill in: username, display name, invite code, password, and confirm password.</li>
         <li>
           Password must meet all requirements: 8+ characters, uppercase, lowercase, digit, and
@@ -41,8 +39,12 @@
 
     <!-- Home Dashboard -->
     <section id="guest-home-dashboard">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Home Dashboard</h2>
-      <p class="text-sm text-foreground/80 mb-3">After logging in as a Guest, the home page shows:</p>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Home Dashboard
+      </h2>
+      <p class="text-sm text-foreground/80 mb-3">
+        After logging in as a Guest, the home page shows:
+      </p>
       <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
         <li>
           <strong>Welcome card</strong> with your display name and quick links to browse the forum
@@ -66,7 +68,9 @@
 
     <!-- Browsing the Forum -->
     <section id="guest-browsing-forum">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Browsing the Forum</h2>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Browsing the Forum
+      </h2>
       <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">What You Can See</h3>
       <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
         <li>
@@ -96,7 +100,9 @@
 
     <!-- Browsing Q&A -->
     <section id="guest-browsing-qa">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Browsing Q&A</h2>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Browsing Q&A
+      </h2>
       <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
         <li>Browse questions sorted by Newest, Oldest, Most Answers, or Unanswered.</li>
         <li>Click a question to read the full detail and all answers.</li>
@@ -109,9 +115,12 @@
 
     <!-- SIGs -->
     <section id="guest-sigs">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Special Interest Groups (SIGs)</h2>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Special Interest Groups (SIGs)
+      </h2>
       <p class="text-sm text-foreground/80 mb-3">
-        Browse the SIG Directory to find groups. Click a SIG to view its detail page with three tabs:
+        Browse the SIG Directory to find groups. Click a SIG to view its detail page with three
+        tabs:
       </p>
       <div class="overflow-x-auto">
         <table class="w-full text-sm border border-border rounded-lg overflow-hidden">
@@ -141,12 +150,16 @@
           </tbody>
         </table>
       </div>
-      <p class="text-sm text-muted mt-2">Not available to guests: joining/leaving SIGs, creating posts.</p>
+      <p class="text-sm text-muted mt-2">
+        Not available to guests: joining/leaving SIGs, creating posts.
+      </p>
     </section>
 
     <!-- Forms -->
     <section id="guest-forms">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Submitting Forms</h2>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Submitting Forms
+      </h2>
       <p class="text-sm text-foreground/80 mb-3">
         Guests can browse and submit forms. Open a form and fill in each question:
       </p>
@@ -183,7 +196,9 @@
 
     <!-- Applying for Membership -->
     <section id="guest-apply-membership">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Applying for Membership</h2>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Applying for Membership
+      </h2>
       <p class="text-sm text-foreground/80 mb-3">
         This is the most important action available to Guest users.
       </p>
@@ -219,9 +234,7 @@
             </tr>
             <tr>
               <td class="px-4 py-2 font-medium">Rejected</td>
-              <td class="px-4 py-2 text-foreground/80">
-                Contact an admin for more information.
-              </td>
+              <td class="px-4 py-2 text-foreground/80">Contact an admin for more information.</td>
             </tr>
           </tbody>
         </table>
@@ -230,7 +243,9 @@
 
     <!-- Limitations -->
     <section id="guest-limitations">
-      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Guest Limitations</h2>
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Guest Limitations
+      </h2>
       <div class="overflow-x-auto">
         <table class="w-full text-sm border border-border rounded-lg overflow-hidden">
           <thead class="bg-surface-alt">
@@ -262,9 +277,7 @@
             </tr>
             <tr>
               <td class="px-4 py-2 font-medium">DMs / Social</td>
-              <td class="px-4 py-2 text-foreground/80">
-                Messages, friend requests, follow, block
-              </td>
+              <td class="px-4 py-2 text-foreground/80">Messages, friend requests, follow, block</td>
             </tr>
             <tr>
               <td class="px-4 py-2 font-medium">About</td>

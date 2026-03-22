@@ -449,7 +449,9 @@ onMounted(fetchData)
 
                   <!-- Inline bio edit form -->
                   <div v-if="editingBio?.sigId === sig.id" class="node-edit-form mt-2">
-                    <label for="org-bio" class="text-xs font-medium text-muted">{{ t('orgChart.myBio') }}</label>
+                    <label for="org-bio" class="text-xs font-medium text-muted">{{
+                      t('orgChart.myBio')
+                    }}</label>
                     <textarea
                       id="org-bio"
                       v-model="bioForm"

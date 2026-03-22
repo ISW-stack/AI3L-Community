@@ -1414,8 +1414,7 @@ export default {
     photosCount: '{count} foto',
     membersCount: '{count} anggota',
     deleteAlbum: 'Hapus Album',
-    confirmDeleteAlbum:
-      'Hapus album ini? Semua foto dan komentar akan dihapus secara permanen.',
+    confirmDeleteAlbum: 'Hapus album ini? Semua foto dan komentar akan dihapus secara permanen.',
     deleteAlbumSuccess: 'Album berhasil dihapus.',
     deleteAlbumError: 'Gagal menghapus album.',
     confirmDeletePhoto: 'Hapus foto ini?',
@@ -1503,7 +1502,8 @@ export default {
     noFriendsMessage: 'Kirim permintaan pertemanan untuk terhubung dengan anggota lain.',
     noFollowersMessage: 'Ketika anggota lain mengikuti Anda, mereka akan muncul di sini.',
     noFollowing: 'Tidak mengikuti siapapun',
-    noFollowingMessage: 'Ikuti anggota lain untuk tetap mendapat informasi tentang aktivitas mereka.',
+    noFollowingMessage:
+      'Ikuti anggota lain untuk tetap mendapat informasi tentang aktivitas mereka.',
     noBlockedMessage: 'Anda belum memblokir siapapun.',
     blockLimitDescription:
       'Anda dapat memblokir hingga 5 pengguna. Pengguna yang diblokir tidak dapat mengirim permintaan pertemanan, mengikuti Anda, atau berinteraksi dengan konten Anda.',

@@ -245,7 +245,9 @@ async def validation_exception_handler(
 
 
 @app.middleware("http")
-async def limit_upload_concurrency(request: Request, call_next: RequestResponseEndpoint) -> Response:
+async def limit_upload_concurrency(
+    request: Request, call_next: RequestResponseEndpoint
+) -> Response:
     """Limit concurrent upload requests to prevent memory pressure."""
     path = request.url.path
     is_upload = request.method == "POST" and any(path.startswith(p) for p in _UPLOAD_BODY_LIMITS)

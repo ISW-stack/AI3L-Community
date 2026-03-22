@@ -1529,9 +1529,7 @@ class TestMarkReadService:
         """mark_read marks messages and emits dm.messages_read event."""
         conv = _make_conversation(conv_id=_CONV_ID, user_a=_SENDER_ID, user_b=_RECIPIENT_ID)
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
-        mock_dm_repo.mark_messages_read = AsyncMock(
-            return_value=(3, "2026-03-22T12:00:00+00:00")
-        )
+        mock_dm_repo.mark_messages_read = AsyncMock(return_value=(3, "2026-03-22T12:00:00+00:00"))
 
         from app.services.dm import mark_read
 
@@ -3840,9 +3838,7 @@ class TestB12StorageQuotaAfterInsert:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_insert_failure_refunds_quota(
-        self, mock_dm_repo, mock_emit, mock_convert
-    ):
+    async def test_insert_failure_refunds_quota(self, mock_dm_repo, mock_emit, mock_convert):
         """When send_message_atomic raises, pre-reserved quota is refunded."""
         pool, conn = _mock_pool_context()
         # fetchval side_effect: dm_friends_only=False, quota UPDATE returns 2048 (reserved)
@@ -3884,7 +3880,9 @@ class TestB12StorageQuotaAfterInsert:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_insert_success_no_separate_increment(self, mock_dm_repo, mock_emit, mock_convert):
+    async def test_insert_success_no_separate_increment(
+        self, mock_dm_repo, mock_emit, mock_convert
+    ):
         """When send_message_atomic succeeds, no separate increment is needed (pre-reserved)."""
         pool, conn = _mock_pool_context()
         # fetchval side_effect: dm_friends_only=False, quota UPDATE returns 2048 (reserved)

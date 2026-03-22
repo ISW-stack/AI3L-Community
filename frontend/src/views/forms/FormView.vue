@@ -291,7 +291,13 @@ onMounted(() => loadForm())
         >
           <component
             :is="['single_choice', 'multiple_choice', 'rating'].includes(q.type) ? 'p' : 'label'"
-            :for="['single_choice', 'multiple_choice', 'rating'].includes(q.type) ? undefined : q.type === 'file_upload' ? 'file-input-' + q.id : 'fv-q-' + q.id"
+            :for="
+              ['single_choice', 'multiple_choice', 'rating'].includes(q.type)
+                ? undefined
+                : q.type === 'file_upload'
+                  ? 'file-input-' + q.id
+                  : 'fv-q-' + q.id
+            "
             class="block text-sm font-medium text-foreground mb-2"
           >
             {{ q.label
