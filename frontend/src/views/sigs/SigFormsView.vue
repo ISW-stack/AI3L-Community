@@ -431,6 +431,7 @@ onMounted(fetchForms)
               <input
                 v-model="rvSearchQuery"
                 type="text"
+                name="response-search"
                 :placeholder="t('sigs.forms.searchPlaceholder')"
                 :aria-label="t('sigs.forms.searchPlaceholder')"
                 class="flex-1 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -439,12 +440,14 @@ onMounted(fetchForms)
                 <input
                   v-model="rvDateFrom"
                   type="date"
+                  name="response-date-from"
                   :aria-label="t('sigs.forms.dateFrom')"
                   class="flex-1 min-w-0 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
                 />
                 <input
                   v-model="rvDateTo"
                   type="date"
+                  name="response-date-to"
                   :aria-label="t('sigs.forms.dateTo')"
                   class="flex-1 min-w-0 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
                 />

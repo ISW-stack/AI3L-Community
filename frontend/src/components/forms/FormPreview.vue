@@ -94,6 +94,7 @@ const emit = defineEmits<{
               v-if="q.type === 'text'"
               type="text"
               disabled
+              :name="`preview-${q.id}`"
               :placeholder="q.placeholder || t('forms.builder.shortTextPlaceholder')"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
             />
@@ -102,6 +103,7 @@ const emit = defineEmits<{
             <textarea
               v-else-if="q.type === 'textarea'"
               disabled
+              :name="`preview-${q.id}`"
               :placeholder="q.placeholder || t('forms.builder.longTextPlaceholder')"
               :rows="3"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
@@ -114,7 +116,7 @@ const emit = defineEmits<{
                 :key="opt.id"
                 class="flex items-center gap-2 text-sm text-foreground"
               >
-                <input type="radio" disabled class="text-brand-600" />
+                <input type="radio" disabled :name="`preview-radio-${q.id}`" class="text-brand-600" />
                 {{ opt.label || 'Option' }}
               </label>
             </div>
@@ -126,7 +128,7 @@ const emit = defineEmits<{
                 :key="opt.id"
                 class="flex items-center gap-2 text-sm text-foreground"
               >
-                <input type="checkbox" disabled class="rounded" />
+                <input type="checkbox" disabled :name="`preview-check-${q.id}`" class="rounded" />
                 {{ opt.label || 'Option' }}
               </label>
             </div>
@@ -135,6 +137,7 @@ const emit = defineEmits<{
             <select
               v-else-if="q.type === 'dropdown'"
               disabled
+              :name="`preview-${q.id}`"
               class="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface opacity-60"
             >
               <option value="">{{ t('forms.builder.selectPlaceholder') }}</option>
@@ -155,7 +158,7 @@ const emit = defineEmits<{
 
             <!-- File upload -->
             <div v-else-if="q.type === 'file_upload'" class="text-sm text-muted opacity-60">
-              <input type="file" disabled />
+              <input type="file" disabled :name="`preview-file-${q.id}`" />
             </div>
           </div>
 

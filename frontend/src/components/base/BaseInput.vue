@@ -10,6 +10,7 @@ const props = defineProps<{
   placeholder?: string
   maxlength?: number
   id?: string
+  name?: string
   autocomplete?: string
 }>()
 
@@ -31,6 +32,7 @@ const inputId = computed(
     <input
       :id="inputId"
       :type="type || 'text'"
+      :name="name"
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"

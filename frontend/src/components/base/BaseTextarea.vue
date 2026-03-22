@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, getCurrentInstance } from 'vue'
 
 const props = defineProps<{
   modelValue?: string
@@ -10,16 +10,19 @@ const props = defineProps<{
   maxlength?: number
   rows?: number
   id?: string
+  name?: string
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
+const instance = getCurrentInstance()
 const textareaId = computed(
   () =>
     props.id ||
-    (props.label ? `textarea-${props.label.toLowerCase().replace(/\s+/g, '-')}` : undefined),
+    (props.label ? `textarea-${props.label.toLowerCase().replace(/\s+/g, '-')}` : undefined) ||
+    `textarea-${instance?.uid ?? Math.random().toString(36).slice(2)}`,
 )
 </script>
 
@@ -30,6 +33,7 @@ const textareaId = computed(
     </label>
     <textarea
       :id="textareaId"
+      :name="name"
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"

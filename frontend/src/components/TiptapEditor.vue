@@ -211,6 +211,7 @@ async function handleFileUpload(event: Event) {
     <input
       ref="fileInputRef"
       type="file"
+      name="editor-file-upload"
       accept="image/png,image/jpeg,image/gif,image/webp,.pdf,.docx"
       class="hidden"
       @change="handleFileUpload"
