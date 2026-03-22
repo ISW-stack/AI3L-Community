@@ -103,12 +103,12 @@ async def update_album_endpoint(
     req: AlbumUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> AlbumResponse:
+    fields = req.model_dump(exclude_unset=True)
     album = await update_album(
         album_id=str(album_id),
         user_id=current_user["sub"],
         user_role=current_user["role"],
-        title=req.title,
-        description=req.description,
+        **fields,
     )
     return AlbumResponse(**album)
 

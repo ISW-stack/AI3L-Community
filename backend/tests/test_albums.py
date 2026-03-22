@@ -240,6 +240,54 @@ class TestUpdateAlbum:
         finally:
             _clear_overrides()
 
+    @pytest.mark.anyio
+    async def test_update_album_partial_does_not_clear_unset_fields(self, client):
+        """PUT /albums/{id} with only title should not pass description to service."""
+        album_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        album = _make_album(album_id=album_id, user_id=user_id)
+        album["title"] = "New Title"
+        try:
+            _override_auth("ADMIN", user_id=user_id)
+            with patch(
+                f"{_EP}.update_album", new_callable=AsyncMock, return_value=album
+            ) as mock_svc:
+                resp = await client.put(
+                    f"/api/v1/albums/{album_id}",
+                    json={"title": "New Title"},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                call_kwargs = mock_svc.call_args.kwargs
+                assert call_kwargs["title"] == "New Title"
+                assert "description" not in call_kwargs
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_update_album_explicit_null_description_passes_none(self, client):
+        """PUT /albums/{id} with description=null should pass description=None."""
+        album_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
+        album = _make_album(album_id=album_id, user_id=user_id)
+        album["description"] = None
+        try:
+            _override_auth("ADMIN", user_id=user_id)
+            with patch(
+                f"{_EP}.update_album", new_callable=AsyncMock, return_value=album
+            ) as mock_svc:
+                resp = await client.put(
+                    f"/api/v1/albums/{album_id}",
+                    json={"description": None},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                call_kwargs = mock_svc.call_args.kwargs
+                assert "description" in call_kwargs
+                assert call_kwargs["description"] is None
+        finally:
+            _clear_overrides()
+
 
 class TestDeleteAlbum:
     @pytest.mark.anyio
