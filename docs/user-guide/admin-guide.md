@@ -92,16 +92,7 @@ Navigate to **Admin > Users** (`/admin/users`).
 
 ### Per-User Actions
 
-Each user row has an actions menu:
-
-| Action | Description | Restriction |
-|---|---|---|
-| **Change Role** | Change the user's platform role | Super Admin only for role changes |
-| **Ban** | Suspend the user's account; they cannot log in | Super Admin only |
-| **Unban** | Restore a banned user's access | Super Admin only |
-| **Delete** | Permanently remove the user account | Super Admin only |
-
-> As an Admin, you can view all users but role changes, bans, and deletions require Super Admin privileges.
+As an Admin, you can **browse and search** all user accounts. However, per-user actions such as changing roles, banning, unbanning, and deleting users **require Super Admin privileges**. See the [Super Admin Guide](super-admin-guide.md#user-role-management) for details.
 
 ---
 

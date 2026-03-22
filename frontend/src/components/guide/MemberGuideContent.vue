@@ -4,6 +4,11 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 
 <template>
   <div class="guide-content space-y-10">
+    <BaseAlert type="info" class="mb-2">
+      This guide covers features <strong>beyond</strong> what is available to Guests. Make sure
+      you have read the <strong>Guest Guide</strong> tab first for browsing basics.
+    </BaseAlert>
+
     <!-- Creating Posts -->
     <section id="member-creating-posts">
       <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
@@ -38,12 +43,33 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         or discard the draft.
       </BaseAlert>
 
+      <BaseAlert type="warning" class="mt-4">
+        <strong>Navigation guard:</strong> If you try to leave with unsaved changes, a confirmation
+        dialog appears.
+      </BaseAlert>
+
       <h3 class="text-lg font-semibold text-foreground mt-6 mb-3">Editing a Post</h3>
       <p class="text-sm text-foreground/80">
         Open your post, click <strong>Edit</strong>, modify the content, and click
-        <strong>Save</strong>. Each edit creates a new version. You can view the edit history to see
-        all past versions.
+        <strong>Save</strong>. Each edit creates a new version. If someone else edits the post while
+        you are editing, the system warns you of a <strong>version conflict</strong>.
       </p>
+
+      <h3 class="text-lg font-semibold text-foreground mt-6 mb-3">Edit History, Delete & Report</h3>
+      <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
+        <li>
+          Click <strong>View Edit History</strong> on your own post to see all past versions with
+          content differences.
+        </li>
+        <li>
+          Click <strong>Delete</strong> on your own post and confirm in the modal. Deleted posts are
+          soft-deleted and no longer visible.
+        </li>
+        <li>
+          Click <strong>Report</strong> on any post that violates community guidelines. Enter a reason
+          and submit for admin review.
+        </li>
+      </ul>
 
       <h3 class="text-lg font-semibold text-foreground mt-6 mb-3">Co-Authors</h3>
       <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
@@ -132,6 +158,17 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         On the SIG's Posts tab, click the <strong>"+" button</strong>. The post creation form opens
         with this SIG pre-selected.
       </p>
+
+      <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">Quick Comment &amp; Share</h3>
+      <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
+        <li>
+          On the SIG Posts tab, each post card has an <strong>expand button</strong> to preview
+          comments and write a quick reply without navigating to the full post detail.
+        </li>
+        <li>
+          Click <strong>Copy Share Link</strong> on the SIG header to copy the URL to your clipboard.
+        </li>
+      </ul>
 
       <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">SIG Roles</h3>
       <div class="overflow-x-auto">
@@ -256,6 +293,9 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         <li>
           <strong>Export CSV:</strong> Background task with progress modal; downloads automatically
           when complete.
+        </li>
+        <li>
+          <strong>Copy Share Link:</strong> Click to copy the form URL for easy distribution.
         </li>
       </ul>
     </section>

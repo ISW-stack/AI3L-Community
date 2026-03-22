@@ -246,6 +246,7 @@ Super Admins have additional controls on the **About > Org Chart** page that are
 ### Full Health Check
 
 - **Endpoint:** `GET /health` (requires Super Admin authentication).
+- This is an API endpoint, not a UI page — access it via a browser or API tool (e.g., `curl`) with your session cookie.
 - Returns comprehensive system health information including:
   - Database connection status and pool statistics.
   - Redis connection status.

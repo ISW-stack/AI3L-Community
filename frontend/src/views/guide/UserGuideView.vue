@@ -45,10 +45,6 @@ const visibleTabs = computed(() =>
 )
 
 function getDefaultTab(): string {
-  const level = userRoleLevel.value
-  if (level >= 3) return 'super-admin'
-  if (level >= 2) return 'admin'
-  if (level >= 1) return 'member'
   return 'guest'
 }
 
@@ -68,6 +64,8 @@ const sidebarItems: Record<string, SidebarItem[]> = {
     { id: 'guest-sigs', label: 'SIGs' },
     { id: 'guest-forms', label: 'Submitting Forms' },
     { id: 'guest-albums', label: 'Albums' },
+    { id: 'guest-notifications', label: 'Notifications' },
+    { id: 'guest-profile', label: 'Profile' },
     { id: 'guest-apply-membership', label: 'Applying for Membership' },
     { id: 'guest-limitations', label: 'Guest Limitations' },
   ],

@@ -4,6 +4,11 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 
 <template>
   <div class="guide-content space-y-10">
+    <BaseAlert type="info" class="mb-2">
+      This guide covers <strong>additional</strong> features beyond what Members have. Read the
+      <strong>Guest Guide</strong> and <strong>Member Guide</strong> tabs first.
+    </BaseAlert>
+
     <!-- Admin Panel Overview -->
     <section id="admin-panel-overview">
       <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
@@ -97,6 +102,13 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         <li>Click <strong>Bulk Change Role</strong>.</li>
         <li>Select the target role and confirm.</li>
       </ol>
+
+      <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">Per-User Actions</h3>
+      <p class="text-sm text-foreground/80">
+        As an Admin, you can browse and search all user accounts. However, per-user actions such as
+        changing roles, banning, unbanning, and deleting users
+        <strong>require Super Admin privileges</strong>.
+      </p>
     </section>
 
     <!-- Applications -->

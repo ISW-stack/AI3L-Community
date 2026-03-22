@@ -194,6 +194,43 @@
       </p>
     </section>
 
+    <!-- Notifications -->
+    <section id="guest-notifications">
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
+        Notifications
+      </h2>
+      <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
+        <li>
+          Click the <strong>bell icon</strong> in the navbar to see your notification count, then
+          navigate to the Notifications page.
+        </li>
+        <li>Filter by <strong>All</strong> or <strong>Unread</strong>.</li>
+        <li>Click a notification to navigate to the related content (e.g., a post or comment).</li>
+        <li>Mark notifications as read individually.</li>
+      </ul>
+      <p class="text-sm text-muted mt-2">
+        Notifications update in real time via WebSocket &mdash; you will see the count change without
+        refreshing.
+      </p>
+    </section>
+
+    <!-- Profile -->
+    <section id="guest-profile">
+      <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">Profile</h2>
+      <p class="text-sm text-foreground/80 mb-3">
+        Click your <strong>avatar/name</strong> in the navbar and select <strong>Profile</strong>.
+      </p>
+      <p class="text-sm text-foreground/80">As a Guest, your profile page is limited to:</p>
+      <ul class="list-disc list-inside space-y-1 text-sm text-foreground/80 mt-2">
+        <li>Viewing your display name and role badge (GUEST).</li>
+        <li>Basic account information.</li>
+      </ul>
+      <p class="text-sm text-muted mt-2">
+        Not available to guests: editing profile details, changing password, generating invite codes,
+        social features, deleting account.
+      </p>
+    </section>
+
     <!-- Applying for Membership -->
     <section id="guest-apply-membership">
       <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">

@@ -56,7 +56,6 @@ After logging in as a Guest, the home page shows:
 - **Welcome card** with your display name and quick links to browse the forum and SIGs.
 - **Guest alert banner** reminding you that your access is limited, with a link to register.
 - **Membership application card** — shows your application status if you have submitted one, or a button to start the application process.
-- **Trending posts** — the top 3 most-discussed recent posts (hidden for guests on some configurations).
 - **Recent posts** — the 5 newest posts across all SIGs.
 - **Right sidebar:** community statistics (member/post/SIG counts), featured SIGs, and quick links.
 

@@ -4,6 +4,12 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 
 <template>
   <div class="guide-content space-y-10">
+    <BaseAlert type="info" class="mb-2">
+      This guide covers <strong>exclusive</strong> Super Admin features. Read the
+      <strong>Guest Guide</strong>, <strong>Member Guide</strong>, and <strong>Admin Guide</strong>
+      tabs first.
+    </BaseAlert>
+
     <!-- Additional Pages -->
     <section id="sa-additional-pages">
       <h2 class="text-xl font-bold text-foreground pb-2 border-b border-border mb-4">
@@ -215,8 +221,9 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         System Health Monitoring
       </h2>
       <p class="text-sm text-foreground/80 mb-3">
-        The <code>GET /health</code> endpoint (Super Admin only) returns comprehensive system
-        health:
+        The platform provides a <code>GET /health</code> API endpoint (Super Admin authentication
+        required). This is not a UI page &mdash; access it via a browser or API tool (e.g.,
+        <code>curl</code>) with your session cookie. It returns:
       </p>
       <ul class="list-disc list-inside space-y-1 text-sm text-foreground/80">
         <li>Database connection status and pool statistics (size, free, in-use).</li>
