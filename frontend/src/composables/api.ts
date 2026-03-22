@@ -40,9 +40,6 @@ api.interceptors.response.use(
     const status = error.response?.status
     const detail = error.response?.data?.detail
     const code: string | undefined = typeof detail === 'object' ? detail?.code : undefined
-    const message: string =
-      typeof detail === 'object' ? detail?.message : typeof detail === 'string' ? detail : ''
-
     const t = i18n.global.t
 
     // AUTH_004 — account banned

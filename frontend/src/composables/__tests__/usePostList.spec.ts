@@ -520,15 +520,9 @@ describe('usePostList', () => {
     // We test the guard by directly calling doSearch (which delegates to fetchPosts
     // when no search terms exist), simulating rapid successive calls.
     let resolveFirst!: (value: unknown) => void
-    const firstPending = new Promise((resolve) => {
+    const _firstPending = new Promise((resolve) => {
       resolveFirst = resolve
     })
-    const secondResponse = {
-      posts: [{ id: 'fresh-1', title: 'Fresh Post' }],
-      total: 1,
-      next_cursor: null,
-      has_more: false,
-    }
 
     const { result, wrapper } = mountComposable()
     // Init with default
