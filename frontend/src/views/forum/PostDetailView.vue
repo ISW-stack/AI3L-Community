@@ -264,7 +264,7 @@ const breadcrumbItems = computed(() => {
 
           <div
             ref="postContentRef"
-            class="prose prose-sm max-w-none break-words text-foreground/80 mb-4"
+            class="prose prose-sm max-w-none wrap-break-word text-foreground/80 mb-4"
           >
             <template v-for="(seg, i) in contentSegments" :key="i">
               <div v-if="seg.type === 'html'" v-html="seg.content"></div>
@@ -338,7 +338,7 @@ const breadcrumbItems = computed(() => {
                   <BaseBadge
                     v-if="c.is_self_citation"
                     variant="neutral"
-                    class="!text-[10px] !px-1 !py-0 ml-1"
+                    class="text-[10px]! px-1! py-0! ml-1"
                   >
                     {{ t('citations.selfCitation') }}
                   </BaseBadge>
@@ -372,7 +372,7 @@ const breadcrumbItems = computed(() => {
                   <BaseBadge
                     v-if="c.is_self_citation"
                     variant="neutral"
-                    class="!text-[10px] !px-1 !py-0 ml-1"
+                    class="text-[10px]! px-1! py-0! ml-1"
                   >
                     {{ t('citations.selfCitation') }}
                   </BaseBadge>
@@ -477,7 +477,7 @@ const breadcrumbItems = computed(() => {
                       v-model="editCommentContent"
                       name="edit-comment"
                       rows="3"
-                      class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                      class="w-full min-h-20 px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                     ></textarea>
                     <div class="flex gap-2">
                       <BaseButton
@@ -494,7 +494,7 @@ const breadcrumbItems = computed(() => {
                   </template>
                   <template v-else>
                     <p
-                      class="text-sm text-foreground/80 break-words mb-2"
+                      class="text-sm text-foreground/80 wrap-break-word mb-2"
                       v-html="
                         renderMentions(DOMPurify.sanitize(node.root.content), node.root.mentions)
                       "
@@ -537,7 +537,7 @@ const breadcrumbItems = computed(() => {
                       name="reply"
                       rows="2"
                       :placeholder="t('post.comment.writeReply')"
-                      class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
+                      class="w-full min-h-20 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
                     ></textarea>
                     <div class="flex gap-2">
                       <BaseButton
@@ -587,7 +587,7 @@ const breadcrumbItems = computed(() => {
                         v-model="editCommentContent"
                         name="edit-comment"
                         rows="3"
-                        class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                        class="w-full min-h-20 px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                       ></textarea>
                       <div class="flex gap-2">
                         <BaseButton
@@ -604,7 +604,7 @@ const breadcrumbItems = computed(() => {
                     </template>
                     <template v-else>
                       <p
-                        class="text-sm text-foreground/80 break-words mb-2"
+                        class="text-sm text-foreground/80 wrap-break-word mb-2"
                         v-html="renderMentions(DOMPurify.sanitize(reply.content), reply.mentions)"
                       ></p>
                       <div class="flex items-center gap-3">
@@ -657,7 +657,7 @@ const breadcrumbItems = computed(() => {
               name="new-comment"
               rows="3"
               :placeholder="t('post.comment.writeComment')"
-              class="w-full min-h-[80px] px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
+              class="w-full min-h-20 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
             ></textarea>
             <BaseButton
               size="sm"
