@@ -7,7 +7,7 @@ import { useLocale } from '@/composables/useLocale'
 import NotificationBell from '@/components/NotificationBell.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
-import { Menu, X, ChevronDown, GraduationCap, MessageSquare, BookOpen } from 'lucide-vue-next'
+import { Menu, X, ChevronDown, MessageSquare, BookOpen } from 'lucide-vue-next'
 import { useDMStore } from '@/stores/dm'
 
 const auth = useAuthStore()
@@ -125,7 +125,7 @@ onUnmounted(() => {
       <div class="flex justify-between h-16 items-center">
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
-          <GraduationCap class="w-6 h-6 text-brand-600" aria-hidden="true" />
+          <img src="/images/logo.png" alt="AI3L" class="h-8 w-auto" />
           <span class="text-lg font-bold text-brand-700">AI3L</span>
         </router-link>
 

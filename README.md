@@ -1,5 +1,9 @@
 # AI3L Community Platform
 
+<p align="center">
+  <img src="frontend/public/images/logo.png" alt="AI3L Community" width="200" />
+</p>
+
 An academic exchange platform for researchers, educators, and students working on AI in language learning and literacy. Built as a full-stack async application with Vue 3, FastAPI, PostgreSQL, and Redis.
 
 ---
