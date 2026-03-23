@@ -1691,4 +1691,9 @@ export default {
     close: 'Cerrar',
     notifications: 'Notificaciones',
   },
+
+  router: {
+    memberRequired: 'Debe ser miembro para acceder a esa página.',
+    permissionDenied: 'No tiene permiso para acceder a esa página.',
+  },
 }

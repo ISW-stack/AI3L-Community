@@ -1683,4 +1683,9 @@ export default {
     close: 'Kapat',
     notifications: 'Bildirimler',
   },
+
+  router: {
+    memberRequired: 'Bu sayfaya erişmek için üye olmanız gerekir.',
+    permissionDenied: 'Bu sayfaya erişim izniniz yok.',
+  },
 }

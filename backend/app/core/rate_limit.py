@@ -30,17 +30,15 @@ def get_client_ip(request: Request) -> str | None:
 
     Returns None if no IP can be determined.
     """
-    # X-Forwarded-For may contain multiple IPs: "client, proxy1, proxy2"
-    forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for:
-        # Take the last (rightmost) IP — the one appended by our trusted nginx proxy
-        ip = forwarded_for.split(",")[-1].strip()
-        if _is_valid_ip(ip):
-            return ip
-
     real_ip = request.headers.get("x-real-ip")
     if real_ip:
         ip = real_ip.strip()
+        if _is_valid_ip(ip):
+            return ip
+
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        ip = forwarded_for.split(",")[-1].strip()
         if _is_valid_ip(ip):
             return ip
 

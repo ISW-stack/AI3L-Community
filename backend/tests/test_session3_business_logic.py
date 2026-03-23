@@ -85,7 +85,7 @@ class TestL17UpdateAlbumTransaction:
         with (
             patch("app.services.album.get_pool", return_value=pool),
             patch("app.services.album.album_repo") as mock_repo,
-            patch("app.services.album.to_album_response", return_value={"id": album_id}),
+            patch("app.services.album.to_album_response", new_callable=AsyncMock, return_value={"id": album_id}),
         ):
             mock_repo.find_album_by_id = AsyncMock(return_value=fake)
             mock_repo.find_member = AsyncMock(return_value=None)
@@ -143,7 +143,7 @@ class TestL17UpdateAlbumTransaction:
         with (
             patch("app.services.album.get_pool", return_value=pool),
             patch("app.services.album.album_repo") as mock_repo,
-            patch("app.services.album.to_album_response", return_value={"id": album_id}),
+            patch("app.services.album.to_album_response", new_callable=AsyncMock, return_value={"id": album_id}),
         ):
             mock_repo.find_album_by_id = AsyncMock(return_value=fake)
             mock_repo.find_member = AsyncMock(return_value={"role": "ADMIN", "status": "ACCEPTED"})
@@ -170,7 +170,7 @@ class TestL17UpdateAlbumTransaction:
         with (
             patch("app.services.album.get_pool", return_value=pool),
             patch("app.services.album.album_repo") as mock_repo,
-            patch("app.services.album.to_album_response", return_value={"id": album_id}),
+            patch("app.services.album.to_album_response", new_callable=AsyncMock, return_value={"id": album_id}),
         ):
             mock_repo.find_album_by_id = AsyncMock(return_value=fake)
             mock_repo.find_member = AsyncMock(return_value=None)
@@ -645,7 +645,7 @@ class TestL46AlbumCoverMinIOCleanup:
             patch("app.services.album.get_pool", return_value=pool),
             patch("app.services.album.album_repo") as mock_repo,
             patch("app.services.album.settings") as mock_settings,
-            patch("app.services.album.to_album_response", return_value={"id": album_id}),
+            patch("app.services.album.to_album_response", new_callable=AsyncMock, return_value={"id": album_id}),
             patch("app.core.async_storage.upload_file", mock_upload),
             patch("app.core.async_storage.delete_file", mock_delete),
         ):

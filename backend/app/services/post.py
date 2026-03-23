@@ -1,12 +1,13 @@
 import asyncio
 import re
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import asyncpg
 from loguru import logger
 
 from app.converters.post_converter import async_row_to_post, row_to_history
+from app.converters.shared import fill_user_reactions
 from app.core.blacklist import get_blocked_user_ids
 from app.core.constants import MAX_KEYWORDS, MAX_POSTS_PER_DAY, POST_VIEW_DEDUP_TTL
 from app.core.database import get_pool
@@ -19,10 +20,17 @@ from app.repositories import post_repo
 async def _atomic_check_and_increment_post_limit(user_id: str) -> bool:
     """Atomically increment daily post count and check limit. Returns True if within limit."""
     redis = get_redis()
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    today = now.strftime("%Y-%m-%d")
     key = f"post_limit:{user_id}:{today}"
     count = await redis.incr(key)
     if count == 1:
+        # Expire at end of UTC day
+        tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        ttl = int((tomorrow - now).total_seconds())
+        await redis.expire(key, ttl)
+    elif await redis.ttl(key) < 0:
+        # Safety net: if EXPIRE was lost, re-set it
         await redis.expire(key, 86400)
     if count > MAX_POSTS_PER_DAY:
         await redis.decr(key)
@@ -155,21 +163,26 @@ async def get_post_by_id(
         if str(row["user_id"]) in blocked_ids:
             return None
 
+    incremented = False
     if increment_view and viewer_id:
         redis = get_redis()
         view_key = f"viewed:{post_id}:{viewer_id}"
-        # Only increment if not viewed in dedup window (24h)
         is_new = await redis.set(view_key, "1", ex=POST_VIEW_DEDUP_TTL, nx=True)
         if is_new:
             try:
                 await post_repo.increment_view_count(post_id)
+                incremented = True
             except Exception:
                 await redis.delete(view_key)
                 raise
     elif increment_view:
-        # Fallback: no viewer_id, always increment (backward compat)
         await post_repo.increment_view_count(post_id)
-    return await async_row_to_post(row)
+        incremented = True
+    if incremented:
+        row = dict(row)
+        row["view_count"] = row.get("view_count", 0) + 1
+    result = await async_row_to_post(row)
+    return fill_user_reactions(result, viewer_id)
 
 
 async def update_post(
@@ -482,7 +495,8 @@ async def toggle_post_reaction(post_id: uuid.UUID, user_id: str, reaction: str) 
     row = await post_repo.toggle_reaction(post_id, user_id, reaction)
     if not row:
         return None
-    return await async_row_to_post(row)
+    result = await async_row_to_post(row)
+    return fill_user_reactions(result, user_id)
 
 
 async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
@@ -491,8 +505,16 @@ async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
     Also cleans up related citations, co-authors, and comments.
     """
     pool = get_pool()
+    post_owners: dict[uuid.UUID, str] = {}
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # Fetch post owners before soft-delete for file cleanup
+            owner_rows = await conn.fetch(
+                "SELECT id, user_id FROM posts WHERE id = ANY($1::uuid[]) AND is_deleted = false",
+                post_ids,
+            )
+            post_owners = {r["id"]: str(r["user_id"]) for r in owner_rows}
+
             # B4: Collect affected cited posts before deleting citations
             affected_rows = await conn.fetch(
                 "SELECT DISTINCT cited_post_id FROM post_citations "
@@ -521,4 +543,11 @@ async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
 
             for row in affected_rows:
                 await citation_repo.update_citation_count(conn, row["cited_post_id"])
+
+    for pid, uid in post_owners.items():
+        try:
+            await _cleanup_post_files(pid, uid)
+        except Exception:
+            logger.warning("Bulk delete file cleanup failed", extra={"post_id": str(pid)})
+
     return count

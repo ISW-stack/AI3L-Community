@@ -12,6 +12,7 @@
 #   0 3 * * * cd /path/to/project && ./scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
 # ──────────────────────────────────────────────────────────────
 set -euo pipefail
+umask 077
 
 # Load environment variables
 if [ -f .env ]; then

@@ -4,7 +4,7 @@ import type { CitationListResponse } from '@/types/citation'
 export async function getCitedBy(
   postId: string,
   page = 1,
-  pageSize = 100,
+  pageSize = 20,
 ): Promise<CitationListResponse> {
   const { data } = await api.get<CitationListResponse>(`/citations/posts/${postId}/cited-by`, {
     params: { page, page_size: pageSize },
@@ -15,7 +15,7 @@ export async function getCitedBy(
 export async function getCiting(
   postId: string,
   page = 1,
-  pageSize = 100,
+  pageSize = 20,
 ): Promise<CitationListResponse> {
   const { data } = await api.get<CitationListResponse>(`/citations/posts/${postId}/citing`, {
     params: { page, page_size: pageSize },

@@ -458,7 +458,7 @@ async def find_many(
         else:
             # Page may be out of range — do a separate count to get real total
             total = await conn.fetchval(
-                f"SELECT COUNT(*) FROM posts p {where}",
+                f"SELECT COUNT(*) FROM posts p LEFT JOIN sigs s ON p.sig_id = s.id {where}",
                 *count_params,
             )
             result = []
@@ -598,7 +598,7 @@ async def search(
         else:
             # Page may be out of range — do a separate count to get real total
             total = await conn.fetchval(
-                f"SELECT COUNT(*) FROM posts p {where}",
+                f"SELECT COUNT(*) FROM posts p LEFT JOIN sigs s ON p.sig_id = s.id {where}",
                 *count_params,
             )
             result = []

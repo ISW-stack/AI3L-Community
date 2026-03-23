@@ -1663,4 +1663,9 @@ export default {
     close: '關起',
     notifications: '通知',
   },
+
+  router: {
+    memberRequired: '你著是正式會員才會當存取彼頁面。',
+    permissionDenied: '你無權限存取彼頁面。',
+  },
 }

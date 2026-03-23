@@ -170,7 +170,7 @@ class TestDeleteAccount:
             payload, uid = _override_auth("MEMBER", user_id=user_id)
             with (
                 patch(f"{_EP}.check_sole_admin_sigs", new_callable=AsyncMock, return_value=[]),
-                patch(f"{_EP}.anonymize_user", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.anonymize_user", new_callable=AsyncMock, return_value={"anonymized": True, "cleanup_succeeded": True}),
                 patch(f"{_EP}.revoke_user_sessions", new_callable=AsyncMock),
             ):
                 resp = await client.delete(

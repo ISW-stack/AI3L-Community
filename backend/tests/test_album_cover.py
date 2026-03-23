@@ -374,7 +374,8 @@ class TestUploadCoverService:
 
 
 class TestAlbumConverterCover:
-    def test_cover_presigned_url_generated(self):
+    @pytest.mark.asyncio
+    async def test_cover_presigned_url_generated(self):
         """to_album_response generates presigned URL for cover_photo_url storage key."""
         from app.converters.album_converter import to_album_response
 
@@ -395,12 +396,14 @@ class TestAlbumConverterCover:
 
         with patch(
             "app.converters.album_converter.generate_presigned_url",
+            new_callable=AsyncMock,
             return_value="http://minio/presigned-cover-url",
         ):
-            result = to_album_response(row)
+            result = await to_album_response(row)
             assert result["cover_photo_url"] == "http://minio/presigned-cover-url"
 
-    def test_cover_none_when_no_key(self):
+    @pytest.mark.asyncio
+    async def test_cover_none_when_no_key(self):
         """to_album_response returns None cover when no storage key set."""
         from app.converters.album_converter import to_album_response
 
@@ -419,10 +422,11 @@ class TestAlbumConverterCover:
             "updated_at": now,
         }
 
-        result = to_album_response(row)
+        result = await to_album_response(row)
         assert result["cover_photo_url"] is None
 
-    def test_cover_none_on_presigned_failure(self):
+    @pytest.mark.asyncio
+    async def test_cover_none_on_presigned_failure(self):
         """to_album_response returns None when presigned URL generation fails."""
         from app.converters.album_converter import to_album_response
 
@@ -443,9 +447,10 @@ class TestAlbumConverterCover:
 
         with patch(
             "app.converters.album_converter.generate_presigned_url",
+            new_callable=AsyncMock,
             side_effect=Exception("MinIO down"),
         ):
-            result = to_album_response(row)
+            result = await to_album_response(row)
             assert result["cover_photo_url"] is None
 
 
@@ -608,7 +613,7 @@ class TestAutoSetCoverOnUpload:
             ),
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch(
-                "app.converters.album_converter.generate_presigned_url", return_value="http://url"
+                "app.converters.album_converter.generate_presigned_url", new_callable=AsyncMock, return_value="http://url"
             ),
         ):
             await upload_photo(

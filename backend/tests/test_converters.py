@@ -140,7 +140,7 @@ class TestCommentConverter:
             author_avatar_url="avatars/pic.jpg",
             parent_id=parent,
             mentions=["user1", "user2"],
-            reactions={"like": 3},
+            reactions={"like": ["u1", "u2", "u3"]},
         )
         result = self._conv(row)
 
@@ -153,7 +153,8 @@ class TestCommentConverter:
         assert result["author"]["avatar_url"] == "https://cdn/avatar.jpg"
         assert result["parent_id"] == str(parent)
         assert result["mentions"] == ["user1", "user2"]
-        assert result["reactions"] == {"like": 3}
+        assert result["reaction_counts"] == {"like": 3}
+        assert result["user_reactions"] is None
         assert result["created_at"] == _NOW.isoformat()
         assert result["updated_at"] == _NOW.isoformat()
 
@@ -164,23 +165,23 @@ class TestCommentConverter:
         assert result["author"]["avatar_url"] is None
         assert result["parent_id"] is None
         assert result["mentions"] is None
-        assert result["reactions"] is None
+        assert result["reaction_counts"] is None
 
     def test_reactions_json_string(self):
         """asyncpg returns JSONB as string after UPDATE -- converter must parse it."""
-        row = self._make_row(reactions='{"thumbsup": 1, "heart": 2}')
+        row = self._make_row(reactions='{"thumbsup": ["u1"], "heart": ["u1", "u2"]}')
         result = self._conv(row)
-        assert result["reactions"] == {"thumbsup": 1, "heart": 2}
+        assert result["reaction_counts"] == {"thumbsup": 1, "heart": 2}
 
     def test_reactions_already_dict(self):
-        row = self._make_row(reactions={"smile": 5})
+        row = self._make_row(reactions={"smile": ["u1", "u2", "u3", "u4", "u5"]})
         result = self._conv(row)
-        assert result["reactions"] == {"smile": 5}
+        assert result["reaction_counts"] == {"smile": 5}
 
     def test_reactions_empty_json_string(self):
         row = self._make_row(reactions="{}")
         result = self._conv(row)
-        assert result["reactions"] == {}
+        assert result["reaction_counts"] is None
 
     @patch(
         "app.core.storage.generate_presigned_url",

@@ -145,7 +145,7 @@ async def test_toggle_post_reaction_success(mock_toggle, mock_rl, client):
         )
         assert resp.status_code == status.HTTP_200_OK
         data = resp.json()
-        assert "reactions" in data
+        assert "reaction_counts" in data
         mock_toggle.assert_called_once()
     finally:
         app.dependency_overrides.clear()
@@ -206,7 +206,7 @@ async def test_toggle_post_reaction_smile(mock_toggle, mock_rl, client):
             json={"reaction": "SMILE"},
         )
         assert resp.status_code == status.HTTP_200_OK
-        assert resp.json()["reactions"]["SMILE"] == [MOCK_USER["sub"]]
+        assert resp.json()["reaction_counts"]["SMILE"] == 1
     finally:
         app.dependency_overrides.clear()
 
@@ -281,13 +281,15 @@ async def test_toggle_post_reaction_service_not_found(mock_repo):
 # ── Converter tests ──
 
 
-def test_post_converter_includes_reactions():
+def test_post_converter_includes_reaction_counts():
     from app.converters.post_converter import row_to_post
 
     row = dict(MOCK_POST_ROW)
     result = row_to_post(row)
-    assert "reactions" in result
-    assert result["reactions"] == {"LIKE": [MOCK_USER["sub"]]}
+    assert "reaction_counts" in result
+    assert result["reaction_counts"] == {"LIKE": 1}
+    assert result["user_reactions"] is None
+    assert result["_raw_reactions"] == {"LIKE": [MOCK_USER["sub"]]}
 
 
 def test_post_converter_null_reactions():
@@ -296,7 +298,7 @@ def test_post_converter_null_reactions():
     row = dict(MOCK_POST_ROW)
     row["reactions"] = None
     result = row_to_post(row)
-    assert result["reactions"] is None
+    assert result["reaction_counts"] is None
 
 
 def test_post_converter_dict_reactions():
@@ -305,4 +307,5 @@ def test_post_converter_dict_reactions():
     row = dict(MOCK_POST_ROW)
     row["reactions"] = {"SMILE": ["u1", "u2"]}
     result = row_to_post(row)
-    assert result["reactions"] == {"SMILE": ["u1", "u2"]}
+    assert result["reaction_counts"] == {"SMILE": 2}
+    assert result["_raw_reactions"] == {"SMILE": ["u1", "u2"]}

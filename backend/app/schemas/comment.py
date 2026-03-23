@@ -32,7 +32,8 @@ class CommentResponse(BaseModel):
     author: CommentAuthorResponse
     parent_id: str | None = None
     mentions: list[str] | None = None
-    reactions: dict | None = None
+    reaction_counts: dict[str, int] | None = None
+    user_reactions: list[str] | None = None
     vote_score: int = 0
     is_best_answer: bool = False
     created_at: str

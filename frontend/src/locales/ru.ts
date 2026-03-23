@@ -1684,4 +1684,9 @@ export default {
     close: 'Закрыть',
     notifications: 'Уведомления',
   },
+
+  router: {
+    memberRequired: 'Для доступа к этой странице необходимо быть участником.',
+    permissionDenied: 'У вас нет прав для доступа к этой странице.',
+  },
 }

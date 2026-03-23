@@ -74,6 +74,7 @@ function onSearchInput() {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
   if (!searchQuery.value.trim()) {
     searchResults.value = []
+    searchLoading.value = false
     return
   }
   searchLoading.value = true
@@ -82,11 +83,14 @@ function onSearchInput() {
     try {
       const res = await searchUsers(searchQuery.value.trim())
       if (!isMounted) return
-      searchResults.value = res as Array<{
-        id: string
-        display_name: string
-        avatar_url: string | null
-      }>
+      const existingIds = new Set(coAuthors.value.map((ca) => ca.user_id))
+      searchResults.value = (
+        res as Array<{
+          id: string
+          display_name: string
+          avatar_url: string | null
+        }>
+      ).filter((u) => !existingIds.has(u.id))
     } catch {
       if (!isMounted) return
       searchResults.value = []

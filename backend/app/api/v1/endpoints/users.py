@@ -207,8 +207,8 @@ async def delete_my_account(
             ),
         )
 
-    deleted = await anonymize_user(user_id)
-    if not deleted:
+    result = await anonymize_user(user_id)
+    if not result["anonymized"]:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Revoke ALL sessions (all devices), not just the current one
@@ -225,7 +225,10 @@ async def delete_my_account(
         ip_address=ip,
     )
 
-    return MessageResponse(message="Account deleted and anonymized.")
+    msg = "Account deleted and anonymized."
+    if not result.get("cleanup_succeeded", True):
+        msg += " Warning: some related data cleanup failed; an administrator has been notified."
+    return MessageResponse(message=msg)
 
 
 @router.get("/search")
@@ -386,8 +389,8 @@ async def admin_delete_user(
             ),
         )
 
-    deleted = await anonymize_user(user_id)
-    if not deleted:
+    result = await anonymize_user(user_id)
+    if not result["anonymized"]:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Revoke the target user's sessions
@@ -405,7 +408,10 @@ async def admin_delete_user(
         detail=req.reason or None,
     )
 
-    return MessageResponse(message="User has been deleted and anonymized.")
+    msg = "User has been deleted and anonymized."
+    if not result.get("cleanup_succeeded", True):
+        msg += " Warning: some related data cleanup failed; check server logs."
+    return MessageResponse(message=msg)
 
 
 @router.get("/{user_id}", response_model=PublicUserResponse)

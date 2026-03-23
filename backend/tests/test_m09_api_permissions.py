@@ -549,7 +549,7 @@ class TestL09DeleteAccountBlocksGuest:
                 patch(
                     "app.api.v1.endpoints.users.anonymize_user",
                     new_callable=AsyncMock,
-                    return_value=True,
+                    return_value={"anonymized": True, "cleanup_succeeded": True},
                 ),
                 patch(
                     "app.api.v1.endpoints.users.revoke_user_sessions",

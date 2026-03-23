@@ -125,7 +125,7 @@ onUnmounted(() => {
       <div class="flex justify-between h-16 items-center">
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
-          <img src="/images/logo.png" alt="AI3L" class="h-8 w-auto" />
+          <img src="/images/logo.png" alt="AI3L" class="h-12 w-auto" />
           <span class="text-lg font-bold text-brand-700">AI3L</span>
         </router-link>
 

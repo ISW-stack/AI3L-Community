@@ -207,7 +207,7 @@ def post_process_citations(html: str) -> str:
     import re
 
     return re.sub(
-        r'data-citation\s*=\s*["\']true["\']',
+        r'data-citation\s*=\s*["\']true["\'](?!\s+class=)',
         r'data-citation="true" class="citation"',
         html,
     )

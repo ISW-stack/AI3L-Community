@@ -7,7 +7,8 @@ export interface Comment {
   author: Author
   parent_id: string | null
   mentions: string[] | null
-  reactions: Record<string, string[]> | null
+  reaction_counts: Record<string, number> | null
+  user_reactions: string[] | null
   vote_score: number
   is_best_answer: boolean
   created_at: string

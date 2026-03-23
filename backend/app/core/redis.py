@@ -6,6 +6,7 @@ _redis: Redis | None = None
 
 async def init_redis(url: str) -> Redis:
     global _redis
+    # TLS not used for same-host Docker deployment; use rediss:// for remote Redis
     _redis = Redis.from_url(
         url,
         decode_responses=True,

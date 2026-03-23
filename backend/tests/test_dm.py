@@ -679,6 +679,11 @@ class TestSendMessageService:
                 new_callable=AsyncMock,
                 return_value=False,
             ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -727,6 +732,11 @@ class TestSendMessageService:
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://minio/presigned"),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -775,6 +785,11 @@ class TestSendMessageService:
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -806,8 +821,13 @@ class TestSendMessageService:
         """send_message with neither content nor file raises SYS_422."""
         from app.services.dm import send_message
 
-        with pytest.raises(AppError) as exc:
-            await send_message(sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID)
+        with patch(
+            "app.repositories.user_repo.find_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+        ):
+            with pytest.raises(AppError) as exc:
+                await send_message(sender_id=_SENDER_ID, recipient_id=_RECIPIENT_ID)
 
         assert exc.value.status_code == 422
 
@@ -816,12 +836,17 @@ class TestSendMessageService:
         """send_message with content exceeding DM_MAX_MESSAGE_LENGTH raises SYS_422."""
         from app.services.dm import send_message
 
-        with pytest.raises(AppError) as exc:
-            await send_message(
-                sender_id=_SENDER_ID,
-                recipient_id=_RECIPIENT_ID,
-                content="x" * 5001,
-            )
+        with patch(
+            "app.repositories.user_repo.find_by_id",
+            new_callable=AsyncMock,
+            return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+        ):
+            with pytest.raises(AppError) as exc:
+                await send_message(
+                    sender_id=_SENDER_ID,
+                    recipient_id=_RECIPIENT_ID,
+                    content="x" * 5001,
+                )
 
         assert exc.value.status_code == 422
 
@@ -835,6 +860,11 @@ class TestSendMessageService:
             patch("app.core.database.get_pool", return_value=pool),
             patch(
                 "app.repositories.social_repo.is_blocked", new_callable=AsyncMock, return_value=True
+            ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
             ),
         ):
             from app.services.dm import send_message
@@ -863,6 +893,11 @@ class TestSendMessageService:
                 "app.repositories.social_repo.find_friendship_between",
                 new_callable=AsyncMock,
                 return_value=None,
+            ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
             ),
         ):
             from app.services.dm import send_message
@@ -902,6 +937,11 @@ class TestSendMessageService:
                 new_callable=AsyncMock,
                 return_value={"status": "ACCEPTED"},
             ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -928,6 +968,11 @@ class TestSendMessageService:
                 return_value=False,
             ),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -966,6 +1011,11 @@ class TestSendMessageService:
                 new_callable=AsyncMock,
                 return_value=False,
             ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -1000,6 +1050,11 @@ class TestSendMessageService:
                 f"{_SVC}.async_row_to_message",
                 new_callable=AsyncMock,
                 return_value=_make_msg_response(),
+            ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
             ),
         ):
             from app.services.dm import send_message
@@ -2631,6 +2686,11 @@ class TestSendMessageEdgeCases:
                 new_callable=AsyncMock,
                 return_value=False,
             ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -2666,6 +2726,11 @@ class TestSendMessageEdgeCases:
                 "app.repositories.social_repo.find_friendship_between",
                 new_callable=AsyncMock,
                 return_value={"status": "PENDING"},
+            ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
             ),
         ):
             from app.services.dm import send_message
@@ -3131,6 +3196,11 @@ class TestNewDMErrorCodes:
                 new_callable=AsyncMock,
                 return_value=False,
             ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -3165,6 +3235,11 @@ class TestNewDMErrorCodes:
                 return_value=False,
             ),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -3510,6 +3585,11 @@ class TestB04S01SanitizeHtmlContent:
                 return_value=False,
             ),
             patch(f"{_SVC}.sanitize_html", return_value="clean content") as mock_sanitize,
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -3607,6 +3687,11 @@ class TestB07AsyncStorageOps:
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -3707,6 +3792,11 @@ class TestB07AsyncStorageOps:
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_async_del,
             patch("app.repositories.user_repo.decrement_storage_used", new_callable=AsyncMock),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -3861,6 +3951,11 @@ class TestB12StorageQuotaAfterInsert:
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -3914,6 +4009,11 @@ class TestB12StorageQuotaAfterInsert:
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -3973,6 +4073,11 @@ class TestB27S03SanitizedFilename:
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -4032,6 +4137,11 @@ class TestB27S03SanitizedFilename:
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -4175,6 +4285,11 @@ class TestS02FileTypeValidation:
                 "app.repositories.user_repo.get_storage_used",
                 new_callable=AsyncMock,
                 return_value=0,
+            ),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
             ),
         ):
             from app.services.dm import send_message

@@ -1624,4 +1624,9 @@ export default {
     close: '关闭',
     notifications: '通知',
   },
+
+  router: {
+    memberRequired: '您必须是正式会员才能访问该页面。',
+    permissionDenied: '您没有权限访问该页面。',
+  },
 }

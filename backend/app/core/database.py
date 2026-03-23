@@ -8,6 +8,7 @@ async def init_db_pool(dsn: str) -> asyncpg.Pool:
     global _pool
     # Convert SQLAlchemy-style DSN to asyncpg-style
     dsn = dsn.replace("postgresql+asyncpg://", "postgresql://")
+    # SSL not used for same-host Docker deployment; enable ssl='require' for remote PG
     _pool = await asyncpg.create_pool(
         dsn=dsn,
         min_size=2,

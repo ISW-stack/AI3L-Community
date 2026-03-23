@@ -88,20 +88,15 @@ async def sync_post_citations(
             author_uuid = uuid.UUID(author_id)
             new_citations: list[dict] = []
             for cited_id in to_add:
-                # Verify cited post exists
-                exists = await conn.fetchval(
-                    "SELECT 1 FROM posts WHERE id = $1 AND is_deleted = false",
+                # Verify cited post exists and get author in single query
+                cited_row = await conn.fetchrow(
+                    "SELECT user_id FROM posts WHERE id = $1 AND is_deleted = false",
                     cited_id,
                 )
-                if not exists:
+                if not cited_row:
                     continue
 
-                # Check if self-citation
-                cited_author = await conn.fetchval(
-                    "SELECT user_id FROM posts WHERE id = $1",
-                    cited_id,
-                )
-                is_self = cited_author == author_uuid
+                is_self = cited_row["user_id"] == author_uuid
 
                 citation_id = uuid.uuid4()
                 row = await citation_repo.insert_citation(

@@ -1,16 +1,16 @@
 """Converters for album-related database rows to API response dicts."""
 
-from app.converters.user_converter import resolve_avatar_url
-from app.core.storage import generate_presigned_url
+from app.converters.user_converter import async_resolve_avatar_url
+from app.core.async_storage import generate_presigned_url
 
 
-def to_album_response(row: dict) -> dict:
+async def to_album_response(row: dict) -> dict:
     """Convert an album DB row to an AlbumResponse-compatible dict."""
-    cover_key = row.get("cover_photo_url")  # stored as storage key
+    cover_key = row.get("cover_photo_url")
     cover_url = None
     if cover_key:
         try:
-            cover_url = generate_presigned_url(cover_key, expires_in=3600)
+            cover_url = await generate_presigned_url(cover_key, expires_in=3600)
         except Exception:
             cover_url = None
     return {
@@ -28,7 +28,7 @@ def to_album_response(row: dict) -> dict:
     }
 
 
-def to_album_photo_response(row: dict) -> dict:
+async def to_album_photo_response(row: dict) -> dict:
     """Convert an album_photos DB row to an AlbumPhotoResponse-compatible dict."""
     storage_key = row.get("storage_key")
     thumbnail_key = row.get("thumbnail_key")
@@ -38,13 +38,13 @@ def to_album_photo_response(row: dict) -> dict:
 
     if storage_key:
         try:
-            storage_url = generate_presigned_url(storage_key, expires_in=3600)
+            storage_url = await generate_presigned_url(storage_key, expires_in=3600)
         except Exception:
             storage_url = None
 
     if thumbnail_key:
         try:
-            thumbnail_url = generate_presigned_url(thumbnail_key, expires_in=3600)
+            thumbnail_url = await generate_presigned_url(thumbnail_key, expires_in=3600)
         except Exception:
             thumbnail_url = None
 
@@ -67,7 +67,7 @@ def to_album_photo_response(row: dict) -> dict:
     }
 
 
-def to_album_member_response(row: dict) -> dict:
+async def to_album_member_response(row: dict) -> dict:
     """Convert an album_members + users JOIN row to AlbumMemberResponse-compatible dict."""
     return {
         "id": str(row["id"]),
@@ -75,14 +75,14 @@ def to_album_member_response(row: dict) -> dict:
         "user_id": str(row["user_id"]),
         "display_name": row["display_name"],
         "username": row["username"],
-        "avatar_url": resolve_avatar_url(row.get("avatar_url")),
+        "avatar_url": await async_resolve_avatar_url(row.get("avatar_url")),
         "role": row["role"],
         "status": row["status"],
         "joined_at": row["joined_at"].isoformat(),
     }
 
 
-def to_album_comment_response(row: dict) -> dict:
+async def to_album_comment_response(row: dict) -> dict:
     """Convert an album_comments + users JOIN row to AlbumCommentResponse-compatible dict."""
     return {
         "id": str(row["id"]),
@@ -90,7 +90,7 @@ def to_album_comment_response(row: dict) -> dict:
         "photo_id": str(row["photo_id"]) if row.get("photo_id") else None,
         "user_id": str(row["user_id"]),
         "display_name": row["display_name"],
-        "avatar_url": resolve_avatar_url(row.get("avatar_url")),
+        "avatar_url": await async_resolve_avatar_url(row.get("avatar_url")),
         "parent_id": str(row["parent_id"]) if row.get("parent_id") else None,
         "content": row["content"],
         "is_deleted": row.get("is_deleted", False),

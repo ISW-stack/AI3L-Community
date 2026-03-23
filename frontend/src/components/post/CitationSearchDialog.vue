@@ -40,6 +40,7 @@ function onSearchInput() {
   if (debounceTimer) clearTimeout(debounceTimer)
   if (!query.value.trim()) {
     results.value = []
+    loading.value = false
     return
   }
   loading.value = true

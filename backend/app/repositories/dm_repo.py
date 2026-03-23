@@ -10,16 +10,17 @@ async def find_or_create_conversation(user_a: uuid.UUID, user_b: uuid.UUID) -> d
     """Sort UUIDs to satisfy CHECK constraint, INSERT ON CONFLICT DO NOTHING, then SELECT.
 
     Returns conversation dict with id, participant_a, participant_b,
-    total_chars, created_at, updated_at.
+    total_chars, created_at, updated_at, was_new.
     """
     low, high = sorted([user_a, user_b])
     pool = get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
+        inserted = await conn.fetchrow(
             """
             INSERT INTO conversations (participant_a, participant_b)
             VALUES ($1, $2)
             ON CONFLICT ON CONSTRAINT uq_conversation_pair DO NOTHING
+            RETURNING id
             """,
             low,
             high,
@@ -33,7 +34,25 @@ async def find_or_create_conversation(user_a: uuid.UUID, user_b: uuid.UUID) -> d
             low,
             high,
         )
-        return dict(row)
+        result = dict(row)
+        result["was_new"] = inserted is not None
+        return result
+
+
+async def delete_empty_conversation(conversation_id: uuid.UUID) -> bool:
+    """Delete a conversation only if it has no messages."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            DELETE FROM conversations
+            WHERE id = $1
+              AND NOT EXISTS (SELECT 1 FROM dm_messages WHERE conversation_id = $1)
+            RETURNING id
+            """,
+            conversation_id,
+        )
+        return row is not None
 
 
 async def find_conversation_by_id(conversation_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:

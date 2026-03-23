@@ -40,7 +40,9 @@ def _make_comment(post_id=None, user_id=None):
         },
         "parent_id": None,
         "mentions": None,
-        "reactions": {},
+        "reaction_counts": None,
+        "user_reactions": None,
+        "_raw_reactions": None,
         "created_at": now,
         "updated_at": now,
     }

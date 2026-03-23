@@ -45,3 +45,22 @@ def safe_json_parse(value: Any) -> Any:
         except json.JSONDecodeError:
             return None
     return value
+
+
+def reactions_to_counts(raw: Any) -> dict[str, int] | None:
+    """Convert reactions {type: [user_ids]} to {type: count}."""
+    parsed = safe_json_parse(raw)
+    if not parsed or not isinstance(parsed, dict):
+        return None
+    return {k: len(v) for k, v in parsed.items() if isinstance(v, list) and v}
+
+
+def fill_user_reactions(item: dict, viewer_id: str | None) -> dict:
+    """Set user_reactions on an item dict based on raw reactions and viewer_id."""
+    if not viewer_id:
+        return item
+    raw = item.get("_raw_reactions")
+    if not raw or not isinstance(raw, dict):
+        return item
+    item["user_reactions"] = [k for k, v in raw.items() if isinstance(v, list) and viewer_id in v]
+    return item

@@ -50,14 +50,13 @@ class TestAdminDeleteUser:
                 patch(
                     f"{_EP}.anonymize_user",
                     new_callable=AsyncMock,
-                    return_value=True,
+                    return_value={"anonymized": True, "cleanup_succeeded": True},
                 ),
                 patch(f"{_EP}.revoke_user_sessions", new_callable=AsyncMock),
                 patch(f"{_EP}.emit", new_callable=AsyncMock),
             ):
                 resp = await client.delete(
                     f"/api/v1/users/{target_id}",
-                    headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
                 assert "deleted" in resp.json()["message"].lower()
@@ -73,7 +72,6 @@ class TestAdminDeleteUser:
             _override_auth("SUPER_ADMIN", user_id=user_id)
             resp = await client.delete(
                 f"/api/v1/users/{user_id}",
-                headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 400
             assert "Cannot delete yourself" in resp.json()["detail"]["message"]
@@ -95,7 +93,6 @@ class TestAdminDeleteUser:
             ):
                 resp = await client.delete(
                     f"/api/v1/users/{target_id}",
-                    headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 403
                 assert "Cannot delete a Super Admin" in resp.json()["detail"]["message"]
@@ -116,7 +113,6 @@ class TestAdminDeleteUser:
             ):
                 resp = await client.delete(
                     f"/api/v1/users/{target_id}",
-                    headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 404
                 assert "not found" in resp.json()["detail"]["message"].lower()
@@ -146,7 +142,6 @@ class TestAdminDeleteUser:
             ):
                 resp = await client.delete(
                     f"/api/v1/users/{target_id}",
-                    headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 409
                 detail = resp.json()["detail"]["message"]
@@ -164,7 +159,6 @@ class TestAdminDeleteUser:
             _override_auth("MEMBER")
             resp = await client.delete(
                 f"/api/v1/users/{target_id}",
-                headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 403
         finally:
@@ -179,7 +173,6 @@ class TestAdminDeleteUser:
             _override_auth("ADMIN")
             resp = await client.delete(
                 f"/api/v1/users/{target_id}",
-                headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 403
         finally:

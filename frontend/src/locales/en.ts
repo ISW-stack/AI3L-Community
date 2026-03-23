@@ -1685,4 +1685,10 @@ export default {
     close: 'Close',
     notifications: 'Notifications',
   },
+
+  // ── Router Guards ──
+  router: {
+    memberRequired: 'You must be a full member to access that page.',
+    permissionDenied: 'You do not have permission to access that page.',
+  },
 }

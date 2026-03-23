@@ -50,7 +50,6 @@ class PublicUserResponse(BaseModel):
     profile_view_count_unique: int = 0
     profile_view_count_total: int = 0
     created_at: str
-    dm_friends_only: bool = False
 
 
 class UserUpdateRequest(BaseModel):
@@ -59,7 +58,7 @@ class UserUpdateRequest(BaseModel):
     affiliation: str | None = Field(None, max_length=MAX_AFFILIATION_LENGTH)
     orcid: str | None = Field(None, max_length=MAX_ORCID_LENGTH)
     preferred_language: str | None = Field(
-        None, max_length=10, pattern="^(en|zh-TW|zh-CN|ja|fr|es|de)$"
+        None, max_length=10, pattern="^(en|zh-TW|zh-CN|ja|fr|es|de|ar|hi|id|it|ko|nan|pt|ru|tr|vi)$"
     )
 
     @field_validator("display_name")
@@ -76,7 +75,7 @@ class CreateAccountRequest(BaseModel):
     display_name: str = Field(..., max_length=100)
     invite_code: str = Field(..., min_length=1)
     captcha_id: str = Field(..., max_length=100)
-    captcha_code: str
+    captcha_code: str = Field(..., max_length=10)
 
     @field_validator("display_name")
     @classmethod

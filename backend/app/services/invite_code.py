@@ -1,6 +1,6 @@
 """Invite code listing service."""
 
-import time
+from datetime import datetime, timezone
 
 from app.repositories import invite_code_repo
 
@@ -17,7 +17,7 @@ async def list_invite_codes(
     for row in rows:
         if row.get("consumed_at"):
             row["status"] = "consumed"
-        elif row.get("expires_at") and row["expires_at"].timestamp() < time.time():
+        elif row.get("expires_at") and row["expires_at"].replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             row["status"] = "expired"
         else:
             row["status"] = "active"

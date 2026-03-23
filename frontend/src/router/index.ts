@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { i18n } from '@/locales'
 import AdminLayout from '@/components/AdminLayout.vue'
 
 const router = createRouter({
@@ -328,19 +329,19 @@ router.beforeEach((to) => {
 
   // Block guest users from member-only pages
   if (to.meta.requiresMember && auth.isGuest) {
-    toast.show('You must be a full member to access that page.', 'error')
+    toast.show(i18n.global.t('router.memberRequired'), 'error')
     return { name: 'home' }
   }
 
   // Check admin access
   if (to.meta.requiresAdmin && !auth.isAdmin) {
-    toast.show('You do not have permission to access that page.', 'error')
+    toast.show(i18n.global.t('router.permissionDenied'), 'error')
     return { name: 'home' }
   }
 
   // Check super admin access
   if (to.meta.requiresSuperAdmin && !auth.isSuperAdmin) {
-    toast.show('You do not have permission to access that page.', 'error')
+    toast.show(i18n.global.t('router.permissionDenied'), 'error')
     return { name: 'home' }
   }
 })

@@ -384,8 +384,8 @@ const breadcrumbItems = computed(() => {
           <!-- Post Reactions -->
           <div class="mb-3">
             <ReactionPicker
-              :reactions="post.reactions ?? null"
-              :user-id="auth.user?.id ?? null"
+              :reaction-counts="post.reaction_counts ?? null"
+              :user-reactions="post.user_reactions ?? null"
               :readonly="!auth.isAuthenticated || auth.isGuest"
               @toggle="togglePostReactionHandler"
             />
@@ -501,8 +501,8 @@ const breadcrumbItems = computed(() => {
                     ></p>
                     <div class="flex items-center gap-3">
                       <ReactionPicker
-                        :reactions="node.root.reactions"
-                        :user-id="auth.user?.id ?? null"
+                        :reaction-counts="node.root.reaction_counts"
+                        :user-reactions="node.root.user_reactions"
                         :readonly="!auth.isAuthenticated || auth.isGuest"
                         @toggle="(r) => toggleReactionHandler(node.root.id, r)"
                       />
@@ -609,8 +609,8 @@ const breadcrumbItems = computed(() => {
                       ></p>
                       <div class="flex items-center gap-3">
                         <ReactionPicker
-                          :reactions="reply.reactions"
-                          :user-id="auth.user?.id ?? null"
+                          :reaction-counts="reply.reaction_counts"
+                          :user-reactions="reply.user_reactions"
                           :readonly="!auth.isAuthenticated || auth.isGuest"
                           @toggle="(r) => toggleReactionHandler(reply.id, r)"
                         />

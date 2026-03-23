@@ -106,11 +106,18 @@ async def send_message(
     if sender_id == recipient_id:
         raise AppError(ErrorCode.DM_003, 400, "Cannot message yourself.")
 
-    # 2. Must have content or file
+    # 2. Validate recipient exists and is not deleted
+    from app.repositories import user_repo
+
+    recipient = await user_repo.find_by_id(uuid.UUID(recipient_id))
+    if not recipient or recipient.get("is_deleted"):
+        raise AppError(ErrorCode.DM_003, 404, "Recipient not found.")
+
+    # 3. Must have content or file
     if not content and not file_data:
         raise AppError(ErrorCode.SYS_422, 422, "Message must have content or an attachment.")
 
-    # 3. Validate content length
+    # 4. Validate content length
     if content and len(content) > DM_MAX_MESSAGE_LENGTH:
         raise AppError(
             ErrorCode.SYS_422,
@@ -225,22 +232,31 @@ async def send_message(
             uuid.UUID(sender_id), uuid.UUID(recipient_id)
         )
         conversation_id = conversation["id"]
+        was_new = conversation.get("was_new", False)
 
         # 8-10. Atomic: advisory lock + char cap enforcement + insert + char count update
         content_len = len(content) if content else 0
         msg_id = uuid.uuid4()
-        row, deleted_msgs = await dm_repo.send_message_atomic(
-            conversation_id=conversation_id,
-            msg_id=msg_id,
-            sender_id=uuid.UUID(sender_id),
-            content=content,
-            attachment_key=attachment_key,
-            attachment_name=attachment_name,
-            attachment_size=attachment_size,
-            attachment_expires_at=attachment_expires_at,
-            content_len=content_len,
-            char_cap=DM_CHAR_CAP_PER_CONVERSATION,
-        )
+        try:
+            row, deleted_msgs = await dm_repo.send_message_atomic(
+                conversation_id=conversation_id,
+                msg_id=msg_id,
+                sender_id=uuid.UUID(sender_id),
+                content=content,
+                attachment_key=attachment_key,
+                attachment_name=attachment_name,
+                attachment_size=attachment_size,
+                attachment_expires_at=attachment_expires_at,
+                content_len=content_len,
+                char_cap=DM_CHAR_CAP_PER_CONVERSATION,
+            )
+        except Exception:
+            if was_new:
+                try:
+                    await dm_repo.delete_empty_conversation(conversation_id)
+                except Exception:
+                    pass
+            raise
 
         # H-03: Quota was already atomically reserved before upload.
         # No separate increment needed here.

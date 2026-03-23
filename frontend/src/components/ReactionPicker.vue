@@ -11,8 +11,8 @@ const EMOJI_MAP: Record<string, string> = {
 
 const props = withDefaults(
   defineProps<{
-    reactions: Record<string, string[]> | null
-    userId: string | null
+    reactionCounts: Record<string, number> | null
+    userReactions: string[] | null
     readonly?: boolean
   }>(),
   { readonly: false },
@@ -25,12 +25,11 @@ const emit = defineEmits<{
 const pickerOpen = ref(false)
 
 function getCount(r: string): number {
-  return props.reactions?.[r]?.length ?? 0
+  return props.reactionCounts?.[r] ?? 0
 }
 
 function hasReacted(r: string): boolean {
-  if (!props.userId) return false
-  return props.reactions?.[r]?.includes(props.userId) ?? false
+  return props.userReactions?.includes(r) ?? false
 }
 
 const visibleReactions = computed(() => REACTIONS.filter((r) => getCount(r) > 0))

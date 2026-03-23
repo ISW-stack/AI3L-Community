@@ -1,5 +1,6 @@
 """Album service — business logic for activity albums."""
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -59,8 +60,8 @@ async def create_album(
     async with pool.acquire() as conn:
         full_row = await album_repo.find_album_by_id(conn, album_id)
     if not full_row:
-        return to_album_response(row)
-    return to_album_response(full_row)
+        return await to_album_response(row)
+    return await to_album_response(full_row)
 
 
 async def get_album(album_id: str) -> dict:
@@ -70,7 +71,7 @@ async def get_album(album_id: str) -> dict:
         row = await album_repo.find_album_by_id(conn, uuid.UUID(album_id))
     if not row:
         raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
-    return to_album_response(row)
+    return await to_album_response(row)
 
 
 async def list_albums(
@@ -91,7 +92,7 @@ async def list_albums(
     pool = get_pool()
     async with pool.acquire() as conn:
         rows, total = await album_repo.find_albums(conn, page, page_size, exclude_user_ids=exclude)
-    return [to_album_response(r) for r in rows], total
+    return list(await asyncio.gather(*(to_album_response(r) for r in rows))), total
 
 
 async def update_album(
@@ -131,7 +132,7 @@ async def update_album(
 
     if not row:
         raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
-    return to_album_response(row)
+    return await to_album_response(row)
 
 
 async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
@@ -248,7 +249,7 @@ async def set_cover_from_photo(
 
     async with pool.acquire() as conn:
         row = await album_repo.find_album_by_id(conn, album_uuid)
-    return to_album_response(row or album)
+    return await to_album_response(row or album)
 
 
 async def upload_cover(
@@ -329,13 +330,21 @@ async def upload_cover(
                         )
                     raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
 
-                # Delete old cover file from storage if it was a dedicated cover (not a photo key)
                 old_cover_key = album.get("cover_photo_url")
+                old_cover_size = 0
                 if old_cover_key and "/cover/" in old_cover_key:
                     try:
+                        from app.core.async_storage import get_file_size
+                        old_cover_size = await get_file_size(old_cover_key) or 0
                         await delete_file(old_cover_key)
                     except Exception:
                         logger.warning("Failed to delete old cover", extra={"key": old_cover_key})
+                    if old_cover_size > 0:
+                        await conn.execute(
+                            "UPDATE users SET storage_used_bytes = GREATEST(storage_used_bytes - $1, 0) WHERE id = $2",
+                            old_cover_size,
+                            user_uuid,
+                        )
 
                 # Increment storage
                 await conn.execute(
@@ -368,7 +377,7 @@ async def upload_cover(
 
     async with pool.acquire() as conn:
         row = await album_repo.find_album_by_id(conn, album_uuid)
-    return to_album_response(row or album)
+    return await to_album_response(row or album)
 
 
 def _check_album_admin(album: dict, user_id: str, user_role: str, member: dict | None) -> None:
@@ -429,7 +438,7 @@ async def add_member(
     async with pool.acquire() as conn:
         full_row = await album_repo.find_member_by_id_with_user(conn, album_uuid, target_uuid)
         if full_row:
-            return to_album_member_response(full_row)
+            return await to_album_member_response(full_row)
     return {"id": str(member_row["id"]), "status": "ACCEPTED"}
 
 
@@ -541,7 +550,7 @@ async def list_members(
     pool = get_pool()
     async with pool.acquire() as conn:
         rows, total = await album_repo.find_members(conn, uuid.UUID(album_id), page, page_size)
-    return [to_album_member_response(r) for r in rows], total
+    return list(await asyncio.gather(*(to_album_member_response(r) for r in rows))), total
 
 
 # ── Photos ──────────────────────────────────────────────────────────────────
@@ -702,7 +711,7 @@ async def upload_photo(
     # Re-fetch for full response with JOINed data
     async with pool.acquire() as conn:
         full_row = await album_repo.find_photo_by_id(conn, photo_id)
-    return to_album_photo_response(full_row or row)
+    return await to_album_photo_response(full_row or row)
 
 
 async def upload_file_zip(
@@ -854,7 +863,7 @@ async def upload_file_zip(
 
     async with pool.acquire() as conn:
         full_row = await album_repo.find_photo_by_id(conn, photo_id)
-    return to_album_photo_response(full_row or row)
+    return await to_album_photo_response(full_row or row)
 
 
 async def get_photo(album_id: str, photo_id: str) -> dict:
@@ -864,7 +873,7 @@ async def get_photo(album_id: str, photo_id: str) -> dict:
         row = await album_repo.find_photo_by_id(conn, uuid.UUID(photo_id))
     if not row or str(row["album_id"]) != album_id:
         raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found.")
-    return to_album_photo_response(row)
+    return await to_album_photo_response(row)
 
 
 async def list_photos(
@@ -892,7 +901,7 @@ async def list_photos(
             page_size,
             exclude_user_ids=exclude,
         )
-    return [to_album_photo_response(r) for r in rows], total
+    return list(await asyncio.gather(*(to_album_photo_response(r) for r in rows))), total
 
 
 async def update_photo(
@@ -924,7 +933,7 @@ async def update_photo(
 
     if not row:
         raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found.")
-    return to_album_photo_response(row)
+    return await to_album_photo_response(row)
 
 
 async def delete_photo(
@@ -1030,7 +1039,7 @@ async def create_comment(
     async with pool.acquire() as conn:
         full_row = await album_repo.find_comment_by_id_with_user(conn, comment_id)
         if full_row:
-            return to_album_comment_response(full_row)
+            return await to_album_comment_response(full_row)
 
     # Fallback
     return {
@@ -1081,7 +1090,7 @@ async def list_comments(
             page_size,
             exclude_user_ids=exclude,
         )
-    return [to_album_comment_response(r) for r in rows], total
+    return list(await asyncio.gather(*(to_album_comment_response(r) for r in rows))), total
 
 
 async def delete_comment(

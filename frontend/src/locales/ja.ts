@@ -1676,4 +1676,9 @@ export default {
     close: '閉じる',
     notifications: '通知',
   },
+
+  router: {
+    memberRequired: 'このページにアクセスするには正会員である必要があります。',
+    permissionDenied: 'このページにアクセスする権限がありません。',
+  },
 }

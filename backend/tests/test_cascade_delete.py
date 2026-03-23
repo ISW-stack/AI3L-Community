@@ -207,7 +207,7 @@ class TestAnonymizeUserCascade:
         mock_db_pool.return_value = mock_pool
 
         result = await anonymize_user(uuid.uuid4())
-        assert result is False
+        assert result["anonymized"] is False
 
         # Transaction should NOT be started since anonymize returned False
         mock_conn.transaction.assert_not_called()

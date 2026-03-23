@@ -1687,4 +1687,9 @@ export default {
     close: 'Tutup',
     notifications: 'Notifikasi',
   },
+
+  router: {
+    memberRequired: 'Anda harus menjadi anggota untuk mengakses halaman ini.',
+    permissionDenied: 'Anda tidak memiliki izin untuk mengakses halaman ini.',
+  },
 }

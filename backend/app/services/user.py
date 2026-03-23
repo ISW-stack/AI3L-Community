@@ -224,7 +224,7 @@ async def check_sole_admin_sigs(user_id: uuid.UUID) -> list[dict]:
     return await sig_repo.find_sole_admin_sigs(user_id)
 
 
-async def anonymize_user(user_id: uuid.UUID) -> bool:
+async def anonymize_user(user_id: uuid.UUID) -> dict:
     """GDPR anonymization: overwrite PII, set is_deleted=true, clean up related data."""
     from app.core.database import get_pool
 
@@ -250,6 +250,7 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
 
         # Collect DM attachment keys for post-transaction MinIO cleanup
         dm_attachment_keys: list[str] = []
+        cleanup_succeeded = True
 
         # Clean up all related data in dependency-safe order
         pool = get_pool()
@@ -462,8 +463,9 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                         user_id,
                     )
             except Exception:
-                logger.warning(
-                    "Failed to clean up related data during anonymization",
+                cleanup_succeeded = False
+                logger.error(
+                    "CRITICAL: Partial anonymization — PII wiped but related data cleanup failed",
                     extra={"user_id": str(user_id)},
                     exc_info=True,
                 )
@@ -488,7 +490,7 @@ async def anonymize_user(user_id: uuid.UUID) -> bool:
                     exc_info=True,
                 )
 
-    return deleted
+    return {"anonymized": deleted, "cleanup_succeeded": cleanup_succeeded if deleted else True}
 
 
 async def ban_user(user_id: uuid.UUID, reason: str) -> bool:

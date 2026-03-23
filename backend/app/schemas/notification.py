@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 
@@ -25,4 +27,4 @@ class NotificationListResponse(BaseModel):
 
 
 class BulkDeleteNotificationsRequest(BaseModel):
-    notification_ids: list[str] | None = Field(None, max_length=100)
+    notification_ids: list[uuid.UUID] | None = Field(None, max_length=100)

@@ -18,7 +18,7 @@ from app.core.storage import (
 )
 from app.tasks.async_runner import run_async as _run_async
 
-_CSV_FORMULA_CHARS = frozenset("=+-@\t\r")
+_CSV_FORMULA_CHARS = frozenset("=+-@\t\r|")
 
 
 def _sanitize_csv_value(val: str) -> str:

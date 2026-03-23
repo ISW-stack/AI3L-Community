@@ -1673,4 +1673,9 @@ export default {
     close: 'إغلاق',
     notifications: 'الإشعارات',
   },
+
+  router: {
+    memberRequired: 'يجب أن تكون عضوًا للوصول إلى هذه الصفحة.',
+    permissionDenied: 'ليس لديك إذن للوصول إلى هذه الصفحة.',
+  },
 }

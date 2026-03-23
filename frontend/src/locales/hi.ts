@@ -1681,4 +1681,9 @@ export default {
     close: 'बंद करें',
     notifications: 'सूचनाएँ',
   },
+
+  router: {
+    memberRequired: 'इस पृष्ठ तक पहुँचने के लिए आपको सदस्य होना आवश्यक है।',
+    permissionDenied: 'आपको इस पृष्ठ तक पहुँचने की अनुमति नहीं है।',
+  },
 }

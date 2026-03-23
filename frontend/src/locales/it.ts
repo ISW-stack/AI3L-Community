@@ -1686,4 +1686,9 @@ export default {
     close: 'Chiudi',
     notifications: 'Notifiche',
   },
+
+  router: {
+    memberRequired: 'Devi essere un membro per accedere a questa pagina.',
+    permissionDenied: 'Non hai il permesso di accedere a questa pagina.',
+  },
 }

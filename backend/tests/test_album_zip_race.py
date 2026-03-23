@@ -64,7 +64,7 @@ class TestQuotaRaceBlocked:
 
             from app.services.album import upload_file_zip
 
-            with patch("app.services.album.to_album_photo_response", return_value={"id": "test"}):
+            with patch("app.services.album.to_album_photo_response", new_callable=AsyncMock, return_value={"id": "test"}):
                 await upload_file_zip(
                     str(_ALBUM_ID), str(_USER_ID), _SMALL_ZIP, "test.zip", "application/zip"
                 )

@@ -92,14 +92,21 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 content={"detail": "CSRF token missing or mismatched."},
             )
 
-        # Verify the CSRF token is bound to the current session JTI
+        # Verify the CSRF token is bound to the current session JTI.
+        # Only enforce JTI binding for cookie-based sessions. Bearer tokens
+        # are explicitly sent by JavaScript and are immune to CSRF by design;
+        # the double-submit check above is sufficient for them.
         jwt_token = request.cookies.get("access_token")
         if not jwt_token:
             auth_header = request.headers.get("authorization", "")
             if auth_header.startswith("Bearer "):
-                jwt_token = auth_header[7:]
+                # Bearer auth — double-submit check already passed above.
+                # No JTI binding needed (Bearer tokens can't be sent by
+                # cross-origin form submissions).
+                response = await call_next(request)
+                return response
         if not jwt_token:
-            # No JWT = no session binding possible. Reject state-changing requests.
+            # No JWT cookie and no Bearer = no session. Reject.
             return JSONResponse(
                 status_code=403,
                 content={
@@ -125,8 +132,17 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     }
                 },
             )
-        # If decode fails (expired/invalid), double-submit check already passed above.
-        # get_current_user will independently reject the request.
+        else:
+            # Cookie JWT expired/invalid — reject instead of falling through
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": {
+                        "code": "CSRF_004",
+                        "message": "CSRF validation failed: session expired.",
+                    }
+                },
+            )
 
         response = await call_next(request)
         return response

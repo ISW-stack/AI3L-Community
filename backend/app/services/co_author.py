@@ -321,7 +321,8 @@ async def leave_co_authorship(
             raise NotFoundError("Co-author", str(co_author_id))
 
         # Only the co-author themselves can leave
-        if str(co_author.get("user_id")) != user_id:
+        co_user_id = co_author.get("user_id")
+        if co_user_id is None or str(co_user_id) != user_id:
             raise ForbiddenError("You can only remove yourself as a co-author.")
 
         return await co_author_repo.delete_co_author(conn, co_author_id)

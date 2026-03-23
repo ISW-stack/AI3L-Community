@@ -805,6 +805,7 @@ class TestC1StatusEnum:
                 new_callable=AsyncMock,
                 return_value=_fake_album_row(),
             ),
+            patch(f"{_SVC}.to_album_response", new_callable=AsyncMock, return_value={"id": "x"}),
         ):
             from app.services.album import create_album
 
@@ -843,6 +844,7 @@ class TestM5BlacklistAlbumListing:
                 new_callable=AsyncMock,
                 return_value=([album], 1),
             ) as mock_find,
+            patch(f"{_SVC}.to_album_response", new_callable=AsyncMock, return_value={"id": "x"}),
         ):
             mock_get_redis.return_value = MagicMock()
             from app.services.album import list_albums
@@ -901,6 +903,7 @@ class TestM5BlacklistPhotoListing:
             ) as mock_find,
             patch(
                 "app.converters.album_converter.generate_presigned_url",
+                new_callable=AsyncMock,
                 return_value="http://example.com/photo.jpg",
             ),
         ):
@@ -1004,6 +1007,7 @@ class TestM8StorageQuotaTransaction:
                 patch("app.core.storage.album_photo_key", return_value="key"),
                 patch("app.core.storage.album_thumbnail_key", return_value="thumb"),
                 patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
+                patch(f"{_SVC}.to_album_photo_response", new_callable=AsyncMock, return_value={"id": "x"}),
             ):
                 from app.services.album import upload_photo
 
@@ -1338,6 +1342,7 @@ class TestB20UpdateAlbumNoneValues:
                 new_callable=AsyncMock,
                 return_value=album,
             ) as mock_update,
+            patch(f"{_SVC}.to_album_response", new_callable=AsyncMock, return_value={"id": "x"}),
         ):
             from app.services.album import update_album
 
@@ -1425,6 +1430,7 @@ class TestB20UpdateAlbumNoneValues:
                 new_callable=AsyncMock,
                 return_value=album,
             ) as mock_update,
+            patch(f"{_SVC}.to_album_response", new_callable=AsyncMock, return_value={"id": "x"}),
         ):
             from app.services.album import update_album
 

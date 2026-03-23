@@ -1674,4 +1674,9 @@ export default {
     close: '닫기',
     notifications: '알림',
   },
+
+  router: {
+    memberRequired: '해당 페이지에 접근하려면 정회원이어야 합니다.',
+    permissionDenied: '해당 페이지에 접근할 권한이 없습니다.',
+  },
 }

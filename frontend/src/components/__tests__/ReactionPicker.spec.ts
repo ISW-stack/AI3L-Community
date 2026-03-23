@@ -15,8 +15,8 @@ vi.mock('lucide-vue-next', () => ({
 
 function mountPicker(
   props: {
-    reactions?: Record<string, string[]> | null
-    userId?: string | null
+    reactionCounts?: Record<string, number> | null
+    userReactions?: string[] | null
     readonly?: boolean
   } = {},
 ) {
@@ -25,8 +25,8 @@ function mountPicker(
 
   return mount(ReactionPicker, {
     props: {
-      reactions: props.reactions ?? null,
-      userId: props.userId ?? null,
+      reactionCounts: props.reactionCounts ?? null,
+      userReactions: props.userReactions ?? null,
       readonly: props.readonly ?? false,
     },
     attachTo: document.body,
@@ -44,49 +44,48 @@ describe('ReactionPicker', () => {
 
   describe('interactive mode (readonly=false)', () => {
     it('shows "Add reaction" button', () => {
-      const wrapper = mountPicker({ userId: 'u1' })
+      const wrapper = mountPicker({ userReactions: [] })
       expect(wrapper.find('button[aria-label="Add reaction"]').exists()).toBe(true)
     })
 
-    it('shows no reaction chips when reactions is null', () => {
-      const wrapper = mountPicker({ userId: 'u1' })
+    it('shows no reaction chips when reactionCounts is null', () => {
+      const wrapper = mountPicker({ userReactions: [] })
       const chips = wrapper.findAll('button[aria-label^="React with"]')
       expect(chips.length).toBe(0)
     })
 
     it('shows chips only for reactions with count > 0', () => {
       const wrapper = mountPicker({
-        userId: 'u1',
-        reactions: { LIKE: ['u2'], SMILE: [] },
+        userReactions: [],
+        reactionCounts: { LIKE: 1, SMILE: 0 },
       })
-      // LIKE has count 1, SMILE has count 0
       expect(wrapper.find('button[aria-label="React with LIKE"]').exists()).toBe(true)
       expect(wrapper.find('button[aria-label="React with SMILE"]').exists()).toBe(false)
     })
 
     it('shows reaction count in chip', () => {
       const wrapper = mountPicker({
-        userId: 'u1',
-        reactions: { LIKE: ['u2', 'u3'] },
+        userReactions: [],
+        reactionCounts: { LIKE: 2 },
       })
       const likeChip = wrapper.find('button[aria-label="React with LIKE"]')
       expect(likeChip.text()).toContain('2')
     })
 
-    it('highlights chip when userId has reacted', () => {
+    it('highlights chip when user has reacted', () => {
       const wrapper = mountPicker({
-        userId: 'u1',
-        reactions: { LIKE: ['u1', 'u2'] },
+        userReactions: ['LIKE'],
+        reactionCounts: { LIKE: 2 },
       })
       const likeChip = wrapper.find('button[aria-label="React with LIKE"]')
       expect(likeChip.classes()).toContain('bg-brand-100')
       expect(likeChip.attributes('aria-pressed')).toBe('true')
     })
 
-    it('does not highlight chip when userId has not reacted', () => {
+    it('does not highlight chip when user has not reacted', () => {
       const wrapper = mountPicker({
-        userId: 'u1',
-        reactions: { LIKE: ['u2'] },
+        userReactions: [],
+        reactionCounts: { LIKE: 1 },
       })
       const likeChip = wrapper.find('button[aria-label="React with LIKE"]')
       expect(likeChip.classes()).not.toContain('bg-brand-100')
@@ -95,8 +94,8 @@ describe('ReactionPicker', () => {
 
     it('emits toggle with reaction type when chip is clicked', async () => {
       const wrapper = mountPicker({
-        userId: 'u1',
-        reactions: { LIKE: ['u2'] },
+        userReactions: [],
+        reactionCounts: { LIKE: 1 },
       })
       await wrapper.find('button[aria-label="React with LIKE"]').trigger('click')
       expect(wrapper.emitted('toggle')).toBeTruthy()
@@ -104,22 +103,21 @@ describe('ReactionPicker', () => {
     })
 
     it('picker popup is hidden by default', () => {
-      const wrapper = mountPicker({ userId: 'u1' })
-      // All 3 reaction buttons inside the popup should not exist (v-if=false)
+      const wrapper = mountPicker({ userReactions: [] })
       expect(wrapper.findAll('button[aria-label^="React with"]').length).toBe(0)
     })
 
     it('opens picker popup when "Add reaction" button is clicked', async () => {
-      const wrapper = mountPicker({ userId: 'u1' })
+      const wrapper = mountPicker({ userReactions: [] })
       await wrapper.find('button[aria-label="Add reaction"]').trigger('click')
       await nextTick()
 
       const popupBtns = wrapper.findAll('button[aria-label^="React with"]')
-      expect(popupBtns.length).toBe(3) // LIKE, SMILE, CRY
+      expect(popupBtns.length).toBe(3)
     })
 
     it('shows all 3 reactions in the picker popup', async () => {
-      const wrapper = mountPicker({ userId: 'u1' })
+      const wrapper = mountPicker({ userReactions: [] })
       await wrapper.find('button[aria-label="Add reaction"]').trigger('click')
       await nextTick()
 
@@ -130,8 +128,8 @@ describe('ReactionPicker', () => {
 
     it('highlights already-reacted reaction in picker popup', async () => {
       const wrapper = mountPicker({
-        userId: 'u1',
-        reactions: { LIKE: ['u1'] },
+        userReactions: ['LIKE'],
+        reactionCounts: { LIKE: 1 },
       })
       await wrapper.find('button[aria-label="Add reaction"]').trigger('click')
       await nextTick()
@@ -141,7 +139,7 @@ describe('ReactionPicker', () => {
     })
 
     it('emits toggle and closes picker when popup reaction is clicked', async () => {
-      const wrapper = mountPicker({ userId: 'u1' })
+      const wrapper = mountPicker({ userReactions: [] })
       await wrapper.find('button[aria-label="Add reaction"]').trigger('click')
       await nextTick()
 
@@ -149,17 +147,15 @@ describe('ReactionPicker', () => {
       await nextTick()
 
       expect(wrapper.emitted('toggle')![0]).toEqual(['SMILE'])
-      // Picker should close after selection
       expect(wrapper.findAll('button[aria-label^="React with"]').length).toBe(0)
     })
 
     it('closes picker when clicking outside the component', async () => {
-      const wrapper = mountPicker({ userId: 'u1' })
+      const wrapper = mountPicker({ userReactions: [] })
       await wrapper.find('button[aria-label="Add reaction"]').trigger('click')
       await nextTick()
       expect(wrapper.findAll('button[aria-label^="React with"]').length).toBe(3)
 
-      // Click outside
       document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await nextTick()
 
@@ -171,8 +167,8 @@ describe('ReactionPicker', () => {
     it('shows no "Add reaction" button in readonly mode', () => {
       const wrapper = mountPicker({
         readonly: true,
-        reactions: { LIKE: ['u1'] },
-        userId: 'u1',
+        reactionCounts: { LIKE: 1 },
+        userReactions: ['LIKE'],
       })
       expect(wrapper.find('button[aria-label="Add reaction"]').exists()).toBe(false)
     })
@@ -180,21 +176,19 @@ describe('ReactionPicker', () => {
     it('shows visible reactions as spans (not buttons) in readonly mode', () => {
       const wrapper = mountPicker({
         readonly: true,
-        reactions: { LIKE: ['u1'], SMILE: ['u2'] },
-        userId: null,
+        reactionCounts: { LIKE: 1, SMILE: 1 },
+        userReactions: null,
       })
-      // No buttons at all
       expect(wrapper.findAll('button').length).toBe(0)
-      // Spans for LIKE and SMILE
       const spans = wrapper.findAll('span.rounded-full')
       expect(spans.length).toBe(2)
     })
 
-    it('shows no reactions UI in readonly mode when reactions is null', () => {
+    it('shows no reactions UI in readonly mode when reactionCounts is null', () => {
       const wrapper = mountPicker({
         readonly: true,
-        reactions: null,
-        userId: null,
+        reactionCounts: null,
+        userReactions: null,
       })
       expect(wrapper.findAll('button').length).toBe(0)
       expect(wrapper.findAll('span.rounded-full').length).toBe(0)
@@ -203,8 +197,8 @@ describe('ReactionPicker', () => {
     it('shows reaction count in readonly span', () => {
       const wrapper = mountPicker({
         readonly: true,
-        reactions: { CRY: ['u1', 'u2', 'u3'] },
-        userId: null,
+        reactionCounts: { CRY: 3 },
+        userReactions: null,
       })
       const spans = wrapper.findAll('span.rounded-full')
       expect(spans[0].text()).toContain('3')

@@ -172,7 +172,7 @@ class TestAnonymizeUser:
         mock_db_pool.return_value = mock_pool
 
         result = await anonymize_user(uuid.uuid4())
-        assert result is True
+        assert result["anonymized"] is True
 
 
 # ── Endpoint tests ───────────────────────────────────────────────────

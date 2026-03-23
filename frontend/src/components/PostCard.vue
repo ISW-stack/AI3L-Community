@@ -101,48 +101,56 @@ const sanitizedPreviewHtml = computed(() => {
 })
 
 // Local optimistic reactions state
-const localReactions = ref<Record<string, string[]> | null>(null)
-const reactionsData = computed(() => localReactions.value ?? props.post.reactions)
+const localReactionCounts = ref<Record<string, number> | null>(null)
+const localUserReactions = ref<string[] | null>(null)
+const reactionCountsData = computed(
+  () => localReactionCounts.value ?? props.post.reaction_counts,
+)
+const userReactionsData = computed(() => localUserReactions.value ?? props.post.user_reactions)
 
 async function handleReaction(reaction: string) {
   if (!auth.user?.id || auth.isGuest) return
 
-  // Snapshot pre-click state for rollback
-  const previousReactions = localReactions.value
-    ? { ...localReactions.value }
-    : props.post.reactions
-      ? { ...props.post.reactions }
+  const prevCounts = localReactionCounts.value
+    ? { ...localReactionCounts.value }
+    : props.post.reaction_counts
+      ? { ...props.post.reaction_counts }
+      : null
+  const prevUser = localUserReactions.value
+    ? [...localUserReactions.value]
+    : props.post.user_reactions
+      ? [...props.post.user_reactions]
       : null
 
-  // Optimistic update
-  const current = { ...(reactionsData.value ?? {}) }
-  const list = [...(current[reaction] ?? [])]
-  const idx = list.indexOf(auth.user.id)
+  const counts = { ...(reactionCountsData.value ?? {}) }
+  const userR = [...(userReactionsData.value ?? [])]
+  const idx = userR.indexOf(reaction)
   if (idx >= 0) {
-    list.splice(idx, 1)
+    userR.splice(idx, 1)
+    counts[reaction] = (counts[reaction] || 1) - 1
+    if (counts[reaction] <= 0) delete counts[reaction]
   } else {
-    list.push(auth.user.id)
+    userR.push(reaction)
+    counts[reaction] = (counts[reaction] || 0) + 1
   }
-  if (list.length === 0) {
-    delete current[reaction]
-  } else {
-    current[reaction] = list
-  }
-  localReactions.value = Object.keys(current).length > 0 ? current : null
+  localReactionCounts.value = Object.keys(counts).length > 0 ? counts : null
+  localUserReactions.value = userR
 
   try {
     const updated = await togglePostReaction(props.post.id, reaction)
-    localReactions.value = updated.reactions
+    localReactionCounts.value = updated.reaction_counts
+    localUserReactions.value = updated.user_reactions
     emit('reactionToggled', updated)
   } catch {
-    // Rollback to pre-click state on error
-    localReactions.value = previousReactions
+    localReactionCounts.value = prevCounts
+    localUserReactions.value = prevUser
   }
 }
 
 /** Extract the first <img src="..."> from HTML content */
 const thumbnailUrl = computed(() => {
-  const match = props.post.content.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/)
+  const sanitized = DOMPurify.sanitize(props.post.content)
+  const match = sanitized.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/)
   return match ? match[1] : null
 })
 
@@ -281,12 +289,12 @@ function handleCommented() {
 
     <!-- Reactions -->
     <div
-      v-if="auth.isAuthenticated || (reactionsData && Object.keys(reactionsData).length)"
+      v-if="auth.isAuthenticated || (reactionCountsData && Object.keys(reactionCountsData).length)"
       class="px-4 pb-2"
     >
       <ReactionPicker
-        :reactions="reactionsData"
-        :user-id="auth.user?.id ?? null"
+        :reaction-counts="reactionCountsData"
+        :user-reactions="userReactionsData"
         :readonly="!auth.isAuthenticated || auth.isGuest"
         @toggle="handleReaction"
       />

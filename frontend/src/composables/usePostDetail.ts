@@ -38,6 +38,8 @@ import { extractMentions } from '@/utils/html'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
 import { usePagination } from '@/composables/usePagination'
+import { formatDate } from '@/utils/date'
+import { i18n } from '@/locales'
 
 export interface CommentNode {
   root: Comment
@@ -225,7 +227,9 @@ export function usePostDetail(options: UsePostDetailOptions) {
       if (card) {
         segments.push({ type: card.type, content: card.id })
       } else {
-        segments.push({ type: 'html', content: DOMPurify.sanitize(part) })
+        // part comes from wrapper.innerHTML which was built from already-sanitized content.
+        // Re-sanitizing would create a parse-serialize-reparse cycle (mXSS risk).
+        segments.push({ type: 'html', content: part })
       }
     }
     return segments
@@ -518,7 +522,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     if (hours < 24) return `${hours}h ago`
     const days = Math.floor(hours / 24)
     if (days < 7) return `${days}d ago`
-    return new Date(dateStr).toLocaleDateString()
+    return formatDate(dateStr, i18n.global.locale.value)
   }
 
   async function toggleReactionHandler(commentId: string, reaction: string) {
@@ -544,21 +548,19 @@ export function usePostDetail(options: UsePostDetailOptions) {
   }
 
   function getPostReactionCount(reaction: string): number {
-    return post.value?.reactions?.[reaction]?.length || 0
+    return post.value?.reaction_counts?.[reaction] || 0
   }
 
   function hasPostReacted(reaction: string): boolean {
-    if (!auth.user) return false
-    return post.value?.reactions?.[reaction]?.includes(auth.user.id) || false
+    return post.value?.user_reactions?.includes(reaction) || false
   }
 
   function getReactionCount(comment: Comment, reaction: string): number {
-    return comment.reactions?.[reaction]?.length || 0
+    return comment.reaction_counts?.[reaction] || 0
   }
 
   function hasReacted(comment: Comment, reaction: string): boolean {
-    if (!auth.user) return false
-    return comment.reactions?.[reaction]?.includes(auth.user.id) || false
+    return comment.user_reactions?.includes(reaction) || false
   }
 
   function canEditComment(comment: Comment): boolean {

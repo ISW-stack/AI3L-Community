@@ -1624,4 +1624,9 @@ export default {
     close: '關閉',
     notifications: '通知',
   },
+
+  router: {
+    memberRequired: '您必須是正式會員才能存取該頁面。',
+    permissionDenied: '您沒有權限存取該頁面。',
+  },
 }

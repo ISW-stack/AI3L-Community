@@ -353,9 +353,11 @@ class TestAsyncRowToPost:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            row = _make_post_row(reactions='{"like": 5}')
+            row = _make_post_row(reactions='{"like": ["u1", "u2", "u3", "u4", "u5"]}')
             result = await async_row_to_post(row)
-            assert result["reactions"] == {"like": 5}
+            assert result["reaction_counts"] == {"like": 5}
+            assert result["user_reactions"] is None
+            assert result["_raw_reactions"] == {"like": ["u1", "u2", "u3", "u4", "u5"]}
 
 
 # =========================================================================
@@ -399,13 +401,14 @@ class TestAsyncRowToComment:
             row = _make_comment_row(
                 parent_id=parent_id,
                 mentions=["user1", "user2"],
-                reactions={"thumbsup": 1},
+                reactions={"thumbsup": ["u1"]},
             )
             result = await async_row_to_comment(row)
 
             assert result["parent_id"] == str(parent_id)
             assert result["mentions"] == ["user1", "user2"]
-            assert result["reactions"] == {"thumbsup": 1}
+            assert result["reaction_counts"] == {"thumbsup": 1}
+            assert result["user_reactions"] is None
 
     @pytest.mark.asyncio
     async def test_reactions_json_string(self):
@@ -416,9 +419,10 @@ class TestAsyncRowToComment:
             new_callable=AsyncMock,
             return_value=None,
         ):
-            row = _make_comment_row(reactions='{"heart": 2}')
+            row = _make_comment_row(reactions='{"heart": ["u1", "u2"]}')
             result = await async_row_to_comment(row)
-            assert result["reactions"] == {"heart": 2}
+            assert result["reaction_counts"] == {"heart": 2}
+            assert result["user_reactions"] is None
 
 
 # =========================================================================

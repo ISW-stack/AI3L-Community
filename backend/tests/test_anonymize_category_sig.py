@@ -26,7 +26,7 @@ async def test_anonymize_cleans_album_data(mock_pool, mock_conn):
 
         result = await anonymize_user(user_id)
 
-    assert result is True
+    assert result["anonymized"] is True
 
     # Collect all SQL executed on the mock connection
     executed_sqls = [call.args[0] for call in mock_conn.execute.call_args_list]

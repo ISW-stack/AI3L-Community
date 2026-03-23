@@ -1679,4 +1679,9 @@ export default {
     close: 'Đóng',
     notifications: 'Thông báo',
   },
+
+  router: {
+    memberRequired: 'Bạn phải là thành viên để truy cập trang này.',
+    permissionDenied: 'Bạn không có quyền truy cập trang này.',
+  },
 }

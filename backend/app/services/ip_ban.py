@@ -36,25 +36,20 @@ async def ban_ip(
 
 
 async def unban_ip(ban_id: uuid.UUID) -> bool:
-    """Remove an IP ban by ID and invalidate the cache.
-
-    We need to look up the IP first so we can clear its cache entry.
-    """
-    # We need to find the ban to get its IP for cache invalidation.
-    # Since we only have the ban_id, query the DB directly.
+    """Remove an IP ban by ID and invalidate the cache."""
     from app.core.database import get_pool
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT ip_address FROM ip_bans WHERE id = $1", ban_id)
-
-    deleted = await ip_ban_repo.delete(ban_id)
-
-    if deleted and row:
+        row = await conn.fetchrow(
+            "DELETE FROM ip_bans WHERE id = $1 RETURNING ip_address",
+            ban_id,
+        )
+    if row:
         redis = get_redis()
         await redis.delete(f"ip_ban:{row['ip_address']}")
-
-    return deleted
+        return True
+    return False
 
 
 async def list_ip_bans(page: int = 1, page_size: int = 50) -> tuple[list[dict], int]:

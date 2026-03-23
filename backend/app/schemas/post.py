@@ -67,7 +67,8 @@ class PostResponse(BaseModel):
     comment_count: int
     is_pinned: bool = False
     view_count: int = 0
-    reactions: dict[str, list[str]] | None = None
+    reaction_counts: dict[str, int] | None = None
+    user_reactions: list[str] | None = None
     last_comment_at: str | None = None
     type: str = "post"
     citation_count: int = 0

@@ -1,10 +1,16 @@
-from app.converters.shared import async_build_author, build_author, safe_json_parse
+from app.converters.shared import (
+    async_build_author,
+    build_author,
+    reactions_to_counts,
+    safe_json_parse,
+)
 
 
 async def async_row_to_post(row: dict) -> dict:
     """Async version of row_to_post — does not block the event loop."""
     last_comment_at = row.get("last_comment_at")
     best_answer_id = row.get("best_answer_id")
+    raw_reactions = safe_json_parse(row.get("reactions"))
     return {
         "id": str(row["id"]),
         "title": row["title"],
@@ -20,7 +26,9 @@ async def async_row_to_post(row: dict) -> dict:
         "comment_count": row["comment_count"],
         "is_pinned": row.get("is_pinned", False),
         "view_count": row.get("view_count", 0),
-        "reactions": safe_json_parse(row.get("reactions")),
+        "reaction_counts": reactions_to_counts(row.get("reactions")),
+        "user_reactions": None,
+        "_raw_reactions": raw_reactions,
         "last_comment_at": last_comment_at.isoformat() if last_comment_at else None,
         "type": row.get("type", "post"),
         "citation_count": row.get("citation_count", 0),
@@ -34,6 +42,7 @@ async def async_row_to_post(row: dict) -> dict:
 def row_to_post(row: dict) -> dict:
     last_comment_at = row.get("last_comment_at")
     best_answer_id = row.get("best_answer_id")
+    raw_reactions = safe_json_parse(row.get("reactions"))
     return {
         "id": str(row["id"]),
         "title": row["title"],
@@ -49,7 +58,9 @@ def row_to_post(row: dict) -> dict:
         "comment_count": row["comment_count"],
         "is_pinned": row.get("is_pinned", False),
         "view_count": row.get("view_count", 0),
-        "reactions": safe_json_parse(row.get("reactions")),
+        "reaction_counts": reactions_to_counts(row.get("reactions")),
+        "user_reactions": None,
+        "_raw_reactions": raw_reactions,
         "last_comment_at": last_comment_at.isoformat() if last_comment_at else None,
         "type": row.get("type", "post"),
         "citation_count": row.get("citation_count", 0),

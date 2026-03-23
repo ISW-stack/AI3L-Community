@@ -34,7 +34,7 @@ class TestAnonymizePostHistory:
 
             result = await anonymize_user(user_id)
 
-        assert result is True
+        assert result["anonymized"] is True
         executed_sqls = [c.args[0] for c in mock_conn.execute.call_args_list if c.args]
         assert any(
             "DELETE FROM post_history" in sql and "post_id" in sql for sql in executed_sqls
@@ -90,7 +90,7 @@ class TestAnonymizePrivacyConsents:
 
             result = await anonymize_user(user_id)
 
-        assert result is True
+        assert result["anonymized"] is True
         executed_sqls = [c.args[0] for c in mock_conn.execute.call_args_list if c.args]
         assert any(
             "DELETE FROM privacy_consents" in sql for sql in executed_sqls
@@ -117,7 +117,7 @@ class TestAnonymizeMembershipApplications:
 
             result = await anonymize_user(user_id)
 
-        assert result is True
+        assert result["anonymized"] is True
         executed_sqls = [c.args[0] for c in mock_conn.execute.call_args_list if c.args]
         assert any(
             "DELETE FROM membership_applications" in sql for sql in executed_sqls
@@ -144,7 +144,7 @@ class TestAnonymizeInviteCodes:
 
             result = await anonymize_user(user_id)
 
-        assert result is True
+        assert result["anonymized"] is True
         executed_sqls = [c.args[0] for c in mock_conn.execute.call_args_list if c.args]
         assert any(
             "DELETE FROM invite_codes" in sql for sql in executed_sqls
@@ -334,7 +334,7 @@ class TestAnonymizeMinIOCleanup:
             # Should not raise despite MinIO failure
             result = await anonymize_user(user_id)
 
-        assert result is True
+        assert result["anonymized"] is True
 
     async def test_avatar_and_dm_files_both_deleted(self, mock_pool, mock_conn):
         """Both avatar and DM attachment files should be deleted."""
@@ -377,5 +377,5 @@ class TestAnonymizeMinIOCleanup:
 
             result = await anonymize_user(user_id)
 
-        assert result is False
+        assert result["anonymized"] is False
         mock_delete.assert_not_called()

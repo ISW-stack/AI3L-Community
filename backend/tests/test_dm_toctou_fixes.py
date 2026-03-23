@@ -395,6 +395,11 @@ class TestSendMessageQuotaTOCTOU:
                 return_value="http://presigned",
             ),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -432,6 +437,11 @@ class TestSendMessageQuotaTOCTOU:
                 return_value=False,
             ),
             patch(f"{_SVC}._validate_dm_file"),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 
@@ -457,7 +467,14 @@ class TestSendMessageEmptyAfterSanitization:
     @pytest.mark.anyio
     async def test_send_script_only_content_rejected(self):
         """send_message with script-only content (sanitizes to empty) raises 422."""
-        with patch(f"{_SVC}.sanitize_html", return_value=""):
+        with (
+            patch(f"{_SVC}.sanitize_html", return_value=""),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
+        ):
             from app.services.dm import send_message
 
             with pytest.raises(AppError) as exc:
@@ -473,7 +490,14 @@ class TestSendMessageEmptyAfterSanitization:
     @pytest.mark.anyio
     async def test_send_whitespace_only_after_sanitize_rejected(self):
         """send_message with content that sanitizes to whitespace raises 422."""
-        with patch(f"{_SVC}.sanitize_html", return_value="   "):
+        with (
+            patch(f"{_SVC}.sanitize_html", return_value="   "),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
+        ):
             from app.services.dm import send_message
 
             with pytest.raises(AppError) as exc:
@@ -523,6 +547,11 @@ class TestSendMessageEmptyAfterSanitization:
             ),
             patch(f"{_SVC}._validate_dm_file"),
             patch(f"{_SVC}.sanitize_html", return_value=""),
+            patch(
+                "app.repositories.user_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": _RECIPIENT_ID, "is_deleted": False},
+            ),
         ):
             from app.services.dm import send_message
 

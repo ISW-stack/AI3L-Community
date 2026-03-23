@@ -40,7 +40,9 @@ def _make_comment(post_id=None, user_id=None, comment_id=None):
         },
         "parent_id": None,
         "mentions": None,
-        "reactions": {},
+        "reaction_counts": None,
+        "user_reactions": None,
+        "_raw_reactions": None,
         "created_at": now,
         "updated_at": now,
     }
@@ -418,7 +420,9 @@ class TestToggleReaction:
         post_id = uuid.uuid4()
         comment_id = uuid.uuid4()
         comment = _make_comment(post_id=post_id, comment_id=comment_id)
-        comment["reactions"] = {"LIKE": [str(uuid.uuid4())]}
+        comment["reaction_counts"] = {"LIKE": 1}
+        comment["user_reactions"] = None
+        comment["_raw_reactions"] = {"LIKE": [str(uuid.uuid4())]}
 
         try:
             _override_auth("MEMBER")
@@ -432,7 +436,7 @@ class TestToggleReaction:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
-                assert "LIKE" in resp.json()["reactions"]
+                assert "LIKE" in resp.json()["reaction_counts"]
         finally:
             _clear_overrides()
 

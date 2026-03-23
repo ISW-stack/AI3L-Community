@@ -323,8 +323,8 @@ class TestCommentEditRateLimit:
             "updated_at": now,
             "parent_id": None,
             "reply_count": 0,
-            "reactions": {},
-            "user_reaction": None,
+            "reaction_counts": None,
+            "user_reactions": None,
             "mentions": [],
         }
 

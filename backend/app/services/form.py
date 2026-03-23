@@ -332,6 +332,16 @@ async def update_form(
             if deadline and deadline < datetime.now(timezone.utc):
                 raise FormDeadlineError()
 
+            # Validate max_respondents is not below current response count
+            if max_respondents is not None:
+                current_count = await form_repo.count_responses(form_id, conn)
+                if max_respondents < current_count:
+                    raise AppError(
+                        ErrorCode.FORM_001,
+                        400,
+                        f"Cannot set max_respondents below current response count ({current_count}).",
+                    )
+
             # Raise error if schema is locked and questions update is attempted
             if current["is_schema_locked"] and questions is not None:
                 raise AppError(

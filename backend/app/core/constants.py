@@ -145,6 +145,8 @@ DEFAULT_PAGE_SIZE_QA = 20
 
 # ── Feature 8: Direct Messages ──
 DM_MAX_MESSAGE_LENGTH = 5000
+# NOTE: Lowered from 50_000. Existing conversations may have messages above this cap;
+# they will be trimmed when new messages are sent (oldest-first).
 DM_CHAR_CAP_PER_CONVERSATION = 20_000
 DM_EDIT_RECALL_WINDOW_HOURS = 12
 DM_FILE_EXPIRY_DAYS = 3

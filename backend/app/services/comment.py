@@ -4,6 +4,7 @@ import uuid
 from loguru import logger
 
 from app.converters.comment_converter import async_row_to_comment
+from app.converters.shared import fill_user_reactions
 from app.core.blacklist import get_blocked_user_ids
 from app.core.constants import MAX_COMMENT_LENGTH, MAX_COMMENTS_PER_POST
 from app.core.database import get_pool
@@ -169,4 +170,7 @@ async def add_reaction(
 ) -> dict | None:
     """Toggle a reaction on a comment. Returns updated comment."""
     row = await comment_repo.update_reactions(comment_id, user_id, reaction)
-    return await async_row_to_comment(row) if row else None
+    if not row:
+        return None
+    result = await async_row_to_comment(row)
+    return fill_user_reactions(result, user_id)

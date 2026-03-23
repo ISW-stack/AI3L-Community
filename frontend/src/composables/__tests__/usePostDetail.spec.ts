@@ -117,7 +117,8 @@ function makeComment(overrides: Partial<Comment> = {}): Comment {
     author: { id: 'user2', username: 'bob', display_name: 'Bob', avatar_url: null },
     parent_id: null,
     mentions: null,
-    reactions: null,
+    reaction_counts: null,
+    user_reactions: null,
     vote_score: 0,
     is_best_answer: false,
     created_at: '2026-01-01T01:00:00Z',
@@ -392,9 +393,10 @@ describe('usePostDetail', () => {
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
     expect(formatRelativeTime(twoDaysAgo)).toBe('2d ago')
 
-    // older than 7 days returns locale date string
+    // older than 7 days returns locale-formatted date string
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-    expect(formatRelativeTime(twoWeeksAgo.toISOString())).toBe(twoWeeksAgo.toLocaleDateString())
+    const expected = twoWeeksAgo.toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' })
+    expect(formatRelativeTime(twoWeeksAgo.toISOString())).toBe(expected)
   })
 
   // Additional: commentTree computed
