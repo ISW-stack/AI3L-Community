@@ -31,6 +31,10 @@ async def invite_co_author(
 
     Raises AppError on permission, limit, or duplicate issues.
     """
+    # U5: Self-invite check first (cheap, no DB/Redis needed)
+    if target_user_id == user_id:
+        raise AppError(ErrorCode.SYS_422, 400, "Cannot invite yourself as a co-author.")
+
     # Block check: cannot invite a blocked user as co-author
     try:
         redis = get_redis()
@@ -93,18 +97,17 @@ async def invite_co_author(
             if not target:
                 raise NotFoundError("User", target_user_id)
 
-            # Check for existing co-author entry
+            # B3: Check for existing co-author entry — allow re-invite after rejection
             existing = await co_author_repo.find_existing_by_user(conn, post_id, target_uuid)
             if existing:
-                raise AppError(
-                    ErrorCode.COAUTHOR_002,
-                    409,
-                    "This user already has a co-author entry for this post.",
-                )
-
-            # Cannot invite yourself
-            if target_user_id == user_id:
-                raise AppError(ErrorCode.SYS_422, 400, "Cannot invite yourself as a co-author.")
+                if existing["status"] == "REJECTED":
+                    await co_author_repo.delete_co_author(conn, existing["id"])
+                else:
+                    raise AppError(
+                        ErrorCode.COAUTHOR_002,
+                        409,
+                        "This user already has a co-author entry for this post.",
+                    )
 
             co_author_id = uuid.uuid4()
             name = display_name or target["display_name"]

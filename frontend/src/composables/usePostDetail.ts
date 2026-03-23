@@ -135,6 +135,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
   // --- Citations ---
   const citedBy = ref<CitationEntry[]>([])
   const citing = ref<CitationEntry[]>([])
+  const citedByTotal = ref(0)
+  const citingTotal = ref(0)
 
   // --- VirusTotal scan ---
   const imageScanStatuses = ref<
@@ -289,6 +291,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       const res = await getCitedBy(postId.value)
       citedBy.value = res.citations
+      citedByTotal.value = res.total
     } catch {
       // Silently fail
     }
@@ -298,6 +301,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     try {
       const res = await getCiting(postId.value)
       citing.value = res.citations
+      citingTotal.value = res.total
     } catch {
       // Silently fail
     }
@@ -678,6 +682,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     coAuthors.value = []
     citedBy.value = []
     citing.value = []
+    citedByTotal.value = 0
+    citingTotal.value = 0
     history.value = []
     showHistory.value = false
     editing.value = false
@@ -804,6 +810,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
     // Citations
     citedBy,
     citing,
+    citedByTotal,
+    citingTotal,
     fetchCitedBy,
     fetchCiting,
     // Content segments

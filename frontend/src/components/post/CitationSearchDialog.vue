@@ -21,7 +21,6 @@ interface SearchResult {
   id: string
   title: string
   author_name: string
-  created_at: string
 }
 
 const query = ref('')
@@ -123,10 +122,7 @@ watch(
           @click="selectCitation(result)"
         >
           <p class="text-sm font-medium text-foreground line-clamp-1">{{ result.title }}</p>
-          <div class="flex items-center gap-2 mt-1 text-xs text-muted">
-            <span>{{ result.author_name }}</span>
-            <span>{{ new Date(result.created_at).toLocaleDateString() }}</span>
-          </div>
+          <p class="text-xs text-muted mt-0.5">{{ result.author_name }}</p>
         </button>
       </div>
 

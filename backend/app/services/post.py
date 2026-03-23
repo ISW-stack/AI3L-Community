@@ -202,6 +202,13 @@ async def update_post(
             if not is_owner and not is_admin and not is_co_author:
                 raise PermissionError("Not authorized to edit this post")
 
+            # S2: Co-authors can only edit content, not metadata
+            if is_co_author and not is_owner and not is_admin:
+                title = None
+                category_id = None
+                keywords = None
+                allow_comments = None
+
             if current["version"] != expected_version:
                 raise ValueError("Version conflict. The post was modified by another request.")
 
@@ -230,12 +237,12 @@ async def update_post(
                 "Post updated", extra={"post_id": str(post_id), "version": expected_version + 1}
             )
 
-    # Sync citations if content changed (outside transaction for event emission)
+    # B5: Sync citations using post owner's ID (not editor's) for correct self-citation detection
     if content is not None:
         try:
             from app.services.citation import sync_post_citations
 
-            await sync_post_citations(post_id, content, user_id)
+            await sync_post_citations(post_id, content, str(current["user_id"]))
         except Exception as e:
             logger.warning(
                 "Failed to sync citations after post update",
@@ -313,8 +320,14 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
             deleted = bool(result == "UPDATE 1")
 
             if deleted:
-                # Cleanup citations within the same transaction
+                # Cleanup citations and recalculate counts within the same transaction
                 try:
+                    # B4: Collect affected posts before deleting citations
+                    affected_rows = await conn.fetch(
+                        "SELECT DISTINCT cited_post_id FROM post_citations "
+                        "WHERE citing_post_id = $1 AND cited_post_id != $1",
+                        post_id,
+                    )
                     await conn.execute(
                         "DELETE FROM post_citations "
                         "WHERE citing_post_id = $1 OR cited_post_id = $1",
@@ -326,6 +339,21 @@ async def soft_delete_post(post_id: uuid.UUID, user_id: str, is_admin: bool = Fa
                         extra={"post_id": str(post_id)},
                         exc_info=True,
                     )
+                    affected_rows = []
+
+                # Update citation_count per post (best-effort, Celery reconciles)
+                from app.repositories import citation_repo
+
+                for row in affected_rows:
+                    try:
+                        await citation_repo.update_citation_count(
+                            conn, row["cited_post_id"]
+                        )
+                    except Exception:
+                        logger.warning(
+                            "Citation count update failed",
+                            extra={"cited_post_id": str(row["cited_post_id"])},
+                        )
 
     if deleted:
         logger.info("Post deleted", extra={"post_id": str(post_id)})
@@ -465,6 +493,13 @@ async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # B4: Collect affected cited posts before deleting citations
+            affected_rows = await conn.fetch(
+                "SELECT DISTINCT cited_post_id FROM post_citations "
+                "WHERE citing_post_id = ANY($1::uuid[]) "
+                "AND cited_post_id != ALL($1::uuid[])",
+                post_ids,
+            )
             # Cascade cleanup before soft-deleting posts
             await conn.execute(
                 "DELETE FROM post_citations "
@@ -481,4 +516,9 @@ async def bulk_soft_delete(post_ids: list[uuid.UUID]) -> int:
                 post_ids,
             )
             count = await post_repo.bulk_soft_delete(post_ids, conn)
+            # Update citation_count for affected cited posts
+            from app.repositories import citation_repo
+
+            for row in affected_rows:
+                await citation_repo.update_citation_count(conn, row["cited_post_id"])
     return count

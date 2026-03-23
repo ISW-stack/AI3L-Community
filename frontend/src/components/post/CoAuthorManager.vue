@@ -53,9 +53,10 @@ const externalAffiliation = ref('')
 const externalOrcid = ref('')
 const addingExternal = ref(false)
 
-const canAddMore = computed(
-  () => coAuthors.value.filter((ca) => ca.status !== 'REJECTED').length < MAX_CO_AUTHORS,
+const activeCount = computed(
+  () => coAuthors.value.filter((ca) => ca.status !== 'REJECTED').length,
 )
+const canAddMore = computed(() => activeCount.value < MAX_CO_AUTHORS)
 
 async function fetchCoAuthors() {
   loading.value = true
@@ -139,6 +140,7 @@ async function handleAddExternal() {
 }
 
 async function handleRemove(coAuthorId: string) {
+  if (!confirm(t('coauthors.removeConfirm'))) return
   try {
     await removeCoAuthor(props.postId, coAuthorId)
     toast.show('Co-author removed.', 'success')
@@ -165,7 +167,7 @@ onMounted(fetchCoAuthors)
     <div class="flex items-center gap-2">
       <Users class="w-4 h-4 text-muted" />
       <h3 class="text-sm font-semibold text-foreground">
-        Co-Authors ({{ coAuthors.length }}/{{ MAX_CO_AUTHORS }})
+        Co-Authors ({{ activeCount }}/{{ MAX_CO_AUTHORS }})
       </h3>
     </div>
 

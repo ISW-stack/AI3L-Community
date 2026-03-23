@@ -2,7 +2,12 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.constants import MAX_PAGE_NUMBER, MAX_PAGE_SIZE, RATE_LIMIT_CO_AUTHOR_INVITE
+from app.core.constants import (
+    MAX_PAGE_NUMBER,
+    MAX_PAGE_SIZE,
+    RATE_LIMIT_CO_AUTHOR_INVITE,
+    RATE_LIMIT_CO_AUTHOR_EXTERNAL,
+)
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.rate_limit import check_rate_limit
@@ -45,7 +50,7 @@ async def list_user_co_authored_posts(
     user_id: uuid.UUID,
     page: int = Query(1, ge=1, le=MAX_PAGE_NUMBER),
     page_size: int = Query(20, ge=1, le=MAX_PAGE_SIZE),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """List posts where a specific user is an accepted co-author."""
     posts, total = await list_co_authored_posts(
@@ -92,6 +97,11 @@ async def add_external_co_author_endpoint(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CoAuthorResponse:
     """Add an external (non-platform) co-author."""
+    if not await check_rate_limit(
+        f"rl:co_author_external:{current_user['sub']}", *RATE_LIMIT_CO_AUTHOR_EXTERNAL
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
     result = await add_external_co_author(
         post_id=post_id,
         user_id=current_user["sub"],

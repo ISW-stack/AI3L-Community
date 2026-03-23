@@ -116,25 +116,39 @@ async def sync_post_citations(
             for affected_id in affected_posts:
                 await citation_repo.update_citation_count(conn, affected_id)
 
-    # Emit events for new non-self citations
-    for citation in new_citations:
-        if not citation.get("is_self_citation"):
+    # U6: Emit events for new non-self citations — fetch shared data once
+    non_self_citations = [c for c in new_citations if not c.get("is_self_citation")]
+    if non_self_citations:
+        citing_post_title = "Untitled"
+        citer_name = "Someone"
+        try:
+            pool2 = get_pool()
+            async with pool2.acquire() as conn2:
+                citing_post = await conn2.fetchrow(
+                    "SELECT title FROM posts WHERE id = $1", post_id
+                )
+                citer = await conn2.fetchrow(
+                    "SELECT display_name FROM users WHERE id = $1", author_uuid
+                )
+            if citing_post:
+                citing_post_title = citing_post["title"]
+            if citer:
+                citer_name = citer["display_name"]
+        except Exception as e:
+            logger.warning(
+                "Failed to fetch citation event data",
+                extra={"error": str(e), "post_id": str(post_id)},
+            )
+
+        for citation in non_self_citations:
             try:
-                pool2 = get_pool()
-                async with pool2.acquire() as conn2:
-                    citing_post = await conn2.fetchrow(
-                        "SELECT title FROM posts WHERE id = $1", post_id
-                    )
-                    citer = await conn2.fetchrow(
-                        "SELECT display_name FROM users WHERE id = $1", author_uuid
-                    )
                 await emit(
                     "post.cited",
                     cited_post_id=str(citation["cited_post_id"]),
                     citing_post_id=str(post_id),
                     citer_id=author_id,
-                    citer_name=citer["display_name"] if citer else "Someone",
-                    citing_post_title=citing_post["title"] if citing_post else "Untitled",
+                    citer_name=citer_name,
+                    citing_post_title=citing_post_title,
                 )
             except Exception as e:
                 logger.warning(
@@ -187,8 +201,16 @@ async def get_citing(
     return result, total
 
 
+def _escape_ilike(s: str) -> str:
+    """Escape ILIKE special characters."""
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 async def search_posts_for_citation(query: str, user_id: str, limit: int = 10) -> list[dict]:
-    """Search posts for citation insertion (minimal results)."""
+    """Search posts for citation insertion (minimal results).
+
+    Uses FTS first, falls back to ILIKE title search for non-English content (U4).
+    """
     # H6: Get blocked user IDs to exclude from search results
     blocked_ids: set[str] = set()
     try:
@@ -199,37 +221,10 @@ async def search_posts_for_citation(query: str, user_id: str, limit: int = 10) -
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        if blocked_ids:
-            blocked_uuids = [uuid.UUID(uid) for uid in blocked_ids]
-            rows = await conn.fetch(
-                """
-                SELECT p.id, p.title, u.display_name AS author_name
-                FROM posts p
-                JOIN users u ON p.user_id = u.id
-                WHERE p.is_deleted = false
-                  AND p.search_vector @@ websearch_to_tsquery('english', $1)
-                  AND p.user_id != ALL($3::uuid[])
-                ORDER BY p.created_at DESC
-                LIMIT $2
-                """,
-                query,
-                limit,
-                blocked_uuids,
-            )
-        else:
-            rows = await conn.fetch(
-                """
-                SELECT p.id, p.title, u.display_name AS author_name
-                FROM posts p
-                JOIN users u ON p.user_id = u.id
-                WHERE p.is_deleted = false
-                  AND p.search_vector @@ websearch_to_tsquery('english', $1)
-                ORDER BY p.created_at DESC
-                LIMIT $2
-                """,
-                query,
-                limit,
-            )
+        rows = await _citation_fts_search(conn, query, limit, blocked_ids)
+        # U4: Fall back to ILIKE title search for non-English queries
+        if not rows:
+            rows = await _citation_ilike_search(conn, query, limit, blocked_ids)
     return [
         {
             "id": str(r["id"]),
@@ -238,3 +233,74 @@ async def search_posts_for_citation(query: str, user_id: str, limit: int = 10) -
         }
         for r in rows
     ]
+
+
+async def _citation_fts_search(
+    conn: object, query: str, limit: int, blocked_ids: set[str]
+) -> list:
+    if blocked_ids:
+        blocked_uuids = [uuid.UUID(uid) for uid in blocked_ids]
+        return await conn.fetch(  # type: ignore[union-attr]
+            """
+            SELECT p.id, p.title, u.display_name AS author_name
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.is_deleted = false
+              AND p.search_vector @@ websearch_to_tsquery('english', $1)
+              AND p.user_id != ALL($3::uuid[])
+            ORDER BY p.created_at DESC
+            LIMIT $2
+            """,
+            query,
+            limit,
+            blocked_uuids,
+        )
+    return await conn.fetch(  # type: ignore[union-attr]
+        """
+        SELECT p.id, p.title, u.display_name AS author_name
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.is_deleted = false
+          AND p.search_vector @@ websearch_to_tsquery('english', $1)
+        ORDER BY p.created_at DESC
+        LIMIT $2
+        """,
+        query,
+        limit,
+    )
+
+
+async def _citation_ilike_search(
+    conn: object, query: str, limit: int, blocked_ids: set[str]
+) -> list:
+    pattern = f"%{_escape_ilike(query)}%"
+    if blocked_ids:
+        blocked_uuids = [uuid.UUID(uid) for uid in blocked_ids]
+        return await conn.fetch(  # type: ignore[union-attr]
+            """
+            SELECT p.id, p.title, u.display_name AS author_name
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.is_deleted = false
+              AND p.title ILIKE $1 ESCAPE '\\'
+              AND p.user_id != ALL($3::uuid[])
+            ORDER BY p.created_at DESC
+            LIMIT $2
+            """,
+            pattern,
+            limit,
+            blocked_uuids,
+        )
+    return await conn.fetch(  # type: ignore[union-attr]
+        """
+        SELECT p.id, p.title, u.display_name AS author_name
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.is_deleted = false
+          AND p.title ILIKE $1 ESCAPE '\\'
+        ORDER BY p.created_at DESC
+        LIMIT $2
+        """,
+        pattern,
+        limit,
+    )

@@ -201,7 +201,13 @@ def post_process_citations(html: str) -> str:
     """Add citation class to citation links after sanitization.
 
     nh3 does not allow adding 'class' to <a> tags (panics), so we add it
-    as a post-processing step. Since nh3 output is already safe, this
-    simple string replacement is safe to use.
+    as a post-processing step. Uses regex to handle variations in attribute
+    quoting/ordering that nh3 may produce across versions.
     """
-    return html.replace('data-citation="true"', 'data-citation="true" class="citation"')
+    import re
+
+    return re.sub(
+        r'data-citation\s*=\s*["\']true["\']',
+        r'data-citation="true" class="citation"',
+        html,
+    )

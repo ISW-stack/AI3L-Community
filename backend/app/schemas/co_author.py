@@ -7,7 +7,7 @@ _UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 
 class CoAuthorInviteRequest(BaseModel):
     user_id: str = Field(..., pattern=_UUID_PATTERN)
-    display_name: str | None = None
+    display_name: str | None = Field(None, max_length=100)
 
 
 class ExternalCoAuthorRequest(BaseModel):
