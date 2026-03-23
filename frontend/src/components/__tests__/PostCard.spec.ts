@@ -45,6 +45,14 @@ vi.mock('dompurify', () => ({
   },
 }))
 
+vi.mock('@/components/CopyShareLinkButton.vue', () => ({
+  default: {
+    name: 'CopyShareLinkButton',
+    props: ['url', 'label'],
+    template: '<button class="copy-share-link" :data-url="url">Copy Link</button>',
+  },
+}))
+
 function createTestRouter() {
   return createRouter({
     history: createMemoryHistory(),
@@ -584,6 +592,50 @@ describe('PostCard', () => {
       const wrapper = mountCard(makePost({ reactions: null }))
       const buttons = wrapper.findAll('button[aria-label]')
       expect(buttons.length).toBe(0)
+    })
+
+    it('does not show reaction UI when no reactions and user is guest', () => {
+      const wrapper = mountCardWithAuth(makePost({ reactions: null }), {
+        role: 'GUEST',
+        userId: 'guest-1',
+      })
+      const buttons = wrapper.findAll('button[aria-label]')
+      expect(buttons.length).toBe(0)
+    })
+  })
+
+  describe('share button', () => {
+    it('shows share button for authenticated member', () => {
+      const wrapper = mountCardWithAuth(makePost(), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const shareBtn = wrapper.find('.copy-share-link')
+      expect(shareBtn.exists()).toBe(true)
+    })
+
+    it('passes correct URL for regular post', () => {
+      const wrapper = mountCardWithAuth(makePost({ id: 'post-42' }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
+      const shareBtn = wrapper.find('.copy-share-link')
+      expect(shareBtn.attributes('data-url')).toContain('/forum/post-42')
+    })
+
+    it('passes correct URL for question type post', () => {
+      const wrapper = mountCardWithAuth(
+        makePost({ id: 'q-1', type: 'question' } as Partial<Post>),
+        { role: 'MEMBER', userId: 'user-1' },
+      )
+      const shareBtn = wrapper.find('.copy-share-link')
+      expect(shareBtn.attributes('data-url')).toContain('/qa/q-1')
+    })
+
+    it('hides share button for unauthenticated user', () => {
+      const wrapper = mountCard(makePost())
+      const shareBtn = wrapper.find('.copy-share-link')
+      expect(shareBtn.exists()).toBe(false)
     })
 
     it('does not show reaction buttons for guest users', () => {

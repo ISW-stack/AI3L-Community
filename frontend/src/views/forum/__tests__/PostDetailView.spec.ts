@@ -122,6 +122,8 @@ function buildMockPostDetail(overrides?: Record<string, any>) {
     coAuthors: ref(overrides?.coAuthors ?? []),
     citedBy: ref(overrides?.citedBy ?? []),
     citing: ref(overrides?.citing ?? []),
+    citedByTotal: ref(overrides?.citedByTotal ?? 0),
+    citingTotal: ref(overrides?.citingTotal ?? 0),
     contentSegments: computed(() => [{ type: 'html', content: fakePost.content }]),
     postContentRef: ref(null),
     goToCommentPage: vi.fn(),
@@ -196,6 +198,10 @@ function createStubs() {
     FormShareCard: { template: '<div class="form-share-card" />', props: ['formId'] },
     FloatingCreateButton: { template: '<div class="fab" />', props: ['to'] },
     CoAuthorManager: { template: '<div class="co-author-manager" />', props: ['postId'] },
+    CopyShareLinkButton: {
+      template: '<button class="copy-share-link" :data-url="url">Copy Link</button>',
+      props: ['url', 'label'],
+    },
   }
 }
 
@@ -401,6 +407,35 @@ describe('PostDetailView', () => {
   it('does not render pin icon for non-pinned posts', async () => {
     const { wrapper } = await mountPostDetail()
     expect(wrapper.find('[data-testid="pin-icon"]').exists()).toBe(false)
+  })
+
+  it('shows share button for authenticated user', async () => {
+    const { wrapper } = await mountPostDetail()
+    const shareBtn = wrapper.find('.copy-share-link')
+    expect(shareBtn.exists()).toBe(true)
+    expect(shareBtn.attributes('data-url')).toContain('/forum/post-1')
+  })
+
+  it('hides share button for unauthenticated user', async () => {
+    localStorage.clear()
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createTestRouter()
+    // Do NOT call setSession or set user — user is unauthenticated
+
+    const mockData = buildMockPostDetail()
+    mockUsePostDetail.mockReturnValue(mockData)
+
+    await router.push('/forum/post-1')
+    await router.isReady()
+
+    const wrapper = mount(PostDetailView, {
+      global: { plugins: [pinia, router], stubs: createStubs() },
+    })
+    await flushPromises()
+
+    const shareBtn = wrapper.find('.copy-share-link')
+    expect(shareBtn.exists()).toBe(false)
   })
 
   it('calls cancelEdit when cancel button is clicked in edit mode', async () => {

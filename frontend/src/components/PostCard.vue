@@ -11,6 +11,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import { Pin, Eye, MessageCircle, Quote, HelpCircle, MessageSquare } from 'lucide-vue-next'
 import ReactionPicker from '@/components/ReactionPicker.vue'
+import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 import CoAuthorBadges from '@/components/post/CoAuthorBadges.vue'
 import QuickCommentPanel from '@/components/QuickCommentPanel.vue'
 
@@ -56,6 +57,7 @@ const isQuestion = computed(() => props.post.type === 'question')
 const postLink = computed(() =>
   isQuestion.value ? `/qa/${props.post.id}` : `/forum/${props.post.id}`,
 )
+const postShareUrl = computed(() => `${window.location.origin}${postLink.value}`)
 const acceptedCoAuthors = computed(() => props.coAuthors.filter((ca) => ca.status === 'ACCEPTED'))
 
 const emit = defineEmits<{
@@ -317,6 +319,7 @@ function handleCommented() {
         <MessageSquare class="w-3.5 h-3.5" />
         {{ t('qa.answerCount', { count: post.answer_count }, post.answer_count) }}
       </span>
+      <CopyShareLinkButton v-if="auth.isAuthenticated" :url="postShareUrl" />
       <span v-if="post.last_comment_at" class="text-xs text-muted ml-auto">
         {{ t('post.card.lastReply', { time: displayTime(post.last_comment_at) }) }}
       </span>

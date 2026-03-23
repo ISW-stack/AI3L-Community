@@ -26,6 +26,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import ReactionPicker from '@/components/ReactionPicker.vue'
 import CoAuthorManager from '@/components/post/CoAuthorManager.vue'
+import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 import { Quote, ChevronDown, ChevronUp, Pin } from 'lucide-vue-next'
 import { formatDateTime } from '@/utils/date'
 
@@ -76,6 +77,8 @@ const {
   fetchCoAuthors,
   citedBy,
   citing,
+  citedByTotal,
+  citingTotal,
   contentSegments,
   postContentRef,
   goToCommentPage,
@@ -101,6 +104,8 @@ const {
   cancelEdit,
   fetchPost,
 } = usePostDetail({ postId, auth, router })
+
+const postShareUrl = computed(() => `${window.location.origin}/forum/${postId.value}`)
 
 const showCitedBy = ref(false)
 const showReferences = ref(false)
@@ -224,6 +229,7 @@ const breadcrumbItems = computed(() => {
               </div>
             </div>
             <div class="flex gap-2 shrink-0">
+              <CopyShareLinkButton v-if="auth.isAuthenticated" :url="postShareUrl" />
               <button
                 v-if="auth.isAdmin"
                 :disabled="pinSaving"
@@ -305,16 +311,16 @@ const breadcrumbItems = computed(() => {
           </div>
 
           <!-- Citations sections -->
-          <div v-if="citedBy.length > 0 || citing.length > 0" class="mb-3 space-y-2">
+          <div v-if="citedByTotal > 0 || citingTotal > 0" class="mb-3 space-y-2">
             <!-- Cited by -->
-            <div v-if="citedBy.length > 0">
+            <div v-if="citedByTotal > 0">
               <button
                 type="button"
                 class="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
                 @click="toggleCitedBy"
               >
                 <Quote class="w-3.5 h-3.5" />
-                {{ t('post.detail.citedByCount', { count: citedBy.length }) }}
+                {{ t('post.detail.citedByCount', { count: citedByTotal }) }}
                 <ChevronDown v-if="!showCitedBy" class="w-3.5 h-3.5" />
                 <ChevronUp v-else class="w-3.5 h-3.5" />
               </button>
@@ -341,14 +347,14 @@ const breadcrumbItems = computed(() => {
             </div>
 
             <!-- References (citing) -->
-            <div v-if="citing.length > 0">
+            <div v-if="citingTotal > 0">
               <button
                 type="button"
                 class="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
                 @click="toggleReferences"
               >
                 <Quote class="w-3.5 h-3.5" />
-                {{ t('post.detail.referencesCount', { count: citing.length }) }}
+                {{ t('post.detail.referencesCount', { count: citingTotal }) }}
                 <ChevronDown v-if="!showReferences" class="w-3.5 h-3.5" />
                 <ChevronUp v-else class="w-3.5 h-3.5" />
               </button>
