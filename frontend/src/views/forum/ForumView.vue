@@ -148,7 +148,7 @@ defineExpose({ loadMore })
           />
 
           <!-- Post Feed -->
-          <div class="space-y-4">
+          <div class="space-y-2 md:space-y-4">
             <div v-for="post in posts" :key="post.id">
               <PostCard :post="post" />
             </div>

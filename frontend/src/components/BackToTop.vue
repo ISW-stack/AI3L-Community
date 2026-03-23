@@ -52,7 +52,7 @@ onUnmounted(() => {
 
 <style scoped>
 .back-to-top-btn {
-  bottom: max(2rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem));
+  bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 3.5rem));
   right: max(2rem, calc(env(safe-area-inset-right, 0px) + 0.5rem));
 }
 

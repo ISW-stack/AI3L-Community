@@ -151,7 +151,7 @@ onUnmounted(() => {
             </h3>
             <button
               v-if="!persistent"
-              class="p-1 -m-1 text-muted hover:text-foreground text-xl leading-none transition ml-auto"
+              class="p-2.5 -m-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-foreground text-xl leading-none transition ml-auto"
               :aria-label="t('aria.close')"
               @click="close"
             >

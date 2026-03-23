@@ -226,7 +226,7 @@ const {
           <h2 class="text-lg font-semibold text-foreground">
             {{ t('forms.builder.questionsTitle') }}
           </h2>
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <!-- Undo/Redo buttons -->
             <button
               :disabled="!canUndo"

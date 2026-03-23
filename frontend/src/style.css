@@ -48,7 +48,7 @@
   --color-info-700: #1d4ed8;
 
   /* Layout */
-  --spacing-layout: 8rem;
+  --spacing-layout: 6rem;
 
   /* Surface & Neutral (light defaults) */
   --color-surface: #ffffff;
@@ -61,6 +61,7 @@
 html {
   overflow-y: scroll;
   scrollbar-gutter: stable;
+  scroll-padding-top: 5rem;
 }
 
 body {

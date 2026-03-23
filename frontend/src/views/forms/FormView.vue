@@ -389,7 +389,7 @@ onMounted(() => loadForm())
           <div v-else-if="q.type === 'rating'">
             <div class="flex items-center gap-2 flex-wrap" role="group" :aria-label="q.label">
               <span class="text-xs text-muted shrink-0">{{ q.labels?.min ?? q.min ?? 1 }}</span>
-              <div class="flex flex-wrap gap-2">
+              <div class="flex gap-2 overflow-x-auto">
                 <button
                   v-for="n in ratingRange(q)"
                   :key="n"
@@ -397,9 +397,9 @@ onMounted(() => loadForm())
                   @click="selectRating(q.id, n)"
                   :aria-label="t('accessibility.rateNOutOfM', { n, m: q.max ?? 5 })"
                   :aria-pressed="answers[q.id] === n"
-                  class="rounded-lg text-sm font-medium transition"
+                  class="rounded-lg text-sm font-medium transition shrink-0"
                   :class="[
-                    ratingCount(q) > 7 ? 'w-8 h-8 text-xs' : 'w-10 h-10',
+                    'w-10 h-10',
                     answers[q.id] === n
                       ? 'bg-brand-600 text-white'
                       : 'bg-surface-alt text-muted hover:bg-surface-alt/80',
@@ -503,7 +503,7 @@ onMounted(() => loadForm())
                 </div>
                 <button
                   type="button"
-                  class="text-danger-500 hover:text-danger-700 text-sm font-medium"
+                  class="text-danger-500 hover:text-danger-700 text-sm font-medium px-2 py-1"
                   :aria-label="t('forms.view.removeFile')"
                   @click="removeFile(q.id)"
                 >
@@ -537,7 +537,7 @@ onMounted(() => loadForm())
           </p>
 
           <!-- Feature 2: Per-question validation error -->
-          <p v-if="validationErrors[q.id]" class="text-xs text-danger-600 mt-1" role="alert">
+          <p v-if="validationErrors[q.id]" class="text-sm text-danger-600 mt-1" role="alert">
             {{ validationErrors[q.id] }}
           </p>
           <!-- Inline validation on blur for required fields -->

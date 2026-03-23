@@ -185,10 +185,12 @@ describe('BaseModal', () => {
       expect(getPanel()?.classList.contains('p-4')).toBe(true)
     })
 
-    it('should have close button with p-1 touch target padding', () => {
+    it('should have close button with adequate touch target padding', () => {
       mountModal({ title: 'Test' })
       const closeBtn = getPanel()?.querySelector('button[aria-label="Close"]')
-      expect(closeBtn?.classList.contains('p-1')).toBe(true)
+      expect(closeBtn?.classList.contains('p-2.5')).toBe(true)
+      expect(closeBtn?.classList.contains('min-w-[44px]')).toBe(true)
+      expect(closeBtn?.classList.contains('min-h-[44px]')).toBe(true)
     })
   })
 })

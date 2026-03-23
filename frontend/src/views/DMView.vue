@@ -302,13 +302,13 @@ const activeConvUser = computed(() => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden w-full">
+  <div class="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden w-full flex flex-col" style="height: calc(100vh - 4rem); height: calc(100dvh - 4rem)">
     <BaseBreadcrumb :items="breadcrumbs" />
     <div class="flex items-center justify-between mb-4 sm:mb-6">
       <h1 class="text-xl sm:text-2xl font-bold text-foreground">Messages</h1>
       <button
         :disabled="dmFriendsOnlyLoading"
-        :title="
+        :aria-label="
           dmFriendsOnly
             ? 'Friends-only mode ON — only friends can message you'
             : 'Anyone can message you'
@@ -329,8 +329,7 @@ const activeConvUser = computed(() => {
     </div>
 
     <div
-      class="flex bg-surface border border-border rounded-lg shadow overflow-hidden"
-      style="height: calc(100vh - 200px); height: calc(100dvh - 200px)"
+      class="flex bg-surface border border-border rounded-lg shadow overflow-hidden flex-1 min-h-0"
     >
       <!-- Left: Conversation List -->
       <div

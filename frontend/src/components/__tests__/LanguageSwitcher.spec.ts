@@ -208,8 +208,10 @@ describe('LanguageSwitcher', () => {
       await wrapper.find('button').trigger('click')
 
       // Find the scrollable container
-      const scrollContainer = wrapper.find('.max-h-80.overflow-y-auto')
+      const scrollContainer = wrapper.find('.overflow-y-auto')
       expect(scrollContainer.exists()).toBe(true)
+      expect(scrollContainer.classes()).toContain('max-h-60')
+      expect(scrollContainer.classes()).toContain('sm:max-h-80')
       expect(scrollContainer.attributes('style')).toContain('scrollbar-gutter: stable')
     })
   })

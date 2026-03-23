@@ -303,7 +303,7 @@ onUnmounted(() => {
               <MessageSquare class="w-5 h-5" aria-hidden="true" />
               <span
                 v-if="dmStore.unreadCount > 0"
-                class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-danger-500 rounded-full"
+                class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-bold text-white bg-danger-500 rounded-full"
               >
                 {{ dmStore.unreadCount > 99 ? '99+' : dmStore.unreadCount }}
               </span>
@@ -346,7 +346,7 @@ onUnmounted(() => {
               <Transition name="dropdown">
                 <div
                   v-if="userDropdownOpen"
-                  class="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
+                  class="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1rem)] bg-surface border border-border rounded-lg shadow-lg py-1"
                 >
                   <!-- User info header -->
                   <div class="px-4 py-2 border-b border-border">
@@ -438,7 +438,7 @@ onUnmounted(() => {
             <MessageSquare class="w-5 h-5" aria-hidden="true" />
             <span
               v-if="dmStore.unreadCount > 0"
-              class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-danger-500 rounded-full"
+              class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-bold text-white bg-danger-500 rounded-full"
             >
               {{ dmStore.unreadCount > 99 ? '99+' : dmStore.unreadCount }}
             </span>

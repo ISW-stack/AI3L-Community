@@ -133,7 +133,7 @@ function onTouchEnd(event: TouchEvent) {
         >
         <!-- Collapse toggle -->
         <button
-          class="text-muted hover:text-foreground transition text-sm px-1 shrink-0"
+          class="text-muted hover:text-foreground transition text-sm p-2 sm:px-1 min-w-[36px] min-h-[36px] flex items-center justify-center shrink-0"
           :aria-label="
             isCollapsed ? t('forms.builder.expandQuestion') : t('forms.builder.collapseQuestion')
           "
@@ -161,7 +161,7 @@ function onTouchEnd(event: TouchEvent) {
           @click="emit('move-up')"
           :disabled="index === 0"
           :aria-label="t('accessibility.moveQuestionUp')"
-          class="text-muted hover:text-foreground disabled:opacity-30 px-1.5 py-1 sm:px-1 sm:py-0 touch-manipulation"
+          class="text-muted hover:text-foreground disabled:opacity-30 p-2 sm:px-1.5 sm:py-1 touch-manipulation"
         >
           &uarr;
         </button>
@@ -169,7 +169,7 @@ function onTouchEnd(event: TouchEvent) {
           @click="emit('move-down')"
           :disabled="index === totalQuestions - 1"
           :aria-label="t('accessibility.moveQuestionDown')"
-          class="text-muted hover:text-foreground disabled:opacity-30 px-1.5 py-1 sm:px-1 sm:py-0 touch-manipulation"
+          class="text-muted hover:text-foreground disabled:opacity-30 p-2 sm:px-1.5 sm:py-1 touch-manipulation"
         >
           &darr;
         </button>
@@ -177,7 +177,7 @@ function onTouchEnd(event: TouchEvent) {
         <button
           @click="emit('duplicate')"
           :aria-label="t('forms.builder.duplicateQuestion')"
-          class="text-muted hover:text-brand-600 px-1.5 py-1 sm:px-1 sm:py-0 touch-manipulation"
+          class="text-muted hover:text-brand-600 p-2 sm:px-1.5 sm:py-1 touch-manipulation"
           :title="t('forms.builder.duplicateQuestion')"
         >
           &#x2398;
@@ -185,7 +185,7 @@ function onTouchEnd(event: TouchEvent) {
         <button
           @click="emit('remove')"
           :aria-label="t('accessibility.deleteQuestion')"
-          class="text-danger-500 hover:text-danger-600 px-1.5 py-1 sm:px-1 sm:py-0 ml-2 touch-manipulation"
+          class="text-danger-500 hover:text-danger-600 p-2 sm:px-1.5 sm:py-1 ml-1 touch-manipulation"
         >
           &times;
         </button>
@@ -256,6 +256,7 @@ function onTouchEnd(event: TouchEvent) {
             v-model.number="question.max_length"
             :disabled="isSchemaLocked"
             type="number"
+            inputmode="numeric"
             name="max-length"
             min="1"
             :placeholder="t('forms.builder.maxLengthPlaceholder')"
@@ -330,6 +331,7 @@ function onTouchEnd(event: TouchEvent) {
               v-model.number="question.min"
               :disabled="isSchemaLocked"
               type="number"
+              inputmode="numeric"
               name="rating-min"
               class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
             />
@@ -343,6 +345,7 @@ function onTouchEnd(event: TouchEvent) {
               v-model.number="question.max"
               :disabled="isSchemaLocked"
               type="number"
+              inputmode="numeric"
               name="rating-max"
               class="w-16 border border-border rounded-lg px-2 py-1.5 text-sm"
             />

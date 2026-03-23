@@ -31,7 +31,7 @@ const typeClass = computed(() => {
       <div class="flex-1"><slot /></div>
       <button
         v-if="dismissible"
-        class="shrink-0 opacity-60 hover:opacity-100 transition"
+        class="shrink-0 p-2 -m-1 min-w-[44px] min-h-[44px] flex items-center justify-center opacity-60 hover:opacity-100 transition"
         aria-label="Dismiss"
         @click="emit('dismiss')"
       >

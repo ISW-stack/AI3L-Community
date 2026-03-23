@@ -35,7 +35,7 @@ function isCoverPhoto(photo: AlbumPhoto): boolean {
 </script>
 
 <template>
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-3">
     <button
       v-for="photo in photos"
       :key="photo.id"
@@ -58,10 +58,10 @@ function isCoverPhoto(photo: AlbumPhoto): boolean {
         {{ t('albums.currentCover') }}
       </div>
       <div
-        class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 flex items-end justify-between"
+        class="absolute inset-0 bg-black/20 md:bg-black/0 md:group-hover:bg-black/30 transition-colors duration-200 flex items-end justify-between"
       >
         <span
-          class="text-white text-xs px-2 py-1 truncate flex-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          class="text-white text-xs px-2 py-1 truncate flex-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
         >
           {{ photo.original_filename || 'Untitled' }}
         </span>
@@ -69,7 +69,7 @@ function isCoverPhoto(photo: AlbumPhoto): boolean {
         <button
           v-if="canSetCover && !isCoverPhoto(photo)"
           type="button"
-          class="text-white text-xs px-2 py-1 bg-black/50 hover:bg-brand-600 rounded-tl opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+          class="text-white text-xs px-2 py-1 bg-black/50 hover:bg-brand-600 rounded-tl opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 shrink-0"
           :title="t('albums.setCover')"
           @click="handleSetCover($event, photo)"
         >

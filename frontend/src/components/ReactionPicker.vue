@@ -102,7 +102,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         <Transition name="picker">
           <div
             v-if="pickerOpen"
-            class="absolute bottom-full left-0 mb-1.5 bg-surface border border-border rounded-xl shadow-lg px-2 py-1.5 flex items-center gap-0.5 z-50"
+            class="absolute bottom-full right-0 sm:right-auto sm:left-0 mb-1.5 bg-surface border border-border rounded-xl shadow-lg px-2 py-1.5 flex items-center gap-0.5 z-50 max-w-[calc(100vw-2rem)]"
           >
             <button
               v-for="r in REACTIONS"

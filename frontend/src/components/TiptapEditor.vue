@@ -226,7 +226,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleBold().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('bold') }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.bold')"
       >
         <Bold class="w-4 h-4" aria-hidden="true" />
@@ -235,7 +235,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleItalic().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('italic') }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.italic')"
       >
         <Italic class="w-4 h-4" aria-hidden="true" />
@@ -247,7 +247,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('heading', { level: 1 }) }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.heading1')"
       >
         <Heading1 class="w-4 h-4" aria-hidden="true" />
@@ -256,7 +256,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('heading', { level: 2 }) }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.heading2')"
       >
         <Heading2 class="w-4 h-4" aria-hidden="true" />
@@ -265,7 +265,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('heading', { level: 3 }) }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.heading3')"
       >
         <Heading3 class="w-4 h-4" aria-hidden="true" />
@@ -277,7 +277,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleBulletList().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('bulletList') }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.bulletList')"
       >
         <List class="w-4 h-4" aria-hidden="true" />
@@ -286,7 +286,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleOrderedList().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('orderedList') }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.orderedList')"
       >
         <ListOrdered class="w-4 h-4" aria-hidden="true" />
@@ -295,7 +295,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleBlockquote().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('blockquote') }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.blockquote')"
       >
         <Quote class="w-4 h-4" aria-hidden="true" />
@@ -304,7 +304,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().toggleCodeBlock().run()"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('codeBlock') }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.codeBlock')"
       >
         <Code class="w-4 h-4" aria-hidden="true" />
@@ -316,7 +316,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="setLink"
         :class="{ 'bg-brand-100 text-brand-700': editor.isActive('link') }"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.insertLink')"
       >
         <LinkIcon class="w-4 h-4" aria-hidden="true" />
@@ -324,7 +324,7 @@ async function handleFileUpload(event: Event) {
       <button
         type="button"
         @click="addImage"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :class="{ 'opacity-50 cursor-wait': uploading }"
         :disabled="uploading"
         :aria-label="t('editor.toolbar.insertFile')"
@@ -342,7 +342,7 @@ async function handleFileUpload(event: Event) {
       <button
         type="button"
         @click="insertTable"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.insertTable')"
       >
         <TableIcon class="w-4 h-4" aria-hidden="true" />
@@ -350,7 +350,7 @@ async function handleFileUpload(event: Event) {
       <button
         type="button"
         @click="openCitationDialog"
-        class="p-1.5 rounded hover:bg-gray-200 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 transition touch-manipulation"
         :aria-label="t('editor.toolbar.cite')"
       >
         <BookOpen class="w-4 h-4" aria-hidden="true" />
@@ -362,7 +362,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().undo().run()"
         :disabled="!editor.can().undo()"
-        class="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition touch-manipulation"
         :aria-label="t('editor.toolbar.undo')"
       >
         <Undo2 class="w-4 h-4" aria-hidden="true" />
@@ -371,7 +371,7 @@ async function handleFileUpload(event: Event) {
         type="button"
         @click="editor.chain().focus().redo().run()"
         :disabled="!editor.can().redo()"
-        class="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition"
+        class="p-2.5 sm:p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 transition touch-manipulation"
         :aria-label="t('editor.toolbar.redo')"
       >
         <Redo2 class="w-4 h-4" aria-hidden="true" />

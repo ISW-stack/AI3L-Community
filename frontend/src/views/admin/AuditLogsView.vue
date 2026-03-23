@@ -173,67 +173,96 @@ onMounted(fetchLogs)
       :message="t('admin.auditLogs.emptyMessage')"
     />
 
-    <div v-else class="relative">
-      <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
-        <table class="w-full text-sm min-w-[750px]">
-          <thead class="bg-surface-alt border-b border-border">
-            <tr>
-              <th class="text-left px-4 py-3 font-medium text-muted">
-                {{ t('admin.auditLogs.table.timestamp') }}
-              </th>
-              <th class="text-left px-4 py-3 font-medium text-muted">
-                {{ t('admin.auditLogs.table.user') }}
-              </th>
-              <th class="text-left px-4 py-3 font-medium text-muted">
-                {{ t('admin.auditLogs.table.action') }}
-              </th>
-              <th class="text-left px-4 py-3 font-medium text-muted">
-                {{ t('admin.auditLogs.table.target') }}
-              </th>
-              <th class="text-left px-4 py-3 font-medium text-muted">
-                {{ t('admin.auditLogs.table.ipAddress') }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="5" class="px-4 py-8 text-center text-muted">
-                {{ t('common.loading') }}
-              </td>
-            </tr>
-            <tr
-              v-for="log in logs"
-              :key="log.id"
-              class="border-b border-border last:border-0 hover:bg-surface-alt transition"
-            >
-              <td class="px-4 py-3 text-muted whitespace-nowrap">
-                {{ formatDate(log.created_at) }}
-              </td>
-              <td class="px-4 py-3 text-foreground">
-                <span v-if="log.display_name">{{ log.display_name }}</span>
-                <span v-else class="text-muted">{{ log.user_id.slice(0, 8) }}</span>
-              </td>
-              <td class="px-4 py-3">
-                <BaseBadge variant="neutral" class="font-mono">{{ log.action }}</BaseBadge>
-              </td>
-              <td class="px-4 py-3 text-muted">
-                <template v-if="log.target_type">
-                  {{ log.target_type }}
-                  <span v-if="log.target_id" class="text-xs text-muted">{{
-                    log.target_id.slice(0, 8)
-                  }}</span>
-                </template>
-                <span v-else class="text-muted">-</span>
-              </td>
-              <td class="px-4 py-3 text-muted font-mono text-xs">{{ log.ip_address || '-' }}</td>
-            </tr>
-          </tbody>
-        </table>
+    <template v-else>
+      <!-- Mobile card layout -->
+      <div class="space-y-3 md:hidden">
+        <div v-if="loading" class="px-4 py-8 text-center text-muted">
+          {{ t('common.loading') }}
+        </div>
+        <div
+          v-for="log in logs"
+          :key="'m-' + log.id"
+          class="bg-surface rounded-lg border border-border p-3 space-y-1.5"
+        >
+          <div class="flex items-center justify-between">
+            <BaseBadge variant="neutral" class="font-mono text-xs">{{ log.action }}</BaseBadge>
+            <span class="text-xs text-muted">{{ formatDate(log.created_at) }}</span>
+          </div>
+          <div class="text-sm text-foreground">
+            <span v-if="log.display_name">{{ log.display_name }}</span>
+            <span v-else class="text-muted">{{ log.user_id.slice(0, 8) }}</span>
+          </div>
+          <div v-if="log.target_type" class="text-xs text-muted">
+            {{ log.target_type }}
+            <span v-if="log.target_id">{{ log.target_id.slice(0, 8) }}</span>
+          </div>
+          <div class="text-xs text-muted font-mono">{{ log.ip_address || '-' }}</div>
+        </div>
       </div>
-      <div
-        class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none lg:hidden"
-      ></div>
-    </div>
+
+      <!-- Desktop table layout -->
+      <div class="relative hidden md:block">
+        <div class="bg-surface rounded-lg shadow overflow-hidden overflow-x-auto">
+          <table class="w-full text-sm min-w-[750px]">
+            <thead class="bg-surface-alt border-b border-border">
+              <tr>
+                <th class="text-left px-4 py-3 font-medium text-muted">
+                  {{ t('admin.auditLogs.table.timestamp') }}
+                </th>
+                <th class="text-left px-4 py-3 font-medium text-muted">
+                  {{ t('admin.auditLogs.table.user') }}
+                </th>
+                <th class="text-left px-4 py-3 font-medium text-muted">
+                  {{ t('admin.auditLogs.table.action') }}
+                </th>
+                <th class="text-left px-4 py-3 font-medium text-muted">
+                  {{ t('admin.auditLogs.table.target') }}
+                </th>
+                <th class="text-left px-4 py-3 font-medium text-muted">
+                  {{ t('admin.auditLogs.table.ipAddress') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="loading">
+                <td colspan="5" class="px-4 py-8 text-center text-muted">
+                  {{ t('common.loading') }}
+                </td>
+              </tr>
+              <tr
+                v-for="log in logs"
+                :key="log.id"
+                class="border-b border-border last:border-0 hover:bg-surface-alt transition"
+              >
+                <td class="px-4 py-3 text-muted whitespace-nowrap">
+                  {{ formatDate(log.created_at) }}
+                </td>
+                <td class="px-4 py-3 text-foreground">
+                  <span v-if="log.display_name">{{ log.display_name }}</span>
+                  <span v-else class="text-muted">{{ log.user_id.slice(0, 8) }}</span>
+                </td>
+                <td class="px-4 py-3">
+                  <BaseBadge variant="neutral" class="font-mono">{{ log.action }}</BaseBadge>
+                </td>
+                <td class="px-4 py-3 text-muted">
+                  <template v-if="log.target_type">
+                    {{ log.target_type }}
+                    <span v-if="log.target_id" class="text-xs text-muted">{{
+                      log.target_id.slice(0, 8)
+                    }}</span>
+                  </template>
+                  <span v-else class="text-muted">-</span>
+                </td>
+                <td class="px-4 py-3 text-muted font-mono text-xs">{{ log.ip_address || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div
+          class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none lg:hidden"
+        ></div>
+      </div>
+    </template>
 
     <div class="flex items-center justify-between mt-4">
       <p class="text-sm text-muted">{{ t('admin.auditLogs.total', { count: total }) }}</p>

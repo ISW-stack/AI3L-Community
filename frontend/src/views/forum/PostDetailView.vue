@@ -282,7 +282,7 @@ const breadcrumbItems = computed(() => {
           </div>
 
           <div v-if="post.keywords?.length" class="flex gap-1 flex-wrap mb-3">
-            <BaseBadge v-for="kw in post.keywords" :key="kw" variant="neutral">{{ kw }}</BaseBadge>
+            <BaseBadge v-for="kw in post.keywords" :key="kw" variant="neutral" class="max-w-full truncate">{{ kw }}</BaseBadge>
           </div>
 
           <!-- Co-Authors Display -->
@@ -477,7 +477,7 @@ const breadcrumbItems = computed(() => {
                       v-model="editCommentContent"
                       name="edit-comment"
                       rows="3"
-                      class="w-full min-h-20 px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                      class="w-full min-h-20 px-3 py-2 border border-border rounded-lg text-base md:text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                     ></textarea>
                     <div class="flex gap-2">
                       <BaseButton
@@ -537,7 +537,7 @@ const breadcrumbItems = computed(() => {
                       name="reply"
                       rows="2"
                       :placeholder="t('post.comment.writeReply')"
-                      class="w-full min-h-20 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
+                      class="w-full min-h-20 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-base md:text-sm mb-2 text-foreground"
                     ></textarea>
                     <div class="flex gap-2">
                       <BaseButton
@@ -587,7 +587,7 @@ const breadcrumbItems = computed(() => {
                         v-model="editCommentContent"
                         name="edit-comment"
                         rows="3"
-                        class="w-full min-h-20 px-3 py-2 border border-border rounded-lg text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
+                        class="w-full min-h-20 px-3 py-2 border border-border rounded-lg text-base md:text-sm mb-2 text-foreground focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none mt-1"
                       ></textarea>
                       <div class="flex gap-2">
                         <BaseButton
@@ -657,7 +657,7 @@ const breadcrumbItems = computed(() => {
               name="new-comment"
               rows="3"
               :placeholder="t('post.comment.writeComment')"
-              class="w-full min-h-20 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-sm mb-2 text-foreground"
+              class="w-full min-h-20 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-base md:text-sm mb-2 text-foreground"
             ></textarea>
             <BaseButton
               size="sm"

@@ -38,10 +38,10 @@ const variantClass = computed(() => {
 
 const sizeClass = computed(() => {
   const map: Record<string, string> = {
-    sm: 'px-3 py-2.5 text-xs rounded-md min-h-[36px] sm:min-h-0',
-    md: 'px-4 py-2.5 text-sm rounded-lg min-h-[44px] sm:min-h-0',
-    lg: 'px-6 py-2.5 text-sm rounded-lg min-h-[44px] sm:min-h-0',
-    full: 'w-full py-2.5 text-sm rounded-lg font-medium min-h-[44px] sm:min-h-0',
+    sm: 'px-3 py-2.5 text-xs rounded-md min-h-[36px] lg:min-h-0',
+    md: 'px-4 py-2.5 text-sm rounded-lg min-h-[44px] lg:min-h-0',
+    lg: 'px-6 py-2.5 text-sm rounded-lg min-h-[44px] lg:min-h-0',
+    full: 'w-full py-2.5 text-sm rounded-lg font-medium min-h-[44px] lg:min-h-0',
   }
   return map[props.size]
 })

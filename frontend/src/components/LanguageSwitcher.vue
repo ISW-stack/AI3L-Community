@@ -105,7 +105,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         role="listbox"
         :aria-label="t('language.label')"
       >
-        <div class="max-h-80 overflow-y-auto py-1" style="scrollbar-gutter: stable">
+        <div class="max-h-60 sm:max-h-80 overflow-y-auto py-1" style="scrollbar-gutter: stable">
           <!-- English (ungrouped, always visible) -->
           <button
             @click="selectLocale('en')"

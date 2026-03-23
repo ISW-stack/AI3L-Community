@@ -296,7 +296,7 @@ onUnmounted(() => {
     <!-- Bulk action bar -->
     <div
       v-if="auth.isSuperAdmin && selectedIds.size > 0"
-      class="mb-4 flex flex-wrap items-center gap-2 sm:gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-3"
+      class="mb-4 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 sm:gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-3"
     >
       <span class="text-sm text-foreground font-medium">{{
         t('admin.users.selectedCount', { count: selectedIds.size })

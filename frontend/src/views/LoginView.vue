@@ -109,7 +109,7 @@ onMounted(() => {
       </div>
     </div>
     <!-- Right form panel -->
-    <div class="flex-1 flex items-center justify-center p-4">
+    <div class="flex-1 flex items-center justify-center p-3 sm:p-4">
       <BaseCard padding="lg" class="w-full max-w-md shadow-lg">
         <h1 class="text-2xl font-bold text-center text-foreground mb-6">
           {{ t('auth.loginTitle') }}
@@ -171,7 +171,7 @@ onMounted(() => {
                 v-if="captchaImage"
                 :src="captchaImage"
                 alt="captcha"
-                class="h-10 rounded cursor-pointer"
+                class="h-12 sm:h-10 rounded cursor-pointer"
                 @click="loadCaptcha"
                 :title="t('auth.captchaRefresh')"
               />

@@ -129,7 +129,7 @@ onUnmounted(cleanup)
           />
 
           <!-- Question Feed -->
-          <div v-else class="space-y-3">
+          <div v-else class="space-y-2 md:space-y-3">
             <QACard v-for="q in questions" :key="q.id" :question="q" />
           </div>
 

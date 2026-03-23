@@ -405,7 +405,7 @@ onUnmounted(() => {
                 v-for="item in navItems"
                 :key="item.key"
                 :to="{ name: item.route }"
-                class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200"
+                class="px-3 sm:px-6 py-2.5 sm:py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200"
                 :class="
                   currentRouteName === item.route
                     ? 'border-brand-600 text-brand-600'
