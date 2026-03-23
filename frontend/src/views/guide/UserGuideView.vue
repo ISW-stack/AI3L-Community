@@ -1,20 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { BookOpen, ChevronRight, X } from 'lucide-vue-next'
-
-const GuestGuideContent = defineAsyncComponent(
-  () => import('@/components/guide/GuestGuideContent.vue'),
-)
-const MemberGuideContent = defineAsyncComponent(
-  () => import('@/components/guide/MemberGuideContent.vue'),
-)
-const AdminGuideContent = defineAsyncComponent(
-  () => import('@/components/guide/AdminGuideContent.vue'),
-)
-const SuperAdminGuideContent = defineAsyncComponent(
-  () => import('@/components/guide/SuperAdminGuideContent.vue'),
-)
+import GuestGuideContent from '@/components/guide/GuestGuideContent.vue'
+import MemberGuideContent from '@/components/guide/MemberGuideContent.vue'
+import AdminGuideContent from '@/components/guide/AdminGuideContent.vue'
+import SuperAdminGuideContent from '@/components/guide/SuperAdminGuideContent.vue'
 
 const auth = useAuthStore()
 

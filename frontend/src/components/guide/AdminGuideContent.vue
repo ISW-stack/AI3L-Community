@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 </script>
 
 <template>
-  <div class="guide-content space-y-10">
+  <div v-if="auth.isAdmin" class="guide-content space-y-10">
     <BaseAlert type="info" class="mb-2">
       This guide covers <strong>additional</strong> features beyond what Members have. Read the
       <strong>Guest Guide</strong> and <strong>Member Guide</strong> tabs first.
@@ -92,8 +95,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         <li>Submit.</li>
       </ol>
       <BaseAlert type="warning" class="mt-3">
-        <strong>Note:</strong> Admins can only create Member or Guest accounts. Only Super Admins
-        can create Admin accounts.
+        <strong>Note:</strong> The account roles available for creation depend on your permission
+        level.
       </BaseAlert>
 
       <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">Bulk Operations</h3>
@@ -228,7 +231,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         Cross-SIG and Cross-Form Management
       </h2>
       <p class="text-sm text-foreground/80 mb-3">
-        Platform Admins automatically have <strong>SIG Admin-level permissions</strong> in all SIGs:
+        Platform Admins have elevated permissions across all SIGs:
       </p>
       <ul class="list-disc list-inside space-y-1 text-sm text-foreground/80">
         <li>Edit any SIG's name and description.</li>

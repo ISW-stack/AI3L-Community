@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import BaseAlert from '@/components/base/BaseAlert.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 </script>
 
 <template>
-  <div class="guide-content space-y-10">
+  <div v-if="auth.isSuperAdmin" class="guide-content space-y-10">
     <BaseAlert type="info" class="mb-2">
       This guide covers <strong>exclusive</strong> Super Admin features. Read the
       <strong>Guest Guide</strong>, <strong>Member Guide</strong>, and <strong>Admin Guide</strong>
@@ -57,10 +60,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
       <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
         <li><strong>Filter</strong> by user ID, date from, and date to.</li>
         <li>Paginated table with: timestamp, user, action type, details.</li>
-        <li>
-          Logged events include: role changes, bans/unbans, deletions, application reviews, IP bans,
-          invite codes, SIG operations.
-        </li>
+        <li>All significant administrative actions are recorded automatically.</li>
       </ul>
     </section>
 
@@ -74,15 +74,15 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
       <ol class="list-decimal list-inside space-y-2 text-sm text-foreground/80">
         <li>Click <strong>Add IP Ban</strong>.</li>
         <li>
-          Enter <strong>IP Address</strong> (IPv4 or IPv6), <strong>Reason</strong>, and optional
+          Enter the <strong>IP Address</strong>, <strong>Reason</strong>, and optional
           <strong>Expiry Date</strong>.
         </li>
-        <li>Submit. Leave expiry blank for a permanent ban.</li>
+        <li>Submit.</li>
       </ol>
 
       <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">Removing an IP Ban</h3>
       <p class="text-sm text-foreground/80">
-        Click <strong>Delete</strong> on the ban entry and confirm. The IP is immediately unblocked.
+        Click <strong>Delete</strong> on the ban entry and confirm.
       </p>
     </section>
 
@@ -114,8 +114,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         Contributor Management
       </h2>
       <p class="text-sm text-foreground/80 mb-3">
-        Manage the contributor cards displayed on the About page. Unlike the public view, this admin
-        view shows GitHub usernames.
+        Manage the contributor cards displayed on the About page.
       </p>
 
       <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">Adding a Contributor</h3>
@@ -124,9 +123,6 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         <li>
           Fill in:
           <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
-            <li>
-              <strong>GitHub Username</strong> &mdash; used to fetch avatar (proxied for privacy).
-            </li>
             <li><strong>Display Name</strong> &mdash; public-facing name.</li>
             <li><strong>Role</strong> &mdash; title shown on the card.</li>
             <li><strong>Display Order</strong> &mdash; controls sort position.</li>
@@ -161,8 +157,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
       </p>
 
       <BaseAlert type="warning" class="mt-4">
-        <strong>Restrictions:</strong> You cannot change your own role. Only Super Admins can
-        promote users to Admin.
+        <strong>Restrictions:</strong> Certain protective restrictions apply to role changes. The
+        system will notify you if an action is not permitted.
       </BaseAlert>
     </section>
 
@@ -187,13 +183,15 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
       <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">Deleting a User Account</h3>
       <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
         <li>Click <strong>Delete</strong> and confirm. Permanent removal.</li>
-        <li>Cannot delete Super Admin accounts.</li>
-        <li>Blocked if the user is the sole Admin of any SIG (role must be transferred first).</li>
+        <li>
+          Certain accounts are protected from deletion. The system will notify you if an action is
+          restricted.
+        </li>
       </ul>
 
       <BaseAlert type="warning" class="mt-4">
-        <strong>Safety:</strong> You cannot ban yourself, delete Super Admin accounts, or change
-        your own role.
+        <strong>Safety:</strong> Certain protective restrictions apply to prevent accidental
+        self-lockout. The system will notify you if an action is not permitted.
       </BaseAlert>
     </section>
 
@@ -204,8 +202,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
       </h2>
       <ul class="list-disc list-inside space-y-2 text-sm text-foreground/80">
         <li>
-          <strong>Visibility:</strong> Toggle SIGs or members visible/hidden. Hidden entries are
-          only shown to Super Admins.
+          <strong>Visibility:</strong> Toggle SIGs or members visible/hidden on the public org
+          chart.
         </li>
         <li><strong>Display Order:</strong> Set custom sort values for SIGs and members.</li>
         <li>
@@ -221,19 +219,9 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         System Health Monitoring
       </h2>
       <p class="text-sm text-foreground/80 mb-3">
-        The platform provides a <code>GET /health</code> API endpoint (Super Admin authentication
-        required). This is not a UI page &mdash; access it via a browser or API tool (e.g.,
-        <code>curl</code>) with your session cookie. It returns:
-      </p>
-      <ul class="list-disc list-inside space-y-1 text-sm text-foreground/80">
-        <li>Database connection status and pool statistics (size, free, in-use).</li>
-        <li>Redis connection status.</li>
-        <li>MinIO (object storage) status.</li>
-        <li>Celery worker status.</li>
-        <li>Overall system health.</li>
-      </ul>
-      <p class="text-sm text-muted mt-2">
-        The public <code>GET /health/live</code> endpoint returns only a basic liveness check.
+        The platform provides a system health API endpoint (Super Admin authentication required).
+        This is not a UI page &mdash; access it via a browser or API tool with your session cookie.
+        It provides an overview of the overall system status and key service connectivity.
       </p>
     </section>
 

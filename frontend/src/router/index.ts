@@ -302,7 +302,7 @@ const router = createRouter({
       path: '/guide',
       name: 'guide',
       component: () => import('@/views/guide/UserGuideView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresMember: true },
     },
     {
       path: '/:pathMatch(.*)*',

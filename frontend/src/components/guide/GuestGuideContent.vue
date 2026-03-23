@@ -18,8 +18,8 @@
         <li>Click <strong>Enter as Guest</strong>.</li>
       </ol>
       <p class="text-sm text-muted mt-3">
-        Your session is temporary and stored server-side. If you are inactive for an extended
-        period, your session will expire and you will need to log in again.
+        Your session is temporary. If you are inactive for an extended period, your session will
+        expire and you will need to log in again.
       </p>
 
       <h3 class="text-lg font-semibold text-foreground mt-6 mb-3">Registering Instead</h3>
@@ -30,8 +30,8 @@
         <li>Go to the <strong>Register</strong> page (<code>/register</code>).</li>
         <li>Fill in: username, display name, invite code, password, and confirm password.</li>
         <li>
-          Password must meet all requirements: 8+ characters, uppercase, lowercase, digit, and
-          special character. A live checklist shows your progress.
+          Password must meet the strength requirements shown during registration. A live checklist
+          shows your progress.
         </li>
         <li>Complete the CAPTCHA and submit.</li>
       </ol>
@@ -209,8 +209,8 @@
         <li>Mark notifications as read individually.</li>
       </ul>
       <p class="text-sm text-muted mt-2">
-        Notifications update in real time via WebSocket &mdash; you will see the count change without
-        refreshing.
+        Notifications update in real time via WebSocket &mdash; you will see the count change
+        without refreshing.
       </p>
     </section>
 
@@ -226,8 +226,8 @@
         <li>Basic account information.</li>
       </ul>
       <p class="text-sm text-muted mt-2">
-        Not available to guests: editing profile details, changing password, generating invite codes,
-        social features, deleting account.
+        Not available to guests: editing profile details, changing password, generating invite
+        codes, social features, deleting account.
       </p>
     </section>
 

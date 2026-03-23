@@ -5,8 +5,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
 <template>
   <div class="guide-content space-y-10">
     <BaseAlert type="info" class="mb-2">
-      This guide covers features <strong>beyond</strong> what is available to Guests. Make sure
-      you have read the <strong>Guest Guide</strong> tab first for browsing basics.
+      This guide covers features <strong>beyond</strong> what is available to Guests. Make sure you
+      have read the <strong>Guest Guide</strong> tab first for browsing basics.
     </BaseAlert>
 
     <!-- Creating Posts -->
@@ -66,8 +66,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
           soft-deleted and no longer visible.
         </li>
         <li>
-          Click <strong>Report</strong> on any post that violates community guidelines. Enter a reason
-          and submit for admin review.
+          Click <strong>Report</strong> on any post that violates community guidelines. Enter a
+          reason and submit for admin review.
         </li>
       </ul>
 
@@ -166,7 +166,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
           comments and write a quick reply without navigating to the full post detail.
         </li>
         <li>
-          Click <strong>Copy Share Link</strong> on the SIG header to copy the URL to your clipboard.
+          Click <strong>Copy Share Link</strong> on the SIG header to copy the URL to your
+          clipboard.
         </li>
       </ul>
 
@@ -189,7 +190,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
             <tr>
               <td class="px-4 py-2 font-medium">Sub-Admin</td>
               <td class="px-4 py-2 text-foreground/80">
-                Member + create SIG forms, manage members (remove, promote/demote below own level).
+                Member + create SIG forms, manage members within their authority.
               </td>
             </tr>
             <tr>
@@ -203,7 +204,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
         </table>
       </div>
       <p class="text-sm text-muted mt-2">
-        Platform Admins and Super Admins automatically have SIG Admin-level access to all SIGs.
+        Platform administrators have elevated permissions across all SIGs.
       </p>
     </section>
 
@@ -294,9 +295,7 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
           <strong>Export CSV:</strong> Background task with progress modal; downloads automatically
           when complete.
         </li>
-        <li>
-          <strong>Copy Share Link:</strong> Click to copy the form URL for easy distribution.
-        </li>
+        <li><strong>Copy Share Link:</strong> Click to copy the form URL for easy distribution.</li>
       </ul>
     </section>
 
@@ -488,8 +487,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
       <h3 class="text-lg font-semibold text-foreground mt-4 mb-3">Security</h3>
       <ul class="list-disc list-inside space-y-1 text-sm text-foreground/80">
         <li>
-          <strong>Change Password:</strong> Enter current password, new password, confirm. Auto-logs
-          out after 1.5s.
+          <strong>Change Password:</strong> Enter current password, new password, confirm. You will
+          be logged out automatically after changing your password.
         </li>
         <li><strong>Generate Invite Code:</strong> Creates a shareable code. Copy to clipboard.</li>
       </ul>
@@ -530,7 +529,8 @@ import BaseAlert from '@/components/base/BaseAlert.vue'
             <tr>
               <td class="px-4 py-2 font-medium">Virus scanning</td>
               <td class="px-4 py-2 text-foreground/80">
-                Files may be queued for VirusTotal scan. Pending files return 202 status.
+                Uploaded files are automatically scanned for viruses. Downloads may be temporarily
+                unavailable while scanning is in progress.
               </td>
             </tr>
             <tr>
