@@ -282,7 +282,13 @@ const breadcrumbItems = computed(() => {
           </div>
 
           <div v-if="post.keywords?.length" class="flex gap-1 flex-wrap mb-3">
-            <BaseBadge v-for="kw in post.keywords" :key="kw" variant="neutral" class="max-w-full truncate">{{ kw }}</BaseBadge>
+            <BaseBadge
+              v-for="kw in post.keywords"
+              :key="kw"
+              variant="neutral"
+              class="max-w-full truncate"
+              >{{ kw }}</BaseBadge
+            >
           </div>
 
           <!-- Co-Authors Display -->

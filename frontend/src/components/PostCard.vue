@@ -103,9 +103,7 @@ const sanitizedPreviewHtml = computed(() => {
 // Local optimistic reactions state
 const localReactionCounts = ref<Record<string, number> | null>(null)
 const localUserReactions = ref<string[] | null>(null)
-const reactionCountsData = computed(
-  () => localReactionCounts.value ?? props.post.reaction_counts,
-)
+const reactionCountsData = computed(() => localReactionCounts.value ?? props.post.reaction_counts)
 const userReactionsData = computed(() => localUserReactions.value ?? props.post.user_reactions)
 
 async function handleReaction(reaction: string) {

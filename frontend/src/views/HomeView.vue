@@ -429,11 +429,7 @@ onMounted(() => {
       <div
         class="bg-gradient-to-br from-brand-900 to-brand-700 rounded-lg p-8 sm:p-12 text-white text-center mb-8"
       >
-        <img
-          src="/images/logo.png"
-          alt="AI3L"
-          class="w-48 sm:w-64 mx-auto mb-6 drop-shadow-lg"
-        />
+        <img src="/images/logo.png" alt="AI3L" class="w-48 sm:w-64 mx-auto mb-6 drop-shadow-lg" />
         <h1 class="text-3xl sm:text-4xl font-bold mb-3">{{ t('home.unauthenticated.title') }}</h1>
         <p class="text-brand-200 text-lg mb-2">
           {{ t('home.unauthenticated.subtitle') }}

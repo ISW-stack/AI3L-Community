@@ -78,11 +78,7 @@ defineExpose({ loadMore })
       <div
         class="bg-gradient-to-r from-brand-900 to-brand-700 rounded-lg px-6 py-5 mb-6 flex items-center gap-5"
       >
-        <img
-          src="/images/logo.png"
-          alt="AI3L"
-          class="h-16 sm:h-20 w-auto drop-shadow-lg"
-        />
+        <img src="/images/logo.png" alt="AI3L" class="h-16 sm:h-20 w-auto drop-shadow-lg" />
         <div>
           <h1 class="text-xl sm:text-2xl font-bold text-white">{{ t('forum.title') }}</h1>
           <p class="text-brand-200 text-sm mt-1">{{ t('home.tagline') }}</p>

@@ -196,9 +196,7 @@ describe('M-16: contentSegments does not double-sanitize', () => {
     // encoded entities like &amp; would become &amp;amp;.
     // We test this indirectly by verifying that content with entities
     // renders correctly through PostCard's sanitized preview.
-    const wrapper = mountPostCard(
-      makePost({ content: '<p>A &amp; B</p>' }),
-    )
+    const wrapper = mountPostCard(makePost({ content: '<p>A &amp; B</p>' }))
     const previewDiv = wrapper.find('.post-preview-content')
     expect(previewDiv.exists()).toBe(true)
     // Should contain the literal text "A & B", not "A &amp; B" as display text
@@ -237,9 +235,7 @@ describe('M-17: PostCard thumbnail extraction from sanitized content', () => {
   })
 
   it('does not show thumbnail when content has no image', () => {
-    const wrapper = mountPostCard(
-      makePost({ content: '<p>No images here</p>' }),
-    )
+    const wrapper = mountPostCard(makePost({ content: '<p>No images here</p>' }))
     const fullWidthImgs = wrapper.findAll('img').filter((i) => i.classes().includes('w-full'))
     expect(fullWidthImgs.length).toBe(0)
   })
@@ -300,18 +296,16 @@ describe('L-02: CitationSearchDialog loading reset', () => {
 
     // loading should be reset to false
     // The "Searching..." indicator should not be visible
-    const loadingIndicator = wrapper.findAll('.text-muted.text-center').filter((el) =>
-      el.text().includes('citations.searching'),
-    )
+    const loadingIndicator = wrapper
+      .findAll('.text-muted.text-center')
+      .filter((el) => el.text().includes('citations.searching'))
     expect(loadingIndicator.length).toBe(0)
   })
 
   it('resets results when input is cleared', async () => {
     const { searchForCitation } = await import('@/api/citations')
     const mockSearch = searchForCitation as ReturnType<typeof vi.fn>
-    mockSearch.mockResolvedValue([
-      { id: '1', title: 'Post 1', author_name: 'Alice' },
-    ])
+    mockSearch.mockResolvedValue([{ id: '1', title: 'Post 1', author_name: 'Alice' }])
 
     const wrapper = mount(CitationSearchDialog, {
       props: { modelValue: true },
@@ -437,17 +431,12 @@ describe('L-05: CoAuthorManager search filtering', () => {
 
     const existingInResults = wrapper
       .findAll('button')
-      .filter(
-        (b) =>
-          b.text() === 'Existing User' &&
-          b.classes().includes('hover:bg-surface-alt'),
-      )
+      .filter((b) => b.text() === 'Existing User' && b.classes().includes('hover:bg-surface-alt'))
     // The existing user should NOT appear in the search dropdown
     // (they may appear in the co-authors list above, but not in search results)
     expect(
-      wrapper
-        .findAll('.hover\\:bg-surface-alt')
-        .filter((el) => el.text().includes('Existing User')).length,
+      wrapper.findAll('.hover\\:bg-surface-alt').filter((el) => el.text().includes('Existing User'))
+        .length,
     ).toBe(0)
   })
 
@@ -493,60 +482,52 @@ describe('L-12: Citation API defaults', () => {
     mockGet.mockResolvedValue({ data: { citations: [], total: 0 } })
 
     // Import the real function (not the mock)
-    const citationsModule = await vi.importActual<typeof import('@/api/citations')>(
-      '@/api/citations',
-    )
+    const citationsModule =
+      await vi.importActual<typeof import('@/api/citations')>('@/api/citations')
 
     await citationsModule.getCitedBy('post-1')
 
-    expect(mockGet).toHaveBeenCalledWith(
-      '/citations/posts/post-1/cited-by',
-      { params: { page: 1, page_size: 20 } },
-    )
+    expect(mockGet).toHaveBeenCalledWith('/citations/posts/post-1/cited-by', {
+      params: { page: 1, page_size: 20 },
+    })
   })
 
   it('getCiting defaults to pageSize=20', async () => {
     mockGet.mockResolvedValue({ data: { citations: [], total: 0 } })
 
-    const citationsModule = await vi.importActual<typeof import('@/api/citations')>(
-      '@/api/citations',
-    )
+    const citationsModule =
+      await vi.importActual<typeof import('@/api/citations')>('@/api/citations')
 
     await citationsModule.getCiting('post-1')
 
-    expect(mockGet).toHaveBeenCalledWith(
-      '/citations/posts/post-1/citing',
-      { params: { page: 1, page_size: 20 } },
-    )
+    expect(mockGet).toHaveBeenCalledWith('/citations/posts/post-1/citing', {
+      params: { page: 1, page_size: 20 },
+    })
   })
 
   it('getCitedBy accepts custom page and pageSize', async () => {
     mockGet.mockResolvedValue({ data: { citations: [], total: 0 } })
 
-    const citationsModule = await vi.importActual<typeof import('@/api/citations')>(
-      '@/api/citations',
-    )
+    const citationsModule =
+      await vi.importActual<typeof import('@/api/citations')>('@/api/citations')
 
     await citationsModule.getCitedBy('post-1', 3, 50)
 
-    expect(mockGet).toHaveBeenCalledWith(
-      '/citations/posts/post-1/cited-by',
-      { params: { page: 3, page_size: 50 } },
-    )
+    expect(mockGet).toHaveBeenCalledWith('/citations/posts/post-1/cited-by', {
+      params: { page: 3, page_size: 50 },
+    })
   })
 
   it('getCiting accepts custom page and pageSize', async () => {
     mockGet.mockResolvedValue({ data: { citations: [], total: 0 } })
 
-    const citationsModule = await vi.importActual<typeof import('@/api/citations')>(
-      '@/api/citations',
-    )
+    const citationsModule =
+      await vi.importActual<typeof import('@/api/citations')>('@/api/citations')
 
     await citationsModule.getCiting('post-1', 2, 10)
 
-    expect(mockGet).toHaveBeenCalledWith(
-      '/citations/posts/post-1/citing',
-      { params: { page: 2, page_size: 10 } },
-    )
+    expect(mockGet).toHaveBeenCalledWith('/citations/posts/post-1/citing', {
+      params: { page: 2, page_size: 10 },
+    })
   })
 })

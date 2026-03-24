@@ -53,9 +53,7 @@ const externalAffiliation = ref('')
 const externalOrcid = ref('')
 const addingExternal = ref(false)
 
-const activeCount = computed(
-  () => coAuthors.value.filter((ca) => ca.status !== 'REJECTED').length,
-)
+const activeCount = computed(() => coAuthors.value.filter((ca) => ca.status !== 'REJECTED').length)
 const canAddMore = computed(() => activeCount.value < MAX_CO_AUTHORS)
 
 async function fetchCoAuthors() {

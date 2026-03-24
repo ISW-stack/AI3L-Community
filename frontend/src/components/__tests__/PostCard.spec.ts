@@ -508,13 +508,10 @@ describe('PostCard', () => {
     })
 
     it('shows add-reaction picker button even when no reactions exist', () => {
-      const wrapper = mountCardWithAuth(
-        makePost({ reaction_counts: null, user_reactions: null }),
-        {
-          role: 'MEMBER',
-          userId: 'user-1',
-        },
-      )
+      const wrapper = mountCardWithAuth(makePost({ reaction_counts: null, user_reactions: null }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
       const addBtn = wrapper.find('button[aria-label="Add reaction"]')
       expect(addBtn.exists()).toBe(true)
       const likeChip = wrapper.find('button[aria-label="React with LIKE"]')
@@ -522,13 +519,10 @@ describe('PostCard', () => {
     })
 
     it('opens reaction picker popup when "+" button is clicked', async () => {
-      const wrapper = mountCardWithAuth(
-        makePost({ reaction_counts: null, user_reactions: null }),
-        {
-          role: 'MEMBER',
-          userId: 'user-1',
-        },
-      )
+      const wrapper = mountCardWithAuth(makePost({ reaction_counts: null, user_reactions: null }), {
+        role: 'MEMBER',
+        userId: 'user-1',
+      })
       const addBtn = wrapper.find('button[aria-label="Add reaction"]')
       await addBtn.trigger('click')
       await nextTick()
@@ -615,13 +609,10 @@ describe('PostCard', () => {
     })
 
     it('does not show reaction UI when no reactions and user is guest', () => {
-      const wrapper = mountCardWithAuth(
-        makePost({ reaction_counts: null, user_reactions: null }),
-        {
-          role: 'GUEST',
-          userId: 'guest-1',
-        },
-      )
+      const wrapper = mountCardWithAuth(makePost({ reaction_counts: null, user_reactions: null }), {
+        role: 'GUEST',
+        userId: 'guest-1',
+      })
       const buttons = wrapper.findAll('button[aria-label]')
       expect(buttons.length).toBe(0)
     })

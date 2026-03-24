@@ -117,9 +117,7 @@ describe('B1 — CitationSearchDialog: no Invalid Date', () => {
   it('renders search results without created_at field', async () => {
     const { searchForCitation } = await import('@/api/citations')
     const mock = searchForCitation as ReturnType<typeof vi.fn>
-    mock.mockResolvedValue([
-      { id: '1', title: 'Post One', author_name: 'Alice' },
-    ])
+    mock.mockResolvedValue([{ id: '1', title: 'Post One', author_name: 'Alice' }])
 
     const wrapper = mount(CitationSearchDialog, {
       props: { modelValue: true },

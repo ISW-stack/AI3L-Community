@@ -395,7 +395,11 @@ describe('usePostDetail', () => {
 
     // older than 7 days returns locale-formatted date string
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-    const expected = twoWeeksAgo.toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' })
+    const expected = twoWeeksAgo.toLocaleDateString('en', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
     expect(formatRelativeTime(twoWeeksAgo.toISOString())).toBe(expected)
   })
 
