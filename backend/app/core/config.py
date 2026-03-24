@@ -146,8 +146,24 @@ class Settings(BaseSettings):
                     "S3_SECRET_ACCESS_KEY contains 'changeme' — refusing to start in production. "
                     "Set a strong, unique secret."
                 )
+            if self.S3_ACCESS_KEY_ID == "minioadmin":
+                raise ValueError(
+                    "S3_ACCESS_KEY_ID is set to default 'minioadmin' — refusing to start in "
+                    "production. Set proper S3/MinIO credentials."
+                )
+            if "localhost" in self.CORS_ORIGINS:
+                raise ValueError(
+                    "CORS_ORIGINS contains 'localhost' in production — "
+                    "set proper production origins."
+                )
             if len(self.JWT_SECRET_KEY) < 32:
                 raise ValueError("JWT_SECRET_KEY must be at least 32 characters for HS256.")
+            if not self.COOKIE_DOMAIN:
+                warnings.warn(
+                    "COOKIE_DOMAIN is empty in production. Cookies will use browser default "
+                    "(current domain). Consider setting COOKIE_DOMAIN for cross-subdomain support.",
+                    stacklevel=1,
+                )
         # Auto-derive COOKIE_SECURE from FASTAPI_ENV when not explicitly set
         if self.COOKIE_SECURE is None:
             self.COOKIE_SECURE = self.FASTAPI_ENV == "production"

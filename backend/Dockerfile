@@ -1,15 +1,27 @@
-FROM python:3.12-slim AS base
+# ── Builder stage: compile C extensions ────────────────────────────
+FROM python:3.12-slim AS builder
 
-WORKDIR /app
+WORKDIR /build
 
-# Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev qpdf libqpdf-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# ── Runtime stage: slim image without build tools ──────────────────
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Only runtime libraries (no gcc)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpq5 libqpdf29 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy installed Python packages from builder
+COPY --from=builder /install /usr/local
 
 # Copy application
 COPY . .

@@ -11,8 +11,8 @@ class CaptchaResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., max_length=50)
-    password: str = Field(..., max_length=128)
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=128)
     captcha_id: str = Field(..., max_length=100)
     captcha_code: str = Field(..., max_length=10)
 

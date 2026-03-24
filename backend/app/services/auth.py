@@ -16,13 +16,29 @@ from app.services.user import get_user_by_username
 SESSION_KEY_TEMPLATE = "session:{role}:{user_id}"
 BLACKLIST_KEY_TEMPLATE = "jwt:blacklist:{jti}"
 
+# Pre-computed dummy hash for timing-oracle prevention (AUTH-01).
+# Ensures non-existent user lookups take the same time as real ones.
+_DUMMY_HASH: str = ""
+
+
+def _init_dummy_hash() -> str:
+    from passlib.context import CryptContext
+
+    ctx = CryptContext(schemes=["argon2"], deprecated="auto")
+    return str(ctx.hash("dummy_password_for_timing_oracle"))
+
+
+_DUMMY_HASH = _init_dummy_hash()
+
 
 async def authenticate_user(username: str, password: str) -> dict | None:
     """Verify username + password. Returns user dict or None."""
     user = await get_user_by_username(username)
     if user is None:
+        await async_verify_password(password, _DUMMY_HASH)
         return None
     if user.get("is_deleted"):
+        await async_verify_password(password, _DUMMY_HASH)
         return None
     if not await async_verify_password(password, user["password_hash"]):
         return None

@@ -31,12 +31,15 @@ services:
       - SETUID
     environment:
       STORAGE_CSP_ORIGIN: ${STORAGE_CSP_ORIGIN:-}
+      SERVER_DOMAIN: ${SERVER_DOMAIN:-_}
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Not :ro — docker-entrypoint.sh runs sed on conf.d/default.conf
+      # and writes security-headers.conf into snippets/ at startup
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/snippets:/etc/nginx/snippets
       - ./nginx/html:/usr/share/nginx/html:ro
@@ -56,8 +59,13 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
-      - ai3l-network
+      - frontend-net
 
   migrate:
     build: ./backend
@@ -69,7 +77,7 @@ services:
         condition: service_healthy
     restart: "no"
     networks:
-      - ai3l-network
+      - backend-net
 
   fastapi:
     build: ./backend
@@ -99,8 +107,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
-      - ai3l-network
+      - frontend-net
+      - backend-net
 
   postgres:
     image: postgres:15-alpine
@@ -142,8 +156,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
-      - ai3l-network
+      - backend-net
 
   redis:
     image: redis:7-alpine
@@ -155,7 +174,8 @@ services:
       --requirepass "$REDIS_PASSWORD"
       --maxmemory 256mb
       --maxmemory-policy volatile-lru
-      --appendonly no'
+      --appendonly yes
+      --appendfsync everysec'
     volumes:
       - redis-data:/data
     deploy:
@@ -169,8 +189,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
-      - ai3l-network
+      - backend-net
 
   celery:
     build: ./backend
@@ -198,8 +223,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
-      - ai3l-network
+      - backend-net
 
   celery-beat:
     build: ./backend
@@ -227,8 +257,13 @@ services:
       timeout: 15s
       retries: 3
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
-      - ai3l-network
+      - backend-net
 
   # Optional: Certbot for Let's Encrypt certificate management
   # Run manually: docker compose -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d yourdomain.com
@@ -239,7 +274,7 @@ services:
       - ./nginx/ssl:/etc/letsencrypt
       - certbot-webroot:/var/www/certbot
     networks:
-      - ai3l-network
+      - frontend-net
 
 volumes:
   pgdata:
@@ -247,7 +282,7 @@ volumes:
   certbot-webroot:
 
 networks:
-  ai3l-network:
+  frontend-net:
     driver: bridge
-    # TODO: Split into frontend/backend networks for tier isolation
-    # nginx+fastapi on frontend; fastapi+postgres+redis+minio on backend
+  backend-net:
+    driver: bridge

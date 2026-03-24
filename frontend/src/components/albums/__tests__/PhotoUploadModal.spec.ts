@@ -155,3 +155,78 @@ describe('PhotoUploadModal', () => {
     expect(accept).toContain('application/zip')
   })
 })
+
+describe('FE-15: PhotoUploadModal file size validation', () => {
+  function createSizedFile(name: string, type: string, sizeBytes: number): File {
+    // Create a minimal file and override size property
+    const file = new File(['x'], name, { type })
+    Object.defineProperty(file, 'size', { value: sizeBytes, writable: false })
+    return file
+  }
+
+  it('rejects image file exceeding 10 MB', async () => {
+    const wrapper = mountModal()
+    const input = wrapper.find('input[type="file"]')
+
+    const bigImage = createSizedFile('photo.jpg', 'image/jpeg', 11 * 1024 * 1024)
+    Object.defineProperty(input.element, 'files', { value: [bigImage], writable: false })
+    await input.trigger('change')
+
+    const html = wrapper.html()
+    expect(html).toContain('File too large')
+    expect(html).toContain('10 MB')
+  })
+
+  it('rejects zip file exceeding 50 MB', async () => {
+    const wrapper = mountModal()
+    const input = wrapper.find('input[type="file"]')
+
+    const bigZip = createSizedFile('archive.zip', 'application/zip', 51 * 1024 * 1024)
+    Object.defineProperty(input.element, 'files', { value: [bigZip], writable: false })
+    await input.trigger('change')
+
+    const html = wrapper.html()
+    expect(html).toContain('File too large')
+    expect(html).toContain('50 MB')
+  })
+
+  it('accepts image file under 10 MB', async () => {
+    const wrapper = mountModal()
+    const input = wrapper.find('input[type="file"]')
+
+    const smallImage = createSizedFile('photo.jpg', 'image/jpeg', 5 * 1024 * 1024)
+    Object.defineProperty(input.element, 'files', { value: [smallImage], writable: false })
+    await input.trigger('change')
+
+    const html = wrapper.html()
+    expect(html).not.toContain('File too large')
+  })
+
+  it('accepts zip file under 50 MB', async () => {
+    const wrapper = mountModal()
+    const input = wrapper.find('input[type="file"]')
+
+    const smallZip = createSizedFile('archive.zip', 'application/zip', 40 * 1024 * 1024)
+    Object.defineProperty(input.element, 'files', { value: [smallZip], writable: false })
+    await input.trigger('change')
+
+    const html = wrapper.html()
+    expect(html).not.toContain('File too large')
+  })
+
+  it('does not set selectedFile when file is too large', async () => {
+    const wrapper = mountModal()
+    const input = wrapper.find('input[type="file"]')
+
+    const bigImage = createSizedFile('huge.png', 'image/png', 15 * 1024 * 1024)
+    Object.defineProperty(input.element, 'files', { value: [bigImage], writable: false })
+    await input.trigger('change')
+
+    // Upload button should not trigger upload since no file is selected
+    const buttons = wrapper.findAll('button')
+    const uploadBtn = buttons[buttons.length - 1]
+    await uploadBtn.trigger('click')
+
+    expect(wrapper.emitted('upload')).toBeFalsy()
+  })
+})

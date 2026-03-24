@@ -11,11 +11,13 @@ from app.core.constants import (
     DM_MAX_MESSAGE_LENGTH,
     MAX_PAGE_NUMBER,
     MAX_PAGE_SIZE,
+    PRESIGNED_URL_FILE_SECONDS,
     RATE_LIMIT_DM_EDIT,
     RATE_LIMIT_DM_LIST,
     RATE_LIMIT_DM_MARK_READ,
     RATE_LIMIT_DM_RECALL,
     RATE_LIMIT_DM_SEND,
+    RATE_LIMIT_DM_UNREAD,
 )
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
@@ -60,8 +62,39 @@ async def get_unread_count(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> DMUnreadCountResponse:
     """Get total unread DM count for the current user."""
+    if not await check_rate_limit(f"rl:dm:unread:{current_user['sub']}", *RATE_LIMIT_DM_UNREAD):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
     count = await dm_service.get_unread_count(current_user["sub"])
     return DMUnreadCountResponse(unread_count=count)
+
+
+@router.get("/admin/conversations/{conversation_id}/messages", response_model=MessageListResponse)
+async def admin_list_messages(
+    conversation_id: uuid.UUID,
+    page: int = Query(1, ge=1, le=MAX_PAGE_NUMBER),
+    page_size: int = Query(DEFAULT_PAGE_SIZE_DM, ge=1, le=MAX_PAGE_SIZE),
+    current_user: dict = Depends(require_role("SUPER_ADMIN")),
+) -> MessageListResponse:
+    """Admin: view messages in any conversation for moderation."""
+    from app.converters.dm_converter import async_row_to_message
+    from app.core.storage import generate_presigned_url
+    from app.repositories import dm_repo
+
+    offset = (page - 1) * page_size
+    rows, total = await dm_repo.find_messages(conversation_id, page_size, offset)
+
+    messages = []
+    for row in rows:
+        msg = await async_row_to_message(row)
+        if row.get("attachment_key") and not row.get("is_recalled"):
+            msg["attachment_url"] = generate_presigned_url(
+                row["attachment_key"],
+                expires_in=PRESIGNED_URL_FILE_SECONDS,
+                filename=row.get("attachment_name"),
+            )
+        messages.append(msg)
+
+    return MessageListResponse(messages=[DMMessageResponse(**m) for m in messages], total=total)
 
 
 @router.get("/conversations", response_model=ConversationListResponse)

@@ -274,7 +274,7 @@ async def get_sig_posts(
     sig_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> PostListResponse:
     result = await list_posts(
         page=page, page_size=page_size, sig_id=str(sig_id), viewer_id=current_user["sub"]

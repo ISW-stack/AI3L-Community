@@ -112,6 +112,8 @@ async def send_message(
     recipient = await user_repo.find_by_id(uuid.UUID(recipient_id))
     if not recipient or recipient.get("is_deleted"):
         raise AppError(ErrorCode.DM_003, 404, "Recipient not found.")
+    if recipient.get("is_banned"):
+        raise AppError(ErrorCode.DM_003, 403, "Cannot message this user.")
 
     # 3. Must have content or file
     if not content and not file_data:
@@ -276,10 +278,16 @@ async def send_message(
                             dmsg["sender_id"], dmsg["attachment_size"]
                         )
                     except Exception:
-                        logger.warning(
-                            "Failed to clean up attachment during char cap enforcement",
+                        logger.error(
+                            "ORPHANED_DM_FILE: failed to clean up attachment during "
+                            "char cap enforcement. Manual cleanup required.",
                             exc_info=True,
-                            extra={"msg_id": str(dmsg.get("id"))},
+                            extra={
+                                "msg_id": str(dmsg.get("id")),
+                                "attachment_key": dmsg.get("attachment_key"),
+                                "attachment_size": dmsg.get("attachment_size"),
+                                "sender_id": str(dmsg.get("sender_id")),
+                            },
                         )
     except Exception:
         # H-03: Refund pre-reserved storage quota on failure
@@ -352,6 +360,10 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
 
     # Sanitize HTML content before storing
     new_content = sanitize_html(new_content)
+
+    # DM-01: Reject empty content after sanitization
+    if not new_content.strip():
+        raise AppError(ErrorCode.SYS_422, 422, "Message content cannot be empty after sanitization.")
 
     from app.core.database import get_pool
 

@@ -235,6 +235,28 @@ async def _local_force_logout(user_id: str) -> None:
         _connections.pop(user_id, None)
 
 
+async def _local_close_for_role_change(user_id: str) -> None:
+    """Close all local WebSocket connections for a user after ROLE_CHANGED was sent.
+
+    The ROLE_CHANGED message has already been delivered via _local_send.
+    This closes the connections with code 4007 so the client knows the
+    session ended due to a role change (not an unexpected logout).
+    """
+    async with _connections_lock:
+        sockets = list(_connections.get(user_id, []))
+    for ws in sockets:
+        try:
+            await ws.close(code=4007, reason="Role changed")
+        except Exception:
+            logger.warning(
+                "Failed to close WS after role change",
+                extra={"user_id": user_id},
+                exc_info=True,
+            )
+    async with _connections_lock:
+        _connections.pop(user_id, None)
+
+
 # --- Redis Pub/Sub subscriber (started in lifespan) ---
 
 _subscriber_task: asyncio.Task | None = None
@@ -306,6 +328,13 @@ async def _redis_subscriber() -> None:
                     # If the message is a FORCE_LOGOUT, also close connections
                     if message.get("type") == "FORCE_LOGOUT":
                         await _local_force_logout(user_id)
+
+                    # DM-08: If the message is ROLE_CHANGED, close connections
+                    # gracefully with a specific code so the client knows why.
+                    # This prevents the revalidation loop from sending a
+                    # confusing FORCE_LOGOUT after the session key is deleted.
+                    elif message.get("type") == "ROLE_CHANGED":
+                        await _local_close_for_role_change(user_id)
 
                 elif channel.startswith("ws:logout:"):
                     user_id = channel[len("ws:logout:") :]

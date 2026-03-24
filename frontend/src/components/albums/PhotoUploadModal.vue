@@ -24,6 +24,8 @@ const error = ref('')
 const ACCEPTED_TYPES =
   'image/jpeg,image/png,image/gif,image/webp,application/zip,application/x-zip-compressed'
 const ZIP_TYPES = new Set(['application/zip', 'application/x-zip-compressed'])
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10 MB (single image)
+const MAX_ZIP_SIZE = 50 * 1024 * 1024 // 50 MB (zip archive)
 
 const fileInfo = computed(() => {
   if (!selectedFile.value) return null
@@ -48,6 +50,14 @@ function handleFileChange(event: Event) {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = null
+  }
+
+  const isZip = ZIP_TYPES.has(file.type) || file.name.toLowerCase().endsWith('.zip')
+  const maxSize = isZip ? MAX_ZIP_SIZE : MAX_IMAGE_SIZE
+  const maxLabel = isZip ? '50 MB' : '10 MB'
+  if (file.size > maxSize) {
+    error.value = `File too large (max ${maxLabel}). Selected: ${(file.size / (1024 * 1024)).toFixed(1)} MB`
+    return
   }
 
   selectedFile.value = file

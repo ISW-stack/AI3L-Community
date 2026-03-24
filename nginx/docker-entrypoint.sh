@@ -10,6 +10,14 @@ envsubst '$STORAGE_CSP_ORIGIN' \
     > /etc/nginx/snippets/security-headers.conf
 echo "[entrypoint] security-headers.conf generated (STORAGE_CSP_ORIGIN=${STORAGE_CSP_ORIGIN:-<not set>})"
 
+# ── Substitute domain placeholder in nginx config ─────────────────
+if [ -n "${SERVER_DOMAIN:-}" ] && [ "$SERVER_DOMAIN" != "_" ]; then
+    sed -i "s/YOUR_DOMAIN/${SERVER_DOMAIN}/g" /etc/nginx/conf.d/default.conf
+    echo "[entrypoint] server_name set to ${SERVER_DOMAIN}"
+else
+    echo "[entrypoint] SERVER_DOMAIN not set — YOUR_DOMAIN placeholder unchanged (dev mode)"
+fi
+
 # ── Enable HTTPS if TLS certificates exist ────────────────────────
 CERT_PATH="/etc/nginx/ssl/fullchain.pem"
 KEY_PATH="/etc/nginx/ssl/privkey.pem"

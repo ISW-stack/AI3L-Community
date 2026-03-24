@@ -77,7 +77,7 @@ const router = createRouter({
       path: '/forum/create',
       name: 'forum-create',
       component: () => import('@/views/forum/PostCreateView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresMember: true },
     },
     {
       path: '/forum/:id',

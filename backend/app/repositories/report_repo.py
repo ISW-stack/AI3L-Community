@@ -2,7 +2,7 @@ import uuid
 
 from app.core.database import get_pool
 
-_VALID_REPORT_STATUSES = {"PENDING", "REVIEWED", "DISMISSED"}
+_VALID_REPORT_STATUSES = {"PENDING", "RESOLVED", "DISMISSED"}
 
 
 async def insert(
