@@ -358,18 +358,18 @@ _Last updated: 2026-03-24 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +292,216 |
-| Total lines removed (all commits) | -52,995 |
+| Total lines added (all commits) | +292,284 |
+| Total lines removed (all commits) | -53,092 |
 | Backend source lines (excl. tests) | 26,214 |
-| Frontend source lines (excl. tests) | 59,743 |
+| Frontend source lines (excl. tests) | 59,740 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
     "Python" : 101851
-    "TypeScript" : 86252
-    "Vue" : 23460
+    "TypeScript" : 86226
+    "Vue" : 23457
     "CSS" : 127
 ```
 
@@ -382,10 +382,10 @@ pie title Lines of Code by Language
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
 | Backend (pytest) | 3,097 | 26,214 | 72,561 |
-| Frontend (Vitest) | 2,835 | 59,743 | 49,969 |
-| **Total** | **5,932** | **85,957** | **122,530** |
+| Frontend (Vitest) | 2,835 | 59,740 | 49,943 |
+| **Total** | **5,932** | **85,954** | **122,504** |
 
-Test-to-source ratio: **1.43** (122,530 lines of tests for every 85,957 lines of source)
+Test-to-source ratio: **1.43** (122,504 lines of tests for every 85,954 lines of source)
 
 ### Additional Metrics
 
@@ -402,15 +402,15 @@ Test-to-source ratio: **1.43** (122,530 lines of tests for every 85,957 lines of
 | `backend/app/services/album.py` | 1,122 |
 | `frontend/src/composables/usePostDetail.ts` | 855 |
 | `frontend/src/views/about/OrgChartView.vue` | 837 |
-| `frontend/src/views/forum/PostDetailView.vue` | 772 |
+| `frontend/src/views/forum/PostDetailView.vue` | 778 |
 | `backend/app/repositories/post_repo.py` | 759 |
 
 ### Contributions by Author
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 410 | +289,222 | -50,952 |
-| github-actions[bot] | 35 | +478 | -478 |
+| Isaries | 412 | +289,284 | -51,043 |
+| github-actions[bot] | 36 | +484 | -484 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
