@@ -17,7 +17,7 @@ WORKDIR /app
 
 # Only runtime libraries (no gcc)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libpq5 libqpdf29 && \
+    apt-get install -y --no-install-recommends libpq5 libqpdf30 && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from builder
