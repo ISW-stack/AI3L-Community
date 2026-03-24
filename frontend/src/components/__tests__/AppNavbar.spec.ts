@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AppNavbar from '../AppNavbar.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 // Mock composables/api to prevent actual axios initialization
 vi.mock('@/composables/api', () => ({
@@ -136,7 +137,7 @@ describe('AppNavbar', () => {
         is_banned: false,
         ban_reason: null,
         created_at: new Date().toISOString(),
-      } as any
+      } as unknown as UserProfile
       await nextTick()
 
       // About dropdown is its own section — open it
@@ -166,7 +167,7 @@ describe('AppNavbar', () => {
         is_banned: false,
         ban_reason: null,
         created_at: new Date().toISOString(),
-      } as any
+      } as unknown as UserProfile
       await nextTick()
 
       const userBtn = wrapper.find('.user-dropdown-wrapper button')
@@ -211,7 +212,7 @@ describe('AppNavbar', () => {
         is_banned: false,
         ban_reason: null,
         created_at: new Date().toISOString(),
-      } as any
+      } as unknown as UserProfile
       await nextTick()
 
       // Open user dropdown
@@ -240,7 +241,7 @@ describe('AppNavbar', () => {
         is_banned: false,
         ban_reason: null,
         created_at: new Date().toISOString(),
-      } as any
+      } as unknown as UserProfile
       await nextTick()
 
       const userBtn = wrapper.find('.user-dropdown-wrapper button')
@@ -263,7 +264,7 @@ describe('AppNavbar', () => {
         is_banned: false,
         ban_reason: null,
         created_at: new Date().toISOString(),
-      } as any
+      } as unknown as UserProfile
       await nextTick()
 
       const userBtn = wrapper.find('.user-dropdown-wrapper button')
@@ -299,7 +300,7 @@ describe('AppNavbar', () => {
         is_banned: false,
         ban_reason: null,
         created_at: new Date().toISOString(),
-      } as any
+      } as unknown as UserProfile
       await nextTick()
 
       const userBtn = wrapper.find('.user-dropdown-wrapper button')

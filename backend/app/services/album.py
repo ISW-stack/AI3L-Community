@@ -143,17 +143,18 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
     album_uuid = uuid.UUID(album_id)
 
     async with pool.acquire() as conn:
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
-
-        is_creator = str(album["created_by"]) == user_id
-        is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
-
-        if not (is_creator or is_site_admin):
-            raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this album.")
-
         async with conn.transaction():
+            # H-02: Permission check inside transaction with FOR UPDATE to prevent TOCTOU
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+
+            is_creator = str(album["created_by"]) == user_id
+            is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
+
+            if not (is_creator or is_site_admin):
+                raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this album.")
+
             # 1. Collect photo data for storage cleanup and quota refund
             photos = await album_repo.find_all_photos_for_album(conn, album_uuid)
 
@@ -230,25 +231,26 @@ async def set_cover_from_photo(
     photo_uuid = uuid.UUID(photo_id)
 
     async with pool.acquire() as conn:
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        async with conn.transaction():
+            # H-02: Permission check inside transaction with FOR UPDATE
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        _check_album_admin(
-            album,
-            user_id,
-            user_role,
-            await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id)),
-        )
+            _check_album_admin(
+                album,
+                user_id,
+                user_role,
+                await album_repo.find_member(conn, album_uuid, uuid.UUID(user_id)),
+            )
 
-        photo = await album_repo.find_photo_by_id(conn, photo_uuid)
-        if not photo or str(photo["album_id"]) != album_id:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found in this album.")
+            photo = await album_repo.find_photo_by_id(conn, photo_uuid)
+            if not photo or str(photo["album_id"]) != album_id:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found in this album.")
 
-        await album_repo.set_cover_photo(conn, album_uuid, photo["storage_key"])
+            await album_repo.set_cover_photo(conn, album_uuid, photo["storage_key"])
 
-    async with pool.acquire() as conn:
-        row = await album_repo.find_album_by_id(conn, album_uuid)
+            row = await album_repo.find_album_by_id(conn, album_uuid)
     return await to_album_response(row or album)
 
 
@@ -483,27 +485,29 @@ async def approve_member(
     member_uuid = uuid.UUID(member_id)
 
     async with pool.acquire() as conn:
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        async with conn.transaction():
+            # M-07: Permission check + status update in same transaction
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
-        is_creator = str(album["created_by"]) == user_id
-        member = await album_repo.find_member(conn, album_uuid, user_uuid)
-        is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
+            is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
+            is_creator = str(album["created_by"]) == user_id
+            member = await album_repo.find_member(conn, album_uuid, user_uuid)
+            is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
 
-        if not (is_creator or is_site_admin or is_album_admin):
-            raise AppError(ErrorCode.SYS_403, 403, "Not authorized to approve members.")
+            if not (is_creator or is_site_admin or is_album_admin):
+                raise AppError(ErrorCode.SYS_403, 403, "Not authorized to approve members.")
 
-        updated = await album_repo.update_member_status(
-            conn,
-            member_uuid,
-            "ACCEPTED",
-            album_id=album_uuid,
-            required_current_status="PENDING",
-        )
-        if not updated:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Pending member not found in this album.")
+            updated = await album_repo.update_member_status(
+                conn,
+                member_uuid,
+                "ACCEPTED",
+                album_id=album_uuid,
+                required_current_status="PENDING",
+            )
+            if not updated:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Pending member not found in this album.")
 
     return updated
 
@@ -950,20 +954,23 @@ async def delete_photo(
     photo_uuid = uuid.UUID(photo_id)
 
     async with pool.acquire() as conn:
-        photo = await album_repo.find_photo_by_id(conn, photo_uuid)
-        if not photo or str(photo["album_id"]) != album_id:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found.")
+        async with conn.transaction():
+            # H-02: Permission check inside transaction with FOR UPDATE
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
 
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        is_uploader = str(photo["uploaded_by"]) == user_id
-        is_creator = album and str(album["created_by"]) == user_id
-        is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
+            photo = await album_repo.find_photo_by_id(conn, photo_uuid)
+            if not photo or str(photo["album_id"]) != album_id:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Photo not found.")
 
-        if not (is_uploader or is_creator or is_site_admin):
-            raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this photo.")
+            is_uploader = str(photo["uploaded_by"]) == user_id
+            is_creator = album and str(album["created_by"]) == user_id
+            is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
 
-        # 1. Delete DB record first (authoritative state)
-        deleted = await album_repo.delete_photo(conn, photo_uuid)
+            if not (is_uploader or is_creator or is_site_admin):
+                raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this photo.")
+
+            # 1. Delete DB record first (authoritative state)
+            deleted = await album_repo.delete_photo(conn, photo_uuid)
 
     # 2. Best-effort cleanup of storage and quota refund (outside connection scope)
     if deleted:

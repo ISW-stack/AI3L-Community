@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import PostDetailView from '../PostDetailView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 // Mock the usePostDetail composable since it has extensive tests elsewhere
 const mockUsePostDetail = vi.fn()
@@ -88,7 +89,7 @@ const fakeCommentTree = [
   },
 ]
 
-function buildMockPostDetail(overrides?: Record<string, any>) {
+function buildMockPostDetail(overrides?: Record<string, unknown>) {
   return {
     post: ref(overrides && 'post' in overrides ? overrides.post : fakePost),
     loading: ref(overrides?.loading ?? false),
@@ -207,7 +208,7 @@ function createStubs() {
   }
 }
 
-async function mountPostDetail(overrides?: Record<string, any>) {
+async function mountPostDetail(overrides?: Record<string, unknown>) {
   const pinia = createPinia()
   setActivePinia(pinia)
   const router = createTestRouter()
@@ -225,7 +226,7 @@ async function mountPostDetail(overrides?: Record<string, any>) {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   const mockData = buildMockPostDetail(overrides)
   mockUsePostDetail.mockReturnValue(mockData)
@@ -299,7 +300,7 @@ describe('PostDetailView', () => {
     const router = createTestRouter()
     const auth = useAuthStore()
     auth.setSession('MEMBER', 3600)
-    auth.user = { id: 'u1' } as any
+    auth.user = { id: 'u1' } as unknown as UserProfile
 
     await router.push('/forum/post-1')
     await router.isReady()
@@ -370,7 +371,7 @@ describe('PostDetailView', () => {
     const router = createTestRouter()
     const auth = useAuthStore()
     auth.setSession('MEMBER', 3600)
-    auth.user = { id: 'u1' } as any
+    auth.user = { id: 'u1' } as unknown as UserProfile
 
     const mockData = buildMockPostDetail()
     mockUsePostDetail.mockReturnValue(mockData)

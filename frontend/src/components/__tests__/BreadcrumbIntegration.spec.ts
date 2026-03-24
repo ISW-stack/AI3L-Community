@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { ref } from 'vue'
+import type { UserProfile } from '@/types/user'
 
 // ── Mocks ──
 
@@ -206,7 +207,7 @@ function setupAuth(pinia: ReturnType<typeof createPinia>, role = 'MEMBER') {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
   return auth
 }
 

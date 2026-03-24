@@ -70,6 +70,7 @@ class TestDestroySession:
         from app.services.auth import destroy_session
 
         redis = AsyncMock()
+        redis.get = AsyncMock(return_value="jti-abc")
         mock_get_redis.return_value = redis
 
         await destroy_session("user-id-1", "MEMBER", "jti-abc")
@@ -81,6 +82,7 @@ class TestDestroySession:
         from app.services.auth import destroy_session
 
         redis = AsyncMock()
+        redis.get = AsyncMock(return_value="jti-abc")
         mock_get_redis.return_value = redis
 
         await destroy_session("guest-id", "GUEST", "jti-abc")

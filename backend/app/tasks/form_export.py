@@ -117,10 +117,10 @@ async def _async_export(form_id: str, task_id: str) -> dict:
 
                 writer.writerow(
                     [
-                        str(row["id"]),
-                        _sanitize_csv_value(row["username"]),
-                        _sanitize_csv_value(row["display_name"]),
-                        row["created_at"].isoformat(),
+                        _sanitize_csv_value(str(row["id"])),
+                        _sanitize_csv_value(str(row["username"] or "")),
+                        _sanitize_csv_value(str(row["display_name"] or "")),
+                        _sanitize_csv_value(row["created_at"].isoformat()),
                     ]
                     + [_sanitize_csv_value(v) for v in answer_values]
                 )

@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     )
     S3_REGION: str = "us-east-1"  # "us-east-1" for MinIO dev, "auto" for R2 prod
 
+    # SSL/TLS for database and Redis connections (enable for remote/cloud deployments)
+    DATABASE_SSL: bool = False
+    REDIS_SSL: bool = False
+
     # Celery — URLs built dynamically from Redis settings via @property below
 
     # Super Admin (bootstrap)
@@ -97,7 +101,8 @@ class Settings(BaseSettings):
 
     @property
     def REDIS_URL(self) -> str:
-        return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+        scheme = "rediss" if self.REDIS_SSL else "redis"
+        return f"{scheme}://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/0"
 
     @property
     def CORS_ORIGINS_LIST(self) -> list[str]:
@@ -171,11 +176,13 @@ class Settings(BaseSettings):
 
     @property
     def CELERY_BROKER_URL(self) -> str:
-        return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/1"
+        scheme = "rediss" if self.REDIS_SSL else "redis"
+        return f"{scheme}://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/1"
 
     @property
     def CELERY_RESULT_BACKEND(self) -> str:
-        return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/2"
+        scheme = "rediss" if self.REDIS_SSL else "redis"
+        return f"{scheme}://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/2"
 
     @property
     def is_development(self) -> bool:

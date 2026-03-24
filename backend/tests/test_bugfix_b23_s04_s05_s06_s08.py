@@ -134,14 +134,14 @@ class TestGetClientIp:
         assert get_client_ip(request) == "203.0.113.50"
 
     def test_x_forwarded_for_multiple_ips(self):
-        """Last IP (appended by trusted proxy) should be returned."""
+        """First IP (original client) should be returned."""
         from app.core.rate_limit import get_client_ip
 
         request = self._make_request(
             headers={"x-forwarded-for": "203.0.113.50, 70.41.3.18, 150.172.238.178"},
             client_host="10.0.0.1",
         )
-        assert get_client_ip(request) == "150.172.238.178"
+        assert get_client_ip(request) == "203.0.113.50"
 
     def test_x_real_ip_used_when_no_forwarded_for(self):
         from app.core.rate_limit import get_client_ip
@@ -152,7 +152,8 @@ class TestGetClientIp:
         )
         assert get_client_ip(request) == "198.51.100.22"
 
-    def test_forwarded_for_takes_priority_over_real_ip(self):
+    def test_real_ip_takes_priority_over_forwarded_for(self):
+        """X-Real-IP is checked first (set by nginx from trusted proxy)."""
         from app.core.rate_limit import get_client_ip
 
         request = self._make_request(
@@ -162,7 +163,7 @@ class TestGetClientIp:
             },
             client_host="10.0.0.1",
         )
-        assert get_client_ip(request) == "203.0.113.50"
+        assert get_client_ip(request) == "198.51.100.22"
 
     def test_falls_back_to_client_host(self):
         from app.core.rate_limit import get_client_ip

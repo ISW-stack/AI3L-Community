@@ -50,8 +50,8 @@ class TestBulkDeleteNotifications:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_empty_list_deletes_all_returns_204(self, client):
-        """DELETE /notifications with empty notification_ids → deletes ALL → 204."""
+    async def test_empty_list_is_noop_returns_204(self, client):
+        """DELETE /notifications with empty notification_ids → no-op → 204 (L-05)."""
         try:
             payload, uid = _override_auth("MEMBER")
             with (
@@ -69,7 +69,8 @@ class TestBulkDeleteNotifications:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 204
-                mock_bulk.assert_awaited_once_with(uuid.UUID(uid), None)
+                # L-05: Empty list should NOT call bulk_delete (no-op)
+                mock_bulk.assert_not_awaited()
         finally:
             _clear_overrides()
 

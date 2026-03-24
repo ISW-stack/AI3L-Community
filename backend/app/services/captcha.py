@@ -1,5 +1,6 @@
 import base64
-import random
+import hmac
+import secrets
 import string
 import uuid
 from io import BytesIO
@@ -20,7 +21,7 @@ async def generate_captcha() -> tuple[str, str]:
     chars = string.ascii_uppercase.replace("O", "").replace("I", "") + string.digits.replace(
         "0", ""
     ).replace("1", "")
-    code = "".join(random.choices(chars, k=CAPTCHA_LENGTH))
+    code = "".join(secrets.choice(chars) for _ in range(CAPTCHA_LENGTH))
 
     # Generate image
     image_captcha = ImageCaptcha(width=160, height=60)
@@ -47,4 +48,4 @@ async def verify_captcha(captcha_id: str, captcha_code: str) -> bool:
     if stored_code is None:
         return False
 
-    return bool(stored_code.upper() == captcha_code.upper())
+    return hmac.compare_digest(stored_code.upper(), captcha_code.upper())

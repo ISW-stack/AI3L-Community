@@ -5,6 +5,9 @@ import type { DMMessage } from '@/types/dm'
 import { useLocale } from '@/composables/useLocale'
 
 const { currentLocale: locale } = useLocale()
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 import {
   MoreHorizontal,
   Pencil,
@@ -190,8 +193,8 @@ function getDateLabel(iso: string): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
   const diff = today.getTime() - msgDay.getTime()
-  if (diff === 0) return 'Today'
-  if (diff === 86400000) return 'Yesterday'
+  if (diff === 0) return t('dm.today')
+  if (diff === 86400000) return t('dm.yesterday')
   return date.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
@@ -226,7 +229,7 @@ defineExpose({ scrollToBottom })
         class="text-xs text-brand-600 hover:text-brand-700 transition px-3 py-1.5 rounded-md hover:bg-surface-alt"
         :disabled="loading"
       >
-        {{ loading ? 'Loading...' : 'Load older messages' }}
+        {{ loading ? t('dm.loadingMessages') : t('dm.loadMore') }}
       </button>
     </div>
 
@@ -253,7 +256,7 @@ defineExpose({ scrollToBottom })
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
           ></path>
         </svg>
-        Loading messages...
+        {{ t('dm.loadingMessages') }}
       </div>
     </div>
 
@@ -263,8 +266,8 @@ defineExpose({ scrollToBottom })
       class="flex flex-col items-center justify-center flex-1 py-12 text-center"
     >
       <MessageSquare class="w-10 h-10 text-gray-300 mb-3" aria-hidden="true" />
-      <p class="text-sm text-muted">No messages yet</p>
-      <p class="text-xs text-muted mt-1">Send the first message to start the conversation.</p>
+      <p class="text-sm text-muted">{{ t('dm.noMessages') }}</p>
+      <p class="text-xs text-muted mt-1">{{ t('dm.noMessagesDesc') }}</p>
     </div>
 
     <template v-else>
@@ -311,7 +314,7 @@ defineExpose({ scrollToBottom })
               v-if="item.message.is_recalled"
               class="px-3 py-2 rounded-xl text-sm italic text-muted bg-surface-alt border border-border"
             >
-              Message recalled
+              {{ t('dm.messageRecalled') }}
             </div>
 
             <!-- Normal message -->
@@ -339,7 +342,7 @@ defineExpose({ scrollToBottom })
                     :class="isMine(item.message) ? 'text-white/80' : 'text-muted'"
                   >
                     <AlertTriangle class="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                    <span class="italic">File expired</span>
+                    <span class="italic">{{ t('dm.fileExpired') }}</span>
                   </div>
                 </template>
                 <template v-else>
@@ -393,7 +396,7 @@ defineExpose({ scrollToBottom })
                     class="flex items-center gap-1 mt-1 text-xs text-amber-500"
                   >
                     <AlertTriangle class="w-3 h-3" aria-hidden="true" />
-                    Expires soon
+                    {{ t('dm.fileExpiresSoon') }}
                   </div>
                 </template>
               </div>
@@ -411,28 +414,29 @@ defineExpose({ scrollToBottom })
                 })
               }}</span>
               <span v-if="item.message.is_edited && !item.message.is_recalled" class="italic">
-                (edited)
+                ({{ t('dm.edited') }})
               </span>
               <!-- Sent but not read (single check) -->
               <Check
                 v-if="isMine(item.message) && !item.message.read_at && !item.message.is_recalled"
                 class="w-3.5 h-3.5 text-muted"
-                aria-label="Sent"
+                :aria-label="t('dm.sent')"
               />
               <!-- Read (double check with tooltip) -->
               <span
                 v-if="isMine(item.message) && item.message.read_at && !item.message.is_recalled"
                 :title="
-                  'Read ' +
-                  new Date(item.message.read_at).toLocaleString(locale, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
+                  t('dm.readAt', {
+                    time: new Date(item.message.read_at).toLocaleString(locale, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
                   })
                 "
               >
-                <CheckCheck class="w-3.5 h-3.5 text-brand-500" aria-label="Read" />
+                <CheckCheck class="w-3.5 h-3.5 text-brand-500" :aria-label="t('dm.read')" />
               </span>
             </div>
 
@@ -454,7 +458,7 @@ defineExpose({ scrollToBottom })
                 data-message-menu
                 @click="toggleMenu(item.message!.id)"
                 class="p-2 sm:p-1 rounded-full hover:bg-surface-alt active:bg-surface-alt text-muted hover:text-foreground transition touch-manipulation"
-                aria-label="Message actions"
+                :aria-label="t('dm.messageActions')"
               >
                 <MoreHorizontal class="w-4 h-4" aria-hidden="true" />
               </button>
@@ -476,14 +480,14 @@ defineExpose({ scrollToBottom })
                   class="w-full flex items-center gap-2 px-3 py-2.5 sm:py-1.5 text-sm text-foreground hover:bg-surface-alt active:bg-surface-alt transition touch-manipulation"
                 >
                   <Pencil class="w-3.5 h-3.5" aria-hidden="true" />
-                  Edit
+                  {{ t('common.edit') }}
                 </button>
                 <button
                   @click="handleRecall(item.message!)"
                   class="w-full flex items-center gap-2 px-3 py-2.5 sm:py-1.5 text-sm text-danger-600 hover:bg-surface-alt active:bg-surface-alt transition touch-manipulation"
                 >
                   <Trash2 class="w-3.5 h-3.5" aria-hidden="true" />
-                  Recall
+                  {{ t('dm.recallButton') }}
                 </button>
               </div>
             </div>
@@ -499,7 +503,7 @@ defineExpose({ scrollToBottom })
       class="sticky bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand-600 rounded-full shadow-lg hover:bg-brand-700 transition"
     >
       <ArrowDown class="w-3.5 h-3.5" aria-hidden="true" />
-      New message
+      {{ t('dm.newMessage') }}
     </button>
   </div>
 </template>

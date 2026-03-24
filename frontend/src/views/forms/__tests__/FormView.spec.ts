@@ -4,6 +4,16 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import FormView from '../FormView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
+
+interface FormViewVm {
+  answers: Record<string, unknown>
+  validationErrors: Record<string, string | undefined>
+  highlightedQuestions: Set<string>
+  touched: Record<string, boolean>
+  progressPercent: number
+  ratingCount: (question: Record<string, unknown>) => number
+}
 
 const mockGetForm = vi.fn()
 const mockSubmitForm = vi.fn()
@@ -160,7 +170,7 @@ async function mountFormView(options?: {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   if (form) {
     mockGetForm.mockResolvedValue(form)
@@ -286,7 +296,7 @@ describe('FormView', () => {
 
   it('submits form successfully', async () => {
     const { wrapper } = await mountFormView()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormViewVm
 
     vm.answers['q1'] = 'John Doe'
     vm.answers['q2'] = 'opt1'
@@ -303,7 +313,7 @@ describe('FormView', () => {
 
   it('shows success message after submission', async () => {
     const { wrapper } = await mountFormView()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormViewVm
     vm.answers['q1'] = 'John'
     vm.answers['q2'] = 'opt1'
 
@@ -319,7 +329,7 @@ describe('FormView', () => {
       response: { data: { detail: 'Already submitted' } },
     })
     const { wrapper } = await mountFormView()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormViewVm
     vm.answers['q1'] = 'John'
     vm.answers['q2'] = 'opt1'
 
@@ -342,7 +352,7 @@ describe('FormView', () => {
     const router = createTestRouter()
     const auth = useAuthStore()
     auth.setSession('MEMBER', 3600)
-    auth.user = { id: 'u2' } as any
+    auth.user = { id: 'u2' } as unknown as UserProfile
 
     const wrapper = mount(FormView, {
       global: { plugins: [pinia, router], stubs: createStubs() },
@@ -437,7 +447,7 @@ describe('FormView', () => {
 
     it('updates progress when answers are given', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
       vm.answers['q1'] = 'John'
       await wrapper.vm.$nextTick()
       // Should show 1/5
@@ -452,7 +462,7 @@ describe('FormView', () => {
 
     it('calculates correct progress percentage', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       // Answer 2 of 5 questions
       vm.answers['q1'] = 'John'
@@ -464,7 +474,7 @@ describe('FormView', () => {
 
     it('reaches 100% when all questions answered', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       vm.answers['q1'] = 'John'
       vm.answers['q2'] = 'opt1'
@@ -481,7 +491,7 @@ describe('FormView', () => {
   describe('validation scroll-to-error', () => {
     it('populates per-question validation errors', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
       await submitBtn!.trigger('click')
@@ -508,7 +518,7 @@ describe('FormView', () => {
 
     it('adds highlight class on invalid questions', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
       await submitBtn!.trigger('click')
@@ -519,7 +529,7 @@ describe('FormView', () => {
 
     it('clears error when user starts editing', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
       await submitBtn!.trigger('click')
@@ -538,7 +548,7 @@ describe('FormView', () => {
 
     it('removes highlight after 3 seconds timeout', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       const submitBtn = wrapper.findAll('button').find((b) => b.text().includes('Submit'))
       await submitBtn!.trigger('click')
@@ -561,7 +571,7 @@ describe('FormView', () => {
       )
 
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       expect(vm.answers['q1']).toBe('Draft Name')
       expect(vm.answers['q5']).toBe('Draft comment')
@@ -578,7 +588,7 @@ describe('FormView', () => {
       localStorage.setItem('form-response-draft-form-1', JSON.stringify({ q1: 'John' }))
 
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
       vm.answers['q1'] = 'John'
       vm.answers['q2'] = 'opt1'
 
@@ -608,7 +618,7 @@ describe('FormView', () => {
 
     it('validates file type client-side', async () => {
       const { wrapper } = await mountFormView({ form: fileUploadForm })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       // Simulate file input change with an invalid file type
       const invalidFile = new File(['data'], 'image.png', { type: 'image/png' })
@@ -623,7 +633,7 @@ describe('FormView', () => {
 
     it('validates file size client-side', async () => {
       const { wrapper } = await mountFormView({ form: fileUploadForm })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       // Create a file larger than 1MB
       const bigContent = new Uint8Array(2 * 1024 * 1024)
@@ -651,7 +661,7 @@ describe('FormView', () => {
         ],
       }
       const { wrapper } = await mountFormView({ form: formAccept })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       const validFile = new File(['data'], 'doc.pdf', { type: 'application/pdf' })
       const fileInput = wrapper.find('#file-input-qf')
@@ -702,7 +712,7 @@ describe('FormView', () => {
         ],
       }
       const { wrapper } = await mountFormView({ form: wideRatingForm })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       expect(vm.ratingCount(wideRatingForm.questions[0])).toBe(10)
       // Buttons should use compact class
@@ -740,7 +750,7 @@ describe('FormView', () => {
 
     it('shows response summary after successful submission', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       vm.answers['q1'] = 'John'
       vm.answers['q2'] = 'opt1'
@@ -754,7 +764,7 @@ describe('FormView', () => {
 
     it('shows Back to SIG button after submission', async () => {
       const { wrapper } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
 
       vm.answers['q1'] = 'John'
       vm.answers['q2'] = 'opt1'
@@ -768,7 +778,7 @@ describe('FormView', () => {
 
     it('uses router.push instead of window.location.href for Back to SIG', async () => {
       const { wrapper, router } = await mountFormView()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
       const pushSpy = vi.spyOn(router, 'push')
 
       vm.answers['q1'] = 'John'
@@ -823,7 +833,7 @@ describe('FormView', () => {
       await wrapper.vm.$nextTick()
 
       // Optional fields should NOT show inline error
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
       expect(vm.touched['q5']).toBe(true)
       // No inline validation error since q5 is not required
       const inlineErrors = wrapper.findAll('[data-testid="inline-validation-error"]')
@@ -853,7 +863,7 @@ describe('FormView', () => {
       await wrapper.vm.$nextTick()
 
       // The inline error should disappear since the field now has a value
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormViewVm
       expect(vm.answers['q1']).toBe('John')
     })
   })

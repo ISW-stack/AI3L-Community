@@ -424,11 +424,24 @@ class TestToggleReaction:
         comment["user_reactions"] = None
         comment["_raw_reactions"] = {"LIKE": [str(uuid.uuid4())]}
 
+        _mock_pool = MagicMock()
+        _mock_conn = AsyncMock()
+        _cm = AsyncMock()
+        _cm.__aenter__ = AsyncMock(return_value=_mock_conn)
+        _cm.__aexit__ = AsyncMock(return_value=False)
+        _mock_pool.acquire.return_value = _cm
+
         try:
             _override_auth("MEMBER")
             with (
                 patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
                 patch(f"{_EP}.add_reaction", new_callable=AsyncMock, return_value=comment),
+                patch(
+                    "app.repositories.comment_repo.find_parent_user_id",
+                    new_callable=AsyncMock,
+                    return_value=None,
+                ),
+                patch("app.core.database.get_pool", return_value=_mock_pool),
             ):
                 resp = await client.post(
                     f"/api/v1/posts/{post_id}/comments/{comment_id}/reactions",

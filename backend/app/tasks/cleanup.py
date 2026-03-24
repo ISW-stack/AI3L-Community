@@ -16,29 +16,17 @@ from loguru import logger
 
 from app.celery_app import celery
 from app.core.config import settings
-from app.core.database import get_pool, init_db_pool
-from app.core.redis import get_redis, init_redis
+from app.core.database import get_pool
 from app.tasks.async_runner import run_async as _run_async
+from app.tasks.utils import decrement_owner_storage as _decrement_owner_storage
+from app.tasks.utils import ensure_pool as _ensure_pool
+from app.tasks.utils import ensure_redis as _ensure_redis
 
 # Matches /api/v1/files/content/editor/<user_id>/<filename>
 _FILE_KEY_RE = re.compile(r"/api/v1/files/content/(editor/[^\s\"'<>]+)")
 
 _ORPHAN_MAX_AGE_DAYS = 7
 _ORPHAN_BATCH_SIZE = 1000
-
-
-async def _ensure_pool() -> None:
-    try:
-        get_pool()
-    except RuntimeError:
-        await init_db_pool(settings.DATABASE_URL)
-
-
-async def _ensure_redis() -> None:
-    try:
-        get_redis()
-    except RuntimeError:
-        await init_redis(settings.REDIS_URL)
 
 
 async def _get_referenced_keys() -> set[str]:
@@ -144,35 +132,15 @@ def _iter_editor_files() -> Iterator[tuple[str, Any]]:
             yield (obj["Key"], obj["LastModified"])
 
 
-async def _decrement_owner_storage(storage_key: str, file_size: int) -> None:
-    """Parse user_id from storage key and decrement their storage counter.
-
-    Key pattern: editor/{user_id}/{filename}
-    """
-    import uuid as _uuid
-
-    from app.repositories import user_repo
-
-    parts = storage_key.split("/")
-    if len(parts) >= 2:
-        try:
-            owner_uuid = _uuid.UUID(parts[1])
-            await user_repo.increment_storage_used(owner_uuid, -file_size)
-            logger.info(
-                "Decremented storage for user after orphan file deletion",
-                extra={"user_id": parts[1], "key": storage_key, "size": file_size},
-            )
-        except (ValueError, Exception) as e:
-            logger.warning(
-                "Failed to decrement storage after orphan file deletion",
-                extra={"key": storage_key, "error": str(e)},
-            )
-
-
 async def _delete_orphans(orphan_keys: list[str]) -> int:
-    """Delete orphan files from MinIO and remove their file_scans records."""
+    """Delete orphan files from MinIO and remove their file_scans records.
+
+    Order of operations (M-17): decrement quota first (recoverable), then
+    delete from MinIO. If MinIO delete fails, re-increment quota to avoid drift.
+    """
     from app.core.async_storage import delete_file, get_file_size
     from app.repositories import file_scan_repo
+    from app.tasks.utils import decrement_owner_storage
 
     await _ensure_pool()
     deleted = 0
@@ -180,13 +148,49 @@ async def _delete_orphans(orphan_keys: list[str]) -> int:
         try:
             file_size = await get_file_size(key)
             await file_scan_repo.delete_by_key(key)
+            # Decrement quota first (can be rolled back)
+            quota_decremented = False
             if file_size > 0:
-                await _decrement_owner_storage(key, file_size)
-            await delete_file(key)
+                await decrement_owner_storage(key, file_size)
+                quota_decremented = True
+            try:
+                await delete_file(key)
+            except Exception:
+                # MinIO delete failed — re-increment quota to avoid drift
+                if quota_decremented:
+                    try:
+                        await _reincrement_owner_storage(key, file_size)
+                    except Exception:
+                        logger.error(
+                            "Failed to re-increment quota after MinIO delete failure",
+                            extra={"key": key},
+                            exc_info=True,
+                        )
+                raise
             deleted += 1
         except Exception:
             logger.warning("Failed to delete orphan file key=%s", key, exc_info=True)
     return deleted
+
+
+async def _reincrement_owner_storage(storage_key: str, file_size: int) -> None:
+    """Re-increment storage quota when MinIO deletion fails after quota was decremented."""
+    import uuid as _uuid
+
+    from app.repositories import user_repo
+
+    parts = storage_key.split("/")
+    for part in parts[1:]:
+        try:
+            owner_uuid = _uuid.UUID(part)
+            await user_repo.increment_storage_used(owner_uuid, file_size)
+            logger.info(
+                "Re-incremented storage after MinIO delete failure",
+                extra={"key": storage_key, "size": file_size},
+            )
+            return
+        except ValueError:
+            continue
 
 
 @celery.task(name="sync_guest_counter", bind=True, max_retries=1)

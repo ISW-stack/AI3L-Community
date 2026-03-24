@@ -8,16 +8,9 @@ from loguru import logger
 
 from app.celery_app import celery
 from app.core.config import settings
-from app.core.database import get_pool, init_db_pool
 from app.tasks.async_runner import run_async as _run_async
-
-
-async def _ensure_pool() -> None:
-    """Ensure DB pool is available (worker may not have it)."""
-    try:
-        get_pool()
-    except RuntimeError:
-        await init_db_pool(settings.DATABASE_URL)
+from app.tasks.utils import decrement_owner_storage as _decrement_owner_storage
+from app.tasks.utils import ensure_pool as _ensure_pool
 
 
 async def _insert_pending(storage_key: str) -> None:
@@ -40,34 +33,6 @@ async def _update_scan(
     from app.repositories import file_scan_repo
 
     await file_scan_repo.update_status(storage_key, status, scan_id, positives, total)
-
-
-async def _decrement_owner_storage(storage_key: str, file_size: int) -> None:
-    """Parse user_id from storage key and decrement their storage counter."""
-    import uuid
-
-    if not storage_key or "/" not in storage_key:
-        logger.warning("Invalid storage key format", extra={"key": storage_key})
-        return
-
-    await _ensure_pool()
-    from app.repositories import user_repo
-
-    # Key pattern: editor/{user_id}/{filename}
-    parts = storage_key.split("/")
-    if len(parts) >= 2:
-        try:
-            owner_uuid = uuid.UUID(parts[1])
-            await user_repo.increment_storage_used(owner_uuid, -file_size)
-            logger.info(
-                "Decremented storage for user after malicious file deletion",
-                extra={"user_id": parts[1], "key": storage_key, "size": file_size},
-            )
-        except (ValueError, Exception) as e:
-            logger.warning(
-                "Failed to decrement storage after malicious file deletion",
-                extra={"key": storage_key, "error": str(e)},
-            )
 
 
 @celery.task(bind=True, max_retries=2, default_retry_delay=60)

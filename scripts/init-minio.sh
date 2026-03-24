@@ -8,9 +8,9 @@
 
 set -euo pipefail
 
-MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://localhost:9000}"
-MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
-MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-changeme_minio}"
+MINIO_ENDPOINT="${MINIO_ENDPOINT:?MINIO_ENDPOINT must be set (e.g. http://localhost:9000)}"
+MINIO_ROOT_USER="${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}"
+MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}"
 BUCKET_NAME="${MINIO_BUCKET_NAME:-ai3l-uploads}"
 
 echo "Configuring MinIO alias..."

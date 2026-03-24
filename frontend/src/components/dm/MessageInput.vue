@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Paperclip, Send, X } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   disabled?: boolean
@@ -82,7 +85,7 @@ function handleFileChange(event: Event) {
   const selected = target.files?.[0]
   if (!selected) return
   if (selected.size > MAX_FILE_SIZE) {
-    fileError.value = 'File too large (max 10 MB)'
+    fileError.value = t('dm.fileTooLarge')
     target.value = ''
     return
   }
@@ -113,11 +116,11 @@ function formatFileSize(bytes: number): string {
       v-if="editMode"
       class="flex items-center justify-between mb-2 px-3 py-1.5 bg-brand-50 rounded-md text-sm"
     >
-      <span class="text-brand-700 font-medium">Editing message</span>
+      <span class="text-brand-700 font-medium">{{ t('dm.editingMessage') }}</span>
       <button
         @click="handleCancelEdit"
         class="text-muted hover:text-foreground transition"
-        aria-label="Cancel edit"
+        :aria-label="t('dm.cancelEdit')"
       >
         <X class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -134,7 +137,7 @@ function formatFileSize(bytes: number): string {
       <button
         @click="removeFile"
         class="ml-auto text-muted hover:text-danger-600 transition shrink-0"
-        aria-label="Remove file"
+        :aria-label="t('dm.removeFile')"
       >
         <X class="w-4 h-4" aria-hidden="true" />
       </button>
@@ -151,7 +154,7 @@ function formatFileSize(bytes: number): string {
         @click="triggerFileSelect"
         class="p-2.5 sm:p-2 text-muted hover:text-foreground active:text-foreground transition rounded-md hover:bg-surface-alt shrink-0 touch-manipulation"
         :disabled="disabled"
-        aria-label="Attach file"
+        :aria-label="t('dm.attachFile')"
       >
         <Paperclip class="w-5 h-5" aria-hidden="true" />
       </button>
@@ -173,7 +176,7 @@ function formatFileSize(bytes: number): string {
           @keydown="handleKeydown"
           @input="checkOverflow"
           @focus="handleFocus"
-          :placeholder="editMode ? 'Edit your message...' : 'Type a message...'"
+          :placeholder="editMode ? t('dm.editPlaceholder') : t('dm.typeMessage')"
           :disabled="disabled"
           :maxlength="MAX_CHARS"
           rows="1"
@@ -189,7 +192,7 @@ function formatFileSize(bytes: number): string {
           class="absolute bottom-1 right-2 text-[10px]"
           :class="charsRemaining < 0 ? 'text-danger-600' : 'text-muted'"
           aria-live="polite"
-          :aria-label="`${charsRemaining} characters remaining`"
+          :aria-label="t('dm.charsRemaining', { count: charsRemaining })"
         >
           {{ charsRemaining }}
         </span>
@@ -205,7 +208,7 @@ function formatFileSize(bytes: number): string {
             ? 'bg-brand-600 text-white hover:bg-brand-700'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
         "
-        aria-label="Send message"
+        :aria-label="t('dm.sendMessage')"
       >
         <Send class="w-5 h-5" aria-hidden="true" />
       </button>

@@ -4,6 +4,12 @@ import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import DangerZone from '../DangerZone.vue'
 
+type DangerZoneVM = {
+  showDeleteConfirm: boolean
+  deleteConfirmText: string
+  closeDeleteConfirm: () => void
+}
+
 function createStubs() {
   return {
     BaseCard: { template: '<div class="base-card"><slot /></div>', props: ['padding'] },
@@ -76,7 +82,7 @@ describe('DangerZone', () => {
 
     it('disables confirm button until DELETE is typed', async () => {
       const wrapper = mountDangerZone()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as DangerZoneVM
 
       // Open modal
       vm.showDeleteConfirm = true
@@ -90,7 +96,7 @@ describe('DangerZone', () => {
 
     it('enables confirm button when DELETE is typed', async () => {
       const wrapper = mountDangerZone()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as DangerZoneVM
 
       vm.showDeleteConfirm = true
       vm.deleteConfirmText = 'DELETE'
@@ -103,7 +109,7 @@ describe('DangerZone', () => {
 
     it('emits delete-account when confirm button clicked', async () => {
       const wrapper = mountDangerZone()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as DangerZoneVM
 
       vm.showDeleteConfirm = true
       vm.deleteConfirmText = 'DELETE'
@@ -116,7 +122,7 @@ describe('DangerZone', () => {
 
     it('closes modal when cancel button clicked', async () => {
       const wrapper = mountDangerZone()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as DangerZoneVM
 
       vm.showDeleteConfirm = true
       await nextTick()
@@ -131,7 +137,7 @@ describe('DangerZone', () => {
 
     it('clears deleteConfirmText when modal is closed', async () => {
       const wrapper = mountDangerZone()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as DangerZoneVM
 
       // Open modal and type DELETE
       vm.showDeleteConfirm = true
@@ -150,7 +156,7 @@ describe('DangerZone', () => {
   describe('expose', () => {
     it('exposes showDeleteConfirm and deleteConfirmText', () => {
       const wrapper = mountDangerZone()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as DangerZoneVM
 
       expect(vm.showDeleteConfirm).toBeDefined()
       expect(vm.deleteConfirmText).toBeDefined()

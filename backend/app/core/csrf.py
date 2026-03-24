@@ -36,7 +36,16 @@ _EXEMPT_GUEST_PREFIX = "/api/v1/auth/guest/"
 
 
 def generate_csrf_token(jti: str) -> str:
-    """Generate a CSRF token bound to the session JTI."""
+    """Generate a CSRF token bound to the session JTI.
+
+    Design note: The CSRF token is deterministic given the JTI — this is by
+    design. CSRF tokens don't need to be random; they only need to be
+    unpredictable to third parties. Since the JTI is a random UUID and the
+    HMAC uses the server-side SECRET_KEY (never exposed to the client), an
+    attacker cannot predict or forge the CSRF token without knowing both
+    the JTI and the secret key. Regeneration produces a new value when the
+    session JTI changes (i.e., on login), which is the standard behavior.
+    """
     return hmac.new(
         settings.SECRET_KEY.encode(),
         jti.encode(),

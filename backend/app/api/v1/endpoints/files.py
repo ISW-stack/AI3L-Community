@@ -316,8 +316,11 @@ async def serve_file(
         finally:
             streaming_body.close()
 
+    # Use a moderate cache duration (1 day) instead of immutable 1-year cache.
+    # Files may be rescanned and flagged as malicious after initial serving;
+    # immutable caching would prevent browsers from re-checking.
     headers = {
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "public, max-age=86400, must-revalidate",
         "Content-Disposition": f'{disposition}; filename="{safe_filename}"',
         "Content-Security-Policy": "sandbox",
     }

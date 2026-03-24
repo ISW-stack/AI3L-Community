@@ -236,6 +236,15 @@ async def update_post(
             )
 
             new_title = title if title is not None else current["title"]
+
+            # Defense-in-depth: sanitize content at the service layer
+            if content is not None:
+                from app.core.file_validation import sanitize_html
+
+                content = sanitize_html(content)
+                if not content or not content.strip():
+                    raise ValueError("Content cannot be empty after sanitization.")
+
             new_content = content if content is not None else current["content"]
             new_category_id = (
                 uuid.UUID(category_id) if category_id is not None else current["category_id"]

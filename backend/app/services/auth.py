@@ -88,10 +88,23 @@ async def create_session(user_id: str, role: str) -> tuple[str, str, int]:
 
 
 async def destroy_session(user_id: str, role: str, jti: str) -> None:
-    """Logout: remove session + blacklist JWT."""
+    """Logout: remove session + blacklist JWT.
+
+    Verifies that the JTI belongs to the requesting user before deleting
+    to prevent a user from destroying another user's session.
+    """
     redis = get_redis()
 
     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
+    stored_jti = await redis.get(session_key)
+    if stored_jti:
+        stored_jti_str = stored_jti.decode() if isinstance(stored_jti, bytes) else stored_jti
+        if not secrets.compare_digest(stored_jti_str, jti):
+            logger.warning(
+                "Session destroy rejected: JTI mismatch",
+                extra={"user_id": user_id, "role": role},
+            )
+            return
     await redis.delete(session_key)
 
     blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=jti)
@@ -372,7 +385,7 @@ async def register_new_user(
                 """
                 INSERT INTO users (id, username, password_hash, role, display_name)
                 VALUES ($1, $2, $3, $4, $5)
-                RETURNING *
+                RETURNING id, username, role, display_name, created_at
                 """,
                 user_id,
                 username,

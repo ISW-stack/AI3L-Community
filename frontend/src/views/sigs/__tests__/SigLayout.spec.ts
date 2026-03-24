@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SigLayout from '../SigLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 // Mock composables/api to prevent actual axios initialization
 vi.mock('@/composables/api', () => ({
@@ -118,7 +119,7 @@ async function mountLayout(options?: {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   await router.push('/sigs/sig-1/posts')
   await router.isReady()
@@ -188,7 +189,7 @@ describe('SigLayout', () => {
 
     const auth = useAuthStore()
     auth.setSession('MEMBER', 3600)
-    auth.user = { id: 'user1' } as any
+    auth.user = { id: 'user1' } as unknown as UserProfile
 
     await router.push('/sigs/sig-1/posts')
     await router.isReady()
@@ -372,7 +373,7 @@ describe('SigLayout', () => {
       avatar_url: null,
       is_banned: false,
       ban_reason: null,
-    } as any
+    } as unknown as UserProfile
 
     await router.push('/sigs/sig-1/posts')
     await router.isReady()
@@ -456,7 +457,7 @@ describe('SigLayout', () => {
       avatar_url: null,
       is_banned: false,
       ban_reason: null,
-    } as any
+    } as unknown as UserProfile
 
     await router.push('/sigs/sig-1/posts')
     await router.isReady()

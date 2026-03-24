@@ -105,6 +105,10 @@ def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | Non
         base, ext = os.path.splitext(filename)
         ascii_base = re.sub(r"[^\x20-\x7E]", "_", base).strip(" _") or "export"
         ascii_fallback = ascii_base + ext
+        # Escape double quotes in the filename to prevent Content-Disposition
+        # header injection (L-11). A quote in the filename could break the
+        # header value and allow injection of arbitrary headers.
+        ascii_fallback = ascii_fallback.replace("\\", "\\\\").replace('"', '\\"')
         # NOTE: Do NOT pre-encode the filename for filename* — boto3 will
         # URL-encode the entire ResponseContentDisposition query parameter.
         # Pre-encoding causes double-encoding (e.g. %E4 → %25E4 = garbled).

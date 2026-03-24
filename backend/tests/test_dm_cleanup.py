@@ -72,14 +72,17 @@ class TestDmCleanupStructure:
         assert "from app.tasks.async_runner import run_async" in source
 
     def test_imports_ensure_pool(self):
-        """dm_cleanup must import _ensure_pool from app.tasks.cleanup."""
+        """dm_cleanup must import ensure_pool from app.tasks.utils or app.tasks.cleanup."""
         import importlib
         import inspect
 
         mod = importlib.import_module("app.tasks.dm_cleanup")
         source = inspect.getsource(mod)
 
-        assert "from app.tasks.cleanup import _ensure_pool" in source
+        assert (
+            "from app.tasks.cleanup import _ensure_pool" in source
+            or "from app.tasks.utils import ensure_pool" in source
+        )
 
     def test_cleanup_files_calls_ensure_pool(self):
         """_cleanup_files source must call _ensure_pool before any repo access."""

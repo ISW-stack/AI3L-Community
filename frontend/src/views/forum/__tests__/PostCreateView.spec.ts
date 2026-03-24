@@ -187,7 +187,7 @@ describe('PostCreateView', () => {
     const pushSpy = vi.spyOn(router, 'push')
 
     // Set title and content via component internals
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'My New Post'
     vm.content = '<p>Some content</p>'
 
@@ -207,7 +207,7 @@ describe('PostCreateView', () => {
     })
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'My New Post'
     vm.content = '<p>Some content</p>'
 
@@ -264,7 +264,7 @@ describe('PostCreateView', () => {
   it('rejects Tiptap empty HTML content on submit', async () => {
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'My Title'
     vm.content = '<p></p>' // Tiptap default empty
 
@@ -279,7 +279,7 @@ describe('PostCreateView', () => {
   it('shows title-specific error when only title is empty', async () => {
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = ''
     vm.content = '<p>Some content here</p>'
 
@@ -294,7 +294,7 @@ describe('PostCreateView', () => {
   it('shows content-specific error when only content is empty', async () => {
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'My Title'
     vm.content = ''
 
@@ -310,7 +310,7 @@ describe('PostCreateView', () => {
     const { wrapper, router } = await mountPostCreate()
     const pushSpy = vi.spyOn(router, 'push')
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'Image Post'
     vm.content = '<p><img src="https://example.com/img.png" alt="test"></p>'
 
@@ -325,7 +325,7 @@ describe('PostCreateView', () => {
   it('accepts content with only an iframe tag', async () => {
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'Video Embed'
     vm.content = '<iframe src="https://youtube.com/embed/abc"></iframe>'
 
@@ -339,7 +339,7 @@ describe('PostCreateView', () => {
   it('accepts content with only a video tag', async () => {
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'Video Post'
     vm.content = '<video src="https://example.com/vid.mp4"></video>'
 
@@ -353,7 +353,7 @@ describe('PostCreateView', () => {
   it('accepts content with a table tag', async () => {
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'Table Post'
     vm.content = '<table><tr><td>data</td></tr></table>'
 
@@ -367,7 +367,7 @@ describe('PostCreateView', () => {
   it('rejects content with only whitespace text', async () => {
     const { wrapper } = await mountPostCreate()
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { title: string; content: string }
     vm.title = 'Title'
     vm.content = '<p>   </p>'
 

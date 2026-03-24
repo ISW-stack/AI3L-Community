@@ -90,13 +90,20 @@ export function useDraft<T>(options: UseDraftOptions<T>): UseDraftReturn<T> {
       savedAt.value = meta || ''
       return true
     } catch {
-      // Corrupt data — remove it
+      // Corrupt data — remove it and warn in dev mode
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[useDraft] Corrupt draft data found for key "${resolveKey()}" — removing it. A fresh draft state will be used.`,
+        )
+      }
       try {
         localStorage.removeItem(resolveKey())
         localStorage.removeItem(metaKey())
       } catch {
         // ignore
       }
+      data.value = structuredClone(defaultValue)
+      hasDraft.value = false
       return false
     }
   }

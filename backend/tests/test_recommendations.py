@@ -442,7 +442,7 @@ class TestRecommendationTask:
 
     @pytest.mark.anyio
     async def test_task_acquires_advisory_lock(self):
-        """Task acquires pg_advisory_xact_lock to prevent concurrent execution."""
+        """Task acquires pg_try_advisory_xact_lock to prevent concurrent execution."""
         mock_conn = self._make_mock_conn_for_batched(user_count=5)
 
         mock_pool = MagicMock()
@@ -452,7 +452,6 @@ class TestRecommendationTask:
         mock_pool.acquire.return_value = cm
 
         with (
-            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
             patch("app.tasks.recommendations._ensure_pool", new_callable=AsyncMock),
             patch("app.core.database.get_pool", return_value=mock_pool),
         ):
@@ -460,12 +459,12 @@ class TestRecommendationTask:
 
             await _compute_recommendations_async()
 
-        # Verify advisory lock was acquired
-        execute_calls = mock_conn.execute.call_args_list
+        # Verify advisory lock was attempted via pg_try_advisory_xact_lock
+        fetchval_calls = mock_conn.fetchval.call_args_list
         assert any(
-            "pg_advisory_xact_lock" in str(call) and "compute_recommendations" in str(call)
-            for call in execute_calls
-        ), f"Expected advisory lock call, got: {execute_calls}"
+            "pg_try_advisory_xact_lock" in str(call) and "compute_recommendations" in str(call)
+            for call in fetchval_calls
+        ), f"Expected try advisory lock call, got: {fetchval_calls}"
 
     @pytest.mark.anyio
     async def test_task_respects_min_score(self):

@@ -472,7 +472,14 @@ async def send_message_atomic(
                 str(conversation_id),
             )
 
-            # 1b. Re-check block status inside transaction to close TOCTOU gap
+            # 1b. Re-check block status and dm_friends_only inside transaction
+            # to close TOCTOU gap (M-05)
+            recipient_id = await conn.fetchval(
+                "SELECT CASE WHEN participant_a = $1 THEN participant_b "
+                "ELSE participant_a END FROM conversations WHERE id = $2",
+                sender_id,
+                conversation_id,
+            )
             blocked = await conn.fetchval(
                 "SELECT EXISTS("
                 "SELECT 1 FROM blocks WHERE "
@@ -480,18 +487,37 @@ async def send_message_atomic(
                 "(blocker_id = $2 AND blocked_id = $1)"
                 ")",
                 sender_id,
-                # Extract recipient from conversation
-                await conn.fetchval(
-                    "SELECT CASE WHEN participant_a = $1 THEN participant_b "
-                    "ELSE participant_a END FROM conversations WHERE id = $2",
-                    sender_id,
-                    conversation_id,
-                ),
+                recipient_id,
             )
             if blocked:
                 from app.core.errors import AppError, ErrorCode
 
                 raise AppError(ErrorCode.DM_001, 403, "Cannot message this user (blocked).")
+
+            # M-05: Re-check dm_friends_only inside transaction
+            dm_friends_only_val = await conn.fetchval(
+                "SELECT dm_friends_only FROM user_preferences WHERE user_id = $1",
+                recipient_id,
+            )
+            if dm_friends_only_val:
+                is_friend = await conn.fetchval(
+                    "SELECT EXISTS("
+                    "SELECT 1 FROM friendships WHERE "
+                    "((requester_id = $1 AND addressee_id = $2) OR "
+                    "(requester_id = $2 AND addressee_id = $1)) "
+                    "AND status = 'ACCEPTED'"
+                    ")",
+                    sender_id,
+                    recipient_id,
+                )
+                if not is_friend:
+                    from app.core.errors import AppError, ErrorCode
+
+                    raise AppError(
+                        ErrorCode.DM_001,
+                        403,
+                        "This user only accepts messages from friends.",
+                    )
 
             # 2. Enforce char cap — delete oldest messages if needed
             deleted: list[dict] = []

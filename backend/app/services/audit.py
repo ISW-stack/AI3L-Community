@@ -3,6 +3,7 @@ from datetime import date
 
 from loguru import logger
 
+from app.core.errors import AppError, ErrorCode
 from app.repositories import audit_repo
 
 
@@ -47,7 +48,16 @@ async def list_audit_logs(
     date_to: date | None = None,
 ) -> tuple[list[dict], int]:
     """Return paginated audit logs. Optionally filter by user_id and date range."""
-    filter_uuid = uuid.UUID(user_id_filter) if user_id_filter else None
+    filter_uuid = None
+    if user_id_filter:
+        try:
+            filter_uuid = uuid.UUID(user_id_filter)
+        except ValueError:
+            raise AppError(
+                ErrorCode.SYS_422,
+                422,
+                f"Invalid user_id filter: '{user_id_filter}' is not a valid UUID.",
+            )
     rows, total = await audit_repo.find_many(
         page, page_size, filter_uuid, date_from=date_from, date_to=date_to
     )

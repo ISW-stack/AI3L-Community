@@ -13,16 +13,22 @@ from typing import Any
 from loguru import logger
 
 from app.celery_app import celery
-from app.core.config import settings
-from app.core.database import get_pool, init_db_pool
+from app.core.database import get_pool
 from app.tasks.async_runner import run_async as _run_async
+from app.tasks.utils import ensure_pool as _ensure_pool
 
 
-async def _ensure_pool() -> None:
+def _parse_update_count(result: str) -> int:
+    """Safely parse the row count from asyncpg's execute() return value.
+
+    asyncpg returns a status string like 'UPDATE N' or 'DELETE N'.
+    This function handles unexpected formats gracefully.
+    """
     try:
-        get_pool()
-    except RuntimeError:
-        await init_db_pool(settings.DATABASE_URL)
+        return int(result.split()[-1])
+    except (ValueError, IndexError):
+        logger.warning("Unexpected asyncpg result format: %r", result)
+        return 0
 
 
 async def _reconcile_citation_counts() -> int:
@@ -40,7 +46,7 @@ async def _reconcile_citation_counts() -> int:
                 ) sub
                 WHERE p.id = sub.cited_post_id AND p.citation_count IS DISTINCT FROM sub.cnt
                 """)
-            updated = int(result.split()[-1])
+            updated = _parse_update_count(result)
             # Also zero out posts with no citations
             await conn.execute("""
                 UPDATE posts SET citation_count = 0
@@ -72,7 +78,7 @@ async def _reconcile_answer_counts() -> int:
                   AND p.is_deleted = false
                   AND p.answer_count IS DISTINCT FROM sub.cnt
                 """)
-            updated = int(result.split()[-1])
+            updated = _parse_update_count(result)
             # Zero out question posts with no answers
             await conn.execute("""
                 UPDATE posts SET answer_count = 0
@@ -99,7 +105,7 @@ async def _reconcile_vote_scores() -> int:
                 ) sub
                 WHERE c.id = sub.comment_id AND c.vote_score IS DISTINCT FROM COALESCE(sub.total, 0)
                 """)
-            updated = int(result.split()[-1])
+            updated = _parse_update_count(result)
             # Zero out comments with no votes
             await conn.execute("""
                 UPDATE comments SET vote_score = 0
@@ -125,7 +131,7 @@ async def _reconcile_profile_view_counts() -> tuple[int, int]:
                 WHERE u.id = sub.profile_id
                   AND COALESCE(u.profile_view_count_unique, 0) IS DISTINCT FROM sub.cnt
                 """)
-            unique_updated = int(result_unique.split()[-1])
+            unique_updated = _parse_update_count(result_unique)
 
             # Total views
             result_total = await conn.execute("""
@@ -138,7 +144,7 @@ async def _reconcile_profile_view_counts() -> tuple[int, int]:
                 WHERE u.id = sub.profile_id
                   AND COALESCE(u.profile_view_count_total, 0) IS DISTINCT FROM sub.cnt
                 """)
-            total_updated = int(result_total.split()[-1])
+            total_updated = _parse_update_count(result_total)
 
             return unique_updated, total_updated
 

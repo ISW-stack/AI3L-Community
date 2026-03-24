@@ -66,7 +66,10 @@ class TestApplyMembership:
 
         try:
             _override_auth("GUEST", user_id=user_id)
-            with patch(f"{_EP}.create_application", new_callable=AsyncMock):
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(f"{_EP}.create_application", new_callable=AsyncMock),
+            ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",
                     json=_VALID_APPLY_BODY,
@@ -82,12 +85,13 @@ class TestApplyMembership:
         """POST /users/apply-member → 400 for non-GUEST."""
         try:
             _override_auth("MEMBER")
-            resp = await client.post(
-                "/api/v1/users/apply-member",
-                json=_VALID_APPLY_BODY,
-                headers={"Authorization": "Bearer fake"},
-            )
-            assert resp.status_code == 400
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json=_VALID_APPLY_BODY,
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
         finally:
             _clear_overrides()
 
@@ -117,15 +121,16 @@ class TestApplyMembership:
 
         try:
             _override_auth("GUEST", user_id=user_id)
-            resp = await client.post(
-                "/api/v1/users/apply-member",
-                json=body,
-                headers={"Authorization": "Bearer fake"},
-            )
-            assert resp.status_code == 400
-            detail = resp.json()["detail"]
-            msg = detail["message"] if isinstance(detail, dict) else str(detail)
-            assert "special" in msg.lower()
+            with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json=body,
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 400
+                detail = resp.json()["detail"]
+                msg = detail["message"] if isinstance(detail, dict) else str(detail)
+                assert "special" in msg.lower()
         finally:
             _clear_overrides()
 
@@ -136,10 +141,13 @@ class TestApplyMembership:
 
         try:
             _override_auth("GUEST", user_id=user_id)
-            with patch(
-                f"{_EP}.create_application",
-                new_callable=AsyncMock,
-                side_effect=ValueError("Username already taken."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.create_application",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("Username already taken."),
+                ),
             ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",
@@ -178,10 +186,13 @@ class TestApplyDuplicate:
 
         try:
             _override_auth("GUEST", user_id=user_id)
-            with patch(
-                f"{_EP}.create_application",
-                new_callable=AsyncMock,
-                side_effect=ValueError("pending"),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.create_application",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("pending"),
+                ),
             ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",
@@ -853,10 +864,13 @@ class TestReApplyAfterRejection:
 
         try:
             _override_auth("GUEST", user_id=user_id)
-            with patch(
-                f"{_EP}.create_application",
-                new_callable=AsyncMock,
-                side_effect=ValueError("You already have a pending application."),
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.create_application",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("You already have a pending application."),
+                ),
             ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",
@@ -884,10 +898,13 @@ class TestReApplyAfterRejection:
                 "status": "PENDING",
                 "created_at": now,
             }
-            with patch(
-                f"{_EP}.create_application",
-                new_callable=AsyncMock,
-                return_value=row,
+            with (
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_EP}.create_application",
+                    new_callable=AsyncMock,
+                    return_value=row,
+                ),
             ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",

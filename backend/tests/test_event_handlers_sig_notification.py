@@ -147,7 +147,8 @@ class TestSigNotificationCap:
             patch("app.tasks.event_retry._check_idempotent_for_sig", mock_check),
             patch("app.tasks.event_retry._is_blocked_for_sig", AsyncMock(return_value=False)),
             patch("app.tasks.event_retry.logger") as mock_logger,
-            patch("app.tasks.cleanup._ensure_pool", AsyncMock()),
+            patch("app.tasks.utils.ensure_pool", AsyncMock()),
+            patch("app.tasks.event_retry._ensure_redis", AsyncMock()),
         ):
             await _async_notify_sig_members(sig_id, post_id, author_id, "Test Post")
 
@@ -209,7 +210,8 @@ class TestSigNotificationCap:
             patch("app.services.notification.create_notification", mock_create),
             patch("app.tasks.event_retry._check_idempotent_for_sig", mock_check),
             patch("app.tasks.event_retry._is_blocked_for_sig", AsyncMock(return_value=False)),
-            patch("app.tasks.cleanup._ensure_pool", AsyncMock()),
+            patch("app.tasks.utils.ensure_pool", AsyncMock()),
+            patch("app.tasks.event_retry._ensure_redis", AsyncMock()),
         ):
             await _async_notify_sig_members(sig_id, post_id, author_id, "Test Post")
 

@@ -76,8 +76,10 @@ backup_db() {
 
     # Upload to Hetzner
     log "Uploading to Hetzner Storage Box..."
+    # StrictHostKeyChecking=yes: reject unknown hosts to prevent MITM attacks.
+    # The host key must already be in known_hosts (added during initial setup).
     rsync -avz --progress \
-        -e "ssh -p 23 -i $HETZNER_SSH_KEY -o StrictHostKeyChecking=accept-new" \
+        -e "ssh -p 23 -i $HETZNER_SSH_KEY -o StrictHostKeyChecking=yes" \
         "$dump_file" \
         "${HETZNER_USER}@${HETZNER_HOST}:${HETZNER_PATH}/db/"
 

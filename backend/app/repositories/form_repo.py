@@ -538,24 +538,60 @@ async def soft_delete(form_id: uuid.UUID) -> tuple[bool, str | None]:
 
 async def soft_delete_with_permission(
     form_id: uuid.UUID, user_id: str, is_admin: bool
-) -> tuple[bool, str | None]:
+) -> tuple[bool, str | None, list[dict]]:
     """Permission check + soft delete in one transaction to prevent TOCTOU.
 
-    Returns (deleted, banner_url). Raises PermissionError if not authorized.
-    Also cascades deletion of form_responses.
+    Returns (deleted, banner_url, file_upload_entries). Raises PermissionError
+    if not authorized. Also cascades deletion of form_responses.
+
+    file_upload_entries is a list of {"key": str, "user_id": str} dicts for
+    file_upload answers that need MinIO cleanup and storage quota refund.
     """
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
             form = await conn.fetchrow(
-                "SELECT created_by, banner_url FROM forms "
+                "SELECT created_by, banner_url, questions FROM forms "
                 "WHERE id = $1 AND is_deleted = false FOR UPDATE",
                 form_id,
             )
             if not form:
-                return False, None
+                return False, None, []
             if not is_admin and str(form["created_by"]) != user_id:
                 raise PermissionError("Only the form creator or admin can delete this form.")
+
+            # Collect file_upload answer keys before deleting responses
+            file_upload_entries: list[dict] = []
+            questions_raw = form["questions"]
+            if isinstance(questions_raw, str):
+                questions_data = json.loads(questions_raw)
+            else:
+                questions_data = questions_raw or []
+
+            file_upload_qids = {
+                q["id"] for q in questions_data if q.get("type") == "file_upload"
+            }
+
+            if file_upload_qids:
+                # Fetch all responses that may contain file uploads
+                resp_rows = await conn.fetch(
+                    "SELECT user_id, answers FROM form_responses WHERE form_id = $1",
+                    form_id,
+                )
+                for resp_row in resp_rows:
+                    answers_raw = resp_row["answers"]
+                    if isinstance(answers_raw, str):
+                        answers_data = json.loads(answers_raw)
+                    else:
+                        answers_data = answers_raw or {}
+                    resp_user_id = str(resp_row["user_id"])
+                    for qid in file_upload_qids:
+                        val = answers_data.get(qid)
+                        if isinstance(val, dict) and "key" in val:
+                            file_upload_entries.append(
+                                {"key": val["key"], "user_id": resp_user_id}
+                            )
+
             await conn.execute(
                 "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",
                 form_id,
@@ -565,4 +601,4 @@ async def soft_delete_with_permission(
                 "DELETE FROM form_responses WHERE form_id = $1",
                 form_id,
             )
-            return True, form.get("banner_url")
+            return True, form.get("banner_url"), file_upload_entries

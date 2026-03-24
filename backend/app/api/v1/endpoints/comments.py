@@ -128,6 +128,25 @@ async def toggle_reaction(
         f"rl:comment_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
+    # M-11: Check if reactor is blocked by comment author or vice versa
+    from app.core.blacklist import get_blocked_user_ids
+    from app.core.database import get_pool
+    from app.core.redis import get_redis
+    from app.repositories import comment_repo
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        comment_owner_id = await comment_repo.find_parent_user_id(comment_id, conn)
+    if comment_owner_id and comment_owner_id != current_user["sub"]:
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, current_user["sub"])
+        if comment_owner_id in blocked_ids:
+            raise AppError(ErrorCode.SYS_403, 403, "Cannot react to this comment.")
+        owner_blocked = await get_blocked_user_ids(redis, comment_owner_id)
+        if current_user["sub"] in owner_blocked:
+            raise AppError(ErrorCode.SYS_403, 403, "Cannot react to this comment.")
+
     comment = await add_reaction(comment_id, current_user["sub"], req.reaction)
     if comment is None:
         raise AppError(ErrorCode.SYS_404, 404, "Comment not found.")

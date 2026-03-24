@@ -7,7 +7,10 @@ async def async_row_to_message(row: dict) -> dict:
     """Convert DB row to message response dict.
 
     Expects sender_display_name and sender_avatar_url from JOIN.
+    M-19: Explicitly strip content/attachment fields for recalled messages
+    to prevent replication-lag exposure.
     """
+    is_recalled = row.get("is_recalled", False)
     return {
         "id": str(row["id"]),
         "conversation_id": str(row["conversation_id"]),
@@ -16,14 +19,20 @@ async def async_row_to_message(row: dict) -> dict:
             "display_name": row.get("sender_display_name", ""),
             "avatar_url": await async_resolve_avatar_url(row.get("sender_avatar_url")),
         },
-        "content": row.get("content"),
+        "content": None if is_recalled else row.get("content"),
         "attachment_url": None,  # presigned URL generated in service layer
-        "attachment_name": row.get("attachment_name"),
-        "attachment_size": row.get("attachment_size"),
+        "attachment_name": None if is_recalled else row.get("attachment_name"),
+        "attachment_size": None if is_recalled else row.get("attachment_size"),
         "attachment_expires_at": (
-            row["attachment_expires_at"].isoformat() if row.get("attachment_expires_at") else None
+            None
+            if is_recalled
+            else (
+                row["attachment_expires_at"].isoformat()
+                if row.get("attachment_expires_at")
+                else None
+            )
         ),
-        "is_recalled": row["is_recalled"],
+        "is_recalled": is_recalled,
         "is_edited": row["is_edited"],
         "read_at": row["read_at"].isoformat() if row.get("read_at") else None,
         "created_at": row["created_at"].isoformat(),
@@ -55,6 +64,7 @@ async def async_row_to_conversation(row: dict, user_id: str) -> dict:
                 "avatar_url": await async_resolve_avatar_url(row.get("last_msg_sender_avatar_url")),
             },
             "content": row.get("last_msg_content"),
+            "attachment_key": row.get("last_msg_attachment_key"),
             "attachment_url": None,
             "attachment_name": row.get("last_msg_attachment_name"),
             "attachment_size": row.get("last_msg_attachment_size"),

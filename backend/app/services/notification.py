@@ -10,6 +10,11 @@ from app.core.redis import get_redis
 from app.repositories import notification_repo
 
 
+# M-13: Rate limit for notification creation (max per user per minute)
+_NOTIFICATION_RATE_LIMIT_MAX = 100
+_NOTIFICATION_RATE_LIMIT_WINDOW = 60
+
+
 async def create_notification(
     user_id: str,
     trigger_user_id: str | None,
@@ -18,6 +23,22 @@ async def create_notification(
     entity_id: str | None,
     message: str,
 ) -> dict:
+    # M-13: Rate limit notification creation per target user (skip silently if exceeded)
+    try:
+        redis = get_redis()
+        rate_key = f"rl:notif_create:{user_id}"
+        count = await redis.incr(rate_key)
+        if count == 1:
+            await redis.expire(rate_key, _NOTIFICATION_RATE_LIMIT_WINDOW)
+        if count > _NOTIFICATION_RATE_LIMIT_MAX:
+            logger.warning(
+                "Notification rate limit exceeded, skipping",
+                extra={"user_id": user_id, "action_type": action_type},
+            )
+            return {"id": str(uuid.uuid4()), "skipped": True}
+    except Exception:
+        pass  # If Redis is down, proceed without rate limiting
+
     notif_id = uuid.uuid4()
     trigger_uuid = uuid.UUID(trigger_user_id) if trigger_user_id else None
     entity_uuid = uuid.UUID(entity_id) if entity_id else None

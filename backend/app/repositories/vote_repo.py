@@ -32,7 +32,7 @@ async def upsert_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote
     row = await conn.fetchrow(
         """
         WITH old AS (
-            SELECT vote FROM comment_votes WHERE comment_id = $1 AND user_id = $2
+            SELECT vote FROM comment_votes WHERE comment_id = $1 AND user_id = $2 FOR UPDATE
         ),
         upserted AS (
             INSERT INTO comment_votes (id, comment_id, user_id, vote)

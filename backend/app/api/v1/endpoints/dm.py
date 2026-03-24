@@ -1,6 +1,7 @@
 """Direct messaging endpoints."""
 
 import os
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -187,7 +188,16 @@ async def send_message(
             raise AppError(ErrorCode.DM_005, 413, "File too large (max 10 MB).")
         if file_size == 0:
             raise AppError(ErrorCode.SYS_422, 422, "Empty file.")
-        file_name = file.filename or "attachment"
+        # L-16: Sanitize filename — strip path components, control chars, limit length
+        raw_name = file.filename or "attachment"
+        raw_name = os.path.basename(raw_name).replace("..", "")
+        # Remove control characters and null bytes
+        raw_name = re.sub(r"[\x00-\x1f\x7f]", "", raw_name)
+        # Limit to 255 characters
+        if len(raw_name) > 255:
+            base, ext = os.path.splitext(raw_name)
+            raw_name = base[: 255 - len(ext)] + ext
+        file_name = raw_name or "attachment"
         file_content_type = file.content_type
 
     msg = await dm_service.send_message(

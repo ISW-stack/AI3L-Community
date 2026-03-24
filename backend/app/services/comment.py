@@ -12,6 +12,9 @@ from app.core.event_bus import emit
 from app.core.redis import get_redis
 from app.repositories import comment_repo
 
+# L-08: Maximum number of mentions per comment
+MAX_MENTIONS_PER_COMMENT = 10
+
 
 async def create_comment(
     post_id: uuid.UUID,
@@ -22,6 +25,10 @@ async def create_comment(
 ) -> dict:
     if len(content) > MAX_COMMENT_LENGTH:
         raise ValueError(f"Comment exceeds maximum length of {MAX_COMMENT_LENGTH} characters.")
+
+    # L-08: Cap mentions list to prevent abuse
+    if mentions and len(mentions) > MAX_MENTIONS_PER_COMMENT:
+        raise ValueError(f"Too many mentions (max {MAX_MENTIONS_PER_COMMENT}).")
 
     # Block check: cannot comment if blocked by or blocking the post author
     from app.repositories import post_repo
@@ -39,9 +46,6 @@ async def create_comment(
     pool = get_pool()
     comment_id = uuid.uuid4()
     parent_uuid = uuid.UUID(parent_id) if parent_id else None
-
-    if parent_uuid and parent_uuid == comment_id:
-        raise ValueError("A comment cannot reply to itself.")
 
     async with pool.acquire() as conn:
         async with conn.transaction():

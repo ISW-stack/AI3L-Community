@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import ProfileView from '../ProfileView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 const mockUpdateProfile = vi.fn()
 const mockUploadAvatar = vi.fn()
@@ -101,7 +102,7 @@ async function mountProfile(options?: { role?: string }) {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   await router.push('/profile')
   await router.isReady()
@@ -174,7 +175,7 @@ describe('ProfileView', () => {
 
   it('sends null for cleared bio/affiliation/orcid fields (N-U15)', async () => {
     const { wrapper } = await mountProfile()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { bio: string; affiliation: string; orcid: string }
 
     // Clear all optional fields by setting them to empty strings
     vm.bio = ''
@@ -196,7 +197,7 @@ describe('ProfileView', () => {
 
   it('sends null for empty TipTap bio content (<p></p>)', async () => {
     const { wrapper } = await mountProfile()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { bio: string }
     vm.bio = '<p></p>'
     await nextTick()
 
@@ -210,7 +211,7 @@ describe('ProfileView', () => {
 
   it('sends trimmed values for non-empty fields', async () => {
     const { wrapper } = await mountProfile()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { bio: string; affiliation: string; orcid: string }
 
     vm.bio = '<p>Updated bio</p>'
     vm.affiliation = '  MIT  '
@@ -316,7 +317,7 @@ describe('ProfileView', () => {
       await nextTick()
 
       // Access the DangerZone child component's exposed state
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as { dangerZoneRef: { deleteConfirmText: string; showDeleteConfirm: boolean } }
       const dangerZone = vm.dangerZoneRef
       expect(dangerZone).toBeTruthy()
       dangerZone.deleteConfirmText = 'DELETE'
@@ -342,7 +343,7 @@ describe('ProfileView', () => {
       await nextTick()
 
       // Access the DangerZone child component's exposed state
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as { dangerZoneRef: { deleteConfirmText: string; showDeleteConfirm: boolean } }
       const dangerZone = vm.dangerZoneRef
       expect(dangerZone).toBeTruthy()
 
@@ -432,7 +433,7 @@ describe('ProfileView', () => {
 
         // Trigger the logout timer via changePassword
         mockChangePassword.mockResolvedValue(undefined)
-        const vm = wrapper.vm as any
+        const vm = wrapper.vm as unknown as { currentPassword: string; newPassword: string; confirmPassword: string; changePassword: () => Promise<void> }
         // Set password fields directly
         vm.currentPassword = 'OldPass1'
         vm.newPassword = 'NewPass1'

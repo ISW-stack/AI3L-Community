@@ -1,3 +1,5 @@
+import os
+
 import asyncpg
 from loguru import logger
 
@@ -8,12 +10,14 @@ async def init_db_pool(dsn: str) -> asyncpg.Pool:
     global _pool
     # Convert SQLAlchemy-style DSN to asyncpg-style
     dsn = dsn.replace("postgresql+asyncpg://", "postgresql://")
-    # SSL not used for same-host Docker deployment; enable ssl='require' for remote PG
+    # Enable SSL for remote PostgreSQL deployments via DATABASE_SSL env var
+    ssl_mode = "require" if os.environ.get("DATABASE_SSL", "").lower() == "true" else None
     _pool = await asyncpg.create_pool(
         dsn=dsn,
         min_size=2,
         max_size=20,
         command_timeout=60,
+        ssl=ssl_mode,
     )
     logger.info("Database connection pool initialized", extra={"min_size": 2, "max_size": 20})
     return _pool

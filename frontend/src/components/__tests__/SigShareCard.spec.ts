@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SigShareCard from '../SigShareCard.vue'
 import { getSig } from '@/api/sigs'
+import type { Sig } from '@/types'
 
 vi.mock('@/api/sigs', () => ({
   getSig: vi.fn(),
@@ -60,7 +61,7 @@ describe('SigShareCard', () => {
       description: 'A group for NLP researchers',
       member_count: 15,
       creator_display_name: 'Alice',
-    } as any)
+    } as unknown as Sig)
 
     const router = createTestRouter()
     const wrapper = mount(SigShareCard, {
@@ -96,7 +97,7 @@ describe('SigShareCard', () => {
       description: null,
       member_count: 1,
       creator_display_name: null,
-    } as any)
+    } as unknown as Sig)
 
     const router = createTestRouter()
     const wrapper = mount(SigShareCard, {
@@ -115,7 +116,7 @@ describe('SigShareCard', () => {
       description: null,
       member_count: 3,
       creator_display_name: 'Bob',
-    } as any)
+    } as unknown as Sig)
 
     const router = createTestRouter()
     const wrapper = mount(SigShareCard, {

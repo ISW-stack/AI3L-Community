@@ -48,6 +48,26 @@ async def find_album_by_id(conn: Any, album_id: uuid.UUID) -> dict | None:
     return dict(row) if row else None
 
 
+async def find_album_by_id_for_update(conn: Any, album_id: uuid.UUID) -> dict | None:
+    """Fetch album with FOR UPDATE lock (use inside a transaction)."""
+    row = await conn.fetchrow(
+        """
+        SELECT a.*,
+               u.display_name AS created_by_name,
+               (SELECT COUNT(*) FROM album_photos ap
+                WHERE ap.album_id = a.id) AS photo_count,
+               (SELECT COUNT(*) FROM album_members am
+                WHERE am.album_id = a.id AND am.status = 'ACCEPTED') AS member_count
+        FROM albums a
+        LEFT JOIN users u ON a.created_by = u.id
+        WHERE a.id = $1 AND a.is_deleted = false
+        FOR UPDATE OF a
+        """,
+        album_id,
+    )
+    return dict(row) if row else None
+
+
 async def find_albums(
     conn: Any,
     page: int = 1,
@@ -269,17 +289,13 @@ async def update_member_status(
     conn: Any,
     member_id: uuid.UUID,
     status: str,
-    album_id: uuid.UUID | None = None,
+    album_id: uuid.UUID,
     required_current_status: str | None = None,
 ) -> bool:
-    conditions = ["id = $2"]
-    params: list = [status, member_id]
-    idx = 3
-
-    if album_id is not None:
-        conditions.append(f"album_id = ${idx}")
-        params.append(album_id)
-        idx += 1
+    """Update a member's status. album_id is required to prevent cross-album manipulation."""
+    conditions = ["id = $2", "album_id = $3"]
+    params: list = [status, member_id, album_id]
+    idx = 4
 
     if required_current_status is not None:
         conditions.append(f"status = ${idx}")

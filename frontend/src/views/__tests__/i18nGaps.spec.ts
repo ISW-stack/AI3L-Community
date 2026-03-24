@@ -5,6 +5,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import FriendsView from '../social/FriendsView.vue'
 import QAListView from '../qa/QAListView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 // ── Mock social API ──
 const mockListFriends = vi.fn()
@@ -149,7 +150,7 @@ async function mountFriends() {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   const router = createTestRouter('/friends')
   await router.push('/friends')
@@ -178,7 +179,7 @@ async function mountQAList() {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   const router = createTestRouter('/qa')
   await router.push('/qa')

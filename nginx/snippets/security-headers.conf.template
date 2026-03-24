@@ -15,7 +15,7 @@
 add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${STORAGE_CSP_ORIGIN}; font-src 'self'; connect-src 'self' ${STORAGE_CSP_ORIGIN} wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;" always;
 
 # HSTS (1 year, include subdomains)
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
 
 # Prevent clickjacking
 add_header X-Frame-Options "DENY" always;

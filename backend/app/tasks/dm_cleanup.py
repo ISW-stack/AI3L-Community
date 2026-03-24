@@ -6,7 +6,7 @@ from loguru import logger
 
 from app.celery_app import celery
 from app.tasks.async_runner import run_async as _run_async
-from app.tasks.cleanup import _ensure_pool
+from app.tasks.utils import ensure_pool as _ensure_pool
 
 
 @celery.task(name="cleanup_dm_expired_files")
@@ -103,6 +103,13 @@ async def _cleanup_text() -> dict:
         pool = get_pool()
         async with pool.acquire() as conn:
             async with conn.transaction():
+                # M-18: Advisory lock per conversation to prevent concurrent
+                # cleanup runs from double-decrementing total_chars
+                for cid in conv_chars:
+                    await conn.execute(
+                        "SELECT pg_advisory_xact_lock(hashtext($1::text))",
+                        str(cid),
+                    )
                 deleted = await conn.fetchval(
                     "WITH d AS (DELETE FROM dm_messages WHERE id = ANY($1::uuid[]) RETURNING id) "
                     "SELECT COUNT(*) FROM d",
@@ -123,3 +130,93 @@ async def _cleanup_text() -> dict:
 
     logger.info("DM text cleanup complete", extra={"deleted": total_deleted})
     return {"deleted": total_deleted}
+
+
+# ── L-12: Orphan file cleanup for dm/ prefix ──────────────────────────────
+
+_DM_ORPHAN_BATCH_SIZE = 1000
+
+
+@celery.task(name="cleanup_dm_orphan_files")
+def cleanup_dm_orphan_files() -> dict:
+    """Weekly task: delete dm/ files in MinIO not referenced by any dm_messages row."""
+    result: dict = _run_async(_cleanup_dm_orphans())
+    return result
+
+
+async def _cleanup_dm_orphans() -> dict:
+    await _ensure_pool()
+
+    from app.core.database import get_pool
+    from app.core.storage import get_storage
+
+    from app.core.config import settings
+
+    client = get_storage()
+    bucket = settings.S3_BUCKET_NAME
+    pool = get_pool()
+
+    deleted = 0
+    errors = 0
+    checked = 0
+
+    paginator = client.get_paginator("list_objects_v2")
+    batch: list[str] = []
+
+    for page in paginator.paginate(Bucket=bucket, Prefix="dm/"):
+        for obj in page.get("Contents", []):
+            batch.append(obj["Key"])
+            if len(batch) >= _DM_ORPHAN_BATCH_SIZE:
+                d, e = await _process_dm_orphan_batch(pool, client, bucket, batch)
+                checked += len(batch)
+                deleted += d
+                errors += e
+                batch = []
+
+    if batch:
+        d, e = await _process_dm_orphan_batch(pool, client, bucket, batch)
+        checked += len(batch)
+        deleted += d
+        errors += e
+
+    logger.info(
+        "DM orphan file cleanup complete",
+        extra={"checked": checked, "deleted": deleted, "errors": errors},
+    )
+    return {"checked": checked, "deleted": deleted, "errors": errors}
+
+
+async def _process_dm_orphan_batch(
+    pool: object, client: object, bucket: str, keys: list[str]
+) -> tuple[int, int]:
+    """Check a batch of dm/ keys against dm_messages. Delete orphans.
+
+    Returns (deleted_count, error_count).
+    """
+    deleted = 0
+    errors = 0
+
+    async with pool.acquire() as conn:  # type: ignore[union-attr]
+        referenced = await conn.fetch(
+            "SELECT DISTINCT attachment_key FROM dm_messages "
+            "WHERE attachment_key = ANY($1::text[])",
+            keys,
+        )
+    referenced_keys = {r["attachment_key"] for r in referenced}
+
+    for key in keys:
+        if key in referenced_keys:
+            continue
+        try:
+            client.delete_object(Bucket=bucket, Key=key)  # type: ignore[union-attr]
+            deleted += 1
+            logger.info("Deleted orphan DM file", extra={"key": key})
+        except Exception:
+            errors += 1
+            logger.warning(
+                "Failed to delete orphan DM file",
+                exc_info=True,
+                extra={"key": key},
+            )
+
+    return deleted, errors

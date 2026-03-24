@@ -14,6 +14,9 @@ import MessageInput from '@/components/dm/MessageInput.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import { MessageSquare, ArrowLeft, Lock, Unlock } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const router = useRouter()
@@ -52,7 +55,7 @@ async function toggleDmFriendsOnly() {
   }
 }
 
-const breadcrumbs = [{ label: 'Home', to: '/' }, { label: 'Messages' }]
+const breadcrumbs = computed(() => [{ label: 'Home', to: '/' }, { label: t('dm.title') }])
 
 // Load conversations on mount
 onMounted(async () => {
@@ -193,7 +196,7 @@ async function handleSend(content: string, file?: File) {
       }
     }
   } catch (e: unknown) {
-    toast.show(parseDMError(e, 'Failed to send message.'), 'error')
+    toast.show(parseDMError(e, t('dm.failedToSend')), 'error')
   } finally {
     sending.value = false
   }
@@ -212,23 +215,23 @@ function parseDMError(e: unknown, fallback: string): string {
     if (code === 'DM_001') {
       const msg = resp?.data?.detail?.message ?? ''
       if (msg.toLowerCase().includes('friend'))
-        return 'This user only accepts messages from friends.'
-      return 'You cannot message this user.'
+        return t('dm.sendError.friendsOnly')
+      return t('dm.sendError.cannotMessage')
     }
-    if (code === 'DM_002') return 'The edit/recall window (12 hours) has expired.'
-    if (code === 'DM_003') return 'You cannot message yourself.'
-    if (code === 'DM_004') return 'Storage quota exceeded (1 GB limit).'
-    if (code === 'DM_005') return 'File too large (max 10 MB).'
+    if (code === 'DM_002') return t('dm.sendError.windowExpired')
+    if (code === 'DM_003') return t('dm.sendError.cannotSelf')
+    if (code === 'DM_004') return t('dm.sendError.quotaExceeded')
+    if (code === 'DM_005') return t('dm.sendError.fileTooLargeError')
     if (code === 'SYS_422') {
       const msg = resp?.data?.detail?.message ?? ''
-      if (msg.includes('already recalled')) return 'This message has already been recalled.'
-      if (msg.includes('recalled message')) return 'Cannot edit a recalled message.'
+      if (msg.includes('already recalled')) return t('dm.sendError.alreadyRecalled')
+      if (msg.includes('recalled message')) return t('dm.sendError.cannotEditRecalled')
     }
     if (code === 'SYS_403') {
       const msg = resp?.data?.detail?.message ?? ''
-      if (msg.includes('edit')) return 'You can only edit your own messages.'
-      if (msg.includes('recall')) return 'You can only recall your own messages.'
-      return 'You do not have permission to perform this action.'
+      if (msg.includes('edit')) return t('dm.sendError.editOwn')
+      if (msg.includes('recall')) return t('dm.sendError.recallOwn')
+      return t('dm.sendError.noPermission')
     }
   }
   return getErrorMessage(e, fallback)
@@ -275,7 +278,7 @@ async function confirmRecall() {
         dmStore.messages[rollbackIdx] = original
       }
     }
-    toast.show(parseDMError(e, 'Failed to recall message.'), 'error')
+    toast.show(parseDMError(e, t('dm.failedToRecall')), 'error')
   } finally {
     recalling.value = false
   }
@@ -308,13 +311,13 @@ const activeConvUser = computed(() => {
   >
     <BaseBreadcrumb :items="breadcrumbs" />
     <div class="flex items-center justify-between mb-4 sm:mb-6">
-      <h1 class="text-xl sm:text-2xl font-bold text-foreground">Messages</h1>
+      <h1 class="text-xl sm:text-2xl font-bold text-foreground">{{ t('dm.title') }}</h1>
       <button
         :disabled="dmFriendsOnlyLoading"
         :aria-label="
           dmFriendsOnly
-            ? 'Friends-only mode ON — only friends can message you'
-            : 'Anyone can message you'
+            ? t('dm.friendsOnlyLabel')
+            : t('dm.openToAllLabel')
         "
         class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition"
         :class="
@@ -327,7 +330,7 @@ const activeConvUser = computed(() => {
       >
         <Lock v-if="dmFriendsOnly" class="w-4 h-4" aria-hidden="true" />
         <Unlock v-else class="w-4 h-4" aria-hidden="true" />
-        {{ dmFriendsOnly ? 'Friends only' : 'Open to all' }}
+        {{ dmFriendsOnly ? t('dm.friendsOnly') : t('dm.openToAll') }}
       </button>
     </div>
 
@@ -358,7 +361,7 @@ const activeConvUser = computed(() => {
             <button
               class="md:hidden p-2 -ml-2 text-muted hover:text-foreground active:bg-surface-alt rounded-lg transition touch-manipulation"
               @click="handleBackToList"
-              aria-label="Back to conversations"
+              :aria-label="t('dm.backToConversations')"
             >
               <ArrowLeft class="w-5 h-5" aria-hidden="true" />
             </button>
@@ -366,7 +369,7 @@ const activeConvUser = computed(() => {
               v-if="activeConvUser"
               :to="`/users/${activeConvUser.id}`"
               class="flex items-center gap-2 hover:opacity-75 transition min-w-0"
-              :title="`View ${activeConvUser.display_name}'s profile`"
+              :title="t('dm.viewProfile', { name: activeConvUser.display_name })"
               data-testid="thread-header-profile-link"
             >
               <div
@@ -386,7 +389,7 @@ const activeConvUser = computed(() => {
                 {{ activeConvUser.display_name }}
               </span>
             </router-link>
-            <span v-else class="text-sm font-medium text-foreground"> New Conversation </span>
+            <span v-else class="text-sm font-medium text-foreground"> {{ t('dm.newConversation') }} </span>
           </div>
 
           <!-- Message thread -->
@@ -415,9 +418,9 @@ const activeConvUser = computed(() => {
           <div class="flex-1 flex items-center justify-center">
             <div class="text-center px-4">
               <MessageSquare class="mx-auto h-12 w-12 text-gray-300 mb-4" aria-hidden="true" />
-              <h3 class="text-sm font-medium text-foreground mb-1">Select a conversation</h3>
+              <h3 class="text-sm font-medium text-foreground mb-1">{{ t('dm.selectConversation') }}</h3>
               <p class="text-sm text-muted">
-                Choose a conversation from the list to start messaging.
+                {{ t('dm.selectConversationDesc') }}
               </p>
             </div>
           </div>
@@ -427,26 +430,26 @@ const activeConvUser = computed(() => {
 
     <BaseModal
       :model-value="recallTargetId != null"
-      title="Recall Message"
+      :title="t('dm.recallTitle')"
       size="sm"
       @update:model-value="cancelRecall"
     >
       <p class="text-sm text-muted mb-4">
-        Are you sure you want to recall this message? The other party will see "Message recalled".
+        {{ t('dm.recallConfirm') }}
       </p>
       <div class="flex justify-end gap-3">
         <button
           @click="cancelRecall"
           class="px-4 py-2 text-sm font-medium text-foreground bg-surface-alt border border-border rounded-lg hover:bg-gray-100 transition"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           @click="confirmRecall"
           :disabled="recalling"
           class="px-4 py-2 text-sm font-medium text-white bg-danger-600 rounded-lg hover:bg-danger-700 transition disabled:opacity-50"
         >
-          {{ recalling ? 'Recalling...' : 'Recall' }}
+          {{ recalling ? t('dm.recalling') : t('dm.recallButton') }}
         </button>
       </div>
     </BaseModal>

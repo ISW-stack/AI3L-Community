@@ -199,6 +199,22 @@ async def toggle_post_reaction_endpoint(
 ) -> PostResponse:
     if not await check_rate_limit(f"rl:post_reaction:{current_user['sub']}", *RATE_LIMIT_REACTION):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
+    # M-10: Check if reactor is blocked by post author or vice versa
+    from app.core.blacklist import get_blocked_user_ids
+    from app.core.redis import get_redis
+    from app.repositories import post_repo
+
+    post_owner_id = await post_repo.find_owner_id(post_id)
+    if post_owner_id and post_owner_id != current_user["sub"]:
+        redis = get_redis()
+        blocked_ids = await get_blocked_user_ids(redis, current_user["sub"])
+        if post_owner_id in blocked_ids:
+            raise AppError(ErrorCode.SYS_403, 403, "Cannot react to this post.")
+        owner_blocked = await get_blocked_user_ids(redis, post_owner_id)
+        if current_user["sub"] in owner_blocked:
+            raise AppError(ErrorCode.SYS_403, 403, "Cannot react to this post.")
+
     result = await toggle_post_reaction(post_id, current_user["sub"], req.reaction)
     if result is None:
         raise AppError(ErrorCode.SYS_404, 404, "Post not found.")

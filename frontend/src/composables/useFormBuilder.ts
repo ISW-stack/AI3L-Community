@@ -123,6 +123,15 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
 
   function handleKeyboardShortcut(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+      // Don't intercept undo/redo from TipTap editors or native inputs/textareas.
+      const el = document.activeElement
+      if (
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el?.closest('.ProseMirror')
+      ) {
+        return
+      }
       if (event.shiftKey) {
         event.preventDefault()
         handleRedo()
@@ -519,8 +528,14 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
         message.value = t('forms.builder.successMessage')
         router.replace(`/forms/${data.id}`)
       } else {
+        const currentSigId = sigId()
+        if (!currentSigId) {
+          error.value = t('forms.builder.saveError')
+          saving.value = false
+          return
+        }
         const serialized = questions.value.map(serializeQuestion)
-        const data = await createForm(sigId()!, { ...payload, questions: serialized })
+        const data = await createForm(currentSigId, { ...payload, questions: serialized })
         message.value = t('forms.builder.successMessage')
         router.replace(`/forms/${data.id}`)
       }
@@ -546,7 +561,8 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
       } else {
         addQuestion()
       }
-      if (sigId()) fetchSigName(sigId()!)
+      const currentSig = sigId()
+      if (currentSig) fetchSigName(currentSig)
     }
     document.addEventListener('keydown', handleKeyboardShortcut)
     startAutoSave()

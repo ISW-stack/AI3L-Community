@@ -633,19 +633,33 @@ describe('useDMStore', () => {
   // ============ readReceiptFromWebSocket (DM_READ) ============
 
   describe('readReceiptFromWebSocket', () => {
-    it('sets read_at on messages without read_at in active conversation', () => {
+    it('sets read_at only on own sent messages in active conversation', () => {
       const store = useDMStore()
       store.setCurrentUserId('user-1')
       store.activeConversationId = 'conv-1'
       store.messages = [
-        makeMessage({ id: 'msg-1', conversation_id: 'conv-1', read_at: null }),
-        makeMessage({ id: 'msg-2', conversation_id: 'conv-1', read_at: null }),
+        // Own message (sender.id matches currentUserId)
+        makeMessage({
+          id: 'msg-1',
+          conversation_id: 'conv-1',
+          read_at: null,
+          sender: makeSender({ id: 'user-1', display_name: 'Me' }),
+        }),
+        // Other user's message (sender.id does NOT match currentUserId)
+        makeMessage({
+          id: 'msg-2',
+          conversation_id: 'conv-1',
+          read_at: null,
+          sender: makeSender({ id: 'user-2', display_name: 'Alice' }),
+        }),
       ]
 
       store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
 
+      // Own message should be marked as read
       expect(store.messages[0].read_at).toBe('2026-03-17T01:00:00Z')
-      expect(store.messages[1].read_at).toBe('2026-03-17T01:00:00Z')
+      // Other user's message should NOT be marked as read
+      expect(store.messages[1].read_at).toBeNull()
     })
 
     it('does not overwrite an existing read_at timestamp', () => {
@@ -670,7 +684,7 @@ describe('useDMStore', () => {
       expect(store.messages[0].read_at).toBeNull()
     })
 
-    it('clears conversation unread_count', () => {
+    it('does NOT clear conversation unread_count (DM_READ means OTHER user read OUR messages)', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-1'
       store.conversations = [makeConversation({ id: 'conv-1', unread_count: 5 })]
@@ -679,31 +693,9 @@ describe('useDMStore', () => {
 
       store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
 
-      expect(store.conversations[0].unread_count).toBe(0)
-    })
-
-    it('decrements global unreadCount by conversation unread_count', () => {
-      const store = useDMStore()
-      store.activeConversationId = 'conv-1'
-      store.conversations = [makeConversation({ id: 'conv-1', unread_count: 3 })]
-      store.unreadCount = 7
-      store.messages = []
-
-      store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
-
-      expect(store.unreadCount).toBe(4)
-    })
-
-    it('does not let global unreadCount go below 0', () => {
-      const store = useDMStore()
-      store.activeConversationId = 'conv-1'
-      store.conversations = [makeConversation({ id: 'conv-1', unread_count: 5 })]
-      store.unreadCount = 2
-      store.messages = []
-
-      store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
-
-      expect(store.unreadCount).toBe(0)
+      // Unread counts should be preserved — DM_READ is about the other user reading our messages
+      expect(store.conversations[0].unread_count).toBe(5)
+      expect(store.unreadCount).toBe(8)
     })
   })
 
@@ -957,7 +949,7 @@ describe('useDMStore', () => {
       expect(store.messages[2].read_at).toBe('2026-03-17T01:00:00Z')
     })
 
-    it('mutates conversation unread_count in place', () => {
+    it('does NOT mutate conversation unread_count (DM_READ = other user read our messages)', () => {
       const store = useDMStore()
       store.activeConversationId = 'conv-1'
       const origConv = makeConversation({ id: 'conv-1', unread_count: 3 })
@@ -967,7 +959,9 @@ describe('useDMStore', () => {
 
       store.readReceiptFromWebSocket('conv-1', '2026-03-17T01:00:00Z')
 
-      expect(store.conversations[0].unread_count).toBe(0)
+      // Unread counts should be preserved
+      expect(store.conversations[0].unread_count).toBe(3)
+      expect(store.unreadCount).toBe(3)
     })
   })
 

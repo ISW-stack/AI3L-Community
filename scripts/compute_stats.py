@@ -44,7 +44,7 @@ _TEST_DIR_RE = re.compile(r"[/\\]__tests__[/\\]")
 
 def _run(cmd: str) -> str:
     return subprocess.check_output(
-        cmd, shell=True, text=True, encoding="utf-8", errors="replace", cwd=ROOT
+        cmd.split(), text=True, encoding="utf-8", errors="replace", cwd=ROOT
     ).strip()
 
 

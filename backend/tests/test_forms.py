@@ -2893,7 +2893,7 @@ class TestFileSizeValidation:
         cm.__aexit__ = AsyncMock(return_value=False)
         mock_pool.acquire.return_value = cm
 
-        answers = {"q1": {"key": "forms/uploads/large.pdf", "filename": "large.pdf"}}
+        answers = {"q1": {"key": f"forms/uploads/{user_id}/large.pdf", "filename": "large.pdf"}}
 
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),

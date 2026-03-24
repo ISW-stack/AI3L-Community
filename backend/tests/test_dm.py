@@ -2253,8 +2253,8 @@ class TestCleanupDMExpiredText:
             result = await _cleanup_text()
 
         assert result["deleted"] == 3
-        # Should have called conn.execute twice (once per conversation for char decrement)
-        assert mock_conn.execute.call_count == 2
+        # conn.execute: 2 advisory locks (one per conversation) + 2 char decrements = 4
+        assert mock_conn.execute.call_count == 4
 
     @pytest.mark.anyio
     async def test_empty_expired_noop(self):
@@ -2343,8 +2343,11 @@ class TestCleanupDMExpiredText:
             result = await _cleanup_text()
 
         assert result["deleted"] == 1
-        # Should NOT call conn.execute for char decrement when chars == 0
-        mock_conn.execute.assert_not_called()
+        # conn.execute: 1 advisory lock call, but no char decrement (chars == 0)
+        assert mock_conn.execute.call_count == 1
+        # The only execute call should be the advisory lock
+        lock_sql = mock_conn.execute.call_args_list[0][0][0]
+        assert "pg_advisory_xact_lock" in lock_sql
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2550,8 +2553,8 @@ class TestDMEventHandlers:
         )
 
     @pytest.mark.anyio
-    async def test_on_dm_message_sent_failure_reraises(self):
-        """dm.message_sent handler logs error and re-raises on WebSocket failure."""
+    async def test_on_dm_message_sent_ws_failure_does_not_reraise(self):
+        """dm.message_sent handler logs WS error but does NOT re-raise (H-07)."""
         msg = _make_msg_response()
 
         with patch(
@@ -2561,8 +2564,8 @@ class TestDMEventHandlers:
         ):
             from app.event_handlers import _on_dm_message_sent
 
-            with pytest.raises(RuntimeError, match="WS down"):
-                await _on_dm_message_sent(recipient_id=_RECIPIENT_ID, message=msg)
+            # Should NOT raise — WS failure is non-fatal
+            await _on_dm_message_sent(recipient_id=_RECIPIENT_ID, message=msg)
 
     @pytest.mark.anyio
     async def test_on_dm_message_recalled_failure_reraises(self):
@@ -2895,6 +2898,7 @@ class TestSendMessageAtomicRepo:
             side_effect=[
                 uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
                 False,  # block check
+                None,  # dm_friends_only (M-05)
                 49998,  # total_chars near cap
             ]
         )
@@ -2944,6 +2948,7 @@ class TestSendMessageAtomicRepo:
             side_effect=[
                 uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
                 False,  # block check
+                None,  # dm_friends_only (M-05)
                 20000,  # total_chars at cap
             ]
         )
@@ -2978,6 +2983,7 @@ class TestSendMessageAtomicRepo:
             side_effect=[
                 uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
                 False,  # block check
+                None,  # dm_friends_only (M-05)
                 100,  # total_chars far under cap
             ]
         )
@@ -3015,6 +3021,7 @@ class TestSendMessageAtomicRepo:
             side_effect=[
                 uuid.UUID(_RECIPIENT_ID),  # get recipient from conversation
                 False,  # block check
+                None,  # dm_friends_only (M-05)
             ]
         )
 
@@ -3035,8 +3042,8 @@ class TestSendMessageAtomicRepo:
             )
 
         assert deleted == []
-        # fetchval should only have been called for block check (2 calls), not char cap
-        assert mock_conn.fetchval.call_count == 2
+        # fetchval: recipient_id, block check, dm_friends_only = 3 calls; no char cap
+        assert mock_conn.fetchval.call_count == 3
 
 
 # ══════════════════════════════════════════════════════════════════════════════

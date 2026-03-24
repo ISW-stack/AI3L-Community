@@ -557,12 +557,11 @@ async def _on_dm_message_sent(
 
     ws_payload = {"type": "NEW_DM", "message": message}
 
-    # Push to recipient
+    # Push to recipient (non-fatal: DB notification below is the fallback)
     try:
         await send_to_user(recipient_id, ws_payload)
     except Exception:
         logger.error("Failed to push DM to recipient via WebSocket", exc_info=True)
-        raise
 
     # Push to sender's other open sessions
     if sender_id and sender_id != recipient_id:

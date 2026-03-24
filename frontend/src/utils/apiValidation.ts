@@ -5,10 +5,14 @@
  */
 export function assertShape<T>(data: unknown, requiredKeys: string[], context: string): T {
   if (import.meta.env.DEV && data && typeof data === 'object') {
-    for (const key of requiredKeys) {
-      if (!(key in data)) {
-        console.warn(`[API] Missing key "${key}" in response for ${context}`)
-      }
+    const actualKeys = Object.keys(data)
+    const missingKeys = requiredKeys.filter((key) => !(key in data))
+    if (missingKeys.length > 0) {
+      console.warn(
+        `[API] Shape mismatch in "${context}": missing keys [${missingKeys.join(', ')}]. ` +
+          `Expected: [${requiredKeys.join(', ')}]. ` +
+          `Received: [${actualKeys.join(', ')}].`,
+      )
     }
   }
   return data as T

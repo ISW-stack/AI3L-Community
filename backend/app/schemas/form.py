@@ -59,6 +59,18 @@ class QuestionSchema(BaseModel):
                 )
         return self
 
+    @model_validator(mode="after")
+    def validate_rating_min_max(self) -> "QuestionSchema":
+        """Ensure rating questions have min < max."""
+        if self.type == "rating":
+            min_val = self.min if self.min is not None else 1
+            max_val = self.max if self.max is not None else 5
+            if min_val >= max_val:
+                raise ValueError(
+                    f"Rating question '{self.label}': min ({min_val}) must be less than max ({max_val})."
+                )
+        return self
+
 
 class FormCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)

@@ -8,19 +8,39 @@ import api from '@/composables/api'
 
 import { WS_INITIAL_BACKOFF_MS, WS_MAX_BACKOFF_MS } from '@/constants'
 
-// Reference-counting guard: tracks how many component instances are using
-// the shared visibilitychange listener. The listener is only removed when
-// the last consumer unmounts.
-let _visibilityConsumers = 0
-let _currentHandleVisibility: (() => void) | null = null
+// Stores all active visibility-change handlers from each consumer so that
+// every consumer's closure is invoked when visibility changes (not just the last one).
+const _visibilityHandlers = new Set<() => void>()
+let _sharedVisibilityListener: (() => void) | null = null
+
+function _installSharedListener(): void {
+  if (_sharedVisibilityListener) return
+  _sharedVisibilityListener = () => {
+    for (const handler of _visibilityHandlers) {
+      try {
+        handler()
+      } catch {
+        // Don't let one handler's error break others
+      }
+    }
+  }
+  document.addEventListener('visibilitychange', _sharedVisibilityListener)
+}
+
+function _removeSharedListener(): void {
+  if (_sharedVisibilityListener && _visibilityHandlers.size === 0) {
+    document.removeEventListener('visibilitychange', _sharedVisibilityListener)
+    _sharedVisibilityListener = null
+  }
+}
 
 /** Reset module-level state (test-only). */
 export function _resetVisibilityState(): void {
-  if (_currentHandleVisibility) {
-    document.removeEventListener('visibilitychange', _currentHandleVisibility)
-    _currentHandleVisibility = null
+  if (_sharedVisibilityListener) {
+    document.removeEventListener('visibilitychange', _sharedVisibilityListener)
+    _sharedVisibilityListener = null
   }
-  _visibilityConsumers = 0
+  _visibilityHandlers.clear()
 }
 
 export function useWebSocket() {
@@ -200,24 +220,13 @@ export function useWebSocket() {
     }
   }
 
-  _visibilityConsumers++
-  if (_visibilityConsumers === 1) {
-    _currentHandleVisibility = handleVisibility
-    document.addEventListener('visibilitychange', _currentHandleVisibility)
-  } else if (_currentHandleVisibility) {
-    // Replace the stale handler with the latest consumer's closure
-    document.removeEventListener('visibilitychange', _currentHandleVisibility)
-    _currentHandleVisibility = handleVisibility
-    document.addEventListener('visibilitychange', _currentHandleVisibility)
-  }
+  _visibilityHandlers.add(handleVisibility)
+  _installSharedListener()
 
   onUnmounted(() => {
     try {
-      _visibilityConsumers = Math.max(0, _visibilityConsumers - 1)
-      if (_visibilityConsumers === 0 && _currentHandleVisibility) {
-        document.removeEventListener('visibilitychange', _currentHandleVisibility)
-        _currentHandleVisibility = null
-      }
+      _visibilityHandlers.delete(handleVisibility)
+      _removeSharedListener()
       cleanup()
     } catch {
       // Ensure cleanup runs even if listener removal fails

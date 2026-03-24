@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { ref, computed, nextTick } from 'vue'
+import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
@@ -124,7 +124,7 @@ import PostCard from '@/components/PostCard.vue'
 import CitationSearchDialog from '@/components/post/CitationSearchDialog.vue'
 import CoAuthorManager from '@/components/post/CoAuthorManager.vue'
 import type { Post } from '@/types'
-import { getCitedBy, getCiting } from '@/api/citations'
+import '@/api/citations'
 
 // ──────────────────────────────────────────────────────────────────
 // Helpers
@@ -429,7 +429,7 @@ describe('L-05: CoAuthorManager search filtering', () => {
       .filter((b) => b.text().includes('New User'))
     expect(searchResultButtons.length).toBe(1)
 
-    const existingInResults = wrapper
+    const _existingInResults = wrapper
       .findAll('button')
       .filter((b) => b.text() === 'Existing User' && b.classes().includes('hover:bg-surface-alt'))
     // The existing user should NOT appear in the search dropdown

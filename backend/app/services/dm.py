@@ -401,6 +401,22 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
             old_content = row.get("content") or ""
             char_delta = len(new_content) - len(old_content)
 
+            # H-03: Check char cap when edit increases content length
+            if char_delta > 0:
+                total_chars = (
+                    await conn.fetchval(
+                        "SELECT total_chars FROM conversations WHERE id = $1",
+                        conversation_id,
+                    )
+                    or 0
+                )
+                if total_chars + char_delta > DM_CHAR_CAP_PER_CONVERSATION:
+                    raise AppError(
+                        ErrorCode.DM_001,
+                        400,
+                        "Conversation character cap exceeded.",
+                    )
+
             # 5. Update message
             updated_row = await conn.fetchrow(
                 "UPDATE dm_messages SET content = $1, is_edited = TRUE, updated_at = NOW() "

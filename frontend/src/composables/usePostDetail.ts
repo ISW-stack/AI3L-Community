@@ -147,7 +147,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   const postContentRef = ref<HTMLElement | null>(null)
 
   // Instance-level state (must be inside function so each usePostDetail() call gets its own)
-  let scanPollTimers: ReturnType<typeof setTimeout>[] = []
+  const scanPollTimers = new Set<ReturnType<typeof setTimeout>>()
   let isUnmounted = false
 
   // --- Computed ---
@@ -227,9 +227,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
       if (card) {
         segments.push({ type: card.type, content: card.id })
       } else {
-        // part comes from wrapper.innerHTML which was built from already-sanitized content.
-        // Re-sanitizing would create a parse-serialize-reparse cycle (mXSS risk).
-        segments.push({ type: 'html', content: part })
+        // Re-sanitize each HTML fragment after DOM manipulation to prevent mXSS.
+        segments.push({ type: 'html', content: DOMPurify.sanitize(part) })
       }
     }
     return segments
@@ -618,8 +617,11 @@ export function usePostDetail(options: UsePostDetailOptions) {
       if (isUnmounted) return
       imageScanStatuses.value[fileKey] = data.status
       if (data.status === 'pending') {
-        const timer = setTimeout(() => pollImageScanStatus(fileKey), 5000)
-        scanPollTimers.push(timer)
+        const timer = setTimeout(() => {
+          scanPollTimers.delete(timer)
+          pollImageScanStatus(fileKey)
+        }, 5000)
+        scanPollTimers.add(timer)
       }
     } catch {
       // Endpoint not available or file not scanned - ignore
@@ -698,7 +700,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     imageScanStatuses.value = {}
     // Clear scan poll timers
     scanPollTimers.forEach(clearTimeout)
-    scanPollTimers = []
+    scanPollTimers.clear()
     if (overlayDebounceTimer) {
       clearTimeout(overlayDebounceTimer)
       overlayDebounceTimer = null
@@ -756,7 +758,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   onUnmounted(() => {
     isUnmounted = true
     scanPollTimers.forEach(clearTimeout)
-    scanPollTimers = []
+    scanPollTimers.clear()
     if (overlayDebounceTimer) clearTimeout(overlayDebounceTimer)
     window.removeEventListener('beforeunload', handleBeforeUnload)
   })

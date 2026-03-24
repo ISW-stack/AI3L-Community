@@ -128,9 +128,10 @@ MOCK_POST_ROW = {
 
 
 @pytest.mark.asyncio
+@patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None)
 @patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_success(mock_toggle, mock_rl, client):
+async def test_toggle_post_reaction_success(mock_toggle, mock_rl, mock_owner, client):
     from app.converters.post_converter import row_to_post
     from app.core.deps import get_current_user
     from app.main import app
@@ -152,9 +153,10 @@ async def test_toggle_post_reaction_success(mock_toggle, mock_rl, client):
 
 
 @pytest.mark.asyncio
+@patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None)
 @patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_not_found(mock_toggle, mock_rl, client):
+async def test_toggle_post_reaction_not_found(mock_toggle, mock_rl, mock_owner, client):
     from app.core.deps import get_current_user
     from app.main import app
 
@@ -188,9 +190,10 @@ async def test_toggle_post_reaction_invalid_type(client):
 
 
 @pytest.mark.asyncio
+@patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None)
 @patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_smile(mock_toggle, mock_rl, client):
+async def test_toggle_post_reaction_smile(mock_toggle, mock_rl, mock_owner, client):
     from app.converters.post_converter import row_to_post
     from app.core.deps import get_current_user
     from app.main import app
@@ -212,9 +215,10 @@ async def test_toggle_post_reaction_smile(mock_toggle, mock_rl, client):
 
 
 @pytest.mark.asyncio
+@patch("app.repositories.post_repo.find_owner_id", new_callable=AsyncMock, return_value=None)
 @patch("app.api.v1.endpoints.posts.check_rate_limit", new_callable=AsyncMock, return_value=True)
 @patch("app.api.v1.endpoints.posts.toggle_post_reaction")
-async def test_toggle_post_reaction_cry(mock_toggle, mock_rl, client):
+async def test_toggle_post_reaction_cry(mock_toggle, mock_rl, mock_owner, client):
     from app.converters.post_converter import row_to_post
     from app.core.deps import get_current_user
     from app.main import app

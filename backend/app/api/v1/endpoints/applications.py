@@ -3,9 +3,11 @@ import uuid
 from fastapi import APIRouter, Depends, Query, Request, status
 from loguru import logger
 
+from app.core.constants import RATE_LIMIT_APPLY_MEMBER
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
+from app.core.rate_limit import check_rate_limit
 from app.core.security import validate_password_policy
 from app.schemas.application import (
     ApplicationListResponse,
@@ -42,6 +44,11 @@ async def apply_for_membership(
     req: ApplyMemberRequest,
     current_user: dict = Depends(get_current_user),
 ) -> MessageResponse:
+    if not await check_rate_limit(
+        f"rl:apply_member:{current_user['sub']}", *RATE_LIMIT_APPLY_MEMBER
+    ):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many applications. Try again later.")
+
     if current_user["role"] != "GUEST":
         raise AppError(
             ErrorCode.SYS_422,

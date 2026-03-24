@@ -244,233 +244,229 @@ async def anonymize_user(user_id: uuid.UUID) -> dict:
         )
 
     anon_name = f"Deleted_User_{uuid.uuid4().hex[:8]}"
-    deleted = await user_repo.anonymize(user_id, anon_name)
-    if deleted:
-        logger.info("User anonymized (GDPR)", extra={"user_id": str(user_id)})
 
-        # Collect DM attachment keys for post-transaction MinIO cleanup
-        dm_attachment_keys: list[str] = []
-        cleanup_succeeded = True
+    # H-01: Wrap PII wipe AND cleanup in a single transaction for atomicity.
+    # If any phase fails, everything rolls back — no partial anonymization.
+    dm_attachment_keys: list[str] = []
+    deleted = False
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Phase 1: Anonymize PII (inside the same transaction)
+            deleted = await user_repo.anonymize(user_id, anon_name, conn=conn)
+            if not deleted:
+                return {"anonymized": False, "cleanup_succeeded": True}
 
-        # Clean up all related data in dependency-safe order
-        pool = get_pool()
-        async with pool.acquire() as conn:
-            try:
-                async with conn.transaction():
-                    from app.repositories import co_author_repo, profile_view_repo, vote_repo
+            logger.info("User anonymized (GDPR)", extra={"user_id": str(user_id)})
 
-                    # Citations (depends on posts)
-                    await conn.execute(
-                        "DELETE FROM post_citations WHERE citing_post_id IN "
-                        "(SELECT id FROM posts WHERE user_id = $1)",
-                        user_id,
-                    )
-                    await conn.execute(
-                        "DELETE FROM post_citations WHERE cited_post_id IN "
-                        "(SELECT id FROM posts WHERE user_id = $1)",
-                        user_id,
-                    )
+            # Phase 2: Clean up all related data in dependency-safe order
+            from app.repositories import co_author_repo, profile_view_repo, vote_repo
 
-                    # Co-authors
-                    await co_author_repo.delete_by_user_id(conn, user_id)
+            # Citations (depends on posts)
+            await conn.execute(
+                "DELETE FROM post_citations WHERE citing_post_id IN "
+                "(SELECT id FROM posts WHERE user_id = $1)",
+                user_id,
+            )
+            await conn.execute(
+                "DELETE FROM post_citations WHERE cited_post_id IN "
+                "(SELECT id FROM posts WHERE user_id = $1)",
+                user_id,
+            )
 
-                    # Profile views
-                    await profile_view_repo.delete_by_profile_or_viewer(conn, user_id)
+            # Co-authors
+            await co_author_repo.delete_by_user_id(conn, user_id)
 
-                    # Comment votes
-                    await vote_repo.delete_by_user_id(conn, user_id)
+            # Profile views
+            await profile_view_repo.delete_by_profile_or_viewer(conn, user_id)
 
-                    # Notifications (user as recipient or trigger)
-                    await conn.execute(
-                        "DELETE FROM notifications WHERE user_id = $1 OR trigger_user_id = $1",
-                        user_id,
-                    )
+            # Comment votes
+            await vote_repo.delete_by_user_id(conn, user_id)
 
-                    # Form responses
-                    await conn.execute(
-                        "DELETE FROM form_responses WHERE user_id = $1",
-                        user_id,
-                    )
+            # Notifications (user as recipient or trigger)
+            await conn.execute(
+                "DELETE FROM notifications WHERE user_id = $1 OR trigger_user_id = $1",
+                user_id,
+            )
 
-                    # Friend recommendations and dismissed recommendations
-                    await conn.execute(
-                        "DELETE FROM friend_recommendations "
-                        "WHERE user_id = $1 OR recommended_user_id = $1",
-                        user_id,
-                    )
-                    await conn.execute(
-                        "DELETE FROM dismissed_recommendations WHERE user_id = $1",
-                        user_id,
-                    )
+            # Form responses
+            await conn.execute(
+                "DELETE FROM form_responses WHERE user_id = $1",
+                user_id,
+            )
 
-                    # Social relations
-                    await conn.execute(
-                        "DELETE FROM friendships WHERE requester_id = $1 OR addressee_id = $1",
-                        user_id,
-                    )
-                    await conn.execute(
-                        "DELETE FROM follows WHERE follower_id = $1 OR following_id = $1",
-                        user_id,
-                    )
-                    await conn.execute(
-                        "DELETE FROM blocks WHERE blocker_id = $1 OR blocked_id = $1",
-                        user_id,
-                    )
+            # Friend recommendations and dismissed recommendations
+            await conn.execute(
+                "DELETE FROM friend_recommendations "
+                "WHERE user_id = $1 OR recommended_user_id = $1",
+                user_id,
+            )
+            await conn.execute(
+                "DELETE FROM dismissed_recommendations WHERE user_id = $1",
+                user_id,
+            )
 
-                    # User preferences
-                    await conn.execute(
-                        "DELETE FROM user_preferences WHERE user_id = $1",
-                        user_id,
-                    )
+            # Social relations
+            await conn.execute(
+                "DELETE FROM friendships WHERE requester_id = $1 OR addressee_id = $1",
+                user_id,
+            )
+            await conn.execute(
+                "DELETE FROM follows WHERE follower_id = $1 OR following_id = $1",
+                user_id,
+            )
+            await conn.execute(
+                "DELETE FROM blocks WHERE blocker_id = $1 OR blocked_id = $1",
+                user_id,
+            )
 
-                    # M-44: Privacy consents (contains IP addresses)
-                    await conn.execute(
-                        "DELETE FROM privacy_consents WHERE user_id = $1",
-                        user_id,
-                    )
+            # User preferences
+            await conn.execute(
+                "DELETE FROM user_preferences WHERE user_id = $1",
+                user_id,
+            )
 
-                    # L-42: Membership applications
-                    await conn.execute(
-                        "DELETE FROM membership_applications WHERE user_id = $1",
-                        user_id,
-                    )
+            # M-44: Privacy consents (contains IP addresses)
+            await conn.execute(
+                "DELETE FROM privacy_consents WHERE user_id = $1",
+                user_id,
+            )
 
-                    # L-42: Invite codes created by user
-                    await conn.execute(
-                        "DELETE FROM invite_codes WHERE created_by = $1",
-                        user_id,
-                    )
+            # L-42: Membership applications
+            await conn.execute(
+                "DELETE FROM membership_applications WHERE user_id = $1",
+                user_id,
+            )
 
-                    # SIG memberships
-                    await conn.execute(
-                        "DELETE FROM sig_members WHERE user_id = $1",
-                        user_id,
-                    )
+            # L-42: Invite codes created by user
+            await conn.execute(
+                "DELETE FROM invite_codes WHERE created_by = $1",
+                user_id,
+            )
 
-                    # M-42: Clean user ID from reactions JSONB in posts
-                    await conn.execute(
-                        """
-                        UPDATE posts SET reactions = (
-                            SELECT COALESCE(jsonb_object_agg(
-                                key,
-                                COALESCE((
-                                    SELECT jsonb_agg(elem)
-                                    FROM jsonb_array_elements_text(value) elem
-                                    WHERE elem != $1
-                                ), '[]'::jsonb)
-                            ), '{}'::jsonb)
-                            FROM jsonb_each(reactions)
-                        ), updated_at = NOW()
-                        WHERE reactions IS NOT NULL
-                          AND reactions::text LIKE '%' || $1 || '%'
-                        """,
-                        str(user_id),
-                    )
+            # SIG memberships
+            await conn.execute(
+                "DELETE FROM sig_members WHERE user_id = $1",
+                user_id,
+            )
 
-                    # M-42: Clean user ID from reactions JSONB in comments
-                    await conn.execute(
-                        """
-                        UPDATE comments SET reactions = (
-                            SELECT COALESCE(jsonb_object_agg(
-                                key,
-                                COALESCE((
-                                    SELECT jsonb_agg(elem)
-                                    FROM jsonb_array_elements_text(value) elem
-                                    WHERE elem != $1
-                                ), '[]'::jsonb)
-                            ), '{}'::jsonb)
-                            FROM jsonb_each(reactions)
-                        ), updated_at = NOW()
-                        WHERE reactions IS NOT NULL
-                          AND reactions::text LIKE '%' || $1 || '%'
-                        """,
-                        str(user_id),
-                    )
+            # M-42: Clean user ID from reactions JSONB in posts
+            await conn.execute(
+                """
+                UPDATE posts SET reactions = (
+                    SELECT COALESCE(jsonb_object_agg(
+                        key,
+                        COALESCE((
+                            SELECT jsonb_agg(elem)
+                            FROM jsonb_array_elements_text(value) elem
+                            WHERE elem != $1
+                        ), '[]'::jsonb)
+                    ), '{}'::jsonb)
+                    FROM jsonb_each(reactions)
+                ), updated_at = NOW()
+                WHERE reactions IS NOT NULL
+                  AND reactions::text LIKE '%' || $1 || '%'
+                """,
+                str(user_id),
+            )
 
-                    # Soft-delete comments (before posts, since comments reference posts)
-                    await conn.execute(
-                        "UPDATE comments SET is_deleted = true, updated_at = NOW() "
-                        "WHERE user_id = $1 AND is_deleted = false",
-                        user_id,
-                    )
+            # M-42: Clean user ID from reactions JSONB in comments
+            await conn.execute(
+                """
+                UPDATE comments SET reactions = (
+                    SELECT COALESCE(jsonb_object_agg(
+                        key,
+                        COALESCE((
+                            SELECT jsonb_agg(elem)
+                            FROM jsonb_array_elements_text(value) elem
+                            WHERE elem != $1
+                        ), '[]'::jsonb)
+                    ), '{}'::jsonb)
+                    FROM jsonb_each(reactions)
+                ), updated_at = NOW()
+                WHERE reactions IS NOT NULL
+                  AND reactions::text LIKE '%' || $1 || '%'
+                """,
+                str(user_id),
+            )
 
-                    # Album memberships
-                    await conn.execute(
-                        "DELETE FROM album_members WHERE user_id = $1",
-                        user_id,
-                    )
+            # Soft-delete comments (before posts, since comments reference posts)
+            await conn.execute(
+                "UPDATE comments SET is_deleted = true, updated_at = NOW() "
+                "WHERE user_id = $1 AND is_deleted = false",
+                user_id,
+            )
 
-                    # Soft-delete album comments
-                    await conn.execute(
-                        "UPDATE album_comments SET is_deleted = true, updated_at = NOW() "
-                        "WHERE user_id = $1 AND is_deleted = false",
-                        user_id,
-                    )
+            # Album memberships
+            await conn.execute(
+                "DELETE FROM album_members WHERE user_id = $1",
+                user_id,
+            )
 
-                    # Disassociate album photos
-                    await conn.execute(
-                        "UPDATE album_photos SET uploaded_by = NULL WHERE uploaded_by = $1",
-                        user_id,
-                    )
+            # Soft-delete album comments
+            await conn.execute(
+                "UPDATE album_comments SET is_deleted = true, updated_at = NOW() "
+                "WHERE user_id = $1 AND is_deleted = false",
+                user_id,
+            )
 
-                    # M-43: Delete post history before soft-deleting posts
-                    await conn.execute(
-                        "DELETE FROM post_history WHERE post_id IN "
-                        "(SELECT id FROM posts WHERE user_id = $1)",
-                        user_id,
-                    )
+            # Disassociate album photos
+            await conn.execute(
+                "UPDATE album_photos SET uploaded_by = NULL WHERE uploaded_by = $1",
+                user_id,
+            )
 
-                    # Soft-delete posts
-                    await conn.execute(
-                        "UPDATE posts SET is_deleted = true, updated_at = NOW() "
-                        "WHERE user_id = $1 AND is_deleted = false",
-                        user_id,
-                    )
+            # M-43: Delete post history before soft-deleting posts
+            await conn.execute(
+                "DELETE FROM post_history WHERE post_id IN "
+                "(SELECT id FROM posts WHERE user_id = $1)",
+                user_id,
+            )
 
-                    # H-06: Collect DM attachment keys in batches before deleting
-                    dm_attachment_keys: list[str] = []
-                    _BATCH = 1000
-                    while True:
-                        dm_rows = await conn.fetch(
-                            "SELECT attachment_key FROM dm_messages "
-                            "WHERE sender_id = $1 AND attachment_key IS NOT NULL "
-                            "ORDER BY created_at LIMIT $2 OFFSET $3",
-                            user_id,
-                            _BATCH,
-                            len(dm_attachment_keys),
-                        )
-                        if not dm_rows:
-                            break
-                        dm_attachment_keys.extend(r["attachment_key"] for r in dm_rows)
-                        if len(dm_rows) < _BATCH:
-                            break
+            # Soft-delete posts
+            await conn.execute(
+                "UPDATE posts SET is_deleted = true, updated_at = NOW() "
+                "WHERE user_id = $1 AND is_deleted = false",
+                user_id,
+            )
 
-                    # DM cleanup: recall all messages, delete DM data
-                    await conn.execute(
-                        "UPDATE dm_messages SET is_recalled = true, content = NULL "
-                        "WHERE sender_id = $1 AND is_recalled = false",
-                        user_id,
-                    )
-                    await conn.execute(
-                        "DELETE FROM dm_messages WHERE conversation_id IN "
-                        "(SELECT id FROM conversations "
-                        "WHERE participant_a = $1 OR participant_b = $1)",
-                        user_id,
-                    )
-                    await conn.execute(
-                        "DELETE FROM conversations "
-                        "WHERE participant_a = $1 OR participant_b = $1",
-                        user_id,
-                    )
-            except Exception:
-                cleanup_succeeded = False
-                logger.error(
-                    "CRITICAL: Partial anonymization — PII wiped but related data cleanup failed",
-                    extra={"user_id": str(user_id)},
-                    exc_info=True,
+            # H-06: Collect DM attachment keys in batches before deleting
+            _BATCH = 1000
+            while True:
+                dm_rows = await conn.fetch(
+                    "SELECT attachment_key FROM dm_messages "
+                    "WHERE sender_id = $1 AND attachment_key IS NOT NULL "
+                    "ORDER BY created_at LIMIT $2 OFFSET $3",
+                    user_id,
+                    _BATCH,
+                    len(dm_attachment_keys),
                 )
+                if not dm_rows:
+                    break
+                dm_attachment_keys.extend(r["attachment_key"] for r in dm_rows)
+                if len(dm_rows) < _BATCH:
+                    break
 
-        # H-06: Delete MinIO files after transaction commits (best-effort)
+            # DM cleanup: recall all messages, delete DM data
+            await conn.execute(
+                "UPDATE dm_messages SET is_recalled = true, content = NULL "
+                "WHERE sender_id = $1 AND is_recalled = false",
+                user_id,
+            )
+            await conn.execute(
+                "DELETE FROM dm_messages WHERE conversation_id IN "
+                "(SELECT id FROM conversations "
+                "WHERE participant_a = $1 OR participant_b = $1)",
+                user_id,
+            )
+            await conn.execute(
+                "DELETE FROM conversations "
+                "WHERE participant_a = $1 OR participant_b = $1",
+                user_id,
+            )
+
+    # H-06: Delete MinIO files after transaction commits (best-effort)
+    if deleted:
         files_to_delete: list[str] = []
         if avatar_key:
             files_to_delete.append(avatar_key)
@@ -490,7 +486,7 @@ async def anonymize_user(user_id: uuid.UUID) -> dict:
                     exc_info=True,
                 )
 
-    return {"anonymized": deleted, "cleanup_succeeded": cleanup_succeeded if deleted else True}
+    return {"anonymized": deleted, "cleanup_succeeded": True}
 
 
 async def ban_user(user_id: uuid.UUID, reason: str) -> bool:

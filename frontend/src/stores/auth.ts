@@ -156,6 +156,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Verify session validity server-side on app init.
+   * If the server rejects the session (401/403), clear localStorage to prevent
+   * tampered expiresAt from keeping the UI in an authenticated state.
+   */
+  async function verifySession() {
+    if (!isAuthenticated.value) return
+    if (role.value === 'GUEST') {
+      // Guests use heartbeat for session validation; skip profile fetch
+      try {
+        await apiHeartbeat()
+      } catch {
+        clearSession()
+      }
+      return
+    }
+    try {
+      await getProfile()
+    } catch {
+      // Server rejected the session — clear tampered localStorage state
+      clearSession()
+    }
+  }
+
   function startHeartbeat() {
     stopHeartbeat()
     heartbeatFailures = 0
@@ -188,10 +212,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Auto-start heartbeat if already authenticated
+  // Auto-start heartbeat and verify session if already authenticated.
+  // verifySession() calls the server to confirm the session is valid,
+  // catching tampered expiresAt in localStorage.
   if (isAuthenticated.value) {
     startHeartbeat()
-    fetchProfile().catch(() => {})
+    verifySession().catch(() => {})
   }
 
   return {
@@ -213,5 +239,6 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     fetchProfile,
+    verifySession,
   }
 })

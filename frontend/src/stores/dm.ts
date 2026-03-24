@@ -191,19 +191,16 @@ export const useDMStore = defineStore('dm', () => {
   }
 
   function readReceiptFromWebSocket(conversationId: string, readAt: string) {
+    // DM_READ means the OTHER user read OUR messages.
+    // Update read_at on our sent messages so the UI shows double-check marks,
+    // but do NOT modify unread counts (those track messages WE haven't read).
     if (activeConversationId.value === conversationId) {
-      // Only mark own sent messages as read
       for (const msg of messages.value) {
         if (!msg.read_at && msg.sender.id === currentUserId.value) {
           msg.read_at = readAt
         }
       }
     }
-    // Calculate delta before updating conversation
-    const conv = conversations.value.find((c) => c.id === conversationId)
-    const prevUnread = conv?.unread_count ?? 0
-    if (conv) conv.unread_count = 0
-    unreadCount.value = Math.max(0, unreadCount.value - prevUnread)
   }
 
   function setActiveConversation(id: string | null) {

@@ -273,7 +273,10 @@ async def update_member_role(sig_id: uuid.UUID, user_id: uuid.UUID, role: str) -
 async def update_member_role_in_conn(
     sig_id: uuid.UUID, user_id: uuid.UUID, role: str, conn: Any
 ) -> dict | None:
-    """Update or insert a member's role within an existing connection/transaction."""
+    """Update a member's role within an existing connection/transaction.
+
+    L-09: Raises ValueError if the member does not exist (no silent insert).
+    """
     sig = await conn.fetchrow(
         "SELECT id FROM sigs WHERE id = $1 AND is_deleted = false",
         sig_id,
@@ -287,25 +290,14 @@ async def update_member_role_in_conn(
         user_id,
     )
 
-    if existing:
-        await conn.execute(
-            "UPDATE sig_members SET role = $1, updated_at = NOW() WHERE id = $2",
-            role,
-            existing["id"],
-        )
-    else:
-        member_id = uuid.uuid4()
-        await conn.execute(
-            "INSERT INTO sig_members (id, sig_id, user_id, role) VALUES ($1, $2, $3, $4)",
-            member_id,
-            sig_id,
-            user_id,
-            role,
-        )
-        await conn.execute(
-            "UPDATE sigs SET member_count = member_count + 1 WHERE id = $1",
-            sig_id,
-        )
+    if not existing:
+        raise ValueError("Member not found in this SIG.")
+
+    await conn.execute(
+        "UPDATE sig_members SET role = $1, updated_at = NOW() WHERE id = $2",
+        role,
+        existing["id"],
+    )
 
     row = await conn.fetchrow(
         """

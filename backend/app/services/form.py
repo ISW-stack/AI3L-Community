@@ -149,6 +149,41 @@ async def get_user_response(form_id: uuid.UUID, user_id: str) -> dict | None:
     }
 
 
+def _normalize_percentages(option_stats: list[dict]) -> None:
+    """Normalize rounded percentages so they sum to exactly 100% (or 0%).
+
+    Uses largest-remainder method: round down all percentages, then distribute
+    the remaining difference to items with the largest fractional parts.
+    """
+    if not option_stats:
+        return
+    total_pct = sum(s["percentage"] for s in option_stats)
+    if total_pct == 0.0:
+        return
+
+    # Compute exact percentages and floor values
+    exact = [s["percentage"] for s in option_stats]
+    floored = [int(p * 10) / 10.0 for p in exact]  # floor to 1 decimal
+    # Actually, recompute: floor each to 1 decimal
+    import math
+
+    floored = [math.floor(p * 10) / 10.0 for p in exact]
+    remainders = [(exact[i] - floored[i], i) for i in range(len(exact))]
+    floored_sum = round(sum(floored), 1)
+    target = 100.0
+    diff = round(target - floored_sum, 1)
+
+    # Sort by remainder descending, distribute 0.1 increments
+    remainders.sort(key=lambda x: x[0], reverse=True)
+    steps = int(round(diff * 10))
+    for k in range(min(steps, len(remainders))):
+        idx = remainders[k][1]
+        floored[idx] = round(floored[idx] + 0.1, 1)
+
+    for i, s in enumerate(option_stats):
+        s["percentage"] = floored[i]
+
+
 async def get_form_stats(form_id: uuid.UUID) -> dict:
     """Compute aggregated statistics for all responses to a form."""
     row, _ = await form_repo.find_by_id(form_id)
@@ -265,6 +300,8 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
                         "percentage": round(pct, 1),
                     }
                 )
+            # Normalize percentages so they sum to exactly 100% (or 0%)
+            _normalize_percentages(option_stats)
             stats["options"] = option_stats
 
         elif qtype == "rating":
@@ -507,6 +544,9 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             )
             _validate_answers(questions, answers)
 
+            # Validate file_upload answer ownership
+            _validate_file_ownership(questions, answers, user_id)
+
             # Server-side file size validation (defense-in-depth)
             await _validate_file_sizes(questions, answers)
 
@@ -595,6 +635,33 @@ def _validate_answers(questions: list[dict], answers: dict) -> None:
             raise ValueError(f"Unknown question id: '{key}'.")
 
 
+def _validate_file_ownership(questions: list[dict], answers: dict, user_id: str) -> None:
+    """Verify that file_upload answer keys belong to the submitting user.
+
+    File keys follow the pattern: editor/{user_id}/{filename} or
+    forms/{form_id}/{user_id}/{filename}. The user_id segment must
+    match the submitting user.
+    """
+    for q in questions:
+        if q["type"] != "file_upload":
+            continue
+        value = answers.get(q["id"])
+        if not isinstance(value, dict) or "key" not in value:
+            continue
+        key = value["key"]
+        parts = key.split("/")
+        # Check common key patterns for user_id presence
+        owner_found = False
+        for part in parts:
+            if part == user_id:
+                owner_found = True
+                break
+        if not owner_found:
+            raise PermissionError(
+                f"File for question '{q['label']}' does not belong to the submitting user."
+            )
+
+
 async def _validate_file_sizes(questions: list[dict], answers: dict) -> None:
     """Check uploaded file sizes against max_size_mb limits (server-side enforcement)."""
     from app.core.async_storage import get_file_size
@@ -619,27 +686,68 @@ async def _validate_file_sizes(questions: list[dict], answers: dict) -> None:
 async def soft_delete_form(form_id: uuid.UUID, user_id: str, is_admin: bool) -> bool:
     # Permission check and delete happen in the same transaction (via FOR UPDATE
     # in soft_delete_with_permission) to prevent TOCTOU race conditions.
-    deleted, banner_url = await form_repo.soft_delete_with_permission(form_id, user_id, is_admin)
+    deleted, banner_url, file_upload_entries = await form_repo.soft_delete_with_permission(
+        form_id, user_id, is_admin
+    )
 
-    # Best-effort cleanup of form banner from storage
-    if deleted and banner_url:
+    if deleted:
+        # Best-effort cleanup of file_upload answer files from MinIO + refund quota
+        if file_upload_entries:
+            await _cleanup_form_upload_files(form_id, file_upload_entries)
+
+        # Best-effort cleanup of form banner from storage
+        if banner_url:
+            try:
+                from app.core.async_storage import delete_file as async_delete_file
+
+                # banner_url is a storage key like "forms/banners/{form_id}/..."
+                # or a proxy URL like "/api/v1/files/content/forms/banners/..."
+                key = banner_url
+                if key.startswith("/api/v1/files/content/"):
+                    key = key[len("/api/v1/files/content/") :]
+                await async_delete_file(key)
+                logger.info(
+                    "Deleted form banner from storage",
+                    extra={"form_id": str(form_id), "key": key},
+                )
+            except Exception:
+                logger.warning(
+                    "Form banner cleanup failed",
+                    extra={"form_id": str(form_id)},
+                )
+
+    return deleted
+
+
+async def _cleanup_form_upload_files(
+    form_id: uuid.UUID, file_entries: list[dict]
+) -> None:
+    """Best-effort cleanup of file_upload answer files from MinIO and refund storage quota."""
+    from app.core.async_storage import delete_file as async_delete_file
+    from app.core.async_storage import get_file_size
+    from app.repositories import user_repo
+
+    for entry in file_entries:
+        key = entry["key"]
+        resp_user_id = entry["user_id"]
         try:
-            from app.core.async_storage import delete_file as async_delete_file
-
-            # banner_url is a storage key like "forms/banners/{form_id}/..."
-            # or a proxy URL like "/api/v1/files/content/forms/banners/..."
-            key = banner_url
-            if key.startswith("/api/v1/files/content/"):
-                key = key[len("/api/v1/files/content/") :]
+            file_size = await get_file_size(key)
             await async_delete_file(key)
+            if file_size > 0:
+                await user_repo.increment_storage_used(
+                    uuid.UUID(resp_user_id), -file_size
+                )
             logger.info(
-                "Deleted form banner from storage",
-                extra={"form_id": str(form_id), "key": key},
+                "Deleted form upload file and refunded quota",
+                extra={
+                    "form_id": str(form_id),
+                    "key": key,
+                    "user_id": resp_user_id,
+                    "size": file_size,
+                },
             )
         except Exception:
             logger.warning(
-                "Form banner cleanup failed",
-                extra={"form_id": str(form_id)},
+                "Failed to cleanup form upload file",
+                extra={"form_id": str(form_id), "key": key},
             )
-
-    return deleted

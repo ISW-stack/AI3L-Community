@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AlbumsDirectoryView from '../AlbumsDirectoryView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 const mockListAlbums = vi.fn()
 
@@ -100,7 +101,7 @@ async function mountDirectory(options?: { role?: string }) {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   await router.push('/albums')
   await router.isReady()
@@ -166,7 +167,7 @@ describe('AlbumsDirectoryView', () => {
     const router = createTestRouter()
     const auth = useAuthStore()
     auth.setSession('MEMBER', 3600)
-    auth.user = { id: 'user1' } as any
+    auth.user = { id: 'user1' } as unknown as UserProfile
 
     await router.push('/albums')
     await router.isReady()

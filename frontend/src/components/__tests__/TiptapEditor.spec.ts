@@ -4,6 +4,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import TiptapEditor from '../TiptapEditor.vue'
 
+type TiptapEditorVM = {
+  scanStatus: string | null
+  uploading: boolean
+  handleFileUpload: (event: Event) => Promise<void>
+}
+
 // Mock all TipTap dependencies
 const mockChain = {
   focus: vi.fn().mockReturnThis(),
@@ -222,8 +228,8 @@ describe('TiptapEditor', () => {
       const wrapper1 = mount(TiptapEditor, { props: { modelValue: '' } })
       const wrapper2 = mount(TiptapEditor, { props: { modelValue: '' } })
 
-      const vm1 = wrapper1.vm as any
-      const vm2 = wrapper2.vm as any
+      const vm1 = wrapper1.vm as unknown as TiptapEditorVM
+      const vm2 = wrapper2.vm as unknown as TiptapEditorVM
 
       // Upload a file on instance 1 to trigger scan status
       const file = new File(['data'], 'file.pdf', { type: 'application/pdf' })
@@ -244,7 +250,7 @@ describe('TiptapEditor', () => {
       const wrapper1 = mount(TiptapEditor, { props: { modelValue: '<p>First</p>' } })
       const wrapper2 = mount(TiptapEditor, { props: { modelValue: '<p>Second</p>' } })
 
-      const vm2 = wrapper2.vm as any
+      const vm2 = wrapper2.vm as unknown as TiptapEditorVM
 
       // Unmount instance 1
       wrapper1.unmount()
@@ -270,7 +276,7 @@ describe('TiptapEditor', () => {
       vi.mocked(uploadEditorFile).mockReturnValue(new Promise(() => {}))
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'photo.png', { type: 'image/png' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -288,7 +294,7 @@ describe('TiptapEditor', () => {
       vi.mocked(uploadEditorFile).mockReturnValue(new Promise(() => {}))
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'photo.png', { type: 'image/png' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -311,7 +317,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'photo.png', { type: 'image/png' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -343,7 +349,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'photo.png', { type: 'image/png' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -365,7 +371,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'report.pdf', { type: 'application/pdf' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -388,7 +394,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'doc.docx', {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -405,7 +411,7 @@ describe('TiptapEditor', () => {
 
     it('does not call setImage or insertContent when no file is selected', async () => {
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const fakeEvent = { target: { files: [], value: '' } } as unknown as Event
       await vm.handleFileUpload(fakeEvent)
@@ -424,7 +430,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'file.pdf', { type: 'application/pdf' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -439,7 +445,7 @@ describe('TiptapEditor', () => {
       const { uploadEditorFile } = await import('@/api/files')
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       // Create a file object with size > 20 MB
       const largeFile = new File(['x'], 'huge.pdf', { type: 'application/pdf' })
@@ -465,7 +471,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       // Create a file exactly at the limit (20 MB)
       const exactFile = new File(['x'], 'exact.pdf', { type: 'application/pdf' })
@@ -488,7 +494,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const maliciousName = '<img src=x onerror=alert(1)>.pdf'
       const file = new File(['data'], maliciousName, { type: 'application/pdf' })
@@ -512,7 +518,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'file.pdf', { type: 'application/pdf' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -533,7 +539,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'file.png', { type: 'image/png' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -553,7 +559,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'photo.png', { type: 'image/png' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event
@@ -574,7 +580,7 @@ describe('TiptapEditor', () => {
       })
 
       const wrapper = mount(TiptapEditor, { props: { modelValue: '' } })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as TiptapEditorVM
 
       const file = new File(['data'], 'photo.png', { type: 'image/png' })
       const fakeEvent = { target: { files: [file], value: '' } } as unknown as Event

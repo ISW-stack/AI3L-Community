@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import HomeView from '../HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 const mockListPosts = vi.fn()
 const mockGetTrendingPosts = vi.fn()
@@ -154,7 +155,7 @@ async function mountHome(options?: { role?: string }) {
       avatar_url: null,
       is_banned: false,
       ban_reason: null,
-    } as any
+    } as unknown as UserProfile
   }
 
   await router.push('/')

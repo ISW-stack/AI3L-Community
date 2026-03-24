@@ -15,7 +15,7 @@ from app.core.constants import (
     RECOMMENDATION_MIN_USERS,
 )
 from app.tasks.async_runner import run_async as _run_async
-from app.tasks.cleanup import _ensure_pool
+from app.tasks.utils import ensure_pool as _ensure_pool
 
 
 async def _compute_recommendations_async() -> dict[str, int]:
@@ -28,9 +28,16 @@ async def _compute_recommendations_async() -> dict[str, int]:
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            # Advisory lock to prevent concurrent recommendation computation.
-            # Auto-releases when the transaction ends.
-            await conn.execute("SELECT pg_advisory_xact_lock(hashtext('compute_recommendations'))")
+            # Try to acquire advisory lock; skip if another task is already running.
+            # pg_try_advisory_xact_lock returns false if lock is held elsewhere.
+            lock_acquired = await conn.fetchval(
+                "SELECT pg_try_advisory_xact_lock(hashtext('compute_recommendations'))"
+            )
+            if not lock_acquired:
+                logger.info(
+                    "Skipping recommendation recompute — another task holds the lock"
+                )
+                return {"total": 0, "users": 0, "skipped": True, "reason": "lock_held"}
 
             # Check minimum user count
             count = await conn.fetchval(

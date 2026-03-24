@@ -48,13 +48,16 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
     user_id = payload["sub"]
     role = payload["role"]
 
-    await ws.accept()
-
-    # M-04: Per-user connection limit
+    # Per-user connection limit — check BEFORE accept() to avoid resource
+    # consumption from connections that will be immediately rejected.
     async with _connections_lock:
         if len(_connections.get(user_id, set())) >= WS_MAX_CONNECTIONS_PER_USER:
             await ws.close(code=4006, reason="Too many connections")
             return
+
+    await ws.accept()
+
+    async with _connections_lock:
         _connections[user_id].add(ws)
     logger.info("WebSocket connected", extra={"user_id": user_id, "role": role})
 

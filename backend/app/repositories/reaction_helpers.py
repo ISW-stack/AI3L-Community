@@ -50,7 +50,14 @@ async def toggle_reaction_jsonb(
     else:
         reactions = {}
 
+    # L-07: Cap the number of distinct reaction types per entity
+    MAX_REACTION_TYPES = 20
+
     if reaction_type not in reactions:
+        if len(reactions) >= MAX_REACTION_TYPES:
+            raise ValueError(
+                f"Maximum number of reaction types ({MAX_REACTION_TYPES}) reached."
+            )
         reactions[reaction_type] = []
 
     user_list: list[str] = reactions[reaction_type]

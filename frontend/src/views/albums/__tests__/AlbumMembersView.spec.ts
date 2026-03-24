@@ -6,6 +6,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import AlbumMembersView from '../AlbumMembersView.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { Album } from '@/types/album'
+import type { UserProfile } from '@/types/user'
 
 const mockListAlbumMembers = vi.fn()
 const mockJoinAlbum = vi.fn()
@@ -108,7 +109,7 @@ async function mountView() {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   await router.push('/albums/album-1/members')
   await router.isReady()
@@ -136,7 +137,7 @@ describe('AlbumMembersView', () => {
     const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
 
     // Trigger search to start debounce timer
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { handleSearchInput: (val: string) => void }
     vm.handleSearchInput('test')
 
     // Unmount should clear the pending timer

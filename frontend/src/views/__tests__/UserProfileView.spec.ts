@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import UserProfileView from '../UserProfileView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 const mockGetPublicProfile = vi.fn()
 const mockListPosts = vi.fn()
@@ -107,7 +108,7 @@ async function mountUserProfile(options?: { userId?: string; isSelf?: boolean })
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   await router.push(`/users/${userId}`)
   await router.isReady()
@@ -202,7 +203,7 @@ describe('UserProfileView', () => {
       avatar_url: null,
       is_banned: false,
       ban_reason: null,
-    } as any
+    } as unknown as UserProfile
 
     await flushPromises()
     await nextTick()
@@ -234,7 +235,7 @@ describe('UserProfileView', () => {
     const router = createTestRouter()
     const auth = useAuthStore()
     auth.setSession('MEMBER', 3600)
-    auth.user = { id: 'current-user' } as any
+    auth.user = { id: 'current-user' } as unknown as UserProfile
 
     const wrapper = mount(UserProfileView, {
       global: { plugins: [pinia, router], stubs: createStubs() },

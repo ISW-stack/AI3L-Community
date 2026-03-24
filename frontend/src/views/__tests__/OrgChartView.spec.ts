@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import OrgChartView from '../about/OrgChartView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 // ── Mock router (auth store imports it at module level) ────────────────
 vi.mock('@/router', () => ({
@@ -151,7 +152,7 @@ function mountView(userRole = 'MEMBER', userId = 'other-user') {
     is_banned: false,
     ban_reason: null,
     created_at: new Date().toISOString(),
-  } as any
+  } as unknown as UserProfile
 
   return mount(OrgChartView, {
     global: {

@@ -63,6 +63,10 @@ async def bulk_delete_notifications(
 ) -> Response:
     if not await check_rate_limit(f"rl:notif_del:{current_user['sub']}", 30, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+    # L-05: If an explicit empty IDs list is provided, treat as no-op
+    # (prevents deleting ALL notifications when caller sends [])
+    if req and req.notification_ids is not None and len(req.notification_ids) == 0:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     ids = list(req.notification_ids) if req and req.notification_ids else None
     await notification_repo.bulk_delete(uuid.UUID(current_user["sub"]), ids)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

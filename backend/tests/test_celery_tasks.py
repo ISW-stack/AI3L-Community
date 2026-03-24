@@ -1010,7 +1010,7 @@ class TestVirusTotal:
         mock_insert = AsyncMock()
 
         with (
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.file_scan_repo.insert", mock_insert),
         ):
             from app.tasks.virustotal import _insert_pending
@@ -1025,7 +1025,7 @@ class TestVirusTotal:
         mock_update = AsyncMock()
 
         with (
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.file_scan_repo.update_status", mock_update),
         ):
             from app.tasks.virustotal import _update_scan
@@ -1040,12 +1040,12 @@ class TestVirusTotal:
         mock_init = AsyncMock()
 
         with (
-            patch("app.tasks.virustotal.get_pool", side_effect=RuntimeError("no pool")),
-            patch("app.tasks.virustotal.init_db_pool", mock_init),
+            patch("app.tasks.utils.get_pool", side_effect=RuntimeError("no pool")),
+            patch("app.tasks.utils.init_db_pool", mock_init),
         ):
-            from app.tasks.virustotal import _ensure_pool
+            from app.tasks.utils import ensure_pool
 
-            await _ensure_pool()
+            await ensure_pool()
 
         mock_init.assert_awaited_once()
 
@@ -1055,12 +1055,12 @@ class TestVirusTotal:
         mock_init = AsyncMock()
 
         with (
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
-            patch("app.tasks.virustotal.init_db_pool", mock_init),
+            patch("app.tasks.utils.get_pool", return_value=MagicMock()),
+            patch("app.tasks.utils.init_db_pool", mock_init),
         ):
-            from app.tasks.virustotal import _ensure_pool
+            from app.tasks.utils import ensure_pool
 
-            await _ensure_pool()
+            await ensure_pool()
 
         mock_init.assert_not_awaited()
 
@@ -1206,8 +1206,8 @@ class TestVirusTotal:
             patch("app.tasks.virustotal.requests") as mock_requests,
             patch("app.core.async_storage.delete_file", mock_async_delete),
             patch("app.core.async_storage.get_file_size", mock_async_get_size),
-            patch("app.repositories.user_repo.increment_storage_used", mock_decrement),
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._decrement_owner_storage", mock_decrement),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
         ):
             mock_settings.VT_API_KEY = "test-key"
             mock_requests.get.return_value = mock_response
@@ -1238,7 +1238,7 @@ class TestVirusTotal:
         assert result["status"] == "malicious"
         mock_async_delete.assert_awaited_once_with(storage_key)
         mock_async_get_size.assert_awaited_once_with(storage_key)
-        mock_decrement.assert_awaited_once_with(uuid.UUID(user_id), -1024)
+        mock_decrement.assert_awaited_once_with(storage_key, 1024)
 
     def test_check_not_found_in_vt(self):
         """check_virustotal should return 'not_found' and mark DB as 'unknown' (fail-close)."""
@@ -1425,7 +1425,7 @@ class TestVirusTotalFailClose:
         with (
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
@@ -1467,7 +1467,7 @@ class TestVirusTotalFailClose:
         with (
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
@@ -1509,7 +1509,7 @@ class TestVirusTotalFailClose:
         with (
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
@@ -1565,7 +1565,7 @@ class TestVirusTotalFailClose:
         with (
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
@@ -1618,7 +1618,7 @@ class TestVirusTotalFailClose:
         with (
             patch("app.tasks.virustotal.settings") as mock_settings,
             patch("app.tasks.virustotal.requests") as mock_requests,
-            patch("app.tasks.virustotal.get_pool", return_value=MagicMock()),
+            patch("app.tasks.virustotal._ensure_pool", new_callable=AsyncMock),
             patch("app.repositories.file_scan_repo.update_status", update_status_mock),
             patch("app.repositories.file_scan_repo.insert", AsyncMock()),
             patch("app.tasks.virustotal._run_async") as mock_run,
@@ -1802,7 +1802,7 @@ class TestDeleteOrphansOrder:
                 side_effect=mock_delete_by_key,
             ),
             patch(
-                "app.tasks.cleanup._decrement_owner_storage",
+                "app.tasks.utils.decrement_owner_storage",
                 side_effect=mock_decrement,
             ),
             patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),

@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import FormShareCard from '../FormShareCard.vue'
 import { getForm } from '@/api/forms'
+import type { FormData } from '@/types'
 
 vi.mock('@/api/forms', () => ({
   getForm: vi.fn(),
@@ -62,7 +63,7 @@ describe('FormShareCard', () => {
       response_count: 5,
       deadline: '2026-12-31T00:00:00Z',
       created_by_name: 'Alice',
-    } as any)
+    } as unknown as FormData)
 
     const router = createTestRouter()
     const wrapper = mount(FormShareCard, {
@@ -88,7 +89,7 @@ describe('FormShareCard', () => {
       response_count: 0,
       deadline: null,
       created_by_name: 'Bob',
-    } as any)
+    } as unknown as FormData)
 
     const router = createTestRouter()
     const wrapper = mount(FormShareCard, {
@@ -122,7 +123,7 @@ describe('FormShareCard', () => {
       response_count: 0,
       deadline: null,
       created_by_name: 'Carol',
-    } as any)
+    } as unknown as FormData)
 
     const router = createTestRouter()
     const wrapper = mount(FormShareCard, {

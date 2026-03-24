@@ -163,10 +163,13 @@ async def count_super_admins_for_update(conn: Any) -> int:
     return int(result)
 
 
-async def anonymize(user_id: uuid.UUID, anon_name: str) -> bool:
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        result = await conn.execute(
+async def anonymize(
+    user_id: uuid.UUID, anon_name: str, conn: Any | None = None
+) -> bool:
+    """Anonymize a user. If conn is provided, uses it directly (for transactional use)."""
+
+    async def _do(c: Any) -> bool:
+        result = await c.execute(
             """
             UPDATE users SET
                 username = $1,
@@ -184,6 +187,12 @@ async def anonymize(user_id: uuid.UUID, anon_name: str) -> bool:
             user_id,
         )
         return bool(result == "UPDATE 1")
+
+    if conn is not None:
+        return await _do(conn)
+    pool = get_pool()
+    async with pool.acquire() as c:
+        return await _do(c)
 
 
 async def set_ban(user_id: uuid.UUID, reason: str) -> bool:
@@ -237,7 +246,19 @@ async def list_all(
         if rows:
             total = rows[0]["_total"]
             return [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows], total
-        return [], 0
+        # Empty result set (e.g. past the last page) — run a separate count
+        if search:
+            pattern = f"%{_escape_ilike(search)}%"
+            total = await conn.fetchval(
+                "SELECT COUNT(*) FROM users WHERE is_deleted = false"
+                " AND (username ILIKE $1 ESCAPE '\\' OR display_name ILIKE $1 ESCAPE '\\')",
+                pattern,
+            )
+        else:
+            total = await conn.fetchval(
+                "SELECT COUNT(*) FROM users WHERE is_deleted = false"
+            )
+        return [], int(total)
 
 
 async def search_users(query: str, limit: int = 20) -> list[dict]:

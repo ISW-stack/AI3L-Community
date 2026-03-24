@@ -3,6 +3,9 @@ import { reactive } from 'vue'
 import type { Conversation } from '@/types/dm'
 import { relativeTime } from '@/utils/datetime'
 import { MessageSquare } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{
   conversations: Conversation[]
@@ -21,15 +24,15 @@ function handleSelect(conv: Conversation) {
 }
 
 function getLastMessagePreview(conv: Conversation): string {
-  if (!conv.last_message) return 'No messages yet'
-  if (conv.last_message.is_recalled) return 'Message recalled'
+  if (!conv.last_message) return t('dm.noMessagePreview')
+  if (conv.last_message.is_recalled) return t('dm.messageRecalled')
   if (conv.last_message.content) {
     return conv.last_message.content.length > 50
       ? conv.last_message.content.slice(0, 50) + '...'
       : conv.last_message.content
   }
-  if (conv.last_message.attachment_name) return 'File: ' + conv.last_message.attachment_name
-  return 'Attachment'
+  if (conv.last_message.attachment_name) return t('dm.fileAttachment', { name: conv.last_message.attachment_name })
+  return t('dm.attachment')
 }
 
 function handleAvatarError(convId: string) {
@@ -40,14 +43,14 @@ function handleAvatarError(convId: string) {
 <template>
   <div class="flex flex-col h-full">
     <div class="px-4 py-3 border-b border-border">
-      <h2 class="text-sm font-semibold text-foreground">Conversations</h2>
+      <h2 class="text-sm font-semibold text-foreground">{{ t('dm.conversations') }}</h2>
     </div>
 
     <div
       v-if="loading && conversations.length === 0"
       class="px-4 py-8 text-center text-sm text-muted"
     >
-      Loading...
+      {{ t('common.loading') }}
     </div>
 
     <div
@@ -55,8 +58,8 @@ function handleAvatarError(convId: string) {
       class="flex flex-col items-center justify-center flex-1 px-4 py-8 text-center"
     >
       <MessageSquare class="w-10 h-10 text-gray-300 mb-3" aria-hidden="true" />
-      <p class="text-sm text-muted">No conversations yet</p>
-      <p class="text-xs text-muted mt-1">Start a conversation by visiting a user's profile.</p>
+      <p class="text-sm text-muted">{{ t('dm.noConversations') }}</p>
+      <p class="text-xs text-muted mt-1">{{ t('dm.noConversationsDesc') }}</p>
     </div>
 
     <div v-else class="flex-1 overflow-y-auto">
@@ -104,7 +107,7 @@ function handleAvatarError(convId: string) {
           v-if="conv.unread_count > 0"
           class="shrink-0 flex items-center justify-center min-w-[22px] h-[22px] sm:min-w-[20px] sm:h-5 px-1.5 text-[11px] sm:text-[10px] font-bold text-white bg-danger-500 rounded-full"
           role="status"
-          :aria-label="`${conv.unread_count} unread message${conv.unread_count === 1 ? '' : 's'}`"
+          :aria-label="t('dm.unreadMessages', { count: conv.unread_count }, conv.unread_count)"
         >
           {{ conv.unread_count > 99 ? '99+' : conv.unread_count }}
         </span>

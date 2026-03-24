@@ -3,6 +3,15 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import NotificationsView from '../NotificationsView.vue'
+import type { Notification } from '@/types/notification'
+
+type NotificationsVM = {
+  showClearAllConfirm: boolean
+  filteredNotifications: unknown
+  notifications: Notification[]
+  confirmClearAll: () => Promise<void>
+  handleDeleteNotification: (id: string) => Promise<void>
+}
 
 const mockListNotifications = vi.fn()
 const mockMarkRead = vi.fn()
@@ -252,7 +261,7 @@ describe('NotificationsView', () => {
     await clearBtn!.trigger('click')
     await flushPromises()
     // Modal should be shown — showClearAllConfirm is true
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as NotificationsVM
     expect(vm.showClearAllConfirm).toBe(true)
     // Simulate confirming via the modal
     await vm.confirmClearAll()
@@ -266,7 +275,7 @@ describe('NotificationsView', () => {
     expect(clearBtn).toBeTruthy()
     await clearBtn!.trigger('click')
     await flushPromises()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as NotificationsVM
     expect(vm.showClearAllConfirm).toBe(true)
     // Cancel by setting flag back to false (simulating cancel button)
     vm.showClearAllConfirm = false
@@ -297,13 +306,13 @@ describe('NotificationsView', () => {
 
   it('decrements unreadCount when deleting an unread notification', async () => {
     const { wrapper } = await mountNotifications()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as NotificationsVM
     const { useNotificationStore } = await import('@/stores/notifications')
     const store = useNotificationStore()
 
     // Verify initial state: 2 unread notifications in the store
     expect(store.unreadCount).toBe(2)
-    const n1 = vm.notifications.find((n: any) => n.id === 'n1')
+    const n1 = vm.notifications.find((n: Notification) => n.id === 'n1')
     expect(n1).toBeTruthy()
     expect(n1.is_read).toBe(false)
 
@@ -319,14 +328,14 @@ describe('NotificationsView', () => {
     await flushPromises()
 
     // Notification should be removed from array
-    expect(vm.notifications.find((n: any) => n.id === 'n1')).toBeUndefined()
+    expect(vm.notifications.find((n: Notification) => n.id === 'n1')).toBeUndefined()
     // store.unreadCount should be updated by fetchUnreadCount
     expect(store.unreadCount).toBe(1)
   })
 
   it('renders notifications directly without filteredNotifications computed', async () => {
     const { wrapper } = await mountNotifications()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as NotificationsVM
     // Verify there is no filteredNotifications property on the component instance
     expect(vm.filteredNotifications).toBeUndefined()
     // Notifications should still render correctly via the notifications ref directly
@@ -348,7 +357,7 @@ describe('NotificationsView', () => {
 
   it('handleDeleteNotification awaits fetchUnreadCount before resolving', async () => {
     const { wrapper } = await mountNotifications()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as NotificationsVM
 
     // Make fetchUnreadCount (triggered via store) take time
     // The store's fetchUnreadCount calls listNotifications internally
@@ -385,7 +394,7 @@ describe('NotificationsView', () => {
 
   it('confirmClearAll awaits fetchUnreadCount before resolving', async () => {
     const { wrapper } = await mountNotifications()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as NotificationsVM
 
     let resolveFetch: () => void
     const fetchPromise = new Promise<void>((r) => {
@@ -416,7 +425,7 @@ describe('NotificationsView', () => {
 
   it('does not decrement unreadCount when deleting a read notification', async () => {
     const { wrapper } = await mountNotifications()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as NotificationsVM
     const { useNotificationStore } = await import('@/stores/notifications')
     const store = useNotificationStore()
 
@@ -429,7 +438,7 @@ describe('NotificationsView', () => {
     // store.unreadCount should remain 2 since n2 was already read
     expect(store.unreadCount).toBe(2)
     // Notification should be removed from array
-    expect(vm.notifications.find((n: any) => n.id === 'n2')).toBeUndefined()
+    expect(vm.notifications.find((n: Notification) => n.id === 'n2')).toBeUndefined()
   })
 
   it('navigates to /friends for friendship entity_type notifications', async () => {

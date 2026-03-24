@@ -746,18 +746,18 @@ describe('useWebSocket', () => {
       addSpy.mockRestore()
     })
 
-    it('replaces stale handler when second consumer registers', () => {
+    it('reuses shared listener when second consumer registers (no remove/re-add)', () => {
       const addSpy = vi.spyOn(document, 'addEventListener')
       const removeSpy = vi.spyOn(document, 'removeEventListener')
 
       useWebSocket()
-      // First consumer registers a listener
+      // First consumer installs the shared listener
       expect(addSpy).toHaveBeenCalledTimes(1)
 
       useWebSocket()
-      // Second consumer replaces the stale handler: remove old + add new
-      expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function))
-      expect(addSpy).toHaveBeenCalledTimes(2)
+      // Second consumer adds its handler to the Set but does NOT re-register the shared listener
+      expect(removeSpy).not.toHaveBeenCalledWith('visibilitychange', expect.any(Function))
+      expect(addSpy).toHaveBeenCalledTimes(1)
 
       addSpy.mockRestore()
       removeSpy.mockRestore()

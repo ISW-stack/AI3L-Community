@@ -177,6 +177,17 @@ class TestEditMessageTOCTOU:
 
         pool, conn = _mock_pool_conn()
         conn.fetchrow = AsyncMock(side_effect=[msg_row, updated_row])
+
+        # fetchval calls: advisory lock (None), total_chars for cap check (100)
+        async def mock_fetchval(*args, **kwargs):
+            sql = args[0] if args else ""
+            if "pg_advisory_xact_lock" in sql:
+                return None
+            if "total_chars" in sql:
+                return 100  # well under cap
+            return None
+
+        conn.fetchval = AsyncMock(side_effect=mock_fetchval)
         mock_get_pool.return_value = pool
 
         mock_dm_repo.find_conversation_by_id = AsyncMock(return_value=conv)
@@ -188,7 +199,13 @@ class TestEditMessageTOCTOU:
 
         # Verify execute was called for char count update with correct delta
         assert conn.execute.called
-        execute_args = conn.execute.call_args[0]
+        # Find the execute call that updates total_chars (not updated_at)
+        char_update_calls = [
+            c for c in conn.execute.call_args_list
+            if "total_chars" in str(c[0][0])
+        ]
+        assert len(char_update_calls) == 1
+        execute_args = char_update_calls[0][0]
         # delta = len("A much longer message now") - len("Short") = 25 - 5 = 20
         assert execute_args[1] == 20, f"Expected char_delta=20, got {execute_args[1]}"
 
@@ -356,8 +373,8 @@ class TestSendMessageQuotaTOCTOU:
     @patch(f"{_SVC}.async_row_to_message", new_callable=AsyncMock)
     @patch(f"{_SVC}.emit", new_callable=AsyncMock)
     @patch(f"{_SVC}.dm_repo")
-    async def test_send_quota_check_uses_for_update(self, mock_dm_repo, mock_emit, mock_convert):
-        """send_message quota check uses SELECT storage_used_bytes ... FOR UPDATE."""
+    async def test_send_quota_check_uses_atomic_update(self, mock_dm_repo, mock_emit, mock_convert):
+        """send_message quota check uses atomic UPDATE ... RETURNING to prevent TOCTOU."""
         # We need two pools: one for block/friendship check, one for quota check
         pool, conn = _mock_pool_conn()
         conv = _make_conversation(conv_id=_CONV_ID)
@@ -369,12 +386,12 @@ class TestSendMessageQuotaTOCTOU:
         mock_dm_repo.get_dm_friends_only = AsyncMock(return_value=False)
         mock_convert.return_value = msg_dict
 
-        # Track all fetchval calls to verify FOR UPDATE in quota check
+        # Track all fetchval calls to verify atomic UPDATE pattern
         fetchval_calls = []
 
         async def track_fetchval(*args, **kwargs):
             fetchval_calls.append(args)
-            return 0  # storage_used_bytes = 0
+            return 0  # storage_used_bytes / dm_friends_only = 0/False
 
         conn.fetchval = AsyncMock(side_effect=track_fetchval)
 
@@ -412,12 +429,14 @@ class TestSendMessageQuotaTOCTOU:
                 file_content_type="application/pdf",
             )
 
-        # Verify at least one fetchval call contains FOR UPDATE
-        for_update_found = any(
-            len(args) > 0 and "FOR UPDATE" in str(args[0]) for args in fetchval_calls
+        # Verify atomic UPDATE ... RETURNING was used for quota check
+        atomic_update_found = any(
+            len(args) > 0 and "UPDATE users" in str(args[0])
+            and "RETURNING" in str(args[0])
+            for args in fetchval_calls
         )
-        assert for_update_found, (
-            f"Expected a fetchval call with FOR UPDATE, " f"got calls: {fetchval_calls}"
+        assert atomic_update_found, (
+            f"Expected an atomic UPDATE ... RETURNING for quota, got calls: {fetchval_calls}"
         )
 
     @pytest.mark.anyio
@@ -426,8 +445,8 @@ class TestSendMessageQuotaTOCTOU:
         """send_message with quota exceeded raises DM_004 with 413."""
         pool, conn = _mock_pool_conn()
 
-        # First fetchval: dm_friends_only (False), second: quota (nearly full)
-        conn.fetchval = AsyncMock(side_effect=[False, 1_073_741_000])
+        # fetchval calls: dm_friends_only (False), then atomic UPDATE returns None (quota exceeded)
+        conn.fetchval = AsyncMock(side_effect=[False, None])
 
         with (
             patch("app.core.database.get_pool", return_value=pool),

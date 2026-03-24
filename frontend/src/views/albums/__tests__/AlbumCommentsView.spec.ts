@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AlbumCommentsView from '../AlbumCommentsView.vue'
 import type { Album } from '@/types/album'
+import type { UserProfile } from '@/types/user'
 
 const mockListAlbumComments = vi.fn()
 const mockCreateAlbumComment = vi.fn()
@@ -116,7 +117,7 @@ async function mountCommentsView(options?: { role?: string | null; isGuest?: boo
       avatar_url: null,
       is_banned: false,
       ban_reason: null,
-    } as any
+    } as unknown as UserProfile
   }
 
   await router.push('/albums/album-1/comments')
@@ -188,7 +189,7 @@ describe('AlbumCommentsView', () => {
       avatar_url: null,
       is_banned: false,
       ban_reason: null,
-    } as any
+    } as unknown as UserProfile
 
     await router.push('/albums/album-1/comments')
     await router.isReady()

@@ -1130,7 +1130,7 @@ class TestB10DeleteAlbumAdminAuth:
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(
-                "app.repositories.album_repo.find_album_by_id",
+                "app.repositories.album_repo.find_album_by_id_for_update",
                 new_callable=AsyncMock,
                 return_value=album,
             ),
@@ -1180,13 +1180,17 @@ class TestB10DeleteAlbumAdminAuth:
         album = _fake_album_row(album_id=album_uuid, user_id=other_creator)
 
         mock_conn = AsyncMock()
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
         mock_pool = MagicMock()
         mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
 
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(
-                "app.repositories.album_repo.find_album_by_id",
+                "app.repositories.album_repo.find_album_by_id_for_update",
                 new_callable=AsyncMock,
                 return_value=album,
             ),
@@ -1219,6 +1223,10 @@ class TestB16ApproveMemberIDOR:
         album_a = _fake_album_row(album_id=album_a_uuid, user_id=admin_id)
 
         mock_conn = AsyncMock()
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
         # update_member_status returns False (0 rows updated — member not in album A)
         mock_conn.execute = AsyncMock(return_value="UPDATE 0")
         mock_pool = MagicMock()
@@ -1227,7 +1235,7 @@ class TestB16ApproveMemberIDOR:
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(
-                "app.repositories.album_repo.find_album_by_id",
+                "app.repositories.album_repo.find_album_by_id_for_update",
                 new_callable=AsyncMock,
                 return_value=album_a,
             ),
@@ -1258,6 +1266,10 @@ class TestB16ApproveMemberIDOR:
         album = _fake_album_row(album_id=album_uuid, user_id=admin_id)
 
         mock_conn = AsyncMock()
+        mock_txn = AsyncMock()
+        mock_txn.__aenter__ = AsyncMock(return_value=None)
+        mock_txn.__aexit__ = AsyncMock(return_value=False)
+        mock_conn.transaction = MagicMock(return_value=mock_txn)
         mock_conn.execute = AsyncMock(return_value="UPDATE 1")
         mock_pool = MagicMock()
         mock_pool.acquire.return_value = _FakeAcquire(mock_conn)
@@ -1265,7 +1277,7 @@ class TestB16ApproveMemberIDOR:
         with (
             patch(f"{_SVC}.get_pool", return_value=mock_pool),
             patch(
-                "app.repositories.album_repo.find_album_by_id",
+                "app.repositories.album_repo.find_album_by_id_for_update",
                 new_callable=AsyncMock,
                 return_value=album,
             ),

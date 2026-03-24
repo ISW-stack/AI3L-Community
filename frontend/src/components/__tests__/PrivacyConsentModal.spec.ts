@@ -85,7 +85,7 @@ describe('PrivacyConsentModal', () => {
 
   describe('accept consent flow', () => {
     it('should call acceptConsent API and emit accepted on success', async () => {
-      mockedAcceptConsent.mockResolvedValue(undefined as any)
+      mockedAcceptConsent.mockResolvedValue(undefined)
 
       const { wrapper } = mountModal()
       const acceptBtn = wrapper.findAll('button')[0]

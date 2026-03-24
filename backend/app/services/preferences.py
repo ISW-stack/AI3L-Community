@@ -7,6 +7,7 @@ _DEFAULTS = {
     "notify_mentions": True,
     "notify_replies": True,
     "notify_sig_posts": True,
+    "dm_friends_only": False,
 }
 
 

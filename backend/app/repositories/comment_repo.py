@@ -181,16 +181,16 @@ async def soft_delete(
             total_deleted = 1  # The parent/target comment itself
 
             # If this is a top-level comment, also soft-delete all child comments
+            # and get the exact count atomically using RETURNING
             if row["parent_id"] is None:
-                child_result = await conn.execute(
+                child_rows = await conn.fetch(
                     "UPDATE comments SET is_deleted = true, updated_at = NOW() "
-                    "WHERE parent_id = $1 AND post_id = $2 AND is_deleted = false",
+                    "WHERE parent_id = $1 AND post_id = $2 AND is_deleted = false "
+                    "RETURNING id",
                     comment_id,
                     post_id,
                 )
-                # Parse "UPDATE N" to get count of deleted children
-                child_count = int(child_result.split()[-1])
-                total_deleted += child_count
+                total_deleted += len(child_rows)
 
             # Decrement comment_count by total deleted (parent + children)
             await conn.execute(

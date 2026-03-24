@@ -55,7 +55,6 @@ const {
   removeFile,
   toggleMultipleChoice,
   ratingRange,
-  ratingCount,
   selectRating,
   onTextInput,
   onSelectChange,

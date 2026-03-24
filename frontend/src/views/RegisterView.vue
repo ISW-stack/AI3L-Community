@@ -81,7 +81,27 @@ const passwordsMatch = computed(
   () => password.value === confirmPassword.value && password.value.length > 0,
 )
 
+// Username validation: 3-50 chars, alphanumeric + underscore + hyphen (mirrors backend)
+const USERNAME_RE = /^[a-zA-Z0-9_-]+$/
+const usernameValid = computed(() => {
+  const u = username.value
+  if (u.length === 0) return true // Don't show error for empty (required handles it)
+  return u.length >= 3 && u.length <= 50 && USERNAME_RE.test(u)
+})
+const usernameError = computed(() => {
+  const u = username.value
+  if (u.length === 0) return ''
+  if (u.length < 3) return t('auth.usernameMinLength')
+  if (u.length > 50) return t('auth.usernameMaxLength')
+  if (!USERNAME_RE.test(u)) return t('auth.usernameFormat')
+  return ''
+})
+
 async function handleRegister() {
+  if (!usernameValid.value) {
+    lastError.value = 'auth.usernameInvalid'
+    return
+  }
   if (!passwordValid.value) {
     lastError.value = 'auth.passwordInvalid'
     return
@@ -153,14 +173,19 @@ onMounted(() => {
         <BaseAlert v-if="error" type="error" class="mb-4">{{ error }}</BaseAlert>
 
         <form @submit.prevent="handleRegister" class="space-y-4">
-          <BaseInput
-            id="input-username"
-            v-model="username"
-            :label="t('auth.username')"
-            :placeholder="t('auth.usernameHelper')"
-            autocomplete="username"
-            required
-          />
+          <div>
+            <BaseInput
+              id="input-username"
+              v-model="username"
+              :label="t('auth.username')"
+              :placeholder="t('auth.usernameHelper')"
+              autocomplete="username"
+              required
+            />
+            <p v-if="usernameError" class="text-danger-500 text-xs mt-1">
+              {{ usernameError }}
+            </p>
+          </div>
           <BaseInput
             id="input-display-name"
             v-model="displayName"
@@ -274,7 +299,7 @@ onMounted(() => {
             type="submit"
             size="full"
             :loading="loading"
-            :disabled="loading || !passwordValid || !passwordsMatch"
+            :disabled="loading || !passwordValid || !passwordsMatch || !usernameValid"
           >
             {{ loading ? t('auth.signUpLoading') : t('auth.signUpButton') }}
           </BaseButton>

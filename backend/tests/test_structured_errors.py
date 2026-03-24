@@ -379,17 +379,18 @@ class TestApplicationsStructuredErrors:
     async def test_apply_non_guest_returns_sys_422(self, client):
         try:
             _override_auth("MEMBER")
-            resp = await client.post(
-                "/api/v1/users/apply-member",
-                json={
-                    "username": "testuser",
-                    "password": "Test1234!@#",
-                    "display_name": "Test User",
-                    "description": "Want to join",
-                },
-                headers={"Authorization": "Bearer fake"},
-            )
-            _assert_structured_error(resp, "SYS_422", 400)
+            with patch(f"{_APPS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
+                resp = await client.post(
+                    "/api/v1/users/apply-member",
+                    json={
+                        "username": "testuser",
+                        "password": "Test1234!@#",
+                        "display_name": "Test User",
+                        "description": "Want to join",
+                    },
+                    headers={"Authorization": "Bearer fake"},
+                )
+                _assert_structured_error(resp, "SYS_422", 400)
         finally:
             _clear_overrides()
 
@@ -397,10 +398,13 @@ class TestApplicationsStructuredErrors:
     async def test_apply_duplicate_returns_sys_409(self, client):
         try:
             _override_auth("GUEST")
-            with patch(
-                f"{_APPS_EP}.create_application",
-                new_callable=AsyncMock,
-                side_effect=ValueError("pending"),
+            with (
+                patch(f"{_APPS_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+                patch(
+                    f"{_APPS_EP}.create_application",
+                    new_callable=AsyncMock,
+                    side_effect=ValueError("pending"),
+                ),
             ):
                 resp = await client.post(
                     "/api/v1/users/apply-member",

@@ -8,16 +8,9 @@ from typing import Any
 from loguru import logger
 
 from app.celery_app import celery
-from app.core.config import settings
-from app.core.database import get_pool, init_db_pool
+from app.core.database import get_pool
 from app.tasks.async_runner import run_async as _run_async
-
-
-async def _ensure_pool() -> None:
-    try:
-        get_pool()
-    except RuntimeError:
-        await init_db_pool(settings.DATABASE_URL)
+from app.tasks.utils import ensure_pool as _ensure_pool
 
 
 async def _close_expired_forms() -> list[str]:

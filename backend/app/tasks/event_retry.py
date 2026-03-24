@@ -11,6 +11,17 @@ MAX_EVENT_RETRIES = 3
 # Maximum events to process per invocation (prevents unbounded loops)
 MAX_EVENTS_PER_RUN = 500
 
+
+async def _ensure_redis() -> None:
+    """Ensure Redis is initialized in the Celery worker process."""
+    from app.core.config import settings
+    from app.core.redis import get_redis, init_redis
+
+    try:
+        get_redis()
+    except RuntimeError:
+        await init_redis(settings.REDIS_URL)
+
 _UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 
@@ -51,6 +62,9 @@ _DEDUP_PREFIX = "event_bus:dedup:"
 async def _async_retry() -> None:
     from app.core.event_bus import _handlers
     from app.core.redis import get_redis
+
+    # L-13: Ensure Redis is initialized before use in Celery worker
+    await _ensure_redis()
 
     try:
         redis = get_redis()
@@ -209,9 +223,11 @@ async def _async_notify_sig_members(
     post_title: str,
 ) -> dict[str, int]:
     """Async implementation: batch-notify SIG members about a new post."""
-    from app.tasks.cleanup import _ensure_pool
+    from app.tasks.utils import ensure_pool
 
-    await _ensure_pool()
+    await ensure_pool()
+    # H-06: Ensure Redis is initialized before helper functions call get_redis()
+    await _ensure_redis()
 
     from app.repositories import sig_repo
     from app.services.notification import create_notification

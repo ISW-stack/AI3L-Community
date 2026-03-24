@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import ProfileView from '../ProfileView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 const mockUpdateProfile = vi.fn()
 const mockUploadAvatar = vi.fn()
@@ -104,7 +105,7 @@ async function mountProfile() {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   await router.push('/profile')
   await router.isReady()

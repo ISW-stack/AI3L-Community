@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import UsersView from '../UsersView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
 
 const mockListUsers = vi.fn()
 const mockCreateAccount = vi.fn()
@@ -103,7 +104,7 @@ async function mountUsers(options?: {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   const router = createTestRouter()
   await router.push('/admin/users')
@@ -215,7 +216,7 @@ describe('UsersView', () => {
     setActivePinia(pinia)
     const auth = useAuthStore()
     auth.setSession('SUPER_ADMIN', 3600)
-    auth.user = { id: 'admin-1', role: 'SUPER_ADMIN' } as any
+    auth.user = { id: 'admin-1', role: 'SUPER_ADMIN' } as unknown as UserProfile
     const router = createTestRouter()
 
     const wrapper = mount(UsersView, {
@@ -309,7 +310,7 @@ describe('UsersView', () => {
     setActivePinia(pinia)
     const auth = useAuthStore()
     auth.setSession('SUPER_ADMIN', 3600)
-    auth.user = { id: 'admin-1', role: 'SUPER_ADMIN' } as any
+    auth.user = { id: 'admin-1', role: 'SUPER_ADMIN' } as unknown as UserProfile
     const router = createTestRouter()
     await router.push('/admin/users')
     await router.isReady()
@@ -534,7 +535,12 @@ describe('UsersView', () => {
   it('shows confirmation modal when bulk apply is triggered', async () => {
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
     const { wrapper } = await mountUsers()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as {
+      selectedIds: Set<string>
+      applyBulkRole: () => void
+      confirmBulkRole: () => Promise<void>
+      showBulkRoleConfirm: boolean
+    }
 
     // Directly add a user to selectedIds and call applyBulkRole
     vm.selectedIds.add('user-2')
@@ -551,7 +557,12 @@ describe('UsersView', () => {
     mockBulkChangeRole.mockResolvedValue({ updated_count: 1 })
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
     const { wrapper } = await mountUsers()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as {
+      selectedIds: Set<string>
+      applyBulkRole: () => void
+      confirmBulkRole: () => Promise<void>
+      showBulkRoleConfirm: boolean
+    }
 
     // Directly add a user to selectedIds and trigger confirmation
     vm.selectedIds.add('user-2')
@@ -564,7 +575,12 @@ describe('UsersView', () => {
   it('does not call bulk role API when modal is cancelled', async () => {
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
     const { wrapper } = await mountUsers()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as {
+      selectedIds: Set<string>
+      applyBulkRole: () => void
+      confirmBulkRole: () => Promise<void>
+      showBulkRoleConfirm: boolean
+    }
 
     // Show then cancel the modal
     vm.selectedIds.add('user-2')
@@ -579,7 +595,12 @@ describe('UsersView', () => {
     mockListUsers.mockResolvedValue({ users: fakeUsers, total: 3 })
 
     const { wrapper } = await mountUsers()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as {
+      selectedIds: Set<string>
+      applyBulkRole: () => void
+      confirmBulkRole: () => Promise<void>
+      showBulkRoleConfirm: boolean
+    }
 
     // Directly add users and confirm bulk role
     vm.selectedIds.add('user-2')

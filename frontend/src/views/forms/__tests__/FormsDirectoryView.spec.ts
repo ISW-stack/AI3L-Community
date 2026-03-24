@@ -4,6 +4,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import FormsDirectoryView from '../FormsDirectoryView.vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UserProfile } from '@/types/user'
+
+interface FormsDirectoryVm {
+  searchQuery: string
+  fetchForms: () => Promise<void>
+  handleSearchInput: (value: string) => void
+}
 
 const mockListStandaloneForms = vi.fn()
 
@@ -119,7 +126,7 @@ async function mountDirectory(options?: { role?: string }) {
     avatar_url: null,
     is_banned: false,
     ban_reason: null,
-  } as any
+  } as unknown as UserProfile
 
   await router.push('/forms')
   await router.isReady()
@@ -207,7 +214,7 @@ describe('FormsDirectoryView', () => {
     const router = createTestRouter()
     const auth = useAuthStore()
     auth.setSession('MEMBER', 3600)
-    auth.user = { id: 'user1' } as any
+    auth.user = { id: 'user1' } as unknown as UserProfile
 
     await router.push('/forms')
     await router.isReady()
@@ -227,7 +234,7 @@ describe('FormsDirectoryView', () => {
 
     // Trigger a search — should NOT show skeleton
     mockListStandaloneForms.mockReturnValue(new Promise(() => {}))
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormsDirectoryVm
     vm.searchQuery = 'test'
     vm.fetchForms()
     await flushPromises()
@@ -242,7 +249,7 @@ describe('FormsDirectoryView', () => {
 
     // Start a search that won't resolve
     mockListStandaloneForms.mockReturnValue(new Promise(() => {}))
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormsDirectoryVm
     vm.searchQuery = 'test'
     vm.fetchForms()
     await flushPromises()
@@ -255,7 +262,7 @@ describe('FormsDirectoryView', () => {
   it('content area has min-height to prevent layout shift', async () => {
     mockListStandaloneForms.mockResolvedValue({ forms: [], total: 0 })
     const { wrapper } = await mountDirectory()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormsDirectoryVm
     vm.searchQuery = 'nonexistent'
     await vm.fetchForms()
     await flushPromises()
@@ -294,7 +301,7 @@ describe('FormsDirectoryView', () => {
     mockListStandaloneForms.mockResolvedValue({ forms: [fakeForms[0]], total: 1 })
 
     // Trigger search via the component API
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormsDirectoryVm
     vm.searchQuery = 'Research'
     // Call fetchForms directly since debounce won't trigger in tests
     await vm.fetchForms()
@@ -308,7 +315,7 @@ describe('FormsDirectoryView', () => {
   it('shows empty state when search has no matches', async () => {
     mockListStandaloneForms.mockResolvedValue({ forms: [], total: 0 })
     const { wrapper } = await mountDirectory()
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormsDirectoryVm
     vm.searchQuery = 'nonexistent'
     await vm.fetchForms()
     await flushPromises()
@@ -322,7 +329,7 @@ describe('FormsDirectoryView', () => {
     const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
 
     // Trigger a search to start the debounce timer
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as FormsDirectoryVm
     vm.handleSearchInput('test')
 
     // Unmount should clear the pending timer

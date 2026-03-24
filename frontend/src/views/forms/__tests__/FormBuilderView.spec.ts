@@ -5,6 +5,38 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import FormBuilderView from '../FormBuilderView.vue'
 
+interface QuestionOption {
+  id: string
+  label: string
+}
+
+interface Question {
+  id: string
+  type: string
+  label: string
+  required: boolean
+  options: QuestionOption[]
+  [key: string]: unknown
+}
+
+interface FormBuilderVm {
+  title: string
+  description: string
+  deadline: string
+  showPreview: boolean
+  questions: Question[]
+  addQuestion: () => void
+  duplicateQuestion: (index: number) => void
+  insertQuestionAt: (index: number) => void
+  moveQuestion: (from: number, to: number) => void
+  moveOption: (question: Question, index: number, direction: number) => void
+  toggleCollapse: (id: string) => void
+  isCollapsed: (id: string) => boolean
+  collapseAll: () => void
+  expandAll: () => void
+  handleUndo: () => void
+}
+
 const mockGetForm = vi.fn()
 const mockCreateForm = vi.fn()
 const mockUpdateForm = vi.fn()
@@ -198,7 +230,7 @@ describe('FormBuilderView', () => {
 
     it('shows validation error when title is empty', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = ''
       vm.questions[0].label = 'Q1'
 
@@ -212,7 +244,7 @@ describe('FormBuilderView', () => {
 
     it('shows validation error when no questions exist', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = 'Survey Title'
       vm.questions = []
 
@@ -225,7 +257,7 @@ describe('FormBuilderView', () => {
 
     it('shows validation error for empty question label', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = 'Survey Title'
       vm.questions[0].label = ''
 
@@ -239,7 +271,7 @@ describe('FormBuilderView', () => {
     it('creates form and redirects on success', async () => {
       const { wrapper, router } = await mountBuilder()
       const replaceSpy = vi.spyOn(router, 'replace')
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = 'New Survey'
       vm.questions[0].label = 'Question 1'
 
@@ -259,7 +291,7 @@ describe('FormBuilderView', () => {
         response: { data: { detail: 'Permission denied' } },
       })
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = 'New Survey'
       vm.questions[0].label = 'Q1'
 
@@ -295,7 +327,7 @@ describe('FormBuilderView', () => {
   describe('Deadline validation', () => {
     it('rejects a deadline set in the past', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = 'Survey With Past Deadline'
       vm.questions[0].label = 'Q1'
 
@@ -314,7 +346,7 @@ describe('FormBuilderView', () => {
 
     it('accepts a deadline set in the future', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = 'Survey With Future Deadline'
       vm.questions[0].label = 'Q1'
 
@@ -345,7 +377,7 @@ describe('FormBuilderView', () => {
 
     it('populates form fields from fetched data', async () => {
       const { wrapper } = await mountBuilder({ isEdit: true })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       expect(vm.title).toBe('Existing Survey')
       expect(vm.description).toBe('Existing description')
     })
@@ -383,7 +415,7 @@ describe('FormBuilderView', () => {
 
     it('has aria-label on choice option inputs', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       // Change the first question to single_choice with options
       vm.questions[0].type = 'single_choice'
       vm.questions[0].options = [
@@ -400,7 +432,7 @@ describe('FormBuilderView', () => {
 
     it('has aria-label on remove option button', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.questions[0].type = 'single_choice'
       vm.questions[0].options = [{ id: 'o1', label: 'A' }]
       await wrapper.vm.$nextTick()
@@ -421,7 +453,7 @@ describe('FormBuilderView', () => {
 
     it('duplicates a question with new IDs', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.questions[0].label = 'Original'
       vm.questions[0].type = 'single_choice'
       vm.questions[0].options = [
@@ -452,7 +484,7 @@ describe('FormBuilderView', () => {
 
     it('toggleCollapse hides question content', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       const qId = vm.questions[0].id
 
       // Initially expanded
@@ -467,7 +499,7 @@ describe('FormBuilderView', () => {
 
     it('collapseAll and expandAll work', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
 
       // Add a second question
       vm.addQuestion()
@@ -484,7 +516,7 @@ describe('FormBuilderView', () => {
 
     it('renders collapse all / expand all buttons when multiple questions', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.addQuestion()
       await nextTick()
 
@@ -496,7 +528,7 @@ describe('FormBuilderView', () => {
   describe('Feature 5: Option Reordering', () => {
     it('renders option up/down arrows for choice questions', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.questions[0].type = 'single_choice'
       vm.questions[0].options = [
         { id: 'o1', label: 'A' },
@@ -512,7 +544,7 @@ describe('FormBuilderView', () => {
 
     it('moveOption swaps options correctly', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.questions[0].type = 'single_choice'
       vm.questions[0].options = [
         { id: 'o1', label: 'A' },
@@ -528,7 +560,7 @@ describe('FormBuilderView', () => {
 
     it('does not move option beyond boundaries', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.questions[0].type = 'single_choice'
       vm.questions[0].options = [
         { id: 'o1', label: 'A' },
@@ -561,7 +593,7 @@ describe('FormBuilderView', () => {
 
     it('moveQuestion reorders correctly', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.addQuestion()
       await nextTick()
 
@@ -586,7 +618,7 @@ describe('FormBuilderView', () => {
   describe('Feature 1: Insert Question Divider', () => {
     it('renders insert divider between questions', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.addQuestion()
       await nextTick()
 
@@ -596,7 +628,7 @@ describe('FormBuilderView', () => {
 
     it('insertQuestionAt inserts at correct position', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.addQuestion()
       await nextTick()
 
@@ -626,7 +658,7 @@ describe('FormBuilderView', () => {
   describe('Feature 8: Mobile Preview', () => {
     it('renders desktop/mobile toggle in preview', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.showPreview = true
       await nextTick()
 
@@ -671,7 +703,7 @@ describe('FormBuilderView', () => {
       expect(localStorage.getItem('form-draft-sig-1')).toBeTruthy()
 
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.title = 'New Survey'
       vm.questions[0].label = 'Q1'
 
@@ -708,7 +740,7 @@ describe('FormBuilderView', () => {
       const xssDescription = '<p>Hello</p><img src=x onerror="alert(1)">'
       mockGetForm.mockResolvedValue({ ...fakeEditForm, description: xssDescription })
       const { wrapper } = await mountBuilder({ isEdit: true })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.showPreview = true
       await nextTick()
 
@@ -721,7 +753,7 @@ describe('FormBuilderView', () => {
       mockSanitize.mockImplementation((html: string) => html.replace(/<img[^>]*>/g, ''))
       mockGetForm.mockResolvedValue({ ...fakeEditForm, description: xssPayload })
       const { wrapper } = await mountBuilder({ isEdit: true })
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
       vm.showPreview = true
       await nextTick()
 
@@ -738,7 +770,7 @@ describe('FormBuilderView', () => {
   describe('Feature 6: Undo/Redo functionality', () => {
     it('undo reverts question addition', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
 
       // Initially 1 question
       expect(vm.questions.length).toBe(1)
@@ -756,7 +788,7 @@ describe('FormBuilderView', () => {
 
     it('Ctrl+Z triggers undo', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
 
       // Add a question so there is something to undo
       vm.addQuestion()
@@ -773,7 +805,7 @@ describe('FormBuilderView', () => {
 
     it('Ctrl+Shift+Z triggers redo', async () => {
       const { wrapper } = await mountBuilder()
-      const vm = wrapper.vm as any
+      const vm = wrapper.vm as unknown as FormBuilderVm
 
       // Add a question, then undo it
       vm.addQuestion()
