@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -33,6 +33,7 @@ const bio = ref('')
 const affiliation = ref('')
 const orcid = ref('')
 const saving = ref(false)
+const formInitialized = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error' | 'info'>('info')
 
@@ -151,18 +152,33 @@ async function copyInviteCode() {
   }
 }
 
-onMounted(() => {
+function populateForm() {
   if (auth.user) {
     displayName.value = auth.user.display_name
     bio.value = auth.user.bio || ''
     affiliation.value = auth.user.affiliation || ''
     orcid.value = auth.user.orcid || ''
+    formInitialized.value = true
   }
+}
+
+onMounted(() => {
+  populateForm()
   if (!auth.isGuest) {
     fetchStorageUsage()
     fetchCoAuthorInvitations()
   }
 })
+
+// Handle case where auth.user loads asynchronously after page refresh
+watch(
+  () => auth.user,
+  (newUser) => {
+    if (newUser && !formInitialized.value) {
+      populateForm()
+    }
+  },
+)
 
 onUnmounted(() => {
   if (codeCopiedTimer) clearTimeout(codeCopiedTimer)

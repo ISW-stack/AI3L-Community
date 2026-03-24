@@ -173,7 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
     try {
-      await getProfile()
+      await fetchProfile()
     } catch {
       // Server rejected the session — clear tampered localStorage state
       clearSession()

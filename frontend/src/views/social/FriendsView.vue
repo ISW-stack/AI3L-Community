@@ -45,7 +45,6 @@ let friendsFetchId = 0
 // Requests state
 const requests = ref<FriendRequest[]>([])
 const requestsLoading = ref(false)
-const incomingCount = ref(0)
 const {
   page: requestsPage,
   totalPages: requestsTotalPages,
@@ -67,6 +66,9 @@ const actionLoading = ref(false)
 const incomingRequests = computed(() =>
   requests.value.filter((r) => r.addressee_id === auth.user?.id),
 )
+
+// Reactive count derived from computed — updates when auth.user arrives
+const incomingCount = computed(() => incomingRequests.value.length)
 
 // Outgoing = current user is NOT the addressee (sent the request)
 const outgoingRequests = computed(() => {
@@ -100,7 +102,6 @@ async function fetchRequests() {
     if (localId !== requestsFetchId) return
     requests.value = data.requests
     updateRequestsResponse(data.total)
-    incomingCount.value = data.requests.filter((r) => r.addressee_id === auth.user?.id).length
   } catch (e: unknown) {
     if (localId !== requestsFetchId) return
     toast.show(getErrorMessage(e, t('social.loadRequestsError')), 'error')
@@ -159,7 +160,6 @@ async function handleAcceptRequest(requestId: string) {
   try {
     await acceptFriendRequest(requestId)
     requests.value = requests.value.filter((r) => r.id !== requestId)
-    incomingCount.value = Math.max(0, incomingCount.value - 1)
     toast.show(t('social.acceptSuccess'), 'success')
     // Always refresh friends list so it stays in sync
     fetchFriends()
@@ -176,7 +176,6 @@ async function handleRejectRequest(requestId: string) {
   try {
     await rejectFriendRequest(requestId)
     requests.value = requests.value.filter((r) => r.id !== requestId)
-    incomingCount.value = Math.max(0, incomingCount.value - 1)
     toast.show(t('social.declineSuccess'), 'success')
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('social.declineError')), 'error')
