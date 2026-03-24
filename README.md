@@ -352,25 +352,25 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-03-23 — auto-generated on every push to `main`_
+_Last updated: 2026-03-24 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +290,270 |
-| Total lines removed (all commits) | -52,801 |
-| Backend source lines (excl. tests) | 26,107 |
-| Frontend source lines (excl. tests) | 59,702 |
+| Total lines added (all commits) | +292,194 |
+| Total lines removed (all commits) | -52,973 |
+| Backend source lines (excl. tests) | 26,214 |
+| Frontend source lines (excl. tests) | 59,743 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 100786
-    "TypeScript" : 86057
-    "Vue" : 23419
-    "CSS" : 126
+    "Python" : 101851
+    "TypeScript" : 86252
+    "Vue" : 23460
+    "CSS" : 127
 ```
 
 ### Commit Activity
@@ -381,19 +381,19 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 3,064 | 26,107 | 71,647 |
-| Frontend (Vitest) | 2,826 | 59,702 | 49,774 |
-| **Total** | **5,890** | **85,809** | **121,421** |
+| Backend (pytest) | 3,097 | 26,214 | 72,561 |
+| Frontend (Vitest) | 2,835 | 59,743 | 49,969 |
+| **Total** | **5,932** | **85,957** | **122,530** |
 
-Test-to-source ratio: **1.42** (121,421 lines of tests for every 85,809 lines of source)
+Test-to-source ratio: **1.43** (122,530 lines of tests for every 85,957 lines of source)
 
 ### Additional Metrics
 
 | Metric | Value |
 | --- | ---: |
-| REST API endpoints | 181 |
-| Database migrations | 50 |
-| Longest commit streak | 24 days |
+| REST API endpoints | 182 |
+| Database migrations | 51 |
+| Longest commit streak | 25 days |
 
 ### Top 5 Largest Source Files
 
@@ -409,8 +409,8 @@ Test-to-source ratio: **1.42** (121,421 lines of tests for every 85,809 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 404 | +287,314 | -50,796 |
-| github-actions[bot] | 33 | +440 | -440 |
+| Isaries | 407 | +289,220 | -50,950 |
+| github-actions[bot] | 34 | +458 | -458 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
