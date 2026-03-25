@@ -219,7 +219,7 @@ describe('OrgChartView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     expect(wrapper.find('.member-panel').exists()).toBe(true)
@@ -230,14 +230,14 @@ describe('OrgChartView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const sigNode = wrapper.find('.sig-node')
+    const expandBtn = wrapper.find('.sig-expand-btn')
     // Expand
-    await sigNode.trigger('click')
+    await expandBtn.trigger('click')
     await flushPromises()
     expect(wrapper.find('.member-panel').exists()).toBe(true)
 
     // Collapse
-    await sigNode.trigger('click')
+    await expandBtn.trigger('click')
     await flushPromises()
     expect(wrapper.find('.member-panel').exists()).toBe(false)
   })
@@ -251,7 +251,7 @@ describe('OrgChartView', () => {
     // Collapsed: member-panel absent indicates ChevronRight state
     expect(wrapper.find('.member-panel').exists()).toBe(false)
 
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     // Expanded: member-panel present indicates ChevronDown state
@@ -269,7 +269,7 @@ describe('OrgChartView', () => {
     await flushPromises()
 
     // Expand the SIG
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     const leadRows = wrapper.findAll('.lead-member-row')
@@ -291,7 +291,7 @@ describe('OrgChartView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     const regularRows = wrapper.findAll('.regular-member-row')
@@ -310,7 +310,7 @@ describe('OrgChartView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     const regularRows = wrapper.findAll('.regular-member-row')
@@ -329,7 +329,7 @@ describe('OrgChartView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     // Initially 10 members shown
@@ -366,7 +366,7 @@ describe('OrgChartView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     expect(wrapper.find('.member-panel').exists()).toBe(true)
@@ -435,7 +435,7 @@ describe('OrgChartView', () => {
     expect(bioBtnBefore.length).toBe(0)
 
     // Expand the SIG
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     // Bio edit button should now be visible inside the member panel
@@ -449,7 +449,7 @@ describe('OrgChartView', () => {
     await flushPromises()
 
     // Expand the SIG
-    await wrapper.find('.sig-node').trigger('click')
+    await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
     const buttons = wrapper.findAll('button[title]')

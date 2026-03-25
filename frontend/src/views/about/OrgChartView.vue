@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { useAuthStore } from '@/stores/auth'
 import { getOrgChart, updateOverride, updateSigDescription, updateMemberBio } from '@/api/about'
@@ -16,6 +17,7 @@ import { getErrorMessage } from '@/utils/error'
 import { Settings, Pencil, ChevronDown, ChevronRight } from 'lucide-vue-next'
 
 const { t } = useI18n()
+const router = useRouter()
 const auth = useAuthStore()
 const loading = ref(true)
 const data = ref<OrgChartResponse | null>(null)
@@ -199,16 +201,25 @@ onMounted(fetchData)
               class="tree-node-wrapper"
               :class="{ 'opacity-50': sig.override?.is_visible === false }"
             >
-              <!-- SIG card / clickable node -->
-              <button class="sig-node" @click="toggleSig(sig.id)">
+              <!-- SIG card -->
+              <div class="sig-node">
                 <div class="sig-node-header">
-                  <component
-                    :is="expandedSigs.has(sig.id) ? ChevronDown : ChevronRight"
-                    class="w-4 h-4 shrink-0"
-                  />
-                  <span class="font-semibold text-sm truncate">
+                  <button
+                    class="sig-expand-btn"
+                    :aria-label="expandedSigs.has(sig.id) ? 'Collapse' : 'Expand'"
+                    @click="toggleSig(sig.id)"
+                  >
+                    <component
+                      :is="expandedSigs.has(sig.id) ? ChevronDown : ChevronRight"
+                      class="w-4 h-4 shrink-0"
+                    />
+                  </button>
+                  <router-link
+                    :to="`/sigs/${sig.id}`"
+                    class="font-semibold text-sm truncate hover:text-brand-600 transition"
+                  >
                     {{ sig.override?.custom_title || sig.name }}
-                  </span>
+                  </router-link>
                   <BaseBadge v-if="sig.override?.is_visible === false" variant="neutral" size="sm">
                     {{ t('orgChart.hidden') }}
                   </BaseBadge>
@@ -216,7 +227,7 @@ onMounted(fetchData)
                 <div class="sig-node-meta">
                   {{ sig.member_count }} {{ t('orgChart.memberCount') }}
                 </div>
-              </button>
+              </div>
 
               <!-- Admin action buttons (outside the clickable button to avoid event bubbling) -->
               <div class="sig-node-actions">
@@ -492,10 +503,11 @@ onMounted(fetchData)
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div
+          <router-link
             v-for="cat in data.categories"
             :key="cat.id"
-            class="bg-surface border border-border rounded-xl p-5"
+            :to="{ name: 'forum', query: { category: cat.id } }"
+            class="category-card bg-surface border border-border rounded-xl p-5"
             :class="{ 'border-dashed border-muted/40': cat.override?.is_visible === false }"
           >
             <div class="flex items-start justify-between mb-2">
@@ -511,14 +523,18 @@ onMounted(fetchData)
                 v-if="isSuperAdmin"
                 class="p-1 text-muted hover:text-foreground transition"
                 :title="t('orgChart.editOverride')"
-                @click="startEditOverride('category', cat.id, undefined, cat)"
+                @click.prevent.stop="startEditOverride('category', cat.id, undefined, cat)"
               >
                 <Settings class="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
             <p v-if="cat.description" class="text-sm text-muted mb-3">{{ cat.description }}</p>
             <div v-if="cat.creator_display_name" class="flex items-center gap-2 mt-2">
-              <router-link v-if="cat.creator_id" :to="`/users/${cat.creator_id}`" class="shrink-0">
+              <span
+                v-if="cat.creator_id"
+                class="shrink-0 cursor-pointer"
+                @click.prevent.stop="router.push(`/users/${cat.creator_id}`)"
+              >
                 <div class="w-8 h-8">
                   <img
                     v-if="cat.creator_avatar_url && !failedAvatars.has(cat.creator_id ?? '')"
@@ -534,7 +550,7 @@ onMounted(fetchData)
                     {{ cat.creator_display_name.charAt(0).toUpperCase() }}
                   </div>
                 </div>
-              </router-link>
+              </span>
               <span class="text-xs text-muted font-medium">
                 {{ t('common.by') }} {{ cat.creator_display_name }}
               </span>
@@ -544,6 +560,7 @@ onMounted(fetchData)
             <div
               v-if="editingOverride?.type === 'category' && editingOverride.id === cat.id"
               class="bg-surface-alt border border-border rounded-lg p-4 mt-3"
+              @click.prevent.stop
             >
               <div class="space-y-3 mb-3">
                 <div>
@@ -579,19 +596,19 @@ onMounted(fetchData)
                 <button
                   class="px-3 py-1.5 text-sm bg-brand-600 text-white rounded hover:bg-brand-700 transition"
                   :disabled="saving"
-                  @click="saveOverride"
+                  @click.prevent.stop="saveOverride"
                 >
                   {{ t('common.save') }}
                 </button>
                 <button
                   class="px-3 py-1.5 text-sm text-muted hover:text-foreground transition"
-                  @click="editingOverride = null"
+                  @click.prevent.stop="editingOverride = null"
                 >
                   {{ t('common.cancel') }}
                 </button>
               </div>
             </div>
-          </div>
+          </router-link>
         </div>
       </section>
     </template>
@@ -688,7 +705,6 @@ onMounted(fetchData)
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
   text-align: left;
-  cursor: pointer;
   transition:
     border-color 0.15s,
     box-shadow 0.15s;
@@ -696,6 +712,37 @@ onMounted(fetchData)
 }
 
 .sig-node:hover {
+  border-color: var(--color-brand-400);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-600) 10%, transparent);
+}
+
+/* Chevron expand/collapse button */
+.sig-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.sig-expand-btn:hover {
+  color: var(--color-foreground);
+}
+
+/* ── Category card ───────────────────────────────── */
+.category-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.category-card:hover {
   border-color: var(--color-brand-400);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-600) 10%, transparent);
 }
