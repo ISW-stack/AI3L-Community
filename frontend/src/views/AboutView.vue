@@ -23,16 +23,10 @@ function getInitial(name: string): string {
   return name.charAt(0).toUpperCase()
 }
 
-function handleAvatarError(event: Event) {
-  const img = event.target as HTMLImageElement
-  img.style.display = 'none'
-  const parent = img.parentElement
-  if (parent) {
-    const fallback = parent.querySelector('.avatar-fallback') as HTMLElement | null
-    if (fallback) {
-      fallback.style.display = 'flex'
-    }
-  }
+const failedAvatars = ref<Set<number>>(new Set())
+
+function handleAvatarError(id: number) {
+  failedAvatars.value.add(id)
 }
 
 async function fetchContributors() {
@@ -130,19 +124,20 @@ onMounted(() => {
           :key="contributor.id"
           class="flex flex-col items-center text-center w-20"
         >
-          <div class="relative w-10 h-10 mb-1.5">
+          <div class="w-10 h-10 mb-1.5">
             <img
+              v-if="!failedAvatars.has(contributor.id)"
               :src="contributor.avatar_url"
               :alt="contributor.display_name"
               class="w-10 h-10 rounded-full object-cover border border-border"
               loading="lazy"
               width="40"
               height="40"
-              @error="handleAvatarError"
+              @error="handleAvatarError(contributor.id)"
             />
             <div
-              class="avatar-fallback w-10 h-10 rounded-full bg-surface border border-border items-center justify-center text-sm font-semibold text-muted absolute inset-0"
-              style="display: none"
+              v-else
+              class="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-sm font-semibold text-muted"
             >
               {{ getInitial(contributor.display_name) }}
             </div>

@@ -36,6 +36,7 @@ const roleLabel: Record<string, string> = {
 async function fetchMembers() {
   loading.value = true
   error.value = ''
+  failedAvatars.value.clear()
   try {
     const data = await getMembers({
       page: page.value,
@@ -70,14 +71,10 @@ function navigateToProfile(userId: string) {
   router.push(`/users/${userId}`)
 }
 
-function handleAvatarError(event: Event) {
-  const img = event.target as HTMLImageElement
-  img.style.display = 'none'
-  const parent = img.parentElement
-  if (parent) {
-    const fallback = parent.querySelector('.avatar-fallback') as HTMLElement | null
-    if (fallback) fallback.style.display = 'flex'
-  }
+const failedAvatars = ref<Set<string>>(new Set())
+
+function handleAvatarError(memberId: string) {
+  failedAvatars.value.add(memberId)
 }
 
 watch(page, fetchMembers)
@@ -124,20 +121,20 @@ onMounted(fetchMembers)
           @click="navigateToProfile(member.id)"
         >
           <div class="flex flex-col items-center text-center">
-            <div class="relative w-16 h-16 mb-3">
+            <div class="w-16 h-16 mb-3">
               <img
-                v-if="member.avatar_url"
+                v-if="member.avatar_url && !failedAvatars.has(member.id)"
                 :src="member.avatar_url"
                 :alt="member.display_name"
                 class="w-16 h-16 rounded-full object-cover border border-border"
                 loading="lazy"
                 width="64"
                 height="64"
-                @error="handleAvatarError"
+                @error="handleAvatarError(member.id)"
               />
               <div
-                class="avatar-fallback w-16 h-16 rounded-full bg-brand-100 text-brand-700 items-center justify-center text-xl font-semibold absolute inset-0"
-                :style="{ display: member.avatar_url ? 'none' : 'flex' }"
+                v-else
+                class="w-16 h-16 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xl font-semibold"
               >
                 {{ member.display_name.charAt(0).toUpperCase() }}
               </div>

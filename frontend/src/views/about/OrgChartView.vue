@@ -33,6 +33,7 @@ const bioForm = ref('')
 const saving = ref(false)
 
 const expandedSigs = ref<Set<string>>(new Set())
+const failedAvatars = ref<Set<string>>(new Set())
 const showAllMembers = ref<Set<string>>(new Set())
 const MEMBER_PREVIEW_COUNT = 10
 
@@ -44,6 +45,7 @@ const roleBadgeVariant: Record<string, 'danger' | 'orange' | 'brand' | 'neutral'
 
 async function fetchData() {
   loading.value = true
+  failedAvatars.value.clear()
   try {
     data.value = await getOrgChart()
   } catch (e: unknown) {
@@ -162,14 +164,8 @@ function hiddenMemberCount(sig: OrgChartSig) {
   return Math.max(0, total - MEMBER_PREVIEW_COUNT)
 }
 
-function handleAvatarError(event: Event) {
-  const img = event.target as HTMLImageElement
-  img.style.display = 'none'
-  const parent = img.parentElement
-  if (parent) {
-    const fallback = parent.querySelector('.avatar-fallback') as HTMLElement | null
-    if (fallback) fallback.style.display = 'flex'
-  }
+function handleAvatarError(userId: string) {
+  failedAvatars.value.add(userId)
 }
 
 onMounted(fetchData)
@@ -348,17 +344,17 @@ onMounted(fetchData)
                     >
                       <!-- Avatar -->
                       <router-link :to="`/users/${m.user_id}`" class="shrink-0">
-                        <div class="relative w-9 h-9">
+                        <div class="w-9 h-9">
                           <img
-                            v-if="m.avatar_url"
+                            v-if="m.avatar_url && !failedAvatars.has(m.user_id)"
                             :src="m.avatar_url"
                             :alt="m.display_name"
                             class="w-9 h-9 rounded-full object-cover border border-border"
-                            @error="handleAvatarError"
+                            @error="handleAvatarError(m.user_id)"
                           />
                           <div
-                            class="avatar-fallback w-9 h-9 rounded-full bg-brand-100 text-brand-700 items-center justify-center text-sm font-semibold absolute inset-0"
-                            :style="{ display: m.avatar_url ? 'none' : 'flex' }"
+                            v-else
+                            class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-semibold"
                           >
                             {{ m.display_name.charAt(0).toUpperCase() }}
                           </div>
@@ -523,17 +519,17 @@ onMounted(fetchData)
             <p v-if="cat.description" class="text-sm text-muted mb-3">{{ cat.description }}</p>
             <div v-if="cat.creator_display_name" class="flex items-center gap-2 mt-2">
               <router-link v-if="cat.creator_id" :to="`/users/${cat.creator_id}`" class="shrink-0">
-                <div class="relative w-8 h-8">
+                <div class="w-8 h-8">
                   <img
-                    v-if="cat.creator_avatar_url"
+                    v-if="cat.creator_avatar_url && !failedAvatars.has(cat.creator_id ?? '')"
                     :src="cat.creator_avatar_url"
                     :alt="cat.creator_display_name"
                     class="w-8 h-8 rounded-full object-cover"
-                    @error="handleAvatarError"
+                    @error="handleAvatarError(cat.creator_id ?? '')"
                   />
                   <div
-                    class="avatar-fallback w-8 h-8 rounded-full bg-brand-100 text-brand-700 items-center justify-center text-xs font-semibold absolute inset-0"
-                    :style="{ display: cat.creator_avatar_url ? 'none' : 'flex' }"
+                    v-else
+                    class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-semibold"
                   >
                     {{ cat.creator_display_name.charAt(0).toUpperCase() }}
                   </div>
