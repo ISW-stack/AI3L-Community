@@ -312,7 +312,10 @@ export function usePostDetail(options: UsePostDetailOptions) {
     }
   }
 
-  const editDraftKey = () => `post_edit_draft_${postId.value}`
+  const editDraftKey = () => {
+    const uid = auth.user?.id ?? 'anon'
+    return `post_edit_draft_${postId.value}_${uid}`
+  }
   const EDIT_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
   function saveEditDraft() {

@@ -310,6 +310,14 @@ async def upload_cover(
     storage_key = album_cover_key(album_id, file_uuid, ext)
     await async_upload_file(file_data, storage_key, content_type)
 
+    # C-01: Trigger virus scan for album cover
+    try:
+        from app.core.file_validation import trigger_virus_scan
+
+        await trigger_virus_scan(storage_key, file_data)
+    except Exception:
+        logger.warning("Virus scan trigger failed for album cover", extra={"key": storage_key})
+
     # Phase 3: Quota check + increment + DB update in ONE transaction (FOR UPDATE
     # serializes concurrent requests so the quota cannot be bypassed).
     try:
@@ -707,6 +715,14 @@ async def upload_photo(
             extra={"photo_id": str(photo_id)},
         )
 
+    # C-01: Trigger virus scan for album photo
+    try:
+        from app.core.file_validation import trigger_virus_scan
+
+        await trigger_virus_scan(storage_key, file_data)
+    except Exception:
+        logger.warning("Virus scan trigger failed for album photo", extra={"key": storage_key})
+
     logger.info(
         "Album photo uploaded",
         extra={"album_id": album_id, "photo_id": str(photo_id), "size": file_size},
@@ -796,6 +812,14 @@ async def upload_file_zip(
     file_uuid = str(uuid.uuid4())
     storage_key = album_zip_key(album_id, file_uuid, ext)
     await async_upload_file(upload_data, storage_key, content_type)
+
+    # C-01: Trigger virus scan for album ZIP
+    try:
+        from app.core.file_validation import trigger_virus_scan
+
+        await trigger_virus_scan(storage_key, upload_data)
+    except Exception:
+        logger.warning("Virus scan trigger failed for album ZIP", extra={"key": storage_key})
 
     # Phase 3: Quota check + increment + DB insert in one short transaction
     photo_id = uuid.uuid4()

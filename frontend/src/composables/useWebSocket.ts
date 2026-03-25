@@ -140,8 +140,9 @@ export function useWebSocket() {
             ) {
               dmStore.addFromWebSocket(msg.message)
               if (dmStore.activeConversationId !== msg.message.conversation_id) {
+                const senderName = (msg.message.sender?.display_name ?? 'someone').slice(0, 50)
                 toastStore.show(
-                  `New message from ${msg.message.sender?.display_name ?? 'someone'}`,
+                  `New message from ${senderName}`,
                   'info',
                 )
               }

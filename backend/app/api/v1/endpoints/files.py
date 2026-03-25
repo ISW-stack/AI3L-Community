@@ -255,6 +255,7 @@ async def serve_file(
             )
 
     # Block files that are malicious, pending, unverified, or had scan errors (fail-close)
+    scan = None
     try:
         scan = await file_scan_repo.find_by_key(key)
         if scan and scan["status"] == "malicious":
@@ -282,7 +283,25 @@ async def serve_file(
     except (HTTPException, AppError):
         raise
     except Exception:
-        logger.warning("Failed to check scan status for key=%s", key, exc_info=True)
+        logger.error(
+            "Scan status check failed — blocking access (fail-close) for key=%s",
+            key,
+            exc_info=True,
+        )
+        raise AppError(
+            ErrorCode.SYS_500,
+            503,
+            "Unable to verify file safety. Please try again later.",
+        )
+
+    # H-03: Fail-close for editor files with no scan record.
+    # If the scan record insertion failed during upload, treat as pending.
+    if is_editor_file and scan is None:
+        raise AppError(
+            ErrorCode.SYS_422,
+            202,
+            "File is being scanned. Please try again shortly.",
+        )
 
     try:
         streaming_body, content_type, content_length = await async_download_metadata(key)

@@ -52,7 +52,7 @@ def generate_thumbnail_task(
 
     # Safety check — limit decompression bomb risk (set once per import)
     # 20MP × 4 bytes (RGBA) = 80 MB — fits in Celery 256 MB per-child limit
-    Image.MAX_IMAGE_PIXELS = 20_000_000  # 20MP limit
+    Image.MAX_IMAGE_PIXELS = 10_000_000  # 10MP limit (40MB RGBA, safer for 256MB worker)
 
     from app.core.config import settings
     from app.core.constants import ALBUM_THUMBNAIL_QUALITY, ALBUM_THUMBNAIL_SIZE

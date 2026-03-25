@@ -524,6 +524,10 @@ async def change_password(user_id: uuid.UUID, old_password: str, new_password: s
     if not await async_verify_password(old_password, pw_hash):
         raise ValueError("Current password is incorrect.")
 
+    # P3: Reject changing password to the same value
+    if old_password == new_password:
+        raise ValueError("New password must differ from the current password.")
+
     error = validate_password_policy(new_password)
     if error:
         raise ValueError(error)

@@ -7,6 +7,17 @@ from app.repositories import report_repo
 
 
 async def create_report(post_id: uuid.UUID, user_id: str, reason: str) -> dict:
+    # P3: Enforce max length on reason at service level
+    if len(reason) > 2000:
+        raise ValueError("Report reason is too long (max 2000 characters).")
+
+    # P2: Prevent self-reporting
+    from app.repositories import post_repo
+
+    post = await post_repo.find_by_id(post_id)
+    if post and str(post.get("user_id")) == user_id:
+        raise ValueError("You cannot report your own post.")
+
     report_id = uuid.uuid4()
     row = await report_repo.insert(report_id, post_id, uuid.UUID(user_id), reason)
     if row is None:
@@ -26,6 +37,9 @@ async def list_reports(
 
 
 async def review_report(report_id: uuid.UUID, reviewer_id: str, new_status: str) -> dict | None:
+    # P2: Validate status at service layer
+    if new_status not in {"RESOLVED", "DISMISSED"}:
+        raise ValueError(f"Invalid report status: {new_status}")
     row = await report_repo.update_status(report_id, uuid.UUID(reviewer_id), new_status)
     if not row:
         return None

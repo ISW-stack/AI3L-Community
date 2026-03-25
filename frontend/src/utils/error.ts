@@ -22,10 +22,21 @@ export function getErrorMessage(
       if (translated !== key) return translated
     }
     const msg = (detail as Record<string, unknown>).message
-    if (typeof msg === 'string' && msg) return msg
+    if (typeof msg === 'string' && msg) {
+      // P3: Don't expose raw server internals — cap length and filter SQL/paths
+      if (msg.length > 200 || /SELECT |INSERT |UPDATE |DELETE |FROM |WHERE /i.test(msg)) {
+        return fallback
+      }
+      return msg
+    }
   }
 
-  if (typeof detail === 'string' && detail) return detail
+  if (typeof detail === 'string' && detail) {
+    if (detail.length > 200 || /SELECT |INSERT |UPDATE |DELETE |FROM |WHERE /i.test(detail)) {
+      return fallback
+    }
+    return detail
+  }
 
   return fallback
 }

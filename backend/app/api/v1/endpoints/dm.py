@@ -83,6 +83,20 @@ async def admin_list_messages(
     if not await check_rate_limit(f"rl:dm:admin:{current_user['sub']}", *RATE_LIMIT_DM_ADMIN):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
+    # P2: Audit log for admin DM access
+    try:
+        from app.core.event_bus import emit
+
+        await emit(
+            "audit.action",
+            user_id=current_user["sub"],
+            action="DM_ADMIN_VIEW",
+            target_type="conversation",
+            target_id=str(conversation_id),
+        )
+    except Exception:
+        pass  # best-effort audit
+
     from app.converters.dm_converter import async_row_to_message
     from app.core.storage import generate_presigned_url
     from app.repositories import dm_repo

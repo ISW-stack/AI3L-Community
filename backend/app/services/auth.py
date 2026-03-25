@@ -77,7 +77,7 @@ async def create_session(user_id: str, role: str) -> tuple[str, str, int]:
         )
         # Blacklist the old JTI so it cannot be reused
         old_blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=old_jti)
-        await redis.set(old_blacklist_key, "1", ex=28800)
+        await redis.set(old_blacklist_key, "1", ex=max(28800, int(ttl.total_seconds())))
         logger.info(
             "Session overridden — old session invalidated",
             extra={"user_id": user_id, "role": role},
@@ -108,7 +108,7 @@ async def destroy_session(user_id: str, role: str, jti: str) -> None:
     await redis.delete(session_key)
 
     blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=jti)
-    await redis.set(blacklist_key, "1", ex=28800)  # 8 hours max
+    await redis.set(blacklist_key, "1", ex=max(28800, 43200))  # at least 12h
 
     logger.info("Session destroyed", extra={"user_id": user_id})
 
@@ -118,13 +118,10 @@ async def refresh_session_ttl(user_id: str, role: str) -> bool:
     redis = get_redis()
     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
 
-    exists = await redis.exists(session_key)
-    if not exists:
-        return False
-
+    # P3: Use single atomic EXPIRE instead of EXISTS+EXPIRE TOCTOU
     ttl = ROLE_TTL_MAP.get(role, timedelta(hours=3))
-    await redis.expire(session_key, int(ttl.total_seconds()))
-    return True
+    result = await redis.expire(session_key, int(ttl.total_seconds()))
+    return bool(result)
 
 
 async def validate_session(user_id: str, role: str, jti: str) -> bool:
@@ -329,11 +326,11 @@ async def revoke_user_sessions(user_id: str) -> None:
 
     # Batch-read all JTIs, blacklist them, then delete session keys
     stored_jtis = await redis.mget(*session_keys)
-    async with redis.pipeline(transaction=False) as pipe:
+    async with redis.pipeline(transaction=True) as pipe:
         for jti_raw in stored_jtis:
             if jti_raw:
                 jti_str = jti_raw.decode() if isinstance(jti_raw, bytes) else jti_raw
-                pipe.set(BLACKLIST_KEY_TEMPLATE.format(jti=jti_str), "1", ex=28800)
+                pipe.set(BLACKLIST_KEY_TEMPLATE.format(jti=jti_str), "1", ex=43200)
         pipe.delete(*session_keys)
         await pipe.execute()
     logger.info("All sessions revoked", extra={"user_id": user_id})

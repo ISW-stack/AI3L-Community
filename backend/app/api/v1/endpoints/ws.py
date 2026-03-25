@@ -50,14 +50,12 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
     # Per-user connection limit — check BEFORE accept() to avoid resource
     # consumption from connections that will be immediately rejected.
+    # P2: Atomic check+accept+register under single lock to prevent burst bypass
     async with _connections_lock:
         if len(_connections.get(user_id, set())) >= WS_MAX_CONNECTIONS_PER_USER:
             await ws.close(code=4006, reason="Too many connections")
             return
-
-    await ws.accept()
-
-    async with _connections_lock:
+        await ws.accept()
         _connections[user_id].add(ws)
     logger.info("WebSocket connected", extra={"user_id": user_id, "role": role})
 
@@ -98,8 +96,13 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                     await ws.send_json({"type": "PING", "timestamp": now})
                 except Exception:
                     logger.debug(
-                        "WebSocket ping send failed, closing loop", extra={"user_id": user_id}
+                        "WebSocket ping send failed, closing connection", extra={"user_id": user_id}
                     )
+                    # P3: Close the WebSocket when ping fails to prevent zombie connections
+                    try:
+                        await ws.close(code=4002, reason="Ping send failed")
+                    except Exception:
+                        pass
                     return
 
         ping_task = asyncio.create_task(ping_loop())
@@ -165,6 +168,8 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
             if msg.get("type") == "PONG":
                 last_pong = asyncio.get_event_loop().time()
+                # P3: Don't count PONG against rate limit (undo the increment)
+                msg_count = max(0, msg_count - 1)
 
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected", extra={"user_id": user_id})

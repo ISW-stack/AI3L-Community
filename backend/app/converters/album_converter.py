@@ -10,7 +10,7 @@ async def to_album_response(row: dict) -> dict:
     cover_url = None
     if cover_key:
         try:
-            cover_url = await generate_presigned_url(cover_key, expires_in=3600)
+            cover_url = await generate_presigned_url(cover_key, expires_in=900)
         except Exception:
             cover_url = None
     return {
@@ -38,13 +38,17 @@ async def to_album_photo_response(row: dict) -> dict:
 
     if storage_key:
         try:
-            storage_url = await generate_presigned_url(storage_key, expires_in=3600)
+            storage_url = await generate_presigned_url(
+                storage_key,
+                expires_in=900,
+                filename=row.get("original_filename"),
+            )
         except Exception:
             storage_url = None
 
     if thumbnail_key:
         try:
-            thumbnail_url = await generate_presigned_url(thumbnail_key, expires_in=3600)
+            thumbnail_url = await generate_presigned_url(thumbnail_key, expires_in=900)
         except Exception:
             thumbnail_url = None
 

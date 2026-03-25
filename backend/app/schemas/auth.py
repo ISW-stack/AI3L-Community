@@ -29,6 +29,12 @@ class GuestLoginRequest(BaseModel):
             raise ValueError(
                 "Display name must not contain control characters " "or zero-width characters."
             )
+        # P3: Strip HTML tags as defense-in-depth against stored XSS
+        import re
+
+        v = re.sub(r"<[^>]*>", "", v)
+        if not v.strip():
+            raise ValueError("Display name must not be empty after sanitization.")
         return v
 
 

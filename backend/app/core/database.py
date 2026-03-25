@@ -17,6 +17,7 @@ async def init_db_pool(dsn: str) -> asyncpg.Pool:
         min_size=2,
         max_size=20,
         command_timeout=60,
+        max_inactive_connection_lifetime=300,
         ssl=ssl_mode,
     )
     logger.info("Database connection pool initialized", extra={"min_size": 2, "max_size": 20})

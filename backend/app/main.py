@@ -78,6 +78,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging(level=settings.LOG_LEVEL, fmt=settings.LOG_FORMAT)
     logger.info("Starting AI3L Community API")
 
+    # C-03: Warn if project directory is inside a cloud-synced folder
+    import os
+
+    cwd = os.getcwd()
+    cloud_indicators = ("OneDrive", "Dropbox", "Google Drive", "iCloud")
+    for indicator in cloud_indicators:
+        if indicator.lower() in cwd.lower():
+            logger.warning(
+                "PROJECT DIRECTORY IS INSIDE A CLOUD-SYNCED FOLDER (%s). "
+                "Secrets in .env may be synced to cloud storage. "
+                "Move the project to a non-synced directory for production use.",
+                indicator,
+            )
+            break
+
     # Sentry SDK initialization
     if settings.SENTRY_DSN:
         try:

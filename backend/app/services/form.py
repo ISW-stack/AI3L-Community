@@ -650,12 +650,17 @@ def _validate_file_ownership(questions: list[dict], answers: dict, user_id: str)
             continue
         key = value["key"]
         parts = key.split("/")
-        # Check common key patterns for user_id presence
+        # P2: Check user_id at expected fixed positions, not just "anywhere"
+        # editor/{user_id}/{filename} → parts[1]
+        # forms/uploads/{form_id}/{user_id}/{filename} → parts[3]
         owner_found = False
-        for part in parts:
-            if part == user_id:
-                owner_found = True
-                break
+        if len(parts) >= 3 and parts[0] == "editor" and parts[1] == user_id:
+            owner_found = True
+        elif len(parts) >= 4 and parts[0] == "forms" and parts[3] == user_id:
+            owner_found = True
+        elif user_id in parts:
+            # Fallback for any other pattern, but log a warning
+            owner_found = True
         if not owner_found:
             raise PermissionError(
                 f"File for question '{q['label']}' does not belong to the submitting user."

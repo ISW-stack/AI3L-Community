@@ -104,6 +104,7 @@ async def find_all_with_post_counts() -> list[dict]:
             LEFT JOIN posts p ON p.category_id = c.id
             GROUP BY c.id
             ORDER BY c.name ASC
+            LIMIT 500
             """)
         return [dict(r) for r in rows]
 
@@ -118,5 +119,6 @@ async def find_all_with_creators() -> list[dict]:
             FROM categories c
             LEFT JOIN users u ON c.created_by = u.id
             ORDER BY c.name ASC
+            LIMIT 500
             """)
         return [dict(r) for r in rows]

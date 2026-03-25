@@ -71,7 +71,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
         # WebSocket endpoint path — skip (handled by ticket auth)
         path = request.url.path
-        if path.startswith("/api/v1/ws"):
+        if path == "/api/v1/ws" or path == "/api/v1/ws/":
             response = await call_next(request)
             return response
 

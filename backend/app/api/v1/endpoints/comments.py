@@ -87,6 +87,9 @@ async def edit_comment(
     req: CommentUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CommentResponse:
+    # P3: Rate limit comment edits
+    if not await check_rate_limit(f"rl:comment_edit:{current_user['sub']}", 30, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many edit requests. Try again later.")
     sanitized_content = sanitize_html(req.content)
     if not sanitized_content or not sanitized_content.strip():
         raise AppError(ErrorCode.SYS_422, 400, "Comment content cannot be empty.")

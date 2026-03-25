@@ -11,7 +11,14 @@ export function isAllowedDownloadUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
     if (parsed.origin === window.location.origin) return true
-    // Dev: allow local MinIO
+    // Allow configured MinIO/S3 origin (env-aware)
+    const minioOrigin = import.meta.env.VITE_MINIO_PUBLIC_URL
+    if (minioOrigin) {
+      try {
+        if (parsed.origin === new URL(minioOrigin).origin) return true
+      } catch { /* invalid env URL */ }
+    }
+    // Dev fallback: allow local MinIO
     if (parsed.origin === 'http://localhost:19000') return true
     return false
   } catch {
@@ -114,8 +121,8 @@ export function useFormExport(options: UseFormExportOptions = {}) {
           exportUrl.value = data.download_url
           exportStatusMessage.value = ''
           exportingFormId.value = null
-          options.onSuccess?.(data.download_url)
           if (isAllowedDownloadUrl(data.download_url)) {
+            options.onSuccess?.(data.download_url)
             window.open(data.download_url, '_blank')
           } else {
             exportStatus.value = 'error'

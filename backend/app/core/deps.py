@@ -60,6 +60,11 @@ async def get_current_user(
             reason = user.get("ban_reason") or "No reason provided"
             raise AppError(ErrorCode.AUTH_004, 403, f"Account is banned: {reason}")
 
+        # P2: Cross-check JWT role against DB role to close demotion race window
+        db_role = user.get("role")
+        if db_role and db_role != role:
+            raise AppError(ErrorCode.AUTH_002, 401, "Role changed. Please log in again.")
+
     return payload
 
 

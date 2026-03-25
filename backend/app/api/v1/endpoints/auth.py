@@ -107,6 +107,10 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
             ErrorCode.AUTH_005, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
         )
 
+    # P2: Per-account rate limit to prevent distributed brute-force
+    if not await check_rate_limit(f"rl:login:user:{req.username}", 20, 300):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many login attempts for this account.")
+
     user = await authenticate_user(req.username, req.password)
     if user is None:
         raise AppError(ErrorCode.AUTH_010, 401, "Invalid username or password.")

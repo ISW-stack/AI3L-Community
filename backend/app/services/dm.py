@@ -34,8 +34,7 @@ _DM_ALLOWED_EXTENSIONS: set[str] = {
     ".xlsx",  # documents
     ".pptx",
     ".txt",
-    ".csv",
-    ".zip",  # other
+    ".csv",  # other
 }
 
 # Extensions that require magic-byte validation (images)
@@ -46,7 +45,6 @@ _DM_MAGIC_CHECK_EXTENSIONS: dict[str, str] = {
     ".gif": "image/gif",
     ".webp": "image/webp",
     ".pdf": "application/pdf",
-    ".zip": "application/zip",
     ".docx": "application/zip",
     ".xlsx": "application/zip",
     ".pptx": "application/zip",
@@ -54,8 +52,10 @@ _DM_MAGIC_CHECK_EXTENSIONS: dict[str, str] = {
 
 # Magic bytes for types not covered by validate_magic_number
 _MAGIC_BYTES: dict[str, list[bytes]] = {
-    "application/zip": [b"PK\x03\x04", b"PK\x05\x06"],
+    "application/zip": [b"PK\x03\x04", b"PK\x05\x06"],  # for .docx/.xlsx/.pptx
 }
+
+_CSV_INJECTION_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
 def _validate_dm_file(file_name: str, file_data: bytes) -> None:
@@ -92,6 +92,67 @@ def _validate_dm_file(file_name: str, file_data: bytes) -> None:
                 400,
                 "File content does not match its extension (invalid magic number).",
             )
+
+    # H-02: Deep structure validation for Office documents (prevent ZIP masquerading)
+    if ext == ".docx":
+        from app.core.file_validation import validate_docx_structure
+
+        if not validate_docx_structure(file_data):
+            raise AppError(
+                ErrorCode.FILE_001,
+                400,
+                "Invalid DOCX structure. File may be corrupted or not a valid Word document.",
+            )
+
+    if ext in (".xlsx", ".pptx"):
+        from app.core.file_validation import validate_ooxml_structure
+
+        if not validate_ooxml_structure(file_data):
+            raise AppError(
+                ErrorCode.FILE_001,
+                400,
+                "Invalid Office document structure.",
+            )
+
+    # H-04: Content validation for text-based formats
+    if ext == ".txt":
+        try:
+            file_data.decode("utf-8")
+        except UnicodeDecodeError:
+            raise AppError(ErrorCode.FILE_001, 400, "Text file must be valid UTF-8.")
+
+    if ext == ".csv":
+        try:
+            file_data.decode("utf-8")
+        except UnicodeDecodeError:
+            raise AppError(ErrorCode.FILE_001, 400, "CSV file must be valid UTF-8 text.")
+
+
+def _sanitize_csv_content(data: bytes) -> bytes:
+    """Sanitize CSV to prevent formula injection when opened in spreadsheets.
+
+    Prefixes dangerous cells with a single quote to neutralize formulas.
+    """
+    import csv
+    from io import StringIO
+
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise AppError(ErrorCode.FILE_001, 400, "CSV file must be valid UTF-8 text.")
+
+    reader = csv.reader(StringIO(text))
+    output = StringIO()
+    writer = csv.writer(output)
+    for row in reader:
+        sanitized = []
+        for cell in row:
+            stripped = cell.lstrip()
+            if stripped and stripped[0] in _CSV_INJECTION_PREFIXES:
+                cell = "'" + cell
+            sanitized.append(cell)
+        writer.writerow(sanitized)
+    return output.getvalue().encode("utf-8")
 
 
 async def send_message(
@@ -191,6 +252,13 @@ async def send_message(
         # S-02: Validate file type before upload
         _validate_dm_file(file_name, file_data)
 
+        # H-04: Sanitize CSV content to prevent formula injection
+        if file_name and "." in file_name:
+            dm_ext = "." + file_name.rsplit(".", 1)[-1].lower()
+            if dm_ext == ".csv":
+                file_data = _sanitize_csv_content(file_data)
+                file_size = len(file_data)
+
         # H-03: Atomic check-and-reserve quota in a single UPDATE to prevent TOCTOU race.
         # If later steps fail, the reserved bytes are refunded in the except block.
         pool_quota = get_pool()
@@ -235,6 +303,17 @@ async def send_message(
 
             await async_upload_file(file_data, storage_key, derived_type)  # type: ignore
             attachment_key = storage_key  # type: ignore[possibly-undefined]
+
+            # C-01: Trigger virus scan for DM attachment
+            try:
+                from app.core.file_validation import trigger_virus_scan
+
+                await trigger_virus_scan(storage_key, file_data)
+            except Exception:
+                logger.warning(
+                    "Virus scan trigger failed for DM attachment",
+                    extra={"key": storage_key},
+                )
 
         # 7. Find or create conversation
         conversation = await dm_repo.find_or_create_conversation(

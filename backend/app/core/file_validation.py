@@ -45,6 +45,39 @@ def validate_magic_number(data: bytes, expected_content_type: str) -> bool:
     return True
 
 
+def validate_docx_structure(data: bytes) -> bool:
+    """Verify that a ZIP-based file is actually a valid DOCX (OOXML).
+
+    Checks for the required [Content_Types].xml and word/ directory.
+    Returns False for JAR, APK, or other ZIP-based files masquerading as DOCX.
+    """
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(BytesIO(data)) as zf:
+            names = zf.namelist()
+            has_content_types = "[Content_Types].xml" in names
+            has_word_dir = any(n.startswith("word/") for n in names)
+            return has_content_types and has_word_dir
+    except (zipfile.BadZipFile, Exception):
+        return False
+
+
+def validate_ooxml_structure(data: bytes) -> bool:
+    """Verify that a ZIP-based file contains valid Office Open XML structure.
+
+    Works for XLSX, PPTX, and other OOXML formats.
+    Checks only for [Content_Types].xml (the universal OOXML marker).
+    """
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(BytesIO(data)) as zf:
+            return "[Content_Types].xml" in zf.namelist()
+    except (zipfile.BadZipFile, Exception):
+        return False
+
+
 def get_content_type_from_extension(filename: str) -> str | None:
     """Map file extension to content type."""
     ext = ""
@@ -53,7 +86,10 @@ def get_content_type_from_extension(filename: str) -> str | None:
     return ALLOWED_EXTENSIONS.get(ext)
 
 
-_PDF_DANGEROUS_KEYS = {"/JS", "/JavaScript", "/AA", "/OpenAction"}
+_PDF_DANGEROUS_KEYS = {
+    "/JS", "/JavaScript", "/AA", "/OpenAction",
+    "/Launch", "/URI", "/SubmitForm", "/GoToR", "/EmbeddedFiles",
+}
 
 
 def sanitize_pdf(data: bytes) -> bytes:
@@ -137,6 +173,15 @@ def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
             "File content does not match its extension (invalid magic number).",
         )
 
+    # H-02: Deep structure validation for DOCX (prevent ZIP masquerading)
+    if expected_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        if not validate_docx_structure(data):
+            raise AppError(
+                ErrorCode.FILE_001,
+                400,
+                "Invalid DOCX file structure. File may be corrupted or is not a valid Word document.",
+            )
+
     # Sanitize PDFs
     if expected_type == "application/pdf":
         data = sanitize_pdf(data)
@@ -211,3 +256,32 @@ def post_process_citations(html: str) -> str:
         r'data-citation="true" class="citation"',
         html,
     )
+
+
+async def trigger_virus_scan(file_key: str, file_data: bytes) -> None:
+    """Insert a pending scan record and dispatch VirusTotal check.
+
+    Errors are logged but never propagated -- scanning is best-effort
+    and must not block uploads.
+    """
+    import io
+
+    from loguru import logger
+
+    try:
+        from app.repositories import file_scan_repo
+
+        await file_scan_repo.insert(file_key)
+    except Exception:
+        logger.warning("Failed to insert scan record for key=%s", file_key, exc_info=True)
+
+    try:
+        from app.tasks.virustotal import check_virustotal, compute_sha256
+        from fastapi.concurrency import run_in_threadpool
+
+        file_hash = await run_in_threadpool(compute_sha256, io.BytesIO(file_data))
+        check_virustotal.delay(file_hash, file_key)
+    except ImportError:
+        pass  # VirusTotal / Celery not configured
+    except Exception:
+        logger.warning("VirusTotal scan trigger failed for key=%s", file_key, exc_info=True)

@@ -64,7 +64,6 @@ async def async_row_to_conversation(row: dict, user_id: str) -> dict:
                 "avatar_url": await async_resolve_avatar_url(row.get("last_msg_sender_avatar_url")),
             },
             "content": row.get("last_msg_content"),
-            "attachment_key": row.get("last_msg_attachment_key"),
             "attachment_url": None,
             "attachment_name": row.get("last_msg_attachment_name"),
             "attachment_size": row.get("last_msg_attachment_size"),

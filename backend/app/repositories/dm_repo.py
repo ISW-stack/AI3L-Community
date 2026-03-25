@@ -137,6 +137,8 @@ async def find_conversations(
             ) lm ON TRUE
             LEFT JOIN users lm_u ON lm_u.id = lm.sender_id
             WHERE (c.participant_a = $1 OR c.participant_b = $1)
+              AND u.is_deleted = false
+              AND u.is_banned = false
               AND NOT EXISTS (
                   SELECT 1 FROM blocks b
                   WHERE (b.blocker_id = $1
