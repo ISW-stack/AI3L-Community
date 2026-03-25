@@ -1,4 +1,4 @@
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '')
@@ -154,5 +154,5 @@ export function renderMentions(html: string, mentions: string[] | null): string 
 
   walkTextNodes(container)
   // Re-sanitize after DOM re-serialization to prevent mXSS
-  return DOMPurify.sanitize(container.innerHTML)
+  return sanitizeHtml(container.innerHTML)
 }

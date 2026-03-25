@@ -57,6 +57,8 @@ function handleFileChange(event: Event) {
   const maxLabel = isZip ? '50 MB' : '10 MB'
   if (file.size > maxSize) {
     error.value = `File too large (max ${maxLabel}). Selected: ${(file.size / (1024 * 1024)).toFixed(1)} MB`
+    // M-11: Clear file input so user can re-select
+    input.value = ''
     return
   }
 

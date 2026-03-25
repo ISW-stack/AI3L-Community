@@ -16,7 +16,7 @@ WS_MAX_MESSAGE_SIZE = 64 * 1024  # 64 KB max message size
 WS_MSG_RATE_LIMIT = 60  # max messages per window
 WS_MSG_RATE_WINDOW = 60  # window in seconds
 WS_MAX_CONNECTIONS_PER_USER = 5  # max concurrent WS connections per user
-WS_SESSION_REVALIDATION_INTERVAL = 300  # seconds (5 minutes)
+WS_SESSION_REVALIDATION_INTERVAL = 60  # seconds (1 minute)
 
 # In-memory connection registry: user_id -> set of WebSocket connections
 _connections: dict[str, set[WebSocket]] = defaultdict(set)

@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { getMembers } from '@/api/about'
 import { usePagination } from '@/composables/usePagination'
 import type { MemberCard } from '@/types/orgchart'
@@ -151,12 +151,12 @@ onMounted(fetchMembers)
             <p
               v-if="member.affiliation"
               class="text-xs text-muted mt-2 truncate w-full"
-              v-html="DOMPurify.sanitize(member.affiliation)"
+              v-html="sanitizeHtml(member.affiliation)"
             ></p>
             <p
               v-if="member.bio"
               class="text-xs text-muted mt-1 line-clamp-2 w-full"
-              v-html="DOMPurify.sanitize(member.bio)"
+              v-html="sanitizeHtml(member.bio)"
             ></p>
           </div>
         </div>

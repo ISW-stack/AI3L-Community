@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { renderMentions } from '@/utils/html'
 import { getErrorMessage } from '@/utils/error'
 import { leaveCoAuthorship } from '@/api/coauthors'
@@ -502,7 +502,7 @@ const breadcrumbItems = computed(() => {
                     <p
                       class="text-sm text-foreground/80 wrap-break-word mb-2"
                       v-html="
-                        renderMentions(DOMPurify.sanitize(node.root.content), node.root.mentions)
+                        renderMentions(sanitizeHtml(node.root.content), node.root.mentions)
                       "
                     ></p>
                     <div class="flex items-center gap-3">
@@ -611,7 +611,7 @@ const breadcrumbItems = computed(() => {
                     <template v-else>
                       <p
                         class="text-sm text-foreground/80 wrap-break-word mb-2"
-                        v-html="renderMentions(DOMPurify.sanitize(reply.content), reply.mentions)"
+                        v-html="renderMentions(sanitizeHtml(reply.content), reply.mentions)"
                       ></p>
                       <div class="flex items-center gap-3">
                         <ReactionPicker
@@ -692,7 +692,7 @@ const breadcrumbItems = computed(() => {
         <h4 class="text-sm font-semibold text-foreground mb-1">{{ item.title }}</h4>
         <div
           class="text-sm text-muted prose prose-sm max-w-none"
-          v-html="DOMPurify.sanitize(item.content)"
+          v-html="sanitizeHtml(item.content)"
         ></div>
       </div>
     </BaseModal>

@@ -11,7 +11,7 @@ import type { PublicUser, Post } from '@/types'
 import { getPublicProfile } from '@/api/users'
 import { listPosts } from '@/api/posts'
 import { listCoAuthoredPosts } from '@/api/coauthors'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { MessageSquare, Lock } from 'lucide-vue-next'
 import PostCard from '@/components/PostCard.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -217,7 +217,7 @@ onMounted(() => {
               <span class="font-medium text-foreground block mb-1">{{ t('userProfile.bio') }}</span>
               <div
                 class="prose prose-sm max-w-none break-words"
-                v-html="DOMPurify.sanitize(user.bio)"
+                v-html="sanitizeHtml(user.bio)"
               ></div>
             </div>
             <div v-if="user.affiliation" class="text-sm text-foreground/80">

@@ -29,7 +29,7 @@ services:
       - nginx-html:/html        # output goes into the shared volume for nginx
     restart: "no"
     networks:
-      - ai3l-network
+      - frontend-net
 
   # Vite dev server with Hot Module Replacement (HMR).
   # Changes to frontend/src/** are reflected in the browser instantly — no rebuild needed.
@@ -49,7 +49,7 @@ services:
     expose:
       - "3210"
     networks:
-      - ai3l-network
+      - frontend-net
 
   nginx:
     # Two volume overrides (appended after the base list; later mounts shadow earlier ones
@@ -99,7 +99,7 @@ services:
       - .env
     restart: "no"
     networks:
-      - ai3l-network
+      - backend-net
 
 volumes:
   nginx-html:   # shared volume: build-frontend writes here, nginx reads from it

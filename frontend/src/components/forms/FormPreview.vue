@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 import type { Question } from '@/types'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -76,7 +76,7 @@ const emit = defineEmits<{
           <div
             v-if="description"
             class="prose prose-sm max-w-none text-muted"
-            v-html="DOMPurify.sanitize(description)"
+            v-html="sanitizeHtml(description)"
           ></div>
 
           <div

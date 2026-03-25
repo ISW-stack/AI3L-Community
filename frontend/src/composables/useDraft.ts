@@ -82,7 +82,10 @@ export function useDraft<T>(options: UseDraftOptions<T>): UseDraftReturn<T> {
     try {
       const raw = localStorage.getItem(resolveKey())
       if (!raw) return false
-      data.value = deserialize(raw)
+      // L-06: Validate deserialized value is a non-null object
+      const parsed = deserialize(raw)
+      if (parsed === null || typeof parsed !== 'object') return false
+      data.value = parsed
       hasDraft.value = true
       isDirty.value = false
       // Load savedAt from meta key

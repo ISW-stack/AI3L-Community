@@ -5,7 +5,7 @@ import { useLocale } from '@/composables/useLocale'
 import { formatDateTime } from '@/utils/date'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 import type { Post, Comment } from '@/types'
 import { getPost, deletePost as apiDeletePost } from '@/api/posts'
 import { listComments, createComment } from '@/api/comments'
@@ -286,7 +286,7 @@ watch(postId, async () => {
         <!-- Question content -->
         <div
           class="prose prose-sm max-w-none break-words text-foreground/80 mb-4"
-          v-html="DOMPurify.sanitize(post.content)"
+          v-html="sanitizeHtml(post.content)"
         ></div>
 
         <!-- Keywords -->
@@ -343,7 +343,7 @@ watch(postId, async () => {
                 <!-- Answer content -->
                 <div
                   class="prose prose-sm max-w-none break-words text-foreground/80 mb-2"
-                  v-html="renderMentions(DOMPurify.sanitize(answer.content), answer.mentions)"
+                  v-html="renderMentions(sanitizeHtml(answer.content), answer.mentions)"
                 ></div>
 
                 <!-- Answer meta -->

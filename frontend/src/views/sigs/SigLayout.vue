@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch, provide, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import type { Sig } from '@/types'
@@ -253,7 +253,7 @@ onUnmounted(() => {
                 <div
                   v-if="sig.description"
                   class="text-sm text-muted mb-3 prose prose-sm max-w-none prose-muted"
-                  v-html="DOMPurify.sanitize(sig.description)"
+                  v-html="sanitizeHtml(sig.description)"
                 ></div>
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
                   <span

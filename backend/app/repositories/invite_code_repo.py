@@ -54,6 +54,18 @@ async def count_active_by_user(user_id: str) -> int:
         )
 
 
+async def find_by_id(code_id: uuid.UUID) -> dict | None:
+    """Return a single invite code row by its ID, or None."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, code, created_by, consumed_by, consumed_at, expires_at, created_at "
+            "FROM invite_codes WHERE id = $1",
+            code_id,
+        )
+        return dict(row) if row else None
+
+
 async def revoke(code_id: uuid.UUID) -> bool:
     """Soft-revoke an invite code by setting expires_at to NOW(). Returns True if updated."""
     pool = get_pool()

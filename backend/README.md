@@ -457,7 +457,7 @@ Configured tasks:
 |---|---|---|
 | `form_export` | On-demand | Serializes all form responses to CSV and stores the result in Redis. The frontend polls `GET /api/v1/tasks/{task_id}` for completion. |
 | `cleanup_dm_expired_files` | Hourly (Beat) | Deletes MinIO DM file attachments older than 3 days and refunds each sender's storage quota. |
-| `cleanup_dm_expired_text` | Hourly (Beat) | Deletes DM message text older than 30 days and adjusts each conversation's `total_chars` counter. |
+| `cleanup_dm_expired_text` | Hourly (Beat) | Deletes DM message text older than 7 days and adjusts each conversation's `total_chars` counter. |
 
 To add a new task:
 

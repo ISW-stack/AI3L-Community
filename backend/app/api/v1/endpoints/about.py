@@ -112,14 +112,18 @@ async def get_contributor_avatar(
         loop = asyncio.get_event_loop()
         resp = await loop.run_in_executor(
             None,
-            lambda: _requests.get(github_url, timeout=10, allow_redirects=True),
+            lambda: _requests.get(
+                github_url, timeout=10, allow_redirects=True, stream=True
+            ),
         )
 
         if resp.status_code != 200:
+            resp.close()
             return Response(status_code=502, content=b"Failed to fetch avatar")
 
         content_type = resp.headers.get("content-type", "image/png")
         if not content_type.startswith("image/"):
+            resp.close()
             return Response(status_code=502, content=b"Invalid content type from upstream")
 
         # Enforce download size limit to prevent memory exhaustion
@@ -129,11 +133,20 @@ async def get_contributor_avatar(
         except (ValueError, TypeError):
             content_length = 0
         if content_length > _MAX_AVATAR_DOWNLOAD_BYTES:
+            resp.close()
             return Response(status_code=502, content=b"Avatar too large")
 
-        data = resp.content
-        if len(data) > _MAX_AVATAR_DOWNLOAD_BYTES:
-            return Response(status_code=502, content=b"Avatar too large")
+        # L-14: Stream with size limit instead of loading full body into memory
+        chunks: list[bytes] = []
+        total_downloaded = 0
+        for chunk in resp.iter_content(8192):
+            total_downloaded += len(chunk)
+            if total_downloaded > _MAX_AVATAR_DOWNLOAD_BYTES:
+                resp.close()
+                return Response(status_code=502, content=b"Avatar too large")
+            chunks.append(chunk)
+        resp.close()
+        data = b"".join(chunks)
 
         new_size = len(data)
         async with _cache_lock:

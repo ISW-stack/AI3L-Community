@@ -20,7 +20,9 @@ from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html, validate_magic_number
 from app.repositories import dm_repo
 
-# ── DM attachment allowed extensions ────────────────────────────────────────
+# Definitive allowlist. The endpoint layer also blocks dangerous extensions
+# (_DM_BLOCKED_EXTENSIONS in endpoints/dm.py) as defense-in-depth.
+# ZIP-based Office formats (.docx, .xlsx, .pptx) are accepted and validated via magic bytes.
 _DM_ALLOWED_EXTENSIONS: set[str] = {
     ".jpg",
     ".jpeg",
@@ -106,9 +108,14 @@ async def send_message(
     if sender_id == recipient_id:
         raise AppError(ErrorCode.DM_003, 400, "Cannot message yourself.")
 
-    # 2. Validate recipient exists and is not deleted
+    # M-03: Check if sender is banned
     from app.repositories import user_repo
 
+    sender_row = await user_repo.find_by_id(uuid.UUID(sender_id))
+    if sender_row and sender_row.get("is_banned"):
+        raise AppError(ErrorCode.DM_003, 403, "Your account is banned.")
+
+    # 2. Validate recipient exists and is not deleted
     recipient = await user_repo.find_by_id(uuid.UUID(recipient_id))
     if not recipient or recipient.get("is_deleted"):
         raise AppError(ErrorCode.DM_003, 404, "Recipient not found.")

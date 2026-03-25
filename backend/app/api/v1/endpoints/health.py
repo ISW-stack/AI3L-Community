@@ -38,7 +38,7 @@ async def health_check(
     except Exception:
         overall_healthy = False
         dependencies.append(
-            DependencyStatus(name="postgresql", status="unhealthy", error="connection failed")
+            DependencyStatus(name="postgresql", status="unhealthy", error="unavailable")
         )
 
     # Check Redis
@@ -53,7 +53,7 @@ async def health_check(
     except Exception:
         overall_healthy = False
         dependencies.append(
-            DependencyStatus(name="redis", status="unhealthy", error="connection failed")
+            DependencyStatus(name="redis", status="unhealthy", error="unavailable")
         )
 
     # Check S3-compatible storage (MinIO / R2)
@@ -70,7 +70,7 @@ async def health_check(
     except Exception:
         overall_healthy = False
         dependencies.append(
-            DependencyStatus(name="storage", status="unhealthy", error="connection failed")
+            DependencyStatus(name="storage", status="unhealthy", error="unavailable")
         )
 
     return HealthResponse(

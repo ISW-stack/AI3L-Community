@@ -193,7 +193,7 @@ async def _reincrement_owner_storage(storage_key: str, file_size: int) -> None:
             continue
 
 
-@celery.task(name="sync_guest_counter", bind=True, max_retries=1)
+@celery.task(name="sync_guest_counter", bind=True, max_retries=2, default_retry_delay=30)
 def sync_guest_counter_task(self: Any) -> dict[str, Any]:
     """Periodic task: reconcile guest counter with actual session keys in Redis."""
 
@@ -209,7 +209,7 @@ def sync_guest_counter_task(self: Any) -> dict[str, Any]:
     return result
 
 
-@celery.task(name="cleanup_old_file_scans", bind=True, max_retries=1)
+@celery.task(name="cleanup_old_file_scans", bind=True, max_retries=2, default_retry_delay=30)
 def cleanup_old_file_scans(self: Any, days: int = 30) -> dict[str, Any]:
     """Daily task: remove completed file_scans records older than *days*."""
 
@@ -225,7 +225,7 @@ def cleanup_old_file_scans(self: Any, days: int = 30) -> dict[str, Any]:
     return result
 
 
-@celery.task(name="cleanup_old_audit_logs", bind=True, max_retries=1)
+@celery.task(name="cleanup_old_audit_logs", bind=True, max_retries=2, default_retry_delay=30)
 def cleanup_old_audit_logs(self: Any, days: int = 90) -> dict[str, Any]:
     """Daily task: delete audit log entries older than *days* days."""
 
@@ -241,7 +241,7 @@ def cleanup_old_audit_logs(self: Any, days: int = 90) -> dict[str, Any]:
     return result
 
 
-@celery.task(name="cleanup_old_read_notifications", bind=True, max_retries=1)
+@celery.task(name="cleanup_old_read_notifications", bind=True, max_retries=2, default_retry_delay=30)
 def cleanup_old_read_notifications(self: Any, days: int = 90) -> dict[str, Any]:
     """Weekly task: delete read notifications older than *days* days."""
 
@@ -257,7 +257,7 @@ def cleanup_old_read_notifications(self: Any, days: int = 90) -> dict[str, Any]:
     return result
 
 
-@celery.task(name="cleanup_orphan_files", bind=True, max_retries=1)
+@celery.task(name="cleanup_orphan_files", bind=True, max_retries=2, default_retry_delay=30)
 def cleanup_orphan_files(self: Any) -> dict[str, Any]:
     """Weekly task: delete unreferenced editor files older than 7 days."""
 
@@ -306,4 +306,71 @@ def cleanup_orphan_files(self: Any) -> dict[str, Any]:
 
     result: dict[str, Any] = _run_async(_run())
     logger.info("Orphan file cleanup complete: %s", result)
+    return result
+
+
+@celery.task(name="cleanup_dm_orphan_quotas", bind=True, max_retries=2, default_retry_delay=30)
+def cleanup_dm_orphan_quotas(self: Any) -> dict[str, Any]:
+    """Weekly: find DM messages with no attachment_key but positive attachment_size (orphaned quota)
+    and refund the storage."""
+
+    async def _run() -> dict[str, Any]:
+        pool = await _ensure_pool()
+        if pool is None:
+            pool = get_pool()
+
+        async with pool.acquire() as conn:
+            # Find messages with attachment_size > 0 but NULL attachment_key
+            # These indicate failed uploads where quota wasn't refunded
+            rows = await conn.fetch(
+                "SELECT id, sender_id, attachment_size FROM dm_messages "
+                "WHERE attachment_key IS NULL AND attachment_size IS NOT NULL "
+                "AND attachment_size > 0 AND created_at < NOW() - INTERVAL '1 day' "
+                "LIMIT 100"
+            )
+            refunded = 0
+            for row in rows:
+                try:
+                    async with conn.transaction():
+                        await conn.execute(
+                            "UPDATE users SET storage_used_bytes = GREATEST(0, storage_used_bytes - $1) "
+                            "WHERE id = $2",
+                            row["attachment_size"],
+                            row["sender_id"],
+                        )
+                        await conn.execute(
+                            "UPDATE dm_messages SET attachment_size = NULL WHERE id = $1",
+                            row["id"],
+                        )
+                    refunded += 1
+                except Exception:
+                    logger.warning("Failed to refund orphaned DM quota", exc_info=True)
+
+        return {"refunded": refunded, "total_found": len(rows)}
+
+    result: dict[str, Any] = _run_async(_run())
+    logger.info("DM orphan quota cleanup: %s", result)
+    return result
+
+
+@celery.task(name="cleanup_empty_dm_conversations", bind=True, max_retries=2, default_retry_delay=30)
+def cleanup_empty_dm_conversations(self: Any) -> dict[str, Any]:
+    """Weekly: remove conversations with zero messages (orphaned from failed sends)."""
+
+    async def _run() -> dict[str, Any]:
+        pool = await _ensure_pool()
+        if pool is None:
+            pool = get_pool()
+
+        async with pool.acquire() as conn:
+            result = await conn.execute(
+                "DELETE FROM conversations c "
+                "WHERE NOT EXISTS (SELECT 1 FROM dm_messages m WHERE m.conversation_id = c.id) "
+                "AND c.created_at < NOW() - INTERVAL '1 hour'"
+            )
+            count = int(result.split()[-1]) if result else 0
+        return {"deleted": count}
+
+    result: dict[str, Any] = _run_async(_run())
+    logger.info("Empty DM conversation cleanup: %s", result)
     return result

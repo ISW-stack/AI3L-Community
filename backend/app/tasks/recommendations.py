@@ -147,7 +147,7 @@ def _build_reasons(row: Any) -> list[dict[str, Any]]:
     return reasons
 
 
-@celery.task(name="compute_friend_recommendations", bind=True, max_retries=1)
+@celery.task(name="compute_friend_recommendations", bind=True, max_retries=2, default_retry_delay=30)
 def compute_friend_recommendations(self: Any) -> dict[str, Any]:
     """Daily Celery Beat task: compute friend recommendations for all users."""
     result: dict[str, Any] = _run_async(_compute_recommendations_async())

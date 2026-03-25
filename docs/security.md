@@ -273,13 +273,16 @@ When a user is banned, the server publishes a `FORCE_LOGOUT` message to the user
 
 ### 8.1 Private Service Network
 
-All backend services (FastAPI, PostgreSQL, Redis, MinIO, Celery) communicate on a private Docker bridge network (`ai3l-network`). Only Nginx is exposed to the host. The database, cache, and object storage are unreachable from outside the container network.
+Services are isolated across two Docker bridge networks (`frontend-net` and `backend-net`). Only Nginx is exposed to the host. The database, cache, and object storage are unreachable from the frontend tier.
 
 ```
 Internet --> Nginx (:3000 / :3443)
                 |
-         [ai3l-network]
-                |-- FastAPI     :8000  (internal only)
+         [frontend-net]
+                |-- FastAPI     :8000  (bridges both networks)
+                |
+         [backend-net]
+                |-- FastAPI     :8000  (bridges both networks)
                 |-- PostgreSQL  :5432  (internal only)
                 |-- Redis       :6379  (internal only)
                 `-- MinIO       :9000  (internal only)

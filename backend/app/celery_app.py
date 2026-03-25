@@ -94,4 +94,14 @@ celery.conf.beat_schedule = {
         "schedule": 604800.0,  # weekly
         "options": {"soft_time_limit": 60, "time_limit": 120, "expires": 604800},
     },
+    "cleanup-dm-orphan-quotas": {
+        "task": "cleanup_dm_orphan_quotas",
+        "schedule": 604800.0,  # weekly
+        "options": {"soft_time_limit": 60, "time_limit": 120, "expires": 604800},
+    },
+    "cleanup-empty-dm-conversations": {
+        "task": "cleanup_empty_dm_conversations",
+        "schedule": 604800.0,  # weekly
+        "options": {"soft_time_limit": 60, "time_limit": 120, "expires": 604800},
+    },
 }

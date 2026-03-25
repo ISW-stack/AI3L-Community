@@ -13,6 +13,7 @@ from app.core.constants import (
     MAX_PAGE_NUMBER,
     MAX_PAGE_SIZE,
     PRESIGNED_URL_FILE_SECONDS,
+    RATE_LIMIT_DM_ADMIN,
     RATE_LIMIT_DM_EDIT,
     RATE_LIMIT_DM_LIST,
     RATE_LIMIT_DM_MARK_READ,
@@ -34,7 +35,9 @@ from app.schemas.dm import (
 )
 from app.services import dm as dm_service
 
-# File extensions blocked at the endpoint level (defense-in-depth).
+# Defense-in-depth: blocked extensions are checked first at the endpoint level.
+# The service layer has an independent ALLOWED list (_DM_ALLOWED_EXTENSIONS in services/dm.py).
+# Both must pass for a file to be accepted.
 _DM_BLOCKED_EXTENSIONS: set[str] = {
     ".exe",
     ".bat",
@@ -77,6 +80,9 @@ async def admin_list_messages(
     current_user: dict = Depends(require_role("SUPER_ADMIN")),
 ) -> MessageListResponse:
     """Admin: view messages in any conversation for moderation."""
+    if not await check_rate_limit(f"rl:dm:admin:{current_user['sub']}", *RATE_LIMIT_DM_ADMIN):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
+
     from app.converters.dm_converter import async_row_to_message
     from app.core.storage import generate_presigned_url
     from app.repositories import dm_repo

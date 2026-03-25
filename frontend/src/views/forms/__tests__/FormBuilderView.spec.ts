@@ -744,7 +744,8 @@ describe('FormBuilderView', () => {
       vm.showPreview = true
       await nextTick()
 
-      expect(mockSanitize).toHaveBeenCalledWith(xssDescription)
+      // sanitizeHtml passes (html, SANITIZE_CONFIG) to DOMPurify.sanitize
+      expect(mockSanitize).toHaveBeenCalledWith(xssDescription, expect.objectContaining({ FORCE_BODY: true }))
     })
 
     it('renders sanitized description, not raw HTML', async () => {

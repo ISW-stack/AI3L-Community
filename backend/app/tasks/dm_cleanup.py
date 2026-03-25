@@ -9,8 +9,8 @@ from app.tasks.async_runner import run_async as _run_async
 from app.tasks.utils import ensure_pool as _ensure_pool
 
 
-@celery.task(name="cleanup_dm_expired_files")
-def cleanup_dm_expired_files() -> dict:
+@celery.task(name="cleanup_dm_expired_files", bind=True, max_retries=2, default_retry_delay=30)
+def cleanup_dm_expired_files(self) -> dict:  # type: ignore[override]
     """Delete DM file attachments past their expiry. Refund storage quota."""
     result: dict = _run_async(_cleanup_files())
     return result
@@ -68,8 +68,8 @@ async def _cleanup_files() -> dict:
     return {"deleted": deleted, "errors": errors}
 
 
-@celery.task(name="cleanup_dm_expired_text")
-def cleanup_dm_expired_text() -> dict:
+@celery.task(name="cleanup_dm_expired_text", bind=True, max_retries=2, default_retry_delay=30)
+def cleanup_dm_expired_text(self) -> dict:  # type: ignore[override]
     """Delete DM text messages older than the retention period."""
     result: dict = _run_async(_cleanup_text())
     return result
@@ -137,8 +137,8 @@ async def _cleanup_text() -> dict:
 _DM_ORPHAN_BATCH_SIZE = 1000
 
 
-@celery.task(name="cleanup_dm_orphan_files")
-def cleanup_dm_orphan_files() -> dict:
+@celery.task(name="cleanup_dm_orphan_files", bind=True, max_retries=2, default_retry_delay=30)
+def cleanup_dm_orphan_files(self) -> dict:  # type: ignore[override]
     """Weekly task: delete dm/ files in MinIO not referenced by any dm_messages row."""
     result: dict = _run_async(_cleanup_dm_orphans())
     return result

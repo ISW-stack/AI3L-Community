@@ -140,7 +140,7 @@ services:
       - "-c"
       - "random_page_cost=1.1"
       - "-c"
-      - "statement_timeout=30000"
+      - "statement_timeout=120000"
       - "-c"
       - "idle_in_transaction_session_timeout=60000"
       - "-c"
@@ -170,13 +170,11 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     command: >-
-      sh -c 'redis-server
-      --requirepass "$REDIS_PASSWORD"
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --appendonly yes
-      --appendfsync everysec'
+      sh -c 'echo "requirepass $REDIS_PASSWORD" > /tmp/redis.conf &&
+      cat /etc/redis/redis-prod.conf >> /tmp/redis.conf &&
+      redis-server /tmp/redis.conf'
     volumes:
+      - ./redis/redis-prod.conf:/etc/redis/redis-prod.conf:ro
       - redis-data:/data
     deploy:
       resources:

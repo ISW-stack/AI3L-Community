@@ -149,7 +149,7 @@ async def _reconcile_profile_view_counts() -> tuple[int, int]:
             return unique_updated, total_updated
 
 
-@celery.task(name="reconcile_counters", bind=True, max_retries=1)
+@celery.task(name="reconcile_counters", bind=True, max_retries=2, default_retry_delay=30)
 def reconcile_counters(self: Any) -> dict[str, Any]:
     """Periodic task: reconcile all denormalized counters."""
 

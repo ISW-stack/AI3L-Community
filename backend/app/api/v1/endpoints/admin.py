@@ -49,6 +49,15 @@ async def revoke_invite_code(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> dict:
+    # M-05: Only SUPER_ADMIN can revoke any code; ADMIN can only revoke own codes
+    if current_user["role"] != "SUPER_ADMIN":
+        code_info = await invite_code_repo.find_by_id(code_id)
+        if code_info and str(code_info.get("created_by")) != current_user["sub"]:
+            raise AppError(
+                ErrorCode.SYS_403,
+                status.HTTP_403_FORBIDDEN,
+                "You can only revoke your own invite codes.",
+            )
     revoked = await invite_code_repo.revoke(code_id)
     if not revoked:
         raise AppError(
@@ -82,6 +91,15 @@ async def delete_invite_code(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> Response:
+    # M-05: Only SUPER_ADMIN can delete any code; ADMIN can only delete own codes
+    if current_user["role"] != "SUPER_ADMIN":
+        code_info = await invite_code_repo.find_by_id(code_id)
+        if code_info and str(code_info.get("created_by")) != current_user["sub"]:
+            raise AppError(
+                ErrorCode.SYS_403,
+                status.HTTP_403_FORBIDDEN,
+                "You can only delete your own invite codes.",
+            )
     deleted = await invite_code_repo.delete(code_id)
     if not deleted:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Invite code not found.")

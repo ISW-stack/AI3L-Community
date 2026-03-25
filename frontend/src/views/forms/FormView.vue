@@ -3,7 +3,7 @@ import { computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/utils/date'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { useAuthStore } from '@/stores/auth'
 import { useFormSubmit } from '@/composables/useFormSubmit'
 import { useFormExport } from '@/composables/useFormExport'
@@ -180,7 +180,7 @@ onMounted(() => loadForm())
             <div
               v-if="form.description"
               class="prose prose-sm max-w-none text-muted mb-3"
-              v-html="DOMPurify.sanitize(form.description)"
+              v-html="sanitizeHtml(form.description)"
             ></div>
           </div>
           <BaseBadge :variant="form.is_active ? 'success' : 'danger'">{{

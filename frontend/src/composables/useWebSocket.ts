@@ -160,7 +160,11 @@ export function useWebSocket() {
             }
           } else if (msg.type === 'DM_READ') {
             if (typeof msg.conversation_id === 'string' && typeof msg.read_at === 'string') {
-              dmStore.readReceiptFromWebSocket(msg.conversation_id, msg.read_at)
+              // L-05: Validate timestamp before using
+              const ts = new Date(msg.read_at).getTime()
+              if (!isNaN(ts)) {
+                dmStore.readReceiptFromWebSocket(msg.conversation_id, msg.read_at)
+              }
             }
           } else if (msg.type === 'SIG_ROLE_CHANGED') {
             if (typeof msg.sig_id === 'string' && typeof msg.new_role === 'string') {

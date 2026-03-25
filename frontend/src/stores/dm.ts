@@ -5,6 +5,7 @@ import * as dmApi from '@/api/dm'
 import { getErrorMessage } from '@/utils/error'
 
 const MAX_MESSAGES = 200
+const UNREAD_MIN_INTERVAL_MS = 2000
 
 export const useDMStore = defineStore('dm', () => {
   const conversations = ref<Conversation[]>([])
@@ -27,7 +28,13 @@ export const useDMStore = defineStore('dm', () => {
     currentUserId.value = id
   }
 
+  // M-10: Debounce unread count fetches to avoid excessive API calls
+  let _lastUnreadFetch = 0
+
   async function fetchUnreadCount() {
+    const now = Date.now()
+    if (now - _lastUnreadFetch < UNREAD_MIN_INTERVAL_MS) return
+    _lastUnreadFetch = now
     try {
       const res = await dmApi.getUnreadCount()
       unreadCount.value = res.unread_count
@@ -222,6 +229,7 @@ export const useDMStore = defineStore('dm', () => {
     messagesLoading.value = false
     error.value = null
     currentUserId.value = ''
+    _lastUnreadFetch = 0
   }
 
   return {

@@ -28,7 +28,11 @@ export const useAuthStore = defineStore('auth', () => {
   const MAX_HEARTBEAT_FAILURES = 3
 
   // Token is now in HttpOnly cookie — we infer auth state from role + expiresAt
-  const isAuthenticated = computed(() => !!role.value && Date.now() < expiresAt.value)
+  // H-05: Also validate role is a known value to prevent tampered localStorage
+  const VALID_ROLES = new Set(['GUEST', 'MEMBER', 'ADMIN', 'SUPER_ADMIN'])
+  const isAuthenticated = computed(
+    () => !!role.value && VALID_ROLES.has(role.value) && Date.now() < expiresAt.value,
+  )
   const isAdmin = computed(() => role.value === 'SUPER_ADMIN' || role.value === 'ADMIN')
   const isSuperAdmin = computed(() => role.value === 'SUPER_ADMIN')
   const isGuest = computed(() => role.value === 'GUEST')
@@ -217,7 +221,9 @@ export const useAuthStore = defineStore('auth', () => {
   // catching tampered expiresAt in localStorage.
   if (isAuthenticated.value) {
     startHeartbeat()
-    verifySession().catch(() => {})
+    verifySession().catch((err) => {
+      if (import.meta.env.DEV) console.warn('[Auth] Session verification failed:', err)
+    })
   }
 
   return {

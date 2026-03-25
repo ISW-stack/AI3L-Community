@@ -33,7 +33,7 @@ import { createReport } from '@/api/reports'
 import { getFileScanStatus } from '@/api/files'
 import { listCoAuthors } from '@/api/coauthors'
 import { getCitedBy, getCiting } from '@/api/citations'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml, addLinkSafety } from '@/utils/sanitize'
 import { extractMentions } from '@/utils/html'
 import { getErrorMessage } from '@/utils/error'
 import { useToastStore } from '@/stores/toast'
@@ -183,7 +183,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   const contentSegments = computed<ContentSegment[]>(() => {
     if (!post.value) return []
-    const sanitized = DOMPurify.sanitize(post.value.content)
+    const sanitized = addLinkSafety(sanitizeHtml(post.value.content))
 
     const doc = domParser.parseFromString(`<div>${sanitized}</div>`, 'text/html')
     const wrapper = doc.body.firstElementChild!
@@ -218,6 +218,8 @@ export function usePostDetail(options: UsePostDetailOptions) {
       return [{ type: 'html', content: sanitized }]
     }
 
+    // Split on markers BEFORE sanitizing — DOMPurify strips \x00 null bytes.
+    // Each HTML fragment is individually sanitized below (line 231) to prevent mXSS.
     const html = wrapper.innerHTML
     const parts = html.split(/(\x00CARD\d+\x00)/)
     const segments: ContentSegment[] = []
@@ -228,7 +230,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
         segments.push({ type: card.type, content: card.id })
       } else {
         // Re-sanitize each HTML fragment after DOM manipulation to prevent mXSS.
-        segments.push({ type: 'html', content: DOMPurify.sanitize(part) })
+        segments.push({ type: 'html', content: addLinkSafety(sanitizeHtml(part)) })
       }
     }
     return segments

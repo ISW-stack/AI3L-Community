@@ -138,7 +138,8 @@ async def delete_editor_file(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """Delete an editor file from storage and decrement the user's storage counter."""
-    if ".." in key or not _SAFE_KEY_RE.match(key):
+    # H-04: Consolidate all path validation into a single gate with one error message
+    if ".." in key or not _SAFE_KEY_RE.match(key) or not key.startswith("editor/"):
         raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
 
     # Only allow deletion of editor files owned by the user (or by admins)
@@ -155,14 +156,6 @@ async def delete_editor_file(
     file_size = await async_get_file_size(key)
     if file_size == 0:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "File not found.")
-
-    # Validate that the key is an editor file before parsing owner from path
-    if not key.startswith("editor/"):
-        raise AppError(
-            ErrorCode.SYS_422,
-            status.HTTP_400_BAD_REQUEST,
-            "Only editor files can be deleted via this endpoint.",
-        )
 
     # Determine the owner user ID from the key path (editor/{user_id}/...)
     parts = key.split("/")

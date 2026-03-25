@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml, sanitizePreviewHtml } from '@/utils/sanitize'
 import type { Post } from '@/types'
 import type { CoAuthor } from '@/types/coauthor'
 import { useAuthStore } from '@/stores/auth'
@@ -18,26 +18,6 @@ import QuickCommentPanel from '@/components/QuickCommentPanel.vue'
 const { t } = useI18n()
 const auth = useAuthStore()
 
-const PREVIEW_ALLOWED_TAGS = [
-  'p',
-  'br',
-  'strong',
-  'b',
-  'em',
-  'i',
-  'ul',
-  'ol',
-  'li',
-  'blockquote',
-  'h1',
-  'h2',
-  'h3',
-  'h4',
-  'h5',
-  'h6',
-  'code',
-  'pre',
-]
 
 const props = withDefaults(
   defineProps<{
@@ -94,10 +74,7 @@ watch(
 
 // Sanitized HTML for preview (strips images, links text only, allows basic formatting)
 const sanitizedPreviewHtml = computed(() => {
-  return DOMPurify.sanitize(props.post.content, {
-    ALLOWED_TAGS: PREVIEW_ALLOWED_TAGS,
-    ALLOWED_ATTR: [],
-  })
+  return sanitizePreviewHtml(props.post.content)
 })
 
 // Local optimistic reactions state
@@ -147,7 +124,7 @@ async function handleReaction(reaction: string) {
 
 /** Extract the first <img src="..."> from HTML content */
 const thumbnailUrl = computed(() => {
-  const sanitized = DOMPurify.sanitize(props.post.content)
+  const sanitized = sanitizeHtml(props.post.content)
   const match = sanitized.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/)
   return match ? match[1] : null
 })

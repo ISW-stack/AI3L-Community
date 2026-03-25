@@ -31,15 +31,16 @@ async def create_comment(
         raise ValueError(f"Too many mentions (max {MAX_MENTIONS_PER_COMMENT}).")
 
     # Block check: cannot comment if blocked by or blocking the post author
+    # Pre-check owner for block validation (soft check — re-fetched in transaction)
     from app.repositories import post_repo
 
-    post_owner_id = await post_repo.find_owner_id(post_id)
-    if post_owner_id and post_owner_id != user_id:
+    pre_check_owner_id = await post_repo.find_owner_id(post_id)
+    if pre_check_owner_id and pre_check_owner_id != user_id:
         redis = get_redis()
         blocked_ids = await get_blocked_user_ids(redis, user_id)
-        if post_owner_id in blocked_ids:
+        if pre_check_owner_id in blocked_ids:
             raise ValueError("Cannot comment on this post.")
-        owner_blocked_ids = await get_blocked_user_ids(redis, post_owner_id)
+        owner_blocked_ids = await get_blocked_user_ids(redis, pre_check_owner_id)
         if user_id in owner_blocked_ids:
             raise ValueError("Cannot comment on this post.")
 
@@ -52,6 +53,8 @@ async def create_comment(
             post = await comment_repo.find_post_for_comment(post_id, conn)
             if not post:
                 raise ValueError("Post not found.")
+            # H-03: Derive post_owner_id from transaction-consistent data
+            post_owner_id = str(post["user_id"])
             if not post["allow_comments"]:
                 raise ValueError("Comments are disabled for this post.")
             if post["comment_count"] >= MAX_COMMENTS_PER_POST:

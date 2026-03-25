@@ -312,7 +312,12 @@ async def check_ip_ban(request: Request, call_next: RequestResponseEndpoint) -> 
                     content={"detail": "Your IP address has been banned."},
                 )
         except Exception:
-            pass  # Redis/DB failure -> allow request through
+            # L-03: Log failure instead of silently swallowing
+            logger.warning(
+                "IP ban check failed — allowing request through",
+                exc_info=True,
+                extra={"ip": ip},
+            )
     return await call_next(request)
 
 

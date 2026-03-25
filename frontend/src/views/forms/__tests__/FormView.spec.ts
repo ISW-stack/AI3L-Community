@@ -411,7 +411,8 @@ describe('FormView', () => {
       const formWithXss = { ...fakeForm, description: xssDescription }
       await mountFormView({ form: formWithXss })
 
-      expect(mockSanitize).toHaveBeenCalledWith(xssDescription)
+      // sanitizeHtml passes (html, SANITIZE_CONFIG) to DOMPurify.sanitize
+      expect(mockSanitize).toHaveBeenCalledWith(xssDescription, expect.objectContaining({ FORCE_BODY: true }))
     })
 
     it('strips XSS payload from description output', async () => {

@@ -32,7 +32,7 @@ async def _close_expired_forms() -> list[str]:
         return [str(row["id"]) for row in rows]
 
 
-@celery.task(name="auto_close_expired_forms", bind=True, max_retries=1)
+@celery.task(name="auto_close_expired_forms", bind=True, max_retries=2, default_retry_delay=30)
 def auto_close_expired_forms(self: Any) -> dict[str, Any]:
     """Periodic task: auto-close forms whose deadline has passed."""
 
