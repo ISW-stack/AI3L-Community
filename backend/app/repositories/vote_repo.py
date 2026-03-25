@@ -1,12 +1,15 @@
 import uuid
 from typing import Any
 
+from app.core.errors import AppError, ErrorCode
+
 
 async def upsert_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote: int) -> int:
     """Atomic upsert of a vote and update of comment vote_score.
 
     If vote=0, removes the vote row and subtracts the old vote from score.
     Returns the new vote_score.
+    Raises AppError if the comment does not exist.
     """
     if vote == 0:
         # Remove vote and adjust score atomically via CTE
@@ -26,7 +29,16 @@ async def upsert_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote
             comment_id,
             user_id,
         )
-        return row["vote_score"] if row else 0
+        # L-03: If row is None, the UPDATE matched nothing — comment doesn't exist
+        if row is None:
+            exists = await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM comments WHERE id = $1)",
+                comment_id,
+            )
+            if not exists:
+                raise AppError(ErrorCode.SYS_404, 404, "Comment not found.")
+            return 0
+        return row["vote_score"]
 
     # Upsert vote and update score atomically
     row = await conn.fetchrow(
@@ -51,7 +63,16 @@ async def upsert_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID, vote
         uuid.uuid4(),
         vote,
     )
-    return row["vote_score"] if row else 0
+    # L-03: If row is None, the UPDATE matched nothing — comment doesn't exist
+    if row is None:
+        exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM comments WHERE id = $1)",
+            comment_id,
+        )
+        if not exists:
+            raise AppError(ErrorCode.SYS_404, 404, "Comment not found.")
+        return 0
+    return row["vote_score"]
 
 
 async def get_user_vote(conn: Any, comment_id: uuid.UUID, user_id: uuid.UUID) -> int | None:

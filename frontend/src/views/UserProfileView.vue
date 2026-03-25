@@ -132,6 +132,9 @@ function toLocaleTime(dateStr: string): string {
 
 watch(userId, () => {
   resetPage()
+  coAuthoredPosts.value = []
+  coAuthoredLoading.value = false
+  activeSection.value = 'posts'
   fetchUser()
   fetchPosts()
 })

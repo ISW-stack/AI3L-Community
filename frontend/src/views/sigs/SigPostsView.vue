@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getSigPosts } from '@/api/sigs'
@@ -26,7 +26,7 @@ const { sig, userSigRole } = useSigLayout()
 
 const posts = ref<Post[]>([])
 const loading = ref(true)
-const { page, total, totalPages, pageSize, setPage, updateFromResponse } = usePagination()
+const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } = usePagination()
 
 const isMember = computed(() => userSigRole?.value != null)
 
@@ -57,6 +57,11 @@ function goToPage(p: number) {
   setPage(p)
   fetchPosts()
 }
+
+watch(sigId, () => {
+  resetPage()
+  fetchPosts()
+})
 
 onMounted(fetchPosts)
 </script>

@@ -161,3 +161,13 @@ RATE_LIMIT_DM_MARK_READ = _rate_limit("DM_MARK_READ", 60, 60)
 RATE_LIMIT_DM_UNREAD = _rate_limit("DM_UNREAD", 30, 60)
 RATE_LIMIT_DM_ADMIN = _rate_limit("DM_ADMIN", 30, 60)
 DEFAULT_PAGE_SIZE_DM = 30
+
+# ── Feature 9: Site Data Export ──
+RATE_LIMIT_SITE_EXPORT = _rate_limit("SITE_EXPORT", 1, 1800)  # 1 per 30 minutes
+EXPORT_MAX_ZIP_BYTES = 10 * 1024 * 1024 * 1024  # 10 GB hard cap
+EXPORT_PRESIGNED_TTL_SECONDS = 900  # 15 minutes (short for security)
+EXPORT_HISTORY_MAX = 20  # keep last 20 exports in Redis
+EXPORT_LOCK_TTL_SECONDS = 10800  # 3 hours (> hard time limit)
+EXPORT_CLEANUP_DAYS = 7  # auto-delete exports older than 7 days
+EXPORT_DB_BATCH_SIZE = 1000
+EXPORT_S3_BATCH_LOG_INTERVAL = 500  # log progress every N files

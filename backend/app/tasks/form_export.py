@@ -155,5 +155,13 @@ async def _async_export(form_id: str, task_id: str) -> dict:
 @celery.task(bind=True, name="tasks.export_form_csv", max_retries=2, default_retry_delay=60)
 def export_form_csv(self: Any, form_id: str) -> dict:
     """Export form responses to CSV. Runs in Celery worker (sync)."""
-    result: dict = _run_async(_async_export(form_id, self.request.id))
-    return result
+    try:
+        result: dict = _run_async(_async_export(form_id, self.request.id))
+        return result
+    except Exception as exc:
+        logger.error(
+            "Form CSV export failed, retrying",
+            extra={"form_id": form_id},
+            exc_info=True,
+        )
+        raise self.retry(exc=exc, countdown=60)

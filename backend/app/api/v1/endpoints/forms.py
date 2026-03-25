@@ -88,7 +88,7 @@ async def get_sig_forms(
     sig_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> FormListResponse:
     forms, total = await list_forms_by_sig(sig_id, page=page, page_size=page_size)
     is_admin = await _is_sig_admin(sig_id, current_user["sub"], current_user["role"])
@@ -212,7 +212,7 @@ async def get_form_statistics(
 @router.get("/forms/{form_id}", response_model=FormResponseSchema)
 async def get_form(
     form_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> FormResponseSchema:
     user_id = current_user["sub"]
     form = await get_form_by_id(form_id, user_id=user_id)

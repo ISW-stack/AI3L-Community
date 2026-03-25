@@ -482,6 +482,13 @@ async def send_message_atomic(
                 sender_id,
                 conversation_id,
             )
+            # M-02: Guard against None recipient (conversation not found or corrupted)
+            if recipient_id is None:
+                from app.core.errors import AppError, ErrorCode
+
+                raise AppError(
+                    ErrorCode.DM_006, 404, "Conversation not found or invalid participant."
+                )
             blocked = await conn.fetchval(
                 "SELECT EXISTS("
                 "SELECT 1 FROM blocks WHERE "

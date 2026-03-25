@@ -546,9 +546,12 @@ async def list_users(
     return await user_repo.list_all(page=page, page_size=page_size, search=search)
 
 
-async def bulk_change_role(user_ids: list[uuid.UUID], role: str, caller_role: str = "") -> int:
+async def bulk_change_role(
+    user_ids: list[uuid.UUID], role: str, caller_role: str = ""
+) -> tuple[int, list[uuid.UUID]]:
     """Change role for multiple users in a single transaction.
 
+    Returns (count_changed, list_of_actually_changed_user_ids).
     Raises ValueError if the operation would remove the last SUPER_ADMIN.
     """
     from app.core.errors import AppError, ErrorCode
@@ -568,5 +571,5 @@ async def bulk_change_role(user_ids: list[uuid.UUID], role: str, caller_role: st
                     raise ValueError(
                         "Cannot demote: this would remove the last Super Admin in the system."
                     )
-            count = await user_repo.bulk_update_role(user_ids, role, conn)
-    return count
+            count, changed_ids = await user_repo.bulk_update_role(user_ids, role, conn)
+    return count, changed_ids

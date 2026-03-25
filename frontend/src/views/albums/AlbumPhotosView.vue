@@ -146,15 +146,20 @@ async function handleSetCover(photo: AlbumPhoto) {
   }
 }
 
+let _albumResetting = false
 watch(
   () => album.value?.id,
   () => {
+    _albumResetting = true
     resetPage()
+    _albumResetting = false
     fetchPhotos()
   },
   { immediate: true },
 )
-watch(page, fetchPhotos)
+watch(page, () => {
+  if (!_albumResetting) fetchPhotos()
+})
 </script>
 
 <template>

@@ -288,24 +288,26 @@ async def remove_co_author(
     """Remove a co-author. Post owner or ADMIN can remove."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        # Verify post exists
-        post = await conn.fetchrow(
-            "SELECT id, user_id FROM posts WHERE id = $1 AND is_deleted = false",
-            post_id,
-        )
-        if not post:
-            raise NotFoundError("Post", str(post_id))
+        # L-02: Wrap permission check + delete in transaction to prevent TOCTOU race
+        async with conn.transaction():
+            # Verify post exists
+            post = await conn.fetchrow(
+                "SELECT id, user_id FROM posts WHERE id = $1 AND is_deleted = false",
+                post_id,
+            )
+            if not post:
+                raise NotFoundError("Post", str(post_id))
 
-        # Only post owner or admin
-        if str(post["user_id"]) != user_id and not is_admin:
-            raise ForbiddenError("Only the post owner or an admin can remove co-authors.")
+            # Only post owner or admin
+            if str(post["user_id"]) != user_id and not is_admin:
+                raise ForbiddenError("Only the post owner or an admin can remove co-authors.")
 
-        # Verify co-author belongs to this post
-        co_author = await co_author_repo.find_co_author_by_id(conn, co_author_id)
-        if not co_author or co_author["post_id"] != post_id:
-            raise NotFoundError("Co-author", str(co_author_id))
+            # Verify co-author belongs to this post
+            co_author = await co_author_repo.find_co_author_by_id(conn, co_author_id)
+            if not co_author or co_author["post_id"] != post_id:
+                raise NotFoundError("Co-author", str(co_author_id))
 
-        return await co_author_repo.delete_co_author(conn, co_author_id)
+            return await co_author_repo.delete_co_author(conn, co_author_id)
 
 
 async def leave_co_authorship(
@@ -316,16 +318,18 @@ async def leave_co_authorship(
     """Allow a co-author to remove themselves from a post."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        co_author = await co_author_repo.find_co_author_by_id(conn, co_author_id)
-        if not co_author or co_author["post_id"] != post_id:
-            raise NotFoundError("Co-author", str(co_author_id))
+        # L-02: Wrap permission check + delete in transaction to prevent TOCTOU race
+        async with conn.transaction():
+            co_author = await co_author_repo.find_co_author_by_id(conn, co_author_id)
+            if not co_author or co_author["post_id"] != post_id:
+                raise NotFoundError("Co-author", str(co_author_id))
 
-        # Only the co-author themselves can leave
-        co_user_id = co_author.get("user_id")
-        if co_user_id is None or str(co_user_id) != user_id:
-            raise ForbiddenError("You can only remove yourself as a co-author.")
+            # Only the co-author themselves can leave
+            co_user_id = co_author.get("user_id")
+            if co_user_id is None or str(co_user_id) != user_id:
+                raise ForbiddenError("You can only remove yourself as a co-author.")
 
-        return await co_author_repo.delete_co_author(conn, co_author_id)
+            return await co_author_repo.delete_co_author(conn, co_author_id)
 
 
 async def list_co_authors(post_id: uuid.UUID) -> list[dict]:

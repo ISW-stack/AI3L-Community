@@ -123,7 +123,8 @@ async def _persist_failed_event(
                 "event_id": str(_uuid.uuid4()),  # L-48: dedup key
                 "event": event,
                 "handler": handler_name,
-                "kwargs": _redact_kwargs(kwargs),  # L-49: redact sensitive fields
+                "kwargs": _redact_kwargs(kwargs),  # L-49: redact sensitive fields for display
+                "original_kwargs": kwargs,  # H-01: unredacted payload for retry
                 "retry_count": retry_count,
                 "timestamp": time.time(),
             },

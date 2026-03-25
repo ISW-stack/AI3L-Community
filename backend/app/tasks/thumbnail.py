@@ -111,6 +111,6 @@ def generate_thumbnail_task(
         logger.info("Thumbnail generated: %s -> %s", storage_key, thumbnail_key)
         return {"status": "success", "thumbnail_key": thumbnail_key}
 
-    except Exception:
+    except Exception as exc:
         logger.exception("Thumbnail generation failed for %s", storage_key)
-        raise
+        raise self.retry(exc=exc, countdown=30)

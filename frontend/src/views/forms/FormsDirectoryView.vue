@@ -27,6 +27,7 @@ const initialLoading = ref(true)
 const PAGE_SIZE = 12
 const searchQuery = ref('')
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
+let _fetchId = 0
 
 const { page, total, totalPages, setPage, updateFromResponse } = usePagination(PAGE_SIZE)
 
@@ -42,16 +43,21 @@ function handleSearchInput(value: string) {
 }
 
 async function fetchForms() {
+  const fetchId = ++_fetchId
   loading.value = true
   try {
     const data = await listStandaloneForms(page.value, PAGE_SIZE, searchQuery.value || undefined)
+    if (fetchId !== _fetchId) return // stale response
     forms.value = data.forms
     updateFromResponse(data.total)
   } catch (e: unknown) {
+    if (fetchId !== _fetchId) return
     toast.show(getErrorMessage(e, t('formsDirectory.loadError')), 'error')
   } finally {
-    loading.value = false
-    initialLoading.value = false
+    if (fetchId === _fetchId) {
+      loading.value = false
+      initialLoading.value = false
+    }
   }
 }
 

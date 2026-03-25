@@ -49,16 +49,35 @@ async def revoke_invite_code(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> dict:
-    # M-05: Only SUPER_ADMIN can revoke any code; ADMIN can only revoke own codes
+    # M-08: Atomically revoke with ownership filter to prevent TOCTOU race.
     if current_user["role"] != "SUPER_ADMIN":
-        code_info = await invite_code_repo.find_by_id(code_id)
-        if code_info and str(code_info.get("created_by")) != current_user["sub"]:
-            raise AppError(
-                ErrorCode.SYS_403,
-                status.HTTP_403_FORBIDDEN,
-                "You can only revoke your own invite codes.",
+        from app.core.database import get_pool
+
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            result = await conn.execute(
+                "UPDATE invite_codes SET expires_at = NOW() "
+                "WHERE id = $1 AND consumed_at IS NULL AND expires_at > NOW() AND created_by = $2",
+                code_id,
+                uuid.UUID(current_user["sub"]),
             )
-    revoked = await invite_code_repo.revoke(code_id)
+        if result == "UPDATE 0":
+            # Could be not found, not owned, or already consumed/expired
+            code_info = await invite_code_repo.find_by_id(code_id)
+            if code_info and str(code_info.get("created_by")) != current_user["sub"]:
+                raise AppError(
+                    ErrorCode.SYS_403,
+                    status.HTTP_403_FORBIDDEN,
+                    "You can only revoke your own invite codes.",
+                )
+            raise AppError(
+                ErrorCode.SYS_404,
+                status.HTTP_404_NOT_FOUND,
+                "Invite code not found or already consumed/expired.",
+            )
+        revoked = True
+    else:
+        revoked = await invite_code_repo.revoke(code_id)
     if not revoked:
         raise AppError(
             ErrorCode.SYS_404,
@@ -91,16 +110,30 @@ async def delete_invite_code(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> Response:
-    # M-05: Only SUPER_ADMIN can delete any code; ADMIN can only delete own codes
+    # M-08: Atomically delete with ownership filter to prevent TOCTOU race.
     if current_user["role"] != "SUPER_ADMIN":
-        code_info = await invite_code_repo.find_by_id(code_id)
-        if code_info and str(code_info.get("created_by")) != current_user["sub"]:
-            raise AppError(
-                ErrorCode.SYS_403,
-                status.HTTP_403_FORBIDDEN,
-                "You can only delete your own invite codes.",
+        from app.core.database import get_pool
+
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            result = await conn.execute(
+                "DELETE FROM invite_codes WHERE id = $1 AND created_by = $2",
+                code_id,
+                uuid.UUID(current_user["sub"]),
             )
-    deleted = await invite_code_repo.delete(code_id)
+        if result == "DELETE 0":
+            # Could be not found or not owned
+            code_info = await invite_code_repo.find_by_id(code_id)
+            if code_info and str(code_info.get("created_by")) != current_user["sub"]:
+                raise AppError(
+                    ErrorCode.SYS_403,
+                    status.HTTP_403_FORBIDDEN,
+                    "You can only delete your own invite codes.",
+                )
+            raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Invite code not found.")
+        deleted = True
+    else:
+        deleted = await invite_code_repo.delete(code_id)
     if not deleted:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Invite code not found.")
     # Audit log — failure must not crash the endpoint

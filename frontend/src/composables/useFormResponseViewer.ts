@@ -1,8 +1,8 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
-import { getForm, listFormResponses } from '@/api/forms'
+import { getForm, listFormResponses, getFormStats } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
 import { usePagination } from '@/composables/usePagination'
-import { computeFormStats, filterResponses, type QuestionStats } from '@/utils/formStats'
+import { filterResponses, type QuestionStats } from '@/utils/formStats'
 import type { FormResponse, Question } from '@/types'
 
 export type ResponseViewMode = 'individual' | 'statistics'
@@ -49,6 +49,7 @@ export function useFormResponseViewer(
   const expandedTextQuestions = ref<Set<string>>(new Set())
 
   const pagination = usePagination(pageSize)
+  let _fetchId = 0
 
   const filteredResponses: ComputedRef<FormResponse[]> = computed(() =>
     filterResponses(responses.value, searchQuery.value, dateFrom.value, dateTo.value),
@@ -102,14 +103,20 @@ export function useFormResponseViewer(
   }
 
   async function fetchResponses(formId: string, page = 1): Promise<void> {
+    const localFetchId = ++_fetchId
     loading.value = true
     pagination.setPage(page)
 
     try {
-      const [formData, respData] = await Promise.all([
+      const [formData, respData, statsData] = await Promise.all([
         page === 1 ? getForm(formId) : Promise.resolve(null),
         listFormResponses(formId, page, pageSize),
+        page === 1
+          ? getFormStats(formId).catch(() => null)
+          : Promise.resolve(null),
       ])
+
+      if (localFetchId !== _fetchId) return // stale response
 
       if (formData) {
         questions.value = formData.questions
@@ -119,13 +126,19 @@ export function useFormResponseViewer(
       const total = respData.total || 0
       pagination.updateFromResponse(total, Math.ceil(total / pageSize) || 1)
 
-      if (questions.value.length > 0) {
-        formStats.value = computeFormStats(questions.value, responses.value)
+      if (statsData && statsData.question_stats) {
+        // Map server-side stats to the QuestionStats format used by the UI
+        formStats.value = statsData.question_stats.map((qs) => ({
+          ...qs.stats,
+          questionId: qs.question_id,
+          label: qs.question_label,
+        })) as unknown as QuestionStats[]
       }
     } catch (e: unknown) {
+      if (localFetchId !== _fetchId) return // stale response
       onError?.(getErrorMessage(e, ''))
     } finally {
-      loading.value = false
+      if (localFetchId === _fetchId) loading.value = false
     }
   }
 

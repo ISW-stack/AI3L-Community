@@ -84,25 +84,28 @@ async def sync_post_citations(
                 remove_ids = [existing_map[cid] for cid in to_remove]
                 await citation_repo.delete_citations(conn, remove_ids)
 
-            # Insert new citations
+            # M-06: Batch-verify cited posts exist using WHERE id = ANY($1::uuid[])
+            # instead of N+1 individual queries
             author_uuid = uuid.UUID(author_id)
             new_citations: list[dict] = []
-            for cited_id in to_add:
-                # Verify cited post exists and get author in single query
-                cited_row = await conn.fetchrow(
-                    "SELECT user_id FROM posts WHERE id = $1 AND is_deleted = false",
-                    cited_id,
+            if to_add:
+                to_add_list = list(to_add)
+                cited_rows = await conn.fetch(
+                    "SELECT id, user_id FROM posts WHERE id = ANY($1::uuid[]) AND is_deleted = false",
+                    to_add_list,
                 )
-                if not cited_row:
-                    continue
+                cited_map = {r["id"]: r["user_id"] for r in cited_rows}
 
-                is_self = cited_row["user_id"] == author_uuid
-
-                citation_id = uuid.uuid4()
-                row = await citation_repo.insert_citation(
-                    conn, citation_id, post_id, cited_id, is_self
-                )
-                new_citations.append(row)
+                # Batch-insert all valid citations
+                for cited_id in to_add_list:
+                    if cited_id not in cited_map:
+                        continue
+                    is_self = cited_map[cited_id] == author_uuid
+                    citation_id = uuid.uuid4()
+                    row = await citation_repo.insert_citation(
+                        conn, citation_id, post_id, cited_id, is_self
+                    )
+                    new_citations.append(row)
 
             # Recalculate citation counts for all affected posts
             affected_posts = set()

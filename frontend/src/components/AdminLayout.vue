@@ -15,6 +15,7 @@ import {
   X,
   Ban,
   Settings,
+  HardDriveDownload,
 } from 'lucide-vue-next'
 
 const { t } = useI18n()
@@ -42,6 +43,12 @@ const navItems: NavItem[] = [
     labelKey: 'nav.siteSettings',
     to: '/admin/site-settings',
     icon: Settings,
+    superAdminOnly: true,
+  },
+  {
+    labelKey: 'nav.dataExport',
+    to: '/admin/data-export',
+    icon: HardDriveDownload,
     superAdminOnly: true,
   },
 ]

@@ -63,3 +63,26 @@ export interface InviteCode {
   created_at: string
   expires_at: string | null
 }
+
+export interface ExportProgress {
+  task_id: string
+  status: string
+  phase: string | null
+  current: number
+  total: number
+  detail: string | null
+  zip_size: number
+  download_url: string | null
+  started_at: string | null
+  error: string | null
+}
+
+export interface ExportHistoryItem {
+  task_id: string
+  status: string
+  created_at: string
+  created_by: string
+  options: { include_database?: boolean; include_files?: boolean }
+  file_size: number | null
+  download_url: string | null
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -33,12 +33,16 @@ const saving = ref(false)
 const message = ref('')
 const draftRestored = ref(false)
 
+const draftKey = computed(
+  () => `ai3l_question_draft_${auth.user?.id ?? 'anon'}`,
+)
+
 const {
   data: draftData,
   loadDraft,
   clearDraft,
 } = useDraft<QuestionDraft>({
-  key: `ai3l_question_draft_${auth.user?.id ?? 'anon'}`,
+  key: () => draftKey.value,
   defaultValue: {
     title: '',
     content: '',

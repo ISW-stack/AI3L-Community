@@ -130,15 +130,18 @@ function canDeleteComment(comment: AlbumComment): boolean {
   return auth.isAdmin || userAlbumRole.value === 'ADMIN' || comment.user_id === auth.user.id
 }
 
-onMounted(fetchComments)
 watch(
   () => album.value?.id,
-  () => {
+  (newId, oldId) => {
+    if (newId === oldId) return
     resetPage()
     fetchComments()
   },
+  { immediate: true },
 )
-watch(page, fetchComments)
+watch(page, (newPage, oldPage) => {
+  if (newPage !== oldPage) fetchComments()
+})
 </script>
 
 <template>

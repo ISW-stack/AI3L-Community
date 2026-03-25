@@ -573,24 +573,33 @@ async def soft_delete_with_permission(
             }
 
             if file_upload_qids:
-                # Fetch all responses that may contain file uploads
-                resp_rows = await conn.fetch(
-                    "SELECT user_id, answers FROM form_responses WHERE form_id = $1",
-                    form_id,
-                )
-                for resp_row in resp_rows:
-                    answers_raw = resp_row["answers"]
-                    if isinstance(answers_raw, str):
-                        answers_data = json.loads(answers_raw)
-                    else:
-                        answers_data = answers_raw or {}
-                    resp_user_id = str(resp_row["user_id"])
-                    for qid in file_upload_qids:
-                        val = answers_data.get(qid)
-                        if isinstance(val, dict) and "key" in val:
-                            file_upload_entries.append(
-                                {"key": val["key"], "user_id": resp_user_id}
-                            )
+                # L-04: Process responses in batches to avoid loading all into memory
+                _BATCH_SIZE = 500
+                _offset = 0
+                while True:
+                    resp_rows = await conn.fetch(
+                        "SELECT user_id, answers FROM form_responses "
+                        "WHERE form_id = $1 ORDER BY created_at LIMIT $2 OFFSET $3",
+                        form_id,
+                        _BATCH_SIZE,
+                        _offset,
+                    )
+                    for resp_row in resp_rows:
+                        answers_raw = resp_row["answers"]
+                        if isinstance(answers_raw, str):
+                            answers_data = json.loads(answers_raw)
+                        else:
+                            answers_data = answers_raw or {}
+                        resp_user_id = str(resp_row["user_id"])
+                        for qid in file_upload_qids:
+                            val = answers_data.get(qid)
+                            if isinstance(val, dict) and "key" in val:
+                                file_upload_entries.append(
+                                    {"key": val["key"], "user_id": resp_user_id}
+                                )
+                    if len(resp_rows) < _BATCH_SIZE:
+                        break
+                    _offset += _BATCH_SIZE
 
             await conn.execute(
                 "UPDATE forms SET is_deleted = true, updated_at = NOW() WHERE id = $1",

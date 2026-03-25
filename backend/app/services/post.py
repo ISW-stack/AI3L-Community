@@ -311,8 +311,20 @@ async def _cleanup_post_files(post_id: uuid.UUID, user_id: str) -> None:
                     "failed_keys": failed_keys,
                 },
             )
+        # M-04: Wrap storage decrement in try/except — log but don't lose the cleanup
         if total_freed > 0:
-            await user_repo.decrement_storage_used(uuid.UUID(user_id), total_freed)
+            try:
+                await user_repo.decrement_storage_used(uuid.UUID(user_id), total_freed)
+            except Exception:
+                logger.error(
+                    "Failed to refund storage counter after post file cleanup",
+                    extra={
+                        "post_id": str(post_id),
+                        "user_id": user_id,
+                        "total_freed": total_freed,
+                    },
+                    exc_info=True,
+                )
     except Exception:
         logger.warning("Post file cleanup failed", extra={"post_id": str(post_id)})
 

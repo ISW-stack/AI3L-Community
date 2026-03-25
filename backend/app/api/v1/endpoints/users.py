@@ -317,12 +317,15 @@ async def bulk_change_role(
     from app.services.audit import log_action
     from app.services.user import bulk_change_role as bulk_change_role_svc
 
-    count = await bulk_change_role_svc(req.user_ids, req.role, caller_role=current_user["role"])
+    count, changed_ids = await bulk_change_role_svc(
+        req.user_ids, req.role, caller_role=current_user["role"]
+    )
 
-    # Revoke sessions and notify each affected user (same as single role change)
+    # H-02: Only revoke sessions and emit events for users whose role actually changed.
+    # Users already at the target role are not disrupted.
     from app.services.auth import revoke_user_sessions
 
-    for uid in req.user_ids:
+    for uid in changed_ids:
         await emit("user.role_changed", user_id=str(uid), new_role=req.role)
         await revoke_user_sessions(str(uid))
 

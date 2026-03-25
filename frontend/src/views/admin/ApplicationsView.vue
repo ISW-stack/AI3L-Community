@@ -18,6 +18,7 @@ const total = ref(0)
 const loading = ref(false)
 const message = ref('')
 const statusFilter = ref('PENDING')
+const processing = ref(false)
 
 const statusKeyMap: Record<string, string> = {
   PENDING: 'admin.applications.filter.pending',
@@ -44,6 +45,8 @@ async function fetchApplications() {
 }
 
 async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
+  if (processing.value) return
+  processing.value = true
   try {
     await reviewApplication(appId, action)
     message.value =
@@ -53,6 +56,8 @@ async function review(appId: string, action: 'APPROVED' | 'REJECTED') {
     await fetchApplications()
   } catch (e: unknown) {
     message.value = getErrorMessage(e, t('admin.applications.message.failed'))
+  } finally {
+    processing.value = false
   }
 }
 
@@ -123,10 +128,10 @@ onMounted(fetchApplications)
           </div>
 
           <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">
-            <BaseButton size="sm" variant="success" @click="review(app.id, 'APPROVED')">{{
+            <BaseButton size="sm" variant="success" :disabled="processing" @click="review(app.id, 'APPROVED')">{{
               t('admin.applications.approveBtn')
             }}</BaseButton>
-            <BaseButton size="sm" variant="soft-danger" @click="review(app.id, 'REJECTED')">{{
+            <BaseButton size="sm" variant="soft-danger" :disabled="processing" @click="review(app.id, 'REJECTED')">{{
               t('admin.applications.rejectBtn')
             }}</BaseButton>
           </div>

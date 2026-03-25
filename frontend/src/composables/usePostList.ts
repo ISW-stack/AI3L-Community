@@ -163,13 +163,13 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
       nextCursor.value = data.next_cursor ?? null
       hasMore.value = data.has_more ?? false
       isSearching.value = false
+      syncQueryParams()
     } catch (e: unknown) {
       if (fetchId !== _fetchPostsId) return // stale response
       toast.show(getErrorMessage(e, t(i18nErrorKeys.fetchPosts)), 'error')
     } finally {
       if (fetchId === _fetchPostsId) loading.value = false
     }
-    syncQueryParams()
   }
 
   // Append next page via cursor
@@ -229,13 +229,13 @@ export function usePostList(options: UsePostListOptions): UsePostListReturn {
       posts.value = data.posts
       nextCursor.value = null
       hasMore.value = data.has_more ?? false
+      syncQueryParams()
     } catch (e: unknown) {
       if (fetchId !== _searchFetchId) return // stale response
       toast.show(getErrorMessage(e, t(i18nErrorKeys.searchError)), 'error')
     } finally {
       if (fetchId === _searchFetchId) loading.value = false
     }
-    syncQueryParams()
   }
 
   // Append next page of search results via page number

@@ -1,5 +1,13 @@
 import api from '@/composables/api'
-import type { DashboardStats, AuditLog, Application, Report, InviteCode } from '@/types'
+import type {
+  DashboardStats,
+  AuditLog,
+  Application,
+  Report,
+  InviteCode,
+  ExportProgress,
+  ExportHistoryItem,
+} from '@/types'
 
 /* ── Dashboard ─────────────────────────────────────────────── */
 
@@ -194,4 +202,28 @@ export async function revokeInviteCode(codeId: string) {
 
 export async function deleteInviteCode(codeId: string) {
   await api.delete(`/admin/invite-codes/${codeId}`)
+}
+
+/* ── Site Export (SUPER_ADMIN) ───────────────────────────── */
+
+export async function startSiteExport(options: {
+  include_database: boolean
+  include_files: boolean
+}) {
+  const { data } = await api.post('/admin/export', options)
+  return data as { task_id: string; message: string }
+}
+
+export async function getExportProgress(taskId: string) {
+  const { data } = await api.get(`/admin/export/progress/${taskId}`)
+  return data as ExportProgress
+}
+
+export async function getExportHistory() {
+  const { data } = await api.get('/admin/export/history')
+  return data as { exports: ExportHistoryItem[] }
+}
+
+export async function deleteExport(taskId: string) {
+  await api.delete(`/admin/export/${taskId}`)
 }

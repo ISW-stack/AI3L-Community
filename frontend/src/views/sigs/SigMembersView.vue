@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { formatDate } from '@/utils/date'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -24,7 +25,7 @@ import EmptyState from '@/components/EmptyState.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 const toastStore = useToastStore()
@@ -229,7 +230,7 @@ onMounted(fetchMembers)
                 </BaseBadge>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-xs text-muted">
-                {{ new Date(m.created_at).toLocaleDateString() }}
+                {{ formatDate(m.created_at, locale) }}
               </td>
               <td v-if="canEdit" class="px-6 py-4 whitespace-nowrap text-right space-x-3 text-xs">
                 <button
@@ -283,7 +284,7 @@ onMounted(fetchMembers)
           <div class="mt-4 pt-3 border-t border-border flex items-center justify-between">
             <span class="text-[10px] text-muted">
               {{ t('sigs.members.tableHeader.joined') }}
-              {{ new Date(m.created_at).toLocaleDateString() }}
+              {{ formatDate(m.created_at, locale) }}
             </span>
 
             <div v-if="canEdit" class="flex gap-3">

@@ -112,6 +112,7 @@ async function selectConversation(conversationId: string, otherUserId: string) {
   dmStore.setActiveConversation(conversationId)
   editingMessageId.value = null
   editingContent.value = ''
+  recallTargetId.value = null
   currentMsgPage.value = 1
   msgPagination.resetPage()
 

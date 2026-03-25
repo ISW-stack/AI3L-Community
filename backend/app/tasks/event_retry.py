@@ -111,7 +111,10 @@ async def _async_retry() -> None:
             continue
 
         event_name = entry.get("event")
-        kwargs = _restore_types(entry.get("kwargs", {}))
+        # H-01: Use original_kwargs (unredacted) for retry if available,
+        # falling back to kwargs for backward compatibility with old entries
+        raw_kwargs = entry.get("original_kwargs") or entry.get("kwargs", {})
+        kwargs = _restore_types(raw_kwargs)
 
         if not event_name or event_name not in _handlers:
             dropped += 1

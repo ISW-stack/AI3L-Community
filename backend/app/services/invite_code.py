@@ -17,7 +17,10 @@ async def list_invite_codes(
     for row in rows:
         if row.get("consumed_at"):
             row["status"] = "consumed"
-        elif row.get("expires_at") and row["expires_at"].replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        elif row.get("expires_at") and (
+            row["expires_at"] if row["expires_at"].tzinfo is not None
+            else row["expires_at"].replace(tzinfo=timezone.utc)
+        ) < datetime.now(timezone.utc):
             row["status"] = "expired"
         else:
             row["status"] = "active"

@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.constants import RATE_LIMIT_COMMENT, RATE_LIMIT_REACTION
-from app.core.deps import get_current_user, require_role
+from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
 from app.core.rate_limit import check_rate_limit
@@ -33,7 +33,7 @@ async def get_comments(
     post_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> CommentListResponse:
     # Verify post exists
     post = await get_post_by_id(post_id)
@@ -132,7 +132,7 @@ async def toggle_reaction(
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
 
-    # M-11: Check if reactor is blocked by comment author or vice versa
+    # M-09: Validate that the comment belongs to the specified post_id
     from app.core.blacklist import get_blocked_user_ids
     from app.core.database import get_pool
     from app.core.redis import get_redis
@@ -140,7 +140,16 @@ async def toggle_reaction(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        comment_owner_id = await comment_repo.find_parent_user_id(comment_id, conn)
+        comment_row = await conn.fetchrow(
+            "SELECT user_id, post_id FROM comments WHERE id = $1 AND is_deleted = false",
+            comment_id,
+        )
+    if comment_row is None:
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found.")
+    if comment_row["post_id"] != post_id:
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found on this post.")
+
+    comment_owner_id = str(comment_row["user_id"])
     if comment_owner_id and comment_owner_id != current_user["sub"]:
         redis = get_redis()
         blocked_ids = await get_blocked_user_ids(redis, current_user["sub"])

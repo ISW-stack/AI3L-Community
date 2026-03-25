@@ -144,6 +144,12 @@ const router = createRouter({
           component: () => import('@/views/admin/SiteSettingsView.vue'),
           meta: { requiresSuperAdmin: true },
         },
+        {
+          path: 'data-export',
+          name: 'admin-data-export',
+          component: () => import('@/views/admin/DataExportView.vue'),
+          meta: { requiresSuperAdmin: true },
+        },
       ],
     },
     // Forms directory & standalone create (before /forms/:formId)

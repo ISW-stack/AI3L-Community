@@ -1,5 +1,3 @@
-import os
-
 import asyncpg
 from loguru import logger
 
@@ -10,8 +8,10 @@ async def init_db_pool(dsn: str) -> asyncpg.Pool:
     global _pool
     # Convert SQLAlchemy-style DSN to asyncpg-style
     dsn = dsn.replace("postgresql+asyncpg://", "postgresql://")
-    # Enable SSL for remote PostgreSQL deployments via DATABASE_SSL env var
-    ssl_mode = "require" if os.environ.get("DATABASE_SSL", "").lower() == "true" else None
+    # Enable SSL for remote PostgreSQL deployments via settings.DATABASE_SSL
+    from app.core.config import settings
+
+    ssl_mode = "require" if settings.DATABASE_SSL else None
     _pool = await asyncpg.create_pool(
         dsn=dsn,
         min_size=2,

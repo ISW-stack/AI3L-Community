@@ -139,6 +139,16 @@ async def unfriend_endpoint(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> MessageResponse:
     """Remove a friend."""
+    # L-06: Add rate limiting consistent with other social endpoints
+    cur_uid = current_user["sub"]
+    allowed = await check_rate_limit(
+        f"social:unfriend:{cur_uid}",
+        RATE_LIMIT_SOCIAL[0],
+        RATE_LIMIT_SOCIAL[1],
+    )
+    if not allowed:
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
     pool = get_pool()
     await unfriend(pool, uuid.UUID(current_user["sub"]), user_id)
     return MessageResponse(message="Friend removed.")
@@ -188,6 +198,16 @@ async def unfollow_user_endpoint(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> MessageResponse:
     """Unfollow a user."""
+    # L-06: Add rate limiting consistent with other social endpoints
+    cur_uid = current_user["sub"]
+    allowed = await check_rate_limit(
+        f"social:unfollow:{cur_uid}",
+        RATE_LIMIT_SOCIAL[0],
+        RATE_LIMIT_SOCIAL[1],
+    )
+    if not allowed:
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
+
     pool = get_pool()
     await unfollow_user(pool, uuid.UUID(current_user["sub"]), user_id)
     return MessageResponse(message="Unfollowed.")

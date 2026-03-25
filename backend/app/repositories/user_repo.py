@@ -338,14 +338,23 @@ async def find_password_hash(user_id: uuid.UUID) -> str | None:
         return row["password_hash"] if row else None
 
 
-async def bulk_update_role(user_ids: list[uuid.UUID], role: str, conn: Any) -> int:
-    """Update role for multiple users. Returns count updated."""
-    result = await conn.execute(
-        "UPDATE users SET role = $1, updated_at = NOW() WHERE id = ANY($2::uuid[]) AND is_deleted = false",  # noqa: E501
+async def bulk_update_role(
+    user_ids: list[uuid.UUID], role: str, conn: Any
+) -> tuple[int, list[uuid.UUID]]:
+    """Update role for multiple users. Returns (count_updated, list_of_changed_ids).
+
+    Only returns IDs of users whose role actually changed (excludes those
+    already at the target role).
+    """
+    rows = await conn.fetch(
+        "UPDATE users SET role = $1, updated_at = NOW() "
+        "WHERE id = ANY($2::uuid[]) AND is_deleted = false AND role != $1 "
+        "RETURNING id",
         role,
         user_ids,
     )
-    return int(result.split()[-1])
+    changed_ids = [r["id"] for r in rows]
+    return len(changed_ids), changed_ids
 
 
 async def increment_storage_used(

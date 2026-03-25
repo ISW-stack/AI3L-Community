@@ -16,6 +16,7 @@ celery = Celery(
         "app.tasks.recommendations",
         "app.tasks.view_sync",
         "app.tasks.dm_cleanup",
+        "app.tasks.site_export",
     ],
 )
 
@@ -103,5 +104,15 @@ celery.conf.beat_schedule = {
         "task": "cleanup_empty_dm_conversations",
         "schedule": 604800.0,  # weekly
         "options": {"soft_time_limit": 60, "time_limit": 120, "expires": 604800},
+    },
+    "cleanup-dm-orphan-files": {
+        "task": "cleanup_dm_orphan_files",
+        "schedule": 86400.0,  # daily
+        "options": {"soft_time_limit": 3500, "time_limit": 3600, "expires": 86400},
+    },
+    "cleanup-old-site-exports": {
+        "task": "cleanup_old_site_exports",
+        "schedule": 86400.0,  # daily
+        "options": {"soft_time_limit": 300, "time_limit": 600, "expires": 86400},
     },
 }

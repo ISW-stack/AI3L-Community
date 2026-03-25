@@ -20,6 +20,7 @@ const { page, total, totalPages, pageSize, setPage, resetPage, updateFromRespons
   usePagination()
 const statusFilter = ref<string>('')
 const loading = ref(false)
+const processing = ref(false)
 
 async function fetchReports() {
   loading.value = true
@@ -39,11 +40,15 @@ async function fetchReports() {
 }
 
 async function reviewReport(reportId: string, status: string) {
+  if (processing.value) return
+  processing.value = true
   try {
     await apiReviewReport(reportId, status)
     await fetchReports()
   } catch (e: unknown) {
     toast.show(getErrorMessage(e, t('admin.reports.reviewError')), 'error')
+  } finally {
+    processing.value = false
   }
 }
 
@@ -118,12 +123,13 @@ onMounted(fetchReports)
           <p class="text-sm text-foreground line-clamp-2">{{ report.reason }}</p>
           <p class="text-xs text-muted">{{ new Date(report.created_at).toLocaleString() }}</p>
           <div v-if="report.status === 'PENDING'" class="flex gap-2 pt-1">
-            <BaseButton size="sm" variant="success" @click="reviewReport(report.id, 'RESOLVED')">{{
+            <BaseButton size="sm" variant="success" :disabled="processing" @click="reviewReport(report.id, 'RESOLVED')">{{
               t('admin.reports.resolveBtn')
             }}</BaseButton>
             <BaseButton
               size="sm"
               variant="secondary"
+              :disabled="processing"
               @click="reviewReport(report.id, 'DISMISSED')"
               >{{ t('admin.reports.dismissBtn') }}</BaseButton
             >
@@ -182,12 +188,14 @@ onMounted(fetchReports)
                   <BaseButton
                     size="sm"
                     variant="success"
+                    :disabled="processing"
                     @click="reviewReport(report.id, 'RESOLVED')"
                     >{{ t('admin.reports.resolveBtn') }}</BaseButton
                   >
                   <BaseButton
                     size="sm"
                     variant="secondary"
+                    :disabled="processing"
                     @click="reviewReport(report.id, 'DISMISSED')"
                     >{{ t('admin.reports.dismissBtn') }}</BaseButton
                   >

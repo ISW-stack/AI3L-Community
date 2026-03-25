@@ -50,7 +50,7 @@ export interface FormResponse {
   id: string
   form_id?: string
   user_id?: string
-  display_name: string
+  display_name?: string
   username?: string
   created_at: string
   answers: Record<string, unknown>

@@ -300,8 +300,11 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
                         "percentage": round(pct, 1),
                     }
                 )
-            # Normalize percentages so they sum to exactly 100% (or 0%)
-            _normalize_percentages(option_stats)
+            # M-01: Skip normalization for multiple_choice — percentages can
+            # legitimately sum to more (or less) than 100% because each
+            # respondent selects multiple options.
+            if qtype != "multiple_choice":
+                _normalize_percentages(option_stats)
             stats["options"] = option_stats
 
         elif qtype == "rating":

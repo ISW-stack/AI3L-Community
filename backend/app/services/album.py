@@ -320,6 +320,7 @@ async def upload_cover(
 
     # Phase 3: Quota check + increment + DB update in ONE transaction (FOR UPDATE
     # serializes concurrent requests so the quota cannot be bypassed).
+    old_cover_key: str | None = None  # M-05: init before try for post-commit cleanup
     try:
         async with pool.acquire() as conn:
             async with conn.transaction():
@@ -340,15 +341,18 @@ async def upload_cover(
                         )
                     raise AppError(ErrorCode.ALBUM_002, 400, "Storage quota exceeded.")
 
+                # M-05: Record old cover key but don't delete from MinIO inside
+                # the transaction — defer deletion to after commit.
                 old_cover_key = album.get("cover_photo_url")
                 old_cover_size = 0
                 if old_cover_key and "/cover/" in old_cover_key:
                     try:
                         from app.core.async_storage import get_file_size
                         old_cover_size = await get_file_size(old_cover_key) or 0
-                        await delete_file(old_cover_key)
                     except Exception:
-                        logger.warning("Failed to delete old cover", extra={"key": old_cover_key})
+                        logger.warning(
+                            "Failed to get old cover size", extra={"key": old_cover_key}
+                        )
                     if old_cover_size > 0:
                         await conn.execute(
                             "UPDATE users SET storage_used_bytes = GREATEST(storage_used_bytes - $1, 0) WHERE id = $2",
@@ -382,6 +386,13 @@ async def upload_cover(
                 exc_info=True,
             )
         raise AppError(ErrorCode.SYS_500, 500, "Failed to update album cover. Please try again.")
+
+    # M-05: Delete old cover from MinIO AFTER transaction committed successfully
+    if old_cover_key and "/cover/" in old_cover_key:
+        try:
+            await delete_file(old_cover_key)
+        except Exception:
+            logger.warning("Failed to delete old cover from MinIO", extra={"key": old_cover_key})
 
     logger.info("Album cover uploaded", extra={"album_id": album_id, "user_id": user_id})
 
@@ -534,21 +545,25 @@ async def remove_member(
 
     is_self_leave = user_id == target_user_id
 
+    # M-03: Wrap permission check and delete in a transaction to prevent TOCTOU race
     async with pool.acquire() as conn:
-        album = await album_repo.find_album_by_id(conn, album_uuid)
-        if not album:
-            raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
+        async with conn.transaction():
+            album = await album_repo.find_album_by_id(conn, album_uuid)
+            if not album:
+                raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
-        if not is_self_leave:
-            is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
-            is_creator = str(album["created_by"]) == user_id
-            member = await album_repo.find_member(conn, album_uuid, user_uuid)
-            is_album_admin = member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
+            if not is_self_leave:
+                is_site_admin = user_role in ("ADMIN", "SUPER_ADMIN")
+                is_creator = str(album["created_by"]) == user_id
+                member = await album_repo.find_member(conn, album_uuid, user_uuid)
+                is_album_admin = (
+                    member and member["role"] == "ADMIN" and member["status"] == "ACCEPTED"
+                )
 
-            if not (is_creator or is_site_admin or is_album_admin):
-                raise AppError(ErrorCode.SYS_403, 403, "Not authorized to remove members.")
+                if not (is_creator or is_site_admin or is_album_admin):
+                    raise AppError(ErrorCode.SYS_403, 403, "Not authorized to remove members.")
 
-        deleted = await album_repo.delete_member(conn, album_uuid, target_uuid)
+            deleted = await album_repo.delete_member(conn, album_uuid, target_uuid)
 
     return deleted
 

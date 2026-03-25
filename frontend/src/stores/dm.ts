@@ -230,6 +230,9 @@ export const useDMStore = defineStore('dm', () => {
     error.value = null
     currentUserId.value = ''
     _lastUnreadFetch = 0
+    // L-25: Invalidate in-flight fetches so stale responses are discarded
+    ++_convFetchId
+    ++_msgFetchId
   }
 
   return {

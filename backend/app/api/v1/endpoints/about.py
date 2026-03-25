@@ -7,7 +7,7 @@ from collections import OrderedDict
 from typing import Any
 
 import requests as _requests  # type: ignore[import-untyped]
-from fastapi import APIRouter, Depends, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, Query, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -203,7 +203,6 @@ async def update_override(
     entity_type: str,
     entity_id: uuid.UUID,
     body: OrgChartOverrideUpdateRequest,
-    request: Request,
     current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
 ) -> OrgChartOverrideResponse:
     """Update org chart override (title, order, visibility). SUPER_ADMIN only."""
@@ -212,8 +211,8 @@ async def update_override(
 
     # Determine which fields were explicitly sent in the JSON body so the
     # repository can distinguish "not provided" from "set to null".
-    raw_body = await request.json()
-    provided_fields = set(raw_body.keys()) & {
+    # L-05: Use model_fields_set instead of double-parsing the request body.
+    provided_fields = body.model_fields_set & {
         "custom_title",
         "custom_description",
         "display_order",
@@ -354,16 +353,18 @@ async def update_about_intro_photo(
     old_data = await site_settings_service.get_about_intro()
     old_key = old_data["photo_key"]
 
-    upload_file(data, key, file.content_type or "image/jpeg")
+    loop = asyncio.get_running_loop()
+    # M-07: Wrap synchronous boto3 calls in executor to avoid blocking the event loop
+    await loop.run_in_executor(None, upload_file, data, key, file.content_type or "image/jpeg")
     await site_settings_service.update_about_intro_photo(key)
 
     if old_key:
         try:
-            delete_file(old_key)
+            await loop.run_in_executor(None, delete_file, old_key)
         except Exception:
             pass  # best-effort cleanup; orphan file cleaner will catch it
 
-    photo_url = generate_presigned_url(key)
+    photo_url = await loop.run_in_executor(None, generate_presigned_url, key)
     return {"photo_url": photo_url}
 
 

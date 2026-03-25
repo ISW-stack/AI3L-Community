@@ -57,11 +57,12 @@ class TestBulkChangeRoleSuperAdminProtection:
             patch(
                 f"{_USER_SVC}.user_repo.bulk_update_role",
                 new_callable=AsyncMock,
-                return_value=1,
+                return_value=(1, [sa_id]),
             ),
         ):
-            count = await bulk_change_role([sa_id], "ADMIN")
+            count, changed_ids = await bulk_change_role([sa_id], "ADMIN")
             assert count == 1
+            assert changed_ids == [sa_id]
 
     @pytest.mark.anyio
     async def test_bulk_promote_to_super_admin_skips_check(self, mock_pool, mock_conn):
@@ -80,11 +81,12 @@ class TestBulkChangeRoleSuperAdminProtection:
             patch(
                 f"{_USER_SVC}.user_repo.bulk_update_role",
                 new_callable=AsyncMock,
-                return_value=1,
+                return_value=(1, [user_id]),
             ),
         ):
-            count = await bulk_change_role([user_id], "SUPER_ADMIN")
+            count, changed_ids = await bulk_change_role([user_id], "SUPER_ADMIN")
             assert count == 1
+            assert changed_ids == [user_id]
             # The protection check should never be called for promotions
             mock_count.assert_not_called()
 
@@ -104,11 +106,12 @@ class TestBulkChangeRoleSuperAdminProtection:
             patch(
                 f"{_USER_SVC}.user_repo.bulk_update_role",
                 new_callable=AsyncMock,
-                return_value=0,
+                return_value=(0, []),
             ),
         ):
-            count = await bulk_change_role([], "ADMIN")
+            count, changed_ids = await bulk_change_role([], "ADMIN")
             assert count == 0
+            assert changed_ids == []
             mock_count.assert_not_called()
 
 

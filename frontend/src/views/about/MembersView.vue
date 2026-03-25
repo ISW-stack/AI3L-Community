@@ -148,8 +148,7 @@ onMounted(fetchMembers)
             <p
               v-if="member.affiliation"
               class="text-xs text-muted mt-2 truncate w-full"
-              v-html="sanitizeHtml(member.affiliation)"
-            ></p>
+            >{{ member.affiliation }}</p>
             <p
               v-if="member.bio"
               class="text-xs text-muted mt-1 line-clamp-2 w-full"
