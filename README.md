@@ -352,24 +352,24 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-03-24 — auto-generated on every push to `main`_
+_Last updated: 2026-03-25 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +298,162 |
-| Total lines removed (all commits) | -54,029 |
-| Backend source lines (excl. tests) | 26,773 |
-| Frontend source lines (excl. tests) | 59,885 |
+| Total lines added (all commits) | +300,721 |
+| Total lines removed (all commits) | -54,181 |
+| Backend source lines (excl. tests) | 26,908 |
+| Frontend source lines (excl. tests) | 60,027 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 105741
-    "TypeScript" : 86925
-    "Vue" : 23494
+    "Python" : 106627
+    "TypeScript" : 88162
+    "Vue" : 23488
     "CSS" : 127
 ```
 
@@ -381,11 +381,11 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 3,228 | 26,773 | 75,892 |
-| Frontend (Vitest) | 2,841 | 59,885 | 50,534 |
-| **Total** | **6,069** | **86,658** | **126,426** |
+| Backend (pytest) | 3,255 | 26,908 | 76,643 |
+| Frontend (Vitest) | 2,899 | 60,027 | 51,623 |
+| **Total** | **6,154** | **86,935** | **128,266** |
 
-Test-to-source ratio: **1.46** (126,426 lines of tests for every 86,658 lines of source)
+Test-to-source ratio: **1.48** (128,266 lines of tests for every 86,935 lines of source)
 
 ### Additional Metrics
 
@@ -393,14 +393,14 @@ Test-to-source ratio: **1.46** (126,426 lines of tests for every 86,658 lines of
 | --- | ---: |
 | REST API endpoints | 182 |
 | Database migrations | 51 |
-| Longest commit streak | 25 days |
+| Longest commit streak | 26 days |
 
 ### Top 5 Largest Source Files
 
 | File | Lines |
 | --- | ---: |
 | `backend/app/services/album.py` | 1,129 |
-| `frontend/src/composables/usePostDetail.ts` | 857 |
+| `frontend/src/composables/usePostDetail.ts` | 859 |
 | `frontend/src/views/about/OrgChartView.vue` | 837 |
 | `frontend/src/views/forum/PostDetailView.vue` | 778 |
 | `backend/app/repositories/post_repo.py` | 759 |
@@ -409,8 +409,8 @@ Test-to-source ratio: **1.46** (126,426 lines of tests for every 86,658 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 414 | +295,150 | -51,968 |
-| github-actions[bot] | 37 | +496 | -496 |
+| Isaries | 417 | +297,693 | -52,104 |
+| github-actions[bot] | 38 | +512 | -512 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
