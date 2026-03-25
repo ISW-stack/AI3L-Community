@@ -8,7 +8,7 @@
 
 ## HIGH Severity (3)
 
-### H-01: Event bus redacted kwargs make retried events produce garbage data
+### H-01: Event bus redacted kwargs make retried events produce garbage data ✅ **Resolved**
 
 - **File:** `backend/app/core/event_bus.py:87,100-110`
 - **Impact:** Data corruption in retried event handlers
@@ -17,7 +17,7 @@
 
 ---
 
-### H-02: Bulk role change force-logouts ALL requested users, not just changed ones
+### H-02: Bulk role change force-logouts ALL requested users, not just changed ones ✅ **Resolved**
 
 - **File:** `backend/app/api/v1/endpoints/users.py:325-327`
 - **Impact:** Unnecessary session revocation and WebSocket disruption for unchanged users
@@ -26,7 +26,7 @@
 
 ---
 
-### H-03: Duplicate `deploy` key in docker-compose.prod.yml silently loses `replicas: 1`
+### H-03: Duplicate `deploy` key in docker-compose.prod.yml silently loses `replicas: 1` ✅ **Resolved**
 
 - **File:** `docker-compose.prod.yml:259-272`
 - **Impact:** Multiple Celery Beat instances can dispatch duplicate periodic tasks
@@ -314,154 +314,154 @@
 
 ## LOW Severity (26)
 
-### L-01: `invite_code.py` unconditional `.replace(tzinfo=UTC)` on already-aware datetime
+### L-01: `invite_code.py` unconditional `.replace(tzinfo=UTC)` on already-aware datetime ✅ **Resolved**
 
 - **File:** `backend/app/services/invite_code.py:20`
 - **Description:** The code does `row["expires_at"].replace(tzinfo=timezone.utc)` without checking if `tzinfo` is already set. asyncpg returns timezone-aware datetimes for TIMESTAMPTZ columns. `.replace()` replaces (not converts) the timezone. Currently harmless since asyncpg returns UTC, but brittle if behavior changes. The correct pattern (used in `dm.py:473-474`) is `if created_at.tzinfo is None: created_at = created_at.replace(tzinfo=timezone.utc)`.
 
 ---
 
-### L-02: `remove_co_author` and `leave_co_authorship` missing transaction wrapping
+### L-02: `remove_co_author` and `leave_co_authorship` missing transaction wrapping ✅ **Resolved**
 
 - **File:** `backend/app/services/co_author.py:282-328`
 - **Description:** Both functions verify permissions/ownership and then call the mutation in two separate queries without an explicit transaction. Other co-author operations (`invite_co_author`, `respond_to_invitation`) consistently use transactions. TOCTOU window exists but is unlikely in practice.
 
 ---
 
-### L-03: Vote removal on deleted comment returns 0, masking the issue
+### L-03: Vote removal on deleted comment returns 0, masking the issue ✅ **Resolved**
 
 - **File:** `backend/app/repositories/vote_repo.py:11-29`
 - **Description:** When `vote=0` (remove vote), the CTE deletes the vote row, but the outer `UPDATE comments SET vote_score = ...` runs on a potentially non-existent comment. Returns `0` instead of raising an error, masking that the comment doesn't exist. The caller would have already checked this, so impact is minimal.
 
 ---
 
-### L-04: `soft_delete_with_permission` loads ALL form responses without pagination
+### L-04: `soft_delete_with_permission` loads ALL form responses without pagination ✅ **Resolved**
 
 - **File:** `backend/app/repositories/form_repo.py:576-593`
 - **Description:** When a form with `file_upload` questions is soft-deleted, `SELECT user_id, answers FROM form_responses WHERE form_id = $1` is executed without LIMIT. For popular forms with thousands of responses, this loads all response data (including large JSONB `answers`) into memory at once, inside a transaction. The `answers` column could be large per row.
 
 ---
 
-### L-05: `about.py` override endpoint double-parses request body
+### L-05: `about.py` override endpoint double-parses request body ✅ **Resolved**
 
 - **File:** `backend/app/api/v1/endpoints/about.py:215`
 - **Description:** The endpoint uses both `body: OrgChartOverrideUpdateRequest` (Pydantic parsing) and `raw_body = await request.json()` (manual parsing) to determine provided fields. Should use `body.model_fields_set` like `forms.py:280` and `users.py:83` do.
 
 ---
 
-### L-06: Missing rate limiting on `unfriend` and `unfollow` endpoints
+### L-06: Missing rate limiting on `unfriend` and `unfollow` endpoints ✅ **Resolved**
 
 - **File:** `backend/app/api/v1/endpoints/social.py:136-193`
 - **Description:** `unfriend_endpoint` and `unfollow_user_endpoint` have no rate limiting, unlike `follow_user_endpoint`, `block_user_endpoint`, `accept_friend_request_endpoint`, and `reject_friend_request_endpoint` which all apply rate limits. A malicious script could rapidly unfriend/unfollow all connections.
 
 ---
 
-### L-07: GUEST can read comments but cannot list posts
+### L-07: GUEST can read comments but cannot list posts ✅ **Resolved**
 
 - **File:** `backend/app/api/v1/endpoints/comments.py:31-52`
 - **Description:** `get_comments` uses `get_current_user` (allows GUEST), but `get_posts_list` in `posts.py` uses `require_role("MEMBER", ...)`. A GUEST who knows a `post_id` can read all comments on it, even though they cannot access the post listing. Information disclosure through inconsistent permission levels.
 
 ---
 
-### L-08: `DATABASE_SSL` env var parsed inconsistently
+### L-08: `DATABASE_SSL` env var parsed inconsistently ✅ **Resolved**
 
 - **File:** `backend/app/core/database.py:14`
 - **Description:** `database.py` reads `DATABASE_SSL` directly from `os.environ.get()` and only matches the exact string `"true"` (case-insensitive). `config.py` defines `DATABASE_SSL: bool = False` which Pydantic would parse `"1"`, `"yes"`, `"on"`, etc. as truthy. `database.py` does not use `settings.DATABASE_SSL`. Setting `DATABASE_SSL=1` would cause `settings.DATABASE_SSL` to be `True` but the actual connection to use no SSL.
 
 ---
 
-### L-09: `form_export` task has `max_retries=2` but never calls `self.retry()`
+### L-09: `form_export` task has `max_retries=2` but never calls `self.retry()` ✅ **Resolved**
 
 - **File:** `backend/app/tasks/form_export.py:155-159`
 - **Description:** Same pattern as M-15. `export_form_csv` has `bind=True, max_retries=2, default_retry_delay=60` but never calls `self.retry()`. Transient failures permanently fail the export. Lower severity than thumbnails since users can manually re-trigger.
 
 ---
 
-### L-10: Sync boto3 in async function blocks event loop in export task
+### L-10: Sync boto3 in async function blocks event loop in export task ✅ **Resolved**
 
 - **File:** `backend/app/tasks/site_export.py:289-316`
 - **Description:** Inside `_export_files_to_zip()`, synchronous boto3 calls (`paginator.paginate()`, `client.get_object()`, `body.read()`) are made directly within an async function. Progress updates (`_set_progress()`) can only execute between S3 reads. For large files, progress stalls until download completes. Lower severity because the export holds a distributed lock (no concurrent operations on same loop).
 
 ---
 
-### L-11: DB connection held for entire table export duration
+### L-11: DB connection held for entire table export duration ✅ **Resolved**
 
 - **File:** `backend/app/tasks/site_export.py:201-244`
 - **Description:** For each table, a connection is acquired and held for the entire duration of streaming all rows via server-side cursor. For large tables (`audit_logs`, `dm_messages`), this could be minutes. Pool max_size=20; at most 1 connection held at a time (sequential), but the transaction prevents reuse.
 
 ---
 
-### L-12: Redis failure in progress reporting aborts entire export
+### L-12: Redis failure in progress reporting aborts entire export ✅ **Resolved**
 
 - **File:** `backend/app/tasks/site_export.py:75-90`
 - **Description:** `_set_progress()` and `_set_progress_field()` call `get_redis()` without error handling. If Redis becomes unavailable during a long export (hours), these raise exceptions that propagate up and abort the entire export. Progress reporting is non-critical; it should not abort the actual data export work.
 
 ---
 
-### L-13: S3 response body not closed on exception during file export
+### L-13: S3 response body not closed on exception during file export ✅ **Resolved**
 
 - **File:** `backend/app/tasks/site_export.py:302-323`
 - **Description:** When `client.get_object()` succeeds but a subsequent operation (`dest.write(chunk)`) throws, the `body` (`StreamingBody`) is never closed. The `except` block catches the error but doesn't call `body.close()`. The underlying HTTP connection may not be released until GC. If many files fail, the connection pool could be exhausted.
 
 ---
 
-### L-14: Raw exception stored in Redis progress hash (write-side unsanitized)
+### L-14: Raw exception stored in Redis progress hash (write-side unsanitized) ✅ **Resolved**
 
 - **File:** `backend/app/tasks/site_export.py:551`
 - **Description:** On failure, `str(exc)[:500]` is stored in the Redis progress hash. The progress endpoint sanitizes on read (line 150-152), but only against `_INTERNAL_PATTERNS` regex. If any other code path reads the progress hash directly, it sees unsanitized errors. Defense-in-depth: sanitize at write side.
 
 ---
 
-### L-15: Error sanitization regex misses MinIO/S3 URLs
+### L-15: Error sanitization regex misses MinIO/S3 URLs ✅ **Resolved**
 
 - **File:** `backend/app/api/v1/endpoints/export.py:23-27`
 - **Description:** `_INTERNAL_PATTERNS` catches `postgresql://` and `redis://` but not `minio://`, `http://minio:9000`, or `s3://` URLs. An error like `"Cannot connect to minio:9000"` would pass unsanitized, potentially revealing internal MinIO hostname and port.
 
 ---
 
-### L-16: AlbumCommentsView double fetch on mount
+### L-16: AlbumCommentsView double fetch on mount ✅ **Resolved**
 
 - **File:** `frontend/src/views/albums/AlbumCommentsView.vue:133-141`
 - **Description:** `onMounted(fetchComments)` and the watch on `album.value?.id` both fire on mount. If `album.value` is already populated, both trigger `fetchComments` simultaneously, creating duplicate API calls.
 
 ---
 
-### L-17: AlbumPhotosView double fetch via immediate watch + page watch
+### L-17: AlbumPhotosView double fetch via immediate watch + page watch ✅ **Resolved**
 
 - **File:** `frontend/src/views/albums/AlbumPhotosView.vue:149-157`
 - **Description:** The watch on `album.value?.id` with `{ immediate: true }` calls `resetPage()` then `fetchPhotos()`. `resetPage()` changes `page` to 1, which triggers `watch(page, fetchPhotos)`, causing a second `fetchPhotos()` call on initial load.
 
 ---
 
-### L-18: DMView `recallTargetId` not reset on conversation switch
+### L-18: DMView `recallTargetId` not reset on conversation switch ✅ **Resolved**
 
 - **File:** `frontend/src/views/DMView.vue:110-116`
 - **Description:** `selectConversation` resets `editingMessageId` and `editingContent` but not `recallTargetId`. If the recall confirmation modal is open, switching conversations leaves it referencing a message from the previous conversation. Confirming recall would target the wrong conversation's message.
 
 ---
 
-### L-19: `v-html` used on plain-text `affiliation` field
+### L-19: `v-html` used on plain-text `affiliation` field ✅ **Resolved**
 
 - **File:** `frontend/src/views/about/MembersView.vue:151`
 - **Description:** `member.affiliation` is rendered with `v-html="sanitizeHtml(member.affiliation)"`. Affiliation is a plain text field (institution name), not HTML. HTML special characters (e.g., `"R&D <Lab>"`) render as markup instead of literal text. Not an XSS issue (sanitizeHtml protects), but causes incorrect display.
 
 ---
 
-### L-20: FormsDirectoryView has no fetchId guard
+### L-20: FormsDirectoryView has no fetchId guard ✅ **Resolved**
 
 - **File:** `frontend/src/views/forms/FormsDirectoryView.vue:44-56`
 - **Description:** `fetchForms()` has no `fetchId` counter against stale responses. Debounced search and `watch(page, fetchForms)` can race. Unlike `NotificationsView` and other views, this view has no race condition protection.
 
 ---
 
-### L-21: SigMembersView date formatting without locale
+### L-21: SigMembersView date formatting without locale ✅ **Resolved**
 
 - **File:** `frontend/src/views/sigs/SigMembersView.vue:232,286`
 - **Description:** Uses `new Date(m.created_at).toLocaleDateString()` without passing the i18n locale, falling back to browser locale. Inconsistent with the app's selected language when browser locale differs.
 
 ---
 
-### L-22: `FormResponse` type mismatch — `display_name` required but missing from backend
+### L-22: `FormResponse` type mismatch — `display_name` required but missing from backend ✅ **Resolved**
 
 - **Files:** `frontend/src/api/forms.ts:82`, `frontend/src/types/form.ts:49-57`
 - **Impact:** TypeScript believes `display_name` is always present; at runtime it's `undefined` for `getMyResponse`
@@ -469,28 +469,28 @@
 
 ---
 
-### L-23: `syncQueryParams` runs after failed fetch
+### L-23: `syncQueryParams` runs after failed fetch ✅ **Resolved**
 
 - **File:** `frontend/src/composables/usePostList.ts:172`
 - **Description:** `syncQueryParams()` is placed after the `try-catch-finally` block. When a fetch fails, the URL query params still get updated to reflect the new filter state, even though displayed data doesn't match. Refreshing the page would re-apply the failed filter.
 
 ---
 
-### L-24: Watcher in `onMounted` relies on implicit cleanup
+### L-24: Watcher in `onMounted` relies on implicit cleanup ✅ **Resolved**
 
 - **File:** `frontend/src/composables/useFormBuilder.ts:569`
 - **Description:** A `watch()` created inside `onMounted()` relies on Vue's implicit effect scope cleanup. The `onUnmounted` handler only cleans up the keydown listener and auto-save timer, not this watcher. Fragile if composable is ever used outside a component context.
 
 ---
 
-### L-25: DM store `resetState` doesn't invalidate in-flight fetchId counters
+### L-25: DM store `resetState` doesn't invalidate in-flight fetchId counters ✅ **Resolved**
 
 - **File:** `frontend/src/stores/dm.ts:222-233`
 - **Description:** `resetState` resets all reactive state but does NOT increment `_convFetchId` or `_msgFetchId`. If called during logout while a DM fetch is in-flight, the pending response could arrive after reset and repopulate the store with the previous user's data.
 
 ---
 
-### L-26: DataExportView local `formatDate` ignores user locale
+### L-26: DataExportView local `formatDate` ignores user locale ✅ **Resolved**
 
 - **File:** `frontend/src/views/admin/DataExportView.vue:66-69`
 - **Description:** Defines its own `formatDate` using `toLocaleString()` without passing a locale parameter. The project has a shared `formatDateTime()` utility in `src/utils/date.ts` that passes the user's locale. Export history dates display in browser default locale rather than user's selected language.
@@ -499,12 +499,12 @@
 
 ## Summary
 
-| Severity | Count | Key Themes |
-|----------|-------|------------|
-| **HIGH** | 3 | Event bus retry corruption, bulk role change blast radius, YAML config loss |
-| **MEDIUM** | 25 | TOCTOU races (4), event loop blocking (3), stale frontend state (3), missing validation (3), data logic errors (2), missing schedules (1), missing timeouts (1), no-op export (1), download URL validation (1), test gaps (1) |
-| **LOW** | 26 | Missing guards, inconsistent patterns, double-fetches, cleanup gaps, type mismatches, locale issues |
-| **Total** | **54** | |
+| Severity | Total | Resolved | Remaining | Key Themes |
+|----------|-------|----------|-----------|------------|
+| **HIGH** | 3 | 3 | 0 | Event bus retry corruption, bulk role change blast radius, YAML config loss |
+| **MEDIUM** | 25 | 0 | 25 | TOCTOU races (4), event loop blocking (3), stale frontend state (3), missing validation (3), data logic errors (2), missing schedules (1), missing timeouts (1), no-op export (1), download URL validation (1), test gaps (1) |
+| **LOW** | 26 | 26 | 0 | Missing guards, inconsistent patterns, double-fetches, cleanup gaps, type mismatches, locale issues |
+| **Total** | **54** | **29** | **25** | |
 
 ### Recommended Fix Priority
 
