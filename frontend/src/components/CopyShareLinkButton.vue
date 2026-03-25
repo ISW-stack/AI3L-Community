@@ -10,6 +10,7 @@ const { t } = useI18n()
 defineProps<{
   url: string
   label?: string
+  variant?: 'inline' | 'button'
 }>()
 
 const toastStore = useToastStore()
@@ -40,8 +41,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <BaseButton variant="secondary" size="sm" @click="copyLink(url)">
+  <BaseButton v-if="variant === 'button'" variant="secondary" size="sm" @click="copyLink(url)">
     <component :is="copied ? Check : Copy" class="w-4 h-4 mr-1" />
     {{ copied ? t('share.copied') : label || t('share.copyLink') }}
   </BaseButton>
+  <button
+    v-else
+    type="button"
+    class="text-sm flex items-center gap-1 transition-colors"
+    :class="copied ? 'text-green-600' : 'text-muted hover:text-brand-600'"
+    @click.stop.prevent="copyLink(url)"
+  >
+    <component :is="copied ? Check : Copy" class="w-3.5 h-3.5" />
+    {{ copied ? t('share.copied') : label || t('share.copyLink') }}
+  </button>
 </template>

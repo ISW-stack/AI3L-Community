@@ -274,7 +274,7 @@ onUnmounted(() => {
               </div>
 
               <div class="flex flex-wrap items-center gap-2 shrink-0">
-                <CopyShareLinkButton :url="sigShareUrl" />
+                <CopyShareLinkButton :url="sigShareUrl" variant="button" />
 
                 <BaseButton v-if="canJoin" size="sm" :loading="joining" @click="handleJoinSig">
                   {{ t('sigs.detail.joinBtn') }}

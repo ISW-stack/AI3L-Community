@@ -103,6 +103,23 @@ describe('CopyShareLinkButton', () => {
     // No errors thrown means cleanup was successful
   })
 
+  it('should render inline style by default (no BaseButton)', () => {
+    const wrapper = mount(CopyShareLinkButton, {
+      props: { url: 'https://example.com/share' },
+    })
+    const btn = wrapper.find('button')
+    expect(btn.classes()).toContain('text-muted')
+  })
+
+  it('should render BaseButton when variant is "button"', () => {
+    const wrapper = mount(CopyShareLinkButton, {
+      props: { url: 'https://example.com/share', variant: 'button' },
+    })
+    // BaseButton mock renders a plain button without text-muted class
+    const btn = wrapper.find('button')
+    expect(btn.classes()).not.toContain('text-muted')
+  })
+
   it('should reset copied state after 2000ms timeout', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })

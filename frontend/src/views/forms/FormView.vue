@@ -198,7 +198,7 @@ onMounted(() => loadForm())
           >
         </div>
         <div v-if="auth.isAuthenticated" class="flex items-center gap-2 flex-wrap mt-4">
-          <CopyShareLinkButton :url="formShareUrl" />
+          <CopyShareLinkButton :url="formShareUrl" variant="button" />
           <router-link
             v-if="canEdit"
             :to="`/forms/${form.id}/edit`"
