@@ -43,7 +43,13 @@ def init_storage() -> None:
     try:
         _s3_client.head_bucket(Bucket=bucket)
         logger.info("Storage bucket exists", extra={"bucket": bucket})
-    except _s3_client.exceptions.ClientError:
+    except ClientError as exc:
+        error_code = exc.response.get("Error", {}).get("Code", "")
+        if error_code in ("SignatureDoesNotMatch", "InvalidAccessKeyId", "403"):
+            raise RuntimeError(
+                "S3 authentication failed — check that S3_ACCESS_KEY_ID and "
+                "S3_SECRET_ACCESS_KEY match your storage provider credentials."
+            ) from exc
         if settings.is_development:
             _s3_client.create_bucket(Bucket=bucket)
             logger.info("Storage bucket created", extra={"bucket": bucket})
