@@ -49,9 +49,28 @@ async def _cleanup_files() -> dict:
                             extra={"msg_id": str(msg["id"])},
                         )
                     if msg.get("attachment_size") and msg.get("sender_id"):
-                        await user_repo.decrement_storage_used(
-                            msg["sender_id"], msg["attachment_size"]
-                        )
+                        # M-04 Equivalent: Retry storage decrement during cleanup
+                        for attempt in range(3):
+                            try:
+                                await user_repo.decrement_storage_used(
+                                    msg["sender_id"], msg["attachment_size"]
+                                )
+                                break
+                            except Exception:
+                                if attempt == 2:
+                                    logger.error(
+                                        "Failed to refund storage counter after DM cleanup",
+                                        extra={
+                                            "msg_id": str(msg["id"]),
+                                            "sender_id": str(msg["sender_id"]),
+                                            "total_freed": msg["attachment_size"],
+                                            "compensation_required": True,
+                                        },
+                                        exc_info=True,
+                                    )
+                                else:
+                                    import asyncio
+                                    await asyncio.sleep(1)
                 deleted += 1
             except Exception:
                 errors += 1

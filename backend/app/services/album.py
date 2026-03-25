@@ -108,7 +108,7 @@ async def update_album(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            album = await album_repo.find_album_by_id(conn, album_uuid)
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
             if not album:
                 raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
@@ -427,7 +427,7 @@ async def add_member(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            album = await album_repo.find_album_by_id(conn, album_uuid)
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
             if not album:
                 raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
@@ -471,7 +471,7 @@ async def join_album(album_id: str, user_id: str) -> dict:
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            album = await album_repo.find_album_by_id(conn, album_uuid)
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
             if not album:
                 raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
@@ -548,7 +548,7 @@ async def remove_member(
     # M-03: Wrap permission check and delete in a transaction to prevent TOCTOU race
     async with pool.acquire() as conn:
         async with conn.transaction():
-            album = await album_repo.find_album_by_id(conn, album_uuid)
+            album = await album_repo.find_album_by_id_for_update(conn, album_uuid)
             if not album:
                 raise AppError(ErrorCode.ALBUM_001, 404, "Album not found.")
 
@@ -1026,18 +1026,27 @@ async def delete_photo(
                 extra={"photo_id": photo_id},
             )
 
-        # Refund storage quota
+        # M-04 Equivalent: Refund storage quota with retry logic
         file_size = photo.get("file_size_bytes", 0)
         uploaded_by = photo["uploaded_by"]
         if file_size > 0:
-            try:
-                await user_repo.decrement_storage_used(uploaded_by, file_size)
-            except Exception:
-                logger.warning(
-                    "Failed to refund storage quota after photo deletion",
-                    extra={"photo_id": photo_id, "file_size": file_size},
-                    exc_info=True,
-                )
+            for attempt in range(3):
+                try:
+                    await user_repo.decrement_storage_used(uploaded_by, file_size)
+                    break
+                except Exception:
+                    if attempt == 2:
+                        logger.error(
+                            "Failed to refund storage quota after photo deletion",
+                            extra={
+                                "photo_id": photo_id,
+                                "file_size": file_size,
+                                "compensation_required": True,
+                            },
+                            exc_info=True,
+                        )
+                    else:
+                        await asyncio.sleep(1)
 
     return deleted
 

@@ -742,9 +742,29 @@ async def _cleanup_form_upload_files(
             file_size = await get_file_size(key)
             await async_delete_file(key)
             if file_size > 0:
-                await user_repo.increment_storage_used(
-                    uuid.UUID(resp_user_id), -file_size
-                )
+                # M-04 Equivalent: Retry storage refund for form uploads
+                for attempt in range(3):
+                    try:
+                        from app.repositories import user_repo
+                        await user_repo.decrement_storage_used(
+                            uuid.UUID(resp_user_id), file_size
+                        )
+                        break
+                    except Exception:
+                        if attempt == 2:
+                            logger.error(
+                                "Failed to refund storage quota after form upload deletion",
+                                extra={
+                                    "form_id": str(form_id),
+                                    "key": key,
+                                    "user_id": resp_user_id,
+                                    "compensation_required": True,
+                                },
+                                exc_info=True,
+                            )
+                        else:
+                            import asyncio
+                            await asyncio.sleep(1)
             logger.info(
                 "Deleted form upload file and refunded quota",
                 extra={

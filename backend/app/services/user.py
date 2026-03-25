@@ -134,22 +134,31 @@ async def upload_user_avatar(
         # Update DB-tracked storage counter: net delta = new_size - old_size.
         # GREATEST(0, ...) in SQL prevents negative totals.
         net_delta = len(data) - old_avatar_size
-        try:
-            await user_repo.increment_storage_used(user_uuid, net_delta)
-        except Exception:
+        # M-04 Equivalent: Retry storage increment for avatar upload
+        counter_updated = False
+        for attempt in range(3):
+            try:
+                await user_repo.increment_storage_used(user_uuid, net_delta)
+                counter_updated = True
+                break
+            except Exception:
+                if attempt == 2:
+                    logger.error(
+                        "Failed to update storage counter for user=%s after avatar upload",
+                        user_id,
+                        exc_info=True,
+                    )
+                else:
+                    import asyncio
+                    await asyncio.sleep(1)
+
+        if not counter_updated:
             logger.error(
-                "Failed to update storage counter for user=%s key=%s — "
-                "attempting rollback by deleting uploaded file",
-                user_id,
-                key,
-                exc_info=True,
+                "Rollback: deleting uploaded file because storage counter update failed",
+                extra={"user_id": user_id, "key": key},
             )
             try:
                 await async_delete_file(key)
-                logger.info(
-                    "Rollback: deleted uploaded avatar after storage counter failure",
-                    extra={"user_id": user_id, "key": key},
-                )
             except Exception:
                 logger.error(
                     "Rollback failed: could not delete uploaded avatar after "
@@ -158,6 +167,7 @@ async def upload_user_avatar(
                     key,
                     exc_info=True,
                 )
+            raise StorageQuotaError("Failed to update storage quota. File upload cancelled.")
     finally:
         await redis.delete(lock_key)
 

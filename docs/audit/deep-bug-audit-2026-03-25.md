@@ -58,7 +58,7 @@
 
 ### Backend — Data Logic
 
-#### M-01: `_normalize_percentages` corrupts `multiple_choice` statistics
+#### M-01: `_normalize_percentages` corrupts `multiple_choice` statistics ✅ **Resolved**
 
 - **File:** `backend/app/services/form.py:291-304`
 - **Impact:** Incorrect statistics displayed for multi-select form questions
@@ -67,7 +67,7 @@
 
 ---
 
-#### M-02: `dm_repo.send_message_atomic` — `None` recipient silently bypasses block check
+#### M-02: `dm_repo.send_message_atomic` — `None` recipient silently bypasses block check ✅ **Resolved**
 
 - **File:** `backend/app/repositories/dm_repo.py:479-497`
 - **Impact:** Security bypass — blocked users can send DMs
@@ -76,7 +76,7 @@
 
 ---
 
-#### M-03: `album.remove_member` has TOCTOU race — no transaction
+#### M-03: `album.remove_member` has TOCTOU race — no transaction ✅ **Resolved** (Applied row-locking globally)
 
 - **File:** `backend/app/services/album.py:523-553`
 - **Impact:** Race condition in album permission enforcement
@@ -85,7 +85,7 @@
 
 ---
 
-#### M-04: `_cleanup_post_files` — storage counter not refunded if decrement fails
+#### M-04: `_cleanup_post_files` — storage counter not refunded if decrement fails ✅ **Resolved** (Added 3-retry loop globally)
 
 - **File:** `backend/app/services/post.py:277-317`
 - **Impact:** User's `storage_used_bytes` permanently inflated after partial cleanup failure
@@ -94,7 +94,7 @@
 
 ---
 
-#### M-05: `album.upload_cover` deletes MinIO file inside DB transaction
+#### M-05: `album.upload_cover` deletes MinIO file inside DB transaction ✅ **Resolved** (Verified post-commit cleanup)
 
 - **File:** `backend/app/services/album.py:348-351`
 - **Impact:** Orphaned DB reference if transaction rolls back after irreversible MinIO delete
@@ -502,9 +502,9 @@
 | Severity | Total | Resolved | Remaining | Key Themes |
 |----------|-------|----------|-----------|------------|
 | **HIGH** | 3 | 3 | 0 | Event bus retry corruption, bulk role change blast radius, YAML config loss |
-| **MEDIUM** | 25 | 0 | 25 | TOCTOU races (4), event loop blocking (3), stale frontend state (3), missing validation (3), data logic errors (2), missing schedules (1), missing timeouts (1), no-op export (1), download URL validation (1), test gaps (1) |
+| **MEDIUM** | 25 | 5 | 20 | TOCTOU races (4), event loop blocking (3), stale frontend state (3), missing validation (3), data logic errors (2), missing schedules (1), missing timeouts (1), no-op export (1), download URL validation (1), test gaps (1) |
 | **LOW** | 26 | 26 | 0 | Missing guards, inconsistent patterns, double-fetches, cleanup gaps, type mismatches, locale issues |
-| **Total** | **54** | **29** | **25** | |
+| **Total** | **54** | **34** | **20** | |
 
 ### Recommended Fix Priority
 

@@ -1,5 +1,6 @@
 """DM service -- direct messaging business logic."""
 
+import asyncio
 import mimetypes
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -360,9 +361,30 @@ async def send_message(
 
                         if dmsg.get("attachment_key"):
                             await async_delete_file(dmsg["attachment_key"])
-                        await user_repo.decrement_storage_used(
-                            dmsg["sender_id"], dmsg["attachment_size"]
-                        )
+                        
+                        # M-04 Equivalent: Retry storage decrement
+                        for attempt in range(3):
+                            try:
+                                await user_repo.decrement_storage_used(
+                                    dmsg["sender_id"], dmsg["attachment_size"]
+                                )
+                                break
+                            except Exception:
+                                if attempt == 2:
+                                    logger.error(
+                                        "ORPHANED_DM_FILE: failed to clean up attachment during "
+                                        "char cap enforcement. Manual cleanup required.",
+                                        exc_info=True,
+                                        extra={
+                                            "msg_id": str(dmsg.get("id")),
+                                            "attachment_key": dmsg.get("attachment_key"),
+                                            "attachment_size": dmsg.get("attachment_size"),
+                                            "sender_id": str(dmsg.get("sender_id")),
+                                            "compensation_required": True,
+                                        },
+                                    )
+                                else:
+                                    await asyncio.sleep(1)
                     except Exception:
                         logger.error(
                             "ORPHANED_DM_FILE: failed to clean up attachment during "
@@ -378,16 +400,21 @@ async def send_message(
     except Exception:
         # H-03: Refund pre-reserved storage quota on failure
         if quota_reserved and file_size:
-            try:
-                from app.repositories import user_repo
-
-                await user_repo.decrement_storage_used(uuid.UUID(sender_id), file_size)
-            except Exception:
-                logger.warning(
-                    "Failed to refund storage quota after DM send failure",
-                    exc_info=True,
-                    extra={"sender_id": sender_id, "file_size": file_size},
-                )
+            # M-04 Equivalent: Retry storage decrement on failure
+            for attempt in range(3):
+                try:
+                    from app.repositories import user_repo
+                    await user_repo.decrement_storage_used(uuid.UUID(sender_id), file_size)
+                    break
+                except Exception:
+                    if attempt == 2:
+                        logger.warning(
+                            "Failed to refund storage quota after DM send failure",
+                            exc_info=True,
+                            extra={"sender_id": sender_id, "file_size": file_size, "compensation_required": True},
+                        )
+                    else:
+                        await asyncio.sleep(1)
         # M-48: Clean up orphaned MinIO file if DB operations failed
         if attachment_key:
             try:
@@ -632,16 +659,21 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
             )
 
         if attachment_size:
-            try:
-                from app.repositories import user_repo
-
-                await user_repo.decrement_storage_used(uuid.UUID(sender_id), attachment_size)
-            except Exception:
-                logger.warning(
-                    "Failed to refund storage quota for recalled DM attachment",
-                    exc_info=True,
-                    extra={"msg_id": message_id},
-                )
+            # M-04 Equivalent: Retry storage decrement for recalled DM
+            for attempt in range(3):
+                try:
+                    from app.repositories import user_repo
+                    await user_repo.decrement_storage_used(uuid.UUID(sender_id), attachment_size)
+                    break
+                except Exception:
+                    if attempt == 2:
+                        logger.warning(
+                            "Failed to refund storage quota for recalled DM attachment",
+                            exc_info=True,
+                            extra={"msg_id": message_id, "compensation_required": True},
+                        )
+                    else:
+                        await asyncio.sleep(1)
 
     msg = await async_row_to_message(recalled_row)
 

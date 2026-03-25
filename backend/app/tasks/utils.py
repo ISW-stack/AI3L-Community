@@ -67,11 +67,25 @@ async def decrement_owner_storage(storage_key: str, file_size: int) -> None:
 
     try:
         owner_uuid = uuid.UUID(owner_id_str)
-        await user_repo.increment_storage_used(owner_uuid, -file_size)
-        logger.info(
-            "Decremented storage for user after file deletion",
-            extra={"user_id": owner_id_str, "key": storage_key, "size": file_size},
-        )
+        # M-04 Equivalent: Retry storage decrement in centralized utility
+        for attempt in range(3):
+            try:
+                await user_repo.increment_storage_used(owner_uuid, -file_size)
+                logger.info(
+                    "Decremented storage for user after file deletion",
+                    extra={"user_id": owner_id_str, "key": storage_key, "size": file_size},
+                )
+                break
+            except Exception:
+                if attempt == 2:
+                    logger.error(
+                        "Failed to decrement storage after file deletion - persistence failure",
+                        extra={"key": storage_key, "user_id": owner_id_str, "compensation_required": True},
+                        exc_info=True,
+                    )
+                else:
+                    import asyncio
+                    await asyncio.sleep(1)
     except (ValueError, Exception) as e:
         logger.warning(
             "Failed to decrement storage after file deletion",

@@ -75,15 +75,26 @@ async def upload_editor_file(
         key = f"editor/{current_user['sub']}/{uuid.uuid4().hex}{ext}"
         await async_upload_file(data, key, expected_type)
         # Increment DB-tracked storage counter after successful upload.
-        try:
-            await user_repo.increment_storage_used(user_uuid, len(data))
-        except Exception:
-            logger.error(
-                "Storage counter increment failed, rolling back upload for user=%s key=%s",
-                current_user["sub"],
-                key,
-                exc_info=True,
-            )
+        # M-04 Equivalent: Retry storage increment for editor upload
+        counter_updated = False
+        for attempt in range(3):
+            try:
+                await user_repo.increment_storage_used(user_uuid, len(data))
+                counter_updated = True
+                break
+            except Exception:
+                if attempt == 2:
+                    logger.error(
+                        "Storage counter increment failed after 3 attempts, rolling back upload for user=%s key=%s",
+                        current_user["sub"],
+                        key,
+                        exc_info=True,
+                    )
+                else:
+                    import asyncio
+                    await asyncio.sleep(1)
+
+        if not counter_updated:
             try:
                 await async_delete_file(key)
             except Exception:
@@ -95,7 +106,7 @@ async def upload_editor_file(
             raise AppError(
                 ErrorCode.SYS_500,
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "Upload failed. Please try again.",
+                "Upload failed due to storage quota update failure. Please try again.",
             )
     finally:
         await redis.delete(lock_key)
@@ -176,17 +187,24 @@ async def delete_editor_file(
         )
 
     # Decrement the owner's storage counter
-    try:
-        owner_uuid = uuid.UUID(owner_user_id)
-        await user_repo.increment_storage_used(owner_uuid, -file_size)
-    except Exception:
-        logger.warning(
-            "Failed to decrement storage counter for user=%s key=%s size=%d",
-            owner_user_id,
-            key,
-            file_size,
-            exc_info=True,
-        )
+    # M-04 Equivalent: Retry storage decrement for editor file deletion
+    for attempt in range(3):
+        try:
+            owner_uuid = uuid.UUID(owner_user_id)
+            await user_repo.increment_storage_used(owner_uuid, -file_size)
+            break
+        except Exception:
+            if attempt == 2:
+                logger.error(
+                    "Failed to decrement storage counter after 3 attempts for user=%s key=%s size=%d - compensation required",
+                    owner_user_id,
+                    key,
+                    file_size,
+                    exc_info=True,
+                )
+            else:
+                import asyncio
+                await asyncio.sleep(1)
 
     # Remove scan record if it exists
     try:
