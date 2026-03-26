@@ -267,6 +267,91 @@ describe('useFetchPaginated', () => {
     })
   })
 
+  // ---------- F-09: items and total restoration on fetch failure ----------
+
+  describe('items and total restoration on failure', () => {
+    it('restores items to previous successful values on fetch error', async () => {
+      const successItems = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ items: successItems, total: 30 })
+        .mockRejectedValueOnce(new Error('Server down'))
+
+      const { items, total, setPage, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      await fetchPage()
+      expect(items.value).toEqual(successItems)
+      expect(total.value).toBe(30)
+
+      setPage(2)
+      await fetchPage()
+
+      // items and total should revert to the previous successful state
+      expect(items.value).toEqual(successItems)
+      expect(total.value).toBe(30)
+    })
+
+    it('restores total and totalPages on fetch error', async () => {
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ items: [{ id: '1' }], total: 55 })
+        .mockRejectedValueOnce(new Error('timeout'))
+
+      const { total, totalPages, setPage, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      await fetchPage()
+      expect(total.value).toBe(55)
+      expect(totalPages.value).toBe(6) // ceil(55/10)
+
+      setPage(7)
+      await fetchPage()
+
+      // total and totalPages should revert
+      expect(total.value).toBe(55)
+      expect(totalPages.value).toBe(6)
+    })
+
+    it('restores empty items when first fetch fails (initial state)', async () => {
+      const fetchFn = vi.fn().mockRejectedValueOnce(new Error('fail'))
+
+      const { items, total, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      await fetchPage()
+
+      // Should stay at initial empty state
+      expect(items.value).toEqual([])
+      expect(total.value).toBe(0)
+    })
+
+    it('second success after failure works normally', async () => {
+      const firstItems = [{ id: 'x' }]
+      const thirdItems = [{ id: 'y' }, { id: 'z' }]
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValueOnce({ items: firstItems, total: 10 })
+        .mockRejectedValueOnce(new Error('fail'))
+        .mockResolvedValueOnce({ items: thirdItems, total: 20 })
+
+      const { items, total, setPage, fetchPage } = useFetchPaginated(fetchFn, 10)
+
+      // First: success
+      await fetchPage()
+      expect(items.value).toEqual(firstItems)
+      expect(total.value).toBe(10)
+
+      // Second: failure -> rollback
+      setPage(2)
+      await fetchPage()
+      expect(items.value).toEqual(firstItems)
+      expect(total.value).toBe(10)
+
+      // Third: success with new data
+      await fetchPage()
+      expect(items.value).toEqual(thirdItems)
+      expect(total.value).toBe(20)
+    })
+  })
+
   // ---------- fetchId race condition guard ----------
 
   describe('fetchId race condition guard', () => {

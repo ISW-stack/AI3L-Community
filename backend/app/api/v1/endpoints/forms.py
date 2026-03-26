@@ -78,7 +78,7 @@ async def create_new_form(
             allow_non_members=req.allow_non_members,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     form["user_is_sig_admin"] = True
     return FormResponseSchema(**form)
 
@@ -126,7 +126,7 @@ async def create_standalone_form(
             allow_non_members=True,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     return FormResponseSchema(**form)
 
 
@@ -286,7 +286,7 @@ async def update_existing_form(
     except PermissionError as e:
         raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     form["user_is_sig_admin"] = True
@@ -389,7 +389,7 @@ async def submit_form_response(
         detail = str(e)
         if "already submitted" in detail.lower():
             raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, detail)
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, detail)
+        raise AppError(ErrorCode.SYS_422, 422, detail)
     except asyncpg.UniqueViolationError:
         raise AppError(
             ErrorCode.SYS_409,

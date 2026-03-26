@@ -36,6 +36,8 @@ export function useFetchPaginated<T>(
   async function fetchPage() {
     const localFetchId = ++fetchId
     const previousPage = page.value
+    const previousItems = [...items.value]
+    const previousTotal = total.value
     loading.value = true
     error.value = ''
     try {
@@ -45,7 +47,10 @@ export function useFetchPaginated<T>(
       updateFromResponse(result.total)
     } catch (e: unknown) {
       if (localFetchId !== fetchId) return
-      setPage(previousPage) // Restore page on failure
+      // Restore page, items, and total on failure so UI stays consistent
+      setPage(previousPage)
+      items.value = previousItems
+      updateFromResponse(previousTotal)
       error.value = getErrorMessage(e, 'Failed to fetch data')
     } finally {
       if (localFetchId === fetchId) {

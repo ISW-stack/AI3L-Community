@@ -66,7 +66,7 @@ async def create_new_comment(
 
     sanitized_content = sanitize_html(req.content)
     if not sanitized_content or not sanitized_content.strip():
-        raise AppError(ErrorCode.SYS_422, 400, "Comment content cannot be empty.")
+        raise AppError(ErrorCode.SYS_422, 422, "Comment content cannot be empty.")
 
     try:
         comment = await create_comment(
@@ -77,7 +77,7 @@ async def create_new_comment(
             mentions=req.mentions,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
 
     return CommentResponse(**comment)
 
@@ -94,7 +94,7 @@ async def edit_comment(
         raise AppError(ErrorCode.SYS_429, 429, "Too many edit requests. Try again later.")
     sanitized_content = sanitize_html(req.content)
     if not sanitized_content or not sanitized_content.strip():
-        raise AppError(ErrorCode.SYS_422, 400, "Comment content cannot be empty.")
+        raise AppError(ErrorCode.SYS_422, 422, "Comment content cannot be empty.")
     comment = await update_comment(
         comment_id=comment_id,
         user_id=current_user["sub"],

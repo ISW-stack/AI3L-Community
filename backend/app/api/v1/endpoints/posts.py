@@ -48,7 +48,7 @@ async def create_new_post(
 
     content = post_process_citations(content)
     if not content or not content.strip():
-        raise AppError(ErrorCode.SYS_422, 400, "Content cannot be empty after sanitization.")
+        raise AppError(ErrorCode.SYS_422, 422, "Content cannot be empty after sanitization.")
     try:
         post = await create_post(
             user_id=current_user["sub"],
@@ -65,7 +65,7 @@ async def create_new_post(
     except PermissionError as e:
         raise AppError(ErrorCode.SYS_403, 403, str(e))
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
 
     return PostResponse(**post)
 
@@ -251,14 +251,14 @@ async def update_existing_post(
             req.allow_comments is not None,
         ]
     ):
-        raise AppError(ErrorCode.SYS_422, 400, "At least one field must be provided.")
+        raise AppError(ErrorCode.SYS_422, 422, "At least one field must be provided.")
 
     if req.title is not None and not req.title.strip():
-        raise AppError(ErrorCode.SYS_422, 400, "Title cannot be empty.")
+        raise AppError(ErrorCode.SYS_422, 422, "Title cannot be empty.")
 
     content = sanitize_html(req.content) if req.content else None
     if content is not None and not content.strip():
-        raise AppError(ErrorCode.SYS_422, 400, "Content cannot be empty after sanitization.")
+        raise AppError(ErrorCode.SYS_422, 422, "Content cannot be empty after sanitization.")
     if content:
         from app.core.file_validation import post_process_citations
 

@@ -80,6 +80,11 @@ export const useDMStore = defineStore('dm', () => {
         const newMessages = chronological.filter((m) => !existingIds.has(m.id))
         if (newMessages.length > 0) {
           messages.value.unshift(...newMessages)
+          // F-02 fix: re-sort to guarantee chronological order in case
+          // a WebSocket message arrived between paginated fetches.
+          messages.value.sort(
+            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+          )
         }
         _trimMessages()
       }

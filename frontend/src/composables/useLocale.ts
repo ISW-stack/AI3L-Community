@@ -32,6 +32,7 @@ export function useLocale() {
   const currentLocale = computed(() => locale.value as SupportedLocale)
 
   async function setLocale(lang: SupportedLocale) {
+    const previousLocale = locale.value
     await loadLocaleMessages(lang)
     locale.value = lang
     applyLocaleToDocument(lang)
@@ -39,11 +40,15 @@ export function useLocale() {
     // Guest users: change locale for current session only, no persistence
     if (!auth.isAuthenticated || auth.isGuest) return
 
-    localStorage.setItem('locale', lang)
     try {
       await updateProfile({ preferred_language: lang })
+      // Only persist to localStorage after API success
+      localStorage.setItem('locale', lang)
     } catch {
-      // Local change already applied — DB write failure is non-blocking
+      // Rollback UI to previous locale so it stays in sync with DB
+      await loadLocaleMessages(previousLocale)
+      locale.value = previousLocale
+      applyLocaleToDocument(previousLocale)
     }
   }
 

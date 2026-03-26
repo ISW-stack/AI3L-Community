@@ -761,7 +761,7 @@ class TestFormSubmitMaxRespondents:
                     json={"answers": {"q1": "answer"}},
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 400
+                assert resp.status_code == 422
                 assert "maximum" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
@@ -2917,6 +2917,11 @@ class TestFileSizeValidation:
                 new_callable=AsyncMock,
                 return_value=3 * 1024 * 1024,  # 3 MB > 2 MB limit
             ),
+            patch(
+                "app.repositories.file_scan_repo.is_clean",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
         ):
             from app.services.form import submit_response
 
@@ -3298,3 +3303,150 @@ class TestAsyncpgUniqueViolation:
                     )
         finally:
             _clear_overrides()
+
+
+class TestInsertResponseAdvisoryLock:
+    """Tests for F-07: advisory lock hash collision fix in insert_response."""
+
+    @pytest.mark.anyio
+    async def test_advisory_lock_called_with_two_int4_args(self):
+        """insert_response with max_respondents calls pg_advisory_xact_lock($1,$2)."""
+        from app.repositories.form_repo import insert_response
+
+        form_id = uuid.UUID("12345678-1234-5678-1234-567812345678")
+        response_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        conn = AsyncMock()
+        conn.execute = AsyncMock(return_value="INSERT 0 1")
+
+        await insert_response(
+            response_id=response_id,
+            form_id=form_id,
+            user_id=user_id,
+            answers={"q1": "answer"},
+            conn=conn,
+            max_respondents=10,
+        )
+
+        # First call should be the advisory lock with two int args
+        lock_call = conn.execute.call_args_list[0]
+        sql = lock_call[0][0]
+        assert "pg_advisory_xact_lock($1, $2)" in sql
+        # Exactly two integer arguments (not hashtext)
+        assert len(lock_call[0]) == 3  # sql + 2 args
+        assert isinstance(lock_call[0][1], int)
+        assert isinstance(lock_call[0][2], int)
+
+    @pytest.mark.anyio
+    async def test_lock_ids_derived_from_uuid(self):
+        """Lock IDs are upper and lower 31 bits of the UUID integer."""
+        from app.repositories.form_repo import insert_response
+
+        form_id = uuid.UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+        expected_int = form_id.int
+        expected_lock1 = expected_int >> 64 & 0x7FFFFFFF
+        expected_lock2 = expected_int & 0x7FFFFFFF
+
+        conn = AsyncMock()
+        conn.execute = AsyncMock(return_value="INSERT 0 1")
+
+        await insert_response(
+            response_id=uuid.uuid4(),
+            form_id=form_id,
+            user_id=uuid.uuid4(),
+            answers={"q1": "yes"},
+            conn=conn,
+            max_respondents=5,
+        )
+
+        lock_call = conn.execute.call_args_list[0]
+        assert lock_call[0][1] == expected_lock1
+        assert lock_call[0][2] == expected_lock2
+
+    @pytest.mark.anyio
+    async def test_lock_ids_fit_in_int4(self):
+        """Both lock IDs must fit in a signed 32-bit integer (0 .. 2^31-1)."""
+        from app.repositories.form_repo import insert_response
+
+        # Use a UUID with all-F bits to maximise the values
+        form_id = uuid.UUID("ffffffff-ffff-ffff-ffff-ffffffffffff")
+        conn = AsyncMock()
+        conn.execute = AsyncMock(return_value="INSERT 0 1")
+
+        await insert_response(
+            response_id=uuid.uuid4(),
+            form_id=form_id,
+            user_id=uuid.uuid4(),
+            answers={},
+            conn=conn,
+            max_respondents=1,
+        )
+
+        lock_call = conn.execute.call_args_list[0]
+        lock_id1 = lock_call[0][1]
+        lock_id2 = lock_call[0][2]
+        assert 0 <= lock_id1 <= 0x7FFFFFFF
+        assert 0 <= lock_id2 <= 0x7FFFFFFF
+
+    @pytest.mark.anyio
+    async def test_different_uuids_produce_different_lock_pairs(self):
+        """Two distinct form UUIDs should produce different lock pairs."""
+        from app.repositories.form_repo import insert_response
+
+        form_a = uuid.UUID("11111111-1111-1111-1111-111111111111")
+        form_b = uuid.UUID("22222222-2222-2222-2222-222222222222")
+
+        conn_a = AsyncMock()
+        conn_a.execute = AsyncMock(return_value="INSERT 0 1")
+        conn_b = AsyncMock()
+        conn_b.execute = AsyncMock(return_value="INSERT 0 1")
+
+        await insert_response(
+            response_id=uuid.uuid4(),
+            form_id=form_a,
+            user_id=uuid.uuid4(),
+            answers={},
+            conn=conn_a,
+            max_respondents=5,
+        )
+        await insert_response(
+            response_id=uuid.uuid4(),
+            form_id=form_b,
+            user_id=uuid.uuid4(),
+            answers={},
+            conn=conn_b,
+            max_respondents=5,
+        )
+
+        pair_a = (
+            conn_a.execute.call_args_list[0][0][1],
+            conn_a.execute.call_args_list[0][0][2],
+        )
+        pair_b = (
+            conn_b.execute.call_args_list[0][0][1],
+            conn_b.execute.call_args_list[0][0][2],
+        )
+        assert pair_a != pair_b
+
+    @pytest.mark.anyio
+    async def test_no_advisory_lock_without_max_respondents(self):
+        """insert_response without max_respondents should NOT call advisory lock."""
+        from app.repositories.form_repo import insert_response
+
+        conn = AsyncMock()
+        conn.execute = AsyncMock(return_value="INSERT 0 1")
+
+        await insert_response(
+            response_id=uuid.uuid4(),
+            form_id=uuid.uuid4(),
+            user_id=uuid.uuid4(),
+            answers={"q1": "answer"},
+            conn=conn,
+            max_respondents=None,
+        )
+
+        # Should be exactly one execute call (the INSERT), no advisory lock
+        assert conn.execute.call_count == 1
+        sql = conn.execute.call_args_list[0][0][0]
+        assert "pg_advisory_xact_lock" not in sql
+        assert "INSERT INTO form_responses" in sql

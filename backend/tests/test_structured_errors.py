@@ -56,7 +56,7 @@ class TestAuthStructuredErrors:
         resp = await client.post(
             "/api/v1/auth/login",
             json={
-                "username": "x",
+                "username": "testuser",
                 "password": "x",
                 "captcha_id": "x",
                 "captcha_code": "x",
@@ -72,7 +72,7 @@ class TestAuthStructuredErrors:
         resp = await client.post(
             "/api/v1/auth/login",
             json={
-                "username": "x",
+                "username": "testuser",
                 "password": "x",
                 "captcha_id": "x",
                 "captcha_code": "x",
@@ -89,7 +89,7 @@ class TestAuthStructuredErrors:
         resp = await client.post(
             "/api/v1/auth/login",
             json={
-                "username": "x",
+                "username": "testuser",
                 "password": "x",
                 "captcha_id": "x",
                 "captcha_code": "x",
@@ -107,7 +107,7 @@ class TestAuthStructuredErrors:
         resp = await client.post(
             "/api/v1/auth/login",
             json={
-                "username": "x",
+                "username": "testuser",
                 "password": "x",
                 "captcha_id": "x",
                 "captcha_code": "x",
@@ -275,7 +275,7 @@ class TestAdminStructuredErrors:
     async def test_revoke_not_found_returns_sys_404(self, client):
         code_id = uuid.uuid4()
         try:
-            _override_auth("ADMIN")
+            _override_auth("SUPER_ADMIN")
             with patch(
                 f"{_INVITE_REPO}.revoke",
                 new_callable=AsyncMock,
@@ -293,7 +293,7 @@ class TestAdminStructuredErrors:
     async def test_delete_not_found_returns_sys_404(self, client):
         code_id = uuid.uuid4()
         try:
-            _override_auth("ADMIN")
+            _override_auth("SUPER_ADMIN")
             with patch(
                 f"{_INVITE_REPO}.delete",
                 new_callable=AsyncMock,
@@ -390,7 +390,7 @@ class TestApplicationsStructuredErrors:
                     },
                     headers={"Authorization": "Bearer fake"},
                 )
-                _assert_structured_error(resp, "SYS_422", 400)
+                _assert_structured_error(resp, "SYS_422", 422)
         finally:
             _clear_overrides()
 
@@ -587,7 +587,7 @@ class TestFormsStructuredErrors:
                     json={"answers": {}},
                     headers={"Authorization": "Bearer fake"},
                 )
-                _assert_structured_error(resp, "SYS_422", 400)
+                _assert_structured_error(resp, "SYS_422", 422)
         finally:
             _clear_overrides()
 
@@ -650,7 +650,7 @@ class TestFilesStructuredErrors:
                 "/api/v1/files/content/..%2F..%2Fetc%2Fpasswd",
                 headers={"Authorization": "Bearer fake"},
             )
-            _assert_structured_error(resp, "SYS_422", 400)
+            _assert_structured_error(resp, "SYS_422", 422)
         finally:
             _clear_overrides()
 
@@ -662,7 +662,7 @@ class TestFilesStructuredErrors:
                 "/api/v1/files/presigned/..%2F..%2Fetc%2Fpasswd",
                 headers={"Authorization": "Bearer fake"},
             )
-            _assert_structured_error(resp, "SYS_422", 400)
+            _assert_structured_error(resp, "SYS_422", 422)
         finally:
             _clear_overrides()
 
@@ -674,7 +674,7 @@ class TestFilesStructuredErrors:
                 "/api/v1/files/scan-status/..%2F..%2Fetc%2Fpasswd",
                 headers={"Authorization": "Bearer fake"},
             )
-            _assert_structured_error(resp, "SYS_422", 400)
+            _assert_structured_error(resp, "SYS_422", 422)
         finally:
             _clear_overrides()
 

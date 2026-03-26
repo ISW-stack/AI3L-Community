@@ -116,6 +116,8 @@ async def insert(
         )
         creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
         result = dict(row)
+        if isinstance(result.get("questions"), str):
+            result["questions"] = json.loads(result["questions"])
         result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
         return result
 
@@ -140,6 +142,8 @@ async def find_by_id(form_id: uuid.UUID) -> tuple[dict | None, int]:
         if not row:
             return None, 0
         result = dict(row)
+        if isinstance(result.get("questions"), str):
+            result["questions"] = json.loads(result["questions"])
         response_count = result.pop("response_count")
         return result, response_count
 
@@ -149,7 +153,12 @@ async def find_for_update(form_id: uuid.UUID, conn: Any) -> dict | None:
         "SELECT * FROM forms WHERE id = $1 AND is_deleted = false FOR UPDATE",
         form_id,
     )
-    return dict(row) if row else None
+    if not row:
+        return None
+    result = dict(row)
+    if isinstance(result.get("questions"), str):
+        result["questions"] = json.loads(result["questions"])
+    return result
 
 
 _ALLOWED_FORM_FIELDS = frozenset(
@@ -267,6 +276,8 @@ async def insert_in_conn(
     )
     creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
     result = dict(row)
+    if isinstance(result.get("questions"), str):
+        result["questions"] = json.loads(result["questions"])
     result["creator_display_name"] = creator["display_name"] if creator else "Unknown"
     return result
 
@@ -302,6 +313,8 @@ async def find_by_sig(
         results = []
         for row in rows:
             d = dict(row)
+            if isinstance(d.get("questions"), str):
+                d["questions"] = json.loads(d["questions"])
             response_count = d.pop("response_count")
             results.append((d, response_count))
         return results, total
@@ -369,9 +382,14 @@ async def insert_response(
     if max_respondents is not None:
         # Advisory lock keyed on form_id to serialise concurrent inserts
         # and prevent exceeding max_respondents. Released on tx commit/rollback.
+        # Use two int4 args derived from UUID to avoid 32-bit hashtext collisions.
+        fid_int = form_id.int
+        lock_id1 = fid_int >> 64 & 0x7FFFFFFF  # upper 31 bits
+        lock_id2 = fid_int & 0x7FFFFFFF  # lower 31 bits
         await conn.execute(
-            "SELECT pg_advisory_xact_lock(hashtext($1::text))",
-            str(form_id),
+            "SELECT pg_advisory_xact_lock($1, $2)",
+            lock_id1,
+            lock_id2,
         )
         result = await conn.execute(
             """

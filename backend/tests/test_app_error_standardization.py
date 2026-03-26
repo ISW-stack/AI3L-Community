@@ -165,7 +165,7 @@ class TestAppErrorFormat:
 
     @pytest.mark.anyio
     async def test_post_update_400_validation_returns_sys_422_code(self, client):
-        """PUT /posts/{id} with no fields -> 400 with SYS_422 code."""
+        """PUT /posts/{id} with no fields -> 422 with SYS_422 code."""
         post_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
         try:
@@ -176,7 +176,7 @@ class TestAppErrorFormat:
                     json={"version": 1},
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 400
+                assert resp.status_code == 422
                 detail = resp.json()["detail"]
                 assert detail["code"] == "SYS_422"
                 assert "at least one field" in detail["message"].lower()
@@ -458,7 +458,7 @@ class TestAppErrorFormatComments:
 
     @pytest.mark.anyio
     async def test_comment_empty_content_returns_sys_422(self, client):
-        """POST /posts/{pid}/comments with empty content -> 400 with SYS_422 code."""
+        """POST /posts/{pid}/comments with empty content -> 422 with SYS_422 code."""
         post_id = uuid.uuid4()
         try:
             _override_auth("MEMBER")
@@ -475,7 +475,7 @@ class TestAppErrorFormatComments:
                     json={"content": "<script>alert(1)</script>"},
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 400
+                assert resp.status_code == 422
                 detail = resp.json()["detail"]
                 assert detail["code"] == "SYS_422"
                 assert "empty" in detail["message"].lower()

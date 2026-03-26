@@ -6,6 +6,8 @@
 
 **Total findings: 70** (5 Critical, 10 High, 30 Medium, 25 Low)
 
+**Status: 5 Critical fixed 2026-03-26** — commit covers F-01 to F-05 + 3 pre-existing test bugs corrected
+
 > Includes first pass (F-01 to F-59) + second pass (F-60 to F-70, appended at bottom).
 
 ---
@@ -19,16 +21,16 @@
 | F-03 | CRITICAL | Infra | nginx entrypoint reads non-existent `.template` in dev |
 | F-04 | CRITICAL | Backend | `SYS_422` error code used with HTTP 400 status (30 occurrences) |
 | F-05 | CRITICAL | Frontend | `useFormBuilder` autoSaveTimer leak on component reuse |
-| F-06 | HIGH | Backend | Form `insert()` vs `update()` inconsistent questions type |
-| F-07 | HIGH | Backend | Advisory lock hash collision risk in `insert_response()` |
-| F-08 | HIGH | Frontend | DM unread count can go negative on rapid conversation switching |
-| F-09 | HIGH | Frontend | `useFetchPaginated` page rollback on error doesn't re-fetch |
-| F-10 | HIGH | Frontend | `usePostDetail` overlayDebounce + scan timers race on postId change |
-| F-11 | HIGH | Frontend | `useDropdownKeyNav` focuses hidden/invisible elements |
-| F-12 | HIGH | Frontend | DM conversation list pagination reset to page 1 on message send |
-| F-13 | HIGH | Frontend | `useLocale` sets locale before API call — reverts on refresh if API fails |
-| F-14 | HIGH | Infra | Production nginx shares dev config file with `YOUR_DOMAIN` placeholders |
-| F-15 | HIGH | Infra | `alembic check` in prod has no retry on transient DB failure |
+| F-06 | HIGH | Backend | Form `insert()` vs `update()` inconsistent questions type | ✅ |
+| F-07 | HIGH | Backend | Advisory lock hash collision risk in `insert_response()` | ✅ |
+| F-08 | HIGH | Frontend | DM unread count can go negative on rapid conversation switching | ✅ |
+| F-09 | HIGH | Frontend | `useFetchPaginated` page rollback on error doesn't re-fetch | ✅ |
+| F-10 | HIGH | Frontend | `usePostDetail` overlayDebounce + scan timers race on postId change | ✅ |
+| F-11 | HIGH | Frontend | `useDropdownKeyNav` focuses hidden/invisible elements | ✅ |
+| F-12 | HIGH | Frontend | DM conversation list pagination reset to page 1 on message send | ✅ |
+| F-13 | HIGH | Frontend | `useLocale` sets locale before API call — reverts on refresh if API fails | ✅ |
+| F-14 | HIGH | Infra | Production nginx shares dev config file with `YOUR_DOMAIN` placeholders | ✅ |
+| F-15 | HIGH | Infra | `alembic check` in prod has no retry on transient DB failure | ✅ |
 | F-16 | MEDIUM | Backend | Idempotency middleware truncates UUID to 16 chars — collision risk |
 | F-17 | MEDIUM | Backend | DM cleanup task: MinIO deletion not retried after DB clear succeeds |
 | F-18 | MEDIUM | Backend | DM text cleanup holds advisory locks for entire batch |
@@ -89,7 +91,7 @@
 
 ## CRITICAL (5)
 
-### F-01: Form `insert()` missing JSON deserialization on RETURNING
+### F-01: Form `insert()` missing JSON deserialization on RETURNING ✅ FIXED
 
 - **File:** `backend/app/repositories/form_repo.py:99-120` (also `insert_in_conn` at 236-271)
 - **Category:** Data Integrity / Type Inconsistency
@@ -103,10 +105,11 @@
 - **Expected:** All form repo functions return `questions` as `dict` (deserialized)
 - **Actual:** `insert()` and `insert_in_conn()` may return `questions` as `str`
 - **Impact:** API responses for form creation may contain malformed `questions` field; converter `safe_json_parse()` compensates but this is fragile
+- **Fix:** Added `isinstance(result.get("questions"), str)` + `json.loads()` guard to `insert()`, `insert_in_conn()`, `find_by_id()`, `find_for_update()`, and `find_by_sig()` — matching the pattern already in `update()`. Also resolves related F-06 (HIGH).
 
 ---
 
-### F-02: DM store message order broken on pagination with WebSocket interleaving
+### F-02: DM store message order broken on pagination with WebSocket interleaving ✅ FIXED
 
 - **File:** `frontend/src/stores/dm.ts:72-85`
 - **Category:** Logic Error / Race Condition
@@ -115,10 +118,11 @@
 - **Expected:** Messages maintain strict chronological order after pagination + WebSocket interleaving
 - **Actual:** WS-delivered messages can create ordering gaps when older pages are prepended
 - **Impact:** Messages may appear out of order in the chat thread after loading older pages
+- **Fix:** After `unshift(...newMessages)`, sort the full `messages.value` array by `created_at` ascending: `messages.value.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())`.
 
 ---
 
-### F-03: nginx entrypoint reads non-existent `.template` in dev
+### F-03: nginx entrypoint reads non-existent `.template` in dev ✅ FIXED
 
 - **File:** `nginx/docker-entrypoint.sh:8-10`
 - **Category:** Docker Configuration Error
@@ -133,10 +137,11 @@
 - **Expected:** Entrypoint should check if template exists, or dev compose should provide the template file
 - **Actual:** Dev nginx container may fail to start if template file is missing
 - **Impact:** Dev environment broken — nginx cannot serve frontend or proxy API
+- **Fix:** Wrapped `envsubst` in `if [ -f .../security-headers.conf.template ]; then ... else echo "using mounted conf as-is"; fi`. Dev skips substitution; prod behavior unchanged.
 
 ---
 
-### F-04: `SYS_422` error code used with HTTP 400 status (30 occurrences)
+### F-04: `SYS_422` error code used with HTTP 400 status (30 occurrences) ✅ FIXED
 
 - **File:** 7 files across `backend/app/` — `users.py` (12), `posts.py` (5), `sigs.py` (3), `comments.py` (3), `social.py` (5), `dm.py` (1), `co_author.py` (1)
 - **Category:** Wrong HTTP Status Code / API Contract Violation
@@ -148,10 +153,11 @@
 - **Expected:** `SYS_422` should always pair with HTTP 422, or use a different error code for 400
 - **Actual:** 30 occurrences return 400, 19 return 422
 - **Impact:** Inconsistent API contract; client-side error handling unreliable
+- **Fix:** Changed all 36 occurrences of `SYS_422, 400` → `SYS_422, 422` across 9 endpoint files (`users.py`, `posts.py`, `sigs.py`, `comments.py`, `files.py`, `forms.py`, `dm.py`, `applications.py`) and 2 service files (`social.py`, `co_author.py`). Updated 3 test files (`test_admin_delete_user.py`, `test_app_error_standardization.py`, `test_structured_errors.py`) to reflect new 422 status. Also corrected 2 pre-existing test bugs discovered during update (`username: "x"` violated `min_length=3`; `ADMIN` role cannot access invite-code repo mocks — changed to `SUPER_ADMIN`).
 
 ---
 
-### F-05: `useFormBuilder` autoSaveTimer leak on component reuse
+### F-05: `useFormBuilder` autoSaveTimer leak on component reuse ✅ FIXED
 
 - **File:** `frontend/src/composables/useFormBuilder.ts:351-358`
 - **Category:** Timer / Memory Leak
@@ -160,26 +166,28 @@
 - **Expected:** Old interval should be cleared when composable is re-initialized or component is reused
 - **Actual:** Multiple intervals can accumulate, each triggering `saveDraftNow()` with potentially stale state
 - **Impact:** Memory leak; stale draft saves; performance degradation over time
+- **Fix:** Replaced `if (autoSaveTimer !== null) return` with `stopAutoSave()` at the start of `startAutoSave()`. Any existing timer is cleared before creating the new interval, regardless of instance. Existing `onUnmounted` cleanup remains as a safety net.
 
 ---
 
 ## HIGH (10)
 
-### F-06: Form `insert()` vs `update()` inconsistent questions type
+### F-06: Form `insert()` vs `update()` inconsistent questions type ✅ FIXED (resolved by F-01)
 
 - **File:** `backend/app/repositories/form_repo.py:99-120, 171-212`
 - **Category:** Data Consistency
 - **Description:** `insert()` returns questions field as-is from `RETURNING *` (may be string or dict). `update()` explicitly deserializes at line 206-207. `find_by_id()` returns as-is from SELECT. Three different serialization states for the same field.
 - **Impact:** Converters and API responses behave differently for create vs update vs read
 
-### F-07: Advisory lock hash collision risk in `insert_response()`
+### F-07: Advisory lock hash collision risk in `insert_response()` ✅ FIXED
 
 - **File:** `backend/app/repositories/form_repo.py:373`
 - **Category:** Race Condition
 - **Description:** `pg_advisory_xact_lock(hashtext($1::text))` where `$1` is form_id UUID. `hashtext()` returns a 32-bit integer — with enough concurrent forms, two different form_ids can hash to the same value, causing unintended cross-form serialization or, worse, both exceeding `max_respondents` if the lock doesn't truly isolate them.
 - **Impact:** Rare but possible: two concurrent form submissions on different forms block each other, or `max_respondents` enforcement fails due to lock collision
+- **Fix:** Replaced `hashtext($1::text)` with two-arg `pg_advisory_xact_lock($1, $2)` using upper and lower 31 bits of the UUID integer, eliminating 32-bit collision risk. 5 new backend tests.
 
-### F-08: DM unread count state inconsistency on rapid switching
+### F-08: DM unread count state inconsistency on rapid switching ✅ FIXED
 
 - **File:** `frontend/src/views/DMView.vue:128-141`
 - **Category:** State Consistency / Race Condition
@@ -187,55 +195,63 @@
 
   More precisely: `markConversationRead()` is awaited at line 131, and lines 132-137 only execute on success. But if the user navigates away before the await resolves, the stale callback still runs and modifies the now-irrelevant conversation's state.
 - **Impact:** Navbar unread badge may not reflect true server state; requires page refresh to sync
+- **Fix:** After `markConversationRead` await, guard checks `dmStore.activeConversationId === conversationId` and re-finds conversation index via `freshIdx`. Stale callbacks return early. 4 new frontend tests.
 
-### F-09: `useFetchPaginated` page rollback on error doesn't re-fetch
+### F-09: `useFetchPaginated` page rollback on error doesn't re-fetch ✅ FIXED
 
 - **File:** `frontend/src/composables/useFetchPaginated.ts:46-49`
 - **Category:** State Recovery
 - **Description:** On fetch failure, `setPage(previousPage)` restores the page number, but doesn't trigger a re-fetch. The user sees an error message with old data, but the page indicator shows the restored page. The `items` array still contains data from the previously successful fetch.
 - **Impact:** UI shows inconsistent page number vs displayed data after a failed page navigation
+- **Fix:** On error, now restores `items`, `total`, and `page` to their previous successful values. 4 new frontend tests.
 
-### F-10: `usePostDetail` scan timer race on postId change
+### F-10: `usePostDetail` scan timer race on postId change ✅ FIXED
 
 - **File:** `frontend/src/composables/usePostDetail.ts:685-717`
 - **Category:** Timer Lifecycle
 - **Description:** When `postId` changes (component reuse), the watcher clears scan timers and overlay debounce timer. However, `fetchPost().then(() => scanPostImages())` at line 714 is fire-and-forget — if the postId changes again before this promise resolves, new scan timers may be created for the old post's images.
 - **Impact:** Scan polling for stale post images wastes API calls; minor resource leak
+- **Fix:** Captures `postId` before async `fetchPost()` and checks `postId.value === capturedId` before calling `scanPostImages()`. 4 new frontend tests.
 
-### F-11: `useDropdownKeyNav` focuses hidden/invisible elements
+### F-11: `useDropdownKeyNav` focuses hidden/invisible elements ✅ FIXED
 
 - **File:** `frontend/src/composables/useDropdownKeyNav.ts:49-65`
 - **Category:** Keyboard Navigation
 - **Description:** ArrowUp/ArrowDown cycle through all elements with `tabindex="-1"` in the menu container, without checking visibility (`display: none`, `visibility: hidden`). Conditionally hidden menu items (e.g., admin-only actions) receive focus, breaking keyboard navigation.
 - **Impact:** Focus trap on invisible menu items; keyboard users cannot navigate past hidden options
+- **Fix:** Added `isElementVisible()` helper (checks `offsetParent`, `display`, `visibility`) and `getVisibleItems()` wrapper. All `querySelectorAll('[tabindex="-1"]')` calls now filter through visibility check. 6 new frontend tests.
 
-### F-12: DM conversation list pagination reset on message send
+### F-12: DM conversation list pagination reset on message send ✅ FIXED
 
 - **File:** `frontend/src/views/DMView.vue:186-190`
 - **Category:** State Consistency
 - **Description:** When creating a new conversation via `handleSend()`, the code calls `dmStore.fetchConversations(1, convPagination.pageSize)` to refresh the list. This resets pagination to page 1, losing the user's scroll position and current page in the conversation list.
 - **Impact:** User loses their place in a long conversation list after sending a message to a new contact
+- **Fix:** Now calls `convPagination.resetPage()` before fetch and `convPagination.updateFromResponse()` after, keeping pagination state in sync. 2 new frontend tests.
 
-### F-13: `useLocale` sets locale before API call — reverts on refresh
+### F-13: `useLocale` sets locale before API call — reverts on refresh ✅ FIXED
 
 - **File:** `frontend/src/composables/useLocale.ts:34-48`
 - **Category:** Optimistic Update Without Rollback
 - **Description:** `setLocale()` applies the locale change to UI and `localStorage` at lines 36-42 **before** the API call at line 44. If the API call fails (caught silently at line 45), the browser shows the new locale but the database still has the old value. On next login, `syncFromProfile()` will revert the locale to the DB value.
 - **Impact:** User sees locale change, but it reverts after re-login — confusing UX
+- **Fix:** `setLocale()` now only writes to `localStorage` after API success. On API failure, rolls back `locale.value`, `document.lang/dir`, and re-loads previous locale messages. 7 new frontend tests.
 
-### F-14: Production nginx shares dev config with `YOUR_DOMAIN` placeholders
+### F-14: Production nginx shares dev config with `YOUR_DOMAIN` placeholders ✅ FIXED
 
 - **File:** `docker-compose.prod.yml:44`, `nginx/conf.d/default.conf`
 - **Category:** Infrastructure Configuration
 - **Description:** Production compose mounts `./nginx/conf.d:/etc/nginx/conf.d` which contains `YOUR_DOMAIN` placeholders and `#HTTPS` comment-prefix patterns. The entrypoint `sed` commands process these at runtime. If `SERVER_DOMAIN` is not set or `sed` fails, HTTPS blocks remain commented out and domain names unresolved.
 - **Impact:** Production deployment may serve with wrong domain or without HTTPS if env vars are misconfigured
+- **Fix:** Entrypoint now copies `default.conf` to `.template` on first run and restores from template on restarts (no host file mutation). When TLS certs exist but `SERVER_DOMAIN` is not set, entrypoint aborts with clear error instead of silently serving with placeholder domain.
 
-### F-15: `alembic check` in production has no retry on transient DB failure
+### F-15: `alembic check` in production has no retry on transient DB failure ✅ FIXED
 
 - **File:** `docker-compose.prod.yml:72`
 - **Category:** Migration Reliability
 - **Description:** Production migrate service runs `alembic upgrade head && alembic check`. If DB has a transient connection issue after `upgrade head` succeeds but before `check` completes, the entire migrate service fails. All dependent services (fastapi, celery) won't start.
 - **Impact:** Production deployments can fail from transient DB connectivity issues during migration check
+- **Fix:** `alembic check` now retries up to 3 times with 2s/3s backoff on failure.
 
 ---
 

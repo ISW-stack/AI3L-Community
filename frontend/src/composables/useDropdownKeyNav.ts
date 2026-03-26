@@ -8,9 +8,21 @@ export interface DropdownKeyNavOptions {
   triggerSelector?: string
 }
 
+function isElementVisible(el: HTMLElement): boolean {
+  if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') return false
+  const style = getComputedStyle(el)
+  return style.display !== 'none' && style.visibility !== 'hidden'
+}
+
 export function useDropdownKeyNav(options: DropdownKeyNavOptions) {
   const getIsOpen = () => {
     return isRef(options.isOpen) ? options.isOpen.value : options.isOpen()
+  }
+
+  const getVisibleItems = (wrapper: Element): HTMLElement[] => {
+    return Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]')).filter(
+      isElementVisible,
+    )
   }
 
   const handleDropdownKeydown = (e: KeyboardEvent) => {
@@ -28,7 +40,7 @@ export function useDropdownKeyNav(options: DropdownKeyNavOptions) {
       options.onOpen()
 
       nextTick(() => {
-        const menuItems = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
+        const menuItems = getVisibleItems(wrapper)
         menuItems[0]?.focus()
       })
       return
@@ -48,7 +60,7 @@ export function useDropdownKeyNav(options: DropdownKeyNavOptions) {
 
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
-      const items = Array.from(wrapper.querySelectorAll<HTMLElement>('[tabindex="-1"]'))
+      const items = getVisibleItems(wrapper)
       const current = document.activeElement as HTMLElement
       const idx = items.indexOf(current)
 

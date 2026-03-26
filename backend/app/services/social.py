@@ -20,7 +20,7 @@ async def send_friend_request(
 ) -> dict:
     """Send a friend request. Auto-accepts if reverse pending request exists."""
     if requester_id == addressee_id:
-        raise AppError(ErrorCode.SYS_422, 400, "Cannot send a friend request to yourself.")
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot send a friend request to yourself.")
 
     async with pool.acquire() as conn:
         # Wrap all checks + insert in transaction to prevent TOCTOU races
@@ -93,7 +93,7 @@ async def accept_friend_request(
             if not friendship:
                 raise AppError(ErrorCode.SYS_404, 404, "Friend request not found.")
             if friendship["status"] != "PENDING":
-                raise AppError(ErrorCode.SYS_422, 400, "Request is not pending.")
+                raise AppError(ErrorCode.SYS_422, 422, "Request is not pending.")
             if friendship["addressee_id"] != user_id:
                 raise AppError(ErrorCode.SYS_403, 403, "Only the addressee can accept.")
 
@@ -141,7 +141,7 @@ async def reject_friend_request(
             if not friendship:
                 raise AppError(ErrorCode.SYS_404, 404, "Friend request not found.")
             if friendship["status"] != "PENDING":
-                raise AppError(ErrorCode.SYS_422, 400, "Request is not pending.")
+                raise AppError(ErrorCode.SYS_422, 422, "Request is not pending.")
             if friendship["addressee_id"] != user_id:
                 raise AppError(ErrorCode.SYS_403, 403, "Only the addressee can reject.")
             await social_repo.reject_friendship(conn, friendship_id)
@@ -180,7 +180,7 @@ async def follow_user(pool: asyncpg.Pool, follower_id: uuid.UUID, following_id: 
     duplicate follows.
     """
     if follower_id == following_id:
-        raise AppError(ErrorCode.SYS_422, 400, "Cannot follow yourself.")
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot follow yourself.")
 
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -253,7 +253,7 @@ async def block_user(
 ) -> dict:
     """Block a user. Cascades: removes friendship + follows between them."""
     if blocker_id == blocked_id:
-        raise AppError(ErrorCode.SYS_422, 400, "Cannot block yourself.")
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot block yourself.")
 
     async with pool.acquire() as conn:
         # Single transaction: count check + delete friendship + follows + insert block

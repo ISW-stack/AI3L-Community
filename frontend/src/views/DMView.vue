@@ -129,10 +129,14 @@ async function selectConversation(conversationId: string, otherUserId: string) {
   if (convIdx >= 0 && dmStore.conversations[convIdx].unread_count > 0) {
     try {
       await dmApi.markConversationRead(conversationId)
-      const prevUnread = dmStore.conversations[convIdx].unread_count
+      // Guard: user may have switched away during await
+      if (dmStore.activeConversationId !== conversationId) return
+      const freshIdx = dmStore.conversations.findIndex((c) => c.id === conversationId)
+      if (freshIdx < 0) return
+      const prevUnread = dmStore.conversations[freshIdx].unread_count
       dmStore.unreadCount = Math.max(0, dmStore.unreadCount - prevUnread)
-      dmStore.conversations[convIdx] = {
-        ...dmStore.conversations[convIdx],
+      dmStore.conversations[freshIdx] = {
+        ...dmStore.conversations[freshIdx],
         unread_count: 0,
       }
     } catch {
@@ -185,8 +189,11 @@ async function handleSend(content: string, file?: File) {
       // If no active conversation, set it from the response
       if (!dmStore.activeConversationId) {
         dmStore.setActiveConversation(msg.conversation_id)
-        // Refresh conversations to get the new one
+        // Refresh conversations to get the new one — reset to page 1
+        // so the new conversation appears at the top
+        convPagination.resetPage()
         await dmStore.fetchConversations(1, convPagination.pageSize)
+        convPagination.updateFromResponse(dmStore.conversationsTotal)
       }
       // Add message to list
       const exists = dmStore.messages.some((m) => m.id === msg.id)

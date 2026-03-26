@@ -93,7 +93,7 @@ async def update_my_profile(
             **provided,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     if user is None:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
     return await async_user_to_response(user)
@@ -107,7 +107,7 @@ async def upload_avatar(
     """Upload avatar image (PNG/JPEG, max 2MB)."""
     data = await file.read(MAX_AVATAR_SIZE + 1)
     if len(data) > MAX_AVATAR_SIZE:
-        raise AppError(ErrorCode.SYS_422, 400, "File size exceeds 2MB limit.")
+        raise AppError(ErrorCode.SYS_422, 422, "File size exceeds 2MB limit.")
     try:
         user = await upload_user_avatar(
             user_id=current_user["sub"],
@@ -116,9 +116,9 @@ async def upload_avatar(
             filename=file.filename or "",
         )
     except ServiceValidationError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     except StorageQuotaError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     except RateLimitError as e:
         raise AppError(ErrorCode.SYS_429, 429, str(e))
     except ServiceNotFoundError as e:
@@ -151,7 +151,7 @@ async def change_my_password(
             msg.startswith(prefix) for prefix in ("Password ", "Current ", "New ", "Incorrect ")
         ):
             msg = "Invalid input."
-        raise AppError(ErrorCode.SYS_422, 400, msg)
+        raise AppError(ErrorCode.SYS_422, 422, msg)
 
     # Audit log (best-effort, via event bus)
     ip = request.client.host if request.client else None
@@ -372,7 +372,7 @@ async def admin_delete_user(
 ) -> MessageResponse:
     """SUPER_ADMIN soft-deletes (anonymizes) another user."""
     if str(user_id) == current_user["sub"]:
-        raise AppError(ErrorCode.SYS_422, 400, "Cannot delete yourself.")
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot delete yourself.")
 
     target = await get_user_by_id(user_id)
     if target is None:
@@ -482,11 +482,11 @@ async def admin_create_account(
 ) -> UserResponse:
     error = validate_password_policy(req.password)
     if error:
-        raise AppError(ErrorCode.SYS_422, 400, error)
+        raise AppError(ErrorCode.SYS_422, 422, error)
 
     valid_roles = {UserRole.MEMBER.value, UserRole.ADMIN.value}
     if req.role not in valid_roles:
-        raise AppError(ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}")
+        raise AppError(ErrorCode.SYS_422, 422, f"Role must be one of: {', '.join(valid_roles)}")
 
     # Only SUPER_ADMIN can create ADMIN accounts
     if req.role == UserRole.ADMIN.value and current_user["role"] != UserRole.SUPER_ADMIN.value:
@@ -513,16 +513,16 @@ async def change_user_role(
 ) -> UserResponse:
     valid_roles = {r.value for r in UserRole if r != UserRole.GUEST}
     if req.role not in valid_roles:
-        raise AppError(ErrorCode.SYS_422, 400, f"Role must be one of: {', '.join(valid_roles)}")
+        raise AppError(ErrorCode.SYS_422, 422, f"Role must be one of: {', '.join(valid_roles)}")
 
     # Prevent self-demotion
     if str(user_id) == current_user["sub"]:
-        raise AppError(ErrorCode.SYS_422, 400, "Cannot change your own role.")
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot change your own role.")
 
     try:
         user = await update_user_role(user_id, req.role)
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     if user is None:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
@@ -559,7 +559,7 @@ async def ban_user_endpoint(
 ) -> MessageResponse:
     """Ban a user: set is_banned=true, revoke all sessions, force logout via WS."""
     if str(user_id) == current_user["sub"]:
-        raise AppError(ErrorCode.SYS_422, 400, "Cannot ban yourself.")
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot ban yourself.")
 
     result = await ban_user(user_id, req.reason)
     if not result:

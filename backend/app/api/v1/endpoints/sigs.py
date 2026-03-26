@@ -192,7 +192,7 @@ async def remove_sig_member(
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     # Prevent removing self via this endpoint
     if str(user_id) == current_user["sub"]:
-        raise AppError(ErrorCode.SYS_422, 400, "Use the leave endpoint to remove yourself.")
+        raise AppError(ErrorCode.SYS_422, 422, "Use the leave endpoint to remove yourself.")
 
     try:
         removed = await remove_member(
@@ -204,7 +204,7 @@ async def remove_sig_member(
     except PermissionError:
         raise AppError(ErrorCode.SYS_403, 403, "Not authorized.")
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     if not removed:
         raise AppError(ErrorCode.SYS_404, 404, "Member not found.")
     return MessageResponse(message="Member removed.")
@@ -251,7 +251,7 @@ async def demote_sig_sub_admin(
     except PermissionError:
         raise AppError(ErrorCode.SYS_403, 403, "Not authorized.")
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 400, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, str(e))
     return SigMemberResponse(**member)
 
 

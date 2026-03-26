@@ -164,7 +164,7 @@ async def delete_editor_file(
     """Delete an editor file from storage and decrement the user's storage counter."""
     # H-04: Consolidate all path validation into a single gate with one error message
     if ".." in key or not _SAFE_KEY_RE.match(key) or not key.startswith("editor/"):
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid file key.")
 
     # Only allow deletion of editor files owned by the user (or by admins)
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
@@ -186,7 +186,7 @@ async def delete_editor_file(
     if len(parts) >= 2:
         owner_user_id = parts[1]
     else:
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key format.")
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid file key format.")
 
     # Delete the file from storage
     try:
@@ -270,7 +270,7 @@ async def serve_file(
     Other files require ownership or admin role.
     """
     if ".." in key or not _SAFE_KEY_RE.match(key):
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid file key.")
 
     is_editor_file = key.startswith("editor/")
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
@@ -396,7 +396,7 @@ async def get_scan_status(
 ) -> dict:
     """Get VirusTotal scan status for a file."""
     if ".." in key or not _SAFE_KEY_RE.match(key):
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid file key.")
 
     # Ownership check: only the uploader or admin can check scan status
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
@@ -430,7 +430,7 @@ async def get_presigned_url(
     Other files require ownership.
     """
     if ".." in key or not _SAFE_KEY_RE.match(key):
-        raise AppError(ErrorCode.SYS_422, status.HTTP_400_BAD_REQUEST, "Invalid file key.")
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid file key.")
 
     is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     is_editor_file = key.startswith("editor/")

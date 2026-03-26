@@ -65,7 +65,7 @@ class TestAdminDeleteUser:
 
     @pytest.mark.anyio
     async def test_admin_delete_self_fails(self, client):
-        """DELETE /users/{own_id} -> 400 when admin tries to delete themselves."""
+        """DELETE /users/{own_id} -> 422 when admin tries to delete themselves."""
         user_id = str(uuid.uuid4())
 
         try:
@@ -73,7 +73,7 @@ class TestAdminDeleteUser:
             resp = await client.delete(
                 f"/api/v1/users/{user_id}",
             )
-            assert resp.status_code == 400
+            assert resp.status_code == 422
             assert "Cannot delete yourself" in resp.json()["detail"]["message"]
         finally:
             _clear_overrides()

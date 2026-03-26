@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useDropdownKeyNav } from '../useDropdownKeyNav'
 
+// jsdom does not compute layout, so offsetParent is always null.
+// isElementVisible() checks offsetParent to detect hidden elements.
+// We stub offsetParent on each item so it returns a truthy value for
+// "visible" elements and null for elements we want to treat as hidden.
+function stubOffsetParent(el: HTMLElement, parent: HTMLElement | null) {
+  Object.defineProperty(el, 'offsetParent', {
+    get: () => parent,
+    configurable: true,
+  })
+}
+
 function buildDOM(wrapperClass: string, triggerSelector?: string) {
   const wrapper = document.createElement('div')
   wrapper.classList.add(wrapperClass)
@@ -22,6 +33,8 @@ function buildDOM(wrapperClass: string, triggerSelector?: string) {
     item.textContent = `Item ${i}`
     menu.appendChild(item)
     items.push(item)
+    // By default, all items are "visible" (offsetParent = wrapper)
+    stubOffsetParent(item, wrapper)
   }
   wrapper.appendChild(menu)
 
@@ -237,6 +250,137 @@ describe('useDropdownKeyNav', () => {
 
     expect(onOpen).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  // ---------- F-11: hidden/invisible elements are skipped ----------
+
+  describe('skips hidden and invisible elements', () => {
+    it('ArrowDown skips display:none items', () => {
+      const { items } = buildDOM(wrapperClass)
+      // Hide the second item
+      items[1].style.display = 'none'
+      stubOffsetParent(items[1], null)
+      const isOpen = ref(true)
+      const { handleDropdownKeydown } = useDropdownKeyNav({
+        isOpen,
+        onOpen,
+        onClose,
+        wrapperClass,
+      })
+
+      items[0].focus()
+      expect(document.activeElement).toBe(items[0])
+
+      // ArrowDown should skip item[1] (display:none) and go to item[2]
+      handleDropdownKeydown(makeKeyEvent('ArrowDown', items[0]))
+      expect(document.activeElement).toBe(items[2])
+    })
+
+    it('ArrowUp skips display:none items', () => {
+      const { items } = buildDOM(wrapperClass)
+      items[1].style.display = 'none'
+      stubOffsetParent(items[1], null)
+      const isOpen = ref(true)
+      const { handleDropdownKeydown } = useDropdownKeyNav({
+        isOpen,
+        onOpen,
+        onClose,
+        wrapperClass,
+      })
+
+      items[2].focus()
+      expect(document.activeElement).toBe(items[2])
+
+      // ArrowUp should skip item[1] (display:none) and go to item[0]
+      handleDropdownKeydown(makeKeyEvent('ArrowUp', items[2]))
+      expect(document.activeElement).toBe(items[0])
+    })
+
+    it('ArrowDown skips visibility:hidden items', () => {
+      const { items } = buildDOM(wrapperClass)
+      // visibility:hidden keeps offsetParent in real browsers, so we keep it set
+      // isElementVisible detects it via getComputedStyle().visibility check
+      items[1].style.visibility = 'hidden'
+      const isOpen = ref(true)
+      const { handleDropdownKeydown } = useDropdownKeyNav({
+        isOpen,
+        onOpen,
+        onClose,
+        wrapperClass,
+      })
+
+      items[0].focus()
+
+      handleDropdownKeydown(makeKeyEvent('ArrowDown', items[0]))
+      expect(document.activeElement).toBe(items[2])
+    })
+
+    it('wraps correctly when last visible item reached', () => {
+      const { items } = buildDOM(wrapperClass)
+      // Hide item[2] — only item[0] and item[1] are visible
+      items[2].style.display = 'none'
+      stubOffsetParent(items[2], null)
+      const isOpen = ref(true)
+      const { handleDropdownKeydown } = useDropdownKeyNav({
+        isOpen,
+        onOpen,
+        onClose,
+        wrapperClass,
+      })
+
+      items[1].focus()
+
+      // ArrowDown from last visible item should wrap to first visible item
+      handleDropdownKeydown(makeKeyEvent('ArrowDown', items[1]))
+      expect(document.activeElement).toBe(items[0])
+    })
+
+    it('ArrowDown when closed focuses first visible item (skips hidden)', async () => {
+      const { trigger, items } = buildDOM(wrapperClass)
+      // Hide item[0]
+      items[0].style.display = 'none'
+      stubOffsetParent(items[0], null)
+      const isOpen = ref(false)
+      const { handleDropdownKeydown } = useDropdownKeyNav({
+        isOpen,
+        onOpen,
+        onClose,
+        wrapperClass,
+      })
+
+      handleDropdownKeydown(makeKeyEvent('ArrowDown', trigger))
+
+      await nextTick()
+
+      // Should focus item[1] since item[0] is hidden
+      expect(document.activeElement).toBe(items[1])
+    })
+
+    it('navigation works when multiple consecutive items are hidden', () => {
+      const { items } = buildDOM(wrapperClass)
+      // Hide items[0] and items[1] — only items[2] is visible
+      items[0].style.display = 'none'
+      stubOffsetParent(items[0], null)
+      items[1].style.visibility = 'hidden'
+      stubOffsetParent(items[1], null)
+      const isOpen = ref(true)
+      const { handleDropdownKeydown } = useDropdownKeyNav({
+        isOpen,
+        onOpen,
+        onClose,
+        wrapperClass,
+      })
+
+      items[2].focus()
+
+      // ArrowDown from the only visible item wraps to itself
+      handleDropdownKeydown(makeKeyEvent('ArrowDown', items[2]))
+      expect(document.activeElement).toBe(items[2])
+
+      // ArrowUp also wraps to itself
+      handleDropdownKeydown(makeKeyEvent('ArrowUp', items[2]))
+      expect(document.activeElement).toBe(items[2])
+    })
   })
 
   it('works with getter function for isOpen', () => {

@@ -52,7 +52,7 @@ async def apply_for_membership(
     if current_user["role"] != "GUEST":
         raise AppError(
             ErrorCode.SYS_422,
-            status.HTTP_400_BAD_REQUEST,
+            422,
             "Only guests can apply for membership.",
         )
 

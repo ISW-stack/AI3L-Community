@@ -33,7 +33,7 @@ async def invite_co_author(
     """
     # U5: Self-invite check first (cheap, no DB/Redis needed)
     if target_user_id == user_id:
-        raise AppError(ErrorCode.SYS_422, 400, "Cannot invite yourself as a co-author.")
+        raise AppError(ErrorCode.SYS_422, 422, "Cannot invite yourself as a co-author.")
 
     # Block check: cannot invite a blocked user as co-author
     try:

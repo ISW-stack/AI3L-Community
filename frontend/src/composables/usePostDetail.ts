@@ -710,8 +710,11 @@ export function usePostDetail(options: UsePostDetailOptions) {
       clearTimeout(overlayDebounceTimer)
       overlayDebounceTimer = null
     }
-    // Re-fetch
-    fetchPost().then(() => scanPostImages())
+    // Re-fetch — capture postId to prevent scan timers for stale post
+    const capturedId = newId
+    fetchPost().then(() => {
+      if (postId.value === capturedId) scanPostImages()
+    })
     fetchComments()
     fetchCoAuthors()
     fetchCitedBy()

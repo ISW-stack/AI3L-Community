@@ -199,7 +199,7 @@ async def send_message(
         fname = file.filename or ""
         ext = os.path.splitext(fname)[1].lower()
         if ext in _DM_BLOCKED_EXTENSIONS:
-            raise AppError(ErrorCode.SYS_422, 400, f"File type '{ext}' is not allowed.")
+            raise AppError(ErrorCode.SYS_422, 422, f"File type '{ext}' is not allowed.")
 
         # L-15: Read with size limit to avoid unbounded memory usage
         file_data = await file.read(DM_MAX_ATTACHMENT_SIZE + 1)
