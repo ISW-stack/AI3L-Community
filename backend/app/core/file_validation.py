@@ -63,17 +63,38 @@ def validate_docx_structure(data: bytes) -> bool:
         return False
 
 
-def validate_ooxml_structure(data: bytes) -> bool:
-    """Verify that a ZIP-based file contains valid Office Open XML structure.
+def validate_xlsx_structure(data: bytes) -> bool:
+    """Verify that a ZIP-based file is actually a valid XLSX.
 
-    Works for XLSX, PPTX, and other OOXML formats.
-    Checks only for [Content_Types].xml (the universal OOXML marker).
+    M-07: Checks for [Content_Types].xml AND xl/ directory to prevent
+    JAR/APK files renamed to .xlsx from passing validation.
     """
     import zipfile
 
     try:
         with zipfile.ZipFile(BytesIO(data)) as zf:
-            return "[Content_Types].xml" in zf.namelist()
+            names = zf.namelist()
+            has_content_types = "[Content_Types].xml" in names
+            has_xl_dir = any(n.startswith("xl/") for n in names)
+            return has_content_types and has_xl_dir
+    except (zipfile.BadZipFile, Exception):
+        return False
+
+
+def validate_pptx_structure(data: bytes) -> bool:
+    """Verify that a ZIP-based file is actually a valid PPTX.
+
+    M-07: Checks for [Content_Types].xml AND ppt/ directory to prevent
+    JAR/APK files renamed to .pptx from passing validation.
+    """
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(BytesIO(data)) as zf:
+            names = zf.namelist()
+            has_content_types = "[Content_Types].xml" in names
+            has_ppt_dir = any(n.startswith("ppt/") for n in names)
+            return has_content_types and has_ppt_dir
     except (zipfile.BadZipFile, Exception):
         return False
 
@@ -92,10 +113,64 @@ _PDF_DANGEROUS_KEYS = {
 }
 
 
+def _strip_dangerous_keys_recursive(obj: object, visited: set[int] | None = None) -> None:
+    """M-19: Recursively traverse all PDF objects and strip dangerous keys.
+
+    Handles dictionaries (including annotations, embedded files) and arrays.
+    Uses a visited set to avoid infinite loops in circular references.
+    pikepdf wraps all objects as pikepdf.Object; use _type_code to detect
+    the underlying type (dictionary vs array vs other).
+    """
+    import pikepdf
+
+    if visited is None:
+        visited = set()
+
+    obj_id = id(obj)
+    if obj_id in visited:
+        return
+    visited.add(obj_id)
+
+    type_code = getattr(obj, "_type_code", None)
+
+    if type_code == pikepdf.ObjectType.dictionary:
+        for key in _PDF_DANGEROUS_KEYS:
+            try:
+                if key in obj:  # type: ignore[operator]
+                    del obj[key]  # type: ignore[arg-type]
+            except Exception:
+                pass
+        try:
+            for key in list(obj.keys()):  # type: ignore[union-attr]
+                _strip_dangerous_keys_recursive(obj[key], visited)  # type: ignore[index]
+        except Exception:
+            pass
+    elif type_code == pikepdf.ObjectType.array:
+        try:
+            for item in obj:  # type: ignore[union-attr]
+                _strip_dangerous_keys_recursive(item, visited)
+        except Exception:
+            pass
+    elif type_code == pikepdf.ObjectType.stream:
+        # Streams have dict-like keys too (e.g. embedded file streams)
+        try:
+            for key in list(obj.keys()):  # type: ignore[union-attr]
+                try:
+                    if key in _PDF_DANGEROUS_KEYS:
+                        del obj[key]  # type: ignore[arg-type]
+                    else:
+                        _strip_dangerous_keys_recursive(obj[key], visited)  # type: ignore[index]
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+
 def sanitize_pdf(data: bytes) -> bytes:
     """Remove JavaScript, auto-actions, and macros from a PDF.
 
     Uses pikepdf (C++ qpdf engine) for fast, robust PDF manipulation.
+    M-19: Recursively traverses ALL PDF objects (annotations, embedded files, etc.)
     """
     import pikepdf
 
@@ -104,22 +179,76 @@ def sanitize_pdf(data: bytes) -> bytes:
     except pikepdf.PdfError as exc:
         raise ValueError(f"Invalid or corrupted PDF: {exc}") from exc
 
-    # Strip dangerous keys from the document root catalog
-    for key in _PDF_DANGEROUS_KEYS:
-        if key in pdf.Root:
-            del pdf.Root[key]
+    # Recursively strip dangerous keys from root catalog
+    _strip_dangerous_keys_recursive(pdf.Root)
 
-    # Strip dangerous keys from each page
+    # Recursively strip dangerous keys from each page (including annotations)
     for page in pdf.pages:
-        page_obj = page.obj
-        for key in _PDF_DANGEROUS_KEYS:
-            if key in page_obj:
-                del page_obj[key]
+        _strip_dangerous_keys_recursive(page.obj)
 
     buf = BytesIO()
     pdf.save(buf)
     pdf.close()  # release pikepdf internal structures before returning
     return buf.getvalue()
+
+
+def strip_exif_metadata(data: bytes, content_type: str) -> bytes:
+    """Strip EXIF metadata from images using Pillow.
+
+    M-04: Remove GPS coordinates, camera serial numbers, timestamps, etc.
+    Returns the cleaned image bytes. Non-image types are returned unchanged.
+    """
+    if content_type not in ("image/jpeg", "image/png", "image/webp"):
+        return data
+    try:
+        from PIL import Image
+
+        img = Image.open(BytesIO(data))
+        # Create a new image without EXIF data
+        clean = Image.new(img.mode, img.size)
+        clean.putdata(list(img.getdata()))
+        buf = BytesIO()
+        fmt = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WEBP"}[content_type]
+        clean.save(buf, format=fmt, quality=95 if fmt == "JPEG" else None)
+        return buf.getvalue()
+    except Exception:
+        return data  # Best-effort: return original on failure
+
+
+def validate_gif_structure(data: bytes) -> bytes:
+    """Re-encode GIF via Pillow to strip non-image data (M-03).
+
+    Prevents GIF/HTML polyglot attacks by re-encoding through Pillow,
+    which discards any non-GIF payload data.
+    """
+    try:
+        from PIL import Image
+
+        img = Image.open(BytesIO(data))
+        if img.format != "GIF":
+            raise ValueError("Not a valid GIF image")
+        buf = BytesIO()
+        # Preserve animation if present
+        if getattr(img, "n_frames", 1) > 1:
+            frames = []
+            durations = []
+            for i in range(img.n_frames):
+                img.seek(i)
+                frames.append(img.copy())
+                durations.append(img.info.get("duration", 100))
+            frames[0].save(
+                buf,
+                format="GIF",
+                save_all=True,
+                append_images=frames[1:],
+                duration=durations,
+                loop=img.info.get("loop", 0),
+            )
+        else:
+            img.save(buf, format="GIF")
+        return buf.getvalue()
+    except Exception as exc:
+        raise ValueError(f"Invalid GIF file: {exc}") from exc
 
 
 def validate_avatar(content_type: str, data: bytes) -> None:
@@ -182,9 +311,19 @@ def validate_editor_file(filename: str, data: bytes) -> tuple[str, bytes]:
                 "Invalid DOCX file structure. File may be corrupted or is not a valid Word document.",
             )
 
+    # M-03: Re-encode GIFs to strip polyglot payloads
+    if expected_type == "image/gif":
+        try:
+            data = validate_gif_structure(data)
+        except ValueError as exc:
+            raise AppError(ErrorCode.FILE_001, 400, str(exc))
+
     # Sanitize PDFs
     if expected_type == "application/pdf":
         data = sanitize_pdf(data)
+
+    # M-04: Strip EXIF metadata from images
+    data = strip_exif_metadata(data, expected_type)
 
     return expected_type, data
 

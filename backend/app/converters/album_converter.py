@@ -2,6 +2,7 @@
 
 from app.converters.user_converter import async_resolve_avatar_url
 from app.core.async_storage import generate_presigned_url
+from app.repositories import file_scan_repo
 
 
 async def to_album_response(row: dict) -> dict:
@@ -36,7 +37,7 @@ async def to_album_photo_response(row: dict) -> dict:
     storage_url = None
     thumbnail_url = None
 
-    if storage_key:
+    if storage_key and await file_scan_repo.is_clean(storage_key):
         try:
             storage_url = await generate_presigned_url(
                 storage_key,

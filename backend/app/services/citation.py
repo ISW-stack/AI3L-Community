@@ -96,16 +96,26 @@ async def sync_post_citations(
                 )
                 cited_map = {r["id"]: r["user_id"] for r in cited_rows}
 
-                # Batch-insert all valid citations
+                # M-06: Batch INSERT instead of N individual inserts
+                insert_rows = []
                 for cited_id in to_add_list:
                     if cited_id not in cited_map:
                         continue
                     is_self = cited_map[cited_id] == author_uuid
-                    citation_id = uuid.uuid4()
-                    row = await citation_repo.insert_citation(
-                        conn, citation_id, post_id, cited_id, is_self
+                    insert_rows.append((uuid.uuid4(), post_id, cited_id, is_self))
+
+                if insert_rows:
+                    await conn.executemany(
+                        "INSERT INTO post_citations (id, citing_post_id, cited_post_id, is_self_citation) "
+                        "VALUES ($1, $2, $3, $4)",
+                        insert_rows,
                     )
-                    new_citations.append(row)
+                    inserted_ids = [r[0] for r in insert_rows]
+                    fetched = await conn.fetch(
+                        "SELECT * FROM post_citations WHERE id = ANY($1::uuid[])",
+                        inserted_ids,
+                    )
+                    new_citations = [dict(r) for r in fetched]
 
             # Recalculate citation counts for all affected posts
             affected_posts = set()

@@ -238,13 +238,13 @@ describe('ProfileView', () => {
 
   it('shows error message on save failure', async () => {
     mockUpdateProfile.mockRejectedValue({
-      response: { data: { detail: 'Update failed' } },
+      response: { data: { detail: 'Something went wrong' } },
     })
     const { wrapper } = await mountProfile()
     const form = wrapper.find('form')
     await form.trigger('submit')
     await flushPromises()
-    expect(wrapper.text()).toContain('Update failed')
+    expect(wrapper.text()).toContain('Something went wrong')
   })
 
   it('switches to security tab', async () => {

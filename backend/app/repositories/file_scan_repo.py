@@ -64,6 +64,19 @@ async def delete_by_key(file_key: str) -> None:
         )
 
 
+async def is_clean(file_key: str) -> bool:
+    """Return True if the file has been scanned and is clean.
+
+    Returns True if no scan record exists (legacy files uploaded before scanning
+    was introduced, or file types that are not scanned).
+    Returns False if the scan record exists with a non-clean status (pending/malicious/unknown).
+    """
+    record = await find_by_key(file_key)
+    if record is None:
+        return True  # No scan record → pre-scanning legacy file, allow
+    return record.get("status") == "clean"
+
+
 async def delete_old_completed(days: int = 30) -> int:
     """Delete completed scan records older than *days*. Returns count deleted."""
     pool = get_pool()

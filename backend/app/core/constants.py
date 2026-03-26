@@ -33,7 +33,7 @@ MAX_ALBUM_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB hard limit at endpoint
 AVATAR_ALLOWED_TYPES = {"image/png", "image/jpeg"}
 
 # Presigned URL expiry
-PRESIGNED_URL_AVATAR_SECONDS = 86400 * 7  # 7 days
+PRESIGNED_URL_AVATAR_SECONDS = 3600  # 1 hour (short to limit stale-avatar window)
 PRESIGNED_URL_FILE_SECONDS = 3600  # 1 hour
 
 # Pagination defaults

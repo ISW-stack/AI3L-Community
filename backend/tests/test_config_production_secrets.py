@@ -12,6 +12,8 @@ class TestProductionSecretValidation:
         POSTGRES_PASSWORD="real_pg_password",
         REDIS_PASSWORD="real_redis_password",
         S3_SECRET_ACCESS_KEY="real_minio_password",
+        S3_ACCESS_KEY_ID="prod_access_key",
+        CORS_ORIGINS="https://example.com",
     )
 
     def test_rejects_default_jwt_secret_in_production(self):

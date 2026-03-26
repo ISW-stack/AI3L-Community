@@ -52,7 +52,7 @@ async def upload_editor_file(
     # Acquire per-user upload lock to prevent concurrent quota bypass
     redis = get_redis()
     lock_key = f"upload_lock:{user_id}"
-    acquired = await redis.set(lock_key, "1", nx=True, ex=120)
+    acquired = await redis.set(lock_key, "1", nx=True, ex=300)
     if not acquired:
         raise AppError(
             ErrorCode.SYS_429,
@@ -114,11 +114,24 @@ async def upload_editor_file(
     # Return stable proxy URL instead of expiring presigned URL
     url = f"/api/v1/files/content/{key}"
 
-    # Insert pending scan record
-    try:
-        await file_scan_repo.insert(key)
-    except Exception:
-        logger.warning("Failed to insert pending scan record for key=%s", key, exc_info=True)
+    # M-06: Insert pending scan record with retry to prevent ghost files
+    scan_inserted = False
+    for _scan_attempt in range(3):
+        try:
+            await file_scan_repo.insert(key)
+            scan_inserted = True
+            break
+        except Exception:
+            if _scan_attempt < 2:
+                import asyncio
+                await asyncio.sleep(0.5)
+            else:
+                logger.error(
+                    "Failed to insert scan record after 3 attempts for key=%s — "
+                    "file will be inaccessible until scan record is created",
+                    key,
+                    exc_info=True,
+                )
 
     # Fire-and-forget VirusTotal check (lazy import to avoid celery dependency at module load)
     scan_task_id = None

@@ -568,10 +568,10 @@ describe('AppNavbar', () => {
 
     it('should render logo icon and AI3L text', () => {
       const { wrapper } = mountNavbar()
-      // The logo area should contain an SVG icon (GraduationCap from lucide)
+      // The logo area should contain an img element (logo.png)
       const logoLink = wrapper.find('a[href="/"]')
       expect(logoLink.exists()).toBe(true)
-      expect(logoLink.find('svg').exists()).toBe(true)
+      expect(logoLink.find('img[alt="AI3L"]').exists()).toBe(true)
       // The logo text should be AI3L
       expect(logoLink.find('.text-brand-700').text()).toBe('AI3L')
     })

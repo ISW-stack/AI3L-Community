@@ -411,6 +411,7 @@ class TestSendMessageQuotaTOCTOU:
                 "app.core.storage.generate_presigned_url",
                 return_value="http://presigned",
             ),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}._validate_dm_file"),
             patch(
                 "app.repositories.user_repo.find_by_id",
@@ -564,6 +565,7 @@ class TestSendMessageEmptyAfterSanitization:
                 "app.core.storage.generate_presigned_url",
                 return_value="http://presigned",
             ),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}._validate_dm_file"),
             patch(f"{_SVC}.sanitize_html", return_value=""),
             patch(

@@ -19,7 +19,7 @@ from app.core.constants import (
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html, validate_magic_number
-from app.repositories import dm_repo
+from app.repositories import dm_repo, file_scan_repo
 
 # Definitive allowlist. The endpoint layer also blocks dangerous extensions
 # (_DM_BLOCKED_EXTENSIONS in endpoints/dm.py) as defense-in-depth.
@@ -105,14 +105,25 @@ def _validate_dm_file(file_name: str, file_data: bytes) -> None:
                 "Invalid DOCX structure. File may be corrupted or not a valid Word document.",
             )
 
-    if ext in (".xlsx", ".pptx"):
-        from app.core.file_validation import validate_ooxml_structure
+    # M-07: Validate XLSX/PPTX with type-specific directory checks
+    if ext == ".xlsx":
+        from app.core.file_validation import validate_xlsx_structure
 
-        if not validate_ooxml_structure(file_data):
+        if not validate_xlsx_structure(file_data):
             raise AppError(
                 ErrorCode.FILE_001,
                 400,
-                "Invalid Office document structure.",
+                "Invalid XLSX structure. File may be corrupted or not a valid Excel document.",
+            )
+
+    if ext == ".pptx":
+        from app.core.file_validation import validate_pptx_structure
+
+        if not validate_pptx_structure(file_data):
+            raise AppError(
+                ErrorCode.FILE_001,
+                400,
+                "Invalid PPTX structure. File may be corrupted or not a valid PowerPoint document.",
             )
 
     # H-04: Content validation for text-based formats
@@ -429,9 +440,9 @@ async def send_message(
                 )
         raise
 
-    # 11. Convert row and generate presigned URL if attachment
+    # 11. Convert row and generate presigned URL if attachment (scan-gated)
     msg = await async_row_to_message(row)
-    if attachment_key and not msg.get("is_recalled"):
+    if attachment_key and not msg.get("is_recalled") and await file_scan_repo.is_clean(attachment_key):
         from app.core.storage import generate_presigned_url
 
         msg["attachment_url"] = generate_presigned_url(
@@ -551,9 +562,13 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
                 conversation_id,
             )
 
-    # Convert and generate presigned URL
+    # Convert and generate presigned URL (scan-gated)
     msg = await async_row_to_message(updated_row)
-    if updated_row.get("attachment_key") and not msg.get("is_recalled"):
+    if (
+        updated_row.get("attachment_key")
+        and not msg.get("is_recalled")
+        and await file_scan_repo.is_clean(updated_row["attachment_key"])
+    ):
         from app.core.storage import generate_presigned_url
 
         msg["attachment_url"] = generate_presigned_url(
@@ -705,9 +720,14 @@ async def list_conversations(
     conversations = []
     for row in rows:
         conv = await async_row_to_conversation(row, user_id)
-        # Generate presigned URL for last message attachment if present
+        # Generate presigned URL for last message attachment if present (scan-gated)
         last_msg = conv.get("last_message")
-        if last_msg and last_msg.get("attachment_key") and not last_msg.get("is_recalled"):
+        if (
+            last_msg
+            and last_msg.get("attachment_key")
+            and not last_msg.get("is_recalled")
+            and await file_scan_repo.is_clean(last_msg["attachment_key"])
+        ):
             from app.core.storage import generate_presigned_url
 
             last_msg["attachment_url"] = generate_presigned_url(
@@ -735,7 +755,11 @@ async def list_messages(
     messages = []
     for row in rows:
         msg = await async_row_to_message(row)
-        if row.get("attachment_key") and not row.get("is_recalled"):
+        if (
+            row.get("attachment_key")
+            and not row.get("is_recalled")
+            and await file_scan_repo.is_clean(row["attachment_key"])
+        ):
             from app.core.storage import generate_presigned_url
 
             msg["attachment_url"] = generate_presigned_url(

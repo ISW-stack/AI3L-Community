@@ -50,9 +50,13 @@ async def download_file_metadata(key: str) -> tuple:
     return await loop.run_in_executor(None, _sync_download_metadata, key)
 
 
-async def generate_presigned_url(key: str, expires_in: int) -> str:
+async def generate_presigned_url(
+    key: str, expires_in: int, filename: str | None = None
+) -> str:
     loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, _sync_presigned, key, expires_in)
+    return await loop.run_in_executor(
+        None, _sync_presigned, key, expires_in, filename
+    )
 
 
 async def delete_file(key: str) -> None:

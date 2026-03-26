@@ -69,7 +69,8 @@ services:
 
   migrate:
     build: ./backend
-    command: ["alembic", "upgrade", "head"]
+    # M-14: Run migration then verify no pending revisions remain
+    command: ["sh", "-c", "alembic upgrade head && alembic check"]
     env_file:
       - .env
     depends_on:
@@ -86,6 +87,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # M-09: Read-only filesystem to prevent persistent backdoors
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M
     expose:
       - "8000"
     env_file:
@@ -150,7 +155,7 @@ services:
       - "-c"
       - "random_page_cost=1.1"
       - "-c"
-      - "statement_timeout=120000"
+      - "statement_timeout=60000"
       - "-c"
       - "idle_in_transaction_session_timeout=60000"
       - "-c"

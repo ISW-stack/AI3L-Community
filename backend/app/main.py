@@ -39,12 +39,24 @@ from app.core.storage import close_storage, init_storage
 
 async def bootstrap_super_admin() -> None:
     """Create or sync Super Admin credentials from .env."""
-    from app.core.security import async_hash_password, async_verify_password
+    from app.core.security import (
+        async_hash_password,
+        async_verify_password,
+        validate_password_policy,
+    )
     from app.repositories import user_repo
     from app.services.user import create_user, user_exists_by_username
 
     username = settings.SUPER_ADMIN_USERNAME
     password = settings.SUPER_ADMIN_PASSWORD
+
+    pw_error = validate_password_policy(password)
+    if pw_error:
+        msg = f"SUPER_ADMIN_PASSWORD does not meet password policy: {pw_error}"
+        if settings.FASTAPI_ENV == "production":
+            raise RuntimeError(msg)
+        else:
+            logger.warning(msg)
 
     if not await user_exists_by_username(username):
         await create_user(

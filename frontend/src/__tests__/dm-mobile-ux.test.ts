@@ -268,11 +268,8 @@ describe('Issue #1: DM split-panel mobile layout', () => {
     })
     await nextTick()
 
-    const container = wrapper.find('.flex.bg-surface.border')
-    expect(container.exists()).toBe(true)
-    // Vue/jsdom may resolve the duplicate height declarations;
-    // check that dvh is present in either the style attribute or the raw HTML
-    const html = container.html()
+    // The dvh height is on the root container div, not the inner flex panel
+    const html = wrapper.html()
     expect(html).toContain('dvh')
   })
 })
@@ -508,7 +505,7 @@ describe('Issue #6: MessageInput mobile enhancements', () => {
 
   it('send button has touch-friendly padding (p-2.5 on mobile)', () => {
     const wrapper = mountInput()
-    const sendBtn = wrapper.find('[aria-label="Send message"]')
+    const sendBtn = wrapper.find('[aria-label="Send Message"]')
     expect(sendBtn.classes()).toContain('p-2.5')
     expect(sendBtn.classes()).toContain('touch-manipulation')
   })

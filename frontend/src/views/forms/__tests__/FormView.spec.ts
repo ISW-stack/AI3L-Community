@@ -713,10 +713,8 @@ describe('FormView', () => {
         ],
       }
       const { wrapper } = await mountFormView({ form: wideRatingForm })
-      const vm = wrapper.vm as unknown as FormViewVm
 
-      expect(vm.ratingCount(wideRatingForm.questions[0])).toBe(10)
-      // Buttons should use compact class
+      // All 10 rating buttons should be rendered
       const ratingButtons = wrapper.findAll('button[type="button"]').filter((b) => {
         const text = b.text().trim()
         return !isNaN(Number(text)) && Number(text) >= 1 && Number(text) <= 10

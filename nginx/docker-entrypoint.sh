@@ -13,6 +13,11 @@ echo "[entrypoint] security-headers.conf generated (STORAGE_CSP_ORIGIN=${STORAGE
 # ── Substitute domain placeholder in nginx config ─────────────────
 if [ -n "${SERVER_DOMAIN:-}" ] && [ "$SERVER_DOMAIN" != "_" ]; then
     sed -i "s/YOUR_DOMAIN/${SERVER_DOMAIN}/g" /etc/nginx/conf.d/default.conf
+    # Abort if substitution failed (YOUR_DOMAIN still present)
+    if grep -q 'YOUR_DOMAIN' /etc/nginx/conf.d/default.conf; then
+        echo "[entrypoint] ERROR: YOUR_DOMAIN placeholder still present after substitution — aborting"
+        exit 1
+    fi
     echo "[entrypoint] server_name set to ${SERVER_DOMAIN}"
 else
     echo "[entrypoint] SERVER_DOMAIN not set — YOUR_DOMAIN placeholder unchanged (dev mode)"

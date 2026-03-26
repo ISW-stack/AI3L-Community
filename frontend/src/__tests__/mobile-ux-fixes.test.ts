@@ -137,7 +137,7 @@ describe('Issue #3: BaseButton mobile touch targets', () => {
       slots: { default: 'Click' },
     })
     expect(wrapper.classes()).toContain('min-h-[44px]')
-    expect(wrapper.classes()).toContain('sm:min-h-0')
+    expect(wrapper.classes()).toContain('lg:min-h-0')
   })
 
   it('sm size has min-h-[36px] for mobile touch target', () => {
@@ -222,9 +222,9 @@ describe('Issue #10: QuestionEditor mobile enhancements', () => {
     expect(src).toContain('touch-manipulation')
   })
 
-  it('action buttons have responsive padding (px-1.5 py-1 sm:px-1 sm:py-0)', () => {
+  it('action buttons have responsive padding (p-2 sm:px-1.5 sm:py-1)', () => {
     const src = readFileSync(resolve(__dirname, '../components/forms/QuestionEditor.vue'), 'utf-8')
-    expect(src).toContain('px-1.5 py-1 sm:px-1 sm:py-0')
+    expect(src).toContain('p-2 sm:px-1.5 sm:py-1')
   })
 
   it('form fields have responsive text size (text-base sm:text-sm)', () => {

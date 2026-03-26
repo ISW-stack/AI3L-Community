@@ -16,7 +16,7 @@ describe('assertShape', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const data = { id: 1 }
     assertShape(data, ['id', 'name'], 'test')
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Missing key "name"'))
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('missing keys [name]'))
   })
 
   it('does not throw for missing keys', () => {

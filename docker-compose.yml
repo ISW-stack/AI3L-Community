@@ -39,13 +39,14 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    # M-10: Dev nginx only on frontend-net (no direct access to PG/Redis/MinIO)
     networks:
       - frontend-net
-      - backend-net
 
   migrate:
     build: ./backend
-    command: ["alembic", "upgrade", "head"]
+    # M-14: Run migration then verify no pending revisions remain
+    command: ["sh", "-c", "alembic upgrade head && alembic check"]
     env_file:
       - .env
     depends_on:
@@ -215,6 +216,7 @@ services:
       redis:
         condition: service_healthy
     deploy:
+      replicas: 1
       resources:
         limits:
           cpus: "0.25"
@@ -245,6 +247,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set in .env}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set in .env}
+      MINIO_BROWSER: "off"
     volumes:
       - minio-data:/data
     deploy:

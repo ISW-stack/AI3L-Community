@@ -47,6 +47,7 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
     user_id = payload["sub"]
     role = payload["role"]
+    jti = payload.get("jti", "")  # M-20: used for session revalidation
 
     # Per-user connection limit — check BEFORE accept() to avoid resource
     # consumption from connections that will be immediately rejected.
@@ -107,19 +108,29 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
 
         ping_task = asyncio.create_task(ping_loop())
 
-        # M-03: Periodic session re-validation for long-lived connections
+        # M-20: Periodic session re-validation with JTI comparison
         async def _session_revalidation() -> None:
-            """Periodically verify user session is still valid."""
+            """Periodically verify user session is still valid and JTI matches."""
             while True:
                 await asyncio.sleep(WS_SESSION_REVALIDATION_INTERVAL)
                 try:
                     r = get_redis()
                     session_key = SESSION_KEY_TEMPLATE.format(role=role, user_id=user_id)
-                    session_exists = await r.exists(session_key)
-                    if not session_exists:
+                    stored_jti = await r.get(session_key)
+                    if stored_jti is None:
                         logger.info("WebSocket session expired", extra={"user_id": user_id})
                         await ws.send_json({"type": "FORCE_LOGOUT"})
                         await ws.close(code=4003, reason="Session expired")
+                        return
+                    # M-20: Compare stored JTI with the one from the WS ticket
+                    stored_jti_str = stored_jti.decode() if isinstance(stored_jti, bytes) else stored_jti
+                    if stored_jti_str != jti:
+                        logger.info(
+                            "WebSocket session JTI mismatch — session replaced",
+                            extra={"user_id": user_id},
+                        )
+                        await ws.send_json({"type": "FORCE_LOGOUT", "reason": "session_replaced"})
+                        await ws.close(code=4003, reason="Session replaced")
                         return
                 except Exception:
                     pass  # Best-effort check

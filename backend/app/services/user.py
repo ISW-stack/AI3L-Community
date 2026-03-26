@@ -19,7 +19,7 @@ from app.core.errors import (
     StorageQuotaError,
 )
 from app.core.event_bus import emit
-from app.core.file_validation import validate_avatar
+from app.core.file_validation import trigger_virus_scan, validate_avatar
 from app.core.redis import get_redis
 from app.core.security import async_hash_password, async_verify_password, validate_password_policy
 from app.core.storage import generate_avatar_key
@@ -170,6 +170,9 @@ async def upload_user_avatar(
             raise StorageQuotaError("Failed to update storage quota. File upload cancelled.")
     finally:
         await redis.delete(lock_key)
+
+    # M-01: Trigger VirusTotal scan for avatar uploads (best-effort)
+    await trigger_virus_scan(key, data)
 
     # Store the MinIO object key (not presigned URL) — fresh URLs generated on read
     user = await update_user_profile(

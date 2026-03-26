@@ -108,7 +108,8 @@ async def login(req: LoginRequest, request: Request, response: Response) -> Auth
         )
 
     # P2: Per-account rate limit to prevent distributed brute-force
-    if not await check_rate_limit(f"rl:login:user:{req.username}", 20, 300):
+    # M-17: Increased from 20 to 50 to reduce targeted lockout risk
+    if not await check_rate_limit(f"rl:login:user:{req.username}", 50, 300):
         raise AppError(ErrorCode.SYS_429, 429, "Too many login attempts for this account.")
 
     user = await authenticate_user(req.username, req.password)
@@ -282,7 +283,10 @@ async def heartbeat(
     if not refreshed:
         raise AppError(ErrorCode.AUTH_001, 401, "Session not found.")
 
-    # M-03: Regenerate CSRF token on heartbeat so leaked tokens expire
+    # M-18: Re-set CSRF cookie on heartbeat to ensure it stays in sync with
+    # the session. The token is deterministic per JTI (by design) — it rotates
+    # when the user logs in again (new JTI). This re-set refreshes the cookie
+    # max-age, not the token value.
     csrf_token = generate_csrf_token(current_user["jti"])
     domain = settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None
     response.set_cookie(

@@ -731,6 +731,7 @@ class TestSendMessageService:
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://minio/presigned"),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}._validate_dm_file"),
             patch(
                 "app.repositories.user_repo.find_by_id",
@@ -784,6 +785,7 @@ class TestSendMessageService:
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}._validate_dm_file"),
             patch(
                 "app.repositories.user_repo.find_by_id",
@@ -1516,6 +1518,7 @@ class TestListConversationsService:
             patch(
                 "app.core.storage.generate_presigned_url", return_value="http://presigned"
             ),  # mock_presign unused but patch needed
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
         ):
             conv_dict = {
                 "id": str(row["id"]),
@@ -3692,6 +3695,7 @@ class TestB07AsyncStorageOps:
                 "app.core.async_storage.upload_file", new_callable=AsyncMock
             ) as mock_async_upload,
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
             patch(
@@ -4014,6 +4018,7 @@ class TestB12StorageQuotaAfterInsert:
             ) as mock_increment,
             patch("app.core.async_storage.upload_file", new_callable=AsyncMock),
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
             patch(
@@ -4078,6 +4083,7 @@ class TestB27S03SanitizedFilename:
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
             patch("app.core.async_storage.upload_file", side_effect=capture_upload),
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
             patch(
@@ -4142,6 +4148,7 @@ class TestB27S03SanitizedFilename:
             patch("app.repositories.user_repo.increment_storage_used", new_callable=AsyncMock),
             patch("app.core.async_storage.upload_file", side_effect=capture_upload),
             patch("app.core.storage.generate_presigned_url", return_value="http://presigned"),
+            patch(f"{_SVC}.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
             patch(f"{_SVC}.sanitize_html", side_effect=lambda x: x),
             patch(f"{_SVC}._validate_dm_file"),
             patch(

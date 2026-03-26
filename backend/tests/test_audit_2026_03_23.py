@@ -401,7 +401,7 @@ async def test_m09_leave_co_authorship_rejects_external_co_author():
         "user_id": None,  # External co-author
     }
 
-    fake_conn = AsyncMock()
+    fake_conn = _make_transactional_conn()
     fake_pool = _make_fake_pool(fake_conn)
 
     with (
@@ -433,7 +433,7 @@ async def test_m09_leave_co_authorship_allows_real_user():
         "user_id": real_user_id,
     }
 
-    fake_conn = AsyncMock()
+    fake_conn = _make_transactional_conn()
     fake_pool = _make_fake_pool(fake_conn)
 
     with (
@@ -629,7 +629,7 @@ def test_l10_csv_sanitize_empty():
 
 @pytest.mark.asyncio
 async def test_l13_sync_post_citations_single_query_per_cited_post():
-    """L-13: sync_post_citations should verify cited post existence with a single query."""
+    """L-13 + M-06: sync_post_citations should use batch queries, not N+1."""
     from app.services.citation import sync_post_citations
 
     post_id = uuid.uuid4()
@@ -638,8 +638,10 @@ async def test_l13_sync_post_citations_single_query_per_cited_post():
     content = f'<a data-citation="true" href="/posts/{cited_id}">ref</a>'
 
     fake_conn = _make_transactional_conn()
-    # conn.fetchrow for the cited post verification query
-    fake_conn.fetchrow.return_value = {"user_id": uuid.UUID(author_id)}
+    # conn.fetch for the batch verification query (ANY($1::uuid[]))
+    fake_conn.fetch.return_value = [{"id": cited_id, "user_id": uuid.UUID(author_id)}]
+    # conn.executemany for batch INSERT (M-06)
+    fake_conn.executemany = AsyncMock()
 
     fake_pool = _make_fake_pool(fake_conn)
 
@@ -649,11 +651,6 @@ async def test_l13_sync_post_citations_single_query_per_cited_post():
             "app.services.citation.citation_repo.find_existing_citations",
             new_callable=AsyncMock,
             return_value=[],  # No existing citations
-        ),
-        patch(
-            "app.services.citation.citation_repo.insert_citation",
-            new_callable=AsyncMock,
-            return_value={"id": uuid.uuid4(), "is_self_citation": False},
         ),
         patch(
             "app.services.citation.citation_repo.update_citation_count",
@@ -666,25 +663,22 @@ async def test_l13_sync_post_citations_single_query_per_cited_post():
     ):
         await sync_post_citations(post_id, content, author_id)
 
-    # The cited post verification uses conn.fetchrow with a SELECT query.
-    # It should be a single query that checks both existence and gets user_id
-    # (not two separate queries for existence + author).
-    fetchrow_calls = fake_conn.fetchrow.call_args_list
-    # Filter to only the verification query (contains user_id AND is_deleted)
+    # Batch verification: a single conn.fetch call with ANY($1::uuid[])
+    fetch_calls = fake_conn.fetch.call_args_list
     verification_queries = [
-        c for c in fetchrow_calls
+        c for c in fetch_calls
         if c[0] and isinstance(c[0][0], str)
         and "user_id" in c[0][0]
         and "is_deleted" in c[0][0]
     ]
     assert len(verification_queries) == 1, (
-        f"Expected 1 combined verification query, got {len(verification_queries)}"
+        f"Expected 1 batch verification query, got {len(verification_queries)}"
     )
-    # The single query fetches user_id and checks is_deleted in one shot
     sql = verification_queries[0][0][0]
-    assert "SELECT" in sql
-    assert "user_id" in sql
-    assert "is_deleted" in sql
+    assert "ANY" in sql  # Batch query uses ANY($1::uuid[])
+
+    # M-06: Batch INSERT via executemany instead of N individual insert_citation calls
+    assert fake_conn.executemany.called, "Expected executemany for batch INSERT"
 
 
 # ---------------------------------------------------------------------------

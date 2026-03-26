@@ -608,6 +608,8 @@ async def _async_export(task_id: str, options: dict, user_id: str) -> dict:
         })
         now_ts = datetime.now(timezone.utc).timestamp()
         await redis.zadd(HISTORY_KEY, {history_entry: now_ts})
+        # M-12: Populate lookup hash for O(1) delete
+        await redis.hset("export:site:lookup", task_id, history_entry)
 
         # B6: Store storage_key in progress hash so progress endpoint
         # can regenerate presigned URLs instead of using the cached one.
@@ -648,6 +650,8 @@ async def _async_export(task_id: str, options: dict, user_id: str) -> dict:
             })
             now_ts = datetime.now(timezone.utc).timestamp()
             await redis.zadd(HISTORY_KEY, {history_entry: now_ts})
+            # M-12: Populate lookup hash for O(1) delete
+            await redis.hset("export:site:lookup", task_id, history_entry)
 
             # B4: Trim history on failure path too
             await _trim_history(redis)

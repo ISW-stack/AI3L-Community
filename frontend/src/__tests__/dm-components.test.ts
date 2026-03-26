@@ -701,12 +701,12 @@ describe('MessageInput', () => {
   it('renders textarea and send button', () => {
     const wrapper = mountInput()
     expect(wrapper.find('textarea').exists()).toBe(true)
-    expect(wrapper.find('[aria-label="Send message"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="Send Message"]').exists()).toBe(true)
   })
 
   it('disables send when empty (no text, no file)', () => {
     const wrapper = mountInput()
-    const sendBtn = wrapper.find('[aria-label="Send message"]')
+    const sendBtn = wrapper.find('[aria-label="Send Message"]')
     expect(sendBtn.attributes('disabled')).toBeDefined()
   })
 
@@ -714,7 +714,7 @@ describe('MessageInput', () => {
     const wrapper = mountInput()
     await wrapper.find('textarea').setValue('Hello')
     await nextTick()
-    const sendBtn = wrapper.find('[aria-label="Send message"]')
+    const sendBtn = wrapper.find('[aria-label="Send Message"]')
     expect(sendBtn.attributes('disabled')).toBeUndefined()
   })
 
@@ -752,7 +752,7 @@ describe('MessageInput', () => {
     await wrapper.find('textarea').setValue('Hello world')
     await nextTick()
 
-    await wrapper.find('[aria-label="Send message"]').trigger('click')
+    await wrapper.find('[aria-label="Send Message"]').trigger('click')
     await nextTick()
 
     const emitted = wrapper.emitted('send')
@@ -766,7 +766,7 @@ describe('MessageInput', () => {
     await textarea.setValue('Temp message')
     await nextTick()
 
-    await wrapper.find('[aria-label="Send message"]').trigger('click')
+    await wrapper.find('[aria-label="Send Message"]').trigger('click')
     await nextTick()
 
     expect((textarea.element as HTMLTextAreaElement).value).toBe('')
@@ -823,7 +823,7 @@ describe('MessageInput', () => {
     const _vm = wrapper.vm as unknown as { content: { value: string } }
     // We can't easily exceed maxlength in jsdom, but we can verify the canSend logic
     // by checking disabled state with empty content
-    const sendBtn = wrapper.find('[aria-label="Send message"]')
+    const sendBtn = wrapper.find('[aria-label="Send Message"]')
     expect(sendBtn.attributes('disabled')).toBeDefined()
   })
 

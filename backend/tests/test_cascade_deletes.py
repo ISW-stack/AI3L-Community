@@ -36,7 +36,7 @@ class TestAlbumCascadeDelete:
         }
 
         uploader_id = uuid.UUID(user_id)
-        photos = [
+        photo_rows = [
             {
                 "id": uuid.uuid4(),
                 "storage_key": "albums/photo1.jpg",
@@ -53,53 +53,25 @@ class TestAlbumCascadeDelete:
             },
         ]
 
+        # The service calls conn methods directly via repo functions:
+        # 1. fetchrow → find_album_by_id_for_update
+        # 2. fetch → find_all_photos_for_album
+        # 3-7. execute → soft_delete, delete comments, quota refund, delete photos, delete members
+        mock_conn.fetchrow.return_value = album_row
+        mock_conn.fetch.return_value = photo_rows
+
         with (
             patch("app.services.album.get_pool", return_value=mock_pool),
-            patch(
-                "app.repositories.album_repo.find_album_by_id",
-                new_callable=AsyncMock,
-                return_value=album_row,
-            ),
-            patch(
-                "app.repositories.album_repo.find_all_photos_for_album",
-                new_callable=AsyncMock,
-                return_value=photos,
-            ),
-            patch(
-                "app.repositories.album_repo.soft_delete_album",
-                new_callable=AsyncMock,
-                return_value=True,
-            ) as mock_soft_del,
-            patch(
-                "app.repositories.album_repo.delete_all_comments_for_album",
-                new_callable=AsyncMock,
-                return_value=5,
-            ) as mock_del_comments,
-            patch(
-                "app.repositories.album_repo.delete_all_photos_for_album",
-                new_callable=AsyncMock,
-                return_value=2,
-            ) as mock_del_photos,
-            patch(
-                "app.repositories.album_repo.delete_all_members_for_album",
-                new_callable=AsyncMock,
-                return_value=1,
-            ) as mock_del_members,
             patch("app.core.async_storage.delete_file", new_callable=AsyncMock) as mock_delete_file,
         ):
             result = await delete_album(album_id, user_id, "SUPER_ADMIN")
 
             assert result is True
-            mock_soft_del.assert_called_once()
-            mock_del_comments.assert_called_once()
-            mock_del_photos.assert_called_once()
-            mock_del_members.assert_called_once()
 
             # Storage cleanup: 2 storage_keys + 1 thumbnail (photo2 has None thumbnail)
             assert mock_delete_file.call_count == 3
 
             # Verify storage quota refund was called via conn.execute
-            # (3072 bytes total for uploader_id)
             execute_calls = mock_conn.execute.call_args_list
             quota_calls = [c for c in execute_calls if "storage_used_bytes" in str(c)]
             assert len(quota_calls) == 1
@@ -175,16 +147,18 @@ class TestFormCascadeDelete:
         form_row = {
             "created_by": uuid.UUID(user_id),
             "banner_url": "forms/banners/test.jpg",
+            "questions": "[]",
         }
         mock_conn.fetchrow.return_value = form_row
 
         with patch("app.repositories.form_repo.get_pool", return_value=mock_pool):
-            deleted, banner_url = await soft_delete_with_permission(
+            deleted, banner_url, file_entries = await soft_delete_with_permission(
                 form_id, user_id, is_admin=False
             )
 
         assert deleted is True
         assert banner_url == "forms/banners/test.jpg"
+        assert file_entries == []
 
         # Verify execute was called for both soft-delete and response cleanup
         execute_calls = mock_conn.execute.call_args_list
@@ -195,18 +169,19 @@ class TestFormCascadeDelete:
 
     @pytest.mark.anyio
     async def test_soft_delete_with_permission_not_found(self, mock_pool, mock_conn):
-        """Returns (False, None) when form not found."""
+        """Returns (False, None, []) when form not found."""
         from app.repositories.form_repo import soft_delete_with_permission
 
         mock_conn.fetchrow.return_value = None
 
         with patch("app.repositories.form_repo.get_pool", return_value=mock_pool):
-            deleted, banner_url = await soft_delete_with_permission(
+            deleted, banner_url, file_entries = await soft_delete_with_permission(
                 uuid.uuid4(), str(uuid.uuid4()), is_admin=False
             )
 
         assert deleted is False
         assert banner_url is None
+        assert file_entries == []
 
     @pytest.mark.anyio
     async def test_soft_delete_with_permission_denied(self, mock_pool, mock_conn):
@@ -275,18 +250,19 @@ class TestPostCitationCleanup:
         post_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
 
-        with (
-            patch(
-                "app.repositories.post_repo.soft_delete",
-                new_callable=AsyncMock,
-                return_value=False,
-            ),
-        ):
+        # soft_delete_post uses get_pool() directly with raw SQL, not post_repo
+        mock_conn.execute = AsyncMock(return_value="UPDATE 0")
+        mock_conn.fetch = AsyncMock(return_value=[])
+        mock_conn.fetchval = AsyncMock(return_value=None)
+
+        with patch("app.services.post.get_pool", return_value=mock_pool):
             result = await soft_delete_post(post_id, user_id, is_admin=False)
 
         assert result is False
-        # No pool acquire should happen for citation cleanup
-        mock_conn.execute.assert_not_called()
+        # The UPDATE was called but returned UPDATE 0, so no citation cleanup
+        execute_calls = mock_conn.execute.call_args_list
+        citation_calls = [c for c in execute_calls if "post_citations" in str(c)]
+        assert len(citation_calls) == 0
 
     @pytest.mark.anyio
     async def test_soft_delete_post_citation_cleanup_failure_does_not_raise(
@@ -298,19 +274,28 @@ class TestPostCitationCleanup:
         post_id = uuid.uuid4()
         user_id = str(uuid.uuid4())
 
-        mock_conn.execute.side_effect = Exception("DB error")
+        # First execute call is the UPDATE (succeeds), then citation fetch/execute fail
+        call_count = 0
+
+        async def execute_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            sql = args[0] if args else ""
+            if "UPDATE posts" in sql:
+                return "UPDATE 1"
+            raise Exception("DB error")
+
+        mock_conn.execute = AsyncMock(side_effect=execute_side_effect)
+        mock_conn.fetch = AsyncMock(side_effect=Exception("DB error"))
+        mock_conn.fetchval = AsyncMock(return_value=None)
 
         with (
-            patch(
-                "app.repositories.post_repo.soft_delete",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
             patch(
                 "app.services.post._cleanup_post_files",
                 new_callable=AsyncMock,
             ),
             patch("app.services.post.get_pool", return_value=mock_pool),
+            patch("app.services.post.emit", new_callable=AsyncMock),
         ):
             result = await soft_delete_post(post_id, user_id, is_admin=False)
 
@@ -332,7 +317,7 @@ class TestCommentChildCascade:
         post_id = uuid.uuid4()
         user_id = uuid.uuid4()
 
-        # Parent comment (parent_id IS NULL)
+        # Parent comment (parent_id IS NULL) — returned by fetchrow (UPDATE ... RETURNING)
         parent_row = MagicMock()
         parent_row.__getitem__ = lambda self, key: {
             "post_id": post_id,
@@ -340,20 +325,21 @@ class TestCommentChildCascade:
         }[key]
 
         mock_conn.fetchrow.return_value = parent_row
-        # Simulate 3 children deleted
-        mock_conn.execute.return_value = "UPDATE 3"
+        # Source uses conn.fetch for child cascade (UPDATE ... RETURNING id), returns 3 child rows
+        mock_conn.fetch.return_value = [{"id": uuid.uuid4()} for _ in range(3)]
 
         with patch("app.repositories.comment_repo.get_pool", return_value=mock_pool):
             result = await soft_delete(comment_id, post_id, user_id, is_admin=False)
 
         assert result == post_id
 
-        execute_calls = mock_conn.execute.call_args_list
-        # Should have: soft-delete children, decrement comment_count by 4, decrement answer_count
-        child_delete_calls = [c for c in execute_calls if "parent_id = $1" in str(c)]
+        # Child cascade uses conn.fetch (UPDATE ... WHERE parent_id = $1 ... RETURNING id)
+        fetch_calls = mock_conn.fetch.call_args_list
+        child_delete_calls = [c for c in fetch_calls if "parent_id = $1" in str(c)]
         assert len(child_delete_calls) == 1
 
         # comment_count should be decremented by 4 (1 parent + 3 children)
+        execute_calls = mock_conn.execute.call_args_list
         comment_count_calls = [c for c in execute_calls if "comment_count" in str(c)]
         assert len(comment_count_calls) == 1
         assert comment_count_calls[0].args[1] == 4  # total_deleted

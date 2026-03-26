@@ -461,12 +461,15 @@ async def test_citation_event_fetches_data_once():
     )
 
     conn = _make_conn_with_tx()
-    conn.fetchval = AsyncMock(side_effect=[
-        1,  # cited1 exists
-        other_author,  # cited1 author (not self)
-        1,  # cited2 exists
-        other_author,  # cited2 author (not self)
+    # M-06: conn.fetch called twice — batch verify posts, then fetch inserted citations
+    conn.fetch = AsyncMock(side_effect=[
+        [{"id": cited1, "user_id": other_author}, {"id": cited2, "user_id": other_author}],
+        [
+            {"cited_post_id": cited1, "is_self_citation": False},
+            {"cited_post_id": cited2, "is_self_citation": False},
+        ],
     ])
+    conn.executemany = AsyncMock()
 
     pool = _make_pool_cm(conn)
 
@@ -498,10 +501,6 @@ async def test_citation_event_fetches_data_once():
     with (
         patch(f"{_CI_SVC}.get_pool", side_effect=get_pool_effect),
         patch(f"{_CI_REPO}.find_existing_citations", new_callable=AsyncMock, return_value=[]),
-        patch(f"{_CI_REPO}.insert_citation", new_callable=AsyncMock, side_effect=[
-            {"cited_post_id": cited1, "is_self_citation": False},
-            {"cited_post_id": cited2, "is_self_citation": False},
-        ]),
         patch(f"{_CI_REPO}.update_citation_count", new_callable=AsyncMock),
         patch(f"{_CI_REPO}.delete_citations", new_callable=AsyncMock),
         patch(f"{_CI_SVC}.emit", side_effect=mock_emit),

@@ -47,6 +47,8 @@ class TestCookieSecureAutoDerive:
         POSTGRES_PASSWORD="real_pg_password",
         REDIS_PASSWORD="real_redis_password",
         S3_SECRET_ACCESS_KEY="real_minio_password",
+        S3_ACCESS_KEY_ID="prod_access_key",
+        CORS_ORIGINS="https://example.com",
     )
 
     def test_production_defaults_to_true(self) -> None:
@@ -210,6 +212,8 @@ class TestDevSecretWarnings:
             POSTGRES_PASSWORD="strong_pg",
             REDIS_PASSWORD="strong_redis",
             S3_SECRET_ACCESS_KEY="strong_minio",
+            S3_ACCESS_KEY_ID="prod_access_key",
+            CORS_ORIGINS="https://example.com",
             SUPER_ADMIN_PASSWORD="strong_admin",
             COOKIE_SECURE=True,
             S3_PUBLIC_URL="https://cdn.example.com",

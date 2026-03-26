@@ -263,8 +263,21 @@ async def test_citation_event_includes_citer_id():
 
     html = f'<a href="/forum/{cited_id}" data-citation="true">Ref</a>'
 
+    citation_row = {
+        "id": uuid.uuid4(),
+        "citing_post_id": post_id,
+        "cited_post_id": cited_id,
+        "is_self_citation": False,
+        "created_at": datetime.now(timezone.utc),
+    }
+
     conn = AsyncMock()
-    conn.fetchval = AsyncMock(side_effect=[1, cited_author_id])  # exists=1, cited_author
+    # M-06: conn.fetch is called twice — batch verify posts, then fetch inserted citations
+    conn.fetch = AsyncMock(side_effect=[
+        [{"id": cited_id, "user_id": cited_author_id}],  # batch verify
+        [citation_row],  # fetch inserted rows
+    ])
+    conn.executemany = AsyncMock()
 
     # transaction context manager
     tx = AsyncMock()
@@ -297,14 +310,6 @@ async def test_citation_event_includes_citer_id():
         pool2.acquire.return_value = cm2
         return pool2
 
-    citation_row = {
-        "id": uuid.uuid4(),
-        "citing_post_id": post_id,
-        "cited_post_id": cited_id,
-        "is_self_citation": False,
-        "created_at": datetime.now(timezone.utc),
-    }
-
     mock_emit = AsyncMock()
 
     with (
@@ -313,11 +318,6 @@ async def test_citation_event_includes_citer_id():
             "app.repositories.citation_repo.find_existing_citations",
             new_callable=AsyncMock,
             return_value=[],
-        ),
-        patch(
-            "app.repositories.citation_repo.insert_citation",
-            new_callable=AsyncMock,
-            return_value=citation_row,
         ),
         patch(
             "app.repositories.citation_repo.update_citation_count",

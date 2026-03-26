@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -26,11 +26,13 @@ const mockDeleteForm = vi.fn()
 const mockListFormResponses = vi.fn()
 const mockGetForm = vi.fn()
 const mockExportForm = vi.fn()
+const mockGetFormStats = vi.fn()
 vi.mock('@/api/forms', () => ({
   deleteForm: (...args: unknown[]) => mockDeleteForm(...args),
   listFormResponses: (...args: unknown[]) => mockListFormResponses(...args),
   getForm: (...args: unknown[]) => mockGetForm(...args),
   exportForm: (...args: unknown[]) => mockExportForm(...args),
+  getFormStats: (...args: unknown[]) => mockGetFormStats(...args),
 }))
 
 const mockGetTaskStatus = vi.fn()
@@ -161,6 +163,7 @@ describe('SigFormsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetSigForms.mockResolvedValue({ forms: [], total: 0 })
+    mockGetFormStats.mockResolvedValue({ question_stats: [] })
   })
 
   it('shows loading skeleton initially', async () => {
@@ -311,7 +314,7 @@ describe('SigFormsView', () => {
     expect(responsesBtn).toBeTruthy()
 
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     const { useToastStore } = await import('@/stores/toast')
@@ -346,7 +349,7 @@ describe('SigFormsView', () => {
     expect(responsesBtn).toBeTruthy()
 
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     expect(wrapper.find('.base-modal').exists()).toBe(true)
@@ -390,7 +393,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     expect(wrapper.text()).toContain('Favorite Colors')
@@ -433,7 +436,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     expect(wrapper.text()).toContain('Level')
@@ -465,7 +468,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     expect(wrapper.text()).toContain('Upload')
@@ -496,7 +499,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     expect(mockGetForm).toHaveBeenCalledTimes(1)
@@ -522,6 +525,15 @@ describe('SigFormsView', () => {
       ],
       total: 1,
     })
+    mockGetFormStats.mockResolvedValue({
+      question_stats: [
+        {
+          question_id: 'q1',
+          question_label: 'Rating Q',
+          stats: { type: 'rating', average: 4, min: 1, max: 5, totalResponses: 1, distribution: [] },
+        },
+      ],
+    })
 
     const { wrapper } = await mountComponent({ userSigRole: 'ADMIN' })
     await nextTick()
@@ -529,7 +541,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     // Default tab is individual
@@ -572,7 +584,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     // Switch to Statistics
@@ -625,7 +637,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     // Both responses visible initially
@@ -667,7 +679,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     const searchInput = wrapper.find('input[aria-label="Search by respondent name..."]')
@@ -710,7 +722,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     // Set dateFrom to exclude early responses
@@ -753,7 +765,7 @@ describe('SigFormsView', () => {
 
     const responsesBtn = wrapper.findAll('button').find((b) => b.text().includes('Responses'))
     await responsesBtn!.trigger('click')
-    await nextTick()
+    await flushPromises()
     await nextTick()
 
     const dateToInput = wrapper.find('input[aria-label="To date"]')

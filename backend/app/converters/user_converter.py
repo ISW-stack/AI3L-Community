@@ -1,3 +1,4 @@
+from app.core.constants import PRESIGNED_URL_AVATAR_SECONDS
 from app.schemas.user import PublicUserResponse, UserResponse
 
 
@@ -14,7 +15,7 @@ def resolve_avatar_url(avatar_url: str | None) -> str | None:
     try:
         from app.core.storage import generate_presigned_url
 
-        return generate_presigned_url(avatar_url, expires_in=3600)  # 1-hour URL
+        return generate_presigned_url(avatar_url, expires_in=PRESIGNED_URL_AVATAR_SECONDS)
     except Exception:
         return avatar_url
 
@@ -40,9 +41,11 @@ async def async_resolve_avatar_url(avatar_url: str | None) -> str | None:
 
         from app.core.async_storage import generate_presigned_url
 
-        url = await generate_presigned_url(avatar_url, expires_in=3600)
+        url = await generate_presigned_url(avatar_url, expires_in=PRESIGNED_URL_AVATAR_SECONDS)
         if url:
-            await redis.setex(cache_key, 2700, url)  # cache for 45 min
+            # Cache for 75% of presigned URL validity to avoid serving stale URLs
+            cache_ttl = int(PRESIGNED_URL_AVATAR_SECONDS * 0.75)
+            await redis.setex(cache_key, cache_ttl, url)
         return url
     except Exception:
         return avatar_url

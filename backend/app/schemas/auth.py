@@ -11,7 +11,8 @@ class CaptchaResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., min_length=1, max_length=50)
+    # M-21: Match registration constraints to reject obviously invalid inputs early
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = Field(..., min_length=1, max_length=128)
     captcha_id: str = Field(..., max_length=100)
     captcha_code: str = Field(..., max_length=10)

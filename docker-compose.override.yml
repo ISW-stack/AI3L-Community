@@ -76,7 +76,6 @@ services:
   minio:
     ports:
       - "127.0.0.1:19000:9000"
-      - "127.0.0.1:19001:9001"
 
   # One-shot: resets stale OpenID config from minio-data volume.
   # Harmless no-op once the bad config is gone.

@@ -79,6 +79,8 @@ def create_access_token(
         "jti": jti,
         "exp": expires_at,
         "iat": datetime.now(timezone.utc),
+        "iss": "ai3l-community",
+        "aud": "ai3l-api",
     }
     token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return token, jti, expires_at
@@ -87,7 +89,13 @@ def create_access_token(
 def decode_access_token(token: str) -> dict | None:
     """Decode and verify JWT. Returns payload dict or None if invalid."""
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            issuer="ai3l-community",
+            audience="ai3l-api",
+        )
         return dict(payload)
     except JWTError:
         return None

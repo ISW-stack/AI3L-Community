@@ -638,8 +638,8 @@ class TestAvatarExpiredEviction:
             # Mock the external fetch to succeed with new data
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.content = b"new-avatar"
-            mock_response.headers = {"content-type": "image/png"}
+            mock_response.headers = {"content-type": "image/png", "content-length": "10"}
+            mock_response.iter_content = MagicMock(return_value=iter([b"new-avatar"]))
 
             with (
                 patch(
@@ -762,7 +762,9 @@ class TestAvatarSizeLimit:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"content-type": "image/png"}
-            mock_response.content = b"x" * 11  # exceeds 10-byte limit
+            # Source streams via iter_content(8192) and checks cumulative size
+            mock_response.iter_content = MagicMock(return_value=iter([b"x" * 11]))
+            mock_response.close = MagicMock()
 
             with (
                 patch(

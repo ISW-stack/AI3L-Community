@@ -550,6 +550,9 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             # Validate file_upload answer ownership
             _validate_file_ownership(questions, answers, user_id)
 
+            # Reject file answers that reference flagged or pending-scan files
+            await _validate_file_scan_status(questions, answers)
+
             # Server-side file size validation (defense-in-depth)
             await _validate_file_sizes(questions, answers)
 
@@ -667,6 +670,23 @@ def _validate_file_ownership(questions: list[dict], answers: dict, user_id: str)
         if not owner_found:
             raise PermissionError(
                 f"File for question '{q['label']}' does not belong to the submitting user."
+            )
+
+
+async def _validate_file_scan_status(questions: list[dict], answers: dict) -> None:
+    """Reject file_upload answers referencing files that haven't passed VirusTotal scan."""
+    from app.repositories import file_scan_repo
+
+    for q in questions:
+        if q["type"] != "file_upload":
+            continue
+        value = answers.get(q["id"])
+        if not isinstance(value, dict) or "key" not in value:
+            continue
+        if not await file_scan_repo.is_clean(value["key"]):
+            raise ValueError(
+                f"File for question '{q['label']}' is not yet cleared for submission "
+                "(scan pending or failed). Please wait for the scan to complete."
             )
 
 

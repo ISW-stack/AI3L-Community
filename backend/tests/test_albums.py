@@ -906,6 +906,11 @@ class TestM5BlacklistPhotoListing:
                 new_callable=AsyncMock,
                 return_value="http://example.com/photo.jpg",
             ),
+            patch(
+                "app.converters.album_converter.file_scan_repo.is_clean",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
         ):
             mock_get_redis.return_value = MagicMock()
             from app.services.album import list_photos

@@ -530,7 +530,7 @@ describe('usePostDetail', () => {
     // Wait for the watch to fire
     await new Promise((r) => setTimeout(r, 0))
 
-    const stored = localStorage.getItem('post_edit_draft_post1')
+    const stored = localStorage.getItem('post_edit_draft_post1_user1')
     expect(stored).not.toBeNull()
     const parsed = JSON.parse(stored!)
     expect(parsed.title).toBe('Changed Title')
@@ -541,7 +541,7 @@ describe('usePostDetail', () => {
     const testPost = makePost({ version: 1 })
     mockGetPost.mockResolvedValue(testPost)
     localStorage.setItem(
-      'post_edit_draft_post1',
+      'post_edit_draft_post1_user1',
       JSON.stringify({ title: 'Draft Title', content: '<p>Draft</p>', savedAt: Date.now() }),
     )
 
@@ -558,7 +558,7 @@ describe('usePostDetail', () => {
     const testPost = makePost({ version: 1 })
     mockGetPost.mockResolvedValue(testPost)
     localStorage.setItem(
-      'post_edit_draft_post1',
+      'post_edit_draft_post1_user1',
       JSON.stringify({ title: 'Draft', content: '<p>X</p>', savedAt: Date.now() }),
     )
 
@@ -569,7 +569,7 @@ describe('usePostDetail', () => {
 
     cancelEdit()
     expect(editing.value).toBe(false)
-    expect(localStorage.getItem('post_edit_draft_post1')).toBeNull()
+    expect(localStorage.getItem('post_edit_draft_post1_user1')).toBeNull()
   })
 
   // saveEdit success clears draft
@@ -579,7 +579,7 @@ describe('usePostDetail', () => {
     mockGetPost.mockResolvedValue(testPost)
     mockUpdatePost.mockResolvedValue(updatedPost)
     localStorage.setItem(
-      'post_edit_draft_post1',
+      'post_edit_draft_post1_user1',
       JSON.stringify({ title: 'New Title', content: '<p>X</p>', savedAt: Date.now() }),
     )
 
@@ -589,7 +589,7 @@ describe('usePostDetail', () => {
     await saveEdit()
 
     expect(editing.value).toBe(false)
-    expect(localStorage.getItem('post_edit_draft_post1')).toBeNull()
+    expect(localStorage.getItem('post_edit_draft_post1_user1')).toBeNull()
   })
 
   // Additional: canDeleteComment

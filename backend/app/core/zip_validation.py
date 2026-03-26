@@ -226,15 +226,21 @@ def validate_zip(data: bytes, *, strip_mac_junk: bool = True) -> ZipValidationRe
             )
 
         # 8. Strip Mac junk if requested and present
+        # M-05: Stream entries one at a time via copyfileobj to avoid loading
+        # large entries entirely into memory.
         clean_data: bytes | None = None
         if strip_mac_junk and mac_junk_entries:
+            import shutil
+
             junk_set = set(mac_junk_entries)
             with tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024) as tmp:
                 with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as out_zf:
                     for info in entries:
                         if info.filename in junk_set:
                             continue
-                        out_zf.writestr(info, zf.read(info.filename))
+                        with zf.open(info.filename) as src:
+                            with out_zf.open(info, "w") as dst:
+                                shutil.copyfileobj(src, dst, length=64 * 1024)
                 tmp.seek(0)
                 clean_data = tmp.read()
         else:

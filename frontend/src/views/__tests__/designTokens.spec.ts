@@ -152,7 +152,7 @@ describe('Design tokens and dynamic alert type', () => {
 
   it('ProfileView alert type is dynamic based on save result (error)', async () => {
     mockUpdateProfile.mockRejectedValue({
-      response: { data: { detail: 'Update failed' } },
+      response: { data: { detail: 'Something went wrong' } },
     })
     const { wrapper } = await mountProfile()
 
@@ -165,6 +165,6 @@ describe('Design tokens and dynamic alert type', () => {
     const alert = wrapper.find('.base-alert')
     expect(alert.exists()).toBe(true)
     expect(alert.attributes('data-type')).toBe('error')
-    expect(wrapper.text()).toContain('Update failed')
+    expect(wrapper.text()).toContain('Something went wrong')
   })
 })

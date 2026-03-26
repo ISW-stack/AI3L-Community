@@ -106,9 +106,26 @@ class Settings(BaseSettings):
 
     @property
     def CORS_ORIGINS_LIST(self) -> list[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        # M-12: Validate each origin has a proper URL format
+        for origin in origins:
+            if not origin.startswith(("http://", "https://")):
+                warnings.warn(
+                    f"CORS origin '{origin}' does not start with http:// or https://. "
+                    f"This may cause CORS to silently fail.",
+                    stacklevel=2,
+                )
+            if "*" in origin:
+                warnings.warn(
+                    f"CORS origin '{origin}' contains a wildcard. "
+                    f"Use explicit origins for security.",
+                    stacklevel=2,
+                )
+        return origins
 
     _VALID_ENVS: ClassVar[frozenset[str]] = frozenset({"development", "production", "test"})
+    _VALID_JWT_ALGORITHMS: ClassVar[frozenset[str]] = frozenset({"HS256", "HS384", "HS512"})
+    _VALID_SAMESITE: ClassVar[frozenset[str]] = frozenset({"lax", "strict", "none"})
 
     @model_validator(mode="after")
     def _validate_fastapi_env(self) -> "Settings":
@@ -117,6 +134,22 @@ class Settings(BaseSettings):
                 f"FASTAPI_ENV='{self.FASTAPI_ENV}' is not recognized. "
                 f"Expected one of: {', '.join(sorted(self._VALID_ENVS))}. "
                 f"Treating as non-development.",
+                stacklevel=1,
+            )
+        if self.JWT_ALGORITHM not in self._VALID_JWT_ALGORITHMS:
+            raise ValueError(
+                f"JWT_ALGORITHM='{self.JWT_ALGORITHM}' is not allowed. "
+                f"Must be one of: {', '.join(sorted(self._VALID_JWT_ALGORITHMS))}."
+            )
+        samesite = self.COOKIE_SAMESITE.lower()
+        if samesite not in self._VALID_SAMESITE:
+            raise ValueError(
+                f"COOKIE_SAMESITE='{self.COOKIE_SAMESITE}' is not valid. "
+                f"Must be one of: {', '.join(sorted(self._VALID_SAMESITE))}."
+            )
+        if samesite == "none" and not self.COOKIE_SECURE:
+            warnings.warn(
+                "COOKIE_SAMESITE='none' without COOKIE_SECURE=True weakens CSRF defense.",
                 stacklevel=1,
             )
         # Block startup with default/insecure secrets for any non-dev/non-test environment
@@ -163,12 +196,27 @@ class Settings(BaseSettings):
                 )
             if len(self.JWT_SECRET_KEY) < 32:
                 raise ValueError("JWT_SECRET_KEY must be at least 32 characters for HS256.")
+            if len(self.SECRET_KEY) < 32:
+                raise ValueError("SECRET_KEY must be at least 32 characters.")
             if not self.COOKIE_DOMAIN:
                 warnings.warn(
                     "COOKIE_DOMAIN is empty in production. Cookies will use browser default "
                     "(current domain). Consider setting COOKIE_DOMAIN for cross-subdomain support.",
                     stacklevel=1,
                 )
+            if self.SUPER_ADMIN_USERNAME == "superadmin":
+                warnings.warn(
+                    "SUPER_ADMIN_USERNAME is set to the default 'superadmin'. "
+                    "Consider using a less predictable username in production.",
+                    stacklevel=1,
+                )
+        _remote_pg_hosts = frozenset({"localhost", "postgres", "127.0.0.1", "::1"})
+        if self.POSTGRES_HOST not in _remote_pg_hosts and not self.DATABASE_SSL:
+            warnings.warn(
+                f"DATABASE_SSL=False but POSTGRES_HOST='{self.POSTGRES_HOST}' looks like a remote "
+                "host. Enable DATABASE_SSL=True to encrypt database connections.",
+                stacklevel=1,
+            )
         # Auto-derive COOKIE_SECURE from FASTAPI_ENV when not explicitly set
         if self.COOKIE_SECURE is None:
             self.COOKIE_SECURE = self.FASTAPI_ENV == "production"

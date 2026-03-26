@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, type WatchStopHandle } from 'vue'
 import type { Router } from 'vue-router'
 import type { Question, QuestionOption } from '@/types'
 import { getErrorMessage } from '@/utils/error'
@@ -61,6 +61,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
 
   let autoSaveTimer: ReturnType<typeof setInterval> | null = null
   let isDirty = false
+  let stopDirtyWatch: WatchStopHandle | null = null // L-24: explicit cleanup handle
 
   // ── Computed ──
   const hasInvalidRating = computed(() =>
@@ -566,7 +567,8 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     }
     document.addEventListener('keydown', handleKeyboardShortcut)
     startAutoSave()
-    watch([title, description, bannerUrl, deadline, maxRespondents, allowNonMembers], () => {
+    // L-24: Store stop handle for explicit cleanup in onUnmounted
+    stopDirtyWatch = watch([title, description, bannerUrl, deadline, maxRespondents, allowNonMembers], () => {
       isDirty = true
     })
   })
@@ -574,6 +576,11 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   onUnmounted(() => {
     document.removeEventListener('keydown', handleKeyboardShortcut)
     stopAutoSave()
+    // L-24: Explicitly stop the watcher created in onMounted
+    if (stopDirtyWatch) {
+      stopDirtyWatch()
+      stopDirtyWatch = null
+    }
   })
 
   return {
