@@ -51,6 +51,7 @@ const {
   commentsTotal,
   newComment,
   commentSaving,
+  replySaving,
   commentMessage,
   inlineReplyTo,
   inlineReplyContent,
@@ -61,6 +62,7 @@ const {
   showHistory,
   showDeletePostConfirm,
   showDeleteCommentConfirm,
+  isDeleting,
   showLeaveConfirm,
   confirmLeave,
   cancelLeave,
@@ -548,7 +550,7 @@ const breadcrumbItems = computed(() => {
                     <div class="flex gap-2">
                       <BaseButton
                         size="sm"
-                        :loading="commentSaving"
+                        :loading="replySaving"
                         :disabled="!inlineReplyContent.trim()"
                         @click="submitInlineReply"
                       >
@@ -730,7 +732,7 @@ const breadcrumbItems = computed(() => {
         <BaseButton variant="secondary" @click="showDeletePostConfirm = false">{{
           t('common.cancel')
         }}</BaseButton>
-        <BaseButton variant="danger" @click="deletePostHandler">{{
+        <BaseButton variant="danger" :loading="isDeleting" @click="deletePostHandler">{{
           t('common.delete')
         }}</BaseButton>
       </template>

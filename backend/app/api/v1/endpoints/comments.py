@@ -89,12 +89,30 @@ async def edit_comment(
     req: CommentUpdateRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CommentResponse:
-    # P3: Rate limit comment edits
-    if not await check_rate_limit(f"rl:comment_edit:{current_user['sub']}", 30, 60):
-        raise AppError(ErrorCode.SYS_429, 429, "Too many edit requests. Try again later.")
     sanitized_content = sanitize_html(req.content)
     if not sanitized_content or not sanitized_content.strip():
         raise AppError(ErrorCode.SYS_422, 422, "Comment content cannot be empty.")
+
+    # F-23: Check existence and ownership BEFORE rate limit so that editing
+    # a non-existent comment does not consume rate limit quota.
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        comment_row = await conn.fetchrow(
+            "SELECT user_id FROM comments WHERE id = $1 AND post_id = $2 AND is_deleted = false",
+            comment_id,
+            post_id,
+        )
+    if comment_row is None:
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found or you are not the owner.")
+    if str(comment_row["user_id"]) != current_user["sub"]:
+        raise AppError(ErrorCode.SYS_404, 404, "Comment not found or you are not the owner.")
+
+    # P3: Rate limit comment edits (only after confirming comment exists and user owns it)
+    if not await check_rate_limit(f"rl:comment_edit:{current_user['sub']}", 30, 60):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many edit requests. Try again later.")
+
     comment = await update_comment(
         comment_id=comment_id,
         user_id=current_user["sub"],

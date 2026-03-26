@@ -1117,4 +1117,75 @@ describe('useFormSubmit', () => {
       expect(mockSubmitForm).not.toHaveBeenCalled()
     })
   })
+
+  // ---------- F-28: MIME type check in file upload ----------
+
+  describe('file upload MIME type check (F-28)', () => {
+    it('logs warning when MIME type does not match extension', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      const formData = makeFormData({
+        questions: [
+          makeQuestion({
+            id: 'file-q',
+            type: 'file_upload',
+            allowed_types: ['pdf'],
+            max_size_mb: 10,
+          }),
+        ],
+      })
+      mockGetForm.mockResolvedValue(formData)
+
+      const h = createHarness()
+      await h.loadForm()
+
+      // Create a file with .pdf extension but wrong MIME type
+      const fakeFile = new File(['data'], 'report.pdf', { type: 'text/plain' })
+      const fakeEvent = {
+        target: { files: [fakeFile], value: 'report.pdf' },
+      } as unknown as Event
+
+      h.handleFileUpload('file-q', fakeEvent)
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('MIME type "text/plain"'),
+      )
+
+      // File should still be accepted (server validates via magic bytes)
+      expect(h.answers.value['file-q']).toBe(fakeFile)
+
+      warnSpy.mockRestore()
+    })
+
+    it('does not warn when MIME type matches extension', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      const formData = makeFormData({
+        questions: [
+          makeQuestion({
+            id: 'file-q',
+            type: 'file_upload',
+            allowed_types: ['pdf'],
+            max_size_mb: 10,
+          }),
+        ],
+      })
+      mockGetForm.mockResolvedValue(formData)
+
+      const h = createHarness()
+      await h.loadForm()
+
+      const fakeFile = new File(['data'], 'report.pdf', { type: 'application/pdf' })
+      const fakeEvent = {
+        target: { files: [fakeFile], value: 'report.pdf' },
+      } as unknown as Event
+
+      h.handleFileUpload('file-q', fakeEvent)
+
+      expect(warnSpy).not.toHaveBeenCalled()
+      expect(h.answers.value['file-q']).toBe(fakeFile)
+
+      warnSpy.mockRestore()
+    })
+  })
 })

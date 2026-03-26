@@ -101,6 +101,10 @@ async def admin_list_messages(
     from app.core.storage import generate_presigned_url
     from app.repositories import dm_repo
 
+    # F-65: Check conversation exists before querying messages
+    if not await dm_repo.conversation_exists(conversation_id):
+        raise AppError(ErrorCode.SYS_404, 404, "Conversation not found.")
+
     offset = (page - 1) * page_size
     rows, total = await dm_repo.find_messages(conversation_id, page_size, offset)
 

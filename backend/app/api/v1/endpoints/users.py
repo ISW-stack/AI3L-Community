@@ -275,6 +275,9 @@ async def get_my_co_author_invitations(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     """List pending co-author invitations for the current user."""
+    # F-57: Explicit None check for sub (defense-in-depth)
+    if not current_user.get("sub"):
+        raise AppError(ErrorCode.AUTH_001, 401, "Authentication required.")
     from app.services.co_author import list_pending_invitations
 
     invitations, total = await list_pending_invitations(

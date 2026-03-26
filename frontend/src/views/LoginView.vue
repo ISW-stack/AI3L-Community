@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
@@ -27,8 +27,13 @@ const captchaCode = ref('')
 const captchaImage = ref('')
 const captchaError = ref(false)
 const lastError = ref<unknown>(null)
+const errorVersion = ref(0)
+watch(currentLocale, () => {
+  errorVersion.value++
+})
 const error = computed(() => {
-  void currentLocale.value
+  // Re-evaluate when locale changes (errorVersion increments on locale switch)
+  void errorVersion.value
   if (!lastError.value) return ''
   return getErrorMessage(lastError.value, t, 'auth.loginFailed')
 })

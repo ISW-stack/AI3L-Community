@@ -577,6 +577,7 @@ async def submit_response(
                 answers,
                 conn,
                 max_respondents=form["max_respondents"],
+                guest_allowed=form.get("allow_non_members", False),
             )
             if not inserted:
                 raise ValueError("This form has reached its maximum number of responses.")

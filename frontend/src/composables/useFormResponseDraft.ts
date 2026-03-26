@@ -25,11 +25,12 @@ export function useFormResponseDraft(options: FormDraftOptions) {
 
   function serializableAnswers(): FormAnswers {
     const result: FormAnswers = {}
+    const typeMap = skipTypes?.value
     for (const [key, val] of Object.entries(answers.value)) {
       // Skip File objects (file_upload type)
       if (val instanceof File) continue
-      // Skip if the question type is file_upload
-      if (skipTypes?.value && skipTypes.value[key] === 'file_upload') continue
+      // Only apply type-based filtering when skipTypes ref is provided and has a value
+      if (typeMap != null && typeMap[key] === 'file_upload') continue
       result[key] = val
     }
     return result

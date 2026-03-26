@@ -340,10 +340,12 @@ async def get_form_responses(
             or form["created_by"] == current_user["sub"]
         )
     if not is_admin:
+        # F-58: Both "form not found" and "not authorized" return 404 to prevent
+        # timing oracle that could reveal form existence to unauthorized users.
         raise AppError(
-            ErrorCode.SYS_403,
-            status.HTTP_403_FORBIDDEN,
-            "Only admins or the form creator can view form responses.",
+            ErrorCode.SYS_404,
+            status.HTTP_404_NOT_FOUND,
+            "Form not found.",
         )
 
     responses, total = await list_form_responses(

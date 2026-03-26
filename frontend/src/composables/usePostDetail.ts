@@ -107,6 +107,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   const newComment = ref('')
   const commentSaving = ref(false)
+  const replySaving = ref(false)
   const commentMessage = ref('')
 
   const inlineReplyTo = ref<string | null>(null)
@@ -121,6 +122,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   const showDeletePostConfirm = ref(false)
   const showDeleteCommentConfirm = ref(false)
   const deleteTargetCommentId = ref<string | null>(null)
+  const isDeleting = ref(false)
 
   // --- Report ---
   const showReportModal = ref(false)
@@ -369,7 +371,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
   })
 
   async function saveEdit() {
-    if (!post.value) return
+    if (!post.value || editSaving.value) return
     if (!editTitle.value.trim()) {
       editMessage.value = 'Title cannot be empty.'
       return
@@ -406,12 +408,15 @@ export function usePostDetail(options: UsePostDetailOptions) {
   }
 
   async function deletePostHandler() {
+    if (isDeleting.value) return
+    isDeleting.value = true
     try {
       await apiDeletePost(postId.value)
       router.push('/forum')
     } catch (e: unknown) {
       toastStore.show(getErrorMessage(e, 'Failed to delete post.'), 'error')
     } finally {
+      isDeleting.value = false
       showDeletePostConfirm.value = false
     }
   }
@@ -438,7 +443,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   async function submitInlineReply() {
     if (!inlineReplyTo.value || !inlineReplyContent.value.trim()) return
-    commentSaving.value = true
+    replySaving.value = true
     commentMessage.value = ''
     try {
       const mentions = extractMentions(inlineReplyContent.value)
@@ -454,7 +459,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     } catch (e: unknown) {
       commentMessage.value = getErrorMessage(e, 'Failed to post reply.')
     } finally {
-      commentSaving.value = false
+      replySaving.value = false
     }
   }
 
@@ -788,6 +793,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     commentsTotal,
     newComment,
     commentSaving,
+    replySaving,
     commentMessage,
     inlineReplyTo,
     inlineReplyContent,
@@ -800,6 +806,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     // Delete modals
     showDeletePostConfirm,
     showDeleteCommentConfirm,
+    isDeleting,
     // Leave guard
     showLeaveConfirm,
     confirmLeave,

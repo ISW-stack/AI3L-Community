@@ -128,11 +128,25 @@ export function useFormResponseViewer(
 
       if (statsData && statsData.question_stats) {
         // Map server-side stats to the QuestionStats format used by the UI
-        formStats.value = statsData.question_stats.map((qs) => ({
-          ...qs.stats,
-          questionId: qs.question_id,
-          label: qs.question_label,
-        })) as unknown as QuestionStats[]
+        if (!Array.isArray(statsData.question_stats)) {
+          console.warn('[FormResponseViewer] Expected question_stats to be an array, got:', typeof statsData.question_stats)
+          formStats.value = []
+        } else {
+          const mapped = statsData.question_stats
+            .filter((qs: Record<string, unknown>) => {
+              if (!qs || typeof qs !== 'object' || !qs.question_id || !qs.stats) {
+                console.warn('[FormResponseViewer] Invalid question stat entry:', qs)
+                return false
+              }
+              return true
+            })
+            .map((qs: Record<string, unknown>) => ({
+              ...(qs.stats as Record<string, unknown>),
+              questionId: qs.question_id,
+              label: qs.question_label,
+            }))
+          formStats.value = mapped as QuestionStats[]
+        }
       }
     } catch (e: unknown) {
       if (localFetchId !== _fetchId) return // stale response

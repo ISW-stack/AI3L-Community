@@ -6,6 +6,7 @@ import { useToastStore } from '@/stores/toast'
 import { useAlbumLayout } from '@/composables/useAlbumLayout'
 import { listAlbumComments, createAlbumComment, deleteAlbumComment } from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
+import { formatDate } from '@/utils/date'
 import { usePagination } from '@/composables/usePagination'
 import type { AlbumComment } from '@/types/album'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -15,7 +16,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const auth = useAuthStore()
 const toast = useToastStore()
 const { album, userAlbumRole } = useAlbumLayout()
@@ -49,7 +50,7 @@ function formatTime(dateStr: string): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   if (days < 7) return `${days}d ago`
-  return new Date(dateStr).toLocaleDateString()
+  return formatDate(dateStr, locale.value)
 }
 
 async function fetchComments() {

@@ -112,10 +112,10 @@ async function fetchMyApplication() {
     const { isAxiosError } = await import('axios')
     if (isAxiosError(e)) {
       const status = e.response?.status
-      if (status !== 404 && status !== 401) {
-        if (import.meta.env.DEV) console.error('Failed to fetch application status:', e)
-      }
+      if (status === 404 || status === 401) return
     }
+    // Surface unexpected errors
+    toast.show(getErrorMessage(e, t('home.applyMembership.fetchError', 'Failed to check application status.')), 'error')
   }
 }
 

@@ -61,7 +61,7 @@ async def revoke_invite_code(
                 code_id,
                 uuid.UUID(current_user["sub"]),
             )
-        if result == "UPDATE 0":
+        if result and result.endswith(" 0"):
             # Could be not found, not owned, or already consumed/expired
             code_info = await invite_code_repo.find_by_id(code_id)
             if code_info and str(code_info.get("created_by")) != current_user["sub"]:
@@ -121,7 +121,7 @@ async def delete_invite_code(
                 code_id,
                 uuid.UUID(current_user["sub"]),
             )
-        if result == "DELETE 0":
+        if result and result.endswith(" 0"):
             # Could be not found or not owned
             code_info = await invite_code_repo.find_by_id(code_id)
             if code_info and str(code_info.get("created_by")) != current_user["sub"]:

@@ -68,10 +68,20 @@ def _validate_profile_field_lengths(**fields: str | None) -> None:
                 raise ValueError(f"{name} must be at most {limit} characters (got {len(value)}).")
 
 
+# Fields that cannot be cleared (set to None or empty string)
+_NON_CLEARABLE_FIELDS = {"display_name"}
+
+
 async def update_user_profile(
     user_id: uuid.UUID,
     **fields: str | None,
 ) -> dict | None:
+    # F-45: Validate that non-clearable fields are not set to None/empty
+    for field_name in _NON_CLEARABLE_FIELDS:
+        if field_name in fields:
+            value = fields[field_name]
+            if value is None or (isinstance(value, str) and not value.strip()):
+                raise ValueError(f"{field_name} cannot be empty.")
     _validate_profile_field_lengths(
         **{k: v for k, v in fields.items() if k in _PROFILE_FIELD_LIMITS}
     )

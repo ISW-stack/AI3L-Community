@@ -264,6 +264,9 @@ services:
     networks:
       - backend-net
 
+  # Datadog APM/log agent — disabled by default. Activate with:
+  #   docker compose --profile monitoring up datadog-agent
+  # Requires DD_API_KEY in .env.
   datadog-agent:
     image: gcr.io/datadoghq/agent:7.60.1
     profiles: ["monitoring"]

@@ -54,6 +54,9 @@ export function useWebSocket() {
   let backoff = WS_INITIAL_BACKOFF_MS
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let connecting = false
+  // Rate-limit PONG responses to prevent PING flood from a malicious server
+  let lastPongTimestamp = 0
+  const PONG_MIN_INTERVAL_MS = 5000
   // Tracks whether the WS has ever successfully connected in this instance's
   // lifetime. Used to distinguish the initial connection from a reconnection.
   let hasConnectedOnce = false
@@ -117,7 +120,11 @@ export function useWebSocket() {
           const msg = JSON.parse(event.data)
           if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string') return
           if (msg.type === 'PING') {
-            ws?.send(JSON.stringify({ type: 'PONG' }))
+            const now = Date.now()
+            if (now - lastPongTimestamp >= PONG_MIN_INTERVAL_MS) {
+              ws?.send(JSON.stringify({ type: 'PONG' }))
+              lastPongTimestamp = now
+            }
             return
           }
           // Guard: don't process non-PING messages after auth is cleared
@@ -144,7 +151,8 @@ export function useWebSocket() {
                 dmStore.activeConversationId !== msg.message.conversation_id &&
                 msg.message.sender?.id !== auth.user?.id
               ) {
-                const senderName = (msg.message.sender?.display_name ?? 'someone').slice(0, 50)
+                const rawName = msg.message.sender?.display_name ?? 'someone'
+                const senderName = rawName.length > 50 ? rawName.slice(0, 50) + '\u2026' : rawName
                 toastStore.show(
                   `New message from ${senderName}`,
                   'info',

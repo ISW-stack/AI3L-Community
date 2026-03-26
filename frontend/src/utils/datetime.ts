@@ -1,4 +1,4 @@
-export function relativeTime(iso: string): string {
+export function relativeTime(iso: string, locale: string = 'en'): string {
   const diff = Date.now() - new Date(iso).getTime()
   const seconds = Math.floor(diff / 1000)
   if (seconds < 60) return 'just now'
@@ -8,5 +8,5 @@ export function relativeTime(iso: string): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   if (days < 30) return `${days}d ago`
-  return new Date(iso).toLocaleDateString()
+  return new Date(iso).toLocaleDateString(locale)
 }

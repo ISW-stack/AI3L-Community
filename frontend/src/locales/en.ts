@@ -821,6 +821,7 @@ export default {
       editFormBtn: 'Edit form',
       exportCSVBtn: 'Export CSV',
       closedAlert: 'This form is closed and no longer accepting responses.',
+      deadlinePassed: 'The deadline for this form has passed. Submissions are no longer accepted.',
       successMessage: 'Your response has been submitted successfully!',
       alreadySubmitted: 'You have already submitted a response to this form.',
       loginPrompt: 'Please',

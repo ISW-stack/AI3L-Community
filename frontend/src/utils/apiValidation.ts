@@ -14,6 +14,15 @@ export function assertShape<T>(data: unknown, requiredKeys: string[], context: s
           `Received: [${actualKeys.join(', ')}].`,
       )
     }
+    const requiredSet = new Set(requiredKeys)
+    const extraKeys = actualKeys.filter((key) => !requiredSet.has(key))
+    if (extraKeys.length > 0) {
+      console.warn(
+        `[API] Shape mismatch in "${context}": unexpected keys [${extraKeys.join(', ')}]. ` +
+          `Expected: [${requiredKeys.join(', ')}]. ` +
+          `Received: [${actualKeys.join(', ')}].`,
+      )
+    }
   }
   return data as T
 }

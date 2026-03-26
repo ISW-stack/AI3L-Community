@@ -159,14 +159,7 @@ async def login_as_guest(
             ErrorCode.AUTH_005, status.HTTP_400_BAD_REQUEST, "Invalid or expired captcha."
         )
 
-    # Consume invite code (guest has no DB user, so consumed_by stays NULL)
-    consumed = await consume_invite_code(invite_code)
-    if not consumed:
-        raise AppError(
-            ErrorCode.AUTH_006, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
-        )
-
-    # Per-IP guest session limit (atomic via Lua script)
+    # Per-IP guest session limit (atomic via Lua script) — check BEFORE consuming code
     if not await increment_guest_ip_counter(ip):
         raise AppError(
             ErrorCode.SYS_429,
@@ -179,6 +172,15 @@ async def login_as_guest(
         # Undo the per-IP increment since global capacity is full
         await decrement_guest_ip_counter(ip)
         raise AppError(ErrorCode.AUTH_003, 429, "Guest capacity reached. Please try again later.")
+
+    # Consume invite code AFTER capacity checks pass (guest has no DB user, so consumed_by stays NULL)
+    consumed = await consume_invite_code(invite_code)
+    if not consumed:
+        # Undo both the per-IP increment and guest login
+        await decrement_guest_ip_counter(ip)
+        raise AppError(
+            ErrorCode.AUTH_006, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
+        )
 
     token, jti, expires_in = result
 

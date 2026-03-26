@@ -104,6 +104,7 @@ function buildMockPostDetail(overrides?: Record<string, unknown>) {
     commentsTotal: ref(2),
     newComment: ref(''),
     commentSaving: ref(false),
+    replySaving: ref(false),
     commentMessage: ref(''),
     inlineReplyTo: ref(null),
     inlineReplyContent: ref(''),

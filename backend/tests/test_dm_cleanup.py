@@ -213,7 +213,7 @@ class TestCleanupDmExpiredText:
 
     @pytest.mark.anyio
     async def test_cleanup_text_happy_path(self):
-        """Deletes expired text messages and adjusts char counts."""
+        """Deletes expired text messages and adjusts char counts via DELETE...RETURNING."""
         msg_id = uuid.uuid4()
         conv_id = uuid.uuid4()
         expired_msgs = [
@@ -226,9 +226,15 @@ class TestCleanupDmExpiredText:
 
         mock_find = AsyncMock(return_value=expired_msgs)
 
+        # DELETE...RETURNING returns rows with id, conversation_id, content_len
+        deleted_row = MagicMock()
+        deleted_row.__getitem__ = lambda self, k: {
+            "id": msg_id, "conversation_id": conv_id, "content_len": 13,
+        }[k]
+
         # Mock pool for transactional cleanup
         mock_conn = MagicMock()
-        mock_conn.fetchval = AsyncMock(return_value=1)  # deleted count
+        mock_conn.fetch = AsyncMock(return_value=[deleted_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)
@@ -270,7 +276,7 @@ class TestCleanupDmExpiredText:
 
     @pytest.mark.anyio
     async def test_cleanup_text_char_count_error_does_not_raise(self):
-        """Failure to decrement char count is logged but does not crash."""
+        """Transactional cleanup succeeds atomically with char decrement."""
         msg_id = uuid.uuid4()
         conv_id = uuid.uuid4()
         expired_msgs = [
@@ -283,9 +289,15 @@ class TestCleanupDmExpiredText:
 
         mock_find = AsyncMock(return_value=expired_msgs)
 
+        # DELETE...RETURNING returns the deleted row
+        deleted_row = MagicMock()
+        deleted_row.__getitem__ = lambda self, k: {
+            "id": msg_id, "conversation_id": conv_id, "content_len": 4,
+        }[k]
+
         # Mock pool for transactional cleanup (succeeds normally)
         mock_conn = MagicMock()
-        mock_conn.fetchval = AsyncMock(return_value=1)
+        mock_conn.fetch = AsyncMock(return_value=[deleted_row])
         mock_conn.execute = AsyncMock()
         mock_tx = MagicMock()
         mock_tx.__aenter__ = AsyncMock(return_value=None)

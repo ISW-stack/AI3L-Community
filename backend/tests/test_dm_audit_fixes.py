@@ -247,10 +247,22 @@ class TestDM18AdminModeration:
         conv_id = uuid.uuid4()
 
         try:
-            with patch(
-                "app.repositories.dm_repo.find_messages",
-                new_callable=AsyncMock,
-                return_value=([], 0),
+            with (
+                patch(
+                    "app.api.v1.endpoints.dm.check_rate_limit",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.repositories.dm_repo.conversation_exists",
+                    new_callable=AsyncMock,
+                    return_value=True,
+                ),
+                patch(
+                    "app.repositories.dm_repo.find_messages",
+                    new_callable=AsyncMock,
+                    return_value=([], 0),
+                ),
             ):
                 resp = await client.get(
                     f"/api/v1/dm/admin/conversations/{conv_id}/messages"

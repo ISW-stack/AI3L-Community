@@ -82,4 +82,48 @@ describe('usePagination', () => {
     setPage(2)
     expect(page.value).toBe(2)
   })
+
+  // ---------- F-31: setPage clamps invalid values ----------
+
+  describe('setPage clamping (F-31)', () => {
+    it('clamps negative page to 1', () => {
+      const { page, setPage } = usePagination()
+      setPage(-5)
+      expect(page.value).toBe(1)
+    })
+
+    it('clamps zero page to 1', () => {
+      const { page, setPage } = usePagination()
+      setPage(0)
+      expect(page.value).toBe(1)
+    })
+
+    it('clamps page above totalPages', () => {
+      const { page, setPage, updateFromResponse } = usePagination(10)
+      updateFromResponse(30) // totalPages = 3
+      setPage(10)
+      expect(page.value).toBe(3)
+    })
+
+    it('allows valid page within range', () => {
+      const { page, setPage, updateFromResponse } = usePagination(10)
+      updateFromResponse(50) // totalPages = 5
+      setPage(3)
+      expect(page.value).toBe(3)
+    })
+
+    it('allows page 1 when totalPages is 1', () => {
+      const { page, setPage } = usePagination()
+      // default totalPages is 1
+      setPage(1)
+      expect(page.value).toBe(1)
+    })
+
+    it('allows any page when total is 0 (not yet loaded)', () => {
+      const { page, setPage } = usePagination()
+      // total defaults to 0, so we don't clamp to totalPages
+      setPage(10)
+      expect(page.value).toBe(10)
+    })
+  })
 })

@@ -115,11 +115,13 @@ export const useDMStore = defineStore('dm', () => {
     }
   }
 
-  function _appendMessage(message: DMMessage) {
+  function _appendMessage(message: DMMessage): boolean {
     if (!messages.value.some((m) => m.id === message.id)) {
       messages.value.push(message)
       _trimMessages()
+      return true
     }
+    return false
   }
 
   function _moveConversationToTop(convIdx: number) {
@@ -154,7 +156,8 @@ export const useDMStore = defineStore('dm', () => {
       }
       // Still add to messages if viewing this conversation
       if (activeConversationId.value === message.conversation_id) {
-        _appendMessage(message)
+        const added = _appendMessage(message)
+        if (added) messagesTotal.value += 1
       }
       return
     }
@@ -167,9 +170,8 @@ export const useDMStore = defineStore('dm', () => {
     if (message.sender.id === currentUserId.value) {
       _moveConversationToTop(convIdx)
       if (activeConversationId.value === message.conversation_id) {
-        _appendMessage(message)
-        // F-07: Keep messagesTotal in sync with WS additions
-        messagesTotal.value += 1
+        const added = _appendMessage(message)
+        if (added) messagesTotal.value += 1
       }
       return
     }
@@ -181,9 +183,8 @@ export const useDMStore = defineStore('dm', () => {
     _moveConversationToTop(convIdx)
 
     if (activeConversationId.value === message.conversation_id) {
-      _appendMessage(message)
-      // F-07: Keep messagesTotal in sync with WS additions
-      messagesTotal.value += 1
+      const added = _appendMessage(message)
+      if (added) messagesTotal.value += 1
       // Auto mark-as-read: user is viewing this conversation
       _debouncedMarkRead(message.conversation_id)
     } else {
@@ -194,12 +195,19 @@ export const useDMStore = defineStore('dm', () => {
   function updateFromWebSocket(message: DMMessage) {
     const idx = messages.value.findIndex((m) => m.id === message.id)
     if (idx >= 0) {
-      messages.value[idx] = message
+      messages.value.splice(idx, 1, message)
     }
     // Update last_message in conversations if applicable
     const conv = conversations.value.find((c) => c.id === message.conversation_id)
     if (conv && conv.last_message?.id === message.id) {
       conv.last_message = message
+    }
+  }
+
+  function updateMessage(messageId: string, data: Partial<DMMessage>) {
+    const idx = messages.value.findIndex((m) => m.id === messageId)
+    if (idx >= 0) {
+      messages.value.splice(idx, 1, { ...messages.value[idx], ...data })
     }
   }
 
@@ -246,6 +254,23 @@ export const useDMStore = defineStore('dm', () => {
     messagesTotal.value = 0
   }
 
+  async function refreshAttachmentUrl(messageId: string) {
+    const idx = messages.value.findIndex((m) => m.id === messageId)
+    if (idx < 0) return
+    const msg = messages.value[idx]
+    if (!msg.conversation_id) return
+    try {
+      // Re-fetch the single conversation's messages page to get refreshed presigned URL
+      const res = await dmApi.listMessages(msg.conversation_id, { page: 1, page_size: 30 })
+      const freshMsg = res.messages.find((m: DMMessage) => m.id === messageId)
+      if (freshMsg && freshMsg.attachment_url) {
+        messages.value[idx] = { ...messages.value[idx], ...freshMsg }
+      }
+    } catch {
+      // Non-critical — user can retry
+    }
+  }
+
   function resetState() {
     conversations.value = []
     conversationsTotal.value = 0
@@ -279,11 +304,13 @@ export const useDMStore = defineStore('dm', () => {
     fetchMessages,
     addFromWebSocket,
     updateFromWebSocket,
+    updateMessage,
     recallFromWebSocket,
     readReceiptFromWebSocket,
     setActiveConversation,
     setCurrentUserId,
     clearMessages,
+    refreshAttachmentUrl,
     resetState,
   }
 })

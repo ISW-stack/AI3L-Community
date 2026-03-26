@@ -310,6 +310,26 @@ describe('useWebSocket', () => {
       expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'PONG' }))
     })
 
+    it('rate-limits PONG responses to at most one per 5 seconds', async () => {
+      const { connect } = useWebSocket()
+      await connect()
+      const ws = MockWebSocket.instances[0]
+      ws.simulateOpen()
+
+      // First PING → PONG sent
+      ws.simulateMessage({ type: 'PING' })
+      expect(ws.send).toHaveBeenCalledTimes(1)
+
+      // Second PING immediately → suppressed
+      ws.simulateMessage({ type: 'PING' })
+      expect(ws.send).toHaveBeenCalledTimes(1)
+
+      // Third PING after 5 seconds → PONG sent
+      vi.advanceTimersByTime(5000)
+      ws.simulateMessage({ type: 'PING' })
+      expect(ws.send).toHaveBeenCalledTimes(2)
+    })
+
     it('handles FORCE_LOGOUT by clearing session and navigating to login', async () => {
       const { connect } = useWebSocket()
       await connect()

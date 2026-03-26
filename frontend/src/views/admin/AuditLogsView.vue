@@ -51,8 +51,16 @@ function toggleFilters() {
 }
 
 function applyFilters() {
+  if (dateRangeInvalid.value) return
   resetPage()
   fetchLogs()
+}
+
+function handleDateKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    applyFilters()
+  }
 }
 
 function clearFilters() {
@@ -79,8 +87,8 @@ function nextPage() {
     fetchLogs()
   }
 }
-function formatDateLocal(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -124,6 +132,7 @@ onMounted(fetchLogs)
             type="date"
             name="date-from"
             class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+            @keydown.enter="handleDateKeydown"
           />
         </div>
         <div class="flex items-center gap-2">
@@ -136,6 +145,7 @@ onMounted(fetchLogs)
             type="date"
             name="date-to"
             class="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none"
+            @keydown.enter="handleDateKeydown"
           />
         </div>
         <div class="flex items-center gap-2">
@@ -186,7 +196,7 @@ onMounted(fetchLogs)
         >
           <div class="flex items-center justify-between">
             <BaseBadge variant="neutral" class="font-mono text-xs">{{ log.action }}</BaseBadge>
-            <span class="text-xs text-muted">{{ formatDateLocal(log.created_at) }}</span>
+            <span class="text-xs text-muted">{{ formatDate(log.created_at) }}</span>
           </div>
           <div class="text-sm text-foreground">
             <span v-if="log.display_name">{{ log.display_name }}</span>
@@ -235,7 +245,7 @@ onMounted(fetchLogs)
                 class="border-b border-border last:border-0 hover:bg-surface-alt transition"
               >
                 <td class="px-4 py-3 text-muted whitespace-nowrap">
-                  {{ formatDateLocal(log.created_at) }}
+                  {{ formatDate(log.created_at) }}
                 </td>
                 <td class="px-4 py-3 text-foreground">
                   <span v-if="log.display_name">{{ log.display_name }}</span>

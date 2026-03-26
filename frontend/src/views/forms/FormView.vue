@@ -45,6 +45,7 @@ const {
   answeredCount,
   progressPercent,
   showForm,
+  isDeadlinePassed,
   loadForm,
   submitForm,
   handleFileUpload,
@@ -222,6 +223,15 @@ onMounted(() => loadForm())
       <BaseAlert v-if="!form.is_active" type="error" class="mb-6 text-center">{{
         t('forms.view.closedAlert')
       }}</BaseAlert>
+
+      <BaseAlert
+        v-if="form.is_active && isDeadlinePassed"
+        type="warning"
+        class="mb-6 text-center"
+        data-testid="deadline-passed-alert"
+      >
+        {{ t('forms.view.deadlinePassed') }}
+      </BaseAlert>
 
       <!-- Feature 3: Draft restored info bar -->
       <BaseAlert

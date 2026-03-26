@@ -12,6 +12,7 @@ import {
   uploadAlbumCover,
 } from '@/api/albums'
 import { getErrorMessage } from '@/utils/error'
+import { formatDate } from '@/utils/date'
 import type { Album, AlbumMember } from '@/types/album'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -19,7 +20,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
-const { t } = useLocale()
+const { t, currentLocale } = useLocale()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -335,7 +336,7 @@ const currentRouteName = computed(() => route.name)
                   <span>{{ t('albums.photosCount', { count: album.photo_count }) }}</span>
                   <span>{{ t('albums.membersCount', { count: album.member_count }) }}</span>
                   <span>{{
-                    t('albums.created', { date: new Date(album.created_at).toLocaleDateString() })
+                    t('albums.created', { date: formatDate(album.created_at, currentLocale.value) })
                   }}</span>
                 </div>
               </template>

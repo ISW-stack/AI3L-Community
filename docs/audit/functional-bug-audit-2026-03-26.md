@@ -6,7 +6,7 @@
 
 **Total findings: 70** (5 Critical, 10 High, 30 Medium, 25 Low)
 
-**Status: 5 Critical fixed 2026-03-26** — commit covers F-01 to F-05 + 3 pre-existing test bugs corrected
+**Status: ALL 70 findings fixed** — Criticals (F-01–F-05) 2026-03-26; Highs (F-06–F-15) + Mediums (F-16–F-40, F-60–F-64) 2026-03-26; **Lows (F-41–F-59, F-65–F-70) fixed 2026-03-26** — ~76 new tests added
 
 > Includes first pass (F-01 to F-59) + second pass (F-60 to F-70, appended at bottom).
 
@@ -31,61 +31,61 @@
 | F-13 | HIGH | Frontend | `useLocale` sets locale before API call — reverts on refresh if API fails | ✅ |
 | F-14 | HIGH | Infra | Production nginx shares dev config file with `YOUR_DOMAIN` placeholders | ✅ |
 | F-15 | HIGH | Infra | `alembic check` in prod has no retry on transient DB failure | ✅ |
-| F-16 | MEDIUM | Backend | Idempotency middleware truncates UUID to 16 chars — collision risk |
-| F-17 | MEDIUM | Backend | DM cleanup task: MinIO deletion not retried after DB clear succeeds |
-| F-18 | MEDIUM | Backend | DM text cleanup holds advisory locks for entire batch |
-| F-19 | MEDIUM | Backend | Event bus failure persistence is fire-and-forget — no caller feedback |
-| F-20 | MEDIUM | Backend | Form `find_by_id()` response_count pop has no downstream impact but is fragile |
-| F-21 | MEDIUM | Backend | DM repo error message doesn't distinguish "not found" vs "not participant" |
-| F-22 | MEDIUM | Backend | Form stats returns 0% for all options when no responses (no `has_responses` flag) |
-| F-23 | MEDIUM | Backend | Comment edit rate limit checked before existence check — wastes quota |
-| F-24 | MEDIUM | Frontend | DM `handleLoadMore` doesn't check if page exceeds total |
-| F-25 | MEDIUM | Frontend | DM `markConversationRead` failure silently ignored — UI shows 0 unread |
-| F-26 | MEDIUM | Frontend | `useFormBuilder` collapsedQuestions Set persists across form switches |
-| F-27 | MEDIUM | Frontend | `useFetchPaginated` concurrent page changes — previousPage rollback wrong |
-| F-28 | MEDIUM | Frontend | `useFormSubmit` file upload validates extension only, not MIME type |
-| F-29 | MEDIUM | Frontend | `useFormResponseViewer` stats cast `as unknown as QuestionStats[]` — no validation |
-| F-30 | MEDIUM | Frontend | `usePostDetail` commentSaving flag shared between root comment and reply |
-| F-31 | MEDIUM | Frontend | `usePagination` `setPage()` accepts negative or zero values |
-| F-32 | MEDIUM | Frontend | `AuditLogsView` date range validation only disables button — Enter key bypasses |
-| F-33 | MEDIUM | Frontend | PostDetailView edit/delete buttons don't guard against concurrent operations |
-| F-34 | MEDIUM | Frontend | DMView edit message by findIndex — stale if WS events re-order |
-| F-35 | MEDIUM | Infra | `security-headers.conf` (generated file) committed to git with empty CSP vars |
-| F-36 | MEDIUM | Infra | Production compose missing `S3_PUBLIC_URL` env var for FastAPI |
-| F-37 | MEDIUM | Infra | `alembic.ini` missing `sqlalchemy.url` — direct CLI invocation fails |
-| F-38 | MEDIUM | Infra | Dev nginx missing `write` rate limit zone — differs from prod |
-| F-39 | MEDIUM | Frontend | WebSocket PONG response has no rate limiting |
-| F-40 | MEDIUM | Frontend | `HomeView` fetchMyApplication swallows non-401/404 errors |
-| F-41 | LOW | Backend | Guest counter initialization TOCTOU race |
-| F-42 | LOW | Backend | `asyncpg.execute()` string comparison `"UPDATE 0"` is fragile |
-| F-43 | LOW | Backend | Form response permission check TOCTOU gap (repo trusts service) |
-| F-44 | LOW | Backend | `get_dm_friends_only()` returns False for non-existent users |
-| F-45 | LOW | Backend | `update_my_profile()` passes None for explicit field clearing |
-| F-46 | LOW | Frontend | `formatDate` silent locale fallback to 'en' |
-| F-47 | LOW | Frontend | `extractMentions` regex no mention length validation |
-| F-48 | LOW | Frontend | `assertShape` no extra key warnings |
-| F-49 | LOW | Frontend | DM toast sender name truncation without ellipsis |
-| F-50 | LOW | Frontend | `FormsDirectoryView` search query not trimmed |
-| F-51 | LOW | Frontend | DMView `getPreferences()` has no timeout |
-| F-52 | LOW | Frontend | `LoginView` error computed forces reactivity hack |
-| F-53 | LOW | Frontend | `ProfileView` direct ref property mutation |
-| F-54 | LOW | Frontend | `useFormBuilder` hardcoded touch drag threshold |
-| F-55 | LOW | Infra | Dev nginx 5s DNS TTL causes stale routing after restart |
-| F-56 | LOW | Infra | Unused Datadog agent profile in dev compose |
-| F-57 | LOW | Backend | Missing explicit `sub` None check in co-author endpoint |
-| F-58 | LOW | Backend | Form responses auth timing oracle (two separate queries) |
-| F-59 | LOW | Frontend | `useFormResponseDraft` skipTypes `?.value` masks undefined |
-| F-60 | MEDIUM | Backend | Guest invite code consumed before `guest_login()` succeeds |
-| F-61 | MEDIUM | Backend | Forms from deleted SIGs still visible via `find_by_sig()` |
-| F-62 | MEDIUM | Frontend | `toLocaleDateString()` called without locale in 8+ components |
-| F-63 | MEDIUM | Frontend | DM store `messagesTotal` increments even on dedup (own echo) |
-| F-64 | MEDIUM | Backend | Celery DM text cleanup has no idempotency — double-run loses char decrements |
-| F-65 | LOW | Backend | DM admin endpoint returns 200 with empty list for non-existent conversations |
-| F-66 | LOW | Backend | DM orphan cleanup S3 paginator has no timeout — can hang indefinitely |
-| F-67 | LOW | Backend | WS `FORCE_LOGOUT` delivery not guaranteed before connection close |
-| F-68 | LOW | Frontend | DM presigned URLs not refreshed after VirusTotal scan completes |
-| F-69 | LOW | Frontend | Lightbox `canDelete` binding doesn't bounds-check `lightboxIndex` |
-| F-70 | LOW | Frontend | Form deadline not validated client-side — submission fails only on backend |
+| F-16 | MEDIUM | Backend | Idempotency middleware truncates UUID to 16 chars — collision risk | ✅ |
+| F-17 | MEDIUM | Backend | DM cleanup task: MinIO deletion not retried after DB clear succeeds | ✅ |
+| F-18 | MEDIUM | Backend | DM text cleanup holds advisory locks for entire batch | ✅ |
+| F-19 | MEDIUM | Backend | Event bus failure persistence is fire-and-forget — no caller feedback | ✅ |
+| F-20 | MEDIUM | Backend | Form `find_by_id()` response_count pop has no downstream impact but is fragile | ✅ |
+| F-21 | MEDIUM | Backend | DM repo error message doesn't distinguish "not found" vs "not participant" | ✅ |
+| F-22 | MEDIUM | Backend | Form stats returns 0% for all options when no responses (no `has_responses` flag) | ✅ |
+| F-23 | MEDIUM | Backend | Comment edit rate limit checked before existence check — wastes quota | ✅ |
+| F-24 | MEDIUM | Frontend | DM `handleLoadMore` doesn't check if page exceeds total | ✅ |
+| F-25 | MEDIUM | Frontend | DM `markConversationRead` failure silently ignored — UI shows 0 unread | ✅ |
+| F-26 | MEDIUM | Frontend | `useFormBuilder` collapsedQuestions Set persists across form switches | ✅ |
+| F-27 | MEDIUM | Frontend | `useFetchPaginated` concurrent page changes — previousPage rollback wrong | ✅ |
+| F-28 | MEDIUM | Frontend | `useFormSubmit` file upload validates extension only, not MIME type | ✅ |
+| F-29 | MEDIUM | Frontend | `useFormResponseViewer` stats cast `as unknown as QuestionStats[]` — no validation | ✅ |
+| F-30 | MEDIUM | Frontend | `usePostDetail` commentSaving flag shared between root comment and reply | ✅ |
+| F-31 | MEDIUM | Frontend | `usePagination` `setPage()` accepts negative or zero values | ✅ |
+| F-32 | MEDIUM | Frontend | `AuditLogsView` date range validation only disables button — Enter key bypasses | ✅ |
+| F-33 | MEDIUM | Frontend | PostDetailView edit/delete buttons don't guard against concurrent operations | ✅ |
+| F-34 | MEDIUM | Frontend | DMView edit message by findIndex — stale if WS events re-order | ✅ |
+| F-35 | MEDIUM | Infra | `security-headers.conf` (generated file) committed to git with empty CSP vars | ✅ |
+| F-36 | MEDIUM | Infra | Production compose missing `S3_PUBLIC_URL` env var for FastAPI | ✅ |
+| F-37 | MEDIUM | Infra | `alembic.ini` missing `sqlalchemy.url` — direct CLI invocation fails | ✅ |
+| F-38 | MEDIUM | Infra | Dev nginx missing `write` rate limit zone — differs from prod | ✅ |
+| F-39 | MEDIUM | Frontend | WebSocket PONG response has no rate limiting | ✅ |
+| F-40 | MEDIUM | Frontend | `HomeView` fetchMyApplication swallows non-401/404 errors | ✅ |
+| F-41 | LOW | Backend | Guest counter initialization TOCTOU race | ✅ |
+| F-42 | LOW | Backend | `asyncpg.execute()` string comparison `"UPDATE 0"` is fragile | ✅ |
+| F-43 | LOW | Backend | Form response permission check TOCTOU gap (repo trusts service) | ✅ |
+| F-44 | LOW | Backend | `get_dm_friends_only()` returns False for non-existent users | ✅ |
+| F-45 | LOW | Backend | `update_my_profile()` passes None for explicit field clearing | ✅ |
+| F-46 | LOW | Frontend | `formatDate` silent locale fallback to 'en' | ✅ |
+| F-47 | LOW | Frontend | `extractMentions` regex no mention length validation | ✅ |
+| F-48 | LOW | Frontend | `assertShape` no extra key warnings | ✅ |
+| F-49 | LOW | Frontend | DM toast sender name truncation without ellipsis | ✅ |
+| F-50 | LOW | Frontend | `FormsDirectoryView` search query not trimmed | ✅ |
+| F-51 | LOW | Frontend | DMView `getPreferences()` has no timeout | ✅ |
+| F-52 | LOW | Frontend | `LoginView` error computed forces reactivity hack | ✅ |
+| F-53 | LOW | Frontend | `ProfileView` direct ref property mutation | ✅ |
+| F-54 | LOW | Frontend | `useFormBuilder` hardcoded touch drag threshold | ✅ |
+| F-55 | LOW | Infra | Dev nginx 5s DNS TTL causes stale routing after restart | ✅ |
+| F-56 | LOW | Infra | Unused Datadog agent profile in dev compose | ✅ |
+| F-57 | LOW | Backend | Missing explicit `sub` None check in co-author endpoint | ✅ |
+| F-58 | LOW | Backend | Form responses auth timing oracle (two separate queries) | ✅ |
+| F-59 | LOW | Frontend | `useFormResponseDraft` skipTypes `?.value` masks undefined | ✅ |
+| F-60 | MEDIUM | Backend | Guest invite code consumed before `guest_login()` succeeds | ✅ |
+| F-61 | MEDIUM | Backend | Forms from deleted SIGs still visible via `find_by_sig()` | ✅ |
+| F-62 | MEDIUM | Frontend | `toLocaleDateString()` called without locale in 8+ components | ✅ |
+| F-63 | MEDIUM | Frontend | DM store `messagesTotal` increments even on dedup (own echo) | ✅ |
+| F-64 | MEDIUM | Backend | Celery DM text cleanup has no idempotency — double-run loses char decrements | ✅ |
+| F-65 | LOW | Backend | DM admin endpoint returns 200 with empty list for non-existent conversations | ✅ |
+| F-66 | LOW | Backend | DM orphan cleanup S3 paginator has no timeout — can hang indefinitely | ✅ |
+| F-67 | LOW | Backend | WS `FORCE_LOGOUT` delivery not guaranteed before connection close | ✅ |
+| F-68 | LOW | Frontend | DM presigned URLs not refreshed after VirusTotal scan completes | ✅ |
+| F-69 | LOW | Frontend | Lightbox `canDelete` binding doesn't bounds-check `lightboxIndex` | ✅ |
+| F-70 | LOW | Frontend | Form deadline not validated client-side — submission fails only on backend | ✅ |
 
 ---
 
@@ -434,107 +434,126 @@
 
 ---
 
-## LOW (19)
+## LOW (19) — ALL FIXED 2026-03-26
 
-### F-41: Guest counter initialization TOCTOU race
+### F-41: Guest counter initialization TOCTOU race ✅ FIXED
 
 - **File:** `backend/app/services/auth.py:172-180`
 - **Description:** Between first `get()` returning None and `set()` in `sync_guest_counter()`, another process could initialize. Mitigated by Lua script for increments.
 - **Impact:** Counter may be off by 1 on first startup
+- **Fix:** Changed to `redis.set(key, count, nx=True)` for atomic initialization.
 
-### F-42: `asyncpg.execute()` string comparison fragile
+### F-42: `asyncpg.execute()` string comparison fragile ✅ FIXED
 
 - **File:** `backend/app/api/v1/endpoints/admin.py:64, 124`
 - **Description:** Compares `result == "UPDATE 0"` — works but relies on asyncpg return format.
 - **Impact:** Could break on asyncpg major version update
+- **Fix:** Changed to `result and result.endswith(" 0")` — robust against format changes.
 
-### F-43: Form response permission TOCTOU gap
+### F-43: Form response permission TOCTOU gap ✅ FIXED
 
 - **File:** `backend/app/repositories/form_repo.py:360`
 - **Description:** Repository trusts service layer for guest permission. If service bypassed, guests submit to restricted forms.
 - **Impact:** Defense-in-depth concern; service layer is the actual guard
+- **Fix:** Added `guest_allowed` parameter to `insert_response()` with defense-in-depth PermissionError when `user_id is None and not guest_allowed`.
 
-### F-44: `get_dm_friends_only()` returns False for non-existent users
+### F-44: `get_dm_friends_only()` returns False for non-existent users ✅ FIXED
 
 - **File:** `backend/app/repositories/dm_repo.py:727`
 - **Description:** Missing user and "no preference" both return False.
 - **Impact:** Minimal — caller validates user existence elsewhere
+- **Fix:** Returns `None` for non-existent/deleted users; `False` only for existing users without the preference set.
 
-### F-45: `update_my_profile()` passes None for field clearing
+### F-45: `update_my_profile()` passes None for field clearing ✅ FIXED
 
 - **File:** `backend/app/api/v1/endpoints/users.py:82-86`
 - **Description:** Uses `model_fields_set` correctly, but service layer should validate which fields are clearable.
 - **Impact:** Depends on service validation
+- **Fix:** Added `_NON_CLEARABLE_FIELDS = {"display_name"}` in `services/user.py`; rejects `None`, empty string, or whitespace-only values.
 
-### F-46: `formatDate` silent locale fallback
+### F-46: `formatDate` silent locale fallback ✅ FIXED
 
 - **File:** `frontend/src/utils/date.ts:8`
 - **Description:** Unsupported locale silently falls back to 'en' without dev warning.
+- **Fix:** Added `resolveLocale()` helper using `Intl.DateTimeFormat.supportedLocalesOf()`; emits `console.warn` in dev when falling back.
 
-### F-47: `extractMentions` no mention length limit
+### F-47: `extractMentions` no mention length limit ✅ FIXED
 
 - **File:** `frontend/src/utils/html.ts:65`
 - **Description:** Regex matches mentions of any length. Very long mentions waste backend lookups.
+- **Fix:** Added `MAX_MENTION_LENGTH = 50` constant; mentions exceeding limit are filtered out.
 
-### F-48: `assertShape` no extra key warnings
+### F-48: `assertShape` no extra key warnings ✅ FIXED
 
 - **File:** `frontend/src/utils/apiValidation.ts:6-19`
 - **Description:** Only warns on missing keys, not unexpected extra keys from API.
+- **Fix:** Added second check in dev mode warning about unexpected extra keys not in the expected shape.
 
-### F-49: DM toast sender name truncation without ellipsis
+### F-49: DM toast sender name truncation without ellipsis ✅ FIXED
 
 - **File:** `frontend/src/composables/useWebSocket.ts:147`
 - **Description:** `.slice(0, 50)` without `...` indicator.
+- **Fix:** `name.length > 50 ? name.slice(0, 50) + '\u2026' : name`
 
-### F-50: `FormsDirectoryView` search not trimmed
+### F-50: `FormsDirectoryView` search not trimmed ✅ FIXED
 
 - **File:** `frontend/src/views/forms/FormsDirectoryView.vue`
 - **Description:** Search input sent without `.trim()`.
+- **Fix:** Added `.trim()` on `searchQuery.value` before API call.
 
-### F-51: DMView `getPreferences()` no timeout
+### F-51: DMView `getPreferences()` no timeout ✅ FIXED
 
 - **File:** `frontend/src/views/DMView.vue:64-70`
 - **Description:** Awaited API with no timeout can block component mount.
+- **Fix:** Wrapped with `Promise.race` against a 5-second timeout; defaults to `dmFriendsOnly = false` on failure.
 
-### F-52: `LoginView` error reactivity hack
+### F-52: `LoginView` error reactivity hack ✅ FIXED
 
 - **File:** `frontend/src/views/LoginView.vue:30-34`
 - **Description:** Uses `void currentLocale.value` to force computed re-evaluation.
+- **Fix:** Replaced hack with proper `watch(currentLocale, ...)` incrementing an `errorVersion` ref used as computed dependency.
 
-### F-53: `ProfileView` direct ref mutation
+### F-53: `ProfileView` direct ref mutation ✅ FIXED
 
 - **File:** `frontend/src/views/ProfileView.vue:271-273`
 - **Description:** Directly sets `dangerZoneRef.value.showDeleteConfirm = false`.
+- **Fix:** Uses `dangerZoneRef.value.closeDeleteConfirm()` (already exposed via `defineExpose` in DangerZone).
 
-### F-54: `useFormBuilder` hardcoded touch drag threshold
+### F-54: `useFormBuilder` hardcoded touch drag threshold ✅ FIXED
 
 - **File:** `frontend/src/composables/useFormBuilder.ts:301`
 - **Description:** 50px threshold may be too sensitive on tablets.
+- **Fix:** Added `getTouchDragThreshold()` scaling by `window.devicePixelRatio` (capped at 3×); 50px on desktop, up to 150px on high-DPI devices.
 
-### F-55: Dev nginx 5s DNS TTL stale routing
+### F-55: Dev nginx 5s DNS TTL stale routing ✅ FIXED
 
 - **File:** `nginx/conf.d.dev/default.conf:8`
 - **Description:** `valid=5s` causes 502 errors after FastAPI restart.
+- **Fix:** Reduced TTL to `valid=1s` for faster re-resolution after container restart.
 
-### F-56: Unused Datadog agent in dev compose
+### F-56: Unused Datadog agent in dev compose ✅ FIXED
 
 - **File:** `docker-compose.yml:267-287`
 - **Description:** Disabled by profile but adds clutter.
+- **Fix:** Added explanatory comment documenting the `monitoring` profile and `DD_API_KEY` requirement.
 
-### F-57: Missing explicit `sub` None check
+### F-57: Missing explicit `sub` None check ✅ FIXED
 
 - **File:** `backend/app/api/v1/endpoints/users.py:271-283`
 - **Description:** Relies on dependency injection guarantee. Not a bug in practice.
+- **Fix:** Added explicit `if not current_user.get("sub")` guard returning 401.
 
-### F-58: Form responses auth timing oracle
+### F-58: Form responses auth timing oracle ✅ FIXED
 
 - **File:** `backend/app/api/v1/endpoints/forms.py:332-347`
 - **Description:** Two separate queries for form fetch + membership check. Timing difference theoretically reveals form existence.
+- **Fix:** Unauthorized access to form responses now returns 404 (not 403) — normalizes response to prevent existence disclosure.
 
-### F-59: `useFormResponseDraft` skipTypes masks undefined
+### F-59: `useFormResponseDraft` skipTypes masks undefined ✅ FIXED
 
 - **File:** `frontend/src/composables/useFormResponseDraft.ts:76-85`
 - **Description:** `skipTypes?.value` silently skips filtering if ref is undefined.
+- **Fix:** Extracted `typeMap` variable with explicit `typeMap != null` check before applying type filtering.
 
 ---
 
@@ -591,43 +610,49 @@
 - **Actual:** Data for retry is lost when messages are deleted
 - **Impact:** Conversation `total_chars` counter may be permanently inflated after a partial cleanup failure
 
-### LOW (6)
+### LOW (6) — ALL FIXED 2026-03-26
 
-### F-65: DM admin endpoint returns 200 for non-existent conversations
+### F-65: DM admin endpoint returns 200 for non-existent conversations ✅ FIXED
 
 - **File:** `backend/app/api/v1/endpoints/dm.py:75-118`
 - **Description:** `GET /dm/admin/conversations/{id}/messages` returns `{"messages": [], "total": 0}` for any conversation ID, including non-existent ones. Should return 404 for invalid IDs.
 - **Impact:** Audit logging can't distinguish "empty conversation" from "invalid ID"
+- **Fix:** Added `conversation_exists()` in `dm_repo.py`; endpoint raises `AppError(SYS_404, 404)` for missing conversations.
 
-### F-66: DM orphan cleanup S3 paginator has no timeout
+### F-66: DM orphan cleanup S3 paginator has no timeout ✅ FIXED
 
 - **File:** `backend/app/tasks/dm_cleanup.py:184-195`
 - **Description:** `loop.run_in_executor(None, _list_all_dm_keys)` calls boto3 paginator without timeout. If MinIO is unresponsive, the task hangs indefinitely.
 - **Impact:** Celery worker thread blocked; may exhaust worker pool
+- **Fix:** Wrapped executor call with `asyncio.wait_for(..., timeout=300)`; returns error dict with `timeout: True` on `TimeoutError`.
 
-### F-67: WS `FORCE_LOGOUT` delivery not guaranteed
+### F-67: WS `FORCE_LOGOUT` delivery not guaranteed ✅ FIXED
 
 - **File:** `backend/app/api/v1/endpoints/ws.py:126-134`
 - **Description:** On JTI mismatch, `FORCE_LOGOUT` is sent before WebSocket close. If the client's recv buffer is full, the message may not arrive. Client only sees a raw close code (4003).
 - **Impact:** Client doesn't know why connection was closed; may attempt reconnect loop
+- **Fix:** Wrapped send in `asyncio.wait_for(..., timeout=5.0)` inside try/except; close proceeds regardless of send success.
 
-### F-68: DM presigned URLs not refreshed after scan completes
+### F-68: DM presigned URLs not refreshed after scan completes ✅ FIXED
 
 - **File:** `frontend/src/stores/dm.ts:140-187`
 - **Description:** When a `NEW_DM` with a pending-scan attachment arrives via WS, the message has no `attachment_url`. After the VirusTotal scan completes, there's no mechanism to refresh the presigned URL in the rendered message.
 - **Impact:** User must manually refresh or re-open conversation to see attachment
+- **Fix:** Added `refreshAttachmentUrl(messageId)` method to DM store that re-fetches conversation messages and updates the specific message with a fresh presigned URL.
 
-### F-69: Lightbox `canDelete` binding doesn't bounds-check index
+### F-69: Lightbox `canDelete` binding doesn't bounds-check index ✅ FIXED
 
 - **File:** `frontend/src/views/albums/AlbumPhotosView.vue:206`
 - **Description:** Template uses `photos[lightboxIndex] ? canDeleteThisPhoto(...)  : false`. If `photos` array shrinks after deletion while lightbox is open, the truthy check handles `undefined` gracefully, but the access pattern is fragile.
 - **Impact:** Edge case — lightbox could briefly show stale data after batch delete
+- **Fix:** Changed to `lightboxIndex >= 0 && lightboxIndex < photos.length ? canDeleteThisPhoto(...) : false`.
 
-### F-70: Form deadline not validated client-side
+### F-70: Form deadline not validated client-side ✅ FIXED
 
 - **File:** `frontend/src/views/forms/FormView.vue:222-224`
 - **Description:** Form submission view checks `form.is_active` from server but doesn't client-side validate if deadline has passed based on local clock. Users can fill out a form only to be rejected on submit.
 - **Impact:** Poor UX — wasted form-filling effort
+- **Fix:** Added `isDeadlinePassed` computed in `useFormSubmit.ts`; `FormView.vue` shows a warning alert and hides the form when deadline has passed.
 
 ---
 
@@ -666,9 +691,9 @@
 23. **F-62**: Replace `toLocaleDateString()` with `formatDate(date, locale)` in 8+ components
 24. **F-63**: Guard `messagesTotal += 1` with `_appendMessage` return value
 
-### P3 — Backlog
+### P3 — Backlog ✅ COMPLETE
 
-25. All LOW items (F-41 through F-59, F-65 through F-70)
+25. All LOW items (F-41 through F-59, F-65 through F-70) — fixed 2026-03-26
 
 ---
 

@@ -294,11 +294,19 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     event.preventDefault()
   }
 
+  function getTouchDragThreshold(): number {
+    const basePx = 50
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1
+    // Scale threshold up on high-DPR devices (tablets/high-res) to reduce accidental drags
+    return dpr > 1 ? Math.round(basePx * Math.min(dpr, 3)) : basePx
+  }
+
   function handleTouchEnd(event: TouchEvent): void {
     if (touchDragIndex === null) return
     const endY = event.changedTouches[0].clientY
     const diff = endY - touchStartY
-    if (Math.abs(diff) > 50) {
+    const threshold = getTouchDragThreshold()
+    if (Math.abs(diff) > threshold) {
       const direction = diff > 0 ? 1 : -1
       moveQuestion(touchDragIndex, direction as -1 | 1)
     }
@@ -426,6 +434,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   async function fetchForm(): Promise<void> {
     if (!isEdit.value) return
     loading.value = true
+    collapsedQuestions.value.clear()
     try {
       const data = await getForm(formId())
       title.value = data.title
@@ -640,6 +649,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
+    getTouchDragThreshold,
     // Undo/Redo
     handleUndo,
     handleRedo,

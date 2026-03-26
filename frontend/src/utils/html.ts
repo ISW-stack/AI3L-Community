@@ -60,12 +60,16 @@ export function extractFormUrls(html: string): { fullMatch: string; id: string }
   return results
 }
 
+const MAX_MENTION_LENGTH = 50
+
 export function extractMentions(text: string): string[] {
   const seen = new Set<string>()
   const pattern = /@([\w-]+)/g
   let match: RegExpExecArray | null
   while ((match = pattern.exec(text)) !== null) {
-    seen.add(match[1])
+    if (match[1].length <= MAX_MENTION_LENGTH) {
+      seen.add(match[1])
+    }
   }
   return Array.from(seen)
 }

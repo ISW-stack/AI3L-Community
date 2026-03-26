@@ -97,11 +97,17 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
     return Math.round((answeredCount.value / totalQuestions.value) * 100)
   })
 
+  const isDeadlinePassed = computed(() => {
+    if (!form.value?.deadline) return false
+    return new Date(form.value.deadline).getTime() < Date.now()
+  })
+
   const showForm = computed(() => {
     return (
       !submitted.value &&
       !previousResponse.value &&
       form.value?.is_active &&
+      !isDeadlinePassed.value &&
       auth.isAuthenticated &&
       !auth.isGuest
     )
@@ -334,6 +340,34 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
         addHighlight(questionId)
         return
       }
+
+      // MIME type consistency check — warn but allow (server validates via magic bytes)
+      const extToMime: Record<string, string[]> = {
+        pdf: ['application/pdf'],
+        doc: ['application/msword'],
+        docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        xls: ['application/vnd.ms-excel'],
+        xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        ppt: ['application/vnd.ms-powerpoint'],
+        pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+        png: ['image/png'],
+        jpg: ['image/jpeg'],
+        jpeg: ['image/jpeg'],
+        gif: ['image/gif'],
+        svg: ['image/svg+xml'],
+        webp: ['image/webp'],
+        mp4: ['video/mp4'],
+        mp3: ['audio/mpeg'],
+        wav: ['audio/wav', 'audio/wave', 'audio/x-wav'],
+        txt: ['text/plain'],
+        csv: ['text/csv', 'text/plain'],
+      }
+      const expectedMimes = extToMime[ext]
+      if (expectedMimes && file.type && !expectedMimes.includes(file.type)) {
+        console.warn(
+          `[FormSubmit] File "${file.name}" has extension ".${ext}" but MIME type "${file.type}" — expected one of [${expectedMimes.join(', ')}]. Server will validate via magic bytes.`,
+        )
+      }
     }
 
     if (question.max_size_mb) {
@@ -562,6 +596,7 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
     answeredCount,
     progressPercent,
     showForm,
+    isDeadlinePassed,
     // methods
     loadForm,
     submitForm,

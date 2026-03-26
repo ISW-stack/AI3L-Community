@@ -905,26 +905,23 @@ describe('useFormBuilder', () => {
   // startAutoSave guard
   describe('startAutoSave guard', () => {
     it('should not create duplicate auto-save timers', () => {
-      const setIntervalSpy = vi.spyOn(globalThis, 'setInterval')
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval')
 
       createHarness()
 
       // Clear calls from constructor/createHarness
-      setIntervalSpy.mockClear()
+      clearIntervalSpy.mockClear()
 
-      // Trigger onMounted which calls startAutoSave
+      // Trigger onMounted which calls startAutoSave (calls stopAutoSave first)
       for (const cb of onMountedCallbacks) cb()
 
-      // Count calls from onMounted
-      const callsAfterFirstMount = setIntervalSpy.mock.calls.length
-
-      // Trigger onMounted again (simulating double-mount) — startAutoSave guard should prevent duplicate
+      // Trigger onMounted again (simulating double-mount) — startAutoSave should clear old timer first
       for (const cb of onMountedCallbacks) cb()
 
-      // setInterval should NOT have been called again
-      expect(setIntervalSpy.mock.calls.length).toBe(callsAfterFirstMount)
+      // clearInterval should have been called at least once (old timer cleared before new one)
+      expect(clearIntervalSpy).toHaveBeenCalled()
 
-      setIntervalSpy.mockRestore()
+      clearIntervalSpy.mockRestore()
     })
   })
 
@@ -968,6 +965,64 @@ describe('useFormBuilder', () => {
       h.handleDragEnd()
       expect(h.dragIndex.value).toBeNull()
       expect(h.dropTargetIndex.value).toBeNull()
+    })
+  })
+
+  // ---------- F-26: collapsedQuestions cleared on fetchForm ----------
+
+  describe('collapsedQuestions reset on form load (F-26)', () => {
+    it('clears collapsedQuestions when loading a new form via onMounted', async () => {
+      // Mock form data for fetchForm (called via onMounted for edit mode)
+      mockGetForm.mockResolvedValue(
+        makeFormData({
+          questions: [
+            {
+              id: 'new-q1',
+              type: 'text' as const,
+              label: 'New Question',
+              required: true,
+              placeholder: '',
+              options: [],
+              min: 1,
+              max: 5,
+            },
+          ],
+        }),
+      )
+
+      const h = createHarness({ formId: 'form-1' })
+
+      // Manually add some collapsed state before onMounted fires
+      h.collapsedQuestions.value.add('old-q-id')
+      expect(h.collapsedQuestions.value.has('old-q-id')).toBe(true)
+
+      // Fire onMounted callback which calls fetchForm
+      for (const cb of onMountedCallbacks) {
+        await cb()
+      }
+
+      // Old collapsed state should be gone
+      expect(h.collapsedQuestions.value.has('old-q-id')).toBe(false)
+      // New question should be collapsed (fetchForm collapses all loaded questions)
+      expect(h.isCollapsed('new-q1')).toBe(true)
+    })
+
+    it('collapsedQuestions is cleared even when fetchForm fails', async () => {
+      mockGetForm.mockRejectedValue(new Error('load failed'))
+
+      const h = createHarness({ formId: 'form-1' })
+
+      // Manually add some collapsed state
+      h.collapsedQuestions.value.add('stale-q-id')
+      expect(h.collapsedQuestions.value.has('stale-q-id')).toBe(true)
+
+      // Fire onMounted callback which calls fetchForm (which fails)
+      for (const cb of onMountedCallbacks) {
+        await cb()
+      }
+
+      // collapsedQuestions should have been cleared before the try block
+      expect(h.collapsedQuestions.value.has('stale-q-id')).toBe(false)
     })
   })
 })

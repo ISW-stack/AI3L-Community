@@ -269,7 +269,7 @@ async function handleDeleteAccount() {
   } finally {
     deletingAccount.value = false
     if (dangerZoneRef.value) {
-      dangerZoneRef.value.showDeleteConfirm = false
+      dangerZoneRef.value.closeDeleteConfirm()
     }
   }
 }

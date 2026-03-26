@@ -924,4 +924,54 @@ describe('usePostDetail — auth reactivity (N-U16)', () => {
     isGuestRef.value = true
     expect(result.canReport.value).toBe(false)
   })
+
+  // ---------- F-30: separate replySaving for inline replies ----------
+
+  describe('replySaving separate from commentSaving (F-30)', () => {
+    it('exposes replySaving as a separate ref', () => {
+      const h = createHarness()
+      expect(h.replySaving).toBeDefined()
+      expect(h.replySaving.value).toBe(false)
+      expect(h.commentSaving.value).toBe(false)
+    })
+
+    it('submitComment uses commentSaving, not replySaving', async () => {
+      const h = createHarness()
+      mockGetPost.mockResolvedValue(makePost())
+      mockListComments.mockResolvedValue({ comments: [], total: 0 })
+      await h.fetchPost()
+
+      mockCreateComment.mockResolvedValue(makeComment())
+      h.newComment.value = 'Test comment'
+
+      const promise = h.submitComment()
+      // commentSaving should be true during submission
+      expect(h.commentSaving.value).toBe(true)
+      expect(h.replySaving.value).toBe(false)
+
+      await promise
+      expect(h.commentSaving.value).toBe(false)
+      expect(h.replySaving.value).toBe(false)
+    })
+
+    it('submitInlineReply uses replySaving, not commentSaving', async () => {
+      const h = createHarness()
+      mockGetPost.mockResolvedValue(makePost())
+      mockListComments.mockResolvedValue({ comments: [makeComment()], total: 1 })
+      await h.fetchPost()
+
+      mockCreateComment.mockResolvedValue(makeComment({ id: 'reply1' }))
+      h.inlineReplyTo.value = 'c1'
+      h.inlineReplyContent.value = 'Test reply'
+
+      const promise = h.submitInlineReply()
+      // replySaving should be true during submission
+      expect(h.replySaving.value).toBe(true)
+      expect(h.commentSaving.value).toBe(false)
+
+      await promise
+      expect(h.replySaving.value).toBe(false)
+      expect(h.commentSaving.value).toBe(false)
+    })
+  })
 })

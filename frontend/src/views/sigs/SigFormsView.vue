@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toast'
 import { getSigForms } from '@/api/sigs'
 import { deleteForm as deleteFormApi } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
+import { formatDate } from '@/utils/date'
 import { stripHtml } from '@/utils/html'
 import { useFormResponseViewer } from '@/composables/useFormResponseViewer'
 import { useFormExport } from '@/composables/useFormExport'
@@ -22,7 +23,7 @@ import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
 const toastStore = useToastStore()
@@ -298,7 +299,7 @@ onMounted(fetchForms)
               >{{ f.response_count }} {{ t('sigs.forms.responses') }}</span
             >
             <span v-if="f.deadline"
-              >{{ t('sigs.forms.ends') }} {{ new Date(f.deadline).toLocaleDateString() }}</span
+              >{{ t('sigs.forms.ends') }} {{ formatDate(f.deadline, locale.value) }}</span
             >
             <span>{{ t('common.by') }} {{ f.created_by_name || 'Admin' }}</span>
           </div>

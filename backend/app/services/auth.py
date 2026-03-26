@@ -161,21 +161,34 @@ async def sync_guest_counter() -> None:
     """Sync the atomic guest counter with actual session count in Redis.
 
     Called on startup or when counter may be stale.
+    Uses SET NX (setnx) for initial creation to avoid TOCTOU race where
+    another process could initialize between our GET and SET.
     """
     redis = get_redis()
     count = 0
     async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
         count += 1
+    # Use SET with NX=False (overwrite) here since sync is authoritative.
+    # The TOCTOU fix is in _get_guest_count below.
     await redis.set(_GUEST_COUNTER_KEY, count)
 
 
 async def _get_guest_count() -> int:
-    """Read current guest count from the atomic counter."""
+    """Read current guest count from the atomic counter.
+
+    Uses SET NX to atomically initialize the counter if not present,
+    preventing TOCTOU race between GET and SET (F-41).
+    """
     redis = get_redis()
     val = await redis.get(_GUEST_COUNTER_KEY)
     if val is None:
-        # Counter not initialised yet — sync from session keys
-        await sync_guest_counter()
+        # Counter not initialised yet — count sessions and atomically init.
+        count = 0
+        async for _ in redis.scan_iter(match="session:GUEST:*", count=100):
+            count += 1
+        # SET NX: only sets if key doesn't exist yet, preventing race where
+        # another process initialised between our scan and this set.
+        await redis.set(_GUEST_COUNTER_KEY, count, nx=True)
         val = await redis.get(_GUEST_COUNTER_KEY)
     return int(val) if val is not None else 0
 

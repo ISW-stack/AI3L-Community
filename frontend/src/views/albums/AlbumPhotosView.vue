@@ -203,7 +203,7 @@ watch(page, () => {
       :photos="photos"
       :current-index="lightboxIndex"
       :visible="lightboxVisible"
-      :can-delete="photos[lightboxIndex] ? canDeleteThisPhoto(photos[lightboxIndex]) : false"
+      :can-delete="lightboxIndex >= 0 && lightboxIndex < photos.length ? canDeleteThisPhoto(photos[lightboxIndex]) : false"
       :can-set-cover="canSetCover"
       @close="closeLightbox"
       @navigate="handleLightboxNavigate"

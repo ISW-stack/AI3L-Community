@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { listSigs } from '@/api/sigs'
 import { getErrorMessage } from '@/utils/error'
+import { formatDate } from '@/utils/date'
 import type { Sig } from '@/types'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -12,7 +13,7 @@ import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const auth = useAuthStore()
 const toast = useToastStore()
 
@@ -82,7 +83,7 @@ onMounted(fetchSigs)
             </p>
             <div class="flex items-center justify-between text-xs text-muted">
               <span>{{ sig.member_count }} {{ t('sigs.directory.memberCount') }}</span>
-              <span>{{ new Date(sig.created_at).toLocaleDateString() }}</span>
+              <span>{{ formatDate(sig.created_at, locale.value) }}</span>
             </div>
           </BaseCard>
         </router-link>

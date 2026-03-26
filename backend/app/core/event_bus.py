@@ -112,8 +112,11 @@ def _redact_kwargs(kwargs: dict) -> dict:
 
 async def _persist_failed_event(
     event: str, handler_name: str, kwargs: dict, *, retry_count: int = 0
-) -> None:
-    """Best-effort persistence of failed events to Redis for later retry."""
+) -> bool:
+    """Best-effort persistence of failed events to Redis for later retry.
+
+    Returns True if the event was successfully persisted, False if persistence failed.
+    """
     try:
         from app.core.redis import get_redis
 
@@ -133,8 +136,18 @@ async def _persist_failed_event(
         _: Any = await cast(Awaitable[Any], redis.lpush("event_bus:failed", entry))
         _ = await cast(Awaitable[Any], redis.ltrim("event_bus:failed", 0, 999))  # Keep last 1000
         await redis.expire("event_bus:failed", 86400)  # 24h TTL
+        return True
     except Exception:
-        logger.debug("Failed to persist event failure to Redis", exc_info=True)
+        logger.warning(
+            "Failed to persist event failure to Redis — event lost",
+            exc_info=True,
+            extra={
+                "event": event,
+                "handler": handler_name,
+                "kwargs_keys": list(kwargs.keys()),
+            },
+        )
+        return False
 
 
 def clear() -> None:

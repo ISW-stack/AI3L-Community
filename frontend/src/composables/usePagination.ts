@@ -16,7 +16,13 @@ export function usePagination(defaultPageSize = 20): PaginationState {
   const totalPages = ref(1)
 
   function setPage(p: number) {
-    page.value = p
+    if (p < 1) {
+      page.value = 1
+    } else if (total.value > 0 && p > totalPages.value) {
+      page.value = totalPages.value
+    } else {
+      page.value = Math.max(1, p)
+    }
   }
 
   function resetPage() {

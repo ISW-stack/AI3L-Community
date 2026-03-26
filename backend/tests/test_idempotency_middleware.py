@@ -91,7 +91,7 @@ class TestIdempotencyCacheHit:
                     json={"title": "t"},
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             assert resp.status_code == 201
@@ -180,7 +180,7 @@ class TestIdempotencyConcurrent409:
                     json={"title": "t"},
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             assert resp.status_code == 409
@@ -217,7 +217,7 @@ class TestIdempotencyDifferentKeys:
                     json={"title": "t"},
                     headers={
                         "Idempotency-Key": "key-a",
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
                 resp_b = await client.post(
@@ -225,7 +225,7 @@ class TestIdempotencyDifferentKeys:
                     json={"title": "t"},
                     headers={
                         "Idempotency-Key": "key-b",
-                        "Authorization": "Bearer faketoken456",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             assert resp_a.json()["result"] == "A"
@@ -277,7 +277,7 @@ class TestIdempotencyExpiredCache:
                     json={"name": "test", "description": "d"},
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             # The middleware should have set the processing marker first
@@ -366,7 +366,7 @@ class TestIdempotencyNonJSON:
                     "/api/v1/sigs/00000000-0000-0000-0000-000000000001",
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             # DELETE is not in the middleware's POST/PUT check, so Redis should not be called
@@ -429,7 +429,7 @@ class TestIdempotencyInvalidKeyFormat:
                     json={"title": "t"},
                     headers={
                         "Idempotency-Key": "invalid key with spaces!!!",
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             # Redis should NOT be accessed for invalid format keys
@@ -498,7 +498,7 @@ class TestIdempotencyRedisSetFailure:
                     },
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             # Response should still be returned even though Redis.set failed
@@ -551,7 +551,7 @@ class TestIdempotencyErrorJsonCached:
                     json={"title": "Bad"},
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
 
@@ -570,7 +570,7 @@ class TestIdempotencyErrorJsonCached:
                     json={"title": "Bad"},
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
 
@@ -602,7 +602,7 @@ class TestIdempotencyNXRaceCondition:
                     json={"title": "t"},
                     headers={
                         "Idempotency-Key": idem_key,
-                        "Authorization": "Bearer faketoken123",
+                        "Authorization": f"Bearer {_TEST_JWT_TOKEN}",
                     },
                 )
             assert resp.status_code == 409

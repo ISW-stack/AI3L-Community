@@ -76,21 +76,21 @@ describe('relativeTime', () => {
     it('returns locale date string for 30 days ago', () => {
       const thirtyDaysAgo = '2026-02-07T12:00:00.000Z'
       const result = relativeTime(thirtyDaysAgo)
-      const expected = new Date(thirtyDaysAgo).toLocaleDateString()
+      const expected = new Date(thirtyDaysAgo).toLocaleDateString('en')
       expect(result).toBe(expected)
     })
 
     it('returns locale date string for 90 days ago', () => {
       const ninetyDaysAgo = '2025-12-10T12:00:00.000Z'
       const result = relativeTime(ninetyDaysAgo)
-      const expected = new Date(ninetyDaysAgo).toLocaleDateString()
+      const expected = new Date(ninetyDaysAgo).toLocaleDateString('en')
       expect(result).toBe(expected)
     })
 
     it('returns locale date string for a date over a year ago', () => {
       const oldDate = '2024-01-01T00:00:00.000Z'
       const result = relativeTime(oldDate)
-      const expected = new Date(oldDate).toLocaleDateString()
+      const expected = new Date(oldDate).toLocaleDateString('en')
       expect(result).toBe(expected)
     })
   })
@@ -113,7 +113,7 @@ describe('relativeTime', () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       const iso = thirtyDaysAgo.toISOString()
       const result = relativeTime(iso)
-      const expected = new Date(iso).toLocaleDateString()
+      const expected = new Date(iso).toLocaleDateString('en')
       expect(result).toBe(expected)
     })
   })

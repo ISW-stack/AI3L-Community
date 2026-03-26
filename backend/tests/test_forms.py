@@ -1029,7 +1029,7 @@ class TestFormResponsesList:
 
     @pytest.mark.anyio
     async def test_list_responses_forbidden_non_admin(self, client):
-        """GET /forms/{form_id}/responses → 403 for non-admin."""
+        """GET /forms/{form_id}/responses → 404 for non-admin (F-58: timing oracle fix)."""
         form_id = uuid.uuid4()
         form = _make_form()
         form["id"] = str(form_id)
@@ -1044,8 +1044,10 @@ class TestFormResponsesList:
                     f"/api/v1/forms/{form_id}/responses",
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 403
-                assert "admin" in resp.json()["detail"]["message"].lower()
+                # F-58: Returns 404 instead of 403 to prevent timing oracle
+                # that could reveal form existence to unauthorized users.
+                assert resp.status_code == 404
+                assert "not found" in resp.json()["detail"]["message"].lower()
         finally:
             _clear_overrides()
 

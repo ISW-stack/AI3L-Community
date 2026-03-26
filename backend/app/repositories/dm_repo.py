@@ -57,6 +57,17 @@ async def delete_empty_conversation(conversation_id: uuid.UUID) -> bool:
         return row is not None
 
 
+async def conversation_exists(conversation_id: uuid.UUID) -> bool:
+    """Check if a conversation exists (admin use — no participant check)."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM conversations WHERE id = $1)",
+            conversation_id,
+        )
+        return bool(row)
+
+
 async def find_conversation_by_id(conversation_id: uuid.UUID, user_id: uuid.UUID) -> dict | None:
     """Find conversation by ID, verify user is a participant.
 
@@ -478,19 +489,29 @@ async def send_message_atomic(
 
             # 1b. Re-check block status and dm_friends_only inside transaction
             # to close TOCTOU gap (M-05)
-            recipient_id = await conn.fetchval(
-                "SELECT CASE WHEN participant_a = $1 THEN participant_b "
-                "ELSE participant_a END FROM conversations WHERE id = $2",
-                sender_id,
+            # F-21: Two-step check — first verify conversation exists,
+            # then verify sender is a participant. Return distinct errors.
+            conv_row = await conn.fetchrow(
+                "SELECT participant_a, participant_b FROM conversations WHERE id = $1",
                 conversation_id,
             )
-            # M-02: Guard against None recipient (conversation not found or corrupted)
-            if recipient_id is None:
+            if conv_row is None:
                 from app.core.errors import AppError, ErrorCode
 
                 raise AppError(
-                    ErrorCode.DM_006, 404, "Conversation not found or invalid participant."
+                    ErrorCode.DM_006, 404, "Conversation not found."
                 )
+            if sender_id not in (conv_row["participant_a"], conv_row["participant_b"]):
+                from app.core.errors import AppError, ErrorCode
+
+                raise AppError(
+                    ErrorCode.DM_006, 403, "You are not a participant in this conversation."
+                )
+            recipient_id = (
+                conv_row["participant_b"]
+                if conv_row["participant_a"] == sender_id
+                else conv_row["participant_a"]
+            )
             blocked = await conn.fetchval(
                 "SELECT EXISTS("
                 "SELECT 1 FROM blocks WHERE "
@@ -716,10 +737,22 @@ async def delete_messages_by_ids(message_ids: list[uuid.UUID]) -> int:
         return int(result.split()[-1]) if result else 0
 
 
-async def get_dm_friends_only(user_id: uuid.UUID) -> bool:
-    """Check user_preferences.dm_friends_only for a user. Default FALSE if no row."""
+async def get_dm_friends_only(user_id: uuid.UUID) -> bool | None:
+    """Check user_preferences.dm_friends_only for a user.
+
+    Returns:
+        True/False if the user exists (False when no preference row exists).
+        None if the user does not exist at all (F-44).
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
+        # First verify the user exists
+        user_exists = await conn.fetchval(
+            "SELECT 1 FROM users WHERE id = $1 AND is_deleted = FALSE",
+            user_id,
+        )
+        if not user_exists:
+            return None
         val = await conn.fetchval(
             "SELECT dm_friends_only FROM user_preferences WHERE user_id = $1",
             user_id,

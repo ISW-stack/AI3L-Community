@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { sanitizeHtml, sanitizePreviewHtml } from '@/utils/sanitize'
+import { formatDate } from '@/utils/date'
 import type { Post } from '@/types'
 import type { CoAuthor } from '@/types/coauthor'
 import { useAuthStore } from '@/stores/auth'
@@ -15,7 +16,7 @@ import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 import CoAuthorBadges from '@/components/post/CoAuthorBadges.vue'
 import QuickCommentPanel from '@/components/QuickCommentPanel.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const auth = useAuthStore()
 
 
@@ -140,7 +141,7 @@ function defaultFormatTime(dateStr: string): string {
   if (hours < 24) return t('post.card.timeFormat.hoursAgo', { count: hours })
   const days = Math.floor(hours / 24)
   if (days < 7) return t('post.card.timeFormat.daysAgo', { count: days })
-  return new Date(dateStr).toLocaleDateString()
+  return formatDate(dateStr, locale.value)
 }
 
 function displayTime(dateStr: string): string {

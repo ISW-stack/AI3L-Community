@@ -61,12 +61,17 @@ const breadcrumbs = computed(() => [{ label: 'Home', to: '/' }, { label: t('dm.t
 onMounted(async () => {
   dmStore.setCurrentUserId(auth.user?.id ?? '')
 
-  // Load DM privacy preference
+  // Load DM privacy preference with timeout to avoid blocking mount
   try {
-    const prefs = await getPreferences()
+    const PREFS_TIMEOUT_MS = 5000
+    const prefsPromise = getPreferences()
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Preferences request timed out')), PREFS_TIMEOUT_MS),
+    )
+    const prefs = await Promise.race([prefsPromise, timeoutPromise])
     dmFriendsOnly.value = prefs.dm_friends_only
   } catch {
-    // Non-critical
+    // Non-critical — use default (false)
   }
 
   await dmStore.fetchConversations(1, convPagination.pageSize)
@@ -127,20 +132,21 @@ async function selectConversation(conversationId: string, otherUserId: string) {
   // Mark as read — skip API call if already read
   const convIdx = dmStore.conversations.findIndex((c) => c.id === conversationId)
   if (convIdx >= 0 && dmStore.conversations[convIdx].unread_count > 0) {
+    const prevUnread = dmStore.conversations[convIdx].unread_count
     try {
       await dmApi.markConversationRead(conversationId)
-      // Guard: user may have switched away during await
-      if (dmStore.activeConversationId !== conversationId) return
-      const freshIdx = dmStore.conversations.findIndex((c) => c.id === conversationId)
-      if (freshIdx < 0) return
-      const prevUnread = dmStore.conversations[freshIdx].unread_count
       dmStore.unreadCount = Math.max(0, dmStore.unreadCount - prevUnread)
-      dmStore.conversations[freshIdx] = {
-        ...dmStore.conversations[freshIdx],
+      dmStore.conversations[convIdx] = {
+        ...dmStore.conversations[convIdx],
         unread_count: 0,
       }
     } catch {
-      // Non-critical, ignore
+      // Revert optimistic unread count and notify user
+      dmStore.conversations[convIdx] = {
+        ...dmStore.conversations[convIdx],
+        unread_count: prevUnread,
+      }
+      toast.show(getErrorMessage(new Error('Failed to mark conversation as read'), t('dm.markReadError')), 'error')
     }
   }
 
@@ -157,6 +163,8 @@ function handleSelectConversation(conversationId: string, otherUserId: string) {
 
 async function handleLoadMore() {
   if (!dmStore.activeConversationId || !hasMoreMessages.value || dmStore.messagesLoading) return
+  const maxPage = Math.ceil(dmStore.messagesTotal / msgPagination.pageSize)
+  if (currentMsgPage.value >= maxPage) return
   currentMsgPage.value += 1
   await dmStore.fetchMessages(
     dmStore.activeConversationId,
@@ -263,32 +271,26 @@ async function confirmRecall() {
   recalling.value = true
 
   // Save original for rollback
-  const idx = dmStore.messages.findIndex((m) => m.id === messageId)
-  const original = idx >= 0 ? { ...dmStore.messages[idx] } : null
+  const originalMsg = dmStore.messages.find((m) => m.id === messageId)
+  const original = originalMsg ? { ...originalMsg } : null
 
-  // Optimistic update
-  if (idx >= 0) {
-    dmStore.messages[idx] = {
-      ...dmStore.messages[idx],
-      is_recalled: true,
-      content: null,
-      attachment_url: null,
-      attachment_name: null,
-      attachment_size: null,
-      attachment_expires_at: null,
-    }
-  }
+  // Optimistic update via store method
+  dmStore.updateMessage(messageId, {
+    is_recalled: true,
+    content: null,
+    attachment_url: null,
+    attachment_name: null,
+    attachment_size: null,
+    attachment_expires_at: null,
+  })
 
   try {
     await dmApi.recallMessage(messageId)
     recallTargetId.value = null
   } catch (e: unknown) {
-    // Rollback — re-find by ID since WS events may have shifted indices
+    // Rollback via store method
     if (original) {
-      const rollbackIdx = dmStore.messages.findIndex((m) => m.id === messageId)
-      if (rollbackIdx >= 0) {
-        dmStore.messages[rollbackIdx] = original
-      }
+      dmStore.updateMessage(messageId, original)
     }
     toast.show(parseDMError(e, t('dm.failedToRecall')), 'error')
   } finally {

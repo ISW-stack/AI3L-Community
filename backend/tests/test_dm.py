@@ -519,7 +519,8 @@ class TestDMRepoGetDmFriendsOnly:
     @pytest.mark.anyio
     async def test_returns_true_when_set(self, mock_pool, mock_conn):
         """get_dm_friends_only returns True when preference is True."""
-        mock_conn.fetchval.return_value = True
+        # First call: user existence check, second call: preference value
+        mock_conn.fetchval.side_effect = [1, True]
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import get_dm_friends_only
@@ -530,8 +531,9 @@ class TestDMRepoGetDmFriendsOnly:
 
     @pytest.mark.anyio
     async def test_returns_false_when_no_row(self, mock_pool, mock_conn):
-        """get_dm_friends_only returns False when no preference row exists."""
-        mock_conn.fetchval.return_value = None
+        """get_dm_friends_only returns False when user exists but no preference row."""
+        # First call: user exists, second call: no preference row
+        mock_conn.fetchval.side_effect = [1, None]
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import get_dm_friends_only
@@ -543,7 +545,7 @@ class TestDMRepoGetDmFriendsOnly:
     @pytest.mark.anyio
     async def test_returns_false_when_explicitly_false(self, mock_pool, mock_conn):
         """get_dm_friends_only returns False when preference is False."""
-        mock_conn.fetchval.return_value = False
+        mock_conn.fetchval.side_effect = [1, False]
 
         with patch(f"{_REPO}.get_pool", return_value=mock_pool):
             from app.repositories.dm_repo import get_dm_friends_only
@@ -551,6 +553,18 @@ class TestDMRepoGetDmFriendsOnly:
             result = await get_dm_friends_only(uuid.UUID(_SENDER_ID))
 
         assert result is False
+
+    @pytest.mark.anyio
+    async def test_returns_none_for_nonexistent_user(self, mock_pool, mock_conn):
+        """F-44: get_dm_friends_only returns None when user does not exist."""
+        mock_conn.fetchval.return_value = None
+
+        with patch(f"{_REPO}.get_pool", return_value=mock_pool):
+            from app.repositories.dm_repo import get_dm_friends_only
+
+            result = await get_dm_friends_only(uuid.UUID(_SENDER_ID))
+
+        assert result is None
 
 
 class TestDMRepoFindMessageById:

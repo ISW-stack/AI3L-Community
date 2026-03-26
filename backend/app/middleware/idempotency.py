@@ -44,7 +44,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             from app.core.security import decode_access_token
 
             payload = decode_access_token(token)
-            user_ns = payload["sub"][:16] if payload and payload.get("sub") else None
+            user_ns = payload["sub"] if payload and payload.get("sub") else None
         except Exception:
             user_ns = None
         if not user_ns:

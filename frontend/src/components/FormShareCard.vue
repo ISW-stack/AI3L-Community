@@ -4,20 +4,21 @@ import { useI18n } from 'vue-i18n'
 import type { FormData } from '@/types'
 import { getForm } from '@/api/forms'
 import { stripHtml } from '@/utils/html'
+import { formatDate } from '@/utils/date'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const props = defineProps<{ formId: string }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const form = ref<FormData | null>(null)
 const loading = ref(true)
 const errorState = ref(false)
 
 const deadlineText = computed(() => {
   if (!form.value?.deadline) return ''
-  const dateStr = new Date(form.value.deadline).toLocaleDateString()
+  const dateStr = formatDate(form.value.deadline, locale.value)
   if (!form.value.is_active) {
     return t('sigs.forms.deadlineWas', { date: dateStr })
   }

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { listComments, createComment } from '@/api/comments'
 import { getErrorMessage } from '@/utils/error'
+import { formatDate } from '@/utils/date'
 import { useToastStore } from '@/stores/toast'
 import type { Comment } from '@/types'
 import BaseAvatar from '@/components/base/BaseAvatar.vue'
@@ -18,7 +19,7 @@ const emit = defineEmits<{
   (e: 'commented'): void
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const auth = useAuthStore()
 const toast = useToastStore()
 
@@ -80,7 +81,7 @@ function formatCommentTime(dateStr: string): string {
   if (hours < 24) return t('post.card.timeFormat.hoursAgo', { count: hours })
   const days = Math.floor(hours / 24)
   if (days < 7) return t('post.card.timeFormat.daysAgo', { count: days })
-  return new Date(dateStr).toLocaleDateString()
+  return formatDate(dateStr, locale.value)
 }
 
 // Fetch on mount

@@ -144,7 +144,7 @@ async def find_by_id(form_id: uuid.UUID) -> tuple[dict | None, int]:
         result = dict(row)
         if isinstance(result.get("questions"), str):
             result["questions"] = json.loads(result["questions"])
-        response_count = result.pop("response_count")
+        response_count = result.pop("response_count", 0)
         return result, response_count
 
 
@@ -290,7 +290,9 @@ async def find_by_sig(
     offset = (page - 1) * page_size
     async with pool.acquire() as conn:
         total = await conn.fetchval(
-            "SELECT COUNT(*) FROM forms WHERE sig_id = $1 AND is_deleted = false",
+            "SELECT COUNT(*) FROM forms f "
+            "JOIN sigs s ON s.id = f.sig_id "
+            "WHERE f.sig_id = $1 AND f.is_deleted = false AND s.is_deleted = false",
             sig_id,
         )
         rows = await conn.fetch(
@@ -299,10 +301,11 @@ async def find_by_sig(
                    COALESCE(rc.cnt, 0) AS response_count
             FROM forms f
             JOIN users u ON u.id = f.created_by
+            JOIN sigs s ON s.id = f.sig_id
             LEFT JOIN (
                 SELECT form_id, COUNT(*) AS cnt FROM form_responses GROUP BY form_id
             ) rc ON rc.form_id = f.id
-            WHERE f.sig_id = $1 AND f.is_deleted = false
+            WHERE f.sig_id = $1 AND f.is_deleted = false AND s.is_deleted = false
             ORDER BY f.created_at DESC
             LIMIT $2 OFFSET $3
             """,
@@ -373,12 +376,23 @@ async def insert_response(
     answers: dict[str, Any],
     conn: Any,
     max_respondents: int | None = None,
+    *,
+    guest_allowed: bool = True,
 ) -> bool:
     """Atomically insert a form response, enforcing max_respondents if set.
 
     Returns True if the row was inserted, False if the limit was reached.
     Uses a single INSERT ... SELECT to prevent race conditions.
+
+    The ``guest_allowed`` flag provides a defense-in-depth check at the
+    repository layer.  The service layer is the primary permission guard
+    (``submit_response`` in ``services/form.py``), but this assertion
+    catches any caller that bypasses the service.
     """
+    # F-43: Defense-in-depth — reject guest submissions if the form
+    # does not allow them, even though the service layer already checks.
+    if user_id is None and not guest_allowed:
+        raise PermissionError("This form does not allow guest submissions.")
     if max_respondents is not None:
         # Advisory lock keyed on form_id to serialise concurrent inserts
         # and prevent exceeding max_respondents. Released on tx commit/rollback.

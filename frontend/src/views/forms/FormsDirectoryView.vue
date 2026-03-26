@@ -6,6 +6,7 @@ import { useToastStore } from '@/stores/toast'
 import { listStandaloneForms } from '@/api/forms'
 import { getErrorMessage } from '@/utils/error'
 import { stripHtml } from '@/utils/html'
+import { formatDate } from '@/utils/date'
 import { usePagination } from '@/composables/usePagination'
 import type { FormData } from '@/types'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -17,7 +18,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 
-const { t } = useLocale()
+const { t, currentLocale } = useLocale()
 const auth = useAuthStore()
 const toast = useToastStore()
 
@@ -46,7 +47,8 @@ async function fetchForms() {
   const fetchId = ++_fetchId
   loading.value = true
   try {
-    const data = await listStandaloneForms(page.value, PAGE_SIZE, searchQuery.value || undefined)
+    const trimmed = searchQuery.value.trim()
+    const data = await listStandaloneForms(page.value, PAGE_SIZE, trimmed || undefined)
     if (fetchId !== _fetchId) return // stale response
     forms.value = data.forms
     updateFromResponse(data.total)
@@ -72,7 +74,7 @@ function truncateText(text: string | null, maxLength: number): string {
 
 function formatDeadline(deadline: string | null): string {
   if (!deadline) return ''
-  return new Date(deadline).toLocaleDateString()
+  return formatDate(deadline, currentLocale.value)
 }
 
 onMounted(fetchForms)

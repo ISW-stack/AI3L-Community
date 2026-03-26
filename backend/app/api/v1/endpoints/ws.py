@@ -119,7 +119,16 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                     stored_jti = await r.get(session_key)
                     if stored_jti is None:
                         logger.info("WebSocket session expired", extra={"user_id": user_id})
-                        await ws.send_json({"type": "FORCE_LOGOUT"})
+                        # F-67: Use wait_for to guarantee delivery before close
+                        try:
+                            await asyncio.wait_for(
+                                ws.send_json({"type": "FORCE_LOGOUT"}), timeout=5.0
+                            )
+                        except (asyncio.TimeoutError, Exception):
+                            logger.warning(
+                                "Failed to deliver FORCE_LOGOUT to client",
+                                extra={"user_id": user_id},
+                            )
                         await ws.close(code=4003, reason="Session expired")
                         return
                     # M-20: Compare stored JTI with the one from the WS ticket
@@ -129,7 +138,17 @@ async def websocket_endpoint(ws: WebSocket, ticket: str = Query(...)) -> None:
                             "WebSocket session JTI mismatch — session replaced",
                             extra={"user_id": user_id},
                         )
-                        await ws.send_json({"type": "FORCE_LOGOUT", "reason": "session_replaced"})
+                        # F-67: Use wait_for to guarantee delivery before close
+                        try:
+                            await asyncio.wait_for(
+                                ws.send_json({"type": "FORCE_LOGOUT", "reason": "session_replaced"}),
+                                timeout=5.0,
+                            )
+                        except (asyncio.TimeoutError, Exception):
+                            logger.warning(
+                                "Failed to deliver FORCE_LOGOUT to client",
+                                extra={"user_id": user_id},
+                            )
                         await ws.close(code=4003, reason="Session replaced")
                         return
                 except Exception:
