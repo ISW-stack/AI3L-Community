@@ -358,18 +358,18 @@ _Last updated: 2026-03-26 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +309,605 |
-| Total lines removed (all commits) | -54,875 |
-| Backend source lines (excl. tests) | 28,977 |
-| Frontend source lines (excl. tests) | 61,272 |
+| Total lines added (all commits) | +317,446 |
+| Total lines removed (all commits) | -55,652 |
+| Backend source lines (excl. tests) | 29,324 |
+| Frontend source lines (excl. tests) | 61,573 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 111765
-    "TypeScript" : 89185
-    "Vue" : 23981
+    "Python" : 115091
+    "TypeScript" : 92013
+    "Vue" : 24063
     "CSS" : 127
 ```
 
@@ -381,18 +381,18 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 3,439 | 28,977 | 79,712 |
-| Frontend (Vitest) | 2,915 | 61,272 | 51,894 |
-| **Total** | **6,354** | **90,249** | **131,606** |
+| Backend (pytest) | 3,537 | 29,324 | 82,647 |
+| Frontend (Vitest) | 3,035 | 61,573 | 54,503 |
+| **Total** | **6,572** | **90,897** | **137,150** |
 
-Test-to-source ratio: **1.46** (131,606 lines of tests for every 90,249 lines of source)
+Test-to-source ratio: **1.51** (137,150 lines of tests for every 90,897 lines of source)
 
 ### Additional Metrics
 
 | Metric | Value |
 | --- | ---: |
 | REST API endpoints | 186 |
-| Database migrations | 51 |
+| Database migrations | 52 |
 | Longest commit streak | 27 days |
 
 ### Top 5 Largest Source Files
@@ -401,16 +401,16 @@ Test-to-source ratio: **1.46** (131,606 lines of tests for every 90,249 lines of
 | --- | ---: |
 | `backend/app/services/album.py` | 1,177 |
 | `frontend/src/views/about/OrgChartView.vue` | 880 |
-| `frontend/src/composables/usePostDetail.ts` | 862 |
-| `backend/app/services/dm.py` | 809 |
-| `backend/app/services/form.py` | 801 |
+| `frontend/src/composables/usePostDetail.ts` | 872 |
+| `backend/app/services/dm.py` | 846 |
+| `backend/app/services/form.py` | 815 |
 
 ### Contributions by Author
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 429 | +306,543 | -52,764 |
-| github-actions[bot] | 40 | +546 | -546 |
+| Isaries | 434 | +314,362 | -53,519 |
+| github-actions[bot] | 41 | +568 | -568 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
