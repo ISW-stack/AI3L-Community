@@ -1,20 +1,23 @@
 # AI3L Community — Production 部署計畫
 
 > 文件日期：2026-03-26
-> 目標環境：Hetzner CPX32（新加坡）+ Cloudflare R2 + Cloudflare Free CDN
+> 目標環境：Hetzner CPX32（新加坡）+ Cloudflare R2 + Cloudflare Tunnel（不公開）
 
 ---
 
 ## 一、目標架構
 
 ```
-使用者瀏覽器
+使用者瀏覽器（必須知道完整 URL 才能訪問）
      │ HTTPS
      ▼
-Cloudflare CDN（SSL termination + DDoS 防護）
-     │ HTTPS（Full Strict）
+Cloudflare CDN（SSL termination + DDoS 防護 + noindex）
+     │
      ▼
-Hetzner CPX32 — nginx（443）
+Cloudflare Tunnel（outbound-only，server 不開放任何 port）
+     │ HTTP（內部）
+     ▼
+Hetzner CPX32 — nginx（80，僅容器內部）
      ├──► /api/*  ──► FastAPI（port 8000）
      │                    │
      │             ┌──────┼──────┐
@@ -27,7 +30,8 @@ Hetzner CPX32 — nginx（443）
 
 **核心決策：**
 - 不使用 MinIO 容器 → 改用 Cloudflare R2（S3 相容 API，零 egress 費用）
-- Cloudflare 做 SSL termination，nginx 仍需 443（Full Strict 模式）
+- 使用 **Cloudflare Tunnel**（不公開 server IP，不開 port 80/443，不需要 SSL 憑證）
+- 搜尋引擎全面封鎖（`X-Robots-Tag` + `meta robots` + `robots.txt Disallow: /`）
 - 前端透過 GitHub Actions 自動 build 並部署至 server
 
 ---
@@ -44,8 +48,9 @@ Hetzner CPX32 — nginx（443）
 | redis | 0.5 | 512 MB | ~256 MB（maxmemory 限制） |
 | celery worker | 1.0 | 768 MB | ~300 MB |
 | celery-beat | 0.25 | 128 MB | ~80 MB |
+| cloudflared | 0.25 | 128 MB | ~30 MB |
 | OS + Docker overhead | — | ~1 GB | — |
-| **合計 limit** | **6.25\*** | **6.6 GB** | **~2 GB** |
+| **合計 limit** | **6.5\*** | **6.7 GB** | **~2 GB** |
 
 > \* Docker CPU limits 為軟性限制，不是硬性排程保留。超過物理核心數無妨，各服務不會同時跑滿。
 >
@@ -53,28 +58,57 @@ Hetzner CPX32 — nginx（443）
 
 ---
 
-## 三、SSL / TLS 策略
+## 三、Cloudflare Tunnel 設定
 
-### 建議方案：Cloudflare Full (Strict) + Origin Certificate
+### 為什麼用 Tunnel 而不是傳統方式？
 
-**不建議**使用 Let's Encrypt certbot（docker-compose.prod.yml 現有 certbot service）的原因：
-- 與 Cloudflare 合用時，Cloudflare 已擋在前面，Let's Encrypt HTTP challenge 無法正常運作（需要 DNS challenge）。
-- Cloudflare Origin Certificate 免費、有效期 15 年、自動信任 Cloudflare → Server 這段。
+- **Server 不暴露任何 port**：不需要開 80/443，Hetzner Firewall 可以封鎖所有入站連線
+- **不需要 SSL 憑證**：cloudflared ↔ Cloudflare 之間的加密由 Tunnel 自動處理
+- **不洩漏 server IP**：即使 domain 被發現，也無法直連 server
+- **不會被搜尋引擎收錄**：搭配 noindex headers，網站只有知道 URL 的人才能進
 
 ### 設定步驟
 
-1. 在 Cloudflare Dashboard → SSL/TLS → 選 **Full (strict)**
-2. Origin Certificates → 建立新憑證 → 選你的 domain → 下載 `.pem` 和 `.key`
-3. 上傳至 server：
+1. **安裝 cloudflared（在本地或 server 上）：**
 
 ```bash
-scp cloudflare-origin.pem root@<server-ip>:/path/to/ai3l-community/nginx/ssl/cert.pem
-scp cloudflare-origin.key root@<server-ip>:/path/to/ai3l-community/nginx/ssl/key.pem
+# macOS
+brew install cloudflared
+
+# Linux
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
+chmod +x /usr/local/bin/cloudflared
 ```
 
-4. `nginx/conf.d/default.conf` 的 HTTPS server block 使用這兩個檔案。
+2. **登入 Cloudflare 並建立 Tunnel：**
 
-> nginx port 443 保留（prod compose 已設定），certbot service 設為 profile-only，不影響主要啟動。
+```bash
+cloudflared tunnel login          # 瀏覽器會開啟授權頁面
+cloudflared tunnel create ai3l    # 建立名為 ai3l 的 tunnel
+```
+
+3. **在 Cloudflare Dashboard 設定路由：**
+   - 到 Zero Trust → Networks → Tunnels → 找到 `ai3l`
+   - 新增 Public Hostname：
+     - Domain: `ai3l-community.org`
+     - Service: `http://nginx:80`（Docker 內部服務名）
+   - 複製 **Tunnel Token**
+
+4. **將 Token 填入 `.env`：**
+
+```bash
+CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoi...（很長的 token）
+```
+
+5. **啟動後驗證：**
+
+```bash
+docker compose -f docker-compose.prod.yml logs cloudflared
+# 應該看到 "Connection registered" 訊息
+```
+
+> **注意：** SSL/TLS 設定仍選 **Full** 模式（Tunnel 自動處理加密，不需要 Origin Certificate）。
+> nginx 只監聽 port 80（容器內部），不對外暴露。
 
 ---
 
@@ -224,10 +258,10 @@ ssh root@<server-ip> "docker compose -f /opt/ai3l-community/docker-compose.prod.
 cd /opt/ai3l-community
 
 # 1. 確認 .env 填寫完畢
-grep "changeme" .env  # 輸出不應該有任何結果
+grep "changeme\|<" .env  # 輸出不應該有任何結果
 
-# 2. 放置 Cloudflare Origin Certificate
-# （見第三節 SSL 設定步驟）
+# 2. 確認 CLOUDFLARE_TUNNEL_TOKEN 已設定
+grep "CLOUDFLARE_TUNNEL_TOKEN" .env
 
 # 3. 確認 nginx/html/ 有前端 build 產物
 ls nginx/html/index.html
@@ -238,7 +272,11 @@ docker compose -f docker-compose.prod.yml up -d
 # 5. 查看 migrate 是否成功
 docker compose -f docker-compose.prod.yml logs migrate
 
-# 6. 確認所有服務健康
+# 6. 確認 cloudflared 已連線
+docker compose -f docker-compose.prod.yml logs cloudflared
+# 應看到 "Connection ... registered"
+
+# 7. 確認所有服務健康
 docker compose -f docker-compose.prod.yml ps
 ```
 
@@ -277,7 +315,7 @@ crontab -e
 
 1. **Hetzner 內建監控**：CPU、RAM、網路圖表，可設 email 告警
 2. **Cloudflare Analytics**：流量、錯誤率、快取命中率
-3. **UptimeRobot**（免費）：每 5 分鐘 ping `https://your-domain.com/api/v1/health/live`，down 時發 email
+3. **UptimeRobot**（免費）：每 5 分鐘 ping `https://ai3l-community.org/api/v1/health/live`，down 時發 email
 
 ### 進階（選配）
 
@@ -286,29 +324,30 @@ crontab -e
 
 ---
 
-## 十、nginx 設定注意事項
+## 十、nginx 與 Cloudflare 設定注意事項
 
-### Cloudflare IP 白名單
+### Cloudflare IP 白名單（Tunnel 模式不需要）
 
-`nginx/conf.d/default.conf` 已有 `set_real_ip_from` Cloudflare IP 段，確認包含最新清單：
+使用 Tunnel 時，流量透過 cloudflared 容器進入 Docker 內部網路，nginx 看到的來源 IP 是 cloudflared 容器 IP。
+`set_real_ip_from` Cloudflare IP 段在 Tunnel 模式下**不需要**，但保留不影響運作。
 
-```nginx
-# 定期更新 Cloudflare IP 清單：
-# https://www.cloudflare.com/ips-v4
-# https://www.cloudflare.com/ips-v6
-```
+### Cloudflare Dashboard 設定
 
-### 建議在 Cloudflare 啟用的功能
+| 功能 | 設定位置 | 建議值 | 說明 |
+|------|---------|--------|------|
+| SSL 模式 | SSL/TLS → Overview | **Full** | Tunnel 自動加密，不需要 Strict |
+| HSTS | SSL/TLS → Edge Certs | 啟用，max-age=31536000 | 與 nginx HSTS 相輔相成 |
+| Bot Fight Mode | Security → Bots | **關閉** | 不公開網站，不需要 |
+| Browser Integrity Check | Security → Settings | 啟用 | 保留基本防護 |
+| Always Online | Caching → Configuration | **關閉** | 不需要快取頁面 |
+| Crawl Hints | Caching → Configuration | **關閉** | 防止被搜尋引擎發現 |
+| Scrape Shield | Security → Settings | 可關閉 | 不公開，不需要 |
 
-| 功能 | 設定位置 | 建議值 |
-|------|---------|--------|
-| SSL 模式 | SSL/TLS → Overview | Full (strict) |
-| HSTS | SSL/TLS → Edge Certs | 啟用，max-age=31536000 |
-| Bot Fight Mode | Security → Bots | 啟用 |
-| Browser Integrity Check | Security → Settings | 啟用 |
-| 快取靜態資源 | Caching → Configuration | Standard |
+### 反搜尋引擎措施（已實作）
 
-> nginx 已自行設定 HSTS header，Cloudflare 這邊設定的是 edge 層 HSTS，兩者相輔相成，不衝突。
+1. **nginx `X-Robots-Tag: noindex, nofollow, noarchive`** — 所有回應都帶此 header（在 `security-headers.conf`）
+2. **HTML `<meta name="robots">`** — 前端 `index.html` 內
+3. **`robots.txt`** — nginx 直接回傳 `Disallow: /`（不依賴實體檔案）
 
 ---
 
@@ -317,20 +356,21 @@ crontab -e
 ### 環境設定
 - [ ] `.env` 所有 `changeme_*` 已替換為強隨機 secrets
 - [ ] `FASTAPI_ENV=production`、`FASTAPI_DEBUG=false`
-- [ ] `CORS_ORIGINS=https://your-domain.com`（不含 localhost）
-- [ ] `COOKIE_SECURE=true`、`COOKIE_DOMAIN=your-domain.com`
-- [ ] `SERVER_DOMAIN=your-domain.com`
+- [ ] `CORS_ORIGINS=https://ai3l-community.org`（不含 localhost）
+- [ ] `COOKIE_SECURE=true`、`COOKIE_DOMAIN=ai3l-community.org`
+- [ ] `SERVER_DOMAIN=ai3l-community.org`
 - [ ] `S3_ENDPOINT_URL`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY`、`S3_BUCKET_NAME` 已設定（R2）
 - [ ] `MINIO_PUBLIC_URL` 指向 R2 的公開 URL（瀏覽器可訪問）
 - [ ] `STORAGE_CSP_ORIGIN` 與 `MINIO_PUBLIC_URL` 一致
 - [ ] `SENTRY_DSN` 設定（選配但建議）
 
-### SSL / 網路
-- [ ] Cloudflare SSL 模式設為 Full (strict)
-- [ ] Cloudflare Origin Certificate 已放至 `nginx/ssl/`
-- [ ] `nginx/conf.d/default.conf` 的 HTTPS server block 已啟用
-- [ ] Cloudflare HSTS 啟用
-- [ ] 從外部測試 `https://your-domain.com` 回傳 200
+### Cloudflare Tunnel / 網路
+- [ ] Cloudflare Tunnel 已建立，token 已填入 `.env`
+- [ ] Tunnel Public Hostname 已設定（指向 `http://nginx:80`）
+- [ ] `cloudflared` container 顯示 "Connection registered"
+- [ ] Cloudflare SSL 模式設為 Full
+- [ ] 從外部測試 `https://ai3l-community.org` 回傳 200
+- [ ] Hetzner Firewall 已封鎖所有入站 port（只允許 SSH）
 
 ### 資料與備份
 - [ ] `migrate` service 執行成功（alembic upgrade head + check）
@@ -347,7 +387,13 @@ crontab -e
 ### 安全
 - [ ] `GET /api/v1/health` 需要 SUPER_ADMIN（直接訪問返回 401）
 - [ ] `GET /api/v1/health/live` 公開（返回 200）
-- [ ] 從 Cloudflare 以外的 IP 直接連 server port 80/443 時，建議用 Hetzner Firewall 封鎖
+- [ ] Server 不暴露 port 80/443（由 Tunnel 處理，Hetzner Firewall 只開 SSH）
+- [ ] 搜尋引擎確認不收錄（檢查 `X-Robots-Tag` header + `robots.txt`）
+
+### 反索引驗證
+- [ ] `curl https://ai3l-community.org/robots.txt` 回傳 `Disallow: /`
+- [ ] `curl -I https://ai3l-community.org/` 的 header 包含 `X-Robots-Tag: noindex, nofollow, noarchive`
+- [ ] Cloudflare Dashboard 已關閉：Bot Fight Mode、Always Online、Crawl Hints
 
 ---
 
@@ -355,7 +401,7 @@ crontab -e
 
 | 項目 | 說明 | 建議處理方式 |
 |------|------|------------|
-| certbot service | prod compose 保留了 certbot，但與 Cloudflare Origin Cert 方案衝突 | 忽略不啟動即可（profile: certbot 不會自動跑）|
+| certbot service | 已移除，改用 Cloudflare Tunnel（不需要 SSL 憑證） | — |
 | 手動前端部署風險 | 忘記 build 或 rsync 錯誤會導致版本不一致 | 改用 GitHub Actions（見第六節）|
 | CPU limits 超過物理核心 | 合計 limit 6.25 vCPU > 4 vCPU | Docker limits 為軟性限制，不影響運作；高峰期監控 CPU 使用率 |
 | Redis maxmemory | prod compose limit 512 MB，redis-prod.conf 應確認 `maxmemory 256mb` | 若快取命中率低，考慮提高到 384 MB |

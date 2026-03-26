@@ -4,6 +4,7 @@
 # Target: Hetzner CPX32 (4 vCPU / 8 GB RAM / 160 GB SSD) — Singapore
 # Storage: Cloudflare R2 (no MinIO container needed)
 # CDN: Cloudflare Free (handles SSL termination)
+# Access: Cloudflare Tunnel (no public ports exposed)
 #
 # Usage:
 #   docker compose -f docker-compose.prod.yml up -d
@@ -32,9 +33,9 @@ services:
     environment:
       STORAGE_CSP_ORIGIN: ${STORAGE_CSP_ORIGIN:-}
       SERVER_DOMAIN: ${SERVER_DOMAIN:-_}
-    ports:
-      - "80:80"
-      - "443:443"
+    # No public ports — traffic comes through cloudflared tunnel
+    expose:
+      - "80"
     volumes:
       - ./nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -43,8 +44,6 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/snippets:/etc/nginx/snippets
       - ./nginx/html:/usr/share/nginx/html:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - certbot-webroot:/var/www/certbot:ro
     depends_on:
       fastapi:
         condition: service_healthy
@@ -288,21 +287,37 @@ services:
     networks:
       - backend-net
 
-  # Optional: Certbot for Let's Encrypt certificate management
-  # Run manually: docker compose -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d yourdomain.com
-  certbot:
-    image: certbot/certbot:latest
-    profiles: ["certbot"]
-    volumes:
-      - ./nginx/ssl:/etc/letsencrypt
-      - certbot-webroot:/var/www/certbot
+  # Cloudflare Tunnel — exposes nginx to the internet via outbound-only connection
+  # Setup: cloudflared tunnel create ai3l → copy tunnel token → set CLOUDFLARE_TUNNEL_TOKEN in .env
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set in .env}
+    depends_on:
+      nginx:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
     networks:
       - frontend-net
 
 volumes:
   pgdata:
   redis-data:
-  certbot-webroot:
 
 networks:
   frontend-net:
