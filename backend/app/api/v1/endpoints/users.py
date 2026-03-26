@@ -55,7 +55,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_my_profile(current_user: dict = Depends(get_current_user)) -> UserResponse:
+async def get_my_profile(
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+) -> UserResponse:
     user = await get_user_by_id(uuid.UUID(current_user["sub"]))
     if user is None:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")

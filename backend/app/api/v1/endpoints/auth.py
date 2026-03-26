@@ -283,21 +283,15 @@ async def heartbeat(
     if not refreshed:
         raise AppError(ErrorCode.AUTH_001, 401, "Session not found.")
 
-    # M-18: Re-set CSRF cookie on heartbeat to ensure it stays in sync with
-    # the session. The token is deterministic per JTI (by design) — it rotates
-    # when the user logs in again (new JTI). This re-set refreshes the cookie
-    # max-age, not the token value.
-    csrf_token = generate_csrf_token(current_user["jti"])
-    domain = settings.COOKIE_DOMAIN if settings.COOKIE_DOMAIN else None
-    response.set_cookie(
-        key="csrf_token",
-        value=csrf_token,
-        httponly=False,
-        secure=bool(settings.COOKIE_SECURE),
-        samesite=settings.COOKIE_SAMESITE,  # type: ignore[arg-type]
-        path="/",
-        domain=domain,
+    # F-05: Re-issue JWT with fresh exp to keep cookie in sync with Redis TTL.
+    # Same JTI — Redis session key stays valid without re-write.
+    from app.core.security import refresh_access_token
+
+    new_token, ttl_seconds = refresh_access_token(
+        current_user["sub"], current_user["role"], current_user["jti"]
     )
+    csrf_token = generate_csrf_token(current_user["jti"])
+    _set_auth_cookies(response, new_token, csrf_token, ttl_seconds)
 
     return MessageResponse(message="Session refreshed.")
 

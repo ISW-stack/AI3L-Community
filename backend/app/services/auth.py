@@ -105,7 +105,9 @@ async def destroy_session(user_id: str, role: str, jti: str) -> None:
                 extra={"user_id": user_id, "role": role},
             )
             return
-    await redis.delete(session_key)
+        await redis.delete(session_key)
+    # F-29: If stored_jti is None (session already expired), skip delete to
+    # avoid destroying a newly-created session under the same key.
 
     blacklist_key = BLACKLIST_KEY_TEMPLATE.format(jti=jti)
     await redis.set(blacklist_key, "1", ex=43200)  # 12h — covers longest JWT TTL (8h SUPER_ADMIN)

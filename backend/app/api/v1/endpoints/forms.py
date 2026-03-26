@@ -234,7 +234,11 @@ async def get_form(
                     "Only SIG members can view this form.",
                 )
     else:
-        is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+        # F-14: Standalone form creator should see admin controls too
+        is_admin = (
+            current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+            or form["created_by"] == current_user["sub"]
+        )
     form["user_is_sig_admin"] = is_admin
     return FormResponseSchema(**form)
 
@@ -371,11 +375,13 @@ async def submit_form_response(
         client_ip = get_client_ip(request) or "unknown"
         if not await check_rate_limit(f"rl:form_submit_ip:{client_ip}:{form_id}", 5, 3600):
             raise AppError(ErrorCode.SYS_429, 429, "Too many submissions from this IP.")
+    is_guest = current_user.get("role") == "GUEST"
     try:
         result = await submit_response(
             form_id=form_id,
             user_id=current_user["sub"],
             answers=req.answers,
+            is_guest=is_guest,
         )
     except PermissionError as e:
         raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))

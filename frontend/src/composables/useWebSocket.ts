@@ -139,7 +139,11 @@ export function useWebSocket() {
               typeof msg.message.conversation_id === 'string'
             ) {
               dmStore.addFromWebSocket(msg.message)
-              if (dmStore.activeConversationId !== msg.message.conversation_id) {
+              // F-09: Don't show toast for own echoed messages (multi-tab sync)
+              if (
+                dmStore.activeConversationId !== msg.message.conversation_id &&
+                msg.message.sender?.id !== auth.user?.id
+              ) {
                 const senderName = (msg.message.sender?.display_name ?? 'someone').slice(0, 50)
                 toastStore.show(
                   `New message from ${senderName}`,

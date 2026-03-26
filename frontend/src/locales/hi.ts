@@ -217,7 +217,7 @@ export default {
     recallMessage: 'संदेश वापस लें',
     charsRemaining: '{count} वर्ण शेष',
     sendMessage: 'संदेश भेजें',
-    fileTooLarge: 'फ़ाइल बहुत बड़ी है (अधिकतम 50 MB)',
+    fileTooLarge: 'फ़ाइल बहुत बड़ी है (अधिकतम 10 MB)',
     today: 'आज',
     yesterday: 'कल',
   },

@@ -356,7 +356,7 @@ async def find_responses(
 async def insert_response(
     response_id: uuid.UUID,
     form_id: uuid.UUID,
-    user_id: uuid.UUID,
+    user_id: uuid.UUID | None,
     answers: dict[str, Any],
     conn: Any,
     max_respondents: int | None = None,

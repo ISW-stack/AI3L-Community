@@ -219,7 +219,7 @@ export default {
     recallMessage: 'Nachricht zurückrufen',
     charsRemaining: '{count} Zeichen verbleibend',
     sendMessage: 'Nachricht senden',
-    fileTooLarge: 'Datei zu groß (max. 50 MB)',
+    fileTooLarge: 'Datei zu groß (max. 10 MB)',
     today: 'Heute',
     yesterday: 'Gestern',
   },

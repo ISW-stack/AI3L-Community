@@ -59,6 +59,48 @@ _MAGIC_BYTES: dict[str, list[bytes]] = {
 _CSV_INJECTION_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
+def _sync_presigned_url(key: str, filename: str | None = None) -> str:
+    """Generate presigned URL synchronously (for use in run_in_executor)."""
+    from app.core.storage import generate_presigned_url
+
+    return generate_presigned_url(key, expires_in=PRESIGNED_URL_FILE_SECONDS, filename=filename)
+
+
+async def _is_dm_file_clean(file_key: str) -> bool:
+    """F-17: For DM files, treat missing scan record as 'pending' (not clean).
+
+    Unlike editor files which allow legacy unscanned files, DM files are always
+    scanned (post C-01 fix). A missing record means scan failed to register.
+    """
+    record = await file_scan_repo.find_by_key(file_key)
+    if record is None:
+        return False  # Missing scan record → treat as pending, not clean
+    return record.get("status") == "clean"
+
+
+async def _enrich_with_sender(row: dict) -> dict:
+    """Add sender_display_name and sender_avatar_url to a raw dm_messages row.
+
+    Used after UPDATE...RETURNING * which lacks JOINed user columns.
+    """
+    if row.get("sender_display_name") is not None:
+        return row  # already enriched
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        user_row = await conn.fetchrow(
+            "SELECT display_name, avatar_url FROM users WHERE id = $1",
+            row["sender_id"],
+        )
+    enriched = dict(row)
+    if user_row:
+        enriched["sender_display_name"] = user_row["display_name"]
+        enriched["sender_avatar_url"] = user_row["avatar_url"]
+    return enriched
+
+
+
 def _validate_dm_file(file_name: str, file_data: bytes) -> None:
     """Validate DM attachment: extension allowlist + magic bytes for images/PDFs.
 
@@ -442,14 +484,11 @@ async def send_message(
 
     # 11. Convert row and generate presigned URL if attachment (scan-gated)
     msg = await async_row_to_message(row)
-    if attachment_key and not msg.get("is_recalled") and await file_scan_repo.is_clean(attachment_key):
-        from app.core.storage import generate_presigned_url
-
-        msg["attachment_url"] = generate_presigned_url(
-            attachment_key,
-            expires_in=PRESIGNED_URL_FILE_SECONDS,
-            filename=attachment_name,
+    if attachment_key and not msg.get("is_recalled") and await _is_dm_file_clean(attachment_key):
+        url = await asyncio.get_event_loop().run_in_executor(
+            None, _sync_presigned_url, attachment_key, attachment_name
         )
+        msg["attachment_url"] = url
 
     # 12. Emit event
     await emit(
@@ -562,20 +601,20 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
                 conversation_id,
             )
 
+    # Enrich with sender info (RETURNING * lacks JOINed user columns)
+    enriched_row = await _enrich_with_sender(updated_row)
+
     # Convert and generate presigned URL (scan-gated)
-    msg = await async_row_to_message(updated_row)
+    msg = await async_row_to_message(enriched_row)
     if (
         updated_row.get("attachment_key")
         and not msg.get("is_recalled")
-        and await file_scan_repo.is_clean(updated_row["attachment_key"])
+        and await _is_dm_file_clean(updated_row["attachment_key"])
     ):
-        from app.core.storage import generate_presigned_url
-
-        msg["attachment_url"] = generate_presigned_url(
-            updated_row["attachment_key"],
-            expires_in=PRESIGNED_URL_FILE_SECONDS,
-            filename=updated_row.get("attachment_name"),
+        url = await asyncio.get_event_loop().run_in_executor(
+            None, _sync_presigned_url, updated_row["attachment_key"], updated_row.get("attachment_name")
         )
+        msg["attachment_url"] = url
 
     # Find recipient
     conv = await dm_repo.find_conversation_by_id(conversation_id, uuid.UUID(sender_id))
@@ -585,7 +624,7 @@ async def edit_message(message_id: str, sender_id: str, new_content: str) -> dic
             if str(conv["participant_a"]) == sender_id
             else str(conv["participant_a"])
         )
-        await emit("dm.message_edited", recipient_id=other_id, message=msg)
+        await emit("dm.message_edited", recipient_id=other_id, sender_id=sender_id, message=msg)
 
     return msg
 
@@ -690,7 +729,9 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
                     else:
                         await asyncio.sleep(1)
 
-    msg = await async_row_to_message(recalled_row)
+    # Enrich with sender info (RETURNING * lacks JOINed user columns)
+    enriched_recalled = await _enrich_with_sender(recalled_row)
+    msg = await async_row_to_message(enriched_recalled)
 
     # 7. Find recipient and emit event
     conv = await dm_repo.find_conversation_by_id(conversation_id, uuid.UUID(sender_id))
@@ -703,6 +744,7 @@ async def recall_message(message_id: str, sender_id: str) -> dict:
         await emit(
             "dm.message_recalled",
             recipient_id=other_id,
+            sender_id=sender_id,
             message_id=message_id,
             conversation_id=str(conversation_id),
         )
@@ -720,21 +762,19 @@ async def list_conversations(
     conversations = []
     for row in rows:
         conv = await async_row_to_conversation(row, user_id)
-        # Generate presigned URL for last message attachment if present (scan-gated)
+        # F-06: Check raw row for attachment_key (converter strips it from output)
+        raw_att_key = row.get("last_msg_attachment_key")
         last_msg = conv.get("last_message")
         if (
             last_msg
-            and last_msg.get("attachment_key")
+            and raw_att_key
             and not last_msg.get("is_recalled")
-            and await file_scan_repo.is_clean(last_msg["attachment_key"])
+            and await _is_dm_file_clean(raw_att_key)
         ):
-            from app.core.storage import generate_presigned_url
-
-            last_msg["attachment_url"] = generate_presigned_url(
-                last_msg["attachment_key"],
-                expires_in=PRESIGNED_URL_FILE_SECONDS,
-                filename=last_msg.get("attachment_name"),
+            url = await asyncio.get_event_loop().run_in_executor(
+                None, _sync_presigned_url, raw_att_key, last_msg.get("attachment_name")
             )
+            last_msg["attachment_url"] = url
         conversations.append(conv)
 
     return conversations, total
@@ -758,15 +798,12 @@ async def list_messages(
         if (
             row.get("attachment_key")
             and not row.get("is_recalled")
-            and await file_scan_repo.is_clean(row["attachment_key"])
+            and await _is_dm_file_clean(row["attachment_key"])
         ):
-            from app.core.storage import generate_presigned_url
-
-            msg["attachment_url"] = generate_presigned_url(
-                row["attachment_key"],
-                expires_in=PRESIGNED_URL_FILE_SECONDS,
-                filename=row.get("attachment_name"),
+            url = await asyncio.get_event_loop().run_in_executor(
+                None, _sync_presigned_url, row["attachment_key"], row.get("attachment_name")
             )
+            msg["attachment_url"] = url
         messages.append(msg)
 
     return messages, total

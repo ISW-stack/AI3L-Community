@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -81,6 +81,16 @@ class FormCreateRequest(BaseModel):
     questions: list[QuestionSchema] = Field(..., min_length=1, max_length=100)
     allow_non_members: bool = False
 
+    @field_validator("deadline")
+    @classmethod
+    def ensure_timezone_aware(cls, v: datetime | None) -> datetime | None:
+        """F-13: Ensure deadline is timezone-aware to prevent TypeError on comparison."""
+        if v is None:
+            return v
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
     @field_validator("banner_url")
     @classmethod
     def validate_banner_url(cls, v: str | None) -> str | None:
@@ -101,6 +111,16 @@ class FormUpdateRequest(BaseModel):
     max_respondents: int | None = Field(None, gt=0)
     questions: list[QuestionSchema] | None = Field(None, max_length=100)
     allow_non_members: bool | None = None
+
+    @field_validator("deadline")
+    @classmethod
+    def ensure_timezone_aware(cls, v: datetime | None) -> datetime | None:
+        """F-13: Ensure deadline is timezone-aware to prevent TypeError on comparison."""
+        if v is None:
+            return v
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
     @field_validator("banner_url")
     @classmethod

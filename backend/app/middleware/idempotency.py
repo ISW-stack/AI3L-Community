@@ -1,4 +1,3 @@
-import hashlib
 import json
 import re
 
@@ -39,8 +38,19 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         if not token:
             return await call_next(request)
 
-        user_id = hashlib.sha256(token.encode()).hexdigest()[:16]
-        redis_key = f"idempotency:{user_id}:{idem_key}"
+        # F-30: Use user_id from JWT (stable across token refresh) instead of
+        # token hash which changes on every login/refresh.
+        try:
+            from app.core.security import decode_access_token
+
+            payload = decode_access_token(token)
+            user_ns = payload["sub"][:16] if payload and payload.get("sub") else None
+        except Exception:
+            user_ns = None
+        if not user_ns:
+            # Fallback: skip idempotency for invalid tokens (auth middleware will reject)
+            return await call_next(request)
+        redis_key = f"idempotency:{user_ns}:{idem_key}"
 
         try:
             redis = get_redis()

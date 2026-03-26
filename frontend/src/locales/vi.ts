@@ -217,7 +217,7 @@ export default {
     recallMessage: 'Thu hồi tin nhắn',
     charsRemaining: 'Còn {count} ký tự',
     sendMessage: 'Gửi tin nhắn',
-    fileTooLarge: 'Tệp quá lớn (tối đa 50 MB)',
+    fileTooLarge: 'Tệp quá lớn (tối đa 10 MB)',
     today: 'Hôm nay',
     yesterday: 'Hôm qua',
   },

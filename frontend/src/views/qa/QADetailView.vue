@@ -94,11 +94,12 @@ async function fetchAnswers() {
     const data = await listComments(postId.value, {
       page: answersPage.value,
       page_size: PAGE_SIZE,
+      root_only: true,
     })
-    // Only root-level comments are "answers" in Q&A
-    answers.value = data.comments.filter((c) => !c.parent_id)
-    answersTotal.value = data.total ?? answers.value.length
-    answersTotalPages.value = Math.ceil(answersTotal.value / PAGE_SIZE)
+    // F-12: Backend now filters to root-only answers with correct total
+    answers.value = data.comments
+    answersTotal.value = data.total ?? 0
+    answersTotalPages.value = Math.ceil((data.total ?? 0) / PAGE_SIZE)
     // Initialize vote state for answers
     for (const a of answers.value) {
       if (!voteState.value[a.id]) {

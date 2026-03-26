@@ -291,8 +291,22 @@ async def _cleanup_post_files(post_id: uuid.UUID, user_id: str) -> None:
         total_freed = 0
         succeeded = 0
         failed_keys: list[str] = []
+        # F-15: Check if file is referenced by other non-deleted posts before deleting
+        from app.core.database import get_pool as _get_pool
+
+        _pool = _get_pool()
         for key in keys:
             try:
+                async with _pool.acquire() as conn:
+                    ref_count = await conn.fetchval(
+                        "SELECT COUNT(*) FROM posts "
+                        "WHERE id != $1 AND is_deleted = false "
+                        "AND content LIKE '%' || $2 || '%'",
+                        post_id,
+                        key,
+                    )
+                if ref_count and ref_count > 0:
+                    continue  # File referenced by another post, skip deletion
                 size = await get_file_size(key)
                 if size and size > 0:
                     await delete_file(key)

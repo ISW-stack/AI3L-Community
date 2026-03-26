@@ -217,7 +217,7 @@ export default {
     recallMessage: 'Mesajı geri al',
     charsRemaining: '{count} karakter kaldı',
     sendMessage: 'Mesaj Gönder',
-    fileTooLarge: 'Dosya çok büyük (maks. 50 MB)',
+    fileTooLarge: 'Dosya çok büyük (maks. 10 MB)',
     today: 'Bugün',
     yesterday: 'Dün',
   },

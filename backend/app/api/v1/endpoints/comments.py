@@ -33,6 +33,7 @@ async def get_comments(
     post_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),
+    root_only: bool = Query(False),
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> CommentListResponse:
     # Verify post exists
@@ -41,7 +42,8 @@ async def get_comments(
         raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
 
     comments, total = await list_comments(
-        post_id, page=page, page_size=page_size, viewer_id=current_user["sub"]
+        post_id, page=page, page_size=page_size, viewer_id=current_user["sub"],
+        root_only=root_only,
     )
     total_pages = max(1, math.ceil(total / page_size))
     return CommentListResponse(

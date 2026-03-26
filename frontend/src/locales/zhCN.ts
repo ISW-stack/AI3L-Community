@@ -201,7 +201,7 @@ export default {
     recallMessage: '撤回消息',
     charsRemaining: '剩余 {count} 个字符',
     sendMessage: '发送消息',
-    fileTooLarge: '文件过大（最大 50 MB）',
+    fileTooLarge: '文件过大（最大 10 MB）',
     today: '今天',
     yesterday: '昨天',
   },

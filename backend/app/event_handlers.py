@@ -594,32 +594,46 @@ async def _on_dm_message_sent(
             logger.error("Failed to create DM notification", exc_info=True)
 
 
-async def _on_dm_message_edited(recipient_id: str, message: dict, **_kwargs: Any) -> None:
-    """Push edited DM via WebSocket."""
+async def _on_dm_message_edited(
+    recipient_id: str, message: dict, sender_id: str | None = None, **_kwargs: Any
+) -> None:
+    """Push edited DM via WebSocket to recipient and sender's other sessions."""
     try:
         from app.api.v1.endpoints.ws import send_to_user
 
-        await send_to_user(recipient_id, {"type": "DM_EDITED", "message": message})
+        payload = {"type": "DM_EDITED", "message": message}
+        await send_to_user(recipient_id, payload)
+        # F-22: Echo to sender's other sessions for multi-tab sync
+        if sender_id and sender_id != recipient_id:
+            try:
+                await send_to_user(sender_id, payload)
+            except Exception:
+                logger.warning("Failed to push DM edit to sender's other sessions", exc_info=True)
     except Exception:
         logger.error("Failed to push DM edit via WebSocket", exc_info=True)
         raise
 
 
 async def _on_dm_message_recalled(
-    recipient_id: str, message_id: str, conversation_id: str, **_kwargs: Any
+    recipient_id: str, message_id: str, conversation_id: str,
+    sender_id: str | None = None, **_kwargs: Any,
 ) -> None:
-    """Push recalled DM via WebSocket."""
+    """Push recalled DM via WebSocket to recipient and sender's other sessions."""
     try:
         from app.api.v1.endpoints.ws import send_to_user
 
-        await send_to_user(
-            recipient_id,
-            {
-                "type": "DM_RECALLED",
-                "message_id": message_id,
-                "conversation_id": conversation_id,
-            },
-        )
+        payload = {
+            "type": "DM_RECALLED",
+            "message_id": message_id,
+            "conversation_id": conversation_id,
+        }
+        await send_to_user(recipient_id, payload)
+        # F-22: Echo to sender's other sessions for multi-tab sync
+        if sender_id and sender_id != recipient_id:
+            try:
+                await send_to_user(sender_id, payload)
+            except Exception:
+                logger.warning("Failed to push DM recall to sender's other sessions", exc_info=True)
     except Exception:
         logger.error("Failed to push DM recall via WebSocket", exc_info=True)
         raise

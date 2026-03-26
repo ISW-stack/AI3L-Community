@@ -201,7 +201,7 @@ export default {
     recallMessage: '收回訊息',
     charsRemaining: '剩餘 {count} 個字元',
     sendMessage: '傳送訊息',
-    fileTooLarge: '檔案過大（最大 50 MB）',
+    fileTooLarge: '檔案過大（最大 10 MB）',
     today: '今天',
     yesterday: '昨天',
   },

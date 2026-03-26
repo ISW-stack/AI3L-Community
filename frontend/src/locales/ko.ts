@@ -217,7 +217,7 @@ export default {
     recallMessage: '메시지 취소',
     charsRemaining: '{count}자 남음',
     sendMessage: '메시지 전송',
-    fileTooLarge: '파일이 너무 큽니다 (최대 50 MB)',
+    fileTooLarge: '파일이 너무 큽니다 (최대 10 MB)',
     today: '오늘',
     yesterday: '어제',
   },

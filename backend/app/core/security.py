@@ -86,6 +86,30 @@ def create_access_token(
     return token, jti, expires_at
 
 
+def refresh_access_token(
+    user_id: str,
+    role: str,
+    jti: str,
+    expires_delta: timedelta | None = None,
+) -> tuple[str, int]:
+    """Re-issue JWT with the same JTI but a fresh exp. Returns (token, ttl_seconds)."""
+    if expires_delta is None:
+        expires_delta = ROLE_TTL_MAP.get(role, timedelta(hours=3))
+    expires_at = datetime.now(timezone.utc) + expires_delta
+
+    payload = {
+        "sub": user_id,
+        "role": role,
+        "jti": jti,
+        "exp": expires_at,
+        "iat": datetime.now(timezone.utc),
+        "iss": "ai3l-community",
+        "aud": "ai3l-api",
+    }
+    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return token, int(expires_delta.total_seconds())
+
+
 def decode_access_token(token: str) -> dict | None:
     """Decode and verify JWT. Returns payload dict or None if invalid."""
     try:

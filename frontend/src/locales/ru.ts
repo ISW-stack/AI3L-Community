@@ -217,7 +217,7 @@ export default {
     recallMessage: 'Отозвать сообщение',
     charsRemaining: 'Осталось {count} символов',
     sendMessage: 'Отправить сообщение',
-    fileTooLarge: 'Файл слишком большой (макс. 50 МБ)',
+    fileTooLarge: 'Файл слишком большой (макс. 10 МБ)',
     today: 'Сегодня',
     yesterday: 'Вчера',
   },

@@ -217,7 +217,7 @@ export default {
     recallMessage: 'メッセージを取り消す',
     charsRemaining: '残り {count} 文字',
     sendMessage: 'メッセージを送信',
-    fileTooLarge: 'ファイルが大きすぎます（最大 50 MB）',
+    fileTooLarge: 'ファイルが大きすぎます（最大 10 MB）',
     today: '今日',
     yesterday: '昨日',
   },

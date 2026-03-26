@@ -6,6 +6,7 @@ import { getErrorMessage } from '@/utils/error'
 
 const MAX_MESSAGES = 200
 const UNREAD_MIN_INTERVAL_MS = 2000
+const MARK_READ_DEBOUNCE_MS = 500
 
 export const useDMStore = defineStore('dm', () => {
   const conversations = ref<Conversation[]>([])
@@ -23,6 +24,7 @@ export const useDMStore = defineStore('dm', () => {
   // BUG-1: fetchId guards to discard stale responses
   let _convFetchId = 0
   let _msgFetchId = 0
+  let _markReadTimer: ReturnType<typeof setTimeout> | null = null
 
   function setCurrentUserId(id: string) {
     currentUserId.value = id
@@ -123,6 +125,18 @@ export const useDMStore = defineStore('dm', () => {
     }
   }
 
+  function _debouncedMarkRead(conversationId: string) {
+    if (_markReadTimer) clearTimeout(_markReadTimer)
+    _markReadTimer = setTimeout(async () => {
+      _markReadTimer = null
+      try {
+        await dmApi.markConversationRead(conversationId)
+      } catch {
+        // Non-critical — read receipt will sync on next open
+      }
+    }, MARK_READ_DEBOUNCE_MS)
+  }
+
   function addFromWebSocket(message: DMMessage) {
     // Update conversation list
     const convIdx = conversations.value.findIndex((c) => c.id === message.conversation_id)
@@ -149,6 +163,8 @@ export const useDMStore = defineStore('dm', () => {
       _moveConversationToTop(convIdx)
       if (activeConversationId.value === message.conversation_id) {
         _appendMessage(message)
+        // F-07: Keep messagesTotal in sync with WS additions
+        messagesTotal.value += 1
       }
       return
     }
@@ -161,6 +177,10 @@ export const useDMStore = defineStore('dm', () => {
 
     if (activeConversationId.value === message.conversation_id) {
       _appendMessage(message)
+      // F-07: Keep messagesTotal in sync with WS additions
+      messagesTotal.value += 1
+      // Auto mark-as-read: user is viewing this conversation
+      _debouncedMarkRead(message.conversation_id)
     } else {
       unreadCount.value += 1
     }
@@ -186,6 +206,8 @@ export const useDMStore = defineStore('dm', () => {
       msg.content = null
       msg.attachment_url = null
       msg.attachment_name = null
+      msg.attachment_size = null
+      msg.attachment_expires_at = null
     }
     // Update last_message in conversations if applicable
     const conv = conversations.value.find((c) => c.id === conversationId)

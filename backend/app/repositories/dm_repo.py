@@ -15,25 +15,27 @@ async def find_or_create_conversation(user_a: uuid.UUID, user_b: uuid.UUID) -> d
     low, high = sorted([user_a, user_b])
     pool = get_pool()
     async with pool.acquire() as conn:
-        inserted = await conn.fetchrow(
-            """
-            INSERT INTO conversations (participant_a, participant_b)
-            VALUES ($1, $2)
-            ON CONFLICT ON CONSTRAINT uq_conversation_pair DO NOTHING
-            RETURNING id
-            """,
-            low,
-            high,
-        )
-        row = await conn.fetchrow(
-            """
-            SELECT id, participant_a, participant_b, total_chars, created_at, updated_at
-            FROM conversations
-            WHERE participant_a = $1 AND participant_b = $2
-            """,
-            low,
-            high,
-        )
+        # F-24: Wrap INSERT+SELECT in a transaction to prevent race condition
+        async with conn.transaction():
+            inserted = await conn.fetchrow(
+                """
+                INSERT INTO conversations (participant_a, participant_b)
+                VALUES ($1, $2)
+                ON CONFLICT ON CONSTRAINT uq_conversation_pair DO NOTHING
+                RETURNING id
+                """,
+                low,
+                high,
+            )
+            row = await conn.fetchrow(
+                """
+                SELECT id, participant_a, participant_b, total_chars, created_at, updated_at
+                FROM conversations
+                WHERE participant_a = $1 AND participant_b = $2
+                """,
+                low,
+                high,
+            )
         result = dict(row)
         result["was_new"] = inserted is not None
         return result

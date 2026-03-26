@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 // Mock the API module before importing the store
@@ -26,6 +26,7 @@ vi.mock('@/composables/api', () => ({
 }))
 
 import { useDMStore } from '@/stores/dm'
+import { markConversationRead } from '@/api/dm'
 import type { DMMessage, Conversation } from '@/types/dm'
 
 // --------------- Test data factories ---------------
@@ -352,5 +353,175 @@ describe('useDMStore — M-25 addFromWebSocket in-place mutations', () => {
     )
 
     expect(store.messages).toHaveLength(1)
+  })
+})
+
+describe('F-03: auto mark-read on WebSocket message', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('calls markConversationRead when message arrives in active conversation from other user', () => {
+    const store = useDMStore()
+    store.setCurrentUserId('user-1')
+    store.setActiveConversation('conv-1')
+    store.conversations = [makeConversation({ id: 'conv-1' })]
+
+    const msg = makeMessage({
+      id: 'msg-ws-1',
+      conversation_id: 'conv-1',
+      sender: makeSender({ id: 'user-2', display_name: 'Alice' }),
+    })
+    store.addFromWebSocket(msg)
+
+    vi.advanceTimersByTime(500)
+
+    expect(markConversationRead).toHaveBeenCalledWith('conv-1')
+  })
+
+  it('does NOT call markConversationRead for own echoed messages', () => {
+    const store = useDMStore()
+    store.setCurrentUserId('user-1')
+    store.setActiveConversation('conv-1')
+    store.conversations = [makeConversation({ id: 'conv-1' })]
+
+    const msg = makeMessage({
+      id: 'msg-ws-2',
+      conversation_id: 'conv-1',
+      sender: makeSender({ id: 'user-1', display_name: 'Me' }),
+    })
+    store.addFromWebSocket(msg)
+
+    vi.advanceTimersByTime(500)
+
+    expect(markConversationRead).not.toHaveBeenCalled()
+  })
+
+  it('does NOT call markConversationRead for messages in non-active conversation', () => {
+    const store = useDMStore()
+    store.setCurrentUserId('user-1')
+    store.setActiveConversation('conv-2')
+    store.conversations = [makeConversation({ id: 'conv-1' })]
+
+    const msg = makeMessage({
+      id: 'msg-ws-3',
+      conversation_id: 'conv-1',
+      sender: makeSender({ id: 'user-2', display_name: 'Alice' }),
+    })
+    store.addFromWebSocket(msg)
+
+    vi.advanceTimersByTime(500)
+
+    expect(markConversationRead).not.toHaveBeenCalled()
+  })
+})
+
+// ── F-07: hasMoreMessages stays correct after WS additions ──────────
+
+describe('useDMStore — F-07 messagesTotal sync on WebSocket', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  it('increments messagesTotal when other user WS message added to active conversation', () => {
+    const store = useDMStore()
+    store.setCurrentUserId('user-1')
+    store.setActiveConversation('conv-1')
+    store.conversations = [makeConversation({ id: 'conv-1' })]
+    store.messagesTotal = 30 // pretend 30 messages from API
+
+    const msg = makeMessage({
+      id: 'msg-ws-new',
+      conversation_id: 'conv-1',
+      sender: makeSender({ id: 'user-2', display_name: 'Alice' }),
+    })
+    store.addFromWebSocket(msg)
+
+    expect(store.messagesTotal).toBe(31)
+  })
+
+  it('increments messagesTotal for own echoed messages in active conversation', () => {
+    const store = useDMStore()
+    store.setCurrentUserId('user-1')
+    store.setActiveConversation('conv-1')
+    store.conversations = [makeConversation({ id: 'conv-1' })]
+    store.messagesTotal = 30
+
+    const msg = makeMessage({
+      id: 'msg-ws-own',
+      conversation_id: 'conv-1',
+      sender: makeSender({ id: 'user-1', display_name: 'Me' }),
+    })
+    store.addFromWebSocket(msg)
+
+    expect(store.messagesTotal).toBe(31)
+  })
+
+  it('does NOT increment messagesTotal for non-active conversation', () => {
+    const store = useDMStore()
+    store.setCurrentUserId('user-1')
+    store.setActiveConversation('conv-2')
+    store.conversations = [makeConversation({ id: 'conv-1' })]
+    store.messagesTotal = 30
+
+    const msg = makeMessage({
+      id: 'msg-ws-other',
+      conversation_id: 'conv-1',
+      sender: makeSender({ id: 'user-2', display_name: 'Alice' }),
+    })
+    store.addFromWebSocket(msg)
+
+    expect(store.messagesTotal).toBe(30)
+  })
+})
+
+// ── F-23: recallFromWebSocket nulls attachment_size + attachment_expires_at ──
+
+describe('useDMStore — F-23 recallFromWebSocket attachment fields', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  it('nulls attachment_size and attachment_expires_at on recall', () => {
+    const store = useDMStore()
+    store.messages = [
+      makeMessage({
+        id: 'msg-recall',
+        conversation_id: 'conv-1',
+        attachment_name: 'file.jpg',
+        attachment_size: 1024,
+        attachment_expires_at: '2026-03-20T00:00:00Z',
+        attachment_url: 'https://example.com/file.jpg',
+      }),
+    ]
+    store.conversations = [
+      makeConversation({
+        id: 'conv-1',
+        last_message: makeMessage({
+          id: 'msg-recall',
+          attachment_name: 'file.jpg',
+          attachment_size: 1024,
+          attachment_expires_at: '2026-03-20T00:00:00Z',
+        }),
+      }),
+    ]
+
+    store.recallFromWebSocket('msg-recall', 'conv-1')
+
+    const msg = store.messages[0]
+    expect(msg.is_recalled).toBe(true)
+    expect(msg.content).toBeNull()
+    expect(msg.attachment_url).toBeNull()
+    expect(msg.attachment_name).toBeNull()
+    expect(msg.attachment_size).toBeNull()
+    expect(msg.attachment_expires_at).toBeNull()
   })
 })

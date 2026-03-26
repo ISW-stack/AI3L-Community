@@ -164,6 +164,8 @@ def cleanup_dm_orphan_files(self) -> dict:  # type: ignore[override]
 
 
 async def _cleanup_dm_orphans() -> dict:
+    import asyncio
+
     await _ensure_pool()
 
     from app.core.database import get_pool
@@ -179,21 +181,23 @@ async def _cleanup_dm_orphans() -> dict:
     errors = 0
     checked = 0
 
+    # F-19: Run sync boto3 paginator in executor to avoid blocking event loop
+    loop = asyncio.get_event_loop()
     paginator = client.get_paginator("list_objects_v2")
-    batch: list[str] = []
 
-    for page in paginator.paginate(Bucket=bucket, Prefix="dm/"):
-        for obj in page.get("Contents", []):
-            batch.append(obj["Key"])
-            if len(batch) >= _DM_ORPHAN_BATCH_SIZE:
-                d, e = await _process_dm_orphan_batch(pool, client, bucket, batch)
-                checked += len(batch)
-                deleted += d
-                errors += e
-                batch = []
+    def _list_all_dm_keys() -> list[str]:
+        keys: list[str] = []
+        for page in paginator.paginate(Bucket=bucket, Prefix="dm/"):
+            for obj in page.get("Contents", []):
+                keys.append(obj["Key"])
+        return keys
 
-    if batch:
-        d, e = await _process_dm_orphan_batch(pool, client, bucket, batch)
+    all_keys = await loop.run_in_executor(None, _list_all_dm_keys)
+
+    # Process in batches
+    for i in range(0, len(all_keys), _DM_ORPHAN_BATCH_SIZE):
+        batch = all_keys[i : i + _DM_ORPHAN_BATCH_SIZE]
+        d, e = await _process_dm_orphan_batch(pool, client, bucket, batch, loop)
         checked += len(batch)
         deleted += d
         errors += e
@@ -206,12 +210,17 @@ async def _cleanup_dm_orphans() -> dict:
 
 
 async def _process_dm_orphan_batch(
-    pool: object, client: object, bucket: str, keys: list[str]
+    pool: object, client: object, bucket: str, keys: list[str],
+    loop: object | None = None,
 ) -> tuple[int, int]:
     """Check a batch of dm/ keys against dm_messages. Delete orphans.
 
     Returns (deleted_count, error_count).
     """
+    import asyncio
+
+    if loop is None:
+        loop = asyncio.get_event_loop()
     deleted = 0
     errors = 0
 
@@ -227,7 +236,11 @@ async def _process_dm_orphan_batch(
         if key in referenced_keys:
             continue
         try:
-            client.delete_object(Bucket=bucket, Key=key)  # type: ignore[union-attr]
+            # F-19: Run sync boto3 delete in executor
+            await loop.run_in_executor(  # type: ignore[union-attr]
+                None,
+                lambda k=key: client.delete_object(Bucket=bucket, Key=k),  # type: ignore[union-attr]
+            )
             deleted += 1
             logger.info("Deleted orphan DM file", extra={"key": key})
         except Exception:

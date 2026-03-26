@@ -217,7 +217,7 @@ export default {
     recallMessage: 'Tarik pesan',
     charsRemaining: '{count} karakter tersisa',
     sendMessage: 'Kirim Pesan',
-    fileTooLarge: 'File terlalu besar (maks. 50 MB)',
+    fileTooLarge: 'File terlalu besar (maks. 10 MB)',
     today: 'Hari ini',
     yesterday: 'Kemarin',
   },

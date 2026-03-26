@@ -163,7 +163,7 @@ function formatFileSize(bytes: number): string {
         type="file"
         name="file-attachment"
         class="hidden"
-        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+        accept="image/*,.pdf,.docx,.xlsx,.pptx,.txt,.csv"
         @change="handleFileChange"
       />
 

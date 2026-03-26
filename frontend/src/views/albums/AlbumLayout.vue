@@ -16,6 +16,7 @@ import type { Album, AlbumMember } from '@/types/album'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const { t } = useLocale()
@@ -122,12 +123,18 @@ async function handleCoverFileChange(e: Event) {
 }
 
 const deleting = ref(false)
+const showDeleteModal = ref(false)
 
-async function handleDeleteAlbum() {
-  if (!album.value || !confirm(t('albums.confirmDeleteAlbum'))) return
+function handleDeleteAlbum() {
+  showDeleteModal.value = true
+}
+
+async function confirmDeleteAlbum() {
+  if (!album.value) return
   deleting.value = true
   try {
     await deleteAlbum(album.value.id)
+    showDeleteModal.value = false
     toastStore.show(t('albums.deleteAlbumSuccess'), 'success')
     router.push('/albums')
   } catch (e: unknown) {
@@ -404,6 +411,31 @@ const currentRouteName = computed(() => route.name)
         </main>
       </div>
     </template>
+
+    <!-- F-26: Delete confirmation modal (replaces native confirm()) -->
+    <BaseModal
+      :model-value="showDeleteModal"
+      :title="t('albums.deleteAlbum')"
+      size="sm"
+      @update:model-value="showDeleteModal = false"
+    >
+      <p class="text-sm text-muted mb-4">{{ t('albums.confirmDeleteAlbum') }}</p>
+      <div class="flex justify-end gap-3">
+        <button
+          @click="showDeleteModal = false"
+          class="px-4 py-2 text-sm font-medium text-foreground bg-surface-alt border border-border rounded-lg hover:bg-gray-100 transition"
+        >
+          {{ t('common.cancel') }}
+        </button>
+        <button
+          @click="confirmDeleteAlbum"
+          :disabled="deleting"
+          class="px-4 py-2 text-sm font-medium text-white bg-danger-600 rounded-lg hover:bg-danger-700 transition disabled:opacity-50"
+        >
+          {{ deleting ? '...' : t('albums.deleteAlbum') }}
+        </button>
+      </div>
+    </BaseModal>
   </div>
 </template>
 

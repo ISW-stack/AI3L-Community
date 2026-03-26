@@ -81,35 +81,45 @@ async def find_many(
     offset: int = 0,
     limit: int = 50,
     exclude_user_ids: list[uuid.UUID] | None = None,
+    root_only: bool = False,
 ) -> tuple[list[dict], int]:
     _select_count = _COMMENT_SELECT.replace(
         "FROM comments cm", ", COUNT(*) OVER() AS _total\n    FROM comments cm", 1
     )
     pool = get_pool()
 
-    exclusion_clause = ""
+    where = " WHERE cm.post_id = $1 AND cm.is_deleted = false"
     params: list = [post_id, limit, offset]
+    next_idx = 4
+
+    if root_only:
+        where += " AND cm.parent_id IS NULL"
+
     if exclude_user_ids:
-        exclusion_clause = " AND cm.user_id != ALL($4::uuid[])"
+        where += f" AND cm.user_id != ALL(${next_idx}::uuid[])"
         params.append(exclude_user_ids)
+        next_idx += 1
 
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            f"{_select_count} WHERE cm.post_id = $1 AND cm.is_deleted = false{exclusion_clause} ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",  # noqa: E501
+            f"{_select_count}{where} ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",
             *params,
         )
         if rows:
             total = rows[0]["_total"]
             result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
         else:
-            count_clause = ""
+            # Build count query with same filters
+            count_where = " WHERE post_id = $1 AND is_deleted = false"
             count_params: list = [post_id]
+            count_idx = 2
+            if root_only:
+                count_where += " AND parent_id IS NULL"
             if exclude_user_ids:
-                count_clause = " AND user_id != ALL($2::uuid[])"
+                count_where += f" AND user_id != ALL(${count_idx}::uuid[])"
                 count_params.append(exclude_user_ids)
             total = await conn.fetchval(
-                "SELECT COUNT(*) FROM comments"
-                f" WHERE post_id = $1 AND is_deleted = false{count_clause}",
+                f"SELECT COUNT(*) FROM comments{count_where}",
                 *count_params,
             )
             result = []

@@ -79,8 +79,8 @@ function nextPage() {
     fetchLogs()
   }
 }
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+function formatDateLocal(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -186,7 +186,7 @@ onMounted(fetchLogs)
         >
           <div class="flex items-center justify-between">
             <BaseBadge variant="neutral" class="font-mono text-xs">{{ log.action }}</BaseBadge>
-            <span class="text-xs text-muted">{{ formatDate(log.created_at) }}</span>
+            <span class="text-xs text-muted">{{ formatDateLocal(log.created_at) }}</span>
           </div>
           <div class="text-sm text-foreground">
             <span v-if="log.display_name">{{ log.display_name }}</span>
@@ -235,7 +235,7 @@ onMounted(fetchLogs)
                 class="border-b border-border last:border-0 hover:bg-surface-alt transition"
               >
                 <td class="px-4 py-3 text-muted whitespace-nowrap">
-                  {{ formatDate(log.created_at) }}
+                  {{ formatDateLocal(log.created_at) }}
                 </td>
                 <td class="px-4 py-3 text-foreground">
                   <span v-if="log.display_name">{{ log.display_name }}</span>

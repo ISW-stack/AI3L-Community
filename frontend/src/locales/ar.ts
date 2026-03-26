@@ -216,7 +216,7 @@ export default {
     recallMessage: 'سحب الرسالة',
     charsRemaining: '{count} حرف متبقٍ',
     sendMessage: 'إرسال رسالة',
-    fileTooLarge: 'الملف كبير جدًا (الحد الأقصى 50 ميغابايت)',
+    fileTooLarge: 'الملف كبير جدًا (الحد الأقصى 10 ميغابايت)',
     today: 'اليوم',
     yesterday: 'أمس',
   },

@@ -102,8 +102,7 @@ function openConversationByUserId(userId: string) {
   } else {
     // No existing conversation yet — just set active user, messages will start on first send
     dmStore.setActiveConversation(null)
-    dmStore.messages = []
-    dmStore.messagesTotal = 0
+    dmStore.clearMessages()
   }
 }
 
@@ -167,14 +166,19 @@ async function handleSend(content: string, file?: File) {
   sending.value = true
   try {
     if (editingMessageId.value) {
-      // Edit mode
-      await dmApi.editMessage(editingMessageId.value, content)
+      // Edit mode — F-08: update in-place instead of refetching page 1
+      const edited = await dmApi.editMessage(editingMessageId.value, content)
+      const idx = dmStore.messages.findIndex((m) => m.id === editingMessageId.value)
+      if (idx >= 0) {
+        dmStore.messages[idx] = edited
+      }
+      // Update last_message in conversation list if applicable
+      const conv = dmStore.conversations.find((c) => c.id === edited.conversation_id)
+      if (conv?.last_message?.id === edited.id) {
+        conv.last_message = edited
+      }
       editingMessageId.value = null
       editingContent.value = ''
-      // Refresh messages
-      if (dmStore.activeConversationId) {
-        await dmStore.fetchMessages(dmStore.activeConversationId, 1, msgPagination.pageSize)
-      }
     } else {
       // Send new message
       const msg = await dmApi.sendMessage(activeOtherUserId.value, content || undefined, file)

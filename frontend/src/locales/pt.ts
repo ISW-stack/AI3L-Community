@@ -217,7 +217,7 @@ export default {
     recallMessage: 'Anular mensagem',
     charsRemaining: '{count} caracteres restantes',
     sendMessage: 'Enviar mensagem',
-    fileTooLarge: 'Ficheiro demasiado grande (máx. 50 MB)',
+    fileTooLarge: 'Ficheiro demasiado grande (máx. 10 MB)',
     today: 'Hoje',
     yesterday: 'Ontem',
   },

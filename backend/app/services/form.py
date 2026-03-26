@@ -490,21 +490,25 @@ async def list_form_responses(
     return converted, total
 
 
-async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> dict:
+async def submit_response(
+    form_id: uuid.UUID, user_id: str, answers: dict, is_guest: bool = False
+) -> dict:
     # Block check: cannot submit to a form created by a blocked user
-    form_row, _ = await form_repo.find_by_id(form_id)
-    if form_row:
-        form_creator_id = str(form_row["created_by"])
-        if form_creator_id != user_id:
-            try:
-                redis = get_redis()
-                blocked_ids = await get_blocked_user_ids(redis, user_id)
-                if form_creator_id in blocked_ids:
-                    raise ValueError("Cannot submit this form.")
-            except ValueError:
-                raise
-            except Exception:
-                pass  # Redis failure → allow submission
+    # (guests have no block relationships, skip)
+    if not is_guest:
+        form_row, _ = await form_repo.find_by_id(form_id)
+        if form_row:
+            form_creator_id = str(form_row["created_by"])
+            if form_creator_id != user_id:
+                try:
+                    redis = get_redis()
+                    blocked_ids = await get_blocked_user_ids(redis, user_id)
+                    if form_creator_id in blocked_ids:
+                        raise ValueError("Cannot submit this form.")
+                except ValueError:
+                    raise
+                except Exception:
+                    pass  # Redis failure → allow submission
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -520,6 +524,10 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             form = await form_repo.find_for_update(form_id, conn)
             if not form:
                 raise ValueError("Form not found.")
+
+            # Guests can only submit forms that explicitly allow non-members
+            if is_guest and not form.get("allow_non_members", False):
+                raise PermissionError("Guests cannot submit this form.")
 
             if form.get("sig_id") and not form.get("allow_non_members", False):
                 from app.repositories import sig_repo
@@ -537,8 +545,10 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             if form["deadline"] and form["deadline"] < now:
                 raise FormDeadlineError("This form has passed its deadline.")
 
-            if await form_repo.check_duplicate_response(form_id, uuid.UUID(user_id), conn):
-                raise ValueError("You have already submitted a response to this form.")
+            # Duplicate check only for authenticated users (guests use IP rate limit)
+            if not is_guest:
+                if await form_repo.check_duplicate_response(form_id, uuid.UUID(user_id), conn):
+                    raise ValueError("You have already submitted a response to this form.")
 
             questions = (
                 json.loads(form["questions"])
@@ -547,20 +557,23 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
             )
             _validate_answers(questions, answers)
 
-            # Validate file_upload answer ownership
-            _validate_file_ownership(questions, answers, user_id)
+            # Validate file_upload answer ownership (skip for guests — no file uploads)
+            if not is_guest:
+                _validate_file_ownership(questions, answers, user_id)
 
-            # Reject file answers that reference flagged or pending-scan files
-            await _validate_file_scan_status(questions, answers)
+                # Reject file answers that reference flagged or pending-scan files
+                await _validate_file_scan_status(questions, answers)
 
-            # Server-side file size validation (defense-in-depth)
-            await _validate_file_sizes(questions, answers)
+                # Server-side file size validation (defense-in-depth)
+                await _validate_file_sizes(questions, answers)
 
             response_id = uuid.uuid4()
+            # Guests: user_id=None (no FK row in users table)
+            db_user_id = None if is_guest else uuid.UUID(user_id)
             inserted = await form_repo.insert_response(
                 response_id,
                 form_id,
-                uuid.UUID(user_id),
+                db_user_id,
                 answers,
                 conn,
                 max_respondents=form["max_respondents"],
@@ -573,7 +586,7 @@ async def submit_response(form_id: uuid.UUID, user_id: str, answers: dict) -> di
 
             logger.info(
                 "Form response submitted",
-                extra={"form_id": str(form_id), "user_id": user_id},
+                extra={"form_id": str(form_id), "user_id": user_id, "is_guest": is_guest},
             )
             return {"id": str(response_id), "message": "Response submitted successfully."}
 

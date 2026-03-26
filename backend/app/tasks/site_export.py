@@ -685,15 +685,22 @@ async def _async_export(task_id: str, options: dict, user_id: str) -> dict:
 )
 def export_site_data(self: Any, options: dict, user_id: str) -> dict:
     """Export full site data. Runs in Celery worker (sync wrapper)."""
+    import asyncio
+
     from celery.exceptions import SoftTimeLimitExceeded
 
+    from app.tasks.async_runner import _ensure_loop
+
+    loop = _ensure_loop()
+    coro = _async_export(self.request.id, options, user_id)
+    future = asyncio.run_coroutine_threadsafe(coro, loop)
+
     try:
-        result: dict = _run_async(
-            _async_export(self.request.id, options, user_id),
-            timeout=7200,
-        )
+        result: dict = future.result(timeout=7200)
         return result
     except SoftTimeLimitExceeded:
+        # F-21: Cancel the orphan coroutine to prevent resource leaks
+        future.cancel()
         task_id = self.request.id
         logger.error("Site export hit soft time limit", extra={"task_id": task_id})
         # Clean up Redis lock and temp files via best-effort async cleanup

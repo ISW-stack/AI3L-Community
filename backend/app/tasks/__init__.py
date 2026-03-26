@@ -1,9 +1,11 @@
 from app.tasks import (
     cleanup,
+    dm_cleanup,
     event_retry,
     form_autoclose,
     form_export,
     recommendations,
+    site_export,
     thumbnail,
     view_sync,
     virustotal,
@@ -11,10 +13,12 @@ from app.tasks import (
 
 __all__ = [
     "cleanup",
+    "dm_cleanup",
     "event_retry",
     "form_autoclose",
     "form_export",
     "recommendations",
+    "site_export",
     "thumbnail",
     "view_sync",
     "virustotal",
