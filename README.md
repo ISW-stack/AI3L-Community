@@ -352,24 +352,24 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-03-25 — auto-generated on every push to `main`_
+_Last updated: 2026-03-26 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +302,236 |
-| Total lines removed (all commits) | -54,240 |
-| Backend source lines (excl. tests) | 27,184 |
-| Frontend source lines (excl. tests) | 60,049 |
+| Total lines added (all commits) | +309,605 |
+| Total lines removed (all commits) | -54,875 |
+| Backend source lines (excl. tests) | 28,977 |
+| Frontend source lines (excl. tests) | 61,272 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 107826
-    "TypeScript" : 88184
-    "Vue" : 23488
+    "Python" : 111765
+    "TypeScript" : 89185
+    "Vue" : 23981
     "CSS" : 127
 ```
 
@@ -381,36 +381,36 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 3,311 | 27,184 | 77,566 |
-| Frontend (Vitest) | 2,899 | 60,049 | 51,623 |
-| **Total** | **6,210** | **87,233** | **129,189** |
+| Backend (pytest) | 3,439 | 28,977 | 79,712 |
+| Frontend (Vitest) | 2,915 | 61,272 | 51,894 |
+| **Total** | **6,354** | **90,249** | **131,606** |
 
-Test-to-source ratio: **1.48** (129,189 lines of tests for every 87,233 lines of source)
+Test-to-source ratio: **1.46** (131,606 lines of tests for every 90,249 lines of source)
 
 ### Additional Metrics
 
 | Metric | Value |
 | --- | ---: |
-| REST API endpoints | 182 |
+| REST API endpoints | 186 |
 | Database migrations | 51 |
-| Longest commit streak | 26 days |
+| Longest commit streak | 27 days |
 
 ### Top 5 Largest Source Files
 
 | File | Lines |
 | --- | ---: |
-| `backend/app/services/album.py` | 1,153 |
+| `backend/app/services/album.py` | 1,177 |
+| `frontend/src/views/about/OrgChartView.vue` | 880 |
 | `frontend/src/composables/usePostDetail.ts` | 862 |
-| `frontend/src/views/about/OrgChartView.vue` | 837 |
-| `frontend/src/views/forum/PostDetailView.vue` | 778 |
-| `backend/app/repositories/post_repo.py` | 759 |
+| `backend/app/services/dm.py` | 809 |
+| `backend/app/services/form.py` | 801 |
 
 ### Contributions by Author
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 419 | +299,190 | -52,145 |
-| github-actions[bot] | 39 | +530 | -530 |
+| Isaries | 429 | +306,543 | -52,764 |
+| github-actions[bot] | 40 | +546 | -546 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
