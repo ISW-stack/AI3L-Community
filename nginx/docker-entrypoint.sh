@@ -15,12 +15,13 @@ else
 fi
 
 # ── Substitute domain placeholder in nginx config ─────────────────
-# Work on a copy so host-mounted source files are never modified in-place
-if [ -f /etc/nginx/conf.d/default.conf.template ]; then
-    cp /etc/nginx/conf.d/default.conf.template /etc/nginx/conf.d/default.conf
+# Work on a copy so host-mounted source files are never modified in-place.
+# Use /tmp for the template backup — the mounted conf.d volume may be read-only
+# (common on Windows / OneDrive bind mounts).
+if [ -f /tmp/default.conf.template ]; then
+    cp /tmp/default.conf.template /etc/nginx/conf.d/default.conf
 elif [ -f /etc/nginx/conf.d/default.conf ]; then
-    # First run: create template from original for future restarts
-    cp /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.template
+    cp /etc/nginx/conf.d/default.conf /tmp/default.conf.template
 fi
 
 if [ -n "${SERVER_DOMAIN:-}" ] && [ "$SERVER_DOMAIN" != "_" ]; then
