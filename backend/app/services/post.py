@@ -203,7 +203,7 @@ async def update_post(
             if not current:
                 return None
 
-            is_admin = caller_role in ("ADMIN", "SUPER_ADMIN")
+            is_super_admin = caller_role == "SUPER_ADMIN"
             is_owner = str(current["user_id"]) == user_id
 
             # Check if user is an accepted co-author
@@ -212,11 +212,11 @@ async def update_post(
             is_co_author = await co_author_repo.is_accepted_co_author(
                 conn, post_id, uuid.UUID(user_id)
             )
-            if not is_owner and not is_admin and not is_co_author:
+            if not is_owner and not is_super_admin and not is_co_author:
                 raise PermissionError("Not authorized to edit this post")
 
             # S2: Co-authors can only edit content, not metadata
-            if is_co_author and not is_owner and not is_admin:
+            if is_co_author and not is_owner and not is_super_admin:
                 title = None
                 category_id = None
                 keywords = None

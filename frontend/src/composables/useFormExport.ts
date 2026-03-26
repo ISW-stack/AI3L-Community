@@ -92,6 +92,7 @@ export function useFormExport(options: UseFormExportOptions = {}) {
 
   function pollTaskStatus(taskId: string, messages: ExportMessages): void {
     let attempts = 0
+    let pendingCount = 0
     pollTimer = setInterval(async () => {
       if (isUnmounted || cancelled) {
         stopAll()
@@ -115,6 +116,20 @@ export function useFormExport(options: UseFormExportOptions = {}) {
         const msg = `${messages.statusPrefix} ${data.status}`
         exportStatusMessage.value = msg
         options.onStatusMessage?.(msg)
+
+        if (data.status === 'PENDING') {
+          pendingCount++
+          // If task stays PENDING for 30s+, likely Celery worker is down
+          if (pendingCount >= 10) {
+            stopAll()
+            exportStatus.value = 'error'
+            exportStatusMessage.value = ''
+            exportingFormId.value = null
+            options.onError?.(messages.failed)
+            return
+          }
+        }
+
         if (data.status === 'SUCCESS' && data.download_url) {
           stopAll()
           exportStatus.value = 'done'

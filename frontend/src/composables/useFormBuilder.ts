@@ -16,9 +16,6 @@ export interface FormBuilderOptions {
 }
 
 export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions) {
-  const isEdit = computed(() => !!formId())
-  const isStandalone = computed(() => !sigId())
-
   // ── Reactive state ──
   const title = ref('')
   const description = ref('')
@@ -35,6 +32,9 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   const showPreview = ref(false)
   const sigName = ref('')
   const breadcrumbSigId = ref('')
+
+  const isEdit = computed(() => !!formId())
+  const isStandalone = computed(() => !sigId() && !breadcrumbSigId.value)
 
   // Collapse/Expand
   const collapsedQuestions = ref<Set<string>>(new Set())

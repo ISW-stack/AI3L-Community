@@ -291,7 +291,7 @@ async def delete_post(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> None:
-    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
+    is_admin = current_user["role"] == "SUPER_ADMIN"
     deleted = await soft_delete_post(post_id, current_user["sub"], is_admin=is_admin)
     if not deleted:
         raise AppError(ErrorCode.SYS_404, 404, "Post not found or not authorized.")
