@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, Request, status
 from loguru import logger
 
-from app.core.constants import RATE_LIMIT_APPLY_MEMBER
+from app.core.constants import RATE_LIMIT_APPLY_MEMBER, RATE_LIMIT_REVIEW_APPLICATION
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
@@ -105,6 +105,10 @@ async def review_membership_application(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> MessageResponse:
+    if not await check_rate_limit(
+        f"rl:review_app:{current_user['sub']}", *RATE_LIMIT_REVIEW_APPLICATION
+    ):
+        raise AppError(ErrorCode.SYS_429, status.HTTP_429_TOO_MANY_REQUESTS, "Too many requests.")
     try:
         result = await review_application(
             app_id=app_id,

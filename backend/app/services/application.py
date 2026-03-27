@@ -37,12 +37,16 @@ async def create_application(
         raise ValueError("You already have a pending application.")
     logger.info("Membership application created", extra={"user_id": str(guest_id)})
 
-    # Notify all ADMIN / SUPER_ADMIN users about the new application
-    await emit(
-        "application.created",
-        applicant_uid=str(guest_id),
-        display_name=display_name,
-    )
+    # Notify all ADMIN / SUPER_ADMIN users about the new application.
+    # Failure must not crash the endpoint — the application is already persisted.
+    try:
+        await emit(
+            "application.created",
+            applicant_uid=str(guest_id),
+            display_name=display_name,
+        )
+    except Exception:
+        logger.error("Failed to emit application.created event", exc_info=True)
 
     return row
 
@@ -77,12 +81,16 @@ async def review_application(app_id: uuid.UUID, reviewer_id: uuid.UUID, action: 
 
         await revoke_user_sessions(str(result["user_id"]))
 
-    # Notify applicant via event bus
-    await emit(
-        "application.reviewed",
-        applicant_uid=str(result["user_id"]),
-        reviewer_uid=str(reviewer_id),
-        action=action,
-    )
+    # Notify applicant via event bus.
+    # Failure must not crash the endpoint — the review is already persisted.
+    try:
+        await emit(
+            "application.reviewed",
+            applicant_uid=str(result["user_id"]),
+            reviewer_uid=str(reviewer_id),
+            action=action,
+        )
+    except Exception:
+        logger.error("Failed to emit application.reviewed event", exc_info=True)
 
     return result

@@ -64,6 +64,15 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    // CSRF failures (session expired, missing token, etc.) — treat as session expiry
+    if (status === 403 && (code?.startsWith('CSRF_') || (typeof detail === 'string' && detail.includes('CSRF')))) {
+      const auth = useAuthStore()
+      auth.clearSession()
+      useToastStore().show(t('errors.sessionExpired'), 'warning')
+      router.push({ name: 'login' })
+      return Promise.reject(error)
+    }
+
     // AUTH_003 — guest capacity reached
     if (code === 'AUTH_003') {
       useToastStore().show(t('errors.AUTH_003'), 'warning')

@@ -87,7 +87,7 @@ class ApplyMemberRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_.@-]+$")
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., min_length=1, max_length=100)
-    description: str = Field(..., max_length=500)
+    description: str = Field(..., min_length=1, max_length=500)
 
     @field_validator("display_name")
     @classmethod

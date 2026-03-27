@@ -187,25 +187,48 @@ async def _on_application_created(
         logger.error("Failed to fetch admin IDs for application notification", exc_info=True)
         raise  # Let event bus retry
 
+    failed: list[uuid.UUID] = []
     for admin_id in admin_ids:
-        if not await _check_idempotent(str(admin_id), "application", applicant_uid, "created"):
-            continue
+        admin_id_str = str(admin_id)
+        dedup_key = f"notify:idempotent:{admin_id_str}:application:{applicant_uid}:created"
         try:
             await create_notification(
-                user_id=str(admin_id),
+                user_id=admin_id_str,
                 trigger_user_id=applicant_uid,
                 action_type="SYSTEM",
                 entity_type="application",
                 entity_id=None,
                 message=f"New membership application from {display_name}",
             )
+            # Mark as sent AFTER success so retries can re-attempt on failure
+            try:
+                from app.core.redis import get_redis
+
+                redis = get_redis()
+                await redis.set(dedup_key, "1", ex=300, nx=True)
+            except Exception:
+                pass  # Dedup is best-effort
         except Exception:
+            # Check if already sent on a prior attempt (dedup)
+            try:
+                from app.core.redis import get_redis
+
+                redis = get_redis()
+                if await redis.exists(dedup_key):
+                    continue  # Already sent previously, skip
+            except Exception:
+                pass
             logger.error(
                 "Failed to notify admin about new application",
-                extra={"admin_id": str(admin_id)},
+                extra={"admin_id": admin_id_str},
                 exc_info=True,
             )
-            # Continue notifying other admins even if one fails
+            failed.append(admin_id)
+
+    if failed:
+        raise RuntimeError(
+            f"Failed to notify {len(failed)}/{len(admin_ids)} admin(s) about new application"
+        )
 
 
 async def _on_application_reviewed(
