@@ -352,23 +352,23 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-03-26 — auto-generated on every push to `main`_
+_Last updated: 2026-03-27 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +317,478 |
-| Total lines removed (all commits) | -55,683 |
+| Total lines added (all commits) | +318,241 |
+| Total lines removed (all commits) | -55,706 |
 | Backend source lines (excl. tests) | 29,324 |
-| Frontend source lines (excl. tests) | 61,573 |
+| Frontend source lines (excl. tests) | 62,312 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
     "Python" : 115091
-    "TypeScript" : 92013
+    "TypeScript" : 92752
     "Vue" : 24063
     "CSS" : 127
 ```
@@ -382,10 +382,10 @@ pie title Lines of Code by Language
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
 | Backend (pytest) | 3,537 | 29,324 | 82,647 |
-| Frontend (Vitest) | 3,035 | 61,573 | 54,503 |
-| **Total** | **6,572** | **90,897** | **137,150** |
+| Frontend (Vitest) | 3,035 | 62,312 | 54,503 |
+| **Total** | **6,572** | **91,636** | **137,150** |
 
-Test-to-source ratio: **1.51** (137,150 lines of tests for every 90,897 lines of source)
+Test-to-source ratio: **1.50** (137,150 lines of tests for every 91,636 lines of source)
 
 ### Additional Metrics
 
@@ -393,7 +393,7 @@ Test-to-source ratio: **1.51** (137,150 lines of tests for every 90,897 lines of
 | --- | ---: |
 | REST API endpoints | 186 |
 | Database migrations | 52 |
-| Longest commit streak | 27 days |
+| Longest commit streak | 28 days |
 
 ### Top 5 Largest Source Files
 
@@ -409,8 +409,8 @@ Test-to-source ratio: **1.51** (137,150 lines of tests for every 90,897 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 437 | +314,370 | -53,526 |
-| github-actions[bot] | 43 | +592 | -592 |
+| Isaries | 438 | +315,127 | -53,543 |
+| github-actions[bot] | 44 | +598 | -598 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
