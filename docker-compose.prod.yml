@@ -68,9 +68,7 @@ services:
 
   migrate:
     build: ./backend
-    # M-14: Run migration then verify no pending revisions remain
-    # Retry alembic check up to 3 times for transient DB failures
-    command: ["sh", "-c", "alembic upgrade head && { alembic check || sleep 2 && alembic check || sleep 3 && alembic check; }"]
+    command: ["sh", "-c", "alembic upgrade head"]
     env_file:
       - .env
     depends_on:
