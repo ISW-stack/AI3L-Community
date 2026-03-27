@@ -3,8 +3,7 @@ export interface TextSegment {
   isUrl: boolean
 }
 
-const URL_REGEX =
-  /https?:\/\/(?:[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=%]|(?:%[0-9A-Fa-f]{2}))+/g
+const URL_REGEX = /https?:\/\/(?:[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=%]|(?:%[0-9A-Fa-f]{2}))+/g
 
 export function linkify(text: string): TextSegment[] {
   const segments: TextSegment[] = []

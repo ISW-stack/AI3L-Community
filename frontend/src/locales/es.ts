@@ -146,7 +146,8 @@ export default {
     sessionExpired: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
     usernameMinLength: 'El nombre de usuario debe tener al menos 3 caracteres.',
     usernameMaxLength: 'El nombre de usuario no puede superar los 50 caracteres.',
-    usernameFormat: 'El nombre de usuario solo puede contener letras, números, guiones bajos, guiones, puntos y @.',
+    usernameFormat:
+      'El nombre de usuario solo puede contener letras, números, guiones bajos, guiones, puntos y @.',
     usernameInvalid: 'El nombre de usuario no cumple los requisitos de formato.',
   },
 

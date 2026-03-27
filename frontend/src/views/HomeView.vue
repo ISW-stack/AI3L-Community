@@ -115,7 +115,13 @@ async function fetchMyApplication() {
       if (status === 404 || status === 401) return
     }
     // Surface unexpected errors
-    toast.show(getErrorMessage(e, t('home.applyMembership.fetchError', 'Failed to check application status.')), 'error')
+    toast.show(
+      getErrorMessage(
+        e,
+        t('home.applyMembership.fetchError', 'Failed to check application status.'),
+      ),
+      'error',
+    )
   }
 }
 

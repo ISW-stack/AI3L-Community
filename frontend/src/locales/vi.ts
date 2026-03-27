@@ -146,7 +146,8 @@ export default {
     sessionExpired: 'Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.',
     usernameMinLength: 'Tên người dùng phải có ít nhất 3 ký tự.',
     usernameMaxLength: 'Tên người dùng không được vượt quá 50 ký tự.',
-    usernameFormat: 'Tên người dùng chỉ được chứa chữ cái, chữ số, dấu gạch dưới, dấu gạch ngang, dấu chấm và @.',
+    usernameFormat:
+      'Tên người dùng chỉ được chứa chữ cái, chữ số, dấu gạch dưới, dấu gạch ngang, dấu chấm và @.',
     usernameInvalid: 'Tên người dùng không đáp ứng yêu cầu định dạng.',
   },
 

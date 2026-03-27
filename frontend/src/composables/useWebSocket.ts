@@ -153,10 +153,7 @@ export function useWebSocket() {
               ) {
                 const rawName = msg.message.sender?.display_name ?? 'someone'
                 const senderName = rawName.length > 50 ? rawName.slice(0, 50) + '\u2026' : rawName
-                toastStore.show(
-                  `New message from ${senderName}`,
-                  'info',
-                )
+                toastStore.show(`New message from ${senderName}`, 'info')
               }
             }
           } else if (msg.type === 'DM_EDITED') {

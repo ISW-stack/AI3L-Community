@@ -146,7 +146,8 @@ export default {
     sessionExpired: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.',
     usernameMinLength: 'Kullanıcı adı en az 3 karakter içermelidir.',
     usernameMaxLength: 'Kullanıcı adı en fazla 50 karakter içerebilir.',
-    usernameFormat: 'Kullanıcı adı yalnızca harf, rakam, alt çizgi, kısa çizgi, nokta ve @ içerebilir.',
+    usernameFormat:
+      'Kullanıcı adı yalnızca harf, rakam, alt çizgi, kısa çizgi, nokta ve @ içerebilir.',
     usernameInvalid: 'Kullanıcı adı format gereksinimlerini karşılamıyor.',
   },
 
@@ -245,7 +246,8 @@ export default {
     attachment: 'Ek',
     friendsOnly: 'Yalnızca arkadaşlar',
     openToAll: 'Herkese açık',
-    friendsOnlyLabel: 'Yalnızca arkadaşlar modu AÇIK — yalnızca arkadaşlarınız size mesaj gönderebilir',
+    friendsOnlyLabel:
+      'Yalnızca arkadaşlar modu AÇIK — yalnızca arkadaşlarınız size mesaj gönderebilir',
     openToAllLabel: 'Herkes size mesaj gönderebilir',
     viewProfile: '{name} adlı kullanıcının profilini görüntüle',
     failedToSend: 'Mesaj gönderilemedi.',

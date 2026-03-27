@@ -146,7 +146,8 @@ export default {
     sessionExpired: 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
     usernameMinLength: 'Der Benutzername muss mindestens 3 Zeichen lang sein.',
     usernameMaxLength: 'Der Benutzername darf maximal 50 Zeichen lang sein.',
-    usernameFormat: 'Der Benutzername darf nur Buchstaben, Zahlen, Unterstriche, Bindestriche, Punkte und @ enthalten.',
+    usernameFormat:
+      'Der Benutzername darf nur Buchstaben, Zahlen, Unterstriche, Bindestriche, Punkte und @ enthalten.',
     usernameInvalid: 'Der Benutzername erfüllt die Formatanforderungen nicht.',
   },
 
@@ -831,7 +832,8 @@ export default {
       editFormBtn: 'Formular bearbeiten',
       exportCSVBtn: 'CSV exportieren',
       closedAlert: 'Dieses Formular ist geschlossen und nimmt keine Antworten mehr an.',
-      deadlinePassed: 'Die Frist für dieses Formular ist abgelaufen. Einreichungen werden nicht mehr akzeptiert.',
+      deadlinePassed:
+        'Die Frist für dieses Formular ist abgelaufen. Einreichungen werden nicht mehr akzeptiert.',
       successMessage: 'Ihre Antwort wurde erfolgreich übermittelt!',
       alreadySubmitted: 'Sie haben bereits eine Antwort zu diesem Formular abgegeben.',
       loginPrompt: 'Bitte',

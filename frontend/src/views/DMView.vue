@@ -155,7 +155,10 @@ async function selectConversation(conversationId: string, otherUserId: string) {
         ...dmStore.conversations[convIdx],
         unread_count: prevUnread,
       }
-      toast.show(getErrorMessage(new Error('Failed to mark conversation as read'), t('dm.markReadError')), 'error')
+      toast.show(
+        getErrorMessage(new Error('Failed to mark conversation as read'), t('dm.markReadError')),
+        'error',
+      )
     }
   }
 
@@ -243,8 +246,7 @@ function parseDMError(e: unknown, fallback: string): string {
     const code = resp?.data?.detail?.code
     if (code === 'DM_001') {
       const msg = resp?.data?.detail?.message ?? ''
-      if (msg.toLowerCase().includes('friend'))
-        return t('dm.sendError.friendsOnly')
+      if (msg.toLowerCase().includes('friend')) return t('dm.sendError.friendsOnly')
       return t('dm.sendError.cannotMessage')
     }
     if (code === 'DM_002') return t('dm.sendError.windowExpired')
@@ -337,11 +339,7 @@ const activeConvUser = computed(() => {
       <h1 class="text-xl sm:text-2xl font-bold text-foreground">{{ t('dm.title') }}</h1>
       <button
         :disabled="dmFriendsOnlyLoading"
-        :aria-label="
-          dmFriendsOnly
-            ? t('dm.friendsOnlyLabel')
-            : t('dm.openToAllLabel')
-        "
+        :aria-label="dmFriendsOnly ? t('dm.friendsOnlyLabel') : t('dm.openToAllLabel')"
         class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition"
         :class="
           dmFriendsOnly
@@ -412,7 +410,9 @@ const activeConvUser = computed(() => {
                 {{ activeConvUser.display_name }}
               </span>
             </router-link>
-            <span v-else class="text-sm font-medium text-foreground"> {{ t('dm.newConversation') }} </span>
+            <span v-else class="text-sm font-medium text-foreground">
+              {{ t('dm.newConversation') }}
+            </span>
           </div>
 
           <!-- Message thread -->
@@ -441,7 +441,9 @@ const activeConvUser = computed(() => {
           <div class="flex-1 flex items-center justify-center">
             <div class="text-center px-4">
               <MessageSquare class="mx-auto h-12 w-12 text-gray-300 mb-4" aria-hidden="true" />
-              <h3 class="text-sm font-medium text-foreground mb-1">{{ t('dm.selectConversation') }}</h3>
+              <h3 class="text-sm font-medium text-foreground mb-1">
+                {{ t('dm.selectConversation') }}
+              </h3>
               <p class="text-sm text-muted">
                 {{ t('dm.selectConversationDesc') }}
               </p>

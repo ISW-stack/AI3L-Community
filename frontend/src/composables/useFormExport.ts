@@ -16,7 +16,9 @@ export function isAllowedDownloadUrl(url: string): boolean {
     if (minioOrigin) {
       try {
         if (parsed.origin === new URL(minioOrigin).origin) return true
-      } catch { /* invalid env URL */ }
+      } catch {
+        /* invalid env URL */
+      }
     }
     // Dev fallback: allow local MinIO
     if (parsed.origin === 'http://localhost:19000') return true

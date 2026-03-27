@@ -145,7 +145,8 @@ export default {
     sessionExpired: 'セッションが切れました。再度ログインしてください。',
     usernameMinLength: 'ユーザー名は3文字以上である必要があります。',
     usernameMaxLength: 'ユーザー名は50文字以下である必要があります。',
-    usernameFormat: 'ユーザー名に使用できるのは英数字、アンダースコア、ハイフン、ドット、@のみです。',
+    usernameFormat:
+      'ユーザー名に使用できるのは英数字、アンダースコア、ハイフン、ドット、@のみです。',
     usernameInvalid: 'ユーザー名がフォーマット要件を満たしていません。',
   },
 

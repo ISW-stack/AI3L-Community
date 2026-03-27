@@ -231,7 +231,9 @@ describe('M-10: DM unread count debounce', () => {
 describe('L-04: Referrer policy meta tag in index.html', () => {
   it('index.html has strict-origin-when-cross-origin referrer policy', () => {
     const htmlContent = readFileSync(resolve(__dirname, '../../index.html'), 'utf-8')
-    expect(htmlContent).toContain('<meta name="referrer" content="strict-origin-when-cross-origin" />')
+    expect(htmlContent).toContain(
+      '<meta name="referrer" content="strict-origin-when-cross-origin" />',
+    )
   })
 })
 
@@ -322,11 +324,7 @@ describe('L-05: DM_READ timestamp validation in useWebSocket', () => {
   })
 
   it('accepts valid date formats', () => {
-    const dates = [
-      '2026-03-25T10:00:00Z',
-      '2026-03-25T10:00:00.000Z',
-      '2026-03-25',
-    ]
+    const dates = ['2026-03-25T10:00:00Z', '2026-03-25T10:00:00.000Z', '2026-03-25']
     for (const d of dates) {
       const ts = new Date(d).getTime()
       expect(isNaN(ts)).toBe(false)
@@ -506,12 +504,9 @@ describe('L-11: verifySession on init clears session when profile fetch fails', 
     // Verify the catch handler pattern in the source code
     const fs = await import('fs')
     const path = await import('path')
-    const authStoreSrc = fs.readFileSync(
-      path.resolve(__dirname, '../stores/auth.ts'),
-      'utf-8',
-    )
+    const authStoreSrc = fs.readFileSync(path.resolve(__dirname, '../stores/auth.ts'), 'utf-8')
     // L-11: The catch should log in dev mode, not silently swallow
-    expect(authStoreSrc).toContain("verifySession().catch((err)")
+    expect(authStoreSrc).toContain('verifySession().catch((err)')
     expect(authStoreSrc).toContain("console.warn('[Auth] Session verification failed:'")
     // Old pattern should no longer exist
     expect(authStoreSrc).not.toContain('verifySession().catch(() => {})')

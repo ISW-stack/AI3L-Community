@@ -146,7 +146,8 @@ export default {
     sessionExpired: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
     usernameMinLength: 'Nama pengguna harus memiliki minimal 3 karakter.',
     usernameMaxLength: 'Nama pengguna tidak boleh lebih dari 50 karakter.',
-    usernameFormat: 'Nama pengguna hanya boleh mengandung huruf, angka, garis bawah, tanda hubung, titik, dan @.',
+    usernameFormat:
+      'Nama pengguna hanya boleh mengandung huruf, angka, garis bawah, tanda hubung, titik, dan @.',
     usernameInvalid: 'Nama pengguna tidak memenuhi persyaratan format.',
   },
 

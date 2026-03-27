@@ -30,7 +30,8 @@ describe('sanitizeHtml', () => {
   })
 
   it('strips onclick and onmouseover attributes', () => {
-    const input = '<a href="#" onclick="alert(1)">click</a><span onmouseover="alert(2)">hover</span>'
+    const input =
+      '<a href="#" onclick="alert(1)">click</a><span onmouseover="alert(2)">hover</span>'
     const result = sanitizeHtml(input)
     expect(result).not.toContain('onclick')
     expect(result).not.toContain('onmouseover')
@@ -129,8 +130,7 @@ describe('sanitizeHtml FORCE_BODY mXSS prevention', () => {
     // This is a well-known mXSS payload that exploits parser context switching
     // between HTML and MathML/SVG namespaces
     const mxssPayload =
-      '<math><mtext><table><mglyph><style><!--</style>' +
-      '<img src=x onerror=alert(1)>'
+      '<math><mtext><table><mglyph><style><!--</style>' + '<img src=x onerror=alert(1)>'
     const result = sanitizeHtml(mxssPayload)
     expect(result).not.toContain('onerror')
     expect(result).not.toContain('alert')
@@ -205,9 +205,7 @@ describe('addLinkSafety', () => {
 
   it('handles multiple links correctly', () => {
     const input =
-      '<a href="https://a.com">A</a>' +
-      '<a href="/local">B</a>' +
-      '<a href="http://c.com">C</a>'
+      '<a href="https://a.com">A</a>' + '<a href="/local">B</a>' + '<a href="http://c.com">C</a>'
     const result = addLinkSafety(input)
     // External links get safety attributes
     expect(result).toMatch(/href="https:\/\/a\.com"[^>]*rel="noopener noreferrer"/)
@@ -232,8 +230,7 @@ describe('addLinkSafety', () => {
 
 describe('sanitizePreviewHtml', () => {
   it('strips images and links but keeps basic formatting', () => {
-    const input =
-      '<p><strong>Bold</strong></p><img src="x.png"><a href="http://x.com">link</a>'
+    const input = '<p><strong>Bold</strong></p><img src="x.png"><a href="http://x.com">link</a>'
     const result = sanitizePreviewHtml(input)
     expect(result).toContain('<p>')
     expect(result).toContain('<strong>')
@@ -274,9 +271,7 @@ describe('sanitizePreviewHtml', () => {
 
   it('handles multiple tables', () => {
     const input =
-      '<table><tr><td>A</td></tr></table>' +
-      '<p>gap</p>' +
-      '<table><tr><td>B</td></tr></table>'
+      '<table><tr><td>A</td></tr></table>' + '<p>gap</p>' + '<table><tr><td>B</td></tr></table>'
     const result = sanitizePreviewHtml(input)
     const matches = result.match(/\[table\]/g)
     expect(matches).toHaveLength(2)

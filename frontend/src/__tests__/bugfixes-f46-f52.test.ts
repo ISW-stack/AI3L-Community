@@ -27,12 +27,8 @@ describe('F-46: formatDate warns on unsupported locale in dev mode', () => {
     const { formatDate } = await import('@/utils/date')
     const result = formatDate('2024-01-15', 'xx-INVALID')
     // Should have warned
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('xx-INVALID'),
-    )
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Falling back to "en"'),
-    )
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('xx-INVALID'))
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Falling back to "en"'))
     // Should still return a formatted string (using en fallback)
     expect(result).toBeTruthy()
   })
@@ -40,9 +36,7 @@ describe('F-46: formatDate warns on unsupported locale in dev mode', () => {
   it('formatDateTime warns for unsupported locale', async () => {
     const { formatDateTime } = await import('@/utils/date')
     formatDateTime('2024-01-15T10:30:00Z', 'xx-INVALID')
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('xx-INVALID'),
-    )
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('xx-INVALID'))
   })
 
   it('formatDate does not warn for supported locale "de"', async () => {
@@ -109,33 +103,19 @@ describe('F-48: assertShape warns about unexpected extra keys in dev mode', () =
 
   it('warns about missing keys', () => {
     assertShape({ id: 1 }, ['id', 'name'], 'test')
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('missing keys'),
-    )
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('missing keys'))
   })
 
   it('warns about unexpected extra keys', () => {
     assertShape({ id: 1, name: 'test', secret: 'hidden' }, ['id', 'name'], 'test-context')
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('unexpected keys [secret]'),
-    )
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('test-context'),
-    )
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('unexpected keys [secret]'))
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('test-context'))
   })
 
   it('warns about multiple extra keys', () => {
-    assertShape(
-      { id: 1, extra1: 'a', extra2: 'b' },
-      ['id'],
-      'multi-extra',
-    )
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('extra1'),
-    )
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('extra2'),
-    )
+    assertShape({ id: 1, extra1: 'a', extra2: 'b' }, ['id'], 'multi-extra')
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('extra1'))
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('extra2'))
   })
 
   it('returns data as-is regardless of warnings', () => {
@@ -203,10 +183,7 @@ describe('F-52: LoginView error reactivity uses watch instead of void hack', () 
   it('source code does not use void currentLocale.value hack', async () => {
     const fs = await import('fs')
     const path = await import('path')
-    const source = fs.readFileSync(
-      path.resolve(__dirname, '../views/LoginView.vue'),
-      'utf-8',
-    )
+    const source = fs.readFileSync(path.resolve(__dirname, '../views/LoginView.vue'), 'utf-8')
     // The void currentLocale.value hack should be gone
     expect(source).not.toContain('void currentLocale.value')
     // Should use watch for locale reactivity
@@ -220,10 +197,7 @@ describe('F-52: LoginView error reactivity uses watch instead of void hack', () 
   it('uses errorVersion pattern for reactive dependency', async () => {
     const fs = await import('fs')
     const path = await import('path')
-    const source = fs.readFileSync(
-      path.resolve(__dirname, '../views/LoginView.vue'),
-      'utf-8',
-    )
+    const source = fs.readFileSync(path.resolve(__dirname, '../views/LoginView.vue'), 'utf-8')
     // Should have errorVersion ref that increments on locale change
     expect(source).toContain('errorVersion')
     expect(source).toContain('errorVersion.value++')

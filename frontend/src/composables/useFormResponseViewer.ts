@@ -111,9 +111,7 @@ export function useFormResponseViewer(
       const [formData, respData, statsData] = await Promise.all([
         page === 1 ? getForm(formId) : Promise.resolve(null),
         listFormResponses(formId, page, pageSize),
-        page === 1
-          ? getFormStats(formId).catch(() => null)
-          : Promise.resolve(null),
+        page === 1 ? getFormStats(formId).catch(() => null) : Promise.resolve(null),
       ])
 
       if (localFetchId !== _fetchId) return // stale response
@@ -129,12 +127,20 @@ export function useFormResponseViewer(
       if (statsData && statsData.question_stats) {
         // Map server-side stats to the QuestionStats format used by the UI
         if (!Array.isArray(statsData.question_stats)) {
-          console.warn('[FormResponseViewer] Expected question_stats to be an array, got:', typeof statsData.question_stats)
+          console.warn(
+            '[FormResponseViewer] Expected question_stats to be an array, got:',
+            typeof statsData.question_stats,
+          )
           formStats.value = []
         } else {
           const mapped = (statsData.question_stats as unknown[])
             .filter((qs: unknown) => {
-              if (!qs || typeof qs !== 'object' || !(qs as Record<string, unknown>).question_id || !(qs as Record<string, unknown>).stats) {
+              if (
+                !qs ||
+                typeof qs !== 'object' ||
+                !(qs as Record<string, unknown>).question_id ||
+                !(qs as Record<string, unknown>).stats
+              ) {
                 console.warn('[FormResponseViewer] Invalid question stat entry:', qs)
                 return false
               }

@@ -19,7 +19,6 @@ import QuickCommentPanel from '@/components/QuickCommentPanel.vue'
 const { t, locale } = useI18n()
 const auth = useAuthStore()
 
-
 const props = withDefaults(
   defineProps<{
     post: Post

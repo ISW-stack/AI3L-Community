@@ -577,9 +577,12 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     document.addEventListener('keydown', handleKeyboardShortcut)
     startAutoSave()
     // L-24: Store stop handle for explicit cleanup in onUnmounted
-    stopDirtyWatch = watch([title, description, bannerUrl, deadline, maxRespondents, allowNonMembers], () => {
-      isDirty = true
-    })
+    stopDirtyWatch = watch(
+      [title, description, bannerUrl, deadline, maxRespondents, allowNonMembers],
+      () => {
+        isDirty = true
+      },
+    )
   })
 
   onUnmounted(() => {

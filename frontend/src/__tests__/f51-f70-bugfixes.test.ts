@@ -218,10 +218,7 @@ describe('F-53: DangerZone exposes closeDeleteConfirm', () => {
     // This is a structural test — the actual component test would need mounting
     // We verify ProfileView calls closeDeleteConfirm() (method) instead of setting property
     const fs = await import('fs')
-    const profileCode = fs.readFileSync(
-      'src/views/ProfileView.vue',
-      'utf-8',
-    )
+    const profileCode = fs.readFileSync('src/views/ProfileView.vue', 'utf-8')
     // Should call the method, not set the property directly
     expect(profileCode).toContain('.closeDeleteConfirm()')
     expect(profileCode).not.toContain('.showDeleteConfirm = false')
@@ -229,10 +226,7 @@ describe('F-53: DangerZone exposes closeDeleteConfirm', () => {
 
   it('DangerZone component defineExpose includes closeDeleteConfirm', async () => {
     const fs = await import('fs')
-    const dangerCode = fs.readFileSync(
-      'src/components/profile/DangerZone.vue',
-      'utf-8',
-    )
+    const dangerCode = fs.readFileSync('src/components/profile/DangerZone.vue', 'utf-8')
     expect(dangerCode).toContain('closeDeleteConfirm')
     expect(dangerCode).toContain('defineExpose')
   })
@@ -318,7 +312,12 @@ describe('F-70: isDeadlinePassed computed in useFormSubmit', () => {
     const isGuest = false
 
     const showForm =
-      !submitted && !previousResponse && isActive && !isDeadlinePassed && isAuthenticated && !isGuest
+      !submitted &&
+      !previousResponse &&
+      isActive &&
+      !isDeadlinePassed &&
+      isAuthenticated &&
+      !isGuest
 
     expect(showForm).toBe(false)
   })
@@ -332,7 +331,12 @@ describe('F-70: isDeadlinePassed computed in useFormSubmit', () => {
     const isGuest = false
 
     const showForm =
-      !submitted && !previousResponse && isActive && !isDeadlinePassed && isAuthenticated && !isGuest
+      !submitted &&
+      !previousResponse &&
+      isActive &&
+      !isDeadlinePassed &&
+      isAuthenticated &&
+      !isGuest
 
     expect(showForm).toBe(true)
   })
