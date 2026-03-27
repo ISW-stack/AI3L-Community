@@ -11,12 +11,20 @@
 #
 # First-time setup:
 #   1. Copy .env.production.example to .env and fill in all secrets
-#   2. Build frontend: (on dev machine) cd frontend && npm run build
-#   3. Copy dist/ contents to server's nginx/html/ directory
-#   4. docker compose -f docker-compose.prod.yml up -d
+#   2. docker compose -f docker-compose.prod.yml up -d
+#   (Frontend is built automatically by the build-frontend service)
 # ==========================================================================
 
 services:
+  build-frontend:
+    build:
+      context: ./frontend
+      target: build
+    command: ["sh", "-c", "rm -rf /output/* && cp -r /app/dist/* /output/"]
+    volumes:
+      - ./nginx/html:/output
+    restart: "no"
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -45,6 +53,8 @@ services:
       - ./nginx/snippets:/etc/nginx/snippets
       - ./nginx/html:/usr/share/nginx/html:ro
     depends_on:
+      build-frontend:
+        condition: service_completed_successfully
       fastapi:
         condition: service_healthy
     deploy:
