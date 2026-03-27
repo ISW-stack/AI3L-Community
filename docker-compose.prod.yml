@@ -99,7 +99,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=100M
-      - /home/appuser:size=10M
+      - /home/appuser:size=10M,uid=1000,gid=1000
     expose:
       - "8000"
     env_file:
