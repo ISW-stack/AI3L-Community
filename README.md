@@ -358,8 +358,8 @@ _Last updated: 2026-03-27 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +319,133 |
-| Total lines removed (all commits) | -56,307 |
+| Total lines added (all commits) | +319,186 |
+| Total lines removed (all commits) | -56,318 |
 | Backend source lines (excl. tests) | 29,411 |
 | Frontend source lines (excl. tests) | 62,408 |
 
@@ -367,7 +367,7 @@ _Last updated: 2026-03-27 — auto-generated on every push to `main`_
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 115284
+    "Python" : 115326
     "TypeScript" : 92969
     "Vue" : 24040
     "CSS" : 134
@@ -392,7 +392,7 @@ Test-to-source ratio: **1.50** (137,354 lines of tests for every 91,819 lines of
 | Metric | Value |
 | --- | ---: |
 | REST API endpoints | 186 |
-| Database migrations | 52 |
+| Database migrations | 53 |
 | Longest commit streak | 28 days |
 
 ### Top 5 Largest Source Files
@@ -409,8 +409,8 @@ Test-to-source ratio: **1.50** (137,354 lines of tests for every 91,819 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 452 | +315,950 | -54,075 |
-| github-actions[bot] | 52 | +667 | -667 |
+| Isaries | 453 | +315,992 | -54,075 |
+| github-actions[bot] | 53 | +678 | -678 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
