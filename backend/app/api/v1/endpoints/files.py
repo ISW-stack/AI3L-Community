@@ -142,9 +142,20 @@ async def upload_editor_file(
         result = check_virustotal.delay(file_hash, key)
         scan_task_id = result.id
     except ImportError:
-        pass  # VirusTotal not configured
+        # VirusTotal / Celery not configured — mark as skipped so the file
+        # is not permanently stuck at "pending" and blocked from serving.
+        if scan_inserted:
+            try:
+                await file_scan_repo.update_status(key, "skipped")
+            except Exception:
+                logger.warning("Failed to mark scan as skipped for key=%s", key, exc_info=True)
     except Exception:
         logger.warning("VirusTotal scan trigger failed for key=%s", key, exc_info=True)
+        if scan_inserted:
+            try:
+                await file_scan_repo.update_status(key, "skipped")
+            except Exception:
+                pass
 
     return FileUploadResponse(
         key=key,
@@ -285,7 +296,10 @@ async def serve_file(
                 "You do not have permission to access this file.",
             )
 
-    # Block files that are malicious, pending, unverified, or had scan errors (fail-close)
+    # Block only confirmed-malicious or actively-pending files.
+    # "unknown" (hash not in VT database — normal for user photos),
+    # "skipped" (VT not configured), and "error" (VT API failure)
+    # are NOT treated as malicious and should not block access.
     scan = None
     try:
         scan = await file_scan_repo.find_by_key(key)
@@ -300,16 +314,6 @@ async def serve_file(
                 ErrorCode.SYS_422,
                 202,
                 "File is being scanned. Please try again shortly.",
-            )
-        if scan and scan["status"] in ("unknown", "error", "skipped"):
-            logger.warning(
-                "File blocked due to unverified scan status",
-                extra={"key": key, "scan_status": scan["status"]},
-            )
-            raise AppError(
-                ErrorCode.FILE_001,
-                status.HTTP_403_FORBIDDEN,
-                "This file has not been verified as safe.",
             )
     except (HTTPException, AppError):
         raise

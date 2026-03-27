@@ -254,6 +254,34 @@ describe('sanitizePreviewHtml', () => {
     const result = sanitizePreviewHtml(input)
     expect(result).not.toContain('<script')
   })
+
+  it('replaces tables with [table] placeholder instead of flattening cell text', () => {
+    const input =
+      '<p>Before</p>' +
+      '<table><thead><tr><th>Name</th><th>Score</th></tr></thead>' +
+      '<tbody><tr><td>Alice</td><td>100</td></tr></tbody></table>' +
+      '<p>After</p>'
+    const result = sanitizePreviewHtml(input)
+    // Table cell text should NOT appear as flat text
+    expect(result).not.toContain('Alice')
+    expect(result).not.toContain('Score')
+    // Placeholder should be present
+    expect(result).toContain('[table]')
+    // Surrounding content preserved
+    expect(result).toContain('Before')
+    expect(result).toContain('After')
+  })
+
+  it('handles multiple tables', () => {
+    const input =
+      '<table><tr><td>A</td></tr></table>' +
+      '<p>gap</p>' +
+      '<table><tr><td>B</td></tr></table>'
+    const result = sanitizePreviewHtml(input)
+    const matches = result.match(/\[table\]/g)
+    expect(matches).toHaveLength(2)
+    expect(result).toContain('gap')
+  })
 })
 
 // ────────────────────────────────────────────────────────────────

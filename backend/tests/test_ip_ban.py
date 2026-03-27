@@ -142,7 +142,7 @@ class TestBanIpService:
             result = await ban_ip(ip="10.0.0.5", reason="spam", banned_by=banned_by)
             assert result["ip_address"] == "10.0.0.5"
             mock_repo.create.assert_called_once()
-            mock_redis.delete.assert_called_once_with("ip_ban:10.0.0.5")
+            mock_redis.set.assert_called_once_with("ip_ban:10.0.0.5", "1", ex=300)
 
 
 class TestUnbanIpService:
@@ -173,8 +173,8 @@ class TestUnbanIpService:
 
             result = await unban_ip(ban_id)
             assert result is True
-            mock_repo.delete.assert_called_once_with(ban_id)
-            mock_redis.delete.assert_called_once_with("ip_ban:10.0.0.5")
+            mock_conn.fetchrow.assert_called_once()
+            mock_redis.set.assert_called_once_with("ip_ban:10.0.0.5", "0", ex=300)
 
     @pytest.mark.anyio
     async def test_unban_ip_not_found(self):

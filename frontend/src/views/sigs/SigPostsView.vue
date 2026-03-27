@@ -8,15 +8,12 @@ import { useToastStore } from '@/stores/toast'
 import { useSigLayout } from '@/composables/useSigLayout'
 import { usePagination } from '@/composables/usePagination'
 import type { Post } from '@/types'
-import BaseCard from '@/components/base/BaseCard.vue'
-import BaseAvatar from '@/components/base/BaseAvatar.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BasePagination from '@/components/base/BasePagination.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import FloatingCreateButton from '@/components/FloatingCreateButton.vue'
-import { MessageCircle } from 'lucide-vue-next'
-import QuickCommentPanel from '@/components/QuickCommentPanel.vue'
+import PostCard from '@/components/PostCard.vue'
 
 const { t } = useI18n()
 const toast = useToastStore()
@@ -29,16 +26,6 @@ const loading = ref(true)
 const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } = usePagination()
 
 const isMember = computed(() => userSigRole?.value != null)
-
-const expandedCommentPostId = ref<string | null>(null)
-
-function toggleQuickComments(postId: string) {
-  expandedCommentPostId.value = expandedCommentPostId.value === postId ? null : postId
-}
-
-function handleCommented(post: Post) {
-  post.comment_count++
-}
 
 async function fetchPosts() {
   loading.value = true
@@ -95,61 +82,7 @@ onMounted(fetchPosts)
     />
 
     <div v-else class="space-y-3">
-      <div v-for="p in posts" :key="p.id">
-        <BaseCard hoverable padding="md">
-          <div class="flex items-center gap-2 mb-3">
-            <router-link :to="`/users/${p.author.id}`">
-              <BaseAvatar :src="p.author.avatar_url" :name="p.author.display_name" size="sm" />
-            </router-link>
-            <div class="min-w-0">
-              <router-link
-                :to="`/users/${p.author.id}`"
-                class="text-sm font-medium text-foreground hover:text-brand-600 block truncate"
-              >
-                {{ p.author.display_name }}
-              </router-link>
-              <div class="text-[10px] text-muted">
-                {{ new Date(p.created_at).toLocaleString() }}
-              </div>
-            </div>
-          </div>
-
-          <router-link
-            :to="{
-              path: `/forum/${p.id}`,
-              query: { fromSigId: sigId, fromSigName: sig?.name || '' },
-            }"
-            class="group"
-          >
-            <h3 class="font-bold text-foreground mb-1 group-hover:text-brand-600 transition-colors">
-              {{ p.title }}
-            </h3>
-          </router-link>
-
-          <div class="flex items-center gap-4 mt-3 text-xs text-muted">
-            <button
-              type="button"
-              class="flex items-center gap-1 transition-colors"
-              :class="
-                expandedCommentPostId === p.id
-                  ? 'text-brand-600'
-                  : 'text-muted hover:text-brand-600'
-              "
-              @click.stop.prevent="toggleQuickComments(p.id)"
-            >
-              <MessageCircle class="w-3.5 h-3.5" />
-              {{ p.comment_count }} {{ t('sigs.posts.comments') }}
-            </button>
-          </div>
-
-          <QuickCommentPanel
-            v-if="expandedCommentPostId === p.id"
-            :post-id="p.id"
-            :allow-comments="p.allow_comments"
-            @commented="handleCommented(p)"
-          />
-        </BaseCard>
-      </div>
+      <PostCard v-for="p in posts" :key="p.id" :post="p" />
     </div>
 
     <BasePagination

@@ -212,23 +212,38 @@ export const useDMStore = defineStore('dm', () => {
   }
 
   function recallFromWebSocket(messageId: string, conversationId: string) {
+    // Use splice to replace the message object (same pattern as updateMessage)
+    // to ensure consistent Vue reactivity across all browsers/edge cases.
     const idx = messages.value.findIndex((m) => m.id === messageId)
     if (idx >= 0) {
-      const msg = messages.value[idx]
-      msg.is_recalled = true
-      msg.content = null
-      msg.attachment_url = null
-      msg.attachment_name = null
-      msg.attachment_size = null
-      msg.attachment_expires_at = null
+      messages.value.splice(idx, 1, {
+        ...messages.value[idx],
+        is_recalled: true,
+        content: null,
+        attachment_url: null,
+        attachment_name: null,
+        attachment_size: null,
+        attachment_expires_at: null,
+      })
     }
     // Update last_message in conversations if applicable
-    const conv = conversations.value.find((c) => c.id === conversationId)
-    if (conv?.last_message?.id === messageId) {
-      conv.last_message.is_recalled = true
-      conv.last_message.content = null
-      conv.last_message.attachment_url = null
-      conv.last_message.attachment_name = null
+    const convIdx = conversations.value.findIndex((c) => c.id === conversationId)
+    if (convIdx >= 0 && conversations.value[convIdx].last_message?.id === messageId) {
+      const conv = conversations.value[convIdx]
+      conversations.value.splice(convIdx, 1, {
+        ...conv,
+        last_message: conv.last_message
+          ? {
+              ...conv.last_message,
+              is_recalled: true,
+              content: null,
+              attachment_url: null,
+              attachment_name: null,
+              attachment_size: null,
+              attachment_expires_at: null,
+            }
+          : null,
+      })
     }
   }
 

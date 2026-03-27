@@ -7,7 +7,7 @@ from app.core.constants import RATE_LIMIT_APPLY_MEMBER
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
-from app.core.rate_limit import check_rate_limit
+from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.core.security import validate_password_policy
 from app.schemas.application import (
     ApplicationListResponse,
@@ -127,7 +127,7 @@ async def review_membership_application(
 
     # Audit log — failure must not crash the endpoint
     try:
-        ip = request.client.host if request.client else None
+        ip = get_client_ip(request)
         await emit(
             "audit.action",
             user_id=current_user["sub"],

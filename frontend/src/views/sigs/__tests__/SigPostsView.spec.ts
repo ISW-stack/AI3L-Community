@@ -50,6 +50,12 @@ const fakePosts = [
     comment_count: 3,
     is_pinned: false,
     view_count: 10,
+    citation_count: 0,
+    type: 'post',
+    answer_count: 0,
+    best_answer_id: null,
+    reaction_counts: null,
+    user_reactions: null,
     last_comment_at: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
@@ -74,6 +80,12 @@ const fakePosts = [
     comment_count: 0,
     is_pinned: false,
     view_count: 5,
+    citation_count: 0,
+    type: 'post',
+    answer_count: 0,
+    best_answer_id: null,
+    reaction_counts: null,
+    user_reactions: null,
     last_comment_at: null,
     created_at: '2026-01-02T00:00:00Z',
     updated_at: '2026-01-02T00:00:00Z',
@@ -92,6 +104,8 @@ function createTestRouter() {
       { path: '/forum/create', component: { template: '<div />' } },
       { path: '/forum/:id', component: { template: '<div />' } },
       { path: '/users/:id', component: { template: '<div />' } },
+      { path: '/', component: { template: '<div />' } },
+      { path: '/sigs', component: { template: '<div />' } },
     ],
   })
 }
@@ -125,12 +139,10 @@ async function mountComponent(options?: { userSigRole?: ReturnType<typeof ref> |
       plugins: [pinia, router],
       provide,
       stubs: {
-        BaseCard: {
-          template: '<div class="base-card"><slot /></div>',
-          props: ['hoverable', 'padding'],
+        PostCard: {
+          template: '<div class="post-card" :data-post-id="post.id">{{ post.title }}</div>',
+          props: ['post', 'coAuthors', 'formatTime', 'maxPreviewLines'],
         },
-        BaseButton: { template: '<button><slot /></button>' },
-        BaseAvatar: { template: '<span class="avatar" />', props: ['src', 'name', 'size'] },
         SkeletonLoader: {
           template: '<div class="skeleton-loader" />',
           props: ['variant', 'lines'],
@@ -142,6 +154,11 @@ async function mountComponent(options?: { userSigRole?: ReturnType<typeof ref> |
         FloatingCreateButton: {
           template: '<div class="fab" v-bind="$props" />',
           props: ['to'],
+        },
+        BaseBreadcrumb: { template: '<nav class="breadcrumb" />', props: ['items'] },
+        BasePagination: {
+          template: '<div class="pagination" />',
+          props: ['currentPage', 'totalPages', 'pageSize', 'total'],
         },
       },
     },
@@ -165,14 +182,14 @@ describe('SigPostsView', () => {
     expect(skeletons.length).toBe(3)
   })
 
-  it('renders posts after loading', async () => {
+  it('renders PostCard for each post after loading', async () => {
     mockGetSigPosts.mockResolvedValue({ posts: fakePosts, total: 2 })
 
     const { wrapper } = await mountComponent({ userSigRole: ref(null) })
     await flushPromises()
 
     expect(wrapper.text()).toContain('Posts (2)')
-    expect(wrapper.findAll('.base-card').length).toBe(2)
+    expect(wrapper.findAll('.post-card').length).toBe(2)
     expect(wrapper.findAll('.skeleton-loader').length).toBe(0)
   })
 
@@ -220,27 +237,24 @@ describe('SigPostsView', () => {
     )
   })
 
-  it('renders post title and author display name', async () => {
+  it('renders post titles via PostCard', async () => {
     mockGetSigPosts.mockResolvedValue({ posts: fakePosts, total: 2 })
 
     const { wrapper } = await mountComponent({ userSigRole: ref(null) })
     await flushPromises()
 
     expect(wrapper.text()).toContain('First Post')
-    expect(wrapper.text()).toContain('Alice Smith')
     expect(wrapper.text()).toContain('Second Post')
-    expect(wrapper.text()).toContain('Bob Jones')
   })
 
-  it('post links include fromSigId query param for breadcrumb context', async () => {
+  it('passes post data to PostCard components', async () => {
     mockGetSigPosts.mockResolvedValue({ posts: fakePosts, total: 2 })
 
     const { wrapper } = await mountComponent({ userSigRole: ref(null) })
     await flushPromises()
 
-    const postLinks = wrapper.findAll('a').filter((a) => a.attributes('href')?.includes('/forum/'))
-    expect(postLinks.length).toBeGreaterThan(0)
-    const firstHref = postLinks[0].attributes('href') ?? ''
-    expect(firstHref).toContain('fromSigId=sig1')
+    const cards = wrapper.findAll('.post-card')
+    expect(cards[0].attributes('data-post-id')).toBe('p1')
+    expect(cards[1].attributes('data-post-id')).toBe('p2')
   })
 })

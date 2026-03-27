@@ -7,6 +7,8 @@ import re
 from fastapi import APIRouter, Depends, Path, Query, Request, status
 from loguru import logger
 
+from app.core.rate_limit import get_client_ip
+
 from app.core.constants import EXPORT_PRESIGNED_TTL_SECONDS, RATE_LIMIT_SITE_EXPORT
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
@@ -85,7 +87,7 @@ async def start_site_export(
     try:
         from app.core.event_bus import emit
 
-        ip = request.client.host if request.client else None
+        ip = get_client_ip(request)
         await emit(
             "audit.action",
             user_id=user_id,
@@ -301,7 +303,7 @@ async def delete_export(
     try:
         from app.core.event_bus import emit
 
-        ip = request.client.host if request.client else None
+        ip = get_client_ip(request)
         await emit(
             "audit.action",
             user_id=current_user["sub"],

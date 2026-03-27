@@ -221,7 +221,7 @@ class TestDMScanGate:
                 "attachment_name": row["attachment_name"],
                 "is_recalled": False,
             }),
-            patch("app.services.dm.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=False),
+            patch("app.services.dm._is_dm_file_clean", new_callable=AsyncMock, return_value=False),
             patch("app.core.storage.generate_presigned_url") as mock_presigned,
         ):
             messages, total = await dm_svc.list_messages(_SENDER_ID, str(_CONV_ID))
@@ -254,8 +254,8 @@ class TestDMScanGate:
                 "attachment_name": row["attachment_name"],
                 "is_recalled": False,
             }),
-            patch("app.services.dm.file_scan_repo.is_clean", new_callable=AsyncMock, return_value=True),
-            patch("app.core.storage.generate_presigned_url", return_value="https://example.com/presigned"),
+            patch("app.services.dm._is_dm_file_clean", new_callable=AsyncMock, return_value=True),
+            patch("app.services.dm._sync_presigned_url", return_value="https://example.com/presigned"),
         ):
             messages, total = await dm_svc.list_messages(_SENDER_ID, str(_CONV_ID))
             assert total == 1
@@ -316,8 +316,8 @@ class TestFileScanIsClean:
             assert await file_scan_repo.is_clean("test.jpg") is False
 
     @pytest.mark.asyncio
-    async def test_unknown_record_returns_false(self):
-        """Files with unknown scan record are not clean."""
+    async def test_unknown_record_returns_true(self):
+        """Files with unknown scan status (hash not in VT) are safe to serve."""
         from app.repositories import file_scan_repo
 
         with patch.object(
@@ -326,7 +326,7 @@ class TestFileScanIsClean:
             new_callable=AsyncMock,
             return_value={"file_key": "test.jpg", "status": "unknown"},
         ):
-            assert await file_scan_repo.is_clean("test.jpg") is False
+            assert await file_scan_repo.is_clean("test.jpg") is True
 
 
 # ── H-02: Async generate_presigned_url forwards filename ────────────────────

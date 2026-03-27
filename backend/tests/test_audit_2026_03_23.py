@@ -212,7 +212,8 @@ async def test_m06_unban_ip_single_query():
     sql = fake_conn.fetchrow.call_args[0][0]
     assert "DELETE" in sql
     assert "RETURNING" in sql
-    fake_redis.delete.assert_called_once()
+    # Cache set to "0" (not banned) so stale "1" never lingers
+    fake_redis.set.assert_called_once_with("ip_ban:10.0.0.1", "0", ex=300)
 
 
 @pytest.mark.asyncio

@@ -67,7 +67,7 @@ class TestFileStreamingResponse:
                 "app.api.v1.endpoints.files.file_scan_repo",
             ) as mock_scan_repo,
         ):
-            mock_scan_repo.find_by_key = AsyncMock(return_value=None)
+            mock_scan_repo.find_by_key = AsyncMock(return_value={"status": "clean"})
             response = await serve_file(key=key, current_user=current_user)
 
         # Consume the streaming body
@@ -101,7 +101,7 @@ class TestFileStreamingResponse:
             ),
             patch("app.api.v1.endpoints.files.file_scan_repo") as mock_scan_repo,
         ):
-            mock_scan_repo.find_by_key = AsyncMock(return_value=None)
+            mock_scan_repo.find_by_key = AsyncMock(return_value={"status": "clean"})
             response = await serve_file(key=key, current_user=current_user)
 
         assert "inline" in response.headers["content-disposition"]
@@ -125,7 +125,7 @@ class TestFileStreamingResponse:
             ),
             patch("app.api.v1.endpoints.files.file_scan_repo") as mock_scan_repo,
         ):
-            mock_scan_repo.find_by_key = AsyncMock(return_value=None)
+            mock_scan_repo.find_by_key = AsyncMock(return_value={"status": "clean"})
             response = await serve_file(key=key, current_user=current_user)
 
         assert "attachment" in response.headers["content-disposition"]
@@ -149,7 +149,7 @@ class TestFileStreamingResponse:
             ),
             patch("app.api.v1.endpoints.files.file_scan_repo") as mock_scan_repo,
         ):
-            mock_scan_repo.find_by_key = AsyncMock(return_value=None)
+            mock_scan_repo.find_by_key = AsyncMock(return_value={"status": "clean"})
             response = await serve_file(key=key, current_user=current_user)
 
         assert response.headers["content-security-policy"] == "sandbox"
@@ -490,24 +490,36 @@ class TestFileScanStatusSanitized:
         assert exc_info.value.status_code == 451
 
     @pytest.mark.asyncio
-    async def test_serve_file_blocks_unknown_scan_status(self) -> None:
-        """Files with unknown/error scan status must not be served (fail-close)."""
+    async def test_serve_file_allows_unknown_and_error_scan_status(self) -> None:
+        """Files with unknown/error scan status should be served (not blocked).
+
+        'unknown' means the hash is not in VT's database (normal for user photos).
+        'error' means VT API failed. Neither implies the file is malicious.
+        """
         from app.api.v1.endpoints.files import serve_file
-        from app.core.errors import AppError
 
         user_id = str(uuid.uuid4())
         key = f"editor/{user_id}/test.png"
         current_user = {"sub": user_id, "role": "MEMBER"}
 
-        for scan_status in ("unknown", "error"):
-            with patch("app.api.v1.endpoints.files.file_scan_repo") as mock_repo:
-                mock_repo.find_by_key = AsyncMock(return_value={"status": scan_status})
-                with pytest.raises(AppError) as exc_info:
-                    await serve_file(key=key, current_user=current_user)
+        fake_body = MagicMock()
+        fake_body.read = MagicMock(side_effect=[b"PNG data", b""])
 
-            # Should get a generic message, not internal scan details
-            assert exc_info.value.status_code == 403
-            assert "not been verified" in exc_info.value.detail["message"]
+        for scan_status in ("unknown", "error", "skipped"):
+            with (
+                patch("app.api.v1.endpoints.files.file_scan_repo") as mock_repo,
+                patch(
+                    "app.api.v1.endpoints.files.async_download_metadata",
+                    new_callable=AsyncMock,
+                    return_value=(fake_body, "image/png", 8),
+                ),
+            ):
+                mock_repo.find_by_key = AsyncMock(return_value={"status": scan_status})
+                response = await serve_file(key=key, current_user=current_user)
+
+            assert response.status_code == 200
+            fake_body.read.reset_mock(side_effect=True)
+            fake_body.read.side_effect = [b"PNG data", b""]
 
 
 # ---------------------------------------------------------------------------

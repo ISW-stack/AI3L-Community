@@ -28,9 +28,9 @@ async def ban_ip(
     ban_id = uuid.uuid4()
     ban = await ip_ban_repo.create(ban_id, ip, reason, banned_by, expires_at)
 
-    # Invalidate cache so the ban takes effect immediately
+    # Set cache to "banned" immediately so the ban takes effect without a DB round-trip
     redis = get_redis()
-    await redis.delete(f"ip_ban:{ip}")
+    await redis.set(f"ip_ban:{ip}", "1", ex=300)
 
     return ban
 
@@ -46,8 +46,9 @@ async def unban_ip(ban_id: uuid.UUID) -> bool:
             ban_id,
         )
     if row:
+        # Explicitly cache "not banned" so a stale "1" never lingers
         redis = get_redis()
-        await redis.delete(f"ip_ban:{row['ip_address']}")
+        await redis.set(f"ip_ban:{row['ip_address']}", "0", ex=300)
         return True
     return False
 

@@ -3,6 +3,8 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from redis.exceptions import RedisError
+
 # Datadog tracing — must be patched before FastAPI import
 try:
     from app.core.config import settings as _early_settings
@@ -338,12 +340,24 @@ async def check_ip_ban(request: Request, call_next: RequestResponseEndpoint) -> 
                     status_code=403,
                     content={"detail": "Your IP address has been banned."},
                 )
-        except Exception:
-            # L-03: Log failure instead of silently swallowing
+        except (ConnectionError, OSError, TimeoutError, RedisError, RuntimeError):
+            # Redis/DB connection issue — allow through to avoid full outage,
+            # but log loudly so ops can investigate.
             logger.warning(
-                "IP ban check failed — allowing request through",
+                "IP ban check failed (connection error) — allowing request through",
                 exc_info=True,
                 extra={"ip": ip},
+            )
+        except Exception:
+            # Unexpected error — fail-secure to prevent banned IPs slipping through.
+            logger.error(
+                "IP ban check failed — blocking request (fail-secure)",
+                exc_info=True,
+                extra={"ip": ip},
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"detail": "Service temporarily unavailable."},
             )
     return await call_next(request)
 

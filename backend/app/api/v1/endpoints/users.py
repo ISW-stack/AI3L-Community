@@ -17,7 +17,7 @@ from app.core.errors import (
 )
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
-from app.core.rate_limit import check_rate_limit
+from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
 from app.schemas.auth import MessageResponse
@@ -154,7 +154,7 @@ async def change_my_password(
         raise AppError(ErrorCode.SYS_422, 422, msg)
 
     # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     await emit("audit.action", user_id=current_user["sub"], action="PASSWORD_CHANGE", ip_address=ip)
 
     # Revoke ALL sessions (all devices) so user must re-login everywhere
@@ -176,7 +176,7 @@ async def accept_privacy_consent(
     current_user: dict = Depends(get_current_user),
 ) -> MessageResponse:
     """Record user's acceptance of the privacy consent."""
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request)
     user_id = current_user["sub"]
     role = current_user.get("role")
 
@@ -217,7 +217,7 @@ async def delete_my_account(
     await revoke_user_sessions(current_user["sub"])
 
     # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     await emit(
         "audit.action",
         user_id=current_user["sub"],
@@ -405,7 +405,7 @@ async def admin_delete_user(
     await revoke_user_sessions(str(user_id))
 
     # Audit log
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     await emit(
         "audit.action",
         user_id=current_user["sub"],
@@ -540,7 +540,7 @@ async def change_user_role(
     await revoke_user_sessions(str(user_id))
 
     # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     await emit(
         "audit.action",
         user_id=current_user["sub"],
@@ -569,7 +569,7 @@ async def ban_user_endpoint(
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     await emit(
         "audit.action",
         user_id=current_user["sub"],
@@ -594,7 +594,7 @@ async def unban_user_endpoint(
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 
     # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     await emit(
         "audit.action",
         user_id=current_user["sub"],

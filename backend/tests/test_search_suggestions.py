@@ -1,7 +1,7 @@
 """Tests for search suggestions endpoint — GET /posts/suggestions."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import ANY, AsyncMock, patch
 
 import pytest
 
@@ -133,9 +133,9 @@ class TestSearchSuggestions:
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200
-                # Verify limit was passed through
-                mock_posts.assert_called_once_with("test", limit=2)
-                mock_kw.assert_called_once_with("test", limit=2)
+                # Verify limit and viewer_id were passed through
+                mock_posts.assert_called_once_with("test", limit=2, viewer_id=ANY)
+                mock_kw.assert_called_once_with("test", limit=2, viewer_id=ANY)
         finally:
             _clear_overrides()
 

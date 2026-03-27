@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from app.core.rate_limit import get_client_ip
+
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
 from app.repositories import invite_code_repo
@@ -88,7 +90,7 @@ async def revoke_invite_code(
     try:
         from app.core.event_bus import emit
 
-        ip = request.client.host if request.client else None
+        ip = get_client_ip(request)
         await emit(
             "audit.action",
             user_id=current_user["sub"],
@@ -140,7 +142,7 @@ async def delete_invite_code(
     try:
         from app.core.event_bus import emit
 
-        ip = request.client.host if request.client else None
+        ip = get_client_ip(request)
         await emit(
             "audit.action",
             user_id=current_user["sub"],
@@ -211,7 +213,7 @@ async def ban_ip(
     try:
         from app.core.event_bus import emit
 
-        ip = request.client.host if request.client else None
+        ip = get_client_ip(request)
         await emit(
             "audit.action",
             user_id=current_user["sub"],
@@ -254,7 +256,7 @@ async def unban_ip(
     try:
         from app.core.event_bus import emit
 
-        ip = request.client.host if request.client else None
+        ip = get_client_ip(request)
         await emit(
             "audit.action",
             user_id=current_user["sub"],

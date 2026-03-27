@@ -218,7 +218,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-2" data-testid="social-actions">
+  <div class="flex flex-wrap items-center gap-2" data-testid="social-actions">
     <!-- Loading state -->
     <div v-if="loading" class="flex items-center gap-2">
       <div class="h-8 w-24 bg-gray-200 rounded-lg animate-pulse"></div>

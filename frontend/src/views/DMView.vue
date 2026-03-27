@@ -57,6 +57,15 @@ async function toggleDmFriendsOnly() {
 
 const breadcrumbs = computed(() => [{ label: 'Home', to: '/' }, { label: t('dm.title') }])
 
+// Keep store's currentUserId in sync (handles page refresh where
+// auth.user may not be populated yet when onMounted runs).
+watch(
+  () => auth.user?.id,
+  (id) => {
+    if (id) dmStore.setCurrentUserId(id)
+  },
+)
+
 // Load conversations on mount
 onMounted(async () => {
   dmStore.setCurrentUserId(auth.user?.id ?? '')

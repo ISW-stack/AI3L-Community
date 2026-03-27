@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 class CommentCreateRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
     parent_id: _uuid.UUID | None = None
-    mentions: list[str] | None = Field(None, max_length=20)
+    mentions: list[str] | None = Field(None, max_length=10)
 
     @field_validator("mentions")
     @classmethod

@@ -65,16 +65,19 @@ async def delete_by_key(file_key: str) -> None:
 
 
 async def is_clean(file_key: str) -> bool:
-    """Return True if the file has been scanned and is clean.
+    """Return True if the file is safe to serve.
 
     Returns True if no scan record exists (legacy files uploaded before scanning
     was introduced, or file types that are not scanned).
-    Returns False if the scan record exists with a non-clean status (pending/malicious/unknown).
+    Returns True for clean/skipped/unknown/error statuses — only confirmed
+    malicious or actively pending files are blocked.  VirusTotal "unknown"
+    means the hash was never submitted to VT (normal for user-uploaded
+    photos) and should not prevent access.
     """
     record = await find_by_key(file_key)
     if record is None:
         return True  # No scan record → pre-scanning legacy file, allow
-    return record.get("status") == "clean"
+    return record.get("status") not in ("malicious", "pending")
 
 
 async def delete_old_completed(days: int = 30) -> int:

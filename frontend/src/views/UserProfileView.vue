@@ -168,19 +168,25 @@ onMounted(() => {
       <template v-else>
         <!-- Profile Header -->
         <BaseCard padding="lg" class="mb-6">
-          <div class="flex items-start gap-4">
-            <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="lg" />
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <h1 class="text-2xl font-bold text-foreground">{{ user.display_name }}</h1>
-                <BaseBadge :variant="roleBadgeVariant">{{ user.role }}</BaseBadge>
+          <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div class="flex items-center sm:items-start gap-3 sm:gap-4">
+              <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="lg" />
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <h1 class="text-xl sm:text-2xl font-bold text-foreground">
+                    {{ user.display_name }}
+                  </h1>
+                  <BaseBadge :variant="roleBadgeVariant">{{ user.role }}</BaseBadge>
+                </div>
+                <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
+                <p class="text-xs text-muted">
+                  {{ t('userProfile.joined') }} {{ formatDate(user.created_at, locale) }}
+                </p>
               </div>
-              <p class="text-sm text-muted mb-1">@{{ user.username }}</p>
-              <p class="text-xs text-muted">
-                {{ t('userProfile.joined') }} {{ formatDate(user.created_at, locale) }}
-              </p>
             </div>
-            <div class="shrink-0 flex flex-col items-end gap-2">
+            <div
+              class="flex flex-wrap items-center gap-2 sm:shrink-0 sm:flex-col sm:items-end sm:ml-auto"
+            >
               <router-link
                 v-if="isOwnProfile"
                 to="/profile"

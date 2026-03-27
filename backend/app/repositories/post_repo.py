@@ -718,42 +718,70 @@ def _escape_ilike(s: str) -> str:
     return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-async def get_search_suggestions(query: str, limit: int = 5) -> list[dict]:
-    """Return posts whose title or keywords match the query (ILIKE)."""
+async def get_search_suggestions(
+    query: str, limit: int = 5, viewer_id: str | None = None
+) -> list[dict]:
+    """Return posts whose title or keywords match the query (ILIKE).
+
+    Only returns posts from SIGs the viewer is a member of (or non-SIG posts).
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
-        sql = """
+        escaped = _escape_ilike(query)
+        params: list = [f"%{escaped}%", limit]
+        sig_filter = "s.id IS NULL OR s.is_deleted = FALSE"
+        if viewer_id:
+            sig_filter = (
+                "s.id IS NULL OR (s.is_deleted = FALSE AND EXISTS "
+                "(SELECT 1 FROM sig_members sm WHERE sm.sig_id = s.id "
+                "AND sm.user_id = $3 AND sm.is_deleted = false))"
+            )
+            params.append(uuid.UUID(viewer_id))
+        sql = f"""
             SELECT DISTINCT p.title, p.id
             FROM posts p
             LEFT JOIN sigs s ON p.sig_id = s.id
             WHERE p.is_deleted = FALSE
-              AND (s.id IS NULL OR s.is_deleted = FALSE)
+              AND ({sig_filter})
               AND (p.title ILIKE $1 ESCAPE '\\' OR EXISTS (
                   SELECT 1 FROM unnest(p.keywords) AS kw WHERE kw ILIKE $1 ESCAPE '\\'
               ))
             ORDER BY p.title
             LIMIT $2
         """
-        escaped = _escape_ilike(query)
-        rows = await conn.fetch(sql, f"%{escaped}%", limit)
+        rows = await conn.fetch(sql, *params)
         return [dict(r) for r in rows]
 
 
-async def get_keyword_suggestions(query: str, limit: int = 5) -> list[str]:
-    """Return distinct keywords matching the query (ILIKE)."""
+async def get_keyword_suggestions(
+    query: str, limit: int = 5, viewer_id: str | None = None
+) -> list[str]:
+    """Return distinct keywords matching the query (ILIKE).
+
+    Only returns keywords from posts in SIGs the viewer is a member of.
+    """
     pool = get_pool()
     async with pool.acquire() as conn:
-        sql = """
+        escaped = _escape_ilike(query)
+        params: list = [f"%{escaped}%", limit]
+        sig_filter = "s.id IS NULL OR s.is_deleted = FALSE"
+        if viewer_id:
+            sig_filter = (
+                "s.id IS NULL OR (s.is_deleted = FALSE AND EXISTS "
+                "(SELECT 1 FROM sig_members sm WHERE sm.sig_id = s.id "
+                "AND sm.user_id = $3 AND sm.is_deleted = false))"
+            )
+            params.append(uuid.UUID(viewer_id))
+        sql = f"""
             SELECT DISTINCT kw
             FROM posts p
             LEFT JOIN sigs s ON p.sig_id = s.id,
             unnest(p.keywords) AS kw
             WHERE p.is_deleted = FALSE
-              AND (s.id IS NULL OR s.is_deleted = FALSE)
+              AND ({sig_filter})
               AND kw ILIKE $1 ESCAPE '\\'
             ORDER BY kw
             LIMIT $2
         """
-        escaped = _escape_ilike(query)
-        rows = await conn.fetch(sql, f"%{escaped}%", limit)
+        rows = await conn.fetch(sql, *params)
         return [r["kw"] for r in rows]

@@ -98,7 +98,10 @@ export const PREVIEW_ALLOWED_TAGS = [
 ]
 
 export function sanitizePreviewHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
+  // Strip tables (and their content) before sanitizing to prevent cell text
+  // from being flattened into garbled repeated text when tags are removed.
+  const withoutTables = html.replace(/<table[\s>][\s\S]*?<\/table>/gi, '<p>[table]</p>')
+  return DOMPurify.sanitize(withoutTables, {
     ALLOWED_TAGS: PREVIEW_ALLOWED_TAGS,
     ALLOWED_ATTR: [],
     FORCE_BODY: true,

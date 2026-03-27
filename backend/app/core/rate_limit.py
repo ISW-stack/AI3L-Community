@@ -38,7 +38,7 @@ def get_client_ip(request: Request) -> str | None:
 
     forwarded_for = request.headers.get("x-forwarded-for")
     if forwarded_for:
-        ip = forwarded_for.split(",")[0].strip()
+        ip = forwarded_for.split(",")[0].strip().strip("[]")
         if _is_valid_ip(ip):
             return ip
 

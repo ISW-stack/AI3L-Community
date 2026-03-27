@@ -71,11 +71,14 @@ async def _is_dm_file_clean(file_key: str) -> bool:
 
     Unlike editor files which allow legacy unscanned files, DM files are always
     scanned (post C-01 fix). A missing record means scan failed to register.
+    Only confirmed-malicious or actively-pending files are blocked; statuses
+    like "unknown" (hash not in VT), "skipped" (VT not configured), or
+    "error" (VT API failure) are allowed through.
     """
     record = await file_scan_repo.find_by_key(file_key)
     if record is None:
         return False  # Missing scan record → treat as pending, not clean
-    return record.get("status") == "clean"
+    return record.get("status") not in ("malicious", "pending")
 
 
 async def _enrich_with_sender(row: dict) -> dict:

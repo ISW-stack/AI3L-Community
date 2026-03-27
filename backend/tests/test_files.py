@@ -1140,49 +1140,73 @@ class TestServeFileFailClose:
         "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
     )
     @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_blocks_unknown_scan_status(
+    async def test_allows_unknown_scan_status(
         self, mock_session, mock_user, client: AsyncClient, auth_headers
     ):
-        """Files with 'unknown' scan status should be blocked (403)."""
+        """Files with 'unknown' scan status (hash not in VT) should be served."""
         headers, user_id, _ = auth_headers("MEMBER")
         file_key = f"editor/{user_id}/test.png"
 
-        with patch(
-            "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
-            new_callable=AsyncMock,
-            return_value={"status": "unknown", "positives": None, "total": None},
+        with (
+            patch(
+                "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+                new_callable=AsyncMock,
+                return_value={"status": "unknown", "positives": None, "total": None},
+            ),
+            patch(
+                "app.api.v1.endpoints.files.async_download_metadata",
+                new_callable=AsyncMock,
+                return_value=(
+                    MagicMock(
+                        read=MagicMock(side_effect=[b"PNG data", b""]), close=MagicMock()
+                    ),
+                    "image/png",
+                    8,
+                ),
+            ),
         ):
             resp = await client.get(
                 f"/api/v1/files/content/{file_key}",
                 headers=headers,
             )
 
-        assert resp.status_code == 403
-        assert "not been verified" in resp.json()["detail"]["message"]
+        assert resp.status_code == 200
 
     @patch(
         "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
     )
     @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
-    async def test_blocks_error_scan_status(
+    async def test_allows_error_scan_status(
         self, mock_session, mock_user, client: AsyncClient, auth_headers
     ):
-        """Files with 'error' scan status should be blocked (403)."""
+        """Files with 'error' scan status (VT API failure) should be served."""
         headers, user_id, _ = auth_headers("MEMBER")
         file_key = f"editor/{user_id}/test.pdf"
 
-        with patch(
-            "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
-            new_callable=AsyncMock,
-            return_value={"status": "error", "positives": None, "total": None},
+        with (
+            patch(
+                "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+                new_callable=AsyncMock,
+                return_value={"status": "error", "positives": None, "total": None},
+            ),
+            patch(
+                "app.api.v1.endpoints.files.async_download_metadata",
+                new_callable=AsyncMock,
+                return_value=(
+                    MagicMock(
+                        read=MagicMock(side_effect=[b"PDF data", b""]), close=MagicMock()
+                    ),
+                    "application/pdf",
+                    8,
+                ),
+            ),
         ):
             resp = await client.get(
                 f"/api/v1/files/content/{file_key}",
                 headers=headers,
             )
 
-        assert resp.status_code == 403
-        assert "not been verified" in resp.json()["detail"]["message"]
+        assert resp.status_code == 200
 
     @patch(
         "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}

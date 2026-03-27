@@ -559,15 +559,16 @@ class TestDeletePost:
 
 class TestTogglePin:
     @pytest.mark.anyio
-    async def test_toggle_pin_admin(self, client):
-        """PATCH /posts/{id}/pin → 200 with is_pinned=true."""
+    async def test_toggle_pin_admin_no_sig(self, client):
+        """PATCH /posts/{id}/pin → 200 for non-SIG post."""
         post_id = uuid.uuid4()
+        post = _make_post(post_id=post_id)
+        post["sig_id"] = None
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.pin_post",
-                new_callable=AsyncMock,
-                return_value=True,
+            with (
+                patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
+                patch(f"{_EP}.pin_post", new_callable=AsyncMock, return_value=True),
             ):
                 resp = await client.patch(
                     f"/api/v1/posts/{post_id}/pin",
@@ -581,15 +582,11 @@ class TestTogglePin:
 
     @pytest.mark.anyio
     async def test_toggle_pin_not_found(self, client):
-        """PATCH /posts/{id}/pin → 404 when pin_post returns False."""
+        """PATCH /posts/{id}/pin → 404 when post not found."""
         post_id = uuid.uuid4()
         try:
             _override_auth("ADMIN")
-            with patch(
-                f"{_EP}.pin_post",
-                new_callable=AsyncMock,
-                return_value=False,
-            ):
+            with patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=None):
                 resp = await client.patch(
                     f"/api/v1/posts/{post_id}/pin",
                     json={"is_pinned": True},
@@ -611,6 +608,81 @@ class TestTogglePin:
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_toggle_pin_sig_post_requires_sig_admin(self, client):
+        """PATCH /posts/{id}/pin → 403 for SIG post when user is not SIG admin."""
+        post_id = uuid.uuid4()
+        sig_id = str(uuid.uuid4())
+        post = _make_post(post_id=post_id)
+        post["sig_id"] = sig_id
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
+                patch(
+                    "app.repositories.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="MEMBER",  # not SIG admin
+                ),
+            ):
+                resp = await client.patch(
+                    f"/api/v1/posts/{post_id}/pin",
+                    json={"is_pinned": True},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_toggle_pin_sig_post_allowed_for_sig_admin(self, client):
+        """PATCH /posts/{id}/pin → 200 for SIG post when user IS SIG admin."""
+        post_id = uuid.uuid4()
+        sig_id = str(uuid.uuid4())
+        post = _make_post(post_id=post_id)
+        post["sig_id"] = sig_id
+        try:
+            _override_auth("ADMIN")
+            with (
+                patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
+                patch(
+                    "app.repositories.sig_repo.get_member_role",
+                    new_callable=AsyncMock,
+                    return_value="ADMIN",
+                ),
+                patch(f"{_EP}.pin_post", new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.patch(
+                    f"/api/v1/posts/{post_id}/pin",
+                    json={"is_pinned": True},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_toggle_pin_sig_post_super_admin_bypasses(self, client):
+        """PATCH /posts/{id}/pin → 200 for SIG post when user is SUPER_ADMIN."""
+        post_id = uuid.uuid4()
+        sig_id = str(uuid.uuid4())
+        post = _make_post(post_id=post_id)
+        post["sig_id"] = sig_id
+        try:
+            _override_auth("SUPER_ADMIN")
+            with (
+                patch(f"{_EP}.get_post_by_id", new_callable=AsyncMock, return_value=post),
+                patch(f"{_EP}.pin_post", new_callable=AsyncMock, return_value=True),
+            ):
+                resp = await client.patch(
+                    f"/api/v1/posts/{post_id}/pin",
+                    json={"is_pinned": True},
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
         finally:
             _clear_overrides()
 

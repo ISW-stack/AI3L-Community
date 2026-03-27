@@ -326,6 +326,7 @@ async def recall_message(message_id: uuid.UUID) -> dict | None:
                 attachment_key = NULL,
                 attachment_name = NULL,
                 attachment_size = NULL,
+                attachment_expires_at = NULL,
                 updated_at = NOW()
             WHERE id = $1
             RETURNING *

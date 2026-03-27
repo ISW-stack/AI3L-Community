@@ -8,7 +8,7 @@ from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
-from app.core.rate_limit import check_rate_limit
+from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.schemas.comment import ReactionRequest
 from app.schemas.post import (
     BulkDeletePostsRequest,
@@ -183,8 +183,9 @@ async def search_suggestions(
 
     from app.repositories import post_repo
 
-    posts = await post_repo.get_search_suggestions(q, limit=limit)
-    keywords = await post_repo.get_keyword_suggestions(q, limit=limit)
+    viewer_id = current_user["sub"]
+    posts = await post_repo.get_search_suggestions(q, limit=limit, viewer_id=viewer_id)
+    keywords = await post_repo.get_keyword_suggestions(q, limit=limit, viewer_id=viewer_id)
     return SearchSuggestionsResponse(
         posts=[SearchSuggestion(id=str(p["id"]), title=p["title"]) for p in posts],
         keywords=keywords,
@@ -297,7 +298,7 @@ async def delete_post(
         raise AppError(ErrorCode.SYS_404, 404, "Post not found or not authorized.")
 
     # Audit log (best-effort, via event bus)
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     if is_admin:
         await emit(
             "audit.action",
@@ -324,6 +325,20 @@ async def toggle_pin(
     req: PinPostRequest,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> dict:
+    post = await get_post_by_id(post_id)
+    if post is None:
+        raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
+
+    # For SIG posts, only SIG admins or SUPER_ADMIN may pin/unpin
+    if post.get("sig_id") and current_user["role"] != "SUPER_ADMIN":
+        from app.repositories import sig_repo
+
+        sig_role = await sig_repo.get_member_role(
+            uuid.UUID(post["sig_id"]), uuid.UUID(current_user["sub"])
+        )
+        if sig_role != "ADMIN":
+            raise AppError(ErrorCode.SYS_403, 403, "Only SIG admins can pin posts in this SIG.")
+
     updated = await pin_post(post_id, req.is_pinned)
     if not updated:
         raise AppError(ErrorCode.SYS_404, 404, "Post not found.")

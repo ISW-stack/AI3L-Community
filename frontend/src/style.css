@@ -70,20 +70,24 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-/* TipTap table styles */
-.tiptap .tableWrapper {
+/* TipTap table styles (editor + rendered post content) */
+.tiptap .tableWrapper,
+.prose .tableWrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.tiptap table {
+.tiptap table,
+.prose table {
   border-collapse: collapse;
   width: 100%;
   margin: 1em 0;
 }
 
 .tiptap th,
-.tiptap td {
+.tiptap td,
+.prose th,
+.prose td {
   border: 1px solid var(--color-border);
   padding: 0.5em 0.75em;
   min-width: 50px;
@@ -92,12 +96,15 @@ body {
 
 @media (min-width: 640px) {
   .tiptap th,
-  .tiptap td {
+  .tiptap td,
+  .prose th,
+  .prose td {
     min-width: 80px;
   }
 }
 
-.tiptap th {
+.tiptap th,
+.prose th {
   background-color: var(--color-surface-alt);
   font-weight: 600;
 }

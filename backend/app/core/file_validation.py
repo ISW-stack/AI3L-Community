@@ -421,6 +421,20 @@ async def trigger_virus_scan(file_key: str, file_data: bytes) -> None:
         file_hash = await run_in_threadpool(compute_sha256, io.BytesIO(file_data))
         check_virustotal.delay(file_hash, file_key)
     except ImportError:
-        pass  # VirusTotal / Celery not configured
+        # VirusTotal / Celery not configured — mark as skipped so the file
+        # is not permanently stuck at "pending" and blocked from serving.
+        try:
+            from app.repositories import file_scan_repo
+
+            await file_scan_repo.update_status(file_key, "skipped")
+        except Exception:
+            logger.warning("Failed to mark scan as skipped for key=%s", file_key, exc_info=True)
     except Exception:
         logger.warning("VirusTotal scan trigger failed for key=%s", file_key, exc_info=True)
+        # Also mark as skipped when task dispatch fails, to avoid stuck "pending".
+        try:
+            from app.repositories import file_scan_repo
+
+            await file_scan_repo.update_status(file_key, "skipped")
+        except Exception:
+            pass

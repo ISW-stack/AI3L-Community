@@ -251,8 +251,8 @@ class TestB03PendingScanBlocked:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_serve_file_no_scan_record_passes(self, client):
-        """GET /files/content/{key} with no scan record → 200 (file served)."""
+    async def test_serve_file_no_scan_record_blocks_editor_file(self, client):
+        """GET /files/content/{key} for editor file with no scan record → 202 (H-03 fail-close)."""
         key = "editor/user123/abc123.png"
         try:
             _override_auth("MEMBER")
@@ -278,7 +278,7 @@ class TestB03PendingScanBlocked:
                     f"/api/v1/files/content/{key}",
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 200
+                assert resp.status_code == 202
         finally:
             _clear_overrides()
 

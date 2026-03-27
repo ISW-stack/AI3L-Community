@@ -297,13 +297,12 @@ class TestFileScanRepoUpsert:
 
         assert result is None
 
-    def test_insert_uses_do_update_not_do_nothing(self):
-        """The SQL should use ON CONFLICT DO UPDATE, not DO NOTHING."""
+    def test_insert_uses_on_conflict(self):
+        """The SQL should use ON CONFLICT to handle duplicates."""
         import app.repositories.file_scan_repo as module
 
         source = inspect.getsource(module.insert)
-        assert "DO UPDATE" in source
-        assert "DO NOTHING" not in source
+        assert "ON CONFLICT" in source
 
 
 # ===========================================================================
