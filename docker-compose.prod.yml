@@ -297,7 +297,7 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    command: tunnel run
+    command: tunnel --no-autoupdate run --url http://nginx:80
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set in .env}
     depends_on:
