@@ -14,7 +14,7 @@ router = APIRouter(prefix="/users/me/preferences", tags=["preferences"])
 
 @router.get("", response_model=UserPreferencesResponse)
 async def get_preferences(
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> UserPreferencesResponse:
     """Get current user's preferences (returns defaults if none saved)."""
     prefs = await get_user_preferences(uuid.UUID(current_user["sub"]))

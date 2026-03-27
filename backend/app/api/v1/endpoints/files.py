@@ -273,7 +273,7 @@ async def delete_editor_file(
 @router.get("/content/{key:path}")
 async def serve_file(
     key: str,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> StreamingResponse:
     """Serve file content from storage via proxy.
 
@@ -426,7 +426,7 @@ async def get_scan_status(
 @router.get("/presigned/{key:path}")
 async def get_presigned_url(
     key: str,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> dict:
     """Get a presigned download URL for a stored file.
 

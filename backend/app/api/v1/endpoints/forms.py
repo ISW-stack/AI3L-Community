@@ -88,7 +88,7 @@ async def get_sig_forms(
     sig_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),
 ) -> FormListResponse:
     forms, total = await list_forms_by_sig(sig_id, page=page, page_size=page_size)
     is_admin = await _is_sig_admin(sig_id, current_user["sub"], current_user["role"])
@@ -135,7 +135,7 @@ async def list_standalone_forms_endpoint(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(DEFAULT_PAGE_SIZE_STANDALONE_FORMS, ge=1, le=MAX_PAGE_SIZE),
     q: str | None = Query(None, max_length=200),
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> FormListResponse:
     """List standalone forms owned by the current user."""
     forms, total = await list_standalone_forms_svc(
@@ -212,7 +212,7 @@ async def get_form_statistics(
 @router.get("/forms/{form_id}", response_model=FormResponseSchema)
 async def get_form(
     form_id: uuid.UUID,
-    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),
 ) -> FormResponseSchema:
     user_id = current_user["sub"]
     form = await get_form_by_id(form_id, user_id=user_id)

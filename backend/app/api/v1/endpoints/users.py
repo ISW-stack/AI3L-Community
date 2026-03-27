@@ -56,7 +56,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserResponse)
 async def get_my_profile(
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> UserResponse:
     user = await get_user_by_id(uuid.UUID(current_user["sub"]))
     if user is None:

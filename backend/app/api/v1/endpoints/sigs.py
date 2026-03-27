@@ -268,7 +268,7 @@ async def get_sig_members(
     sig_id: uuid.UUID,
     offset: int = Query(0, ge=0, le=MAX_PAGE_NUMBER * 100),
     limit: int = Query(50, ge=1, le=100),
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> SigMemberListResponse:
     members, total = await list_sig_members(sig_id, offset=offset, limit=limit)
     return SigMemberListResponse(
@@ -282,7 +282,7 @@ async def get_sig_posts(
     sig_id: uuid.UUID,
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),
 ) -> PostListResponse:
     result = await list_posts(
         page=page, page_size=page_size, sig_id=str(sig_id), viewer_id=current_user["sub"]

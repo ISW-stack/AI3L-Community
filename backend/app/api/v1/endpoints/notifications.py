@@ -28,7 +28,7 @@ async def get_notifications(
     unread: bool = Query(False),
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> NotificationListResponse:
     if not await check_rate_limit(f"rl:notif:{current_user['sub']}", 60, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
@@ -48,7 +48,7 @@ async def get_notifications(
 @router.put("/{notification_id}/read", response_model=MessageResponse)
 async def read_notification(
     notification_id: uuid.UUID,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> MessageResponse:
     updated = await mark_as_read(notification_id, current_user["sub"])
     if not updated:
@@ -85,7 +85,7 @@ async def delete_notification_endpoint(
 
 @router.put("/read-all", response_model=MessageResponse)
 async def read_all_notifications(
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> MessageResponse:
     if not await check_rate_limit(f"rl:notif_read_all:{current_user['sub']}", 10, 60):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")

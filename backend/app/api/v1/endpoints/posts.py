@@ -82,7 +82,7 @@ async def get_posts_list(
     ),
     cursor: str | None = Query(None, description="Opaque cursor for keyset pagination"),
     type: str | None = Query(None, pattern="^(post|question)$"),
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> PostListResponse:
     try:
         result = await list_posts(
@@ -118,7 +118,7 @@ async def get_posts_list(
 @router.post("/search", response_model=PostListResponse)
 async def search_posts_endpoint(
     req: PostSearchRequest,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> PostListResponse:
     posts, total, total_pages = await search_posts(
         keyword=req.keyword,
@@ -145,7 +145,7 @@ async def search_posts_endpoint(
 @router.get("/trending", response_model=list[PostResponse])
 async def get_trending(
     type: str | None = Query(None, pattern="^(post|question)$"),
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> list[PostResponse]:
     posts = await get_trending_posts(limit=5, days=7, viewer_id=current_user["sub"], post_type=type)
     return [PostResponse(**cast(dict[str, Any], p)) for p in posts]
@@ -173,7 +173,7 @@ async def bulk_delete_posts(
 async def search_suggestions(
     q: str = Query(min_length=2, max_length=100),
     limit: int = Query(5, ge=1, le=20),
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> SearchSuggestionsResponse:
     """Return search suggestions for posts and keywords matching the query."""
     if not await check_rate_limit(
@@ -225,7 +225,7 @@ async def toggle_post_reaction_endpoint(
 @router.get("/{post_id}", response_model=PostResponse)
 async def get_post(
     post_id: uuid.UUID,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> PostResponse:
     post = await get_post_by_id(post_id, increment_view=True, viewer_id=current_user["sub"])
     if post is None:
@@ -348,7 +348,7 @@ async def toggle_pin(
 @router.get("/{post_id}/history", response_model=PostHistoryResponse)
 async def get_post_edit_history(
     post_id: uuid.UUID,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> PostHistoryResponse:
     # Verify post exists
     post = await get_post_by_id(post_id)

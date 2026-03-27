@@ -34,7 +34,7 @@ async def get_comments(
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=100),
     root_only: bool = Query(False),
-    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+    current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),
 ) -> CommentListResponse:
     # Verify post exists
     post = await get_post_by_id(post_id)
