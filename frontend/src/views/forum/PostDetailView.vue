@@ -269,7 +269,8 @@ const breadcrumbItems = computed(() => {
             class="prose prose-sm max-w-none wrap-break-word text-foreground/80 mb-4"
           >
             <template v-for="(seg, i) in contentSegments" :key="i">
-              <div v-if="seg.type === 'html'" v-html="seg.content"></div>
+              <!-- C-03 fix: defense-in-depth re-sanitize after DOM manipulation pipeline -->
+              <div v-if="seg.type === 'html'" v-html="sanitizeHtml(seg.content)"></div>
               <SigShareCard
                 v-else-if="seg.type === 'sig-card'"
                 :sig-id="seg.content"
@@ -503,7 +504,7 @@ const breadcrumbItems = computed(() => {
                   <template v-else>
                     <p
                       class="text-sm text-foreground/80 wrap-break-word mb-2"
-                      v-html="renderMentions(sanitizeHtml(node.root.content), node.root.mentions)"
+                      v-html="sanitizeHtml(renderMentions(sanitizeHtml(node.root.content), node.root.mentions))"
                     ></p>
                     <div class="flex items-center gap-3">
                       <ReactionPicker
@@ -611,7 +612,7 @@ const breadcrumbItems = computed(() => {
                     <template v-else>
                       <p
                         class="text-sm text-foreground/80 wrap-break-word mb-2"
-                        v-html="renderMentions(sanitizeHtml(reply.content), reply.mentions)"
+                        v-html="sanitizeHtml(renderMentions(sanitizeHtml(reply.content), reply.mentions))"
                       ></p>
                       <div class="flex items-center gap-3">
                         <ReactionPicker

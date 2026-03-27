@@ -145,20 +145,20 @@ class TestDmCsvSanitization:
     """CSV injection payloads are neutralized."""
 
     def test_csv_injection_prefix_sanitized(self):
-        """Cells starting with = + - @ are prefixed with single quote."""
+        """Cells starting with = + - @ are prefixed with tab (C-07 OWASP)."""
         from app.services.dm import _sanitize_csv_content
 
         data = b"name,formula\nAlice,=cmd|'/C calc'!A0\n"
         result = _sanitize_csv_content(data).decode("utf-8")
-        assert "'=" in result
-        assert "=cmd" not in result.split("'=")[0]  # original = is quoted
+        assert "\t=" in result
+        assert "=cmd" not in result.split("\t=")[0]  # original = is tab-prefixed
 
     def test_csv_plus_prefix(self):
         from app.services.dm import _sanitize_csv_content
 
         data = b"a,b\n1,+SUM(A1:A10)\n"
         result = _sanitize_csv_content(data).decode("utf-8")
-        assert "'+SUM" in result
+        assert "\t+SUM" in result
 
     def test_csv_normal_data_unchanged(self):
         from app.services.dm import _sanitize_csv_content

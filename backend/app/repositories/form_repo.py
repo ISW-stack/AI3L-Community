@@ -405,11 +405,23 @@ async def insert_response(
             lock_id1,
             lock_id2,
         )
-        result = await conn.execute(
+        # C-01 fix: Use COUNT...FOR UPDATE inside a CTE to lock the rows being
+        # counted, then insert only if under the limit. The advisory lock above
+        # serialises concurrent transactions, and the locked COUNT provides a
+        # belt-and-suspenders guarantee against phantom reads.
+        row = await conn.fetchrow(
             """
+            WITH cur AS (
+                SELECT COUNT(*) AS cnt
+                FROM form_responses
+                WHERE form_id = $2
+                FOR UPDATE
+            )
             INSERT INTO form_responses (id, form_id, user_id, answers)
             SELECT $1, $2, $3, $4::jsonb
-            WHERE (SELECT COUNT(*) FROM form_responses WHERE form_id = $2) < $5
+            FROM cur
+            WHERE cur.cnt < $5
+            RETURNING id
             """,
             response_id,
             form_id,
@@ -417,7 +429,7 @@ async def insert_response(
             json.dumps(answers),
             max_respondents,
         )
-        return bool(result == "INSERT 0 1")
+        return row is not None
     else:
         await conn.execute(
             """

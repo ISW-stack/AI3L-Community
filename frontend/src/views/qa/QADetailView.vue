@@ -344,7 +344,7 @@ watch(postId, async () => {
                 <!-- Answer content -->
                 <div
                   class="prose prose-sm max-w-none break-words text-foreground/80 mb-2"
-                  v-html="renderMentions(sanitizeHtml(answer.content), answer.mentions)"
+                  v-html="sanitizeHtml(renderMentions(sanitizeHtml(answer.content), answer.mentions))"
                 ></div>
 
                 <!-- Answer meta -->

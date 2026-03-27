@@ -670,16 +670,23 @@ def _validate_file_ownership(questions: list[dict], answers: dict, user_id: str)
             continue
         key = value["key"]
         parts = key.split("/")
-        # P2: Check user_id at expected fixed positions, not just "anywhere"
+        # C-02 fix: Check user_id ONLY at expected fixed positions.
+        # The previous fallback `user_id in parts` was bypassable by
+        # embedding the attacker's UUID in the filename segment.
         # editor/{user_id}/{filename} → parts[1]
         # forms/uploads/{form_id}/{user_id}/{filename} → parts[3]
+        # forms/{form_id}/{user_id}/{filename} → parts[2]
         owner_found = False
         if len(parts) >= 3 and parts[0] == "editor" and parts[1] == user_id:
             owner_found = True
-        elif len(parts) >= 4 and parts[0] == "forms" and parts[3] == user_id:
+        elif (
+            len(parts) >= 5
+            and parts[0] == "forms"
+            and parts[1] == "uploads"
+            and parts[3] == user_id
+        ):
             owner_found = True
-        elif user_id in parts:
-            # Fallback for any other pattern, but log a warning
+        elif len(parts) >= 4 and parts[0] == "forms" and parts[2] == user_id:
             owner_found = True
         if not owner_found:
             raise PermissionError(

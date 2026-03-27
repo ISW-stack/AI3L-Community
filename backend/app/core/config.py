@@ -152,8 +152,14 @@ class Settings(BaseSettings):
                 "COOKIE_SAMESITE='none' without COOKIE_SECURE=True weakens CSRF defense.",
                 stacklevel=1,
             )
-        # Block startup with default/insecure secrets for any non-dev/non-test environment
+        # Block startup with insecure settings for any non-dev/non-test environment
         if self.FASTAPI_ENV not in ("development", "test"):
+            # C-06 fix: prevent debug mode in production
+            if self.FASTAPI_DEBUG:
+                raise ValueError(
+                    "FASTAPI_DEBUG=True is not allowed in production. "
+                    "Set FASTAPI_DEBUG=False or remove it."
+                )
             if "changeme" in self.JWT_SECRET_KEY:
                 raise ValueError(
                     "JWT_SECRET_KEY contains 'changeme' — refusing to start in production. "

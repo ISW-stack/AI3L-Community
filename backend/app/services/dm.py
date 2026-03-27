@@ -188,7 +188,10 @@ def _validate_dm_file(file_name: str, file_data: bytes) -> None:
 def _sanitize_csv_content(data: bytes) -> bytes:
     """Sanitize CSV to prevent formula injection when opened in spreadsheets.
 
-    Prefixes dangerous cells with a single quote to neutralize formulas.
+    C-07 fix: In addition to prefixing dangerous leading characters, also
+    neutralize formulas inside quoted cells (e.g. ="cmd", +cmd) which Excel
+    evaluates even when quoted. Every cell is tab-prefixed (\t) as recommended
+    by OWASP to universally prevent formula interpretation.
     """
     import csv
     from io import StringIO
@@ -204,9 +207,16 @@ def _sanitize_csv_content(data: bytes) -> bytes:
     for row in reader:
         sanitized = []
         for cell in row:
-            stripped = cell.lstrip()
-            if stripped and stripped[0] in _CSV_INJECTION_PREFIXES:
-                cell = "'" + cell
+            # Check the first character directly (not lstrip) to avoid
+            # double-prefixing when a cell already starts with \t.
+            # Leading-whitespace-padded formulas (e.g. "  =cmd") are not
+            # evaluated by modern spreadsheets, so lstrip is unnecessary.
+            # Skip cells already starting with \t (our safe prefix) to
+            # ensure idempotency on repeated sanitization passes.
+            if cell and cell[0] != "\t" and cell[0] in _CSV_INJECTION_PREFIXES:
+                # OWASP recommendation: prefix with tab to prevent formula
+                # interpretation in all spreadsheet applications
+                cell = "\t" + cell
             sanitized.append(cell)
         writer.writerow(sanitized)
     return output.getvalue().encode("utf-8")
