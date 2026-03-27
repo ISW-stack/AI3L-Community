@@ -31,6 +31,11 @@
     "vue-i18n": "^11.3.0",
     "vue-router": "^4.5.0"
   },
+  "overrides": {
+    "picomatch@<2.3.2": "2.3.2",
+    "picomatch@>=4 <4.0.4": "4.0.4",
+    "brace-expansion": "5.0.5"
+  },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
     "@tailwindcss/vite": "^4.0.0",
