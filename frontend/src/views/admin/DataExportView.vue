@@ -4,12 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/utils/date'
 import { useToastStore } from '@/stores/toast'
 import { getErrorMessage } from '@/utils/error'
-import {
-  startSiteExport,
-  getExportProgress,
-  getExportHistory,
-  deleteExport,
-} from '@/api/admin'
+import { startSiteExport, getExportProgress, getExportHistory, deleteExport } from '@/api/admin'
 import type { ExportProgress, ExportHistoryItem } from '@/types/common'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -245,10 +240,7 @@ onBeforeUnmount(stopPolling)
 
         <!-- Status badge -->
         <div class="flex items-center gap-2">
-          <Loader2
-            v-if="isRunning"
-            class="w-4 h-4 text-brand-600 animate-spin"
-          />
+          <Loader2 v-if="isRunning" class="w-4 h-4 text-brand-600 animate-spin" />
           <span
             class="text-xs font-medium px-2 py-0.5 rounded-full"
             :class="{

@@ -503,9 +503,7 @@ const breadcrumbItems = computed(() => {
                   <template v-else>
                     <p
                       class="text-sm text-foreground/80 wrap-break-word mb-2"
-                      v-html="
-                        renderMentions(sanitizeHtml(node.root.content), node.root.mentions)
-                      "
+                      v-html="renderMentions(sanitizeHtml(node.root.content), node.root.mentions)"
                     ></p>
                     <div class="flex items-center gap-3">
                       <ReactionPicker

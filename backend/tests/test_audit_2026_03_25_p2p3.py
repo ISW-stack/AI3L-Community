@@ -386,9 +386,9 @@ class TestRedisProdConfig:
 
 
 class TestNginxDmRateLimit:
-    """nginx write-heavy regex includes DM endpoints."""
+    """nginx has a dedicated dm_write zone for DM endpoints."""
 
-    def test_dm_in_write_zone(self):
+    def test_dm_has_dedicated_write_zone(self):
         import os
 
         conf_path = os.path.join(
@@ -396,7 +396,9 @@ class TestNginxDmRateLimit:
         )
         if os.path.exists(conf_path):
             content = open(conf_path, encoding="utf-8").read()
-            assert "recommendations|dm)" in content
+            # DM should have its own location block with dm_write zone
+            assert "location ~ ^/api/v1/dm/" in content
+            assert "dm_write" in content
 
 
 # ---------------------------------------------------------------------------

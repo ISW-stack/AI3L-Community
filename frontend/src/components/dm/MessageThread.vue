@@ -332,9 +332,7 @@ defineExpose({ scrollToBottom })
                 v-if="item.message.content"
                 class="whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
               >
-                <template
-                  v-for="(seg, si) in linkify(item.message.content)"
-                  :key="si"
+                <template v-for="(seg, si) in linkify(item.message.content)" :key="si"
                   ><a
                     v-if="seg.isUrl"
                     :href="seg.text"

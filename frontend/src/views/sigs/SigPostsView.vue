@@ -23,7 +23,8 @@ const { sig, userSigRole } = useSigLayout()
 
 const posts = ref<Post[]>([])
 const loading = ref(true)
-const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } = usePagination()
+const { page, total, totalPages, pageSize, setPage, resetPage, updateFromResponse } =
+  usePagination()
 
 const isMember = computed(() => userSigRole?.value != null)
 

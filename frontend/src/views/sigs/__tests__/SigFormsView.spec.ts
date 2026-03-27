@@ -530,7 +530,14 @@ describe('SigFormsView', () => {
         {
           question_id: 'q1',
           question_label: 'Rating Q',
-          stats: { type: 'rating', average: 4, min: 1, max: 5, totalResponses: 1, distribution: [] },
+          stats: {
+            type: 'rating',
+            average: 4,
+            min: 1,
+            max: 5,
+            totalResponses: 1,
+            distribution: [],
+          },
         },
       ],
     })

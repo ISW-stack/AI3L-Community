@@ -15,7 +15,8 @@ from app.core.constants import (
     PRESIGNED_URL_FILE_SECONDS,
     RATE_LIMIT_DM_ADMIN,
     RATE_LIMIT_DM_EDIT,
-    RATE_LIMIT_DM_LIST,
+    RATE_LIMIT_DM_CONV_LIST,
+    RATE_LIMIT_DM_MSG_LIST,
     RATE_LIMIT_DM_MARK_READ,
     RATE_LIMIT_DM_RECALL,
     RATE_LIMIT_DM_SEND,
@@ -129,7 +130,7 @@ async def list_conversations(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> ConversationListResponse:
     """List the current user's DM conversations (paginated)."""
-    if not await check_rate_limit(f"rl:dm:list:{current_user['sub']}", *RATE_LIMIT_DM_LIST):
+    if not await check_rate_limit(f"rl:dm:convlist:{current_user['sub']}", *RATE_LIMIT_DM_CONV_LIST):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
     convos, total = await dm_service.list_conversations(current_user["sub"], page, page_size)
@@ -149,7 +150,7 @@ async def list_messages(
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> MessageListResponse:
     """List messages in a conversation (paginated)."""
-    if not await check_rate_limit(f"rl:dm:list:{current_user['sub']}", *RATE_LIMIT_DM_LIST):
+    if not await check_rate_limit(f"rl:dm:msglist:{current_user['sub']}", *RATE_LIMIT_DM_MSG_LIST):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests.")
 
     msgs, total = await dm_service.list_messages(

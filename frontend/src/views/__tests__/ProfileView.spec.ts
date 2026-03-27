@@ -317,7 +317,9 @@ describe('ProfileView', () => {
       await nextTick()
 
       // Access the DangerZone child component's exposed state
-      const vm = wrapper.vm as unknown as { dangerZoneRef: { deleteConfirmText: string; showDeleteConfirm: boolean } }
+      const vm = wrapper.vm as unknown as {
+        dangerZoneRef: { deleteConfirmText: string; showDeleteConfirm: boolean }
+      }
       const dangerZone = vm.dangerZoneRef
       expect(dangerZone).toBeTruthy()
       dangerZone.deleteConfirmText = 'DELETE'
@@ -343,7 +345,9 @@ describe('ProfileView', () => {
       await nextTick()
 
       // Access the DangerZone child component's exposed state
-      const vm = wrapper.vm as unknown as { dangerZoneRef: { deleteConfirmText: string; showDeleteConfirm: boolean } }
+      const vm = wrapper.vm as unknown as {
+        dangerZoneRef: { deleteConfirmText: string; showDeleteConfirm: boolean }
+      }
       const dangerZone = vm.dangerZoneRef
       expect(dangerZone).toBeTruthy()
 
@@ -433,7 +437,12 @@ describe('ProfileView', () => {
 
         // Trigger the logout timer via changePassword
         mockChangePassword.mockResolvedValue(undefined)
-        const vm = wrapper.vm as unknown as { currentPassword: string; newPassword: string; confirmPassword: string; changePassword: () => Promise<void> }
+        const vm = wrapper.vm as unknown as {
+          currentPassword: string
+          newPassword: string
+          confirmPassword: string
+          changePassword: () => Promise<void>
+        }
         // Set password fields directly
         vm.currentPassword = 'OldPass1'
         vm.newPassword = 'NewPass1'

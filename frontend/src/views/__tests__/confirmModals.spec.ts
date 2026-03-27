@@ -132,7 +132,10 @@ describe('Confirmation Modals', () => {
     await nextTick()
 
     // Modal should now be visible
-    const vm = wrapper.vm as unknown as { showClearAllConfirm: boolean; confirmClearAll: () => Promise<void> }
+    const vm = wrapper.vm as unknown as {
+      showClearAllConfirm: boolean
+      confirmClearAll: () => Promise<void>
+    }
     expect(vm.showClearAllConfirm).toBe(true)
     expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true)
 
@@ -152,7 +155,10 @@ describe('Confirmation Modals', () => {
     expect(mockBulkDeleteNotifications).not.toHaveBeenCalled()
 
     // Simulate clicking the confirm button in the modal
-    const vm = wrapper.vm as unknown as { showClearAllConfirm: boolean; confirmClearAll: () => Promise<void> }
+    const vm = wrapper.vm as unknown as {
+      showClearAllConfirm: boolean
+      confirmClearAll: () => Promise<void>
+    }
     await vm.confirmClearAll()
     await flushPromises()
 

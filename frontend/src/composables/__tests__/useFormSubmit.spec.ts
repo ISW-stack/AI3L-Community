@@ -1147,9 +1147,7 @@ describe('useFormSubmit', () => {
 
       h.handleFileUpload('file-q', fakeEvent)
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('MIME type "text/plain"'),
-      )
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('MIME type "text/plain"'))
 
       // File should still be accepted (server validates via magic bytes)
       expect(h.answers.value['file-q']).toBe(fakeFile)

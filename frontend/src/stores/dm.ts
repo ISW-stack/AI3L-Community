@@ -5,7 +5,7 @@ import * as dmApi from '@/api/dm'
 import { getErrorMessage } from '@/utils/error'
 
 const MAX_MESSAGES = 200
-const UNREAD_MIN_INTERVAL_MS = 2000
+const UNREAD_MIN_INTERVAL_MS = 3000
 const MARK_READ_DEBOUNCE_MS = 500
 
 export const useDMStore = defineStore('dm', () => {

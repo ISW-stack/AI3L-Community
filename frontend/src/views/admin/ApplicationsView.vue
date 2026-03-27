@@ -128,12 +128,20 @@ onMounted(fetchApplications)
           </div>
 
           <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">
-            <BaseButton size="sm" variant="success" :disabled="processing" @click="review(app.id, 'APPROVED')">{{
-              t('admin.applications.approveBtn')
-            }}</BaseButton>
-            <BaseButton size="sm" variant="soft-danger" :disabled="processing" @click="review(app.id, 'REJECTED')">{{
-              t('admin.applications.rejectBtn')
-            }}</BaseButton>
+            <BaseButton
+              size="sm"
+              variant="success"
+              :disabled="processing"
+              @click="review(app.id, 'APPROVED')"
+              >{{ t('admin.applications.approveBtn') }}</BaseButton
+            >
+            <BaseButton
+              size="sm"
+              variant="soft-danger"
+              :disabled="processing"
+              @click="review(app.id, 'REJECTED')"
+              >{{ t('admin.applications.rejectBtn') }}</BaseButton
+            >
           </div>
         </div>
       </BaseCard>

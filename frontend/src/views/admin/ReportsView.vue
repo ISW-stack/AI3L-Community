@@ -123,9 +123,13 @@ onMounted(fetchReports)
           <p class="text-sm text-foreground line-clamp-2">{{ report.reason }}</p>
           <p class="text-xs text-muted">{{ new Date(report.created_at).toLocaleString() }}</p>
           <div v-if="report.status === 'PENDING'" class="flex gap-2 pt-1">
-            <BaseButton size="sm" variant="success" :disabled="processing" @click="reviewReport(report.id, 'RESOLVED')">{{
-              t('admin.reports.resolveBtn')
-            }}</BaseButton>
+            <BaseButton
+              size="sm"
+              variant="success"
+              :disabled="processing"
+              @click="reviewReport(report.id, 'RESOLVED')"
+              >{{ t('admin.reports.resolveBtn') }}</BaseButton
+            >
             <BaseButton
               size="sm"
               variant="secondary"

@@ -183,9 +183,9 @@ describe('M-10: DM unread count debounce', () => {
     await store.fetchUnreadCount()
     expect(mockGetUnreadCount).toHaveBeenCalledTimes(1)
 
-    // Advance time past the debounce interval (2000ms)
+    // Advance time past the debounce interval (3000ms)
     vi.useFakeTimers()
-    vi.advanceTimersByTime(2100)
+    vi.advanceTimersByTime(3100)
     vi.useRealTimers()
 
     // Need to re-mock Date.now since the debounce uses it
@@ -200,7 +200,7 @@ describe('M-10: DM unread count debounce', () => {
       expect(mockGetUnreadCount).toHaveBeenCalledTimes(2)
 
       // Advance mock time past debounce
-      currentTime += 2100
+      currentTime += 3100
 
       await store.fetchUnreadCount()
       expect(mockGetUnreadCount).toHaveBeenCalledTimes(3)

@@ -176,7 +176,7 @@ onMounted(() => {
                 v-if="captchaImage"
                 :src="captchaImage"
                 alt="captcha"
-                class="h-10 w-auto max-w-[45%] object-contain flex-shrink-0 rounded cursor-pointer"
+                class="h-10 w-auto max-w-[45%] min-w-0 object-contain rounded cursor-pointer"
                 @click="loadCaptcha"
                 :title="t('auth.captchaRefresh')"
               />

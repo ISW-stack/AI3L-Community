@@ -31,7 +31,8 @@ function getLastMessagePreview(conv: Conversation): string {
       ? conv.last_message.content.slice(0, 50) + '...'
       : conv.last_message.content
   }
-  if (conv.last_message.attachment_name) return t('dm.fileAttachment', { name: conv.last_message.attachment_name })
+  if (conv.last_message.attachment_name)
+    return t('dm.fileAttachment', { name: conv.last_message.attachment_name })
   return t('dm.attachment')
 }
 

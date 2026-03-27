@@ -16,7 +16,14 @@ describe('DMView handleLoadMore guard (F-24)', () => {
     pageSize: number
     currentMsgPage: number
   }): { shouldFetch: boolean; newPage: number } {
-    const { activeConversationId, hasMoreMessages, messagesLoading, messagesTotal, pageSize, currentMsgPage } = opts
+    const {
+      activeConversationId,
+      hasMoreMessages,
+      messagesLoading,
+      messagesTotal,
+      pageSize,
+      currentMsgPage,
+    } = opts
     if (!activeConversationId || !hasMoreMessages || messagesLoading) {
       return { shouldFetch: false, newPage: currentMsgPage }
     }
@@ -94,9 +101,7 @@ describe('DMView handleLoadMore guard (F-24)', () => {
 describe('DMView markConversationRead error handling (F-25)', () => {
   it('reverts unread_count on markConversationRead failure', async () => {
     // Simulate the fix: on catch, revert unread_count
-    const conversations = [
-      { id: 'conv-1', unread_count: 5 },
-    ]
+    const conversations = [{ id: 'conv-1', unread_count: 5 }]
     let globalUnreadCount = 10
     const prevUnread = conversations[0].unread_count
 
@@ -118,9 +123,7 @@ describe('DMView markConversationRead error handling (F-25)', () => {
   })
 
   it('updates unread_count on successful markConversationRead', async () => {
-    const conversations = [
-      { id: 'conv-1', unread_count: 5 },
-    ]
+    const conversations = [{ id: 'conv-1', unread_count: 5 }]
     let globalUnreadCount = 10
     const prevUnread = conversations[0].unread_count
 

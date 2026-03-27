@@ -33,9 +33,7 @@ const saving = ref(false)
 const message = ref('')
 const draftRestored = ref(false)
 
-const draftKey = computed(
-  () => `ai3l_question_draft_${auth.user?.id ?? 'anon'}`,
-)
+const draftKey = computed(() => `ai3l_question_draft_${auth.user?.id ?? 'anon'}`)
 
 const {
   data: draftData,

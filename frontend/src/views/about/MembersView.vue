@@ -145,10 +145,9 @@ onMounted(fetchMembers)
             <BaseBadge :variant="roleBadgeVariant[member.role] || 'neutral'" size="sm" class="mt-1">
               {{ roleLabel[member.role] || member.role }}
             </BaseBadge>
-            <p
-              v-if="member.affiliation"
-              class="text-xs text-muted mt-2 truncate w-full"
-            >{{ member.affiliation }}</p>
+            <p v-if="member.affiliation" class="text-xs text-muted mt-2 truncate w-full">
+              {{ member.affiliation }}
+            </p>
             <p
               v-if="member.bio"
               class="text-xs text-muted mt-1 line-clamp-2 w-full"
