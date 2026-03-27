@@ -291,7 +291,7 @@ export default {
       description: 'Cuéntenos un poco sobre usted y por qué desea unirse a la comunidad.',
       placeholder: 'Describa su formación e intereses de investigación...',
       submitBtn: 'Enviar solicitud',
-      success: '¡Solicitud enviada correctamente!',
+      success: '¡Gracias por tu solicitud! La revisaremos lo antes posible. Recibirás una notificación cuando se tome una decisión.',
       error: 'Error al enviar la solicitud.',
       reasonLabel: '¿Por qué desea unirse?',
       usernamePlaceholder: 'Elige un nombre de usuario',

@@ -272,7 +272,7 @@ export default {
       description: '请简单介绍您自己，以及为什么想加入社区。',
       placeholder: '描述您的背景和研究兴趣...',
       submitBtn: '提交申请',
-      success: '申请提交成功！',
+      success: '感谢您的申请！我们会尽快处理，审核结果将通过通知告知您。',
       error: '申请提交失败。',
       reasonLabel: '您为什么想加入？',
       usernamePlaceholder: '选择用户名',

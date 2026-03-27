@@ -272,7 +272,7 @@ export default {
       description: '請簡單介紹您自己，以及為什麼想加入社群。',
       placeholder: '描述您的背景和研究興趣...',
       submitBtn: '提交申請',
-      success: '申請提交成功！',
+      success: '感謝您的申請！我們會盡速處理，審核結果將透過通知告知您。',
       error: '申請提交失敗。',
       reasonLabel: '您為什麼想加入？',
       usernamePlaceholder: '選擇使用者名稱',

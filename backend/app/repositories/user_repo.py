@@ -390,6 +390,17 @@ async def decrement_storage_used(user_id: uuid.UUID, delta_bytes: int) -> None:
         )
 
 
+async def find_ids_by_roles(roles: list[str]) -> list[uuid.UUID]:
+    """Return IDs of all non-deleted users whose role is in *roles*."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id FROM users WHERE role = ANY($1::text[]) AND is_deleted = false",
+            roles,
+        )
+        return [r["id"] for r in rows]
+
+
 async def count_by_role(role: str) -> int:
     """Count non-deleted users with the given role."""
     pool = get_pool()

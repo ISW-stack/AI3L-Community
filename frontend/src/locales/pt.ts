@@ -291,7 +291,7 @@ export default {
       description: 'Conte-nos um pouco sobre você e por que gostaria de entrar na comunidade.',
       placeholder: 'Descreva sua formação e interesses de pesquisa...',
       submitBtn: 'Enviar Solicitação',
-      success: 'Solicitação enviada com sucesso!',
+      success: 'Obrigado pela sua candidatura! Analisaremos o mais breve possível. Você será notificado(a) quando uma decisão for tomada.',
       error: 'Falha ao enviar solicitação.',
       reasonLabel: 'Por que deseja entrar?',
       usernamePlaceholder: 'Escolha um nome de usuário',

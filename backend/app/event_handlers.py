@@ -172,6 +172,42 @@ async def _on_post_deleted(
         raise  # Let event bus retry
 
 
+async def _on_application_created(
+    applicant_uid: str,
+    display_name: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify all ADMIN and SUPER_ADMIN users that a new membership application arrived."""
+    from app.repositories import user_repo
+    from app.services.notification import create_notification
+
+    try:
+        admin_ids = await user_repo.find_ids_by_roles(["ADMIN", "SUPER_ADMIN"])
+    except Exception:
+        logger.error("Failed to fetch admin IDs for application notification", exc_info=True)
+        raise  # Let event bus retry
+
+    for admin_id in admin_ids:
+        if not await _check_idempotent(str(admin_id), "application", applicant_uid, "created"):
+            continue
+        try:
+            await create_notification(
+                user_id=str(admin_id),
+                trigger_user_id=applicant_uid,
+                action_type="SYSTEM",
+                entity_type="application",
+                entity_id=None,
+                message=f"New membership application from {display_name}",
+            )
+        except Exception:
+            logger.error(
+                "Failed to notify admin about new application",
+                extra={"admin_id": str(admin_id)},
+                exc_info=True,
+            )
+            # Continue notifying other admins even if one fails
+
+
 async def _on_application_reviewed(
     applicant_uid: str,
     reviewer_uid: str,
@@ -663,6 +699,7 @@ def register_all() -> None:
     """Register all event handlers. Called once at application startup."""
     on("comment.created", _on_comment_created)
     on("post.deleted", _on_post_deleted)
+    on("application.created", _on_application_created)
     on("application.reviewed", _on_application_reviewed)
     on("user.banned", _on_user_banned)
     on("user.role_changed", _on_user_role_changed)

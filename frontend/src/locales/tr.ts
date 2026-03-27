@@ -292,7 +292,7 @@ export default {
       description: 'Kendinizi ve topluluğa katılmak isteme nedeninizi kısaca anlatın.',
       placeholder: 'Geçmişinizi ve araştırma ilgi alanlarınızı açıklayın...',
       submitBtn: 'Başvuruyu Gönder',
-      success: 'Başvuru başarıyla gönderildi!',
+      success: 'Başvurunuz için teşekkürler! En kısa sürede inceleyeceğiz. Karar verildiğinde bilgilendirileceksiniz.',
       error: 'Başvuru gönderilemedi.',
       reasonLabel: 'Neden katılmak istiyorsunuz?',
       usernamePlaceholder: 'Kullanıcı adı seçin',

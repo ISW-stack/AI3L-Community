@@ -290,7 +290,7 @@ export default {
       description: '본인에 대해 소개하고 커뮤니티에 가입하고 싶은 이유를 알려주세요.',
       placeholder: '학력 및 연구 관심사를 기술해 주세요...',
       submitBtn: '신청서 제출',
-      success: '신청서가 성공적으로 제출되었습니다!',
+      success: '신청해 주셔서 감사합니다! 최대한 빨리 검토하겠습니다. 결과는 알림으로 안내드리겠습니다.',
       error: '신청서 제출에 실패했습니다.',
       reasonLabel: '가입하려는 이유를 알려주세요.',
       usernamePlaceholder: '사용자 이름을 선택하세요',

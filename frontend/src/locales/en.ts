@@ -297,7 +297,8 @@ export default {
       passwordPlaceholder: 'Choose a password',
       passwordHint: 'Min 8 characters, with uppercase, lowercase, digit, and special character.',
       submitBtn: 'Submit Application',
-      success: 'Application submitted successfully! An admin will review it shortly.',
+      success:
+        'Thank you for your application! We will review it as soon as possible. You will be notified once a decision is made.',
       error: 'Failed to submit application.',
       status: {
         PENDING: 'Pending Review',

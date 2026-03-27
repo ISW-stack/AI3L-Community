@@ -292,7 +292,7 @@ export default {
         'Ceritakan sedikit tentang diri Anda dan mengapa Anda ingin bergabung dengan komunitas ini.',
       placeholder: 'Jelaskan latar belakang dan minat penelitian Anda...',
       submitBtn: 'Kirim Permohonan',
-      success: 'Permohonan berhasil dikirim!',
+      success: 'Terima kasih atas pengajuan Anda! Kami akan meninjau sesegera mungkin. Anda akan diberi tahu setelah keputusan dibuat.',
       error: 'Gagal mengirim permohonan.',
       reasonLabel: 'Mengapa Anda ingin bergabung?',
       usernamePlaceholder: 'Pilih nama pengguna',

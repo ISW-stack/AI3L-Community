@@ -294,7 +294,7 @@ export default {
         'Erzählen Sie uns etwas über sich und warum Sie der Community beitreten möchten.',
       placeholder: 'Beschreiben Sie Ihren Hintergrund und Ihre Forschungsinteressen...',
       submitBtn: 'Bewerbung einreichen',
-      success: 'Bewerbung erfolgreich eingereicht!',
+      success: 'Vielen Dank für Ihre Bewerbung! Wir werden sie so schnell wie möglich prüfen. Sie werden benachrichtigt, sobald eine Entscheidung getroffen wurde.',
       error: 'Bewerbung konnte nicht eingereicht werden.',
       reasonLabel: 'Warum möchten Sie beitreten?',
       usernamePlaceholder: 'Benutzernamen wählen',

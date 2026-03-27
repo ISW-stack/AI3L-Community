@@ -292,7 +292,7 @@ export default {
         'Parlez-nous un peu de vous et de la raison pour laquelle vous souhaitez rejoindre la communauté.',
       placeholder: 'Décrivez votre parcours et vos intérêts de recherche...',
       submitBtn: 'Soumettre la candidature',
-      success: 'Candidature soumise avec succès !',
+      success: 'Merci pour votre candidature ! Nous l\'examinerons dans les plus brefs délais. Vous serez notifié(e) dès qu\'une décision sera prise.',
       error: 'Échec de la soumission de la candidature.',
       reasonLabel: 'Pourquoi souhaitez-vous nous rejoindre ?',
       usernamePlaceholder: "Choisissez un nom d'utilisateur",

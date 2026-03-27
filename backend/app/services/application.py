@@ -36,6 +36,14 @@ async def create_application(
     if row is None:
         raise ValueError("You already have a pending application.")
     logger.info("Membership application created", extra={"user_id": str(guest_id)})
+
+    # Notify all ADMIN / SUPER_ADMIN users about the new application
+    await emit(
+        "application.created",
+        applicant_uid=str(guest_id),
+        display_name=display_name,
+    )
+
     return row
 
 

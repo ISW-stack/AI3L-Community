@@ -291,7 +291,7 @@ export default {
       description: "Raccontaci un po' di te e perché vorresti unirti alla comunità.",
       placeholder: 'Descrivi il tuo background e i tuoi interessi di ricerca...',
       submitBtn: 'Invia candidatura',
-      success: 'Candidatura inviata con successo!',
+      success: 'Grazie per la tua richiesta! La esamineremo il prima possibile. Riceverai una notifica non appena verrà presa una decisione.',
       error: 'Invio della candidatura non riuscito.',
       reasonLabel: 'Perché vuoi unirti?',
       usernamePlaceholder: 'Scegli un nome utente',

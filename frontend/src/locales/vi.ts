@@ -291,7 +291,7 @@ export default {
       description: 'Hãy giới thiệu đôi chút về bản thân và lý do bạn muốn tham gia cộng đồng.',
       placeholder: 'Mô tả nền tảng và lĩnh vực nghiên cứu của bạn...',
       submitBtn: 'Gửi đơn đăng ký',
-      success: 'Đơn đăng ký đã được gửi thành công!',
+      success: 'Cảm ơn bạn đã đăng ký! Chúng tôi sẽ xem xét sớm nhất có thể. Bạn sẽ được thông báo khi có kết quả.',
       error: 'Gửi đơn đăng ký thất bại.',
       reasonLabel: 'Tại sao bạn muốn tham gia?',
       usernamePlaceholder: 'Chọn tên người dùng',

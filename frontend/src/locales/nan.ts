@@ -287,7 +287,7 @@ export default {
       description: '共咱講一寡你ê背景，kah 你想欲加入ê原因。',
       placeholder: '請介紹你ê背景 kah 研究興趣...',
       submitBtn: '送出申請',
-      success: '申請成功送出！',
+      success: '感謝你的申請！阮會盡快處理，審核結果會用通知予你知。',
       error: '申請送出失敗。',
       reasonLabel: '你為啥物想欲加入？',
       usernamePlaceholder: '揀一个使用者名稱',
