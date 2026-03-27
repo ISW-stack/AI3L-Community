@@ -83,7 +83,7 @@ onMounted(fetchSigs)
             </p>
             <div class="flex items-center justify-between text-xs text-muted">
               <span>{{ sig.member_count }} {{ t('sigs.directory.memberCount') }}</span>
-              <span>{{ formatDate(sig.created_at, locale.value) }}</span>
+              <span>{{ formatDate(sig.created_at, locale) }}</span>
             </div>
           </BaseCard>
         </router-link>

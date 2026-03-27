@@ -1,10 +1,10 @@
-import DOMPurify from 'dompurify'
+import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify'
 
 /**
  * Centralized DOMPurify configuration for the AI3L Community app.
  * All HTML sanitization MUST use this config for consistency.
  */
-export const SANITIZE_CONFIG: DOMPurify.Config = {
+export const SANITIZE_CONFIG: DOMPurifyConfig = {
   ALLOWED_TAGS: [
     'p',
     'br',
@@ -69,7 +69,7 @@ export const SANITIZE_CONFIG: DOMPurify.Config = {
 
 /** Sanitize HTML using the centralized config. */
 export function sanitizeHtml(html: string): string {
-  return DOMPurify.sanitize(html, SANITIZE_CONFIG)
+  return DOMPurify.sanitize(html, SANITIZE_CONFIG) as string
 }
 
 /**
@@ -102,7 +102,7 @@ export function sanitizePreviewHtml(html: string): string {
     ALLOWED_TAGS: PREVIEW_ALLOWED_TAGS,
     ALLOWED_ATTR: [],
     FORCE_BODY: true,
-  })
+  }) as string
 }
 
 /**

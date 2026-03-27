@@ -299,7 +299,7 @@ onMounted(fetchForms)
               >{{ f.response_count }} {{ t('sigs.forms.responses') }}</span
             >
             <span v-if="f.deadline"
-              >{{ t('sigs.forms.ends') }} {{ formatDate(f.deadline, locale.value) }}</span
+              >{{ t('sigs.forms.ends') }} {{ formatDate(f.deadline, locale) }}</span
             >
             <span>{{ t('common.by') }} {{ f.created_by_name || 'Admin' }}</span>
           </div>

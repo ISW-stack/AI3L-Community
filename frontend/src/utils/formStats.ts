@@ -206,7 +206,7 @@ export function filterResponses(
 
   if (searchQuery.trim()) {
     const query = searchQuery.trim().toLowerCase()
-    filtered = filtered.filter((r) => r.display_name.toLowerCase().includes(query))
+    filtered = filtered.filter((r) => (r.display_name ?? '').toLowerCase().includes(query))
   }
 
   if (dateFrom) {

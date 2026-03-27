@@ -132,19 +132,22 @@ export function useFormResponseViewer(
           console.warn('[FormResponseViewer] Expected question_stats to be an array, got:', typeof statsData.question_stats)
           formStats.value = []
         } else {
-          const mapped = statsData.question_stats
-            .filter((qs: Record<string, unknown>) => {
-              if (!qs || typeof qs !== 'object' || !qs.question_id || !qs.stats) {
+          const mapped = (statsData.question_stats as unknown[])
+            .filter((qs: unknown) => {
+              if (!qs || typeof qs !== 'object' || !(qs as Record<string, unknown>).question_id || !(qs as Record<string, unknown>).stats) {
                 console.warn('[FormResponseViewer] Invalid question stat entry:', qs)
                 return false
               }
               return true
             })
-            .map((qs: Record<string, unknown>) => ({
-              ...(qs.stats as Record<string, unknown>),
-              questionId: qs.question_id,
-              label: qs.question_label,
-            }))
+            .map((qs: unknown) => {
+              const entry = qs as Record<string, unknown>
+              return {
+                ...(entry.stats as Record<string, unknown>),
+                questionId: entry.question_id,
+                label: entry.question_label,
+              }
+            })
           formStats.value = mapped as QuestionStats[]
         }
       }

@@ -336,7 +336,7 @@ const currentRouteName = computed(() => route.name)
                   <span>{{ t('albums.photosCount', { count: album.photo_count }) }}</span>
                   <span>{{ t('albums.membersCount', { count: album.member_count }) }}</span>
                   <span>{{
-                    t('albums.created', { date: formatDate(album.created_at, currentLocale.value) })
+                    t('albums.created', { date: formatDate(album.created_at, currentLocale) })
                   }}</span>
                 </div>
               </template>
