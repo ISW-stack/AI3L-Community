@@ -17,7 +17,9 @@ async def insert(
         row = await conn.fetchrow(
             """
             WITH inserted AS (
-                INSERT INTO notifications (id, user_id, trigger_user_id, action_type, entity_type, entity_id, message)  # noqa: E501
+                INSERT INTO notifications
+                    (id, user_id, trigger_user_id, action_type,
+                     entity_type, entity_id, message)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
             )
