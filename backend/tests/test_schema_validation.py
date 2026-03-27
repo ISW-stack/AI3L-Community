@@ -167,7 +167,7 @@ class TestAdminCreateAccountRequestValidation:
 class TestUsernamePattern:
     @pytest.mark.parametrize(
         "username",
-        ["alice", "Bob_123", "user-name", "abc", "a" * 50],
+        ["alice", "Bob_123", "user-name", "abc", "a" * 50, "user@name", "user.name", "leo@gmail.com"],
     )
     def test_valid_usernames(self, username):
         _valid_create_account(username=username)
@@ -176,8 +176,6 @@ class TestUsernamePattern:
         "username",
         [
             "user name",  # space
-            "user@name",  # special char
-            "user.name",  # dot
             "\u0430dmin",  # Cyrillic 'a' (homograph)
             "user\u200bname",  # zero-width space
             "admin!",  # exclamation
@@ -194,7 +192,7 @@ class TestUsernamePattern:
 
     def test_admin_create_username_pattern(self):
         with pytest.raises(ValidationError):
-            _valid_admin_create(username="bad@user")
+            _valid_admin_create(username="bad!user")
 
 
 # ===========================================================================

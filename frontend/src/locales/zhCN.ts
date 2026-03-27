@@ -137,7 +137,7 @@ export default {
     sessionExpired: '登录已过期，请重新登录。',
     usernameMinLength: '用户名至少需要 3 个字符。',
     usernameMaxLength: '用户名最多 50 个字符。',
-    usernameFormat: '用户名只能包含字母、数字、下划线和连字符。',
+    usernameFormat: '用户名只能包含字母、数字、下划线、连字符、点和 @。',
     usernameInvalid: '用户名格式不符合要求。',
   },
   privacy: {
@@ -1564,6 +1564,7 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description: '浏览社区关于 AI 语言学习的问答。提出问题、为有用的回答投票，并标记最佳答案。',
     askQuestion: '提问',
     noQuestions: '暂无问题',
     answered: '已回答',

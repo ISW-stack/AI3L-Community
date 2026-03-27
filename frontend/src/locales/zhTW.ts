@@ -137,7 +137,7 @@ export default {
     sessionExpired: '登入已逾時，請重新登入。',
     usernameMinLength: '使用者名稱至少需要 3 個字元。',
     usernameMaxLength: '使用者名稱最多 50 個字元。',
-    usernameFormat: '使用者名稱只能包含字母、數字、底線及連字符。',
+    usernameFormat: '使用者名稱只能包含字母、數字、底線、連字符、點及 @。',
     usernameInvalid: '使用者名稱格式不符合要求。',
   },
   privacy: {
@@ -1564,6 +1564,7 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description: '瀏覽社群關於 AI 語言學習的問答。提出問題、為有用的回答投票，並標記最佳解答。',
     askQuestion: '提問',
     noQuestions: '尚無問題',
     answered: '已回答',

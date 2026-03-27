@@ -145,7 +145,7 @@ export default {
     sessionExpired: 'セッションが切れました。再度ログインしてください。',
     usernameMinLength: 'ユーザー名は3文字以上である必要があります。',
     usernameMaxLength: 'ユーザー名は50文字以下である必要があります。',
-    usernameFormat: 'ユーザー名に使用できるのは英数字、アンダースコア、ハイフンのみです。',
+    usernameFormat: 'ユーザー名に使用できるのは英数字、アンダースコア、ハイフン、ドット、@のみです。',
     usernameInvalid: 'ユーザー名がフォーマット要件を満たしていません。',
   },
 
@@ -1616,6 +1616,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'AI言語学習に関するコミュニティのQ&Aを閲覧できます。質問を投稿し、役立つ回答に投票して、最良の回答をマークしましょう。',
     askQuestion: '質問する',
     noQuestions: 'まだ質問がありません',
     answered: '回答済み',

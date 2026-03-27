@@ -168,8 +168,8 @@ onMounted(() => {
       <template v-else>
         <!-- Profile Header -->
         <BaseCard padding="lg" class="mb-6">
-          <div class="flex flex-col sm:flex-row sm:items-start gap-4">
-            <div class="flex items-center sm:items-start gap-3 sm:gap-4">
+          <div class="flex flex-col sm:flex-row sm:items-start gap-0 sm:gap-4">
+            <div class="flex items-start gap-3 sm:gap-4">
               <BaseAvatar :src="user.avatar_url" :name="user.display_name" size="lg" />
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2 mb-1">
@@ -185,7 +185,7 @@ onMounted(() => {
               </div>
             </div>
             <div
-              class="flex flex-wrap items-center gap-2 sm:shrink-0 sm:flex-col sm:items-end sm:ml-auto"
+              class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border sm:mt-0 sm:pt-0 sm:border-t-0 sm:shrink-0 sm:flex-col sm:items-end sm:ml-auto"
             >
               <router-link
                 v-if="isOwnProfile"

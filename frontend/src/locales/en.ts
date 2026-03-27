@@ -128,7 +128,7 @@ export default {
     passwordInvalid: 'Password does not meet the security requirements.',
     usernameMinLength: 'Username must be at least 3 characters.',
     usernameMaxLength: 'Username must be at most 50 characters.',
-    usernameFormat: 'Username can only contain letters, numbers, underscores, and hyphens.',
+    usernameFormat: 'Username can only contain letters, numbers, underscores, hyphens, dots, and @.',
     usernameInvalid: 'Username does not meet the format requirements.',
     loginButton: 'Log In',
     loginLoading: 'Logging in...',
@@ -1624,6 +1624,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'Browse community questions and answers on AI in language learning. Ask questions, vote on helpful answers, and mark the best response.',
     askQuestion: 'Ask a Question',
     noQuestions: 'No questions yet',
     answered: 'Answered',

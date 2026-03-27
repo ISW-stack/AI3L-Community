@@ -146,7 +146,7 @@ export default {
     sessionExpired: 'Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.',
     usernameMinLength: 'Tên người dùng phải có ít nhất 3 ký tự.',
     usernameMaxLength: 'Tên người dùng không được vượt quá 50 ký tự.',
-    usernameFormat: 'Tên người dùng chỉ được chứa chữ cái, chữ số, dấu gạch dưới và dấu gạch ngang.',
+    usernameFormat: 'Tên người dùng chỉ được chứa chữ cái, chữ số, dấu gạch dưới, dấu gạch ngang, dấu chấm và @.',
     usernameInvalid: 'Tên người dùng không đáp ứng yêu cầu định dạng.',
   },
 
@@ -1618,6 +1618,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'Khám phá câu hỏi và câu trả lời của cộng đồng về AI trong học ngôn ngữ. Đặt câu hỏi, bỏ phiếu cho câu trả lời hữu ích và đánh dấu câu trả lời tốt nhất.',
     askQuestion: 'Đặt câu hỏi',
     noQuestions: 'Chưa có câu hỏi nào',
     answered: 'Đã trả lời',

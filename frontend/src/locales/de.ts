@@ -146,7 +146,7 @@ export default {
     sessionExpired: 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
     usernameMinLength: 'Der Benutzername muss mindestens 3 Zeichen lang sein.',
     usernameMaxLength: 'Der Benutzername darf maximal 50 Zeichen lang sein.',
-    usernameFormat: 'Der Benutzername darf nur Buchstaben, Zahlen, Unterstriche und Bindestriche enthalten.',
+    usernameFormat: 'Der Benutzername darf nur Buchstaben, Zahlen, Unterstriche, Bindestriche, Punkte und @ enthalten.',
     usernameInvalid: 'Der Benutzername erfüllt die Formatanforderungen nicht.',
   },
 
@@ -1635,6 +1635,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'Durchsuchen Sie Community-Fragen und -Antworten zur KI im Sprachenlernen. Stellen Sie Fragen, stimmen Sie für hilfreiche Antworten ab und markieren Sie die beste Antwort.',
     askQuestion: 'Frage stellen',
     noQuestions: 'Noch keine Fragen',
     answered: 'Beantwortet',

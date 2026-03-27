@@ -144,7 +144,7 @@ export default {
     sessionExpired: 'Session 已過期，請重新登入。',
     usernameMinLength: '使用者名稱至少著有 3 字元。',
     usernameMaxLength: '使用者名稱上濟 50 字元。',
-    usernameFormat: '使用者名稱只允許字母、數字、底線 kah 連字符。',
+    usernameFormat: '使用者名稱只允許字母、數字、底線、連字符、點 kah @。',
     usernameInvalid: '使用者名稱無符合格式要求。',
   },
 
@@ -1603,6 +1603,7 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description: '瀏覽社群關於AI語言學習ê問答。提問題、替有用ê答案投票，kah標記上好ê答案。',
     askQuestion: '問問題',
     noQuestions: '猶未有問題',
     answered: '有答案矣',

@@ -40,6 +40,7 @@ const mySigs = ref<Sig[]>([])
 const saving = ref(false)
 const message = ref('')
 const draftRestored = ref(false)
+const submitted = ref(false)
 
 const draftKey = computed(
   () => `ai3l_post_draft_${querySigId || 'general'}_${authStore.user?.id ?? 'anon'}`,
@@ -173,6 +174,7 @@ async function createPost() {
     if (keywords.value.length) payload.keywords = keywords.value
     const data = await apiCreatePost(payload)
     clearDraft()
+    submitted.value = true
     router.push(`/forum/${data.id}`)
   } catch (e: unknown) {
     message.value = getErrorMessage(e, t('post.create.errorFailed'))
@@ -202,6 +204,7 @@ function goBack() {
 }
 
 onBeforeRouteLeave(() => {
+  if (submitted.value) return true
   if (title.value?.trim() || content.value?.trim()) {
     return window.confirm('You have unsaved changes. Are you sure you want to leave?')
   }

@@ -81,8 +81,8 @@ const passwordsMatch = computed(
   () => password.value === confirmPassword.value && password.value.length > 0,
 )
 
-// Username validation: 3-50 chars, alphanumeric + underscore + hyphen (mirrors backend)
-const USERNAME_RE = /^[a-zA-Z0-9_-]+$/
+// Username validation: 3-50 chars, alphanumeric + underscore + hyphen + dot + @ (mirrors backend)
+const USERNAME_RE = /^[a-zA-Z0-9_.@-]+$/
 const usernameValid = computed(() => {
   const u = username.value
   if (u.length === 0) return true // Don't show error for empty (required handles it)

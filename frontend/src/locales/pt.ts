@@ -146,7 +146,7 @@ export default {
     sessionExpired: 'Sua sessão expirou. Por favor, faça login novamente.',
     usernameMinLength: 'O nome de utilizador deve ter pelo menos 3 caracteres.',
     usernameMaxLength: 'O nome de utilizador não pode ter mais de 50 caracteres.',
-    usernameFormat: 'O nome de utilizador só pode conter letras, números, underscores e hífens.',
+    usernameFormat: 'O nome de utilizador só pode conter letras, números, underscores, hífens, pontos e @.',
     usernameInvalid: 'O nome de utilizador não cumpre os requisitos de formato.',
   },
 
@@ -1623,6 +1623,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'Explore as perguntas e respostas da comunidade sobre IA no aprendizado de idiomas. Faça perguntas, vote em respostas úteis e marque a melhor resposta.',
     askQuestion: 'Fazer uma pergunta',
     noQuestions: 'Ainda sem perguntas',
     answered: 'Respondida',

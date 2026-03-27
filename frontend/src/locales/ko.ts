@@ -145,7 +145,7 @@ export default {
     sessionExpired: '세션이 만료되었습니다. 다시 로그인해 주세요.',
     usernameMinLength: '사용자 이름은 최소 3자 이상이어야 합니다.',
     usernameMaxLength: '사용자 이름은 50자를 초과할 수 없습니다.',
-    usernameFormat: '사용자 이름에는 문자, 숫자, 밑줄 및 하이픈만 사용할 수 있습니다.',
+    usernameFormat: '사용자 이름에는 문자, 숫자, 밑줄, 하이픈, 점 및 @만 사용할 수 있습니다.',
     usernameInvalid: '사용자 이름이 형식 요구 사항을 충족하지 않습니다.',
   },
 
@@ -1614,6 +1614,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'AI 언어 학습에 관한 커뮤니티 질문과 답변을 둘러보세요. 질문을 올리고, 유용한 답변에 투표하고, 최고의 답변을 표시하세요.',
     askQuestion: '질문하기',
     noQuestions: '아직 질문이 없습니다',
     answered: '답변됨',

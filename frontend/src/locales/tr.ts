@@ -146,7 +146,7 @@ export default {
     sessionExpired: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.',
     usernameMinLength: 'Kullanıcı adı en az 3 karakter içermelidir.',
     usernameMaxLength: 'Kullanıcı adı en fazla 50 karakter içerebilir.',
-    usernameFormat: 'Kullanıcı adı yalnızca harf, rakam, alt çizgi ve kısa çizgi içerebilir.',
+    usernameFormat: 'Kullanıcı adı yalnızca harf, rakam, alt çizgi, kısa çizgi, nokta ve @ içerebilir.',
     usernameInvalid: 'Kullanıcı adı format gereksinimlerini karşılamıyor.',
   },
 
@@ -1623,6 +1623,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'Dil öğreniminde YZ hakkında topluluk sorularını ve yanıtlarını keşfedin. Soru sorun, faydalı yanıtları oylayın ve en iyi yanıtı işaretleyin.',
     askQuestion: 'Soru Sor',
     noQuestions: 'Henüz soru yok',
     answered: 'Yanıtlandı',

@@ -3,6 +3,7 @@ import { ref, watch, nextTick, reactive, computed, onMounted, onUnmounted } from
 import type { DMMessage } from '@/types/dm'
 // relativeTime removed (unused) — date formatting handled in template
 import { useLocale } from '@/composables/useLocale'
+import { linkify } from '@/utils/linkify'
 
 const { currentLocale: locale } = useLocale()
 import { useI18n } from 'vue-i18n'
@@ -331,7 +332,24 @@ defineExpose({ scrollToBottom })
                 v-if="item.message.content"
                 class="whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
               >
-                {{ item.message.content }}
+                <template
+                  v-for="(seg, si) in linkify(item.message.content)"
+                  :key="si"
+                  ><a
+                    v-if="seg.isUrl"
+                    :href="seg.text"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="underline break-all"
+                    :class="
+                      isMine(item.message)
+                        ? 'text-white/90 hover:text-white'
+                        : 'text-brand-600 hover:text-brand-700'
+                    "
+                    @click.stop
+                    >{{ seg.text }}</a
+                  ><template v-else>{{ seg.text }}</template></template
+                >
               </p>
 
               <!-- File attachment -->

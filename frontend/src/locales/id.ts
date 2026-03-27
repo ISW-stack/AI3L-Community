@@ -146,7 +146,7 @@ export default {
     sessionExpired: 'Sesi Anda telah berakhir. Silakan masuk kembali.',
     usernameMinLength: 'Nama pengguna harus memiliki minimal 3 karakter.',
     usernameMaxLength: 'Nama pengguna tidak boleh lebih dari 50 karakter.',
-    usernameFormat: 'Nama pengguna hanya boleh mengandung huruf, angka, garis bawah, dan tanda hubung.',
+    usernameFormat: 'Nama pengguna hanya boleh mengandung huruf, angka, garis bawah, tanda hubung, titik, dan @.',
     usernameInvalid: 'Nama pengguna tidak memenuhi persyaratan format.',
   },
 
@@ -1626,6 +1626,8 @@ export default {
   // ── Q&A ──
   qa: {
     title: 'Q&A',
+    description:
+      'Jelajahi pertanyaan dan jawaban komunitas tentang AI dalam pembelajaran bahasa. Ajukan pertanyaan, beri suara jawaban yang berguna, dan tandai jawaban terbaik.',
     askQuestion: 'Ajukan Pertanyaan',
     noQuestions: 'Belum ada pertanyaan',
     answered: 'Dijawab',
