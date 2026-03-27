@@ -349,7 +349,7 @@ async def get_my_application_status(
 ) -> dict:
     """Return the guest's most recent membership application, if any."""
     if current_user["role"] != "GUEST":
-        raise AppError(ErrorCode.AUTH_003, 403, "Only guests can view application status.")
+        raise AppError(ErrorCode.SYS_403, 403, "Only guests can view application status.")
     from app.schemas.application import MyApplicationResponse
     from app.services.application import get_my_application
 

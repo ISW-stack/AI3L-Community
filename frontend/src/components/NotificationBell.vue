@@ -52,6 +52,8 @@ async function markRead(notif: Notification) {
 function navigateToEntity(notif: Notification) {
   if (notif.entity_type === 'friendship') {
     router.push('/friends')
+  } else if (notif.action_type === 'CO_AUTHOR_INVITE') {
+    router.push('/profile?tab=social')
   } else if ((notif.entity_type === 'comment' || notif.entity_type === 'post') && notif.entity_id) {
     router.push(`/forum/${notif.entity_id}`)
   } else {

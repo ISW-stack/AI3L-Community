@@ -462,8 +462,7 @@ describe('HomeView', () => {
       consoleSpy.mockRestore()
     })
 
-    it('M3: fetchMyApplication logs non-404/401 errors', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    it('M3: fetchMyApplication shows toast for non-404 errors', async () => {
       mockGetMyApplication.mockRejectedValue(
         Object.assign(new Error('Server Error'), {
           isAxiosError: true,
@@ -473,11 +472,10 @@ describe('HomeView', () => {
       await mountHome({ role: 'GUEST' })
       await flushPromises()
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to fetch application status:',
-        expect.anything(),
-      )
-      consoleSpy.mockRestore()
+      const { useToastStore } = await import('@/stores/toast')
+      const toastStore = useToastStore()
+      expect(toastStore.toasts.length).toBeGreaterThan(0)
+      expect(toastStore.toasts[0].type).toBe('error')
     })
   })
 })

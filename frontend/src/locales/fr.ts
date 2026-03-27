@@ -306,6 +306,7 @@ export default {
       validation: {
         usernameMin: "Le nom d'utilisateur doit comporter au moins 3 caractères.",
         usernameMax: "Le nom d'utilisateur ne doit pas dépasser 50 caractères.",
+        usernameFormat: "Le nom d'utilisateur ne peut contenir que des lettres, chiffres, underscores, tirets, points et @.",
         passwordMin: 'Le mot de passe doit comporter au moins 8 caractères.',
         passwordPolicy:
           'Le mot de passe doit contenir une majuscule, une minuscule, un chiffre et un caractère spécial.',

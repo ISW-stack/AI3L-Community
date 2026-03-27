@@ -306,6 +306,7 @@ export default {
       validation: {
         usernameMin: 'Kullanıcı adı en az 3 karakter olmalıdır.',
         usernameMax: 'Kullanıcı adı en fazla 50 karakter olabilir.',
+        usernameFormat: 'Kullanıcı adı yalnızca harf, rakam, alt çizgi, tire, nokta ve @ içerebilir.',
         passwordMin: 'Şifre en az 8 karakter olmalıdır.',
         passwordPolicy: 'Şifre büyük harf, küçük harf, rakam ve özel karakter içermelidir.',
         displayNameRequired: 'Görünen ad zorunludur.',

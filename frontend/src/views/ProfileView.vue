@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import {
@@ -25,8 +25,12 @@ import { useLocale } from '@/composables/useLocale'
 const { t } = useLocale()
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
-const activeTab = ref<'general' | 'social' | 'security' | 'danger'>('general')
+const validTabs = ['general', 'social', 'security', 'danger'] as const
+type Tab = (typeof validTabs)[number]
+const initialTab = validTabs.includes(route.query.tab as Tab) ? (route.query.tab as Tab) : 'general'
+const activeTab = ref<Tab>(initialTab)
 
 const displayName = ref('')
 const bio = ref('')
@@ -176,6 +180,16 @@ watch(
   (newUser) => {
     if (newUser && !formInitialized.value) {
       populateForm()
+    }
+  },
+)
+
+// Sync activeTab when navigating to /profile?tab=social (e.g. from notification click)
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (validTabs.includes(tab as Tab)) {
+      activeTab.value = tab as Tab
     }
   },
 )

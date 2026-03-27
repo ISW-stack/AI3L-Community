@@ -305,6 +305,7 @@ export default {
       validation: {
         usernameMin: 'ユーザー名は3文字以上である必要があります。',
         usernameMax: 'ユーザー名は50文字以内である必要があります。',
+        usernameFormat: 'ユーザー名には英数字、アンダースコア、ハイフン、ドット、@ のみ使用できます。',
         passwordMin: 'パスワードは8文字以上である必要があります。',
         passwordPolicy: 'パスワードは大文字・小文字・数字・特殊文字を含む必要があります。',
         displayNameRequired: '表示名は必須です。',

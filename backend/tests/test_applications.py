@@ -82,7 +82,7 @@ class TestApplyMembership:
 
     @pytest.mark.anyio
     async def test_non_guest_rejected(self, client):
-        """POST /users/apply-member → 400 for non-GUEST."""
+        """POST /users/apply-member → 422 for non-GUEST."""
         try:
             _override_auth("MEMBER")
             with patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True):
@@ -91,7 +91,7 @@ class TestApplyMembership:
                     json=_VALID_APPLY_BODY,
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 400
+                assert resp.status_code == 422
         finally:
             _clear_overrides()
 

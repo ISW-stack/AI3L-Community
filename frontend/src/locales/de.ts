@@ -308,6 +308,7 @@ export default {
       validation: {
         usernameMin: 'Der Benutzername muss mindestens 3 Zeichen lang sein.',
         usernameMax: 'Der Benutzername darf höchstens 50 Zeichen lang sein.',
+        usernameFormat: 'Der Benutzername darf nur Buchstaben, Zahlen, Unterstriche, Bindestriche, Punkte und @ enthalten.',
         passwordMin: 'Das Passwort muss mindestens 8 Zeichen lang sein.',
         passwordPolicy:
           'Das Passwort muss Groß-, Kleinbuchstaben, eine Ziffer und ein Sonderzeichen enthalten.',

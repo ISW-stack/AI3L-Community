@@ -14,6 +14,16 @@ export function getErrorMessage(
   const detail = (e as { response?: { data?: { detail?: unknown } } }).response?.data?.detail
 
   if (detail && typeof detail === 'object') {
+    // Pydantic 422 validation errors: detail is an array of {loc, msg, type}
+    if (Array.isArray(detail) && detail.length > 0) {
+      const first = detail[0] as { msg?: string; loc?: unknown[] }
+      if (typeof first.msg === 'string') {
+        const field = Array.isArray(first.loc) ? String(first.loc[first.loc.length - 1]) : ''
+        const msg = field ? `${field}: ${first.msg}` : first.msg
+        if (msg.length <= 200) return msg
+        return fallback
+      }
+    }
     const code =
       (detail as Record<string, unknown>).error_code ?? (detail as Record<string, unknown>).code
     if (code && typeof code === 'string' && isTranslateFn) {

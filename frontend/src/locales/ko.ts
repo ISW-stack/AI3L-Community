@@ -304,6 +304,7 @@ export default {
       validation: {
         usernameMin: '사용자 이름은 최소 3자여야 합니다.',
         usernameMax: '사용자 이름은 최대 50자여야 합니다.',
+        usernameFormat: '사용자 이름에는 영문자, 숫자, 밑줄, 하이픈, 마침표, @만 사용할 수 있습니다.',
         passwordMin: '비밀번호는 최소 8자여야 합니다.',
         passwordPolicy: '비밀번호는 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다.',
         displayNameRequired: '표시 이름은 필수입니다.',

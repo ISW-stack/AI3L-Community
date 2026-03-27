@@ -306,6 +306,7 @@ export default {
       validation: {
         usernameMin: 'Nama pengguna harus minimal 3 karakter.',
         usernameMax: 'Nama pengguna maksimal 50 karakter.',
+        usernameFormat: 'Nama pengguna hanya boleh berisi huruf, angka, garis bawah, tanda hubung, titik, dan @.',
         passwordMin: 'Kata sandi harus minimal 8 karakter.',
         passwordPolicy: 'Kata sandi harus mencakup huruf besar, kecil, angka, dan karakter khusus.',
         displayNameRequired: 'Nama tampilan wajib diisi.',

@@ -56,10 +56,14 @@ const myApplication = ref<MyApplication | null>(null)
 
 function validateApplyForm(): boolean {
   const errs: Record<string, string> = {}
-  if (applyForm.value.username.length < 3)
+  const uname = applyForm.value.username
+  if (uname.length < 3) {
     errs.username = t('home.applyMembership.validation.usernameMin')
-  if (applyForm.value.username.length > 50)
+  } else if (uname.length > 50) {
     errs.username = t('home.applyMembership.validation.usernameMax')
+  } else if (!/^[a-zA-Z0-9_.@-]+$/.test(uname)) {
+    errs.username = t('home.applyMembership.validation.usernameFormat')
+  }
   const pw = applyForm.value.password
   if (pw.length < 8) {
     errs.password = t('home.applyMembership.validation.passwordMin')
@@ -108,12 +112,12 @@ async function fetchMyApplication() {
     const data = await getMyApplication()
     myApplication.value = data.application
   } catch (e: unknown) {
-    // 404/401 expected for guests without user records — ignore
+    // If the axios interceptor already cleared the session (e.g. 401),
+    // bail silently — the user is being redirected to login.
+    if (!auth.isAuthenticated) return
+    // 404 expected for guests who haven't applied yet
     const { isAxiosError } = await import('axios')
-    if (isAxiosError(e)) {
-      const status = e.response?.status
-      if (status === 404 || status === 401) return
-    }
+    if (isAxiosError(e) && e.response?.status === 404) return
     // Surface unexpected errors
     toast.show(
       getErrorMessage(

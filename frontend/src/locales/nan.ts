@@ -301,6 +301,7 @@ export default {
       validation: {
         usernameMin: '使用者名稱著愛至少 3 个字元。',
         usernameMax: '使用者名稱上多 50 个字元。',
+        usernameFormat: '使用者名稱干焦會當用字母、數字、底線、連字號、點佮 @。',
         passwordMin: '密碼著愛至少 8 个字元。',
         passwordPolicy: '密碼著愛包含大寫、小寫、數字 kah 特殊字元。',
         displayNameRequired: '顯示名稱是必填ê。',

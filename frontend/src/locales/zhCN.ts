@@ -286,6 +286,7 @@ export default {
       validation: {
         usernameMin: '用户名至少需要 3 个字符。',
         usernameMax: '用户名最多 50 个字符。',
+        usernameFormat: '用户名只能包含字母、数字、下划线、连字符、点和 @。',
         passwordMin: '密码至少需要 8 个字符。',
         passwordPolicy: '密码必须包含大写字母、小写字母、数字和特殊字符。',
         displayNameRequired: '显示名称为必填项。',

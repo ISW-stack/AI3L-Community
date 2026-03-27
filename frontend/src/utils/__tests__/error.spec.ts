@@ -107,4 +107,39 @@ describe('getErrorMessage', () => {
     const t = (key: string) => (key === 'auth.loginFailed' ? 'Login failed.' : key)
     expect(getErrorMessage(error, t, 'auth.loginFailed')).toBe('Login failed.')
   })
+
+  it('extracts Pydantic 422 validation error from array detail', () => {
+    const error = {
+      response: {
+        data: {
+          detail: [
+            {
+              loc: ['body', 'username'],
+              msg: "String should match pattern '^[a-zA-Z0-9_.@-]+$'",
+              type: 'string_pattern_mismatch',
+            },
+          ],
+        },
+      },
+    }
+    expect(getErrorMessage(error)).toBe(
+      "username: String should match pattern '^[a-zA-Z0-9_.@-]+$'",
+    )
+  })
+
+  it('handles Pydantic 422 array with missing loc', () => {
+    const error = {
+      response: {
+        data: {
+          detail: [{ msg: 'Value error', type: 'value_error' }],
+        },
+      },
+    }
+    expect(getErrorMessage(error)).toBe('Value error')
+  })
+
+  it('returns fallback for empty Pydantic 422 array', () => {
+    const error = { response: { data: { detail: [] } } }
+    expect(getErrorMessage(error)).toBe('An unexpected error occurred.')
+  })
 })
