@@ -85,7 +85,7 @@ async function handleSaveEdit() {
   try {
     const updated = await updateAlbum(album.value.id, {
       title: editTitle.value.trim(),
-      description: editDescription.value.trim() || undefined,
+      description: editDescription.value.trim() || null,
     })
     album.value = updated
     editing.value = false

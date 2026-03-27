@@ -30,7 +30,7 @@ export async function createAlbum(albumData: {
 
 export async function updateAlbum(
   id: string,
-  albumData: { title?: string; description?: string },
+  albumData: { title?: string; description?: string | null },
 ): Promise<Album> {
   const { data } = await api.put<Album>(`/albums/${id}`, albumData)
   return data

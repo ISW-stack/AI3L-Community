@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+from typing import Any
 
 import asyncpg
 from loguru import logger
@@ -9,6 +10,8 @@ from app.core.database import get_pool
 from app.core.event_bus import emit
 from app.repositories import sig_repo
 from app.services.org_chart import invalidate_org_chart_cache
+
+_UNSET: Any = object()  # sentinel: parameter was not supplied by caller
 
 
 async def create_sig(name: str, description: str | None, creator_id: str) -> dict:
@@ -46,8 +49,8 @@ async def get_sig_by_id(sig_id: uuid.UUID) -> dict | None:
 
 async def update_sig(
     sig_id: uuid.UUID,
-    name: str | None = None,
-    description: str | None = None,
+    name: Any = _UNSET,
+    description: Any = _UNSET,
     caller_id: str | None = None,
     caller_role: str | None = None,
 ) -> dict | None:
@@ -82,8 +85,8 @@ async def update_sig(
             )
             if not current:
                 return None
-            new_name = name if name is not None else current["name"]
-            new_desc = description if description is not None else current["description"]
+            new_name = name if name is not _UNSET else current["name"]
+            new_desc = description if description is not _UNSET else current["description"]
 
             row = await conn.fetchrow(
                 """

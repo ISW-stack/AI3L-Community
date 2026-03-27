@@ -105,12 +105,20 @@ async def update_existing_sig(
     if not await check_rate_limit(f"rl:sig_crud:{current_user['sub']}", *RATE_LIMIT_SIG_CRUD):
         raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     # Permission check is done inside the service layer transaction to prevent TOCTOU
-    description = sanitize_html(req.description) if req.description else req.description
+    # Only pass fields that were explicitly provided in the request body.
+    # Omitted fields use the _UNSET sentinel in the service → keep current value.
+    # Explicitly provided fields (even null) → update to that value.
+    kwargs: dict = {}
+    if "name" in req.model_fields_set:
+        kwargs["name"] = req.name
+    if "description" in req.model_fields_set:
+        kwargs["description"] = (
+            sanitize_html(req.description) if req.description else req.description
+        )
     try:
         sig = await update_sig(
             sig_id,
-            name=req.name,
-            description=description,
+            **kwargs,
             caller_id=current_user["sub"],
             caller_role=current_user["role"],
         )
