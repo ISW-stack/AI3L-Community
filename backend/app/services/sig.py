@@ -70,7 +70,7 @@ async def update_sig(
                     sig_role = await sig_repo.get_member_role_in_conn(
                         sig_id, uuid.UUID(caller_id), conn
                     )
-                    if sig_role != "ADMIN":
+                    if sig_role not in ("ADMIN", "SUB_ADMIN"):
                         raise PermissionError("Not authorized.")
 
             # Read current values inside the transaction to prevent TOCTOU race
@@ -135,12 +135,17 @@ async def remove_member(
             is_global_admin = caller_role in ("SUPER_ADMIN", "ADMIN")
             if not is_global_admin:
                 caller_sig_role = await sig_repo.get_member_role_in_conn(sig_id, caller_uuid, conn)
-                if caller_sig_role != "ADMIN":
+                if caller_sig_role not in ("ADMIN", "SUB_ADMIN"):
                     raise PermissionError("Not authorized.")
 
             member_role = await sig_repo.get_member_role_in_conn(sig_id, user_uuid, conn)
             if not member_role:
                 return False
+
+            # SUB_ADMIN can only remove regular MEMBERs
+            if not is_global_admin and caller_sig_role == "SUB_ADMIN":
+                if member_role in ("ADMIN", "SUB_ADMIN"):
+                    raise PermissionError("Not authorized.")
 
             if member_role == "ADMIN":
                 admin_count = await sig_repo.count_admins(sig_id, conn)

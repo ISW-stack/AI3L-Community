@@ -48,7 +48,8 @@ const showConfirmModal = computed({
 })
 
 const isSigOwner = computed(() => userSigRole?.value === 'ADMIN')
-const canEdit = computed(() => auth.isAdmin || isSigOwner.value)
+const isSigSubAdmin = computed(() => userSigRole?.value === 'SUB_ADMIN')
+const canEdit = computed(() => auth.isAdmin || isSigOwner.value || isSigSubAdmin.value)
 
 const memberRoleBadge: Record<string, 'orange' | 'purple' | 'brand'> = {
   ADMIN: 'orange',
@@ -76,7 +77,11 @@ function goToPage(p: number) {
 
 function canRemoveMember(m: SigMember) {
   if (m.user_id === auth.user?.id) return false
-  // SUB_ADMIN cannot remove ADMIN
+  // SUB_ADMIN can only remove regular MEMBERs
+  if (isSigSubAdmin.value) {
+    return m.role === 'MEMBER'
+  }
+  // ADMIN cannot remove other ADMINs unless platform admin
   if (m.role === 'ADMIN') {
     return auth.isAdmin // Only platform admin can remove SIG admin
   }
