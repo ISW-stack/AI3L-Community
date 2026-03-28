@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatDate } from '@/utils/date'
 import { useI18n } from 'vue-i18n'
@@ -47,9 +47,6 @@ const showConfirmModal = computed({
   },
 })
 
-const _isSigAdmin = computed(
-  () => userSigRole?.value === 'ADMIN' || userSigRole?.value === 'SUB_ADMIN',
-)
 const isSigOwner = computed(() => userSigRole?.value === 'ADMIN')
 const canEdit = computed(() => auth.isAdmin || isSigOwner.value)
 
@@ -146,6 +143,11 @@ async function handleAssignSubAdmin(userId: string) {
 }
 
 onMounted(fetchMembers)
+
+// Re-fetch when the current user's SIG role changes so action buttons and badges stay in sync.
+watch(userSigRole, () => {
+  fetchMembers()
+})
 </script>
 
 <template>

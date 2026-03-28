@@ -64,11 +64,8 @@ provide('refreshSigRole', refreshSigRole)
 
 const sigShareUrl = computed(() => `${window.location.origin}/sigs/${sigId.value}`)
 const isMember = computed(() => userSigRole.value !== null)
-const isSigAdmin = computed(
-  () => userSigRole.value === 'ADMIN' || userSigRole.value === 'SUB_ADMIN',
-)
 const canJoin = computed(() => auth.isAuthenticated && !auth.isGuest && !isMember.value)
-const canEdit = computed(() => auth.isAdmin || isSigAdmin.value)
+const canEdit = computed(() => auth.isAdmin || userSigRole.value === 'ADMIN')
 const canDelete = computed(() => auth.isAdmin)
 const canLeave = computed(() => userSigRole.value !== null)
 

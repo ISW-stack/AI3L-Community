@@ -65,6 +65,12 @@ watch(sigId, () => {
   fetchForms()
 })
 
+// Re-fetch when the current user's SIG role changes (e.g. promotion via WebSocket)
+// so that user_is_sig_admin flags on form cards are up-to-date.
+watch(userSigRole, () => {
+  fetchForms()
+})
+
 // ── Feature 4: Card Description Expand ──
 const expandedDescriptions = ref<Set<string>>(new Set())
 const truncatedDescriptions = ref<Set<string>>(new Set())

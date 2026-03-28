@@ -30,6 +30,7 @@ import {
   toggleReaction as apiToggleReaction,
 } from '@/api/comments'
 import { createReport } from '@/api/reports'
+import { getMySigRole } from '@/api/sigs'
 import { getFileScanStatus } from '@/api/files'
 import { listCoAuthors } from '@/api/coauthors'
 import { getCitedBy, getCiting } from '@/api/citations'
@@ -132,6 +133,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   // --- Pin ---
   const pinSaving = ref(false)
+  const sigRole = ref<string | null>(null)
 
   // --- Co-Authors ---
   const coAuthors = ref<CoAuthor[]>([])
@@ -159,6 +161,13 @@ export function usePostDetail(options: UsePostDetailOptions) {
     return coAuthors.value.some((ca) => ca.user_id === auth.user!.id && ca.status === 'ACCEPTED')
   })
   const canModify = computed(() => isAuthor.value || authIsAdmin.value || isCoAuthor.value)
+
+  const canPin = computed(() => {
+    if (authIsAdmin.value) return true
+    // SIG ADMIN can pin posts in their SIG
+    if (post.value?.sig_id && sigRole.value === 'ADMIN') return true
+    return false
+  })
 
   const canReport = computed(() => {
     if (!authIsAuthenticated.value || authIsGuest.value) return false
@@ -246,6 +255,16 @@ export function usePostDetail(options: UsePostDetailOptions) {
       const data = await getPost(postId.value)
       if (isUnmounted) return
       post.value = data
+      // Fetch SIG role for pin permission if this is a SIG post
+      if (data.sig_id && toValue(auth.isAuthenticated) && !toValue(auth.isGuest)) {
+        try {
+          sigRole.value = await getMySigRole(data.sig_id)
+        } catch {
+          sigRole.value = null
+        }
+      } else {
+        sigRole.value = null
+      }
     } catch (e: unknown) {
       if (!isUnmounted) {
         post.value = null
@@ -692,6 +711,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     // Reset state
     post.value = null
     loading.value = true
+    sigRole.value = null
     comments.value = []
     coAuthors.value = []
     citedBy.value = []
@@ -819,6 +839,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     canReport,
     // Pin
     pinSaving,
+    canPin,
     // Permissions
     isAuthor,
     isCoAuthor,

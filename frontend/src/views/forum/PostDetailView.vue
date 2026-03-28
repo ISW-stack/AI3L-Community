@@ -72,6 +72,7 @@ const {
   reportMessage,
   canReport,
   pinSaving,
+  canPin,
   isAuthor,
   isCoAuthor,
   canModify,
@@ -233,7 +234,7 @@ const breadcrumbItems = computed(() => {
             <div class="flex gap-2 shrink-0">
               <CopyShareLinkButton v-if="auth.isAuthenticated" :url="postShareUrl" />
               <button
-                v-if="auth.isAdmin"
+                v-if="canPin"
                 :disabled="pinSaving"
                 class="text-sm text-amber-600 hover:underline disabled:opacity-50"
                 @click="handleTogglePin"

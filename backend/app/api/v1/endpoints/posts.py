@@ -324,21 +324,30 @@ async def delete_post(
 async def toggle_pin(
     post_id: uuid.UUID,
     req: PinPostRequest,
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
     post = await get_post_by_id(post_id)
     if post is None:
         raise AppError(ErrorCode.SYS_404, 404, "Post not found.")
 
-    # For SIG posts, only SIG admins or SUPER_ADMIN may pin/unpin
-    if post.get("sig_id") and current_user["role"] != "SUPER_ADMIN":
-        from app.repositories import sig_repo
+    is_platform_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
 
-        sig_role = await sig_repo.get_member_role(
-            uuid.UUID(post["sig_id"]), uuid.UUID(current_user["sub"])
-        )
-        if sig_role != "ADMIN":
-            raise AppError(ErrorCode.SYS_403, 403, "Only SIG admins can pin posts in this SIG.")
+    if post.get("sig_id"):
+        # SIG post: platform admin or SIG ADMIN can pin
+        if not is_platform_admin:
+            from app.repositories import sig_repo
+
+            sig_role = await sig_repo.get_member_role(
+                uuid.UUID(post["sig_id"]), uuid.UUID(current_user["sub"])
+            )
+            if sig_role != "ADMIN":
+                raise AppError(
+                    ErrorCode.SYS_403, 403, "Only SIG admins can pin posts in this SIG."
+                )
+    else:
+        # Non-SIG post: only platform admin can pin
+        if not is_platform_admin:
+            raise AppError(ErrorCode.SYS_403, 403, "Only platform admins can pin general posts.")
 
     updated = await pin_post(post_id, req.is_pinned)
     if not updated:
