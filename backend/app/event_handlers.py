@@ -718,6 +718,65 @@ async def _on_dm_messages_read(
         raise
 
 
+async def _on_report_created(
+    reporter_uid: str,
+    report_id: str,
+    post_id: str,
+    post_title: str,
+    **_kwargs: Any,
+) -> None:
+    """Notify all ADMIN and SUPER_ADMIN users that a new report was submitted."""
+    from app.repositories import user_repo
+    from app.services.notification import create_notification
+
+    try:
+        admin_ids = await user_repo.find_ids_by_roles(["ADMIN", "SUPER_ADMIN"])
+    except Exception:
+        logger.error("Failed to fetch admin IDs for report notification", exc_info=True)
+        raise
+
+    failed: list[uuid.UUID] = []
+    for admin_id in admin_ids:
+        admin_id_str = str(admin_id)
+        dedup_key = f"notify:idempotent:{admin_id_str}:report:{report_id}:created"
+        try:
+            await create_notification(
+                user_id=admin_id_str,
+                trigger_user_id=reporter_uid,
+                action_type="SYSTEM",
+                entity_type="report",
+                entity_id=report_id,
+                message=f"New report on post: {post_title}",
+            )
+            try:
+                from app.core.redis import get_redis
+
+                redis = get_redis()
+                await redis.set(dedup_key, "1", ex=300, nx=True)
+            except Exception:
+                pass
+        except Exception:
+            try:
+                from app.core.redis import get_redis
+
+                redis = get_redis()
+                if await redis.exists(dedup_key):
+                    continue
+            except Exception:
+                pass
+            logger.error(
+                "Failed to notify admin about new report",
+                extra={"admin_id": admin_id_str},
+                exc_info=True,
+            )
+            failed.append(admin_id)
+
+    if failed:
+        raise RuntimeError(
+            f"Failed to notify {len(failed)}/{len(admin_ids)} admin(s) about new report"
+        )
+
+
 def register_all() -> None:
     """Register all event handlers. Called once at application startup."""
     on("comment.created", _on_comment_created)
@@ -741,3 +800,4 @@ def register_all() -> None:
     on("dm.message_edited", _on_dm_message_edited)
     on("dm.message_recalled", _on_dm_message_recalled)
     on("dm.messages_read", _on_dm_messages_read)
+    on("report.created", _on_report_created)

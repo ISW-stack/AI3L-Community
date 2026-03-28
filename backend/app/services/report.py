@@ -23,6 +23,22 @@ async def create_report(post_id: uuid.UUID, user_id: str, reason: str) -> dict:
     if row is None:
         raise ValueError("You have already reported this post.")
     logger.info("Report created", extra={"report_id": str(report_id), "post_id": str(post_id)})
+
+    # Notify admins about the new report
+    try:
+        from app.core.event_bus import emit
+
+        post_title = post.get("title", "Unknown") if post else "Unknown"
+        await emit(
+            "report.created",
+            reporter_uid=user_id,
+            report_id=str(report_id),
+            post_id=str(post_id),
+            post_title=post_title,
+        )
+    except Exception:
+        logger.warning("Failed to emit report.created event", extra={"report_id": str(report_id)})
+
     return row_to_report(row)
 
 
