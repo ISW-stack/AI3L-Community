@@ -13,6 +13,13 @@ _handlers: dict[str, list[Callable]] = defaultdict(list)
 MAX_RETRIES = 2
 RETRY_DELAY = 1.0  # seconds
 
+# L-03: Critical audit events — permanent failure logs at CRITICAL level for alerting
+_CRITICAL_AUDIT_EVENTS = frozenset({
+    "audit.action",
+    "user.role_changed",
+    "user.banned",
+})
+
 
 @dataclass
 class HandlerFailure:
@@ -73,7 +80,10 @@ async def emit(event: str, **kwargs: Any) -> EmitResult:
                 if attempt <= MAX_RETRIES:
                     await asyncio.sleep(RETRY_DELAY)
 
-        logger.error(
+        log_fn = (
+            logger.critical if event in _CRITICAL_AUDIT_EVENTS else logger.error
+        )
+        log_fn(
             "Event handler permanently failed after retries",
             exc_info=True,
             extra={
@@ -138,7 +148,10 @@ async def _persist_failed_event(
         await redis.expire("event_bus:failed", 86400)  # 24h TTL
         return True
     except Exception:
-        logger.warning(
+        log_fn = (
+            logger.critical if event in _CRITICAL_AUDIT_EVENTS else logger.error
+        )
+        log_fn(
             "Failed to persist event failure to Redis — event lost",
             exc_info=True,
             extra={

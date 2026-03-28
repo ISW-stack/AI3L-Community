@@ -405,17 +405,17 @@ maxmemory-policy volatile-lru  # 只淘汰設有 TTL 的 key
 
 ## LOW — 排入待辦
 
-### L-01: requirements.txt 版本範圍過寬
+### L-01: requirements.txt 版本範圍過寬 ✅ FIXED
 
-`fastapi>=0.110.0,<1.0.0` 允許重大升級，建議 pin 精確版本或窄範圍。
+所有套件已收窄至合理的上限範圍（如 `fastapi>=0.110.0,<0.120.0`、`pydantic>=2.5.0,<3.0.0`）。
 
 ### L-02: 開發環境 port 暴露
 
 `docker-compose.override.yml` 暴露 15432/16379/19000 至 localhost。開發環境可接受，但需確認生產 compose 不含此設定。
 
-### L-03: Audit log 寫入失敗靜默
+### L-03: Audit log 寫入失敗靜默 ✅ FIXED
 
-Event bus emit 失敗僅 log warning，不觸發告警。關鍵審計事件可能遺失。
+新增 `_CRITICAL_AUDIT_EVENTS` 集合（`audit.action`、`user.role_changed`、`user.banned`）。關鍵審計事件永久失敗或 Redis 持久化失敗時，日誌升級為 `CRITICAL` 級別；非關鍵事件從 `warning` 升級為 `error`。8 個新測試。
 
 ### L-04: Datadog APM 可能暴露敏感 request/response
 

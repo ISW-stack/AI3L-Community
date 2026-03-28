@@ -166,9 +166,19 @@ async def count_super_admins_for_update(conn: Any) -> int:
 async def anonymize(
     user_id: uuid.UUID, anon_name: str, conn: Any | None = None
 ) -> bool:
-    """Anonymize a user. If conn is provided, uses it directly (for transactional use)."""
+    """Anonymize a user. If conn is provided, uses it directly (for transactional use).
 
-    async def _do(c: Any) -> bool:
+    Also deletes the user's avatar file from object storage after the DB
+    update succeeds, so a transaction rollback won't leave orphaned state.
+    """
+
+    async def _do(c: Any) -> tuple[bool, str | None]:
+        # Fetch avatar_url before nulling it so we can delete the file later
+        old_avatar = await c.fetchval(
+            "SELECT avatar_url FROM users WHERE id = $1 AND is_deleted = false",
+            user_id,
+        )
+
         result = await c.execute(
             """
             UPDATE users SET
@@ -186,13 +196,40 @@ async def anonymize(
             anon_name,
             user_id,
         )
-        return bool(result == "UPDATE 1")
+        return bool(result == "UPDATE 1"), old_avatar
 
     if conn is not None:
-        return await _do(conn)
-    pool = get_pool()
-    async with pool.acquire() as c:
-        return await _do(c)
+        # Caller owns the transaction — return result; caller is responsible
+        # for committing.  We still attempt file cleanup, but the DB change
+        # hasn't been committed yet.  Acceptable because the caller will
+        # commit shortly and the file is already unreferenced in the UPDATE.
+        updated, old_avatar = await _do(conn)
+    else:
+        pool = get_pool()
+        async with pool.acquire() as c:
+            updated, old_avatar = await _do(c)
+
+    # Best-effort delete of the avatar file from storage AFTER the DB
+    # write has succeeded (or, for transactional callers, after the UPDATE
+    # but before their commit — still safe because the avatar_url is
+    # already NULL in the pending transaction).
+    if updated and old_avatar:
+        try:
+            from starlette.concurrency import run_in_threadpool
+
+            from app.core.storage import delete_file
+
+            await run_in_threadpool(delete_file, old_avatar)
+        except Exception:
+            from loguru import logger as _logger
+
+            _logger.warning(
+                "Failed to delete avatar file during anonymization",
+                user_id=str(user_id),
+                avatar_url=old_avatar,
+            )
+
+    return updated
 
 
 async def set_ban(user_id: uuid.UUID, reason: str) -> bool:

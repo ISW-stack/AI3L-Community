@@ -12,6 +12,7 @@ from app.core.constants import (
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
+from app.core.logging_utils import safe_error_detail
 from app.core.rate_limit import check_rate_limit
 from app.schemas.auth import MessageResponse
 from app.schemas.post import PostListResponse
@@ -73,7 +74,7 @@ async def create_new_sig(
     try:
         sig = await create_sig(req.name, description, current_user["sub"])
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_409, 409, str(e))
+        raise AppError(ErrorCode.SYS_409, 409, safe_error_detail(e, "SIG creation conflict."))
     return SigResponse(**sig)
 
 
@@ -165,12 +166,12 @@ async def join_sig_endpoint(
     try:
         member = await join_sig(sig_id, current_user["sub"])
     except ValueError as e:
-        msg = str(e)
+        msg = safe_error_detail(e, "Cannot join SIG.")
         if "already a member" in msg.lower():
             raise AppError(ErrorCode.SYS_409, 409, msg)
         raise AppError(ErrorCode.SYS_404, 404, msg)
     except PermissionError as e:
-        raise AppError(ErrorCode.SYS_403, 403, str(e))
+        raise AppError(ErrorCode.SYS_403, 403, safe_error_detail(e, "Permission denied."))
     return SigMemberResponse(**member)
 
 
@@ -184,7 +185,7 @@ async def leave_sig_endpoint(
     try:
         left = await leave_sig(sig_id, current_user["sub"])
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Cannot leave SIG."))
     if not left:
         raise AppError(ErrorCode.SYS_404, 404, "Not a member of this SIG.")
     return MessageResponse(message="Left SIG successfully.")
@@ -212,7 +213,7 @@ async def remove_sig_member(
     except PermissionError:
         raise AppError(ErrorCode.SYS_403, 403, "Not authorized.")
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Cannot remove member."))
     if not removed:
         raise AppError(ErrorCode.SYS_404, 404, "Member not found.")
     return MessageResponse(message="Member removed.")
@@ -236,7 +237,7 @@ async def assign_sig_sub_admin(
     except PermissionError:
         raise AppError(ErrorCode.SYS_403, 403, "Not authorized.")
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_404, 404, str(e))
+        raise AppError(ErrorCode.SYS_404, 404, safe_error_detail(e, "Member not found."))
     return SigMemberResponse(**member)
 
 
@@ -259,7 +260,7 @@ async def demote_sig_sub_admin(
     except PermissionError:
         raise AppError(ErrorCode.SYS_403, 403, "Not authorized.")
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Cannot demote member."))
     return SigMemberResponse(**member)
 
 

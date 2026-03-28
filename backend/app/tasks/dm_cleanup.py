@@ -163,7 +163,7 @@ async def _cleanup_text() -> dict:
 _DM_ORPHAN_BATCH_SIZE = 1000
 
 
-@celery.task(name="cleanup_dm_orphan_files", bind=True, max_retries=2, default_retry_delay=30)
+@celery.task(name="cleanup_dm_orphan_files", bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=3500, time_limit=3600)
 def cleanup_dm_orphan_files(self) -> dict:  # type: ignore[override]
     """Weekly task: delete dm/ files in MinIO not referenced by any dm_messages row."""
     result: dict = _run_async(_cleanup_dm_orphans())

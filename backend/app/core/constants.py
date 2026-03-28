@@ -164,6 +164,9 @@ RATE_LIMIT_DM_UNREAD = _rate_limit("DM_UNREAD", 30, 60)
 RATE_LIMIT_DM_ADMIN = _rate_limit("DM_ADMIN", 30, 60)
 DEFAULT_PAGE_SIZE_DM = 30
 
+# ── Admin ──
+RATE_LIMIT_ADMIN_DASHBOARD = _rate_limit("ADMIN_DASHBOARD", 10, 60)  # 10 per min
+
 # ── Feature 9: Site Data Export ──
 RATE_LIMIT_SITE_EXPORT = _rate_limit("SITE_EXPORT", 1, 1800)  # 1 per 30 minutes
 EXPORT_MAX_ZIP_BYTES = 10 * 1024 * 1024 * 1024  # 10 GB hard cap

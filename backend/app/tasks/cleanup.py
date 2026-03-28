@@ -257,7 +257,7 @@ def cleanup_old_read_notifications(self: Any, days: int = 90) -> dict[str, Any]:
     return result
 
 
-@celery.task(name="cleanup_orphan_files", bind=True, max_retries=2, default_retry_delay=30)
+@celery.task(name="cleanup_orphan_files", bind=True, max_retries=2, default_retry_delay=30, soft_time_limit=3500, time_limit=3600)
 def cleanup_orphan_files(self: Any) -> dict[str, Any]:
     """Weekly task: delete unreferenced editor files older than 7 days."""
 

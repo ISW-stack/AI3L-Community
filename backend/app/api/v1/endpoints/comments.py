@@ -7,6 +7,7 @@ from app.core.constants import RATE_LIMIT_COMMENT, RATE_LIMIT_REACTION
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
+from app.core.logging_utils import safe_error_detail
 from app.core.rate_limit import check_rate_limit
 from app.schemas.auth import MessageResponse
 from app.schemas.comment import (
@@ -77,7 +78,7 @@ async def create_new_comment(
             mentions=req.mentions,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid comment data."))
 
     return CommentResponse(**comment)
 

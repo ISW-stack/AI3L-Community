@@ -122,6 +122,12 @@ async def soft_delete(sig_id: uuid.UUID) -> bool:
                 sig_id,
             )
 
+            # Delete SIG-level notifications (invites, role changes, etc.)
+            await conn.execute(
+                "DELETE FROM notifications WHERE entity_type = 'SIG' AND entity_id = $1",
+                sig_id,
+            )
+
             # Delete form responses before forms
             await conn.execute(
                 "DELETE FROM form_responses WHERE form_id IN "

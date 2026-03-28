@@ -50,61 +50,64 @@ async def find_many(
     """Returns (rows, total, unread_count)."""
     pool = get_pool()
     async with pool.acquire() as conn:
-        where = "WHERE n.user_id = $1"
-        params: list = [user_id]
-        idx = 2
+        # Wrap both queries in a REPEATABLE READ transaction so the
+        # paginated results and unread_count reflect the same snapshot.
+        async with conn.transaction(isolation="repeatable_read"):
+            where = "WHERE n.user_id = $1"
+            params: list = [user_id]
+            idx = 2
 
-        if unread_only:
-            where += " AND n.is_read = false"
+            if unread_only:
+                where += " AND n.is_read = false"
 
-        if exclude_user_ids:
-            where += f" AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL(${idx}::uuid[]))"
-            params.append(exclude_user_ids)
-            idx += 1
+            if exclude_user_ids:
+                where += f" AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL(${idx}::uuid[]))"
+                params.append(exclude_user_ids)
+                idx += 1
 
-        # Save params before extending with LIMIT/OFFSET for potential fallback count query
-        count_params = list(params)
+            # Save params before extending with LIMIT/OFFSET for potential fallback count query
+            count_params = list(params)
 
-        params.extend([page_size, offset])
-        rows = await conn.fetch(
-            f"""
-            SELECT n.*,
-                   u.display_name AS trigger_display_name,
-                   u.avatar_url AS trigger_avatar_url,
-                   COUNT(*) OVER() AS _total
-            FROM notifications n
-            LEFT JOIN users u ON n.trigger_user_id = u.id
-            {where}
-            ORDER BY n.created_at DESC
-            LIMIT ${idx} OFFSET ${idx + 1}
-            """,
-            *params,
-        )
-
-        if rows:
-            total = rows[0]["_total"]
-            result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
-        else:
-            # Page may be out of range — do a separate count to get real total
-            total = await conn.fetchval(
-                f"SELECT COUNT(*) FROM notifications n {where}",
-                *count_params,
+            params.extend([page_size, offset])
+            rows = await conn.fetch(
+                f"""
+                SELECT n.*,
+                       u.display_name AS trigger_display_name,
+                       u.avatar_url AS trigger_avatar_url,
+                       COUNT(*) OVER() AS _total
+                FROM notifications n
+                LEFT JOIN users u ON n.trigger_user_id = u.id
+                {where}
+                ORDER BY n.created_at DESC
+                LIMIT ${idx} OFFSET ${idx + 1}
+                """,
+                *params,
             )
-            result = []
 
-        # Get unread count in same connection (respecting blocked-user filter)
-        unread_where = "WHERE n.user_id = $1 AND n.is_read = false"
-        unread_params: list = [user_id]
-        if exclude_user_ids:
-            unread_where += (
-                " AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL($2::uuid[]))"
+            if rows:
+                total = rows[0]["_total"]
+                result = [{k: v for k, v in dict(r).items() if k != "_total"} for r in rows]
+            else:
+                # Page may be out of range — do a separate count to get real total
+                total = await conn.fetchval(
+                    f"SELECT COUNT(*) FROM notifications n {where}",
+                    *count_params,
+                )
+                result = []
+
+            # Get unread count in same snapshot (respecting blocked-user filter)
+            unread_where = "WHERE n.user_id = $1 AND n.is_read = false"
+            unread_params: list = [user_id]
+            if exclude_user_ids:
+                unread_where += (
+                    " AND (n.trigger_user_id IS NULL OR n.trigger_user_id != ALL($2::uuid[]))"
+                )
+                unread_params.append(exclude_user_ids)
+            unread_count = await conn.fetchval(
+                f"SELECT COUNT(*) FROM notifications n {unread_where}",
+                *unread_params,
             )
-            unread_params.append(exclude_user_ids)
-        unread_count = await conn.fetchval(
-            f"SELECT COUNT(*) FROM notifications n {unread_where}",
-            *unread_params,
-        )
-        return result, total, unread_count
+            return result, total, unread_count
 
 
 async def mark_read(notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:

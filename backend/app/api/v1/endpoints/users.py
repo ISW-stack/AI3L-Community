@@ -17,6 +17,7 @@ from app.core.errors import (
 )
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
+from app.core.logging_utils import safe_error_detail
 from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.core.security import validate_password_policy
 from app.models.user import UserRole
@@ -93,7 +94,7 @@ async def update_my_profile(
             **provided,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid profile data."))
     if user is None:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
     return await async_user_to_response(user)
@@ -116,13 +117,13 @@ async def upload_avatar(
             filename=file.filename or "",
         )
     except ServiceValidationError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid file."))
     except StorageQuotaError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Storage quota exceeded."))
     except RateLimitError as e:
-        raise AppError(ErrorCode.SYS_429, 429, str(e))
+        raise AppError(ErrorCode.SYS_429, 429, safe_error_detail(e, "Too many requests."))
     except ServiceNotFoundError as e:
-        raise AppError(ErrorCode.SYS_404, 404, str(e))
+        raise AppError(ErrorCode.SYS_404, 404, safe_error_detail(e, "User not found."))
     return await async_user_to_response(user)
 
 
@@ -525,7 +526,7 @@ async def change_user_role(
     try:
         user = await update_user_role(user_id, req.role)
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid role change."))
     if user is None:
         raise AppError(ErrorCode.SYS_404, 404, "User not found.")
 

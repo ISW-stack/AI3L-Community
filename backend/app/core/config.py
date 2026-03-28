@@ -107,15 +107,25 @@ class Settings(BaseSettings):
     @property
     def CORS_ORIGINS_LIST(self) -> list[str]:
         origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
-        # M-12: Validate each origin has a proper URL format
+        is_prod = self.FASTAPI_ENV not in ("development", "test")
         for origin in origins:
             if not origin.startswith(("http://", "https://")):
+                if is_prod:
+                    raise ValueError(
+                        f"CORS origin '{origin}' does not start with http:// or https://. "
+                        f"Fix CORS_ORIGINS before starting in production."
+                    )
                 warnings.warn(
                     f"CORS origin '{origin}' does not start with http:// or https://. "
                     f"This may cause CORS to silently fail.",
                     stacklevel=2,
                 )
             if "*" in origin:
+                if is_prod:
+                    raise ValueError(
+                        f"CORS origin '{origin}' contains a wildcard. "
+                        f"Use explicit origins in production."
+                    )
                 warnings.warn(
                     f"CORS origin '{origin}' contains a wildcard. "
                     f"Use explicit origins for security.",
@@ -216,8 +226,13 @@ class Settings(BaseSettings):
                     "Consider using a less predictable username in production.",
                     stacklevel=1,
                 )
-        _remote_pg_hosts = frozenset({"localhost", "postgres", "127.0.0.1", "::1"})
-        if self.POSTGRES_HOST not in _remote_pg_hosts and not self.DATABASE_SSL:
+        _local_pg_hosts = frozenset({"localhost", "postgres", "127.0.0.1", "::1"})
+        if self.POSTGRES_HOST not in _local_pg_hosts and not self.DATABASE_SSL:
+            if self.FASTAPI_ENV not in ("development", "test"):
+                raise ValueError(
+                    f"DATABASE_SSL=False but POSTGRES_HOST='{self.POSTGRES_HOST}' looks like a "
+                    "remote host. Set DATABASE_SSL=True to encrypt database connections in production."
+                )
             warnings.warn(
                 f"DATABASE_SSL=False but POSTGRES_HOST='{self.POSTGRES_HOST}' looks like a remote "
                 "host. Enable DATABASE_SSL=True to encrypt database connections.",

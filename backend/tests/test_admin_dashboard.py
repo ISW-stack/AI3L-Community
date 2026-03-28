@@ -39,7 +39,10 @@ class TestDashboard:
 
         try:
             _override_auth("ADMIN")
-            with patch(f"{_EP}.get_dashboard_stats", new_callable=AsyncMock, return_value=stats):
+            with (
+                patch(f"{_EP}.get_dashboard_stats", new_callable=AsyncMock, return_value=stats),
+                patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True),
+            ):
                 resp = await client.get(
                     "/api/v1/admin/dashboard",
                     headers={"Authorization": "Bearer fake"},

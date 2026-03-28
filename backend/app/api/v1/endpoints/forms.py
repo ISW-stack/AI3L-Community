@@ -14,6 +14,7 @@ from app.core.constants import (
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.file_validation import sanitize_html
+from app.core.logging_utils import safe_error_detail
 from app.core.rate_limit import check_rate_limit
 from app.dependencies.sig_admin import require_sig_admin
 from app.repositories import sig_repo
@@ -78,7 +79,7 @@ async def create_new_form(
             allow_non_members=req.allow_non_members,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid form data."))
     form["user_is_sig_admin"] = True
     return FormResponseSchema(**form)
 
@@ -126,7 +127,7 @@ async def create_standalone_form(
             allow_non_members=True,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid form data."))
     return FormResponseSchema(**form)
 
 
@@ -205,7 +206,7 @@ async def get_form_statistics(
     try:
         stats = await get_form_stats(form_id)
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, str(e))
+        raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, safe_error_detail(e, "Form not found."))
     return FormStatsResponse(**stats)
 
 
@@ -284,9 +285,9 @@ async def update_existing_form(
             provided_fields=req.model_fields_set,
         )
     except PermissionError as e:
-        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))
+        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, safe_error_detail(e, "Permission denied."))
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid form data."))
     if form is None:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     form["user_is_sig_admin"] = True
@@ -313,7 +314,7 @@ async def delete_form(
     try:
         deleted = await soft_delete_form(form_id, current_user["sub"], is_admin)
     except PermissionError as e:
-        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))
+        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, safe_error_detail(e, "Permission denied."))
     if not deleted:
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
 
@@ -386,9 +387,9 @@ async def submit_form_response(
             is_guest=is_guest,
         )
     except PermissionError as e:
-        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, str(e))
+        raise AppError(ErrorCode.SYS_403, status.HTTP_403_FORBIDDEN, safe_error_detail(e, "Permission denied."))
     except ValueError as e:
-        detail = str(e)
+        detail = safe_error_detail(e, "Invalid submission.")
         if "already submitted" in detail.lower():
             raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, detail)
         raise AppError(ErrorCode.SYS_422, 422, detail)

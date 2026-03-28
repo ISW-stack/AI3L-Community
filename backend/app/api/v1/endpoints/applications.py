@@ -7,6 +7,7 @@ from app.core.constants import RATE_LIMIT_APPLY_MEMBER, RATE_LIMIT_REVIEW_APPLIC
 from app.core.deps import get_current_user, require_role
 from app.core.errors import AppError, ErrorCode
 from app.core.event_bus import emit
+from app.core.logging_utils import safe_error_detail
 from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.core.security import validate_password_policy
 from app.schemas.application import (
@@ -77,7 +78,7 @@ async def apply_for_membership(
             description=req.description,
         )
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, str(e))
+        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, safe_error_detail(e, "Application conflict."))
 
     return MessageResponse(message="Application submitted successfully.")
 
@@ -121,7 +122,7 @@ async def review_membership_application(
         # from update_status() when the user role upgrade fails (e.g. user was
         # deleted or is no longer a GUEST). 409 is appropriate since the
         # resource state conflicts with the requested operation.
-        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, str(e))
+        raise AppError(ErrorCode.SYS_409, status.HTTP_409_CONFLICT, safe_error_detail(e, "Review conflict."))
     if result is None:
         raise AppError(
             ErrorCode.SYS_404,

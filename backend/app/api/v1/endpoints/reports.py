@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.core.constants import RATE_LIMIT_REPORT
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
+from app.core.logging_utils import safe_error_detail
 from app.core.rate_limit import check_rate_limit
 from app.schemas.report import (
     PostReportCreateRequest,
@@ -37,7 +38,7 @@ async def report_post(
     try:
         report = await create_report(post_id, current_user["sub"], req.reason)
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_409, 409, str(e))
+        raise AppError(ErrorCode.SYS_409, 409, safe_error_detail(e, "Report conflict."))
 
     return PostReportResponse(**report)
 

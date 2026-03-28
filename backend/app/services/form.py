@@ -63,6 +63,14 @@ def validate_question_schema(questions: list[dict]) -> None:
                 raise ValueError(
                     f"Question '{qid}' of type '{qtype}' must have at least one option."
                 )
+            seen_option_ids: set[str] = set()
+            for opt_idx, opt in enumerate(q["options"]):
+                opt_id = opt.get("id", "")
+                if opt_id in seen_option_ids:
+                    raise ValueError(
+                        f"Question '{qid}' has duplicate option id '{opt_id}' at option index {opt_idx}."
+                    )
+                seen_option_ids.add(opt_id)
 
 
 async def create_form(
@@ -274,7 +282,7 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
                     )
 
             elif qtype in ("text", "textarea"):
-                if value != "":
+                if isinstance(value, str) and value.strip():
                     text_counts[qid] += 1
 
             elif qtype == "file_upload":

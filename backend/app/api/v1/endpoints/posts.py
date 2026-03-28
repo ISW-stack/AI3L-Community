@@ -8,6 +8,7 @@ from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode, RateLimitError
 from app.core.event_bus import emit
 from app.core.file_validation import sanitize_html
+from app.core.logging_utils import safe_error_detail
 from app.core.rate_limit import check_rate_limit, get_client_ip
 from app.schemas.comment import ReactionRequest
 from app.schemas.post import (
@@ -61,11 +62,11 @@ async def create_new_post(
             post_type=req.type,
         )
     except RateLimitError as e:
-        raise AppError(ErrorCode.SYS_429, 429, str(e))
+        raise AppError(ErrorCode.SYS_429, 429, safe_error_detail(e, "Too many requests."))
     except PermissionError as e:
-        raise AppError(ErrorCode.SYS_403, 403, str(e))
+        raise AppError(ErrorCode.SYS_403, 403, safe_error_detail(e, "Permission denied."))
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_422, 422, str(e))
+        raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid post data."))
 
     return PostResponse(**post)
 
@@ -277,9 +278,9 @@ async def update_existing_post(
             caller_role=current_user["role"],
         )
     except PermissionError as e:
-        raise AppError(ErrorCode.SYS_403, 403, str(e))
+        raise AppError(ErrorCode.SYS_403, 403, safe_error_detail(e, "Permission denied."))
     except ValueError as e:
-        raise AppError(ErrorCode.SYS_409, 409, str(e))
+        raise AppError(ErrorCode.SYS_409, 409, safe_error_detail(e, "Update conflict."))
 
     if post is None:
         raise AppError(ErrorCode.SYS_404, 404, "Post not found.")

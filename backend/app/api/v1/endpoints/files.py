@@ -346,7 +346,7 @@ async def serve_file(
     # Extract filename from key for Content-Disposition header
     safe_filename = key.rsplit("/", 1)[-1] if "/" in key else key
     # Sanitize filename: remove anything that's not alphanumeric, dot, hyphen, or underscore
-    safe_filename = re.sub(r"[^\w.\-]", "_", safe_filename) or "download"
+    safe_filename = re.sub(r'[^\w.\-]', "_", safe_filename) or "download"
 
     # Images can be viewed inline; everything else forces download
     disposition = "inline" if content_type and content_type.startswith("image/") else "attachment"

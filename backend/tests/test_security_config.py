@@ -40,7 +40,7 @@ class TestCookieSecureAutoDerive:
         s = _make_settings(FASTAPI_ENV="test")
         assert s.COOKIE_SECURE is False
 
-    _SAFE_PROD = dict(
+    _SAFE_PROD: dict = dict(
         JWT_SECRET_KEY="prod_secret_key_safe_at_least_32chars_long",
         SECRET_KEY="real_secret_key_prod_32chars_long_ok",
         SUPER_ADMIN_PASSWORD="prod_p@ssw0rd!",
@@ -258,3 +258,106 @@ class TestDevSecretWarnings:
             if "still using the default value" in str(c)
         ]
         assert len(dev_warning_calls) == 0, "Dev warning should not fire in production mode"
+
+
+# ---------------------------------------------------------------------------
+# H-05: DATABASE_SSL must be enforced in production for remote hosts
+# ---------------------------------------------------------------------------
+
+
+class TestDatabaseSSLEnforcement:
+    _SAFE_PROD = TestCookieSecureAutoDerive._SAFE_PROD
+
+    def test_production_remote_host_no_ssl_raises(self) -> None:
+        """Production with remote PG host and DATABASE_SSL=false must raise ValueError."""
+        with pytest.raises(ValueError, match="DATABASE_SSL"):
+            _make_settings(
+                FASTAPI_ENV="production",
+                POSTGRES_HOST="db.example.com",
+                DATABASE_SSL=False,
+                **self._SAFE_PROD,
+            )
+
+    def test_production_localhost_no_ssl_ok(self) -> None:
+        """Production with localhost PG host and no SSL is allowed (same-host)."""
+        s = _make_settings(
+            FASTAPI_ENV="production",
+            POSTGRES_HOST="localhost",
+            DATABASE_SSL=False,
+            **self._SAFE_PROD,
+        )
+        assert s.DATABASE_SSL is False
+
+    def test_production_docker_host_no_ssl_ok(self) -> None:
+        """Production with 'postgres' (Docker service name) and no SSL is allowed."""
+        s = _make_settings(
+            FASTAPI_ENV="production",
+            POSTGRES_HOST="postgres",
+            DATABASE_SSL=False,
+            **self._SAFE_PROD,
+        )
+        assert s.DATABASE_SSL is False
+
+    def test_development_remote_host_no_ssl_warns(self) -> None:
+        """Development with remote PG host should warn but not raise."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            _make_settings(
+                FASTAPI_ENV="development",
+                POSTGRES_HOST="db.example.com",
+                DATABASE_SSL=False,
+            )
+        ssl_warnings = [x for x in w if "DATABASE_SSL" in str(x.message)]
+        assert len(ssl_warnings) >= 1
+
+    def test_production_remote_host_with_ssl_ok(self) -> None:
+        """Production with remote PG host and DATABASE_SSL=true is fine."""
+        s = _make_settings(
+            FASTAPI_ENV="production",
+            POSTGRES_HOST="db.example.com",
+            DATABASE_SSL=True,
+            **self._SAFE_PROD,
+        )
+        assert s.DATABASE_SSL is True
+
+
+# ---------------------------------------------------------------------------
+# H-06: CORS wildcard/malformed origins must be blocked in production
+# ---------------------------------------------------------------------------
+
+
+class TestCORSProductionEnforcement:
+    _SAFE_PROD = {**TestCookieSecureAutoDerive._SAFE_PROD}
+
+    def test_production_wildcard_origin_raises(self) -> None:
+        """Production CORS_ORIGINS with wildcard must raise ValueError."""
+        overrides = {**self._SAFE_PROD, "CORS_ORIGINS": "*"}
+        with pytest.raises(ValueError, match="(wildcard|http)"):
+            s = _make_settings(FASTAPI_ENV="production", **overrides)
+            _ = s.CORS_ORIGINS_LIST  # property triggers validation
+
+    def test_production_malformed_origin_raises(self) -> None:
+        """Production CORS_ORIGINS without http(s):// prefix must raise."""
+        overrides = {**self._SAFE_PROD, "CORS_ORIGINS": "example.com"}
+        with pytest.raises(ValueError, match="http"):
+            s = _make_settings(FASTAPI_ENV="production", **overrides)
+            _ = s.CORS_ORIGINS_LIST
+
+    def test_production_valid_origin_ok(self) -> None:
+        """Production with proper https:// origin is accepted."""
+        overrides = {**self._SAFE_PROD, "CORS_ORIGINS": "https://app.example.com"}
+        s = _make_settings(FASTAPI_ENV="production", **overrides)
+        assert s.CORS_ORIGINS_LIST == ["https://app.example.com"]
+
+    def test_development_wildcard_warns_only(self) -> None:
+        """Development with wildcard origin warns but doesn't raise."""
+        import warnings
+
+        s = _make_settings(FASTAPI_ENV="development", CORS_ORIGINS="*")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            _ = s.CORS_ORIGINS_LIST
+        wildcard_warnings = [x for x in w if "wildcard" in str(x.message)]
+        assert len(wildcard_warnings) >= 1

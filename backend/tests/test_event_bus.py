@@ -8,6 +8,7 @@ import pytest
 from app.core import event_bus
 from app.core.event_bus import (
     MAX_RETRIES,
+    _CRITICAL_AUDIT_EVENTS,
     EmitResult,
     HandlerFailure,
     _persist_failed_event,
@@ -411,3 +412,90 @@ class TestEdgeCases:
         await emit("evt")
 
         handler.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# L-03: Critical audit event log escalation
+# ---------------------------------------------------------------------------
+
+
+class TestCriticalAuditEventLogging:
+    def test_critical_audit_events_set_is_not_empty(self):
+        assert len(_CRITICAL_AUDIT_EVENTS) > 0
+
+    def test_audit_action_is_critical(self):
+        assert "audit.action" in _CRITICAL_AUDIT_EVENTS
+
+    def test_user_role_changed_is_critical(self):
+        assert "user.role_changed" in _CRITICAL_AUDIT_EVENTS
+
+    def test_user_banned_is_critical(self):
+        assert "user.banned" in _CRITICAL_AUDIT_EVENTS
+
+    @pytest.mark.asyncio
+    async def test_critical_event_permanent_failure_logs_critical(self):
+        """When a critical audit event permanently fails, logger.critical is used."""
+
+        async def always_fails(**kw):
+            raise ValueError("audit handler broken")
+
+        on("audit.action", always_fails)
+
+        with patch("app.core.event_bus.asyncio.sleep", new_callable=AsyncMock):
+            with patch("app.core.event_bus._persist_failed_event", new_callable=AsyncMock):
+                with patch("app.core.event_bus.logger") as mock_logger:
+                    await emit("audit.action", user_id="u1", action="BAN")
+
+        mock_logger.critical.assert_called_once()
+        call_kwargs = mock_logger.critical.call_args
+        assert "permanently failed" in call_kwargs[0][0]
+        assert call_kwargs.kwargs.get("exc_info") is True
+
+    @pytest.mark.asyncio
+    async def test_non_critical_event_permanent_failure_logs_error(self):
+        """Non-critical events still use logger.error for permanent failures."""
+
+        async def always_fails(**kw):
+            raise ValueError("boom")
+
+        on("some_regular_event", always_fails)
+
+        with patch("app.core.event_bus.asyncio.sleep", new_callable=AsyncMock):
+            with patch("app.core.event_bus._persist_failed_event", new_callable=AsyncMock):
+                with patch("app.core.event_bus.logger") as mock_logger:
+                    await emit("some_regular_event", data="x")
+
+        mock_logger.error.assert_called_once()
+        mock_logger.critical.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_critical_event_redis_failure_logs_critical(self):
+        """When Redis persistence fails for a critical audit event, logger.critical is used."""
+        bad_redis = AsyncMock()
+        bad_redis.lpush = AsyncMock(side_effect=ConnectionError("Redis down"))
+
+        with patch("app.core.redis.get_redis", return_value=bad_redis):
+            with patch("app.core.event_bus.logger") as mock_logger:
+                result = await _persist_failed_event(
+                    "audit.action", "handle_audit", {"action": "BAN"}, retry_count=0
+                )
+
+        assert result is False
+        mock_logger.critical.assert_called_once()
+        assert "event lost" in mock_logger.critical.call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_non_critical_event_redis_failure_logs_error(self):
+        """When Redis persistence fails for a regular event, logger.error is used."""
+        bad_redis = AsyncMock()
+        bad_redis.lpush = AsyncMock(side_effect=ConnectionError("Redis down"))
+
+        with patch("app.core.redis.get_redis", return_value=bad_redis):
+            with patch("app.core.event_bus.logger") as mock_logger:
+                result = await _persist_failed_event(
+                    "post_created", "handle_post", {"post_id": "p1"}, retry_count=0
+                )
+
+        assert result is False
+        mock_logger.error.assert_called_once()
+        mock_logger.critical.assert_not_called()

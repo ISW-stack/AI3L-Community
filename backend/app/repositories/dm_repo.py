@@ -356,7 +356,7 @@ async def mark_messages_read(
                   AND NOT is_recalled
                 RETURNING read_at
             )
-            SELECT COUNT(*)::int AS cnt, MIN(read_at) AS read_at FROM updated
+            SELECT COUNT(*)::int AS cnt, MAX(read_at) AS read_at FROM updated
             """,
             conversation_id,
             reader_id,

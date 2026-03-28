@@ -1,8 +1,8 @@
-"""Tests for app.core.logging_utils — PII masking utilities."""
+"""Tests for app.core.logging_utils — PII masking and error sanitization utilities."""
 
 import re
 
-from app.core.logging_utils import hash_identifier, mask_pii
+from app.core.logging_utils import hash_identifier, mask_pii, safe_error_detail
 
 
 class TestMaskPii:
@@ -64,3 +64,63 @@ class TestHashIdentifier:
         result = hash_identifier("")
         assert len(result) == 12
         assert re.fullmatch(r"[0-9a-f]{12}", result)
+
+
+class TestSafeErrorDetail:
+    """Tests for safe_error_detail — error message sanitization."""
+
+    def test_normal_validation_message_passes_through(self) -> None:
+        exc = ValueError("Title is required.")
+        assert safe_error_detail(exc, "fallback") == "Title is required."
+
+    def test_empty_message_returns_fallback(self) -> None:
+        exc = ValueError("")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_long_message_returns_fallback(self) -> None:
+        exc = ValueError("x" * 301)
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_sql_select_returns_fallback(self) -> None:
+        exc = ValueError("SELECT id FROM users WHERE id = 1")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_file_path_returns_fallback(self) -> None:
+        exc = ValueError("error in /app/services/form.py line 42")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_traceback_returns_fallback(self) -> None:
+        exc = ValueError("Traceback (most recent call last):")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_asyncpg_error_returns_fallback(self) -> None:
+        exc = ValueError("asyncpg.UniqueViolationError: duplicate key")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_connection_error_returns_fallback(self) -> None:
+        exc = ValueError("ConnectionRefused: cannot connect to host")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_insert_sql_returns_fallback(self) -> None:
+        exc = ValueError("INSERT INTO form_responses VALUES (...)")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_delete_from_sql_returns_fallback(self) -> None:
+        exc = ValueError("DELETE FROM users WHERE id = 1")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_update_sql_returns_fallback(self) -> None:
+        exc = ValueError("UPDATE users SET role = 'ADMIN' WHERE id = 1")
+        assert safe_error_detail(exc, "fallback") == "fallback"
+
+    def test_permission_error_passes_through(self) -> None:
+        exc = PermissionError("Only SIG admins can delete this form.")
+        assert safe_error_detail(exc, "fallback") == "Only SIG admins can delete this form."
+
+    def test_safe_short_message(self) -> None:
+        exc = ValueError("Invalid question type 'foo'.")
+        assert safe_error_detail(exc, "fallback") == "Invalid question type 'foo'."
+
+    def test_detail_hint_returns_fallback(self) -> None:
+        exc = ValueError("DETAIL: Key (id)=(abc) already exists.")
+        assert safe_error_detail(exc, "fallback") == "fallback"

@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from app.core.rate_limit import get_client_ip
+from app.core.constants import RATE_LIMIT_ADMIN_DASHBOARD
+from app.core.rate_limit import check_rate_limit, get_client_ip
 
 from app.core.deps import require_role
 from app.core.errors import AppError, ErrorCode
@@ -30,6 +31,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 async def dashboard(
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> dict:
+    user_id = current_user["sub"]
+    if not await check_rate_limit(f"rl:admin_dash:{user_id}", *RATE_LIMIT_ADMIN_DASHBOARD):
+        raise AppError(ErrorCode.SYS_429, 429, "Too many requests. Try again later.")
     stats = await get_dashboard_stats()
     return stats
 
