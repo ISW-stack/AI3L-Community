@@ -36,7 +36,7 @@ export interface UseFormResponseViewerReturn {
 export function useFormResponseViewer(
   options: UseFormResponseViewerOptions = {},
 ): UseFormResponseViewerReturn {
-  const { pageSize = 200, onError } = options
+  const { pageSize = 100, onError } = options
 
   const responses = ref<FormResponse[]>([])
   const questions = ref<Question[]>([])
