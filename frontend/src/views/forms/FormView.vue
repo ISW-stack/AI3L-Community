@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/utils/date'
@@ -7,11 +7,15 @@ import { sanitizeHtml } from '@/utils/sanitize'
 import { useAuthStore } from '@/stores/auth'
 import { useFormSubmit } from '@/composables/useFormSubmit'
 import { useFormExport } from '@/composables/useFormExport'
+import { useFormResponseViewer } from '@/composables/useFormResponseViewer'
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseAlert from '@/components/base/BaseAlert.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
+import BasePagination from '@/components/base/BasePagination.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import CopyShareLinkButton from '@/components/CopyShareLinkButton.vue'
 import BackToTop from '@/components/BackToTop.vue'
@@ -75,6 +79,42 @@ const { exportStatus, exportStatusMessage, startExport } = useFormExport({
     error.value = msg
   },
 })
+
+const responseViewer = useFormResponseViewer({
+  onError: (msg) => {
+    error.value = msg
+  },
+})
+const showResponsesModal = ref(false)
+const rvViewMode = ref<'individual' | 'statistics'>('individual')
+const rvSearchQuery = computed({
+  get: () => responseViewer.searchQuery.value,
+  set: (v) => {
+    responseViewer.searchQuery.value = v
+  },
+})
+const rvDateFrom = computed({
+  get: () => responseViewer.dateFrom.value,
+  set: (v) => {
+    responseViewer.dateFrom.value = v
+  },
+})
+const rvDateTo = computed({
+  get: () => responseViewer.dateTo.value,
+  set: (v) => {
+    responseViewer.dateTo.value = v
+  },
+})
+
+async function openResponsesModal(page = 1) {
+  showResponsesModal.value = true
+  responseViewer.resetFilters()
+  await responseViewer.fetchResponses(formId.value, page)
+}
+
+function handleResponsesPageChange(p: number) {
+  responseViewer.fetchResponses(formId.value, p)
+}
 
 const formShareUrl = computed(() => `${window.location.origin}/forms/${formId.value}`)
 
@@ -205,6 +245,13 @@ onMounted(() => loadForm())
             :to="`/forms/${form.id}/edit`"
             class="text-sm text-brand-600 hover:underline"
             >{{ t('forms.view.editFormBtn') }}</router-link
+          >
+          <BaseButton
+            v-if="canExport"
+            variant="secondary"
+            size="sm"
+            @click="openResponsesModal()"
+            >{{ t('sigs.forms.responsesBtn') }}</BaseButton
           >
           <BaseButton
             v-if="canExport"
@@ -574,6 +621,253 @@ onMounted(() => loadForm())
         {{ t('forms.view.submitPromptSuffix') }}
       </BaseAlert>
     </template>
+
+    <!-- Responses Modal -->
+    <BaseModal
+      v-model="showResponsesModal"
+      :title="`${t('sigs.forms.responsesBtn')}: ${form?.title || ''}`"
+      size="xl"
+    >
+      <div v-if="responseViewer.loading.value" class="py-12 flex justify-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+      </div>
+      <template v-else>
+        <!-- Tab Toggle -->
+        <div class="flex border-b border-border mb-4">
+          <button
+            :class="[
+              'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+              rvViewMode === 'individual'
+                ? 'border-brand-600 text-brand-600'
+                : 'border-transparent text-muted hover:text-foreground',
+            ]"
+            @click="rvViewMode = 'individual'"
+          >
+            {{ t('sigs.forms.tabIndividual') }}
+          </button>
+          <button
+            :class="[
+              'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+              rvViewMode === 'statistics'
+                ? 'border-brand-600 text-brand-600'
+                : 'border-transparent text-muted hover:text-foreground',
+            ]"
+            @click="rvViewMode = 'statistics'"
+          >
+            {{ t('sigs.forms.tabStatistics') }}
+          </button>
+        </div>
+
+        <!-- Individual Responses Tab -->
+        <div v-if="rvViewMode === 'individual'">
+          <div class="mb-4 space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input
+                v-model="rvSearchQuery"
+                type="text"
+                name="response-search"
+                :placeholder="t('sigs.forms.searchPlaceholder')"
+                :aria-label="t('sigs.forms.searchPlaceholder')"
+                class="flex-1 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-300"
+              />
+              <div class="flex gap-2">
+                <input
+                  v-model="rvDateFrom"
+                  type="date"
+                  name="response-date-from"
+                  :aria-label="t('sigs.forms.dateFrom')"
+                  class="flex-1 min-w-0 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
+                />
+                <input
+                  v-model="rvDateTo"
+                  type="date"
+                  name="response-date-to"
+                  :aria-label="t('sigs.forms.dateTo')"
+                  class="flex-1 min-w-0 text-sm border border-border rounded-lg px-3 py-2 bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-brand-300"
+                />
+              </div>
+            </div>
+            <p class="text-xs text-muted">
+              {{
+                t('sigs.forms.filteredCount', {
+                  shown: responseViewer.filteredCount.value,
+                  total: responseViewer.responses.value.length,
+                })
+              }}
+            </p>
+          </div>
+
+          <EmptyState
+            v-if="responseViewer.responses.value.length === 0"
+            :message="t('sigs.forms.noResponses')"
+          />
+          <EmptyState
+            v-else-if="responseViewer.filteredResponses.value.length === 0"
+            :message="t('common.noResults')"
+          />
+          <div v-else class="max-h-[60vh] overflow-y-auto pr-2 space-y-4">
+            <div
+              v-for="resp in responseViewer.filteredResponses.value"
+              :key="resp.id"
+              class="border border-border rounded-lg p-5 bg-surface-alt/30"
+            >
+              <div class="flex items-center justify-between mb-4 pb-2 border-b border-border/50">
+                <span class="font-bold text-foreground">{{ resp.display_name }}</span>
+                <span class="text-[10px] text-muted font-mono">{{
+                  new Date(resp.created_at).toLocaleString()
+                }}</span>
+              </div>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div v-for="(value, key) in resp.answers" :key="key" class="space-y-1">
+                  <div class="text-[10px] font-bold text-muted uppercase tracking-wider">
+                    {{ responseViewer.resolveQuestionLabel(String(key)) }}
+                  </div>
+                  <div class="text-sm text-foreground">
+                    {{ responseViewer.resolveAnswerValue(String(key), value) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <BasePagination
+              v-if="responseViewer.pagination.totalPages.value > 1"
+              :current-page="responseViewer.pagination.page.value"
+              :total-pages="responseViewer.pagination.totalPages.value"
+              class="mt-6 pt-4 border-t border-border"
+              @update:current-page="handleResponsesPageChange"
+            />
+          </div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div v-if="rvViewMode === 'statistics'">
+          <EmptyState
+            v-if="responseViewer.responses.value.length === 0"
+            :message="t('sigs.forms.noResponses')"
+          />
+          <div v-else class="max-h-[60vh] overflow-y-auto pr-2 space-y-6">
+            <p class="text-sm text-muted">
+              {{ t('sigs.forms.statsTotal', { count: responseViewer.pagination.total.value }) }}
+            </p>
+
+            <div
+              v-for="stat in responseViewer.formStats.value"
+              :key="stat.questionId"
+              class="border border-border rounded-lg p-4"
+            >
+              <h4 class="font-semibold text-foreground text-sm mb-3">{{ stat.label }}</h4>
+
+              <!-- Choice Stats -->
+              <template v-if="stat.type === 'choice'">
+                <p class="text-xs text-muted mb-2">
+                  {{ t('sigs.forms.statsTotalResponses', { count: stat.totalResponses }) }}
+                </p>
+                <div class="space-y-2">
+                  <div v-for="opt in stat.options" :key="opt.id" class="flex items-center gap-2">
+                    <span class="text-xs text-foreground w-24 shrink-0 truncate" :title="opt.label">
+                      {{ opt.label }}
+                    </span>
+                    <div class="flex-1 bg-surface-alt rounded-full h-5 overflow-hidden">
+                      <div
+                        class="bg-brand-500 h-full rounded-full transition-all duration-500"
+                        :style="{ width: opt.percentage + '%' }"
+                        role="progressbar"
+                        :aria-valuenow="opt.percentage"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        :aria-label="opt.label + ': ' + opt.percentage + '%'"
+                      ></div>
+                    </div>
+                    <span class="text-xs text-muted w-16 text-right shrink-0">
+                      {{ opt.count }} ({{ opt.percentage }}%)
+                    </span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Rating Stats -->
+              <template v-if="stat.type === 'rating'">
+                <div class="flex items-baseline gap-4 mb-3">
+                  <span class="text-2xl font-bold text-brand-600">{{ stat.average }}</span>
+                  <span class="text-xs text-muted">
+                    {{ t('sigs.forms.statsAverage') }}
+                    ({{ stat.min }}-{{ stat.max }}, {{ stat.totalResponses }}
+                    {{ t('sigs.forms.responses') }})
+                  </span>
+                </div>
+                <div class="space-y-1">
+                  <div
+                    v-for="item in stat.distribution"
+                    :key="item.value"
+                    class="flex items-center gap-2"
+                  >
+                    <span class="text-xs text-foreground w-6 text-right shrink-0">
+                      {{ item.value }}
+                    </span>
+                    <div class="flex-1 bg-surface-alt rounded-full h-4 overflow-hidden">
+                      <div
+                        class="bg-amber-400 h-full rounded-full transition-all duration-500"
+                        :style="{ width: item.percentage + '%' }"
+                        role="progressbar"
+                        :aria-valuenow="item.percentage"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        :aria-label="item.value + ': ' + item.percentage + '%'"
+                      ></div>
+                    </div>
+                    <span class="text-xs text-muted w-14 text-right shrink-0">
+                      {{ item.count }} ({{ item.percentage }}%)
+                    </span>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Text Stats -->
+              <template v-if="stat.type === 'text'">
+                <p class="text-xs text-muted mb-2">
+                  {{ t('sigs.forms.statsTotalResponses', { count: stat.totalResponses }) }}
+                </p>
+                <button
+                  v-if="stat.answers.length > 0"
+                  class="text-xs text-brand-600 hover:text-brand-700 font-medium"
+                  @click="responseViewer.toggleTextExpand(stat.questionId)"
+                >
+                  {{
+                    responseViewer.isTextExpanded(stat.questionId)
+                      ? t('sigs.forms.statsHideResponses')
+                      : t('sigs.forms.statsViewTextResponses')
+                  }}
+                </button>
+                <div
+                  v-if="responseViewer.isTextExpanded(stat.questionId)"
+                  class="mt-2 space-y-2 max-h-32 sm:max-h-48 overflow-y-auto"
+                >
+                  <div
+                    v-for="(answer, idx) in stat.answers"
+                    :key="idx"
+                    class="text-sm text-foreground p-2 bg-surface-alt/30 rounded border border-border/50"
+                  >
+                    {{ answer }}
+                  </div>
+                </div>
+              </template>
+
+              <!-- File Stats -->
+              <template v-if="stat.type === 'file'">
+                <p class="text-xs text-muted mb-2">
+                  {{ t('sigs.forms.statsUploads', { count: stat.totalUploads }) }}
+                </p>
+                <ul v-if="stat.filenames.length > 0" class="text-sm text-foreground space-y-1">
+                  <li v-for="(name, idx) in stat.filenames" :key="idx" class="truncate">
+                    {{ name }}
+                  </li>
+                </ul>
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
+    </BaseModal>
 
     <!-- Feature 7: Back to Top -->
     <BackToTop />

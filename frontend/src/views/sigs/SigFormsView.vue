@@ -195,7 +195,7 @@ async function openResponsesModal(formId: string, title: string, page = 1) {
 }
 
 function handleResponsesPageChange(p: number) {
-  openResponsesModal(responsesFormId.value, responsesFormTitle.value, p)
+  responseViewer.fetchResponses(responsesFormId.value, p)
 }
 
 // ── Export ──
