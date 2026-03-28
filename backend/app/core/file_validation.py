@@ -206,7 +206,7 @@ def strip_exif_metadata(data: bytes, content_type: str) -> bytes:
         img = Image.open(BytesIO(data))
         # Create a new image without EXIF data
         clean = Image.new(img.mode, img.size)
-        clean.putdata(list(img.getdata()))
+        clean.putdata(list(img.get_flattened_data()))
         buf = BytesIO()
         fmt = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WEBP"}[content_type]
         clean.save(buf, format=fmt, quality=95 if fmt == "JPEG" else None)
