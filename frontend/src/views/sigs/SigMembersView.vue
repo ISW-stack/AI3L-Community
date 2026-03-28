@@ -77,15 +77,15 @@ function goToPage(p: number) {
 
 function canRemoveMember(m: SigMember) {
   if (m.user_id === auth.user?.id) return false
+  // Platform admin can remove anyone
+  if (auth.isAdmin) return true
   // SUB_ADMIN can only remove regular MEMBERs
   if (isSigSubAdmin.value) {
     return m.role === 'MEMBER'
   }
-  // ADMIN cannot remove other ADMINs unless platform admin
-  if (m.role === 'ADMIN') {
-    return auth.isAdmin // Only platform admin can remove SIG admin
-  }
-  return auth.isAdmin || isSigOwner.value
+  // SIG ADMIN cannot remove other ADMINs
+  if (m.role === 'ADMIN') return false
+  return isSigOwner.value
 }
 
 function canAssignSubAdmin(m: SigMember) {
