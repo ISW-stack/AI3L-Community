@@ -296,6 +296,7 @@ export default {
       error: 'Échec de la soumission de la candidature.',
       reasonLabel: 'Pourquoi souhaitez-vous nous rejoindre ?',
       usernamePlaceholder: "Choisissez un nom d'utilisateur",
+      usernameHint: "Lettres, chiffres, underscores, tirets, points et {'@'} uniquement. Pas d'espaces.",
       passwordPlaceholder: 'Choisissez un mot de passe',
       passwordHint: 'Min 8 caractères, avec majuscule, minuscule, chiffre et caractère spécial.',
       status: {

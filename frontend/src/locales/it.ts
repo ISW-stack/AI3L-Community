@@ -295,6 +295,7 @@ export default {
       error: 'Invio della candidatura non riuscito.',
       reasonLabel: 'Perché vuoi unirti?',
       usernamePlaceholder: 'Scegli un nome utente',
+      usernameHint: "Solo lettere, numeri, trattini bassi, trattini, punti e {'@'}. Nessuno spazio.",
       passwordPlaceholder: 'Scegli una password',
       passwordHint: 'Minimo 8 caratteri, con maiuscole, minuscole, cifra e carattere speciale.',
       status: {

@@ -291,6 +291,7 @@ export default {
       error: '申請送出失敗。',
       reasonLabel: '你為啥物想欲加入？',
       usernamePlaceholder: '揀一个使用者名稱',
+      usernameHint: "干焦會當用字母、數字、底線、連字號、點佮 {'@'}。袂使有空格。",
       passwordPlaceholder: '設一个密碼',
       passwordHint: '最少 8 个字元，著有大寫、小寫、數字 kah 特殊字元。',
       status: {

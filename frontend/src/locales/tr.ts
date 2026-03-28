@@ -296,6 +296,7 @@ export default {
       error: 'Başvuru gönderilemedi.',
       reasonLabel: 'Neden katılmak istiyorsunuz?',
       usernamePlaceholder: 'Kullanıcı adı seçin',
+      usernameHint: "Yalnızca harf, rakam, alt çizgi, tire, nokta ve {'@'}. Boşluk kullanılamaz.",
       passwordPlaceholder: 'Şifre seçin',
       passwordHint: 'En az 8 karakter, büyük harf, küçük harf, rakam ve özel karakter içermelidir.',
       status: {

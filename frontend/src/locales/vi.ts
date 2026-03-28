@@ -295,6 +295,7 @@ export default {
       error: 'Gửi đơn đăng ký thất bại.',
       reasonLabel: 'Tại sao bạn muốn tham gia?',
       usernamePlaceholder: 'Chọn tên người dùng',
+      usernameHint: "Chỉ chữ cái, số, dấu gạch dưới, dấu gạch ngang, dấu chấm và {'@'}. Không có dấu cách.",
       passwordPlaceholder: 'Chọn mật khẩu',
       passwordHint: 'Tối thiểu 8 ký tự, bao gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.',
       status: {

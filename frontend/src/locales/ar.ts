@@ -293,6 +293,7 @@ export default {
       error: 'فشل تقديم الطلب.',
       reasonLabel: 'لماذا تريد الانضمام؟',
       usernamePlaceholder: 'اختر اسم مستخدم',
+      usernameHint: "أحرف وأرقام وشرطات سفلية وشرطات ونقاط و{'@'} فقط. بدون مسافات.",
       passwordPlaceholder: 'اختر كلمة مرور',
       passwordHint: 'الحد الأدنى 8 أحرف، تتضمن أحرفاً كبيرة وصغيرة وأرقاماً وحرفاً خاصاً.',
       status: {

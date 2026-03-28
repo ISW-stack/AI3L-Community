@@ -276,6 +276,7 @@ export default {
       error: '申请提交失败。',
       reasonLabel: '您为什么想加入？',
       usernamePlaceholder: '选择用户名',
+      usernameHint: "仅限字母、数字、下划线、连字符、点和 {'@'}，不可含空格。",
       passwordPlaceholder: '选择密码',
       passwordHint: '最少 8 个字符，包含大写、小写、数字和特殊字符。',
       status: {

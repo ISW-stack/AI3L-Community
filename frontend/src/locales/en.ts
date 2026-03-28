@@ -294,6 +294,7 @@ export default {
       reasonLabel: 'Why do you want to join?',
       placeholder: 'Describe your background and research interests...',
       usernamePlaceholder: 'Choose a username',
+      usernameHint: "Letters, numbers, underscores, hyphens, dots, and {'@'} only. No spaces.",
       passwordPlaceholder: 'Choose a password',
       passwordHint: 'Min 8 characters, with uppercase, lowercase, digit, and special character.',
       submitBtn: 'Submit Application',

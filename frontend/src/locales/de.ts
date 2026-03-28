@@ -298,6 +298,7 @@ export default {
       error: 'Bewerbung konnte nicht eingereicht werden.',
       reasonLabel: 'Warum möchten Sie beitreten?',
       usernamePlaceholder: 'Benutzernamen wählen',
+      usernameHint: "Nur Buchstaben, Zahlen, Unterstriche, Bindestriche, Punkte und {'@'}. Keine Leerzeichen.",
       passwordPlaceholder: 'Passwort wählen',
       passwordHint: 'Mind. 8 Zeichen, mit Groß-, Kleinbuchstaben, Ziffer und Sonderzeichen.',
       status: {

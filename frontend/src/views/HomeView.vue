@@ -577,6 +577,9 @@ onMounted(() => {
           :maxlength="50"
           autocomplete="username"
         />
+        <p class="text-xs text-muted -mt-3">
+          {{ t('home.applyMembership.usernameHint') }}
+        </p>
 
         <BaseInput
           id="apply-password"

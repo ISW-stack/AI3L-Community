@@ -295,6 +295,7 @@ export default {
       error: '申請の送信に失敗しました。',
       reasonLabel: '参加したい理由を教えてください',
       usernamePlaceholder: 'ユーザー名を選んでください',
+      usernameHint: "英数字、アンダースコア、ハイフン、ドット、{'@'} のみ。スペース不可。",
       passwordPlaceholder: 'パスワードを選んでください',
       passwordHint: '最低8文字、大文字・小文字・数字・特殊文字を含む。',
       status: {
