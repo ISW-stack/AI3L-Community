@@ -60,7 +60,7 @@ onMounted(() => {
   <div class="max-w-4xl mx-auto px-4 py-8">
     <!-- Header Section -->
     <div class="mb-10">
-      <h1 class="text-3xl font-bold text-foreground mb-4">{{ t('about.title') }}</h1>
+      <h1 class="text-2xl sm:text-3xl font-bold text-foreground mb-4">{{ t('about.title') }}</h1>
       <p class="text-base text-muted leading-relaxed max-w-2xl">
         {{ t('about.description') }}
       </p>
@@ -80,7 +80,7 @@ onMounted(() => {
           <img
             v-if="intro.photo_url"
             :src="intro.photo_url"
-            alt="Professor"
+            :alt="t('about.introduction')"
             class="w-48 h-48 rounded-lg object-cover border border-border shadow-sm"
           />
           <div
@@ -118,7 +118,7 @@ onMounted(() => {
         {{ t('about.contributors.empty') }}
       </div>
 
-      <div v-else class="flex flex-col gap-3">
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div
           v-for="contributor in contributors"
           :key="contributor.id"
@@ -143,12 +143,12 @@ onMounted(() => {
               {{ getInitial(contributor.display_name) }}
             </div>
           </div>
-          <!-- Name + Role in one horizontal line, min-w-0 prevents overflow on narrow screens -->
-          <div class="min-w-0 flex items-baseline gap-2">
-            <span class="text-sm font-medium text-foreground truncate">{{
-              contributor.display_name
-            }}</span>
-            <span class="text-xs text-muted shrink-0">{{ contributor.role }}</span>
+          <!-- Name + Role stacked vertically for consistent alignment -->
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-foreground truncate">
+              {{ contributor.display_name }}
+            </div>
+            <div class="text-xs text-muted truncate">{{ contributor.role }}</div>
           </div>
         </div>
       </div>
