@@ -23,9 +23,9 @@
 <text x="397.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Nov</text>
 <text x="448.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Dec</text>
 <text x="499.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Jan'26</text>
-<rect x="534.3" y="128.3" width="33.4" height="3.7" class="bar" rx="1.9"/>
+<rect x="534.3" y="128.3" width="33.4" height="3.7" class="bar" rx="1.8"/>
 <text x="551.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Feb</text>
 <rect x="585.7" y="25.0" width="33.4" height="107.0" class="bar" rx="3.0"/>
-<text x="602.3" y="37.0" text-anchor="middle" font-size="9" class="t cnt">578</text>
+<text x="602.3" y="37.0" text-anchor="middle" font-size="9" class="t cnt">581</text>
 <text x="602.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Mar</text>
 </svg>
