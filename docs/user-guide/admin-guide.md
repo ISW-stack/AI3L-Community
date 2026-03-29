@@ -76,19 +76,14 @@ Navigate to **Admin > Users** (`/admin/users`).
    - **Username** (required)
    - **Password** (must meet strength requirements)
    - **Display Name** (required)
-   - **Role** — select Member or Guest.
+   - **Role** — Member is the only option available.
 3. Submit.
 
-> **Restriction:** Admins can only create accounts with the Member or Guest role. Only Super Admins can create Admin accounts.
+> **Restriction:** Admins can only create accounts with the Member role. Only Super Admins can additionally create Admin accounts.
 
 ### Bulk Operations
 
-1. Use the **checkboxes** to select multiple users (or "Select All" on the current page).
-2. Click **Bulk Change Role**.
-3. Select the target role (Member, Admin, or Guest).
-4. Confirm. All selected users' roles are updated.
-
-> **Note:** Bulk role changes to Admin require Super Admin privileges.
+> **Note:** Bulk role changes are a **Super Admin-only** feature. See the [Super Admin Guide](super-admin-guide.md#bulk-role-change) for details.
 
 ### Per-User Actions
 
@@ -127,7 +122,7 @@ Navigate to **Admin > Reports** (`/admin/reports`).
 
 ### Viewing Reports
 
-- **Filter** by status (Pending, Reviewed, Dismissed).
+- **Filter** by status (Pending, Resolved, Dismissed).
 - Each report shows:
   - The reporter's name.
   - A link to the reported post.
@@ -140,7 +135,7 @@ Navigate to **Admin > Reports** (`/admin/reports`).
 1. Click the report to expand details.
 2. Click **Review** to open the review interface.
 3. You can:
-   - Mark as **Reviewed** (take action on the post, such as editing or deleting it).
+   - Mark as **Resolved** (take action on the post, such as editing or deleting it).
    - Mark as **Dismissed** (no action needed) with optional notes.
 4. To moderate the post itself, navigate to the post and use the Edit or Delete actions (Admins can edit/delete any post).
 
@@ -212,7 +207,7 @@ As an Admin, you have elevated permissions across all content:
 - **Edit any post** — not just your own. Open a post and click Edit.
 - **Delete any post** — open a post and click Delete. Confirm in the modal.
 - **Pin / Unpin posts** — on the post detail page, click **Pin** to pin the post to the top of the forum, or **Unpin** to remove the pin.
-- **Bulk delete posts** — on the forum page (Admin view), select multiple posts and use the bulk delete action.
+- **Bulk delete posts** — *Coming soon.* The backend API supports bulk deletion, but the UI is not yet available.
 
 ### Comments
 

@@ -118,13 +118,14 @@ onMounted(() => {
         {{ t('about.contributors.empty') }}
       </div>
 
-      <div v-else class="flex flex-wrap gap-5">
+      <div v-else class="flex flex-col gap-3">
         <div
           v-for="contributor in contributors"
           :key="contributor.id"
-          class="flex flex-col items-center text-center w-20"
+          class="flex items-center gap-3"
         >
-          <div class="w-10 h-10 mb-1.5">
+          <!-- Avatar -->
+          <div class="shrink-0">
             <img
               v-if="!failedAvatars.has(contributor.id)"
               :src="contributor.avatar_url"
@@ -142,10 +143,13 @@ onMounted(() => {
               {{ getInitial(contributor.display_name) }}
             </div>
           </div>
-          <span class="text-xs font-medium text-foreground leading-tight">{{
-            contributor.display_name
-          }}</span>
-          <span class="text-[10px] text-muted leading-tight mt-0.5">{{ contributor.role }}</span>
+          <!-- Name + Role in one horizontal line, min-w-0 prevents overflow on narrow screens -->
+          <div class="min-w-0 flex items-baseline gap-2">
+            <span class="text-sm font-medium text-foreground truncate">{{
+              contributor.display_name
+            }}</span>
+            <span class="text-xs text-muted shrink-0">{{ contributor.role }}</span>
+          </div>
         </div>
       </div>
     </div>

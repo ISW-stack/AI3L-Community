@@ -42,7 +42,8 @@ Each guide covers the features available to that role. Higher roles should read 
 | Generate invite codes | — | Yes | Yes | Yes |
 | Create SIGs / albums | — | — | Yes | Yes |
 | Admin Panel (dashboard, users, reports) | — | — | Yes | Yes |
-| Pin / bulk-delete posts | — | — | Yes | Yes |
+| Pin posts | — | — | Yes | Yes |
+| Bulk-delete posts *(coming soon)* | — | — | Yes | Yes |
 | Manage categories / invite codes | — | — | Yes | Yes |
 | Audit logs | — | — | — | Yes |
 | IP ban management | — | — | — | Yes |

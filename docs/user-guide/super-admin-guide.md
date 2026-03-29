@@ -196,7 +196,6 @@ When creating a new user account (Admin > Users > Create Account), Super Admins 
 
 **Restrictions:**
 - You cannot ban yourself.
-- You cannot ban other Super Admin accounts.
 
 ### Unbanning a User
 
