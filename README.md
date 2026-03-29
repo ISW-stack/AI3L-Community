@@ -352,14 +352,14 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-03-28 — auto-generated on every push to `main`_
+_Last updated: 2026-03-29 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +322,921 |
-| Total lines removed (all commits) | -56,952 |
+| Total lines added (all commits) | +322,941 |
+| Total lines removed (all commits) | -56,972 |
 | Backend source lines (excl. tests) | 29,771 |
 | Frontend source lines (excl. tests) | 63,365 |
 
@@ -393,7 +393,7 @@ Test-to-source ratio: **1.49** (138,542 lines of tests for every 93,136 lines of
 | --- | ---: |
 | REST API endpoints | 186 |
 | Database migrations | 54 |
-| Longest commit streak | 29 days |
+| Longest commit streak | 30 days |
 
 ### Top 5 Largest Source Files
 
@@ -409,8 +409,8 @@ Test-to-source ratio: **1.49** (138,542 lines of tests for every 93,136 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 492 | +319,505 | -54,487 |
-| github-actions[bot] | 75 | +900 | -900 |
+| Isaries | 494 | +319,520 | -54,502 |
+| github-actions[bot] | 76 | +905 | -905 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
