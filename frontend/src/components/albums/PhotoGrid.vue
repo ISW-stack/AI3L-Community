@@ -69,7 +69,7 @@ function isCoverPhoto(photo: AlbumPhoto): boolean {
         <button
           v-if="canSetCover && !isCoverPhoto(photo)"
           type="button"
-          class="text-white text-xs px-2 py-1 bg-black/50 hover:bg-brand-600 rounded-tl opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+          class="text-white text-xs px-3 py-2 sm:px-2 sm:py-1 bg-black/50 hover:bg-brand-600 rounded-tl opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 shrink-0 touch-manipulation"
           :title="t('albums.setCover')"
           @click="handleSetCover($event, photo)"
         >

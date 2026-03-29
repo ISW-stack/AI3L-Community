@@ -428,11 +428,11 @@ onUnmounted(() => {
         </div>
 
         <!-- Mobile right side: notification bell + hamburger -->
-        <div class="flex items-center gap-3 lg:hidden">
+        <div class="flex items-center gap-1.5 lg:hidden">
           <router-link
             v-if="auth.isAuthenticated && !auth.isGuest"
             to="/messages"
-            class="relative p-2 text-muted hover:text-foreground transition"
+            class="relative p-2.5 text-muted hover:text-foreground transition"
             aria-label="Messages"
           >
             <MessageSquare class="w-5 h-5" aria-hidden="true" />
@@ -446,7 +446,7 @@ onUnmounted(() => {
           <NotificationBell v-if="auth.isAuthenticated" />
           <button
             @click="mobileMenuOpen = !mobileMenuOpen"
-            class="p-2 text-muted hover:text-foreground transition"
+            class="p-2.5 text-muted hover:text-foreground transition"
             :aria-expanded="mobileMenuOpen"
             :aria-label="t('nav.toggleMenu')"
           >

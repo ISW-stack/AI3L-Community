@@ -294,25 +294,25 @@ watch(userSigRole, () => {
               {{ formatDate(m.created_at, locale) }}
             </span>
 
-            <div v-if="canEdit" class="flex gap-3">
+            <div v-if="canEdit" class="flex gap-1">
               <button
                 v-if="canAssignSubAdmin(m)"
                 @click="handleAssignSubAdmin(m.user_id)"
-                class="text-xs text-brand-600 font-medium"
+                class="text-xs text-brand-600 font-medium px-2.5 py-1.5 rounded-md hover:bg-brand-50 active:bg-brand-100 transition touch-manipulation"
               >
                 {{ t('sigs.members.promoteBtn') }}
               </button>
               <button
                 v-if="canDemoteMember(m)"
                 @click="promptDemoteMember(m)"
-                class="text-xs text-warning-600 font-medium"
+                class="text-xs text-warning-600 font-medium px-2.5 py-1.5 rounded-md hover:bg-warning-50 active:bg-warning-100 transition touch-manipulation"
               >
                 {{ t('sigs.members.demoteBtn') }}
               </button>
               <button
                 v-if="canRemoveMember(m)"
                 @click="promptRemoveMember(m)"
-                class="text-xs text-danger-600 font-medium"
+                class="text-xs text-danger-600 font-medium px-2.5 py-1.5 rounded-md hover:bg-danger-50 active:bg-danger-100 transition touch-manipulation"
               >
                 {{ t('sigs.members.removeBtn') }}
               </button>

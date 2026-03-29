@@ -341,7 +341,7 @@ onUnmounted(() => {
                   name="select-user"
                   :checked="selectedIds.has(user.id)"
                   @change="toggleSelect(user.id)"
-                  class="rounded shrink-0"
+                  class="w-5 h-5 rounded shrink-0 touch-manipulation"
                 />
                 <span class="font-medium text-foreground truncate">{{ user.display_name }}</span>
               </div>
@@ -360,13 +360,13 @@ onUnmounted(() => {
             </div>
             <div
               v-if="auth.isSuperAdmin && user.id !== auth.user?.id"
-              class="flex items-center gap-2"
+              class="flex flex-wrap items-center gap-2"
             >
               <select
                 :value="user.role"
                 name="user-role"
                 @change="changeRole(user.id, ($event.target as HTMLSelectElement).value)"
-                class="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                class="text-xs border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500 touch-manipulation"
               >
                 <option v-for="r in roles" :key="r" :value="r">{{ t(roleKeyMap[r]) }}</option>
               </select>

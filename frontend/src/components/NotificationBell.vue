@@ -93,7 +93,7 @@ onUnmounted(() => {
     <button
       data-notification-trigger
       @click="toggleDropdown"
-      class="relative p-2 text-muted hover:text-foreground focus:outline-none transition"
+      class="relative p-2.5 lg:p-2 text-muted hover:text-foreground focus:outline-none transition"
       :aria-label="t('aria.notifications')"
       :aria-expanded="dropdownOpen"
     >

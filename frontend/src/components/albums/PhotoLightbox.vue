@@ -85,7 +85,7 @@ onUnmounted(() => {
           <button
             v-if="canSetCover && currentPhoto"
             type="button"
-            class="text-white/80 hover:text-brand-400 p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
+            class="text-white/80 hover:text-brand-400 p-3 sm:p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
             aria-label="Set as cover"
             @click="emit('set-cover', currentPhoto)"
           >
@@ -108,7 +108,7 @@ onUnmounted(() => {
           <button
             v-if="canDelete && currentPhoto"
             type="button"
-            class="text-white/80 hover:text-red-400 p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
+            class="text-white/80 hover:text-red-400 p-3 sm:p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
             aria-label="Delete photo"
             @click="emit('delete', currentPhoto)"
           >
@@ -130,7 +130,7 @@ onUnmounted(() => {
           </button>
           <button
             type="button"
-            class="text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
+            class="text-white/80 hover:text-white p-3 sm:p-2 rounded-full bg-black/30 hover:bg-black/50 transition"
             aria-label="Close"
             @click="handleClose"
           >
