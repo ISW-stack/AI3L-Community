@@ -281,10 +281,13 @@ async def get_sig_members(
 @router.get("/{sig_id}/posts", response_model=PostListResponse)
 async def get_sig_posts(
     sig_id: uuid.UUID,
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),
 ) -> PostListResponse:
+    sig = await get_sig_by_id(sig_id)
+    if sig is None:
+        raise AppError(ErrorCode.SYS_404, 404, "SIG not found.")
     result = await list_posts(
         page=page, page_size=page_size, sig_id=str(sig_id), viewer_id=current_user["sub"]
     )

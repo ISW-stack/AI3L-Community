@@ -427,6 +427,10 @@ class TestListSigPosts:
         try:
             _override_auth("MEMBER")
             with patch(
+                f"{_EP}.get_sig_by_id",
+                new_callable=AsyncMock,
+                return_value={"id": str(sig_id), "name": "Test SIG"},
+            ), patch(
                 f"{_EP}.list_posts",
                 new_callable=AsyncMock,
                 return_value={"posts": [], "total": 0, "total_pages": 0},
@@ -438,6 +442,26 @@ class TestListSigPosts:
                 assert resp.status_code == 200
                 data = resp.json()
                 assert data["total"] == 0
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_list_sig_posts_nonexistent_sig_404(self, client):
+        """GET /sigs/{id}/posts → 404 when SIG does not exist."""
+        sig_id = uuid.uuid4()
+
+        try:
+            _override_auth("MEMBER")
+            with patch(
+                f"{_EP}.get_sig_by_id",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                resp = await client.get(
+                    f"/api/v1/sigs/{sig_id}/posts",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 404
         finally:
             _clear_overrides()
 
@@ -567,7 +591,7 @@ class TestRemoveMemberSoleAdmin:
         caller_id = str(uuid.uuid4())
 
         mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
-        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+        mock_conn.execute = AsyncMock(return_value="UPDATE 1")
 
         with patch(f"{_SVC}.get_pool", return_value=mock_pool):
             result = await remove_member(
@@ -590,7 +614,7 @@ class TestRemoveMemberSoleAdmin:
         mock_conn.fetchrow = AsyncMock(return_value={"role": "ADMIN"})
         # count_admins returns 2 admins
         mock_conn.fetch = AsyncMock(return_value=[{"id": uuid.uuid4()}, {"id": uuid.uuid4()}])
-        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+        mock_conn.execute = AsyncMock(return_value="UPDATE 1")
 
         with patch(f"{_SVC}.get_pool", return_value=mock_pool):
             result = await remove_member(
@@ -709,7 +733,7 @@ class TestServiceLayerAuthorization:
         caller_id = str(uuid.uuid4())
 
         mock_conn.fetchrow = AsyncMock(return_value={"role": "MEMBER"})
-        mock_conn.execute = AsyncMock(return_value="DELETE 1")
+        mock_conn.execute = AsyncMock(return_value="UPDATE 1")
 
         with patch(f"{_SVC}.get_pool", return_value=mock_pool):
             result = await remove_member(

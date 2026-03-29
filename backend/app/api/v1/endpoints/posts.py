@@ -73,7 +73,7 @@ async def create_new_post(
 
 @router.get("", response_model=PostListResponse)
 async def get_posts_list(
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     category_id: str | None = None,
     sig_id: str | None = None,
@@ -293,7 +293,7 @@ async def delete_post(
     request: Request,
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> None:
-    is_admin = current_user["role"] == "SUPER_ADMIN"
+    is_admin = current_user["role"] in ("SUPER_ADMIN", "ADMIN")
     deleted = await soft_delete_post(post_id, current_user["sub"], is_admin=is_admin)
     if not deleted:
         raise AppError(ErrorCode.SYS_404, 404, "Post not found or not authorized.")

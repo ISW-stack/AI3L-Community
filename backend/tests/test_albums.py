@@ -1140,7 +1140,7 @@ class TestB10DeleteAlbumAdminAuth:
                 return_value=album,
             ),
             patch(
-                "app.repositories.album_repo.find_all_photos_for_album",
+                "app.repositories.album_repo.iter_photos_for_album_batched",
                 new_callable=AsyncMock,
                 return_value=[],
             ),

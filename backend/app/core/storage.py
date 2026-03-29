@@ -128,13 +128,41 @@ def generate_presigned_url(key: str, expires_in: int = 3600, filename: str | Non
     )
 
 
-def download_file(key: str) -> tuple[bytes, str]:
-    """Download file from S3-compatible storage. Returns (data, content_type)."""
+_MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024  # 100 MB safety cap
+
+
+def download_file(key: str, max_size: int = _MAX_DOWNLOAD_BYTES) -> tuple[bytes, str]:
+    """Download file from S3-compatible storage. Returns (data, content_type).
+
+    Validates ContentLength before reading to prevent unbounded memory usage.
+    Reads in 64 KB chunks with cumulative size enforcement.
+    """
     client = get_storage()
     resp = client.get_object(Bucket=settings.S3_BUCKET_NAME, Key=key)
-    data = resp["Body"].read()
     content_type = resp.get("ContentType", "application/octet-stream")
-    return data, content_type
+    content_length = int(resp.get("ContentLength", 0))
+
+    if content_length > max_size:
+        resp["Body"].close()
+        raise ValueError(
+            f"File too large to download into memory: {content_length} bytes "
+            f"(max {max_size})"
+        )
+
+    # Chunked read with size enforcement (ContentLength can be inaccurate)
+    chunks: list[bytes] = []
+    total = 0
+    for chunk in resp["Body"].iter_chunks(chunk_size=65536):
+        total += len(chunk)
+        if total > max_size:
+            resp["Body"].close()
+            raise ValueError(
+                f"File exceeded max download size during read: {total} bytes "
+                f"(max {max_size})"
+            )
+        chunks.append(chunk)
+    resp["Body"].close()
+    return b"".join(chunks), content_type
 
 
 def download_file_metadata(key: str) -> tuple[Any, str, int]:
@@ -166,6 +194,27 @@ def get_file_size(key: str) -> int:
     except ClientError as e:
         if e.response["Error"]["Code"] == "404":
             return 0
+        raise
+
+
+def read_file_header(key: str, size: int = 64) -> bytes:
+    """Read the first ``size`` bytes of a file from storage using a Range request.
+
+    Returns an empty bytes object if the file does not exist.
+    """
+    client = get_storage()
+    try:
+        resp = client.get_object(
+            Bucket=settings.S3_BUCKET_NAME,
+            Key=key,
+            Range=f"bytes=0-{size - 1}",
+        )
+        data = resp["Body"].read()
+        resp["Body"].close()
+        return data
+    except ClientError as e:
+        if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+            return b""
         raise
 
 

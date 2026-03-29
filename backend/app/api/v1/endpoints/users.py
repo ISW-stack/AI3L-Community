@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 from datetime import date as DateType
 
@@ -271,7 +272,7 @@ async def search_users(
 
 @router.get("/me/co-author-invitations")
 async def get_my_co_author_invitations(
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> dict:
@@ -335,11 +336,12 @@ async def bulk_change_role(
         await emit("user.role_changed", user_id=str(uid), new_role=req.role)
         await revoke_user_sessions(str(uid))
 
+    ids_str = ",".join(str(uid) for uid in changed_ids)
     await log_action(
         user_id=current_user["sub"],
         action="BULK_ROLE_CHANGE",
         target_type="user",
-        target_id=f"role={req.role},count={count}",
+        target_id=f"role={req.role},count={count},ids={ids_str}",
     )
     return {"updated_count": count}
 
@@ -452,7 +454,9 @@ async def get_public_profile(
 
         await record_profile_view(None, None, str(user_id), current_user["sub"])
     except Exception:
-        pass  # Best-effort, don't fail the request
+        logging.getLogger(__name__).warning(
+            "Failed to record profile view for user %s", user_id, exc_info=True
+        )
 
     return await async_user_to_public_response(user)
 
@@ -465,7 +469,7 @@ async def get_public_profile(
     response_model=UserListResponse,
 )
 async def get_all_users(
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(50, ge=1, le=100),
     search: str | None = Query(None, max_length=200),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),

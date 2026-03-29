@@ -32,7 +32,7 @@ router = APIRouter(prefix="/posts/{post_id}/comments", tags=["comments"])
 @router.get("", response_model=CommentListResponse)
 async def get_comments(
     post_id: uuid.UUID,
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(50, ge=1, le=100),
     root_only: bool = Query(False),
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),

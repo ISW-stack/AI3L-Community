@@ -87,7 +87,7 @@ async def create_new_form(
 @router.get("/sigs/{sig_id}/forms", response_model=FormListResponse)
 async def get_sig_forms(
     sig_id: uuid.UUID,
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),
 ) -> FormListResponse:
@@ -133,7 +133,7 @@ async def create_standalone_form(
 
 @router.get("/forms", response_model=FormListResponse)
 async def list_standalone_forms_endpoint(
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(DEFAULT_PAGE_SIZE_STANDALONE_FORMS, ge=1, le=MAX_PAGE_SIZE),
     q: str | None = Query(None, max_length=200),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
@@ -322,7 +322,7 @@ async def delete_form(
 @router.get("/forms/{form_id}/responses", response_model=FormResponseListResponse)
 async def get_form_responses(
     form_id: uuid.UUID,
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> FormResponseListResponse:

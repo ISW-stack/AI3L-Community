@@ -155,8 +155,10 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
             if not (is_creator or is_site_admin):
                 raise AppError(ErrorCode.SYS_403, 403, "Not authorized to delete this album.")
 
-            # 1. Collect photo data for storage cleanup and quota refund
-            photos = await album_repo.find_all_photos_for_album(conn, album_uuid)
+            # 1. Collect photo data in batches for storage cleanup and quota refund
+            photo_batches = await album_repo.iter_photos_for_album_batched(
+                conn, album_uuid, batch_size=500
+            )
 
             # 2. Soft-delete the album
             deleted = await album_repo.soft_delete_album(conn, album_uuid)
@@ -165,13 +167,14 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
                 # 3. Delete album comments
                 await album_repo.delete_all_comments_for_album(conn, album_uuid)
 
-                # 4. Refund storage quota per uploader
+                # 4. Refund storage quota per uploader (process batches)
                 quota_refunds: dict[uuid.UUID, int] = {}
-                for photo in photos:
-                    uploader = photo["uploaded_by"]
-                    size = photo.get("file_size_bytes", 0)
-                    if size > 0:
-                        quota_refunds[uploader] = quota_refunds.get(uploader, 0) + size
+                for batch in photo_batches:
+                    for photo in batch:
+                        uploader = photo["uploaded_by"]
+                        size = photo.get("file_size_bytes", 0)
+                        if size > 0:
+                            quota_refunds[uploader] = quota_refunds.get(uploader, 0) + size
 
                 for uploader_id, total_size in quota_refunds.items():
                     await conn.execute(
@@ -200,17 +203,18 @@ async def delete_album(album_id: str, user_id: str, user_role: str) -> bool:
                     extra={"album_id": album_id, "key": cover_key},
                 )
 
-        for photo in photos:
-            for key_field in ("storage_key", "thumbnail_key"):
-                key = photo.get(key_field)
-                if key:
-                    try:
-                        await delete_file(key)
-                    except Exception:
-                        logger.warning(
-                            "Failed to delete photo file from storage during album cleanup",
-                            extra={"album_id": album_id, "key": key},
-                        )
+        for batch in photo_batches:
+            for photo in batch:
+                for key_field in ("storage_key", "thumbnail_key"):
+                    key = photo.get(key_field)
+                    if key:
+                        try:
+                            await delete_file(key)
+                        except Exception:
+                            logger.warning(
+                                "Failed to delete photo file from storage during album cleanup",
+                                extra={"album_id": album_id, "key": key},
+                            )
 
     logger.info("Album deleted", extra={"album_id": album_id, "user_id": user_id})
     return deleted

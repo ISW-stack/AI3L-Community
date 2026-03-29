@@ -452,9 +452,12 @@ async def count_by_role(role: str) -> int:
 async def count_super_admins_excluding(user_ids: list[uuid.UUID], conn: Any = None) -> int:
     """Count SUPER_ADMIN users not in the given list (non-deleted)."""
     query = (
-        "SELECT COUNT(*) FROM users "
-        "WHERE role = 'SUPER_ADMIN' AND is_deleted = false "
-        "AND id != ALL($1::uuid[])"
+        "SELECT COUNT(*) FROM ("
+        "  SELECT 1 FROM users "
+        "  WHERE role = 'SUPER_ADMIN' AND is_deleted = false "
+        "  AND id != ALL($1::uuid[]) "
+        "  FOR UPDATE"
+        ") locked"
     )
     if conn:
         result = await conn.fetchval(query, user_ids)

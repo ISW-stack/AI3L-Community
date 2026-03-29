@@ -8,6 +8,7 @@ from app.core.storage import download_file_metadata as _sync_download_metadata
 from app.core.storage import generate_presigned_url as _sync_presigned
 from app.core.storage import get_file_size as _sync_get_file_size
 from app.core.storage import get_storage
+from app.core.storage import read_file_header as _sync_read_header
 from app.core.storage import upload_file as _sync_upload
 
 
@@ -68,3 +69,9 @@ async def get_file_size(key: str) -> int:
     """Return the size in bytes of an object in storage. Returns 0 if not found."""
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync_get_file_size, key)
+
+
+async def read_file_header(key: str, size: int = 64) -> bytes:
+    """Read the first ``size`` bytes of a file from storage. Returns b'' if not found."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _sync_read_header, key, size)

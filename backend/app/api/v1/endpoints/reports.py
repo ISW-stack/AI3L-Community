@@ -46,7 +46,7 @@ async def report_post(
 @router.get("/admin/reports", response_model=PostReportListResponse)
 async def get_reports(
     status_filter: str | None = Query(None, pattern="^(PENDING|RESOLVED|DISMISSED)$"),
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(50, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN")),
 ) -> PostReportListResponse:

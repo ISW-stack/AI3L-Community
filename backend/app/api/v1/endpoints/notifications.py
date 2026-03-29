@@ -26,7 +26,7 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 async def get_notifications(
     request: Request,
     unread: bool = Query(False),
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
 ) -> NotificationListResponse:

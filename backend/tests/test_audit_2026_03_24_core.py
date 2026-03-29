@@ -133,7 +133,7 @@ async def test_h02_delete_album_uses_for_update(mock_pool, mock_conn):
             return_value=album_row,
         ) as mock_for_update,
         patch(
-            "app.repositories.album_repo.find_all_photos_for_album",
+            "app.repositories.album_repo.iter_photos_for_album_batched",
             new_callable=AsyncMock,
             return_value=[],
         ),

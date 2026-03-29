@@ -221,7 +221,11 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
     for q in questions:
         qid = q["id"]
         qtype = q["type"]
-        q_meta.append({"id": qid, "type": qtype, "label": q["label"]})
+        qm_entry: dict = {"id": qid, "type": qtype, "label": q["label"]}
+        if qtype == "rating":
+            qm_entry["range_min"] = q.get("min") if q.get("min") is not None else 1
+            qm_entry["range_max"] = q.get("max") if q.get("max") is not None else 5
+        q_meta.append(qm_entry)
 
         if qtype in ("single_choice", "multiple_choice", "dropdown"):
             oc: dict[str, int] = {}
@@ -263,6 +267,14 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
 
             elif qtype == "rating":
                 if isinstance(value, int) and not isinstance(value, bool):
+                    q_min = qm.get("range_min", 1)
+                    q_max = qm.get("range_max", 5)
+                    if value < q_min or value > q_max:
+                        logger.warning(
+                            "Rating value %d out of range [%d, %d] for question %s in form %s",
+                            value, q_min, q_max, qid, str(form_id),
+                        )
+                        continue
                     rating_sums[qid] += value
                     rating_counts[qid] += 1
                     if rating_mins[qid] is None or value < rating_mins[qid]:
@@ -322,9 +334,9 @@ async def get_form_stats(form_id: uuid.UUID) -> dict:
                 stats["min"] = rating_mins[qid]
                 stats["max"] = rating_maxs[qid]
             else:
-                stats["average"] = 0.0
-                stats["min"] = 0
-                stats["max"] = 0
+                stats["average"] = None
+                stats["min"] = None
+                stats["max"] = None
             stats["count"] = rc
             stats["distribution"] = rating_dists[qid]
 
@@ -565,15 +577,14 @@ async def submit_response(
             )
             _validate_answers(questions, answers)
 
-            # Validate file_upload answer ownership (skip for guests — no file uploads)
+            # Validate file_upload answer ownership (skip for guests — no user_id)
             if not is_guest:
                 _validate_file_ownership(questions, answers, user_id)
 
-                # Reject file answers that reference flagged or pending-scan files
-                await _validate_file_scan_status(questions, answers)
-
-                # Server-side file size validation (defense-in-depth)
-                await _validate_file_sizes(questions, answers)
+            # H-01: Scan status, size, and magic byte validation apply to ALL submitters
+            await _validate_file_scan_status(questions, answers)
+            await _validate_file_sizes(questions, answers)
+            await _validate_file_magic_bytes(questions, answers)
 
             response_id = uuid.uuid4()
             # Guests: user_id=None (no FK row in users table)
@@ -733,10 +744,46 @@ async def _validate_file_sizes(questions: list[dict], answers: dict) -> None:
         if not isinstance(value, dict) or "key" not in value:
             continue
         file_size = await get_file_size(value["key"])
+        if file_size == 0:
+            raise ValueError(
+                f"File for question '{q['label']}' was not found or has been deleted."
+            )
         max_bytes = max_size_mb * 1024 * 1024
         if file_size > max_bytes:
             raise ValueError(
                 f"File for question '{q['label']}' exceeds the maximum size of {max_size_mb} MB."
+            )
+
+
+async def _validate_file_magic_bytes(questions: list[dict], answers: dict) -> None:
+    """H-02: Validate magic bytes for form file uploads to prevent type spoofing."""
+    from app.core.async_storage import read_file_header
+    from app.core.file_validation import get_content_type_from_extension, validate_magic_number
+
+    for q in questions:
+        if q["type"] != "file_upload":
+            continue
+        value = answers.get(q["id"])
+        if not isinstance(value, dict) or "key" not in value or "filename" not in value:
+            continue
+        filename = value["filename"]
+        expected_type = get_content_type_from_extension(filename)
+        if expected_type is None:
+            # Extension not in allowed list — already caught by _validate_answers
+            continue
+        try:
+            header = await read_file_header(value["key"], size=64)
+        except Exception:
+            raise ValueError(
+                f"File for question '{q['label']}' could not be read from storage."
+            )
+        if not header:
+            raise ValueError(
+                f"File for question '{q['label']}' not found in storage."
+            )
+        if not validate_magic_number(header, expected_type):
+            raise ValueError(
+                f"File for question '{q['label']}' content does not match its extension."
             )
 
 

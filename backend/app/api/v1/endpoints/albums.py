@@ -1,5 +1,6 @@
 """Activity Albums endpoints."""
 
+import io
 import mimetypes
 import uuid
 from typing import Any, cast
@@ -158,14 +159,14 @@ async def upload_cover_endpoint(
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Upload rate limit exceeded.")
 
-    chunks: list[bytes] = []
+    buf = io.BytesIO()
     total = 0
     while chunk := await file.read(8192):
         total += len(chunk)
         if total > MAX_ALBUM_UPLOAD_BYTES:
             raise AppError(ErrorCode.SYS_422, 422, "File too large.")
-        chunks.append(chunk)
-    file_data = b"".join(chunks)
+        buf.write(chunk)
+    file_data = buf.getvalue()
     filename = file.filename or "cover"
     # M-12: Derive Content-Type from extension instead of trusting client
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
@@ -277,14 +278,14 @@ async def upload_photo_endpoint(
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Upload rate limit exceeded.")
 
-    chunks: list[bytes] = []
+    buf = io.BytesIO()
     total = 0
     while chunk := await file.read(8192):
         total += len(chunk)
         if total > MAX_ALBUM_UPLOAD_BYTES:
             raise AppError(ErrorCode.SYS_422, 422, "File too large.")
-        chunks.append(chunk)
-    file_data = b"".join(chunks)
+        buf.write(chunk)
+    file_data = buf.getvalue()
     filename = file.filename or "unknown"
     # M-12: Derive Content-Type from extension instead of trusting client
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
@@ -314,14 +315,14 @@ async def upload_file_endpoint(
     ):
         raise AppError(ErrorCode.SYS_429, 429, "Upload rate limit exceeded.")
 
-    chunks: list[bytes] = []
+    buf = io.BytesIO()
     total = 0
     while chunk := await file.read(8192):
         total += len(chunk)
         if total > ALBUM_MAX_ZIP_SIZE_BYTES:
             raise AppError(ErrorCode.SYS_422, 422, "File too large.")
-        chunks.append(chunk)
-    file_data = b"".join(chunks)
+        buf.write(chunk)
+    file_data = buf.getvalue()
     filename = file.filename or "unknown.zip"
     # M-12: Derive Content-Type from extension instead of trusting client
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"

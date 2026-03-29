@@ -146,7 +146,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
 
   // --- VirusTotal scan ---
   const imageScanStatuses = ref<
-    Record<string, 'pending' | 'clean' | 'malicious' | 'unknown' | 'skipped'>
+    Record<string, 'pending' | 'clean' | 'malicious' | 'unknown' | 'skipped' | 'timeout'>
   >({})
   const postContentRef = ref<HTMLElement | null>(null)
 
@@ -639,8 +639,18 @@ export function usePostDetail(options: UsePostDetailOptions) {
     return [...new Set(keys)]
   }
 
+  const MAX_SCAN_POLL_ATTEMPTS = 20 // ~100s at 5s intervals
+  const scanPollAttempts = new Map<string, number>()
+
   async function pollImageScanStatus(fileKey: string) {
     if (isUnmounted) return
+    const attempts = (scanPollAttempts.get(fileKey) ?? 0) + 1
+    scanPollAttempts.set(fileKey, attempts)
+    if (attempts > MAX_SCAN_POLL_ATTEMPTS) {
+      imageScanStatuses.value[fileKey] = 'timeout'
+      scanPollAttempts.delete(fileKey)
+      return
+    }
     try {
       const data = await getFileScanStatus(fileKey)
       if (isUnmounted) return
@@ -651,9 +661,12 @@ export function usePostDetail(options: UsePostDetailOptions) {
           pollImageScanStatus(fileKey)
         }, 5000)
         scanPollTimers.add(timer)
+      } else {
+        scanPollAttempts.delete(fileKey)
       }
     } catch {
       // Endpoint not available or file not scanned - ignore
+      scanPollAttempts.delete(fileKey)
     }
   }
 
@@ -713,6 +726,7 @@ export function usePostDetail(options: UsePostDetailOptions) {
     loading.value = true
     sigRole.value = null
     comments.value = []
+    setCommentPage(1)
     coAuthors.value = []
     citedBy.value = []
     citing.value = []

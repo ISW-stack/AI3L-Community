@@ -59,22 +59,26 @@ async def _compute_recommendations_async() -> dict[str, int]:
             # Clear old recommendations before writing new ones
             await conn.execute("DELETE FROM friend_recommendations")
 
-            # Fetch all active user IDs for batching
-            user_ids = [
-                row["id"]
-                for row in await conn.fetch(
-                    "SELECT id FROM users "
-                    "WHERE is_deleted = false AND is_banned = false AND role != 'GUEST' "
-                    "ORDER BY id"
-                )
-            ]
-
+            # Fetch user IDs in cursor-based batches to avoid loading all into memory
             total = 0
             users_with_recs = 0
+            last_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
 
-            # Process users in batches to avoid O(N^2) memory usage
-            for batch_start in range(0, len(user_ids), RECOMMENDATION_BATCH_SIZE):
-                batch = user_ids[batch_start : batch_start + RECOMMENDATION_BATCH_SIZE]
+            while True:
+                batch = [
+                    row["id"]
+                    for row in await conn.fetch(
+                        "SELECT id FROM users "
+                        "WHERE is_deleted = false AND is_banned = false "
+                        "AND role != 'GUEST' AND id > $1 "
+                        "ORDER BY id LIMIT $2",
+                        last_id,
+                        RECOMMENDATION_BATCH_SIZE,
+                    )
+                ]
+                if not batch:
+                    break
+                last_id = batch[-1]
 
                 rows = await conn.fetch(
                     _RECOMMENDATION_BATCH_SQL,

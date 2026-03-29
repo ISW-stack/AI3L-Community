@@ -118,11 +118,13 @@ async def _cleanup_text() -> dict:
         if not expired:
             break
 
-        # Group by conversation for per-conversation transactions
+        # Group by conversation for per-conversation transactions.
         conv_msgs: dict[object, list] = {}
         for msg in expired:
             cid = msg["conversation_id"]
-            conv_msgs.setdefault(cid, []).append(msg["id"])
+            if cid not in conv_msgs:
+                conv_msgs[cid] = []
+            conv_msgs[cid].append(msg["id"])
 
         # F-18: Process each conversation in its own transaction so advisory
         # locks are released after each one, avoiding lock accumulation.

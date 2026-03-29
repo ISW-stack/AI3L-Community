@@ -46,28 +46,46 @@ async def get_blocked_user_ids(
 
 
 async def warmup_block_cache(pool: asyncpg.Pool, redis: Any) -> None:
-    """Load all block relationships into Redis on app startup."""
-    async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT blocker_id, blocked_id FROM blocks")
+    """Load all block relationships into Redis on app startup (batched to limit memory)."""
+    _BATCH_SIZE = 5000
+    total_loaded = 0
+    offset = 0
 
-    if not rows:
-        return
+    while True:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT blocker_id, blocked_id FROM blocks "
+                "ORDER BY blocker_id, blocked_id LIMIT $1 OFFSET $2",
+                _BATCH_SIZE,
+                offset,
+            )
 
-    pipe = redis.pipeline()
-    seen_keys: set[str] = set()
-    for row in rows:
-        blocker = str(row["blocker_id"])
-        blocked = str(row["blocked_id"])
-        key_blocker = f"block:set:{blocker}"
-        key_blocked = f"block:set:{blocked}"
-        pipe.sadd(key_blocker, blocked)
-        pipe.sadd(key_blocked, blocker)
-        seen_keys.add(key_blocker)
-        seen_keys.add(key_blocked)
-    for key in seen_keys:
-        pipe.expire(key, 86400)  # 24h TTL
-    await pipe.execute()
-    logger.info("Block cache warmed: %d block records", len(rows))
+        if not rows:
+            break
+
+        pipe = redis.pipeline()
+        seen_keys: set[str] = set()
+        for row in rows:
+            blocker = str(row["blocker_id"])
+            blocked = str(row["blocked_id"])
+            key_blocker = f"block:set:{blocker}"
+            key_blocked = f"block:set:{blocked}"
+            pipe.sadd(key_blocker, blocked)
+            pipe.sadd(key_blocked, blocker)
+            seen_keys.add(key_blocker)
+            seen_keys.add(key_blocked)
+        for key in seen_keys:
+            pipe.expire(key, 86400)  # 24h TTL
+        await pipe.execute()
+
+        total_loaded += len(rows)
+        offset += _BATCH_SIZE
+
+        if len(rows) < _BATCH_SIZE:
+            break
+
+    if total_loaded:
+        logger.info("Block cache warmed: %d block records", total_loaded)
 
 
 async def update_block_cache(redis: Any, blocker_id: str, blocked_id: str, *, added: bool) -> None:

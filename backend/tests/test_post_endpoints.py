@@ -852,15 +852,15 @@ class TestPostHistoryForbiddenNonOwner:
 
 
 class TestPageParameterUpperBound:
-    """Page parameter validation — le=10000 on Query(page)."""
+    """Page parameter validation — le=1000 on Query(page)."""
 
     @pytest.mark.anyio
     async def test_page_exceeds_upper_bound_returns_422(self, client):
-        """GET /posts?page=10001 → 422 validation error."""
+        """GET /posts?page=1001 → 422 validation error."""
         try:
             _override_auth("MEMBER")
             resp = await client.get(
-                "/api/v1/posts?page=10001",
+                "/api/v1/posts?page=1001",
                 headers={"Authorization": "Bearer fake"},
             )
             assert resp.status_code == 422
@@ -869,7 +869,7 @@ class TestPageParameterUpperBound:
 
     @pytest.mark.anyio
     async def test_page_at_upper_bound_accepted(self, client):
-        """GET /posts?page=10000 → 200 (boundary value accepted)."""
+        """GET /posts?page=1000 → 200 (boundary value accepted)."""
         post = _make_post()
         try:
             _override_auth("MEMBER")
@@ -879,13 +879,13 @@ class TestPageParameterUpperBound:
                 return_value={
                     "posts": [post],
                     "total": 1,
-                    "total_pages": 10000,
+                    "total_pages": 1000,
                     "next_cursor": None,
                     "has_more": None,
                 },
             ):
                 resp = await client.get(
-                    "/api/v1/posts?page=10000",
+                    "/api/v1/posts?page=1000",
                     headers={"Authorization": "Bearer fake"},
                 )
                 assert resp.status_code == 200

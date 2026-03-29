@@ -185,11 +185,11 @@ async def remove_member(sig_id: uuid.UUID, user_id: uuid.UUID) -> bool:
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await conn.execute(
-                "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
+                "UPDATE sig_members SET is_deleted = true WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
                 sig_id,
                 user_id,
             )
-            if result != "DELETE 1":
+            if result != "UPDATE 1":
                 return False
             await conn.execute(
                 "UPDATE sigs SET member_count = GREATEST(member_count - 1, 0) WHERE id = $1",
@@ -256,11 +256,11 @@ async def count_admins(sig_id: uuid.UUID, conn: Any) -> int:
 
 async def delete_member(sig_id: uuid.UUID, user_id: uuid.UUID, conn: Any) -> bool:
     result = await conn.execute(
-        "DELETE FROM sig_members WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
+        "UPDATE sig_members SET is_deleted = true WHERE sig_id = $1 AND user_id = $2 AND is_deleted = false",
         sig_id,
         user_id,
     )
-    if result != "DELETE 1":
+    if result != "UPDATE 1":
         return False
     await conn.execute(
         "UPDATE sigs SET member_count = GREATEST(member_count - 1, 0) WHERE id = $1",

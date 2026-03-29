@@ -4,6 +4,8 @@ import os
 import re
 import uuid
 
+from loguru import logger
+
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 
 from app.core.constants import (
@@ -96,7 +98,7 @@ async def admin_list_messages(
             target_id=str(conversation_id),
         )
     except Exception:
-        pass  # best-effort audit
+        logger.error("Failed to log DM admin access", exc_info=True)
 
     from app.converters.dm_converter import async_row_to_message
     from app.core.storage import generate_presigned_url

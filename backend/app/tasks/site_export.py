@@ -536,15 +536,8 @@ async def _async_export(task_id: str, options: dict, user_id: str) -> dict:
         client = get_storage()
         bucket = settings.S3_BUCKET_NAME
 
-        # For files under ~100MB, simple put_object is fine.
-        # For larger files, use multipart upload.
-        if zip_size <= 100 * 1024 * 1024:
-            with open(tmp_path, "rb") as f:
-                data = f.read()
-            upload_file(data, storage_key, "application/zip")
-            del data
-        else:
-            # Multipart upload for large files
+        # Always use multipart upload to avoid loading full ZIP into memory.
+        if zip_size > 0:
             mpu = client.create_multipart_upload(
                 Bucket=bucket,
                 Key=storage_key,

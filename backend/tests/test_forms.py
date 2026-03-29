@@ -2135,6 +2135,53 @@ class TestFormStatsService:
         assert stats["distribution"] == {3: 1, 4: 1, 5: 1}
 
     @pytest.mark.anyio
+    async def test_stats_rating_out_of_range_excluded(self) -> None:
+        """L-03: Out-of-range rating values are excluded from stats."""
+        from app.services.form import get_form_stats
+
+        form_id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        form_row = {
+            "id": form_id,
+            "sig_id": uuid.uuid4(),
+            "created_by": uuid.uuid4(),
+            "title": "Test",
+            "description": None,
+            "banner_url": None,
+            "deadline": None,
+            "max_respondents": None,
+            "questions": [{"id": "q1", "type": "rating", "label": "Rate", "min": 1, "max": 5}],
+            "is_schema_locked": False,
+            "allow_non_members": False,
+            "is_deleted": False,
+            "created_at": now,
+            "updated_at": now,
+            "creator_display_name": "Test User",
+        }
+        responses = [
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(), "answers": {"q1": 3}, "created_at": now},
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(), "answers": {"q1": 0}, "created_at": now},  # below min
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(), "answers": {"q1": 99}, "created_at": now},  # above max
+            {"id": uuid.uuid4(), "form_id": form_id, "user_id": uuid.uuid4(), "answers": {"q1": 5}, "created_at": now},
+        ]
+
+        with (
+            patch("app.services.form.form_repo.find_by_id", new_callable=AsyncMock, return_value=(form_row, 4)),
+            patch("app.services.form.form_repo.count_total_responses", new_callable=AsyncMock, return_value=4),
+            patch("app.services.form.form_repo.iter_responses_batched", new=_async_gen_mock(responses)),
+        ):
+            result = await get_form_stats(form_id)
+
+        stats = result["question_stats"][0]["stats"]
+        assert stats["count"] == 2, "Only in-range values should be counted"
+        assert stats["average"] == 4.0
+        assert stats["min"] == 3
+        assert stats["max"] == 5
+        assert stats["distribution"] == {3: 1, 5: 1}
+        assert 0 not in stats["distribution"]
+        assert 99 not in stats["distribution"]
+
+    @pytest.mark.anyio
     async def test_stats_text_count(self) -> None:
         """get_form_stats correctly counts text/textarea responses."""
         from app.services.form import get_form_stats
@@ -2322,7 +2369,9 @@ class TestFormStatsService:
         assert all(o["count"] == 0 for o in choice_stats["options"])
         assert all(o["percentage"] == 0.0 for o in choice_stats["options"])
         rating_stats = result["question_stats"][1]["stats"]
-        assert rating_stats["average"] == 0.0
+        assert rating_stats["average"] is None
+        assert rating_stats["min"] is None
+        assert rating_stats["max"] is None
         assert rating_stats["count"] == 0
 
     @pytest.mark.anyio

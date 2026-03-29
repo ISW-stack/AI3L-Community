@@ -117,7 +117,7 @@ class PostSearchRequest(BaseModel):
         default="newest",
         pattern="^(newest|oldest|most_comments|popular|most_answers|unanswered)$",
     )
-    page: int = Field(default=1, ge=1, le=10000)
+    page: int = Field(default=1, ge=1, le=1000)
     page_size: int = Field(default=20, ge=1, le=100)
     type: str | None = Field(None, pattern="^(post|question)$")
 

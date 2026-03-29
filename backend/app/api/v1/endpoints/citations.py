@@ -33,7 +33,7 @@ async def search_for_citation(
 @router.get("/posts/{post_id}/cited-by", response_model=CitationListResponse)
 async def get_cited_by(
     post_id: uuid.UUID,
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CitationListResponse:
@@ -47,7 +47,7 @@ async def get_cited_by(
 @router.get("/posts/{post_id}/citing", response_model=CitationListResponse)
 async def get_citing_endpoint(
     post_id: uuid.UUID,
-    page: int = Query(1, ge=1, le=10000),
+    page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> CitationListResponse:

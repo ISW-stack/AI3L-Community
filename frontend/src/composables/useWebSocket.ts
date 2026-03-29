@@ -68,9 +68,14 @@ export function useWebSocket() {
   /** Register a callback to be called each time the WebSocket reconnects
    *  (i.e. re-establishes after a prior drop). The callback is NOT called
    *  on the very first connection.
+   *  Returns an unsubscribe function — call it in onUnmounted to prevent leaks.
    */
-  function onReconnect(cb: () => void): void {
+  function onReconnect(cb: () => void): () => void {
     _reconnectCallbacks.push(cb)
+    return () => {
+      const idx = _reconnectCallbacks.indexOf(cb)
+      if (idx !== -1) _reconnectCallbacks.splice(idx, 1)
+    }
   }
 
   async function getWsUrl(): Promise<string | null> {

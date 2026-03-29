@@ -158,6 +158,33 @@ async def find_all_photos_for_album(conn: Any, album_id: uuid.UUID) -> list[dict
     return [dict(r) for r in rows]
 
 
+async def iter_photos_for_album_batched(
+    conn: Any, album_id: uuid.UUID, batch_size: int = 500
+) -> list[list[dict]]:
+    """Yield photos for an album in batches to limit memory usage (cascade cleanup).
+
+    Returns a list of batches, each batch is a list of photo dicts.
+    """
+    batches: list[list[dict]] = []
+    offset = 0
+    while True:
+        rows = await conn.fetch(
+            "SELECT id, storage_key, thumbnail_key, file_size_bytes, uploaded_by "
+            "FROM album_photos WHERE album_id = $1 "
+            "ORDER BY created_at LIMIT $2 OFFSET $3",
+            album_id,
+            batch_size,
+            offset,
+        )
+        if not rows:
+            break
+        batches.append([dict(r) for r in rows])
+        offset += batch_size
+        if len(rows) < batch_size:
+            break
+    return batches
+
+
 async def delete_all_photos_for_album(conn: Any, album_id: uuid.UUID) -> int:
     """Hard-delete all photos for an album."""
     result = await conn.execute(

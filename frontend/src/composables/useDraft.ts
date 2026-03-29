@@ -38,7 +38,40 @@ export interface UseDraftReturn<T> {
   stopAutoSave: () => void
 }
 
+/** Maximum draft age in ms (48 hours). Drafts older than this are cleaned up. */
+const DRAFT_MAX_AGE_MS = 48 * 60 * 60 * 1000
+
+/**
+ * Remove stale drafts from localStorage that are older than DRAFT_MAX_AGE_MS.
+ * Runs at most once per session.
+ */
+let _cleanupDone = false
+function cleanupStaleDrafts(): void {
+  if (_cleanupDone) return
+  _cleanupDone = true
+  try {
+    const now = Date.now()
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (!k || !k.endsWith('__meta')) continue
+      const ts = localStorage.getItem(k)
+      if (!ts) continue
+      const age = now - new Date(ts).getTime()
+      if (age > DRAFT_MAX_AGE_MS) {
+        keysToRemove.push(k, k.replace(/__meta$/, ''))
+      }
+    }
+    for (const k of keysToRemove) {
+      localStorage.removeItem(k)
+    }
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
 export function useDraft<T>(options: UseDraftOptions<T>): UseDraftReturn<T> {
+  cleanupStaleDrafts()
   const {
     key,
     defaultValue,

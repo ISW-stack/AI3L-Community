@@ -144,11 +144,14 @@ async function selectConversation(conversationId: string, otherUserId: string) {
     const prevUnread = dmStore.conversations[convIdx].unread_count
     try {
       await dmApi.markConversationRead(conversationId)
-      dmStore.unreadCount = Math.max(0, dmStore.unreadCount - prevUnread)
       dmStore.conversations[convIdx] = {
         ...dmStore.conversations[convIdx],
         unread_count: 0,
       }
+      // Immediate local decrement for responsive UI
+      dmStore.unreadCount = Math.max(0, dmStore.unreadCount - prevUnread)
+      // Then fetch authoritative count from server (corrects drift from concurrent WS)
+      await dmStore.fetchUnreadCount()
     } catch {
       // Revert optimistic unread count and notify user
       dmStore.conversations[convIdx] = {

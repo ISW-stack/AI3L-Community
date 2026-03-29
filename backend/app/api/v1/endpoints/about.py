@@ -39,11 +39,14 @@ from app.services import site_settings as site_settings_service
 router = APIRouter(prefix="/about", tags=["about"])
 
 # In-memory avatar cache: contributor_id_str -> (bytes, content_type, timestamp)
+# NOTE: Per-worker cache — each gunicorn/uvicorn worker maintains its own copy.
+# Limits are set conservatively so total memory stays reasonable even with
+# multiple workers (e.g. 4 workers × 5 MB = 20 MB worst-case).
 _avatar_cache: OrderedDict[str, tuple[bytes, str, float]] = OrderedDict()
 _CACHE_TTL_SECONDS: int = 3600  # 1 hour
-_MAX_CACHE_ENTRIES: int = 50
-_MAX_CACHE_BYTES: int = 10 * 1024 * 1024  # 10 MB total
-_MAX_AVATAR_DOWNLOAD_BYTES: int = 5 * 1024 * 1024  # 5 MB per avatar
+_MAX_CACHE_ENTRIES: int = 30
+_MAX_CACHE_BYTES: int = 5 * 1024 * 1024  # 5 MB per worker
+_MAX_AVATAR_DOWNLOAD_BYTES: int = 2 * 1024 * 1024  # 2 MB per avatar
 _cache_total_bytes: int = 0
 _cache_lock = asyncio.Lock()
 

@@ -64,11 +64,14 @@ async def find_citations_by_post(
     return result, total
 
 
-async def find_existing_citations(conn: Any, citing_post_id: uuid.UUID) -> list[dict]:
-    """Current citations for a citing post (for diff)."""
+async def find_existing_citations(
+    conn: Any, citing_post_id: uuid.UUID, limit: int = 5000
+) -> list[dict]:
+    """Current citations for a citing post (for diff). Capped to prevent OOM."""
     rows = await conn.fetch(
-        "SELECT id, cited_post_id FROM post_citations WHERE citing_post_id = $1",
+        "SELECT id, cited_post_id FROM post_citations WHERE citing_post_id = $1 LIMIT $2",
         citing_post_id,
+        limit,
     )
     return [dict(r) for r in rows]
 
