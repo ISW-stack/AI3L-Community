@@ -60,20 +60,27 @@ This document covers the frontend application architecture, design system, devel
 frontend/src/
 ├── api/                 Axios API call modules (one file per domain)
 │   ├── index.ts         Axios instance and interceptors
+│   ├── about.ts
+│   ├── admin.ts
+│   ├── albums.ts
 │   ├── auth.ts
-│   ├── users.ts
-│   ├── posts.ts
-│   ├── comments.ts
 │   ├── categories.ts
+│   ├── citations.ts
+│   ├── coauthors.ts
+│   ├── comments.ts
 │   ├── contributors.ts
-│   ├── sigs.ts
-│   ├── forms.ts
-│   ├── files.ts
-│   ├── notifications.ts
 │   ├── dm.ts
+│   ├── files.ts
+│   ├── forms.ts
+│   ├── notifications.ts
+│   ├── posts.ts
+│   ├── qa.ts
+│   ├── recommendations.ts
 │   ├── reports.ts
+│   ├── sigs.ts
+│   ├── social.ts
 │   ├── tasks.ts
-│   └── admin.ts
+│   └── users.ts
 ├── components/
 │   ├── base/            Design system base components
 │   │   ├── BaseAlert.vue
@@ -91,7 +98,7 @@ frontend/src/
 │   ├── AppNavbar.vue    Top navigation bar (includes DM unread badge)
 │   ├── NotificationBell.vue
 │   ├── ToastNotification.vue
-│   ├── TiptapEditor.vue Rich text editor wrapper
+│   ├── TiptapEditor.vue Rich text editor wrapper (image/file upload, VirusTotal scan-status polling, citation insertion dialog, table editing)
 │   ├── SkeletonLoader.vue
 │   ├── EmptyState.vue
 │   ├── PrivacyConsentModal.vue
@@ -100,11 +107,25 @@ frontend/src/
 │       ├── MessageThread.vue      Chat bubble thread with edit/recall actions and read receipts
 │       └── MessageInput.vue       Auto-resize textarea with file attach, char counter, edit banner
 ├── composables/
-│   ├── api.ts              Axios instance factory
-│   ├── useWebSocket.ts     WebSocket connection composable
-│   ├── usePagination.ts    Shared pagination state composable
-│   ├── usePostDetail.ts    Post detail business logic composable
-│   └── useLocale.ts        Language preference composable
+│   ├── api.ts                    Axios instance factory
+│   ├── useAlbumLayout.ts         Album layout state (provide/inject wrapper for album children)
+│   ├── useDraft.ts               Post/content draft auto-save and localStorage recovery
+│   ├── useDropdownKeyNav.ts      Keyboard navigation (arrow keys, Enter, Escape) for dropdowns
+│   ├── useFetchPaginated.ts      Generic paginated fetch with fetchId guard against stale responses
+│   ├── useFormBuilder.ts         Form builder question/schema state management
+│   ├── useFormDraft.ts           Form draft persistence to localStorage
+│   ├── useFormExport.ts          Form response CSV export (polls Celery task status)
+│   ├── useFormHistory.ts         Form version history fetching and navigation
+│   ├── useFormResponseDraft.ts   Draft auto-save for form respondents
+│   ├── useFormResponseViewer.ts  Paginated viewing of collected form responses
+│   ├── useFormSubmit.ts          Form submission flow (guest auth, validation, submit)
+│   ├── useInfiniteScroll.ts      Intersection Observer-based infinite scroll pagination
+│   ├── useLocale.ts              Language preference composable
+│   ├── usePagination.ts          Shared pagination state composable
+│   ├── usePostDetail.ts          Post detail business logic composable
+│   ├── usePostList.ts            Post list/feed state and filtering logic
+│   ├── useSigLayout.ts           Typed inject wrapper for SIG child views
+│   └── useWebSocket.ts           WebSocket connection composable
 ├── constants.ts         Application-wide constants
 ├── main.ts              App entry point
 ├── App.vue              Root component (layout, transitions)
@@ -117,14 +138,22 @@ frontend/src/
 ├── style.css            Global styles and design tokens (@theme)
 ├── types/               TypeScript type definitions
 │   ├── index.ts         Re-exports all types
-│   ├── user.ts
-│   ├── post.ts
-│   ├── comment.ts
-│   ├── sig.ts
-│   ├── form.ts
-│   ├── notification.ts
-│   ├── dm.ts
-│   └── common.ts
+│   ├── album.ts         Album, AlbumMember, AlbumPhoto, AlbumComment
+│   ├── citation.ts      CitationEntry, CitationListResponse
+│   ├── coauthor.ts      CoAuthor, CoAuthorInvitation (PENDING/ACCEPTED/REJECTED)
+│   ├── comment.ts       Comment (with vote_score, is_best_answer, reactions)
+│   ├── common.ts        Category, DashboardStats, AuditLog, Report, Application, InviteCode, ExportProgress, PaginatedResponse<T>
+│   ├── contributor.ts   Contributor, ContributorCreate, ContributorUpdate
+│   ├── dm.ts            DMMessage, Conversation, ConversationListResponse
+│   ├── form.ts          Question, FormData, FormResponse, QuestionStats, FormStatsResponse
+│   ├── notification.ts  Notification, TriggerUser
+│   ├── orgchart.ts      OrgChartMember, OrgChartSig, OrgChartCategory, OrgChartOverride
+│   ├── post.ts          Post, PostListResponse, HistoryItem
+│   ├── qa.ts            QAQuestion (extends Post), CommentVote
+│   ├── recommendation.ts FriendRecommendation, RecommendationReason
+│   ├── sig.ts           Sig, SigMember, SigForm
+│   ├── social.ts        Friendship, FriendRequest, FollowUser, BlockedUser, RelationshipStatus
+│   └── user.ts          Author, UserProfile, PublicUser
 ├── locales/             vue-i18n translation files (one per language)
 │   ├── en.ts
 │   ├── zhCN.ts
@@ -145,9 +174,14 @@ frontend/src/
 │   ├── nan.ts           Taiwanese Hokkien (Hàn-lô mixed script)
 │   └── index.ts         vue-i18n instance configuration
 ├── utils/
-│   ├── datetime.ts      Date formatting helpers
-│   ├── error.ts         getErrorMessage() — typed API error extraction
-│   └── html.ts          HTML sanitization helpers
+│   ├── apiValidation.ts  assertShape<T>() — dev-only runtime API shape checker
+│   ├── date.ts           formatDate() / formatDateTime() with locale support
+│   ├── datetime.ts       relativeTime() — "just now", "5 min ago", "3d ago"
+│   ├── error.ts          getErrorMessage() — typed API error extraction
+│   ├── formStats.ts      computeFormStats() / filterResponses() — form analytics
+│   ├── html.ts           stripHtml, isContentEmpty, extractMentions, renderMentions
+│   ├── linkify.ts        linkify() — splits text into URL/non-URL segments
+│   └── sanitize.ts       SANITIZE_CONFIG, sanitizeHtml(), sanitizePreviewHtml(), addLinkSafety()
 └── views/
     ├── HomeView.vue
     ├── LoginView.vue
@@ -170,16 +204,42 @@ frontend/src/
     │   ├── SigMembersView.vue    Nested route: SIG member roster
     │   ├── SigFormsView.vue      Nested route: SIG forms list
     │   └── SigCreateView.vue
+    ├── about/
+    │   ├── MembersView.vue         Member roster
+    │   └── OrgChartView.vue        Organization hierarchy visualization
+    ├── albums/
+    │   ├── AlbumsDirectoryView.vue
+    │   ├── AlbumCreateView.vue
+    │   ├── AlbumLayout.vue         Parent layout — provides album + userAlbumRole via inject
+    │   ├── AlbumPhotosView.vue     Nested route: photo grid with lightbox
+    │   ├── AlbumMembersView.vue    Nested route: album member roster
+    │   └── AlbumCommentsView.vue   Nested route: album comments
     ├── forms/
+    │   ├── FormsDirectoryView.vue
     │   ├── FormView.vue
     │   └── FormBuilderView.vue
+    ├── guide/
+    │   └── UserGuideView.vue       Help documentation (Member+)
+    ├── qa/
+    │   ├── QAListView.vue
+    │   ├── QACreateView.vue
+    │   └── QADetailView.vue        Q&A thread with voting and best-answer selection
+    ├── social/
+    │   ├── FriendsView.vue
+    │   ├── FollowingView.vue
+    │   └── BlockedUsersView.vue
     └── admin/
         ├── AdminDashboardView.vue
         ├── UsersView.vue
         ├── ApplicationsView.vue
+        ├── CategoriesView.vue
         ├── ReportsView.vue
-        ├── AuditLogsView.vue
-        └── InviteCodesView.vue
+        ├── InviteCodesView.vue
+        ├── AuditLogsView.vue       Super Admin only
+        ├── ContributorsView.vue    Super Admin only
+        ├── IpBansView.vue          Super Admin only
+        ├── SiteSettingsView.vue    Super Admin only
+        └── DataExportView.vue      Super Admin only
 ```
 
 ---
@@ -520,7 +580,7 @@ All page components are lazy-loaded with dynamic imports to split the bundle per
 
 ### State Management
 
-Pinia stores are in `src/stores/`. There are three stores.
+Pinia stores are in `src/stores/`. There are four stores.
 
 #### `useAuthStore` (`stores/auth.ts`)
 
@@ -537,6 +597,18 @@ Manages authentication state for the current session.
 The JWT itself is stored in an HttpOnly cookie set by the server and is not accessible from JavaScript. The store does not hold a token string.
 
 Key actions: `login`, `logout`, `clearSession`, `fetchCurrentUser`.
+
+#### `useDMStore` (`stores/dm.ts`)
+
+Manages direct messaging state.
+
+| State | Type | Description |
+| --- | --- | --- |
+| `conversations` | `Conversation[]` | List of active conversations |
+| `unreadCount` | `number` | Total unread DM message count (shown as navbar badge) |
+| `activeConversationId` | `string \| null` | Currently open conversation |
+
+Handles WebSocket events: `NEW_DM`, `DM_EDITED`, `DM_RECALLED`, `DM_READ`.
 
 #### `useNotificationsStore` (`stores/notifications.ts`)
 
@@ -612,6 +684,30 @@ Extracts all business logic for the post detail page (fetching post, comments, r
 
 Manages the active vue-i18n locale. Reads the user's `preferred_language` from the auth store on mount and persists changes to the backend via `PUT /users/me`.
 
+#### `useFetchPaginated` (`composables/useFetchPaginated.ts`)
+
+Generic composable that wraps a paginated API call. Includes a `fetchId` guard that discards responses from superseded in-flight requests, preventing stale data from rendering when the user navigates quickly. Used in `AuditLogsView`, `UsersView`, and `HomeView`.
+
+#### `useSigLayout` (`composables/useSigLayout.ts`)
+
+Typed wrapper around `inject` for SIG child views (`SigPostsView`, `SigMembersView`, `SigFormsView`). Returns `{ sig, userSigRole }` provided by `SigLayout` via `provide/inject`.
+
+#### `useDraft` (`composables/useDraft.ts`)
+
+Auto-saves rich-text content to `localStorage` at a configurable interval and restores it on the next visit. Used in `PostCreateView` with a per-user, per-SIG draft key.
+
+#### `useFormBuilder` (`composables/useFormBuilder.ts`)
+
+Manages the form builder question list, drag-and-drop ordering, add/remove/edit question operations, and schema validation before save.
+
+#### `useInfiniteScroll` (`composables/useInfiniteScroll.ts`)
+
+Uses `IntersectionObserver` to detect when the user scrolls to the bottom sentinel element and triggers a next-page fetch. Returns `{ containerRef, isFetching }`.
+
+#### `useAlbumLayout` (`composables/useAlbumLayout.ts`)
+
+Typed inject wrapper for album child views (`AlbumPhotosView`, `AlbumMembersView`, `AlbumCommentsView`). Returns `{ album, userAlbumRole }` provided by `AlbumLayout`.
+
 ### Types
 
 All TypeScript types are in `src/types/`. The `index.ts` file re-exports everything, so imports can use `@/types` without specifying individual files:
@@ -624,11 +720,21 @@ Add new types to the appropriate file (`user.ts`, `post.ts`, etc.) or create a n
 
 ### Utilities
 
-`src/utils/datetime.ts` provides date formatting helpers used consistently across views.
+`src/utils/date.ts` exports `formatDate(date, locale?)` and `formatDateTime(date, locale?)` for locale-aware date display. Use these everywhere instead of calling `.toLocaleDateString()` directly.
 
-`src/utils/html.ts` wraps DOMPurify for sanitizing HTML before rendering with `v-html`.
+`src/utils/datetime.ts` exports `relativeTime(iso, locale?)` which converts ISO timestamps to human-readable relative strings ("just now", "5 min ago", "2h ago", "3d ago"). Used in post lists and notification feeds.
 
-`src/utils/error.ts` exports `getErrorMessage(e, fallback)` — the standard way to extract a human-readable message from any caught API error. Use this in every `catch` block instead of accessing `e.response.data.message` directly.
+`src/utils/error.ts` exports `getErrorMessage(e, fallback)` — the standard way to extract a human-readable message from any caught API error. It handles Pydantic 422 validation errors (field names extracted), translates backend error codes via i18n, and filters SQL-related strings from error messages before displaying them. Use this in every `catch` block.
+
+`src/utils/html.ts` exports `stripHtml`, `isContentEmpty`, `extractMentions`, `renderMentions`, and URL extractors. Use `isContentEmpty` to block submission of visually empty but structurally non-empty TipTap output.
+
+`src/utils/sanitize.ts` exports `sanitizeHtml(html)` (full DOMPurify config with mention attributes), `sanitizePreviewHtml(html)` (strips tables/images/links for post-card previews), and `addLinkSafety(html)` (adds `rel="noopener noreferrer"` to external links post-sanitization). The config uses DOMPurify's `FORCE_BODY` mode to prevent mXSS via namespace injection.
+
+`src/utils/linkify.ts` exports `linkify(text)` which splits plain text into URL and non-URL segments for rendering clickable links outside of TipTap. Handles trailing punctuation stripping.
+
+`src/utils/formStats.ts` exports `computeFormStats(questions, responses)` and `filterResponses(responses, searchQuery, dateFrom, dateTo)`. Used by the form response viewer to aggregate choice/rating/text/file statistics client-side without a separate backend aggregation call.
+
+`src/utils/apiValidation.ts` exports `assertShape<T>(data, requiredKeys, context)` — a dev-only runtime check that logs a warning if an API response is missing expected fields. Never throws; safe to ship without removing calls.
 
 ---
 
@@ -656,13 +762,37 @@ Add new types to the appropriate file (`user.ts`, `post.ts`, etc.) or create a n
 | `NotificationsView`  | `/notifications`         | Yes               | Full notification list                   |
 | `ProfileView`        | `/profile`               | Yes               | Edit own profile and change password     |
 | `UserProfileView`    | `/users/:id`             | Yes               | View another user's public profile       |
-| `AboutView`          | `/about`                 | Yes (Member+)     | Platform contributors (GitHub avatars proxied) |
-| `AdminDashboardView` | `/admin`                 | Yes (Admin+)      | Platform statistics                      |
-| `UsersView`          | `/admin/users`           | Yes (Admin+)      | User management                          |
-| `ApplicationsView`   | `/admin/applications`    | Yes (Admin+)      | Membership applications                  |
-| `ReportsView`        | `/admin/reports`         | Yes (Admin+)      | Post reports                             |
-| `AuditLogsView`      | `/admin/audit-logs`      | Yes (Super Admin) | Audit log                                |
-| `InviteCodesView`    | `/admin/invite-codes`    | Yes (Admin+)      | Invite code management                   |
+| `AboutView`              | `/about`                      | Yes (Member+)     | Platform contributors (GitHub avatars proxied) |
+| `OrgChartView`           | `/about/org-chart`            | Yes (Member+)     | Organization hierarchy visualization     |
+| `MembersView`            | `/about/members`              | Yes (Member+)     | Full member roster                       |
+| `FormsDirectoryView`     | `/forms`                      | Yes               | Browse and search all forms              |
+| `FormBuilderView`        | `/forms/new`                  | Yes (Member+)     | Create a standalone form                 |
+| `AlbumsDirectoryView`    | `/albums`                     | Yes               | Browse all albums                        |
+| `AlbumCreateView`        | `/albums/create`              | Yes (Admin+)      | Create a new album                       |
+| `AlbumLayout`            | `/albums/:id`                 | Yes               | Album parent layout (provides album + userAlbumRole) |
+| `AlbumPhotosView`        | `/albums/:id/photos`          | Yes               | Photo grid with lightbox (nested route)  |
+| `AlbumMembersView`       | `/albums/:id/members`         | Yes               | Album member roster (nested route)       |
+| `AlbumCommentsView`      | `/albums/:id/comments`        | Yes               | Album comments (nested route)            |
+| `DMView`                 | `/messages`                   | Yes (Member+)     | Direct messaging — open conversations list |
+| `DMView`                 | `/messages/:userId`           | Yes (Member+)     | Direct messaging — open specific conversation |
+| `FriendsView`            | `/friends`                    | Yes (Member+)     | Friend list and pending requests         |
+| `FollowingView`          | `/following`                  | Yes (Member+)     | Following / followers                    |
+| `BlockedUsersView`       | `/blocked-users`              | Yes (Member+)     | Blocked users management                 |
+| `QAListView`             | `/qa`                         | Yes               | Questions and answers listing            |
+| `QACreateView`           | `/qa/ask`                     | Yes (Member+)     | Ask a new question                       |
+| `QADetailView`           | `/qa/:id`                     | Yes               | Q&A thread with voting and best answer   |
+| `UserGuideView`          | `/guide`                      | Yes (Member+)     | Help documentation by role               |
+| `AdminDashboardView`     | `/admin`                      | Yes (Admin+)      | Platform statistics                      |
+| `UsersView`              | `/admin/users`                | Yes (Admin+)      | User management                          |
+| `ApplicationsView`       | `/admin/applications`         | Yes (Admin+)      | Membership applications                  |
+| `CategoriesView`         | `/admin/categories`           | Yes (Admin+)      | Forum category management                |
+| `ReportsView`            | `/admin/reports`              | Yes (Admin+)      | Content moderation reports               |
+| `InviteCodesView`        | `/admin/invite-codes`         | Yes (Admin+)      | Invite code management                   |
+| `AuditLogsView`          | `/admin/audit-logs`           | Yes (Super Admin) | Audit log                                |
+| `ContributorsView`       | `/admin/contributors`         | Yes (Super Admin) | Manage listed contributors               |
+| `IpBansView`             | `/admin/ip-bans`              | Yes (Super Admin) | IP ban management                        |
+| `SiteSettingsView`       | `/admin/site-settings`        | Yes (Super Admin) | Site-wide configuration                  |
+| `DataExportView`         | `/admin/data-export`          | Yes (Super Admin) | Full site data export                    |
 
 ---
 
@@ -677,6 +807,7 @@ The `useWebSocket` composable in `src/composables/useWebSocket.ts` is initialize
 3. On receiving a `NOTIFICATION` message, the notification count in `useNotificationsStore` is incremented and the bell icon updates.
 4. On receiving a `FORCE_LOGOUT` message (e.g., account banned), the auth store is cleared and the user is redirected to `/login`.
 5. On disconnect, the composable attempts reconnection with exponential backoff (up to 5 retries).
+6. The composable listens to the Page Visibility API (`visibilitychange`). When the tab becomes hidden, the connection is torn down. When the tab becomes visible again (and the user is authenticated), the backoff counter is reset and a fresh connection is established immediately. Multiple consumers share a single `visibilitychange` listener to avoid handler accumulation.
 
 ---
 
@@ -747,6 +878,8 @@ npm run lint
   meta: {
     requiresAuth: true,          // redirect to /login if not authenticated
     requiresRole: ['ADMIN'],     // redirect to / if role does not match
+    requiresMember: true,        // redirect to / if user is GUEST (not yet promoted)
+    fullWidth: true,             // removes the max-w-7xl container in App.vue for full-bleed layouts
   }
 }
 ```

@@ -67,7 +67,23 @@ Higher-privilege sessions expire sooner to limit the damage window of a compromi
 
 `POST /auth/login` and `POST /auth/register` require a valid CAPTCHA answer alongside credentials. The server generates an image challenge (`GET /auth/captcha`), stores the answer server-side with a short TTL, and rejects any login attempt that does not include the correct solution. This prevents automated credential stuffing and bulk registration abuse.
 
-### 1.6 Guest Session Limits
+### 1.6 Timing Oracle Prevention
+
+Non-existent or deleted user lookups run the same Argon2id password verification as valid ones. A module-level `_DUMMY_HASH` is computed at import time and used whenever the user is not found in the database. Without this, an attacker could enumerate valid usernames by timing the difference between "user not found" (fast) and "wrong password" (slow, due to hashing). With it, both code paths take the same time.
+
+### 1.7 Password Policy
+
+Passwords are validated on registration and change against five independent requirements:
+
+1. Minimum 8 characters
+2. At least one uppercase letter (A–Z)
+3. At least one lowercase letter (a–z)
+4. At least one digit (0–9)
+5. At least one special character: `!@#$%^&*()_+-=[]{}|;:,.<>?/~`
+
+Validation is enforced in `app/core/security.py` (`validate_password_policy()`). The function returns the first failing rule as a user-facing message. Plain-text passwords are never stored, logged, or transmitted after the initial request.
+
+### 1.8 Guest Session Limits
 
 Guest accounts created via invite codes are bounded by two independent caps:
 
@@ -113,13 +129,14 @@ The frontend enforces this via route guards (`meta.requiresMember`). The backend
 
 ## 3. CSRF Protection
 
-### Mechanism: Double-Submit Cookie
+### Mechanism: Double-Submit Cookie Bound to Session JTI
 
-The platform uses the **double-submit cookie** pattern:
+The platform uses the **double-submit cookie** pattern with a cryptographically bound token:
 
-1. On authentication, the server generates a cryptographically random CSRF token and sets it as a readable (`HttpOnly=False`) cookie named `csrf_token`.
-2. The frontend reads this cookie and includes its value in the `X-CSRF-Token` request header on every state-mutating request.
-3. The CSRF middleware reads both values and rejects the request if they do not match.
+1. On authentication, the server derives the CSRF token by computing `HMAC-SHA256(SECRET_KEY, jti)`, where `jti` is the unique JWT session identifier. The token is deterministic for a given session but unpredictable to any third party that does not know both the `jti` and the secret key.
+2. The derived token is set as a readable (`HttpOnly=False`) cookie named `csrf_token`.
+3. The frontend reads this cookie and includes its value in the `X-CSRF-Token` request header on every state-mutating request.
+4. The CSRF middleware reads both values and rejects the request if they do not match. On session rotation the token automatically changes because the `jti` changes.
 
 ### Why This Works
 
@@ -135,14 +152,16 @@ Safe HTTP methods (`GET`, `HEAD`, `OPTIONS`) bypass CSRF checks. All mutating me
 
 The declared `Content-Type` header of an upload is **never trusted**. Before any file is written to object storage, `app/core/file_validation.py` reads the file's first bytes and compares them against a whitelist of known magic number signatures:
 
-| Extension | Magic Bytes |
-|---|---|
-| `.png` | `\x89PNG\r\n\x1a\n` |
-| `.jpg` / `.jpeg` | `\xFF\xD8\xFF` |
-| `.pdf` | `%PDF` |
-| `.docx` | `PK\x03\x04` |
+| Extension | Magic Bytes | Additional Validation |
+|---|---|---|
+| `.png` | `\x89PNG\r\n\x1a\n` | — |
+| `.jpg` / `.jpeg` | `\xFF\xD8\xFF` | — |
+| `.pdf` | `%PDF` | Full object-tree sanitization (see §4.2) |
+| `.docx` | `PK\x03\x04` | ZIP structure check: must contain `[Content_Types].xml` and `word/` directory |
+| `.webp` | `RIFF....WEBP` | Bytes 0–3 must be `RIFF`; bytes 8–11 must be `WEBP` |
+| `.gif` | `GIF87a` / `GIF89a` | Re-encoded through Pillow to strip GIF/HTML polyglot payloads |
 
-A mismatch raises `AppError` with code `FILE_001` and the upload is rejected. A renamed executable cannot pass this check.
+A mismatch raises `AppError` with code `FILE_001` and the upload is rejected. A renamed executable cannot pass this check. The ZIP structure validation for DOCX prevents JAR, APK, and other ZIP-based file formats from masquerading as Word documents.
 
 ### 4.2 PDF Sanitization
 
@@ -166,17 +185,24 @@ This provides a second line of defense against malware that passes magic byte ch
 Files in MinIO are **never publicly accessible**. Read access is served in two ways:
 
 - **Editor-embedded images**: accessed via the stable backend proxy `GET /files/content/{key}`. The proxy streams the file from MinIO and requires authentication. This avoids the expiry problem of embedded presigned URLs.
-- **Attachments / on-demand downloads**: the backend generates short-lived (7-day TTL) **presigned URLs** at request time via `GET /files/presigned/{key}`. Presigned URLs are scoped to a single object and expire automatically.
+- **Attachments / on-demand downloads**: the backend generates short-lived **presigned URLs** scoped to a single object. TTLs vary by context:
+  - `GET /files/presigned/{key}` — **1-hour TTL** (general file downloads)
+  - Album photos and thumbnails — **15-minute TTL** (generated inline when serving album data)
+  - Site export archives — **15-minute TTL** (regenerated on each progress poll)
 
 When MinIO is accessed through a different hostname from the browser (e.g. behind Nginx or in Docker development), `MINIO_PUBLIC_URL` rewrites the internal hostname in generated presigned URLs so the browser can reach the file without the internal service name being exposed.
 
 ### 4.5 Upload Limits
 
-| Limit | Value |
-|---|---|
-| Maximum file size | 20 MB |
-| Accepted types | PNG, JPEG, PDF, DOCX |
-| Per-user upload rate | 10 uploads / minute |
+| Context | Maximum Size | Accepted Types |
+|---|---|---|
+| Avatar | 2 MB | PNG, JPEG only |
+| Editor file attachment | 10 MB | PNG, JPEG, PDF, DOCX, WEBP, GIF |
+| Album photo (individual) | 10 MB | PNG, JPEG, WEBP, GIF |
+| Album bulk upload | 50 MB | PNG, JPEG, WEBP, GIF |
+| DM attachment | 10 MB | PNG, JPEG, PDF, DOCX, WEBP, GIF |
+
+Per-user upload rate is limited to 10 uploads / minute for editor attachments (separate limits apply to album and DM uploads). Upload size limits are enforced both at the Nginx layer and in application middleware before file content is read.
 
 ---
 
@@ -216,9 +242,10 @@ Rate limiting is enforced at two independent layers, so that bypassing one does 
 | Zone | Limit | Scope |
 |---|---|---|
 | `global` | 20 requests / second | All `/api/` endpoints, per IP |
-| `write` | 5 requests / minute | POST, PUT, PATCH, DELETE, per IP |
+| `write` | 5 requests / minute | POST, PUT, PATCH, DELETE (general), per IP |
+| `dm_write` | 30 requests / minute | `/api/v1/dm/*` write operations, per IP |
 
-Both zones use `nodelay` burst handling. Clients that exceed the limit receive `429 Too Many Requests`. GET and HEAD requests bypass the write zone.
+All zones use `nodelay` burst handling. Clients that exceed the limit receive `429 Too Many Requests`. GET and HEAD requests bypass the `write` zone. The `dm_write` zone is more permissive than `write` because real-time messaging generates higher legitimate write frequency.
 
 ### 6.2 Application Layer (Redis-backed, per-endpoint)
 
@@ -227,6 +254,7 @@ Redis atomic counters with fixed TTL windows enforce granular limits per endpoin
 | Endpoint | Limit | Key |
 |---|---|---|
 | `POST /auth/login` | 10 / min | per IP |
+| `POST /auth/login` | 50 / 5 min | per username (account-level) |
 | `POST /auth/register` | 5 / min | per IP |
 | `POST /auth/guest/{code}` | 10 / min | per IP |
 | `POST /auth/invite-code` | 5 / hour | per user |
@@ -235,6 +263,8 @@ Redis atomic counters with fixed TTL windows enforce granular limits per endpoin
 | `POST /forms/{id}/submit` | 5 / min | per user |
 | `GET /notifications` | 60 / min | per user |
 | `DELETE /notifications` | 30 / min | per user |
+| `POST /dm/conversations/{id}/messages` | 30 / min | per user |
+| `GET /dm/conversations` | 60 / min | per user |
 
 Post creation is additionally limited to **50 posts per user per day** (Redis counter, resets at midnight UTC). Error code `SYS_429` is returned when this limit is reached.
 
@@ -263,7 +293,21 @@ Instead, the platform uses **one-time tickets**:
 
 An expired ticket, an already-used ticket, or a missing ticket all result in immediate connection rejection. The 30-second window is narrow enough to prevent replay attacks.
 
-### 7.2 Forced Logout Delivery
+### 7.2 WebSocket Connection Limits and Session Revalidation
+
+Two independent limits protect the WebSocket layer:
+
+| Limit | Value | Enforcement |
+|---|---|---|
+| Concurrent connections per IP | 5 | Nginx `limit_conn ws_conn` |
+| Concurrent connections per authenticated user | 5 | Backend in-memory counter (closes oldest with code 4006) |
+| Messages per connection per minute | 60 | Redis rate counter |
+| Maximum message size | 64 KB | Backend byte check on receive |
+| Idle timeout (no PONG) | 90 seconds | Server-initiated close |
+
+Additionally, the server re-validates each connection's session JTI against Redis every **60 seconds** during the connection lifetime. If the JTI has been revoked (e.g., the user changed their password or an admin force-logged-out the user on a different device), the connection is immediately closed.
+
+### 7.3 Forced Logout Delivery
 
 When a user is banned, the server publishes a `FORCE_LOGOUT` message to the user's Redis Pub/Sub channel. All Uvicorn workers receive the message and push it to any connected WebSocket belonging to that user, regardless of which worker holds the connection. This ensures bans take effect in real time across all active sessions and all workers.
 
@@ -300,11 +344,30 @@ All responses include `X-Robots-Tag: noindex, nofollow`. A `robots.txt` with `Di
 
 Redis is configured with:
 
+**Development:**
 - `maxmemory 256mb` — hard cap to prevent unbounded memory growth
 - `maxmemory-policy allkeys-lru` — evicts least-recently-used keys when the cap is reached
-- AOF persistence disabled — Redis is used for ephemeral session state, not durable data
+- AOF disabled — Redis is used for ephemeral state in development
 
-### 8.5 Celery Worker Memory Safety
+**Production:**
+- `maxmemory 512mb` — larger cap for production workload
+- `maxmemory-policy volatile-lru` — only evicts keys that have a TTL set; keys without TTL (e.g., permanent ban entries) are never evicted
+- AOF enabled (`appendfsync everysec`) — provides crash recovery; at most one second of data loss
+- Dangerous commands disabled: `FLUSHALL`, `FLUSHDB`, `KEYS`, `DEBUG` are removed at startup. `CONFIG` is renamed to an unpublished token to prevent live reconfiguration.
+
+### 8.5 Docker Container Hardening
+
+All application containers run with the principle of least privilege:
+
+| Measure | Applied to | Description |
+|---|---|---|
+| `cap_drop: ALL` | All services | Drops all Linux capabilities at container start |
+| `security_opt: no-new-privileges:true` | All services | Process cannot acquire additional privileges via setuid/setgid |
+| `read_only: true` | FastAPI (prod) | Root filesystem is read-only; only `/tmp` and `~appuser` are writable (via `tmpfs`) |
+| `tmpfs: /tmp` (100MB) | FastAPI (prod) | In-memory `/tmp` with a hard size cap to prevent disk exhaustion via temp files |
+| Minimal capabilities re-added | All services | Only `CHOWN`, `SETGID`, `SETUID`, `DAC_OVERRIDE` are re-added |
+
+### 8.6 Celery Worker Memory Safety
 
 Celery workers are started with `--max-memory-per-child=256000` (KB). A worker that exceeds 256 MB is automatically recycled by Celery, preventing slow memory leaks in long-running task handlers from accumulating indefinitely.
 
@@ -362,18 +425,47 @@ Every sensitive action is written to the `audit_logs` table with:
 | `LOGIN` | Successful authentication |
 | `LOGOUT` | User-initiated logout |
 | `PASSWORD_CHANGE` | Password update |
-| `ACCOUNT_DELETE` | GDPR erasure |
-| `ROLE_CHANGE` | Super Admin changes a user's role |
+| `ACCOUNT_DELETE` | GDPR erasure (self-initiated) |
+| `ROLE_CHANGE` | Admin changes a single user's role |
+| `BULK_ROLE_CHANGE` | Admin changes multiple users' roles at once |
 | `BAN` | Admin bans a user |
 | `UNBAN` | Admin removes a ban |
 | `INVITE_CODE_REVOKE` | Admin soft-revokes an invite code |
 | `INVITE_CODE_DELETE` | Admin hard-deletes an invite code |
+| `IP_BAN` | Super Admin bans an IP address |
+| `IP_UNBAN` | Super Admin removes an IP ban |
+| `APPLICATION_REVIEW` | Admin approves or rejects a membership application |
+| `ADMIN_DELETE_USER` | Admin hard-deletes a user account |
+| `ADMIN_DELETE_POST` | Admin removes a post |
+| `BULK_DELETE_POSTS` | Admin bulk-deletes posts |
+| `DM_ADMIN_VIEW` | Super Admin reads a DM conversation via the moderation endpoint |
+| `SITE_EXPORT_START` | Super Admin initiates a site data export |
+| `SITE_EXPORT_DELETE` | Super Admin deletes a site data export archive |
+| `file_delete` / `admin_file_delete` | User or Admin deletes an uploaded file |
 
 The audit log is paginated and accessible only to Super Admins at `GET /admin/audit-logs`. It is append-only — no update or delete endpoint exists for audit records.
 
 ---
 
-## 11. Threat Model Summary
+## 11. Idempotency
+
+All `POST` and `PUT` requests support the **`Idempotency-Key`** header. When a client includes this header, the server caches the response in Redis and replays it for any identical re-submission, preventing duplicate side-effects from network retries.
+
+| Property | Value |
+|---|---|
+| Header name | `Idempotency-Key` |
+| Allowed characters | Alphanumeric + dashes, max 256 chars |
+| Cache TTL | 5 minutes |
+| Key namespace | `idempotency:{user_id}:{key}` (per-user, no cross-user leakage) |
+| Concurrent protection | A second request with the same key while the first is still processing returns 409 |
+| Cached status codes | 2xx and 4xx (except 429); 5xx responses are not cached so the client can retry |
+| Max cached body | 512 KB |
+
+The user ID is extracted from the JWT `sub` claim and prepended to the Redis key, ensuring that two users who accidentally submit the same key string never receive each other's responses.
+
+---
+
+## 12. Threat Model Summary
 
 | Threat | Mitigations |
 |---|---|
@@ -386,7 +478,7 @@ The audit log is paginated and accessible only to Super Admins at `GET /admin/au
 | File-based malware | Magic byte validation, PDF sanitization via pikepdf/qpdf, VirusTotal async scanning |
 | Privilege escalation | `require_role` dependency on every protected endpoint, service-layer ownership checks |
 | Enumeration / scraping | Rate limiting, robots.txt + X-Robots-Tag, guest capacity limits |
-| DoS / resource exhaustion | Nginx rate limiting, Redis memory cap + LRU eviction, Celery worker memory recycling, 20 MB upload limit |
-| Data exposure via storage | All MinIO objects private, presigned URLs with 7-day TTL, internal hostname never exposed to browser |
+| DoS / resource exhaustion | Nginx rate limiting, Redis memory cap + LRU eviction, Celery worker memory recycling, per-context upload size limits (10–50 MB) |
+| Data exposure via storage | All MinIO/R2 objects private, short-lived presigned URLs (15 min for albums/exports, 1 h for general files), internal hostname never exposed to browser |
 | Unauthorized force-logout evasion | Forced logout delivered over WebSocket (not polling), backed by Redis Pub/Sub across all workers |
 | PII leakage in audit/contributor data | GitHub usernames kept server-side only; avatars proxied through backend with 1h cache |

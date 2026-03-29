@@ -269,11 +269,15 @@ async def on_post_created(data: dict) -> None:
 
 ### `app/core/file_validation.py`
 
-Reads the first bytes of an uploaded file and compares the magic number signature against a whitelist of allowed file types (PNG, JPEG, PDF, DOCX). Raises `AppError` with code `FILE_001` for mismatches.
+Reads the first bytes of an uploaded file and compares the magic number signature against a whitelist of allowed file types (PNG, JPEG, PDF, DOCX, WEBP, GIF). Raises `AppError` with code `FILE_001` for mismatches. DOCX files undergo additional ZIP structure validation to prevent JAR/APK files from masquerading as Word documents. GIF files are re-encoded through Pillow to strip polyglot payloads.
 
 ### `app/core/csrf.py`
 
 CSRF middleware that verifies the `X-CSRF-Token` request header matches the `csrf_token` cookie on all non-safe HTTP methods. A CSRF token is generated and set as a cookie when a session is established.
+
+### `app/middleware/idempotency.py`
+
+Starlette middleware that provides idempotency for `POST` and `PUT` requests. Clients include an `Idempotency-Key` header; the server caches the response in Redis (5-minute TTL) and replays it for duplicate requests. Keys are namespaced by the authenticated user ID from the JWT `sub` claim, preventing cross-user cache collisions. Concurrent requests with the same key return 409 while the first request is processing. Responses larger than 512 KB are not cached. 5xx responses are not cached so the client can retry.
 
 ### `app/core/rate_limit.py`
 
@@ -391,6 +395,8 @@ Authorization is handled by `require_role(roles)`, which wraps `get_current_user
 
 Role hierarchy: `GUEST` < `MEMBER` < `ADMIN` < `SUPER_ADMIN`.
 
+**Password policy** (`app/core/security.py` — `validate_password_policy()`): passwords must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character (`!@#$%^&*()_+-=[]{}|;:,.<>?/~`). The same policy applies to both registration and password change endpoints.
+
 ---
 
 ## CSRF Protection
@@ -436,14 +442,18 @@ Before any file is written to MinIO, `app/core/file_validation.py` inspects the 
 
 Accepted types:
 
-| Extension | MIME Type | Magic Bytes |
-|---|---|---|
-| `.png` | `image/png` | `\x89PNG` |
-| `.jpg` / `.jpeg` | `image/jpeg` | `\xFF\xD8\xFF` |
-| `.pdf` | `application/pdf` | `%PDF` |
-| `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `PK\x03\x04` |
+| Extension | MIME Type | Magic Bytes | Extra Validation |
+|---|---|---|---|
+| `.png` | `image/png` | `\x89PNG` | — |
+| `.jpg` / `.jpeg` | `image/jpeg` | `\xFF\xD8\xFF` | — |
+| `.pdf` | `application/pdf` | `%PDF` | Full object-tree sanitization via pikepdf |
+| `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `PK\x03\x04` | ZIP structure check (`[Content_Types].xml` + `word/` directory) |
+| `.webp` | `image/webp` | `RIFF....WEBP` | Bytes 8–11 must equal `WEBP` |
+| `.gif` | `image/gif` | `GIF87a` / `GIF89a` | Re-encoded through Pillow to strip polyglot payloads |
 
-PDF files undergo additional sanitization via pikepdf (backed by the C++ qpdf engine) to strip embedded JavaScript (`/JS`, `/JavaScript`), auto-actions (`/AA`, `/OpenAction`), and other potentially dangerous objects. Corrupted or invalid PDFs are rejected with a `ValueError` before reaching storage.
+**PDF sanitization:** pikepdf (backed by the C++ qpdf engine) strips embedded JavaScript (`/JS`, `/JavaScript`), auto-actions (`/AA`, `/OpenAction`), dangerous action types (`/Launch`, `/SubmitForm`, `/ImportData`), and performs a recursive object-tree traversal to remove any remaining dangerous keys. Corrupted or invalid PDFs are rejected before reaching storage.
+
+**Note:** Avatar uploads accept only PNG and JPEG (2 MB limit). Editor file attachments and DM attachments accept all six types above (10 MB limit). Album uploads accept PNG, JPEG, WEBP, and GIF (10 MB per photo, 50 MB for bulk uploads).
 
 ---
 
@@ -453,11 +463,34 @@ Celery workers are defined in `app/celery_app.py`. Tasks are located in `app/tas
 
 Configured tasks:
 
+**On-demand tasks** (triggered at runtime):
+
+| Task | Trigger | Description |
+|---|---|---|
+| `form_export` | User action | Serializes all form responses to CSV and stores the result in Redis. The frontend polls `GET /api/v1/tasks/{task_id}` for completion. |
+| `virustotal_scan` | File upload | Submits a new file to the VirusTotal API and stores the verdict in the `file_scans` table. |
+| `generate_thumbnail` | Album photo upload | Creates a compressed thumbnail and stores it under a `thumb_` key in MinIO. |
+| `site_export` | Admin action | Dumps all platform data to a downloadable archive. |
+
+**Beat-scheduled tasks:**
+
 | Task | Schedule | Description |
 |---|---|---|
-| `form_export` | On-demand | Serializes all form responses to CSV and stores the result in Redis. The frontend polls `GET /api/v1/tasks/{task_id}` for completion. |
-| `cleanup_dm_expired_files` | Hourly (Beat) | Deletes MinIO DM file attachments older than 3 days and refunds each sender's storage quota. |
-| `cleanup_dm_expired_text` | Hourly (Beat) | Deletes DM message text older than 7 days and adjusts each conversation's `total_chars` counter. |
+| `retry_failed_events` | Every 5 min | Replays event bus failures persisted to Redis. |
+| `sync_guest_counter` | Every 5 min | Reconciles the Redis guest session counter against actual active sessions. |
+| `auto_close_expired_forms` | Every 5 min | Sets forms with a past deadline to `closed` status. |
+| `reconcile_counters` | Every 6 hours | Repairs post and comment counters that may have drifted due to concurrent writes. |
+| `cleanup_dm_expired_files` | Hourly | Deletes MinIO DM file attachments older than 3 days and refunds each sender's storage quota. |
+| `cleanup_dm_expired_text` | Hourly | Deletes DM message text older than 7 days and adjusts each conversation's `total_chars` counter. |
+| `compute_friend_recommendations` | Daily | Recalculates friend recommendation scores for all members. |
+| `cleanup_old_file_scans` | Daily | Purges stale VirusTotal scan records from the `file_scans` table. |
+| `cleanup_old_audit_logs` | Daily | Archives and removes audit log entries beyond the retention window. |
+| `cleanup_dm_orphan_files` | Daily | Removes DM files stored in MinIO that have no corresponding database record. |
+| `cleanup_old_site_exports` | Daily | Deletes expired site data export archives from MinIO. |
+| `cleanup_orphan_files` | Weekly | Removes MinIO objects that have no corresponding record in the `files` table. |
+| `cleanup_old_read_notifications` | Weekly | Prunes already-read notifications beyond the retention limit. |
+| `cleanup_dm_orphan_quotas` | Weekly | Releases storage quota for DM uploads that were never linked to a message. |
+| `cleanup_empty_dm_conversations` | Weekly | Removes conversation rows that contain no messages. |
 
 To add a new task:
 

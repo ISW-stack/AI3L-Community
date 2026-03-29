@@ -50,8 +50,9 @@ Docker Compose setup, Nginx TLS termination, automatic Alembic migrations on sta
 
 ### Content & Collections
 - **Albums/Galleries** — organize and share research materials, images, and multimedia
-- **Citations & References** — cite posts and track backlinks between related content
+- **Citations & References** — cite posts and track cited-by/citing backlinks between related content
 - **Recommendations** — content suggestions based on member interests
+- **Q&A** — question posts support upvote/downvote voting on answers and author-marked best answer highlighting
 
 ### Form Builder
 - Seven field types: text, textarea, single_choice, multiple_choice, dropdown, rating, file_upload
@@ -71,6 +72,7 @@ Docker Compose setup, Nginx TLS termination, automatic Alembic migrations on sta
 - Invite code lifecycle: per-member generation, soft revoke, hard delete, full audit trail
 - Paginated audit log (Super Admin only): tracks LOGIN, LOGOUT, ROLE_CHANGE, BAN, INVITE_CODE_REVOKE, and more
 - File audit and content moderation tools
+- Site Settings: Super Admin can update the About page intro photo and bio text via an admin panel (`/admin/site-settings`)
 
 ### Security & Compliance
 - VirusTotal async file scanning with scan-status polling endpoint
@@ -89,26 +91,30 @@ Docker Compose setup, Nginx TLS termination, automatic Alembic migrations on sta
 
 ### Direct Messaging
 - 1-on-1 private messaging between members
-- Message attachments (files) with 50MB per-message limit
+- Message attachments (files) with 10MB per-message limit
 - Edit and recall functionality (12-hour window)
 - Read receipts for each message
 - Conversation history with 50K character retention limit
-- Automatic cleanup: files expire after 3 days, text after 30 days
+- Automatic cleanup: files expire after 3 days, text after 7 days
 - Respects user preferences: optional friends-only mode
 
 ### Background Tasks
-Celery workers process on-demand tasks (VirusTotal scanning, CSV export). Celery Beat runs 11 scheduled operations:
+Celery workers process on-demand tasks (VirusTotal scanning, CSV export, thumbnail generation, site data export). Celery Beat runs 15 scheduled operations:
 - **retry_failed_events** — replay event bus failures (every 5 min)
 - **sync_guest_counter** — reconcile guest session count (every 5 min)
 - **auto_close_expired_forms** — close forms past deadline (every 5 min)
 - **reconcile_counters** — fix post/comment counters (every 6 hours)
 - **cleanup_dm_expired_files** — remove DM attachments past 3 days (hourly)
-- **cleanup_dm_expired_text** — remove DM text past 30 days (hourly)
+- **cleanup_dm_expired_text** — remove DM text past 7 days (hourly)
 - **compute_friend_recommendations** — refresh recommendation scores (daily)
 - **cleanup_old_file_scans** — purge stale VirusTotal scan records (daily)
 - **cleanup_old_audit_logs** — archive old audit entries (daily)
+- **cleanup_dm_orphan_files** — remove DM files in MinIO with no DB record (daily)
+- **cleanup_old_site_exports** — delete expired site export archives (daily)
 - **cleanup_orphan_files** — remove MinIO objects with no DB reference (weekly)
 - **cleanup_old_read_notifications** — prune read notifications (weekly)
+- **cleanup_dm_orphan_quotas** — release storage quota for phantom DM uploads (weekly)
+- **cleanup_empty_dm_conversations** — remove conversations with no messages (weekly)
 
 ### Internationalization
 - Interface available in 17 languages via vue-i18n
