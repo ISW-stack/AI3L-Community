@@ -295,7 +295,8 @@ export default {
       error: 'Falha ao enviar solicitação.',
       reasonLabel: 'Por que deseja entrar?',
       usernamePlaceholder: 'Escolha um nome de usuário',
-      usernameHint: "Apenas letras, números, sublinhados, hífens, pontos e {'@'}. Sem espaços.",
+      usernameHint:
+        "Apenas letras, números, sublinhados, hífens, pontos e {'@'}. Sem espaços. Pode definir um nome de exibição com espaços no seu perfil.",
       passwordPlaceholder: 'Escolha uma senha',
       passwordHint: 'Mínimo 8 caracteres, com maiúsculas, minúsculas, dígito e caractere especial.',
       status: {

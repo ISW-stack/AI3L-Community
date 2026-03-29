@@ -295,7 +295,8 @@ export default {
       error: 'Error al enviar la solicitud.',
       reasonLabel: '¿Por qué desea unirse?',
       usernamePlaceholder: 'Elige un nombre de usuario',
-      usernameHint: "Solo letras, números, guiones bajos, guiones, puntos y {'@'}. Sin espacios.",
+      usernameHint:
+        "Solo letras, números, guiones bajos, guiones, puntos y {'@'}. Sin espacios. Puede establecer un nombre para mostrar con espacios en su perfil.",
       passwordPlaceholder: 'Elige una contraseña',
       passwordHint: 'Mín. 8 caracteres, con mayúscula, minúscula, número y carácter especial.',
       status: {

@@ -182,7 +182,7 @@ const {
   viewMode: rvViewMode,
   ...responseViewer
 } = useFormResponseViewer({
-  pageSize: 200,
+  pageSize: 100,
   onError: (msg) => toast.show(msg || t('sigs.forms.fetchResponsesError'), 'error'),
 })
 

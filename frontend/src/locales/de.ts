@@ -298,7 +298,8 @@ export default {
       error: 'Bewerbung konnte nicht eingereicht werden.',
       reasonLabel: 'Warum möchten Sie beitreten?',
       usernamePlaceholder: 'Benutzernamen wählen',
-      usernameHint: "Nur Buchstaben, Zahlen, Unterstriche, Bindestriche, Punkte und {'@'}. Keine Leerzeichen.",
+      usernameHint:
+        "Nur Buchstaben, Zahlen, Unterstriche, Bindestriche, Punkte und {'@'}. Keine Leerzeichen. Sie können einen Anzeigenamen mit Leerzeichen in Ihrem Profil festlegen.",
       passwordPlaceholder: 'Passwort wählen',
       passwordHint: 'Mind. 8 Zeichen, mit Groß-, Kleinbuchstaben, Ziffer und Sonderzeichen.',
       status: {

@@ -276,7 +276,8 @@ export default {
       error: '申請提交失敗。',
       reasonLabel: '您為什麼想加入？',
       usernamePlaceholder: '選擇使用者名稱',
-      usernameHint: "僅限字母、數字、底線、連字號、點及 {'@'}，不可含空格。",
+      usernameHint:
+        "僅限字母、數字、底線、連字號、點及 {'@'}，不可含空格。如需含空格的名稱，可稍後於個人資料中設定「顯示名稱」。",
       passwordPlaceholder: '選擇密碼',
       passwordHint: '最少 8 個字元，包含大寫、小寫、數字和特殊字元。',
       status: {

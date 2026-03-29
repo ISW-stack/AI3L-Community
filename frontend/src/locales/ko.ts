@@ -294,7 +294,8 @@ export default {
       error: '신청서 제출에 실패했습니다.',
       reasonLabel: '가입하려는 이유를 알려주세요.',
       usernamePlaceholder: '사용자 이름을 선택하세요',
-      usernameHint: "영문자, 숫자, 밑줄, 하이픈, 마침표, {'@'}만 가능. 공백 불가.",
+      usernameHint:
+        "영문자, 숫자, 밑줄, 하이픈, 마침표, {'@'}만 가능. 공백 불가. 공백이 포함된 이름은 프로필의 '표시 이름'에서 설정할 수 있습니다.",
       passwordPlaceholder: '비밀번호를 선택하세요',
       passwordHint: '최소 8자, 대문자, 소문자, 숫자, 특수문자 포함.',
       status: {

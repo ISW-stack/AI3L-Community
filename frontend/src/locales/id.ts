@@ -296,7 +296,8 @@ export default {
       error: 'Gagal mengirim permohonan.',
       reasonLabel: 'Mengapa Anda ingin bergabung?',
       usernamePlaceholder: 'Pilih nama pengguna',
-      usernameHint: "Hanya huruf, angka, garis bawah, tanda hubung, titik, dan {'@'}. Tanpa spasi.",
+      usernameHint:
+        "Hanya huruf, angka, garis bawah, tanda hubung, titik, dan {'@'}. Tanpa spasi. Anda dapat mengatur nama tampilan dengan spasi di profil Anda.",
       passwordPlaceholder: 'Pilih kata sandi',
       passwordHint: 'Min 8 karakter, dengan huruf besar, kecil, angka, dan karakter khusus.',
       status: {

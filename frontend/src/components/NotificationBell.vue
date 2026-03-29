@@ -58,6 +58,8 @@ function navigateToEntity(notif: Notification) {
     router.push(`/messages/${notif.trigger_user.id}`)
   } else if (notif.entity_type === 'report') {
     router.push('/admin/reports')
+  } else if (notif.entity_type === 'application') {
+    router.push('/admin/applications')
   } else if ((notif.entity_type === 'comment' || notif.entity_type === 'post') && notif.entity_id) {
     router.push(`/forum/${notif.entity_id}`)
   } else {
