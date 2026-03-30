@@ -170,7 +170,7 @@ function handleCommented() {
 </script>
 
 <template>
-  <BaseCard hoverable class="!p-0">
+  <BaseCard class="!p-0 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
     <!-- SIG context — shown above header when post belongs to a SIG -->
     <div v-if="post.sig_id && post.sig_name" class="px-4 pt-3 pb-1">
       <router-link
@@ -202,13 +202,13 @@ function handleCommented() {
             <Pin class="w-3 h-3" />
             {{ t('post.card.pinned') }}
           </span>
-          <BaseBadge
+          <span
             v-if="isQuestion"
-            class="!text-[10px] !px-1.5 !py-0 !bg-purple-100 !text-purple-700"
+            class="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700"
           >
-            <HelpCircle class="w-3 h-3 mr-0.5 inline" />
+            <HelpCircle class="w-3 h-3" />
             {{ t('common.question') }}
-          </BaseBadge>
+          </span>
         </div>
         <div class="flex items-center gap-2 text-xs text-muted">
           <span>{{ displayTime(post.created_at) }}</span>
@@ -251,7 +251,7 @@ function handleCommented() {
         loading="lazy"
         width="320"
         height="180"
-        class="w-full max-h-80 object-cover bg-surface-alt aspect-video"
+        class="w-full max-h-80 object-cover bg-surface-alt"
       />
     </router-link>
 
@@ -276,30 +276,37 @@ function handleCommented() {
     </div>
 
     <!-- Action Bar -->
-    <div class="border-t border-border px-4 py-2.5 flex items-center gap-4">
+    <div class="border-t border-border px-3 py-2 flex items-center flex-wrap gap-1">
       <button
         type="button"
-        class="text-sm flex items-center gap-1 transition-colors"
-        :class="showQuickComments ? 'text-brand-600' : 'text-muted hover:text-brand-600'"
+        class="text-sm flex items-center gap-1 rounded-full px-2 py-1 transition-colors"
+        :class="
+          showQuickComments
+            ? 'text-brand-600 bg-brand-50'
+            : 'text-muted hover:text-brand-600 hover:bg-surface-alt'
+        "
         @click.stop.prevent="toggleQuickComments"
       >
-        <MessageCircle class="w-3.5 h-3.5" />
+        <MessageCircle class="w-4 h-4" />
         {{ localCommentCount }}
       </button>
-      <span class="text-sm text-muted flex items-center gap-1">
-        <Eye class="w-3.5 h-3.5" />
+      <span class="text-sm text-muted flex items-center gap-1 px-2 py-1">
+        <Eye class="w-4 h-4" />
         {{ post.view_count }}
       </span>
-      <span v-if="post.citation_count > 0" class="text-sm text-muted flex items-center gap-1">
-        <Quote class="w-3.5 h-3.5" />
+      <span
+        v-if="post.citation_count > 0"
+        class="text-sm text-muted flex items-center gap-1 px-2 py-1"
+      >
+        <Quote class="w-4 h-4" />
         {{ post.citation_count }}
       </span>
       <span
         v-if="isQuestion"
-        class="text-sm flex items-center gap-1"
+        class="text-sm flex items-center gap-1 px-2 py-1"
         :class="post.best_answer_id ? 'text-green-600' : 'text-muted'"
       >
-        <MessageSquare class="w-3.5 h-3.5" />
+        <MessageSquare class="w-4 h-4" />
         {{ t('qa.answerCount', { count: post.answer_count }, post.answer_count) }}
       </span>
       <CopyShareLinkButton v-if="auth.isAuthenticated" :url="postShareUrl" />

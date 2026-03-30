@@ -436,69 +436,114 @@ onMounted(() => {
     <!-- Unauthenticated view -->
     <div v-else>
       <!-- Hero Section -->
-      <div
-        class="bg-gradient-to-br from-brand-900 to-brand-700 rounded-lg p-8 sm:p-12 text-white text-center mb-8"
-      >
-        <img src="/images/logo.png" alt="AI3L" class="w-48 sm:w-64 mx-auto mb-6 drop-shadow-lg" />
-        <h1 class="text-3xl sm:text-4xl font-bold mb-3">{{ t('home.unauthenticated.title') }}</h1>
-        <p class="text-brand-200 text-lg mb-2">
-          {{ t('home.unauthenticated.subtitle') }}
-        </p>
-        <p class="text-brand-200 mt-2">
-          {{ t('home.unauthenticated.tagline') }}
-        </p>
-        <div class="flex flex-wrap items-center justify-center gap-3 mt-6">
-          <router-link to="/register">
-            <BaseButton size="lg">
-              {{ t('home.unauthenticated.getStartedBtn') }}
-            </BaseButton>
-          </router-link>
-          <router-link to="/guest">
-            <BaseButton variant="secondary" size="lg">
-              {{ t('home.unauthenticated.browseGuestBtn') }}
-            </BaseButton>
-          </router-link>
+      <div class="relative overflow-hidden rounded-lg mb-8">
+        <!-- Background gradient -->
+        <div
+          class="absolute inset-0 bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700"
+        ></div>
+        <!-- Radial overlay for depth -->
+        <div
+          class="absolute inset-0 opacity-30"
+          style="
+            background:
+              radial-gradient(ellipse at 20% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+          "
+        ></div>
+        <!-- Dot pattern overlay -->
+        <div class="hero-pattern absolute inset-0"></div>
+        <!-- Decorative floating shapes -->
+        <div class="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-2xl"></div>
+        <div class="absolute -bottom-16 -right-16 w-64 h-64 rounded-full bg-white/5 blur-3xl"></div>
+        <div class="absolute top-1/4 right-[15%] w-24 h-24 rounded-full bg-white/5 blur-xl"></div>
+        <!-- Content -->
+        <div class="relative p-8 sm:p-12 text-white text-center">
+          <img src="/images/logo.png" alt="AI3L" class="w-48 sm:w-64 mx-auto mb-6 drop-shadow-lg" />
+          <h1 class="text-3xl sm:text-4xl font-bold mb-3">
+            {{ t('home.unauthenticated.title') }}
+          </h1>
+          <p class="text-brand-200 text-lg mb-2">
+            {{ t('home.unauthenticated.subtitle') }}
+          </p>
+          <p class="text-brand-200 mt-2">
+            {{ t('home.unauthenticated.tagline') }}
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-3 mt-6">
+            <router-link to="/register">
+              <button
+                class="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 rounded-lg font-semibold text-brand-700 bg-white hover:bg-brand-50 transition-colors duration-200 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-800 touch-manipulation"
+              >
+                {{ t('home.unauthenticated.getStartedBtn') }}
+              </button>
+            </router-link>
+            <router-link to="/guest">
+              <button
+                class="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 rounded-lg font-semibold text-white border-2 border-white/40 bg-white/10 hover:bg-white/20 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-800 touch-manipulation"
+              >
+                {{ t('home.unauthenticated.browseGuestBtn') }}
+              </button>
+            </router-link>
+          </div>
         </div>
       </div>
 
       <!-- Community stats section — real numbers from API -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-8">
-        <div class="text-center">
+      <div class="grid grid-cols-3 gap-2 sm:gap-5 mb-8">
+        <div class="bg-surface rounded-xl p-3 sm:p-5 shadow-sm text-center">
+          <div
+            class="hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-50 text-brand-600 mb-2"
+          >
+            <Users class="w-5 h-5" aria-hidden="true" />
+          </div>
           <div
             v-if="loadingStats"
-            class="h-8 w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
+            class="h-8 sm:h-9 w-12 sm:w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
           ></div>
-          <p v-else class="text-2xl font-bold text-foreground">
+          <p v-else class="text-2xl sm:text-3xl font-extrabold text-foreground">
             {{ publicStats ? publicStats.member_count : '—' }}
           </p>
-          <p class="text-sm text-muted">{{ t('home.stats.members') }}</p>
+          <p class="text-xs sm:text-sm text-muted mt-1">{{ t('home.stats.members') }}</p>
         </div>
-        <div class="text-center">
+        <div class="bg-surface rounded-xl p-3 sm:p-5 shadow-sm text-center">
+          <div
+            class="hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-50 text-brand-600 mb-2"
+          >
+            <FileText class="w-5 h-5" aria-hidden="true" />
+          </div>
           <div
             v-if="loadingStats"
-            class="h-8 w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
+            class="h-8 sm:h-9 w-12 sm:w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
           ></div>
-          <p v-else class="text-2xl font-bold text-foreground">
+          <p v-else class="text-2xl sm:text-3xl font-extrabold text-foreground">
             {{ publicStats ? publicStats.post_count : '—' }}
           </p>
-          <p class="text-sm text-muted">{{ t('home.stats.posts') }}</p>
+          <p class="text-xs sm:text-sm text-muted mt-1">{{ t('home.stats.posts') }}</p>
         </div>
-        <div class="text-center">
+        <div class="bg-surface rounded-xl p-3 sm:p-5 shadow-sm text-center">
+          <div
+            class="hidden sm:inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-50 text-brand-600 mb-2"
+          >
+            <BookOpen class="w-5 h-5" aria-hidden="true" />
+          </div>
           <div
             v-if="loadingStats"
-            class="h-8 w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
+            class="h-8 sm:h-9 w-12 sm:w-16 bg-gray-200 rounded animate-pulse mx-auto mb-1"
           ></div>
-          <p v-else class="text-2xl font-bold text-foreground">
+          <p v-else class="text-2xl sm:text-3xl font-extrabold text-foreground">
             {{ publicStats ? publicStats.sig_count : '—' }}
           </p>
-          <p class="text-sm text-muted">{{ t('home.stats.sigs') }}</p>
+          <p class="text-xs sm:text-sm text-muted mt-1">{{ t('home.stats.sigs') }}</p>
         </div>
       </div>
 
       <!-- Feature cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <router-link to="/register" class="block">
-          <BaseCard hoverable padding="lg" class="text-center h-full">
+          <BaseCard
+            hoverable
+            padding="lg"
+            class="text-center h-full border-t-2 border-brand-500 hover:-translate-y-1 transition-all duration-200"
+          >
             <div
               class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3"
             >
@@ -514,9 +559,13 @@ onMounted(() => {
         </router-link>
 
         <router-link to="/register" class="block">
-          <BaseCard hoverable padding="lg" class="text-center h-full">
+          <BaseCard
+            hoverable
+            padding="lg"
+            class="text-center h-full border-t-2 border-emerald-500 hover:-translate-y-1 transition-all duration-200"
+          >
             <div
-              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3"
+              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 mb-3"
             >
               <Users class="w-6 h-6" aria-hidden="true" />
             </div>
@@ -530,9 +579,13 @@ onMounted(() => {
         </router-link>
 
         <router-link to="/register" class="block">
-          <BaseCard hoverable padding="lg" class="text-center h-full">
+          <BaseCard
+            hoverable
+            padding="lg"
+            class="text-center h-full border-t-2 border-amber-500 hover:-translate-y-1 transition-all duration-200"
+          >
             <div
-              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3"
+              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-amber-50 text-amber-600 mb-3"
             >
               <FileText class="w-6 h-6" aria-hidden="true" />
             </div>
@@ -546,9 +599,13 @@ onMounted(() => {
         </router-link>
 
         <router-link to="/register" class="block">
-          <BaseCard hoverable padding="lg" class="text-center h-full">
+          <BaseCard
+            hoverable
+            padding="lg"
+            class="text-center h-full border-t-2 border-purple-500 hover:-translate-y-1 transition-all duration-200"
+          >
             <div
-              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-50 text-brand-600 mb-3"
+              class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-purple-50 text-purple-600 mb-3"
             >
               <BookOpen class="w-6 h-6" aria-hidden="true" />
             </div>
@@ -627,3 +684,10 @@ onMounted(() => {
     </BaseModal>
   </div>
 </template>
+
+<style scoped>
+.hero-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+</style>

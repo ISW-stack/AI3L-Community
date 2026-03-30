@@ -87,12 +87,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-[70vh]">
-    <div class="fixed top-20 right-4 z-40">
+  <div class="flex min-h-[70vh] relative">
+    <div class="fixed top-20 right-4 z-40 lg:absolute lg:top-4 lg:right-4">
       <select
         name="locale"
         :value="currentLocale"
-        class="text-sm bg-transparent border border-border rounded px-2 py-1 text-foreground"
+        class="text-sm bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5 text-foreground shadow-sm"
         @change="setLocale(($event.target as HTMLSelectElement).value as SupportedLocale)"
       >
         <option v-for="opt in localeOptions" :key="opt.value" :value="opt.value">
@@ -102,20 +102,29 @@ onMounted(() => {
     </div>
     <!-- Left branding panel (desktop only) -->
     <div
-      class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-900 to-brand-700 rounded-l-lg items-center justify-center p-12"
+      class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 rounded-l-lg items-center justify-center p-12 relative overflow-hidden"
     >
-      <div class="text-center text-white">
-        <img src="/images/logo.png" alt="AI3L" class="w-72 mx-auto mb-6" />
+      <!-- Decorative shapes -->
+      <div class="absolute top-10 left-10 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
+      <div class="absolute bottom-20 right-10 w-48 h-48 bg-white/5 rounded-full blur-2xl"></div>
+      <div class="absolute top-1/2 left-1/4 w-20 h-20 bg-brand-400/10 rounded-lg rotate-12"></div>
+      <div class="absolute bottom-10 left-20 w-16 h-16 bg-brand-300/10 rounded-full"></div>
+      <div
+        class="absolute top-20 right-20 w-24 h-24 border border-white/10 rounded-lg rotate-45"
+      ></div>
+
+      <div class="text-center text-white relative z-10">
+        <img src="/images/logo.png" alt="AI3L" class="w-72 mx-auto mb-6 drop-shadow-lg" />
         <h2 class="text-3xl font-bold mb-3">{{ t('branding.title') }}</h2>
         <p class="text-brand-200 text-lg">{{ t('branding.tagline') }}</p>
-        <p class="text-brand-300 mt-4 text-sm max-w-sm">
+        <p class="text-brand-300 mt-4 text-sm max-w-sm mx-auto leading-relaxed">
           {{ t('branding.description') }}
         </p>
       </div>
     </div>
     <!-- Right form panel -->
     <div class="flex-1 flex items-center justify-center p-3 sm:p-4">
-      <BaseCard padding="lg" class="w-full max-w-md shadow-lg">
+      <BaseCard padding="lg" class="w-full max-w-md shadow-lg login-card-enter">
         <h1 class="text-2xl font-bold text-center text-foreground mb-6">
           {{ t('auth.loginTitle') }}
         </h1>
@@ -161,22 +170,20 @@ onMounted(() => {
               </button>
             </div>
             <div class="flex gap-3 items-center">
-              <input
+              <BaseInput
                 id="login-captcha"
                 v-model="captchaCode"
-                type="text"
                 name="captcha"
-                required
-                maxlength="4"
+                :maxlength="4"
                 autocomplete="off"
-                class="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none text-foreground"
                 :placeholder="t('auth.captchaPlaceholder')"
+                class="flex-1"
               />
               <img
                 v-if="captchaImage"
                 :src="captchaImage"
                 alt="captcha"
-                class="h-10 w-auto max-w-[45%] min-w-0 object-contain rounded cursor-pointer"
+                class="h-10 w-auto max-w-[45%] min-w-0 object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity ring-1 ring-border"
                 @click="loadCaptcha"
                 :title="t('auth.captchaRefresh')"
               />
@@ -188,16 +195,16 @@ onMounted(() => {
           </BaseButton>
         </form>
 
-        <div class="mt-6 text-center text-sm text-muted space-y-2">
+        <div class="mt-6 pt-6 border-t border-border text-center text-sm text-muted space-y-3">
           <p>
             {{ t('auth.noAccount') }}
-            <router-link to="/register" class="text-brand-600 hover:underline">{{
+            <router-link to="/register" class="text-brand-600 font-medium hover:underline">{{
               t('auth.noAccountLink')
             }}</router-link>
           </p>
           <p>
             {{ t('auth.browseAsGuest') }}
-            <router-link to="/guest" class="text-brand-600 hover:underline">{{
+            <router-link to="/guest" class="text-brand-600 font-medium hover:underline">{{
               t('auth.browseAsGuestLink')
             }}</router-link>
           </p>
@@ -206,3 +213,20 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes loginCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-card-enter {
+  animation: loginCardEnter 0.4s ease-out;
+}
+</style>
