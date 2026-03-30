@@ -115,6 +115,9 @@ export default {
     captchaRefresh: 'Klik untuk memuat ulang captcha',
     captchaLoadError: 'Gagal memuat captcha.',
     captchaRetry: 'Coba lagi',
+    captchaSwitchMath: 'Beralih ke captcha matematika',
+    captchaSwitchRegular: 'Beralih ke captcha biasa',
+    captchaMathPlaceholder: 'Masukkan jawaban',
     showPassword: 'Tampilkan kata sandi',
     hidePassword: 'Sembunyikan kata sandi',
     validation: {

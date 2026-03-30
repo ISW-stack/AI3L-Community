@@ -12,8 +12,9 @@ export interface AuthResponse {
   requires_consent?: boolean
 }
 
-export async function getCaptcha() {
-  const { data } = await api.get('/auth/captcha')
+export async function getCaptcha(type?: 'math') {
+  const params = type ? { type } : undefined
+  const { data } = await api.get('/auth/captcha', { params })
   return assertShape<CaptchaResponse>(data, ['captcha_id', 'image_base64'], 'getCaptcha')
 }
 

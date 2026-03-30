@@ -115,6 +115,9 @@ export default {
     captchaRefresh: 'Captcha yenilemek için tıklayın',
     captchaLoadError: 'Captcha yüklenemedi.',
     captchaRetry: 'Tekrar dene',
+    captchaSwitchMath: 'Matematik doğrulamaya geç',
+    captchaSwitchRegular: 'Normal doğrulamaya geç',
+    captchaMathPlaceholder: 'Cevabı girin',
     showPassword: 'Şifreyi göster',
     hidePassword: 'Şifreyi gizle',
     validation: {

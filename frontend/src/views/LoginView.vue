@@ -26,6 +26,7 @@ const captchaId = ref('')
 const captchaCode = ref('')
 const captchaImage = ref('')
 const captchaError = ref(false)
+const mathMode = ref(false)
 const lastError = ref<unknown>(null)
 const errorVersion = ref(0)
 watch(currentLocale, () => {
@@ -47,7 +48,7 @@ function togglePassword() {
 async function loadCaptcha() {
   captchaError.value = false
   try {
-    const data = await getCaptcha()
+    const data = await getCaptcha(mathMode.value ? 'math' : undefined)
     captchaId.value = data.captcha_id
     captchaImage.value = data.image_base64
     captchaCode.value = ''
@@ -55,6 +56,11 @@ async function loadCaptcha() {
     captchaError.value = true
     toast.show(getErrorMessage(e, t('auth.captchaLoadError')), 'error')
   }
+}
+
+function toggleMathMode() {
+  mathMode.value = !mathMode.value
+  loadCaptcha()
 }
 
 async function handleLogin() {
@@ -174,11 +180,27 @@ onMounted(() => {
                 id="login-captcha"
                 v-model="captchaCode"
                 name="captcha"
-                :maxlength="4"
+                :maxlength="mathMode ? 6 : 4"
                 autocomplete="off"
-                :placeholder="t('auth.captchaPlaceholder')"
+                :placeholder="mathMode ? t('auth.captchaMathPlaceholder') : t('auth.captchaPlaceholder')"
                 class="flex-1"
               />
+              <button
+                type="button"
+                class="flex-shrink-0 p-1.5 rounded-lg border border-border hover:bg-surface-hover transition-colors"
+                :title="mathMode ? t('auth.captchaSwitchRegular') : t('auth.captchaSwitchMath')"
+                @click="toggleMathMode"
+              >
+                <svg v-if="!mathMode" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 text-muted" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M7 4c-1.5 0-2.5 1.2-2.5 2.5S6 9 7 10c1 1 1.5 2.3 1.5 3.5S7.5 16 6 16" />
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5 text-muted" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M7 8h10M7 12h10M7 16h10" />
+                </svg>
+              </button>
               <img
                 v-if="captchaImage"
                 :src="captchaImage"

@@ -106,6 +106,9 @@ export default {
     captchaRefresh: '點擊重新整理驗證碼',
     captchaLoadError: '驗證碼載入失敗。',
     captchaRetry: '再試一次',
+    captchaSwitchMath: '切換至數學驗證',
+    captchaSwitchRegular: '切換至一般驗證',
+    captchaMathPlaceholder: '輸入答案',
     showPassword: '顯示密碼',
     hidePassword: '隱藏密碼',
     validation: {

@@ -113,6 +113,9 @@ export default {
     captchaRefresh: '點一下來換新ê驗證碼',
     captchaLoadError: '驗證碼載入失敗。',
     captchaRetry: '閣試一擺',
+    captchaSwitchMath: '換做數學驗證',
+    captchaSwitchRegular: '換做一般驗證',
+    captchaMathPlaceholder: '輸入答案',
     showPassword: '顯示密碼',
     hidePassword: '隱藏密碼',
     validation: {

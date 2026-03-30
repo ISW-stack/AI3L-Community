@@ -30,7 +30,7 @@ describe('auth API', () => {
 
       const result = await getCaptcha()
 
-      expect(mockGet).toHaveBeenCalledWith('/auth/captcha')
+      expect(mockGet).toHaveBeenCalledWith('/auth/captcha', { params: undefined })
       expect(result).toEqual(mockData)
     })
 

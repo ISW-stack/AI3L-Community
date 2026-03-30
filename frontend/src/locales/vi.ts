@@ -115,6 +115,9 @@ export default {
     captchaRefresh: 'Nhấn để làm mới mã xác thực',
     captchaLoadError: 'Tải captcha thất bại.',
     captchaRetry: 'Thử lại',
+    captchaSwitchMath: 'Chuyển sang captcha toán học',
+    captchaSwitchRegular: 'Chuyển sang captcha thường',
+    captchaMathPlaceholder: 'Nhập đáp án',
     showPassword: 'Hiện mật khẩu',
     hidePassword: 'Ẩn mật khẩu',
     validation: {

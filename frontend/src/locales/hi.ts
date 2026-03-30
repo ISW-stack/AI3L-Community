@@ -115,6 +115,9 @@ export default {
     captchaRefresh: 'कैप्चा ताज़ा करने के लिए क्लिक करें',
     captchaLoadError: 'कैप्चा लोड करने में विफल।',
     captchaRetry: 'पुनः प्रयास करें',
+    captchaSwitchMath: 'गणित कैप्चा पर स्विच करें',
+    captchaSwitchRegular: 'सामान्य कैप्चा पर स्विच करें',
+    captchaMathPlaceholder: 'उत्तर दर्ज करें',
     showPassword: 'पासवर्ड दिखाएँ',
     hidePassword: 'पासवर्ड छिपाएँ',
     validation: {

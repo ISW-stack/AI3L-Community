@@ -114,6 +114,9 @@ export default {
     captchaRefresh: 'クリックしてキャプチャを更新',
     captchaLoadError: 'キャプチャの読み込みに失敗しました。',
     captchaRetry: 'もう一度試す',
+    captchaSwitchMath: '数学キャプチャに切り替え',
+    captchaSwitchRegular: '通常キャプチャに切り替え',
+    captchaMathPlaceholder: '答えを入力',
     showPassword: 'パスワードを表示',
     hidePassword: 'パスワードを非表示',
     validation: {

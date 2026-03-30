@@ -114,6 +114,9 @@ export default {
     captchaRefresh: 'انقر لتحديث رمز التحقق',
     captchaLoadError: 'فشل تحميل التحقق.',
     captchaRetry: 'حاول مرة أخرى',
+    captchaSwitchMath: 'التبديل إلى اختبار الرياضيات',
+    captchaSwitchRegular: 'التبديل إلى الاختبار العادي',
+    captchaMathPlaceholder: 'أدخل الإجابة',
     showPassword: 'إظهار كلمة المرور',
     hidePassword: 'إخفاء كلمة المرور',
     validation: {

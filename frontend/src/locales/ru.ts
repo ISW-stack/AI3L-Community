@@ -115,6 +115,9 @@ export default {
     captchaRefresh: 'Нажмите, чтобы обновить капчу',
     captchaLoadError: 'Не удалось загрузить капчу.',
     captchaRetry: 'Попробовать снова',
+    captchaSwitchMath: 'Переключить на математическую капчу',
+    captchaSwitchRegular: 'Переключить на обычную капчу',
+    captchaMathPlaceholder: 'Введите ответ',
     showPassword: 'Показать пароль',
     hidePassword: 'Скрыть пароль',
     validation: {

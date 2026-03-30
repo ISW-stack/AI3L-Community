@@ -115,6 +115,9 @@ export default {
     captchaRefresh: 'Clicca per aggiornare il captcha',
     captchaLoadError: 'Impossibile caricare il captcha.',
     captchaRetry: 'Riprova',
+    captchaSwitchMath: 'Passa al captcha matematico',
+    captchaSwitchRegular: 'Passa al captcha normale',
+    captchaMathPlaceholder: 'Inserisci la risposta',
     showPassword: 'Mostra password',
     hidePassword: 'Nascondi password',
     validation: {

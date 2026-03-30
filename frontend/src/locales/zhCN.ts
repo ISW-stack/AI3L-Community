@@ -106,6 +106,9 @@ export default {
     captchaRefresh: '点击刷新验证码',
     captchaLoadError: '验证码加载失败。',
     captchaRetry: '再试一次',
+    captchaSwitchMath: '切换至数学验证',
+    captchaSwitchRegular: '切换至普通验证',
+    captchaMathPlaceholder: '输入答案',
     showPassword: '显示密码',
     hidePassword: '隐藏密码',
     validation: {

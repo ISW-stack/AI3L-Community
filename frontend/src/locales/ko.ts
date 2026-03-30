@@ -114,6 +114,9 @@ export default {
     captchaRefresh: '클릭하여 캡차를 새로 고침',
     captchaLoadError: '캡차를 불러오지 못했습니다.',
     captchaRetry: '다시 시도',
+    captchaSwitchMath: '수학 인증으로 전환',
+    captchaSwitchRegular: '일반 인증으로 전환',
+    captchaMathPlaceholder: '답을 입력하세요',
     showPassword: '비밀번호 표시',
     hidePassword: '비밀번호 숨기기',
     validation: {
