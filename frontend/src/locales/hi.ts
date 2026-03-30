@@ -480,6 +480,7 @@ export default {
       loginToComment: 'टिप्पणी करने के लिए लॉगिन करें',
       disabled: 'टिप्पणियाँ अक्षम हैं।',
       submitError: 'टिप्पणी पोस्ट करने में विफल।',
+      viewAll: 'सभी {count} टिप्पणियाँ देखें',
     },
     history: {
       title: 'संपादन इतिहास',

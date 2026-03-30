@@ -456,6 +456,7 @@ export default {
       loginToComment: '登录后评论',
       disabled: '评论功能已关闭。',
       submitError: '评论发送失败。',
+      viewAll: '查看全部 {count} 条评论',
     },
     history: {
       title: '编辑记录',

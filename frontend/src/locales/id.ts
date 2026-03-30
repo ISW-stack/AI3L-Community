@@ -483,6 +483,7 @@ export default {
       loginToComment: 'Masuk untuk berkomentar',
       disabled: 'Komentar dinonaktifkan.',
       submitError: 'Gagal mengirim komentar.',
+      viewAll: 'Lihat semua {count} komentar',
     },
     history: {
       title: 'Riwayat Pengeditan',

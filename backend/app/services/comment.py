@@ -139,6 +139,7 @@ async def list_comments(
     page_size: int = 50,
     viewer_id: str | None = None,
     root_only: bool = False,
+    sort: str = "asc",
 ) -> tuple[list[dict], int]:
     exclude: list[uuid.UUID] | None = None
     if viewer_id:
@@ -149,6 +150,7 @@ async def list_comments(
     offset = (page - 1) * page_size
     rows, total = await comment_repo.find_many(
         post_id, offset, page_size, exclude_user_ids=exclude, root_only=root_only,
+        sort=sort,
     )
     comments = list(await asyncio.gather(*[async_row_to_comment(r) for r in rows]))
     return comments, total

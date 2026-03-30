@@ -82,6 +82,7 @@ async def find_many(
     limit: int = 50,
     exclude_user_ids: list[uuid.UUID] | None = None,
     root_only: bool = False,
+    sort: str = "asc",
 ) -> tuple[list[dict], int]:
     _select_count = _COMMENT_SELECT.replace(
         "FROM comments cm", ", COUNT(*) OVER() AS _total\n    FROM comments cm", 1
@@ -101,8 +102,9 @@ async def find_many(
         next_idx += 1
 
     async with pool.acquire() as conn:
+        order = "DESC" if sort == "desc" else "ASC"
         rows = await conn.fetch(
-            f"{_select_count}{where} ORDER BY cm.created_at ASC LIMIT $2 OFFSET $3",
+            f"{_select_count}{where} ORDER BY cm.created_at {order} LIMIT $2 OFFSET $3",
             *params,
         )
         if rows:

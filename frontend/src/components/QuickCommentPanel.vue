@@ -24,6 +24,7 @@ const auth = useAuthStore()
 const toast = useToastStore()
 
 const comments = ref<Comment[]>([])
+const totalComments = ref(0)
 const loading = ref(true)
 const newComment = ref('')
 const saving = ref(false)
@@ -33,10 +34,13 @@ const canComment = computed(() => auth.isAuthenticated && !auth.isGuest && props
 async function fetchRecentComments() {
   loading.value = true
   try {
-    const data = await listComments(props.postId, { page: 1, page_size: 3 })
-    comments.value = data.comments
+    const data = await listComments(props.postId, { page: 1, page_size: 3, sort: 'desc' })
+    // Reverse so display is chronological (oldest at top, newest at bottom)
+    comments.value = data.comments.reverse()
+    totalComments.value = data.total
   } catch {
     comments.value = []
+    totalComments.value = 0
   } finally {
     loading.value = false
   }
@@ -49,12 +53,13 @@ async function submitComment() {
   saving.value = true
   try {
     const created = await createComment(props.postId, { content })
-    // Prepend the new comment (newest first)
-    comments.value.unshift(created)
-    // Keep only 3 visible
+    // Append the new comment at the bottom (chronological order)
+    comments.value.push(created)
+    // Keep only the 3 most recent
     if (comments.value.length > 3) {
-      comments.value = comments.value.slice(0, 3)
+      comments.value = comments.value.slice(-3)
     }
+    totalComments.value++
     newComment.value = ''
     emit('commented')
   } catch (e: unknown) {
@@ -100,6 +105,14 @@ fetchRecentComments()
       <div v-if="comments.length === 0 && !canComment" class="text-xs text-muted text-center py-1">
         {{ t('post.quickComment.noComments') }}
       </div>
+
+      <router-link
+        v-if="totalComments > 3"
+        :to="`/forum/${postId}`"
+        class="block text-xs text-brand-600 hover:underline text-center py-1"
+      >
+        {{ t('post.quickComment.viewAll', { count: totalComments }) }}
+      </router-link>
 
       <div v-for="comment in comments" :key="comment.id" class="flex gap-2">
         <router-link :to="`/users/${comment.author.id}`" class="shrink-0">

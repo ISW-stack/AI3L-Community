@@ -487,6 +487,7 @@ export default {
       loginToComment: 'Connectez-vous pour commenter',
       disabled: 'Les commentaires sont désactivés.',
       submitError: 'Échec de la publication du commentaire.',
+      viewAll: 'Voir les {count} commentaires',
     },
     history: {
       title: 'Historique des modifications',

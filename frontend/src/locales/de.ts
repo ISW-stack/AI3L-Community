@@ -487,6 +487,7 @@ export default {
       loginToComment: 'Zum Kommentieren anmelden',
       disabled: 'Kommentare sind deaktiviert.',
       submitError: 'Kommentar konnte nicht gepostet werden.',
+      viewAll: 'Alle {count} Kommentare anzeigen',
     },
     history: {
       title: 'Bearbeitungsverlauf',

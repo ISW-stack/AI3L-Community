@@ -483,6 +483,7 @@ export default {
       loginToComment: 'Accedi per commentare',
       disabled: 'I commenti sono disabilitati.',
       submitError: 'Impossibile pubblicare il commento.',
+      viewAll: 'Visualizza tutti i {count} commenti',
     },
     history: {
       title: 'Cronologia modifiche',

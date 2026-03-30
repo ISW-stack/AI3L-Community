@@ -480,6 +480,7 @@ export default {
       loginToComment: 'ログインしてコメント',
       disabled: 'コメントは無効です。',
       submitError: 'コメントの投稿に失敗しました。',
+      viewAll: 'すべての {count} 件のコメントを表示',
     },
     history: {
       title: '編集履歴',

@@ -475,6 +475,7 @@ export default {
       loginToComment: '登入來留言',
       disabled: '留言功能已關閉。',
       submitError: '留言送出失敗。',
+      viewAll: '看全部 {count} 則留言',
     },
     history: {
       title: '編輯紀錄',

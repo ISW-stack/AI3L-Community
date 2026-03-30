@@ -484,6 +484,7 @@ export default {
       loginToComment: 'Log in to comment',
       disabled: 'Comments are disabled.',
       submitError: 'Failed to post comment.',
+      viewAll: 'View all {count} comments',
     },
     history: {
       title: 'Edit History',

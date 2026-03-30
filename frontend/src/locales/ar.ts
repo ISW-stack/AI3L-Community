@@ -478,6 +478,7 @@ export default {
       loginToComment: 'سجّل الدخول للتعليق',
       disabled: 'التعليقات معطّلة.',
       submitError: 'فشل في نشر التعليق.',
+      viewAll: 'عرض جميع التعليقات ({count})',
     },
     history: {
       title: 'سجل التعديل',

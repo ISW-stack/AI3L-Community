@@ -484,6 +484,7 @@ export default {
       loginToComment: 'Yorum yapmak için giriş yapın',
       disabled: 'Yorumlar devre dışı.',
       submitError: 'Yorum gönderilemedi.',
+      viewAll: 'Tüm {count} yorumu görüntüle',
     },
     history: {
       title: 'Düzenleme Geçmişi',

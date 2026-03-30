@@ -481,6 +481,7 @@ export default {
       loginToComment: 'Đăng nhập để bình luận',
       disabled: 'Bình luận đã bị tắt.',
       submitError: 'Gửi bình luận thất bại.',
+      viewAll: 'Xem tất cả {count} bình luận',
     },
     history: {
       title: 'Lịch sử chỉnh sửa',

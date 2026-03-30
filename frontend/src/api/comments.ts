@@ -8,7 +8,7 @@ export interface CommentsListResponse {
 
 export async function listComments(
   postId: string,
-  params?: { page?: number; page_size?: number; root_only?: boolean },
+  params?: { page?: number; page_size?: number; root_only?: boolean; sort?: 'asc' | 'desc' },
 ) {
   const { data } = await api.get(`/posts/${postId}/comments`, { params })
   return data as CommentsListResponse

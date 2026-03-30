@@ -484,6 +484,7 @@ export default {
       loginToComment: 'Inicia sesión para comentar',
       disabled: 'Los comentarios están desactivados.',
       submitError: 'Error al publicar el comentario.',
+      viewAll: 'Ver los {count} comentarios',
     },
     history: {
       title: 'Historial de ediciones',

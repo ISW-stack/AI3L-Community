@@ -479,6 +479,7 @@ export default {
       loginToComment: '로그인하여 댓글 달기',
       disabled: '댓글이 비활성화되었습니다.',
       submitError: '댓글 등록에 실패했습니다.',
+      viewAll: '댓글 {count}개 모두 보기',
     },
     history: {
       title: '수정 기록',

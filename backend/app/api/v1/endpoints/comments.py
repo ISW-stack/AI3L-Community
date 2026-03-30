@@ -35,6 +35,7 @@ async def get_comments(
     page: int = Query(1, ge=1, le=1000),
     page_size: int = Query(50, ge=1, le=100),
     root_only: bool = Query(False),
+    sort: str = Query("asc", pattern="^(asc|desc)$"),
     current_user: dict = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN", "GUEST")),
 ) -> CommentListResponse:
     # Verify post exists
@@ -44,7 +45,7 @@ async def get_comments(
 
     comments, total = await list_comments(
         post_id, page=page, page_size=page_size, viewer_id=current_user["sub"],
-        root_only=root_only,
+        root_only=root_only, sort=sort,
     )
     total_pages = max(1, math.ceil(total / page_size))
     return CommentListResponse(
