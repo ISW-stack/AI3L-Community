@@ -9,7 +9,7 @@ import asyncpg
 async def find_recommendations(
     conn: asyncpg.Connection, user_id: uuid.UUID, limit: int = 10
 ) -> list[Any]:
-    """Get precomputed recommendations for a user, excluding dismissed."""
+    """Get precomputed recommendations for a user, excluding dismissed and pending requests."""
     return list(
         await conn.fetch(
             """
@@ -25,6 +25,13 @@ async def find_recommendations(
               SELECT 1 FROM blocks
               WHERE (blocker_id = $1 AND blocked_id = fr.recommended_user_id)
                  OR (blocker_id = fr.recommended_user_id AND blocked_id = $1)
+          )
+          -- Exclude users with pending or accepted friend requests (may have changed since last compute)
+          AND NOT EXISTS (
+              SELECT 1 FROM friendships f
+              WHERE ((f.requester_id = $1 AND f.addressee_id = fr.recommended_user_id)
+                  OR (f.requester_id = fr.recommended_user_id AND f.addressee_id = $1))
+                AND f.status IN ('ACCEPTED', 'PENDING')
           )
         ORDER BY fr.score DESC
         LIMIT $2
@@ -78,3 +85,30 @@ async def count_active_users(conn: asyncpg.Connection) -> int:
         "WHERE is_deleted = false AND is_banned = false AND role != 'GUEST'"
     )
     return row["cnt"] if row else 0
+
+
+async def cleanup_stale_dismissed(conn: asyncpg.Connection, retention_days: int) -> int:
+    """Delete dismissed recommendations older than retention_days.
+
+    Also removes dismissed records where the user pair is now friends or
+    where either user has been deleted — these records are no longer useful.
+    """
+    result: str = await conn.execute(
+        """
+        DELETE FROM dismissed_recommendations dr
+        WHERE dr.created_at < NOW() - ($1 || ' days')::interval
+           OR EXISTS (
+               SELECT 1 FROM friendships f
+               WHERE f.status = 'ACCEPTED'
+                 AND ((f.requester_id = dr.user_id AND f.addressee_id = dr.dismissed_user_id)
+                   OR (f.requester_id = dr.dismissed_user_id AND f.addressee_id = dr.user_id))
+           )
+           OR EXISTS (
+               SELECT 1 FROM users u
+               WHERE u.id IN (dr.user_id, dr.dismissed_user_id)
+                 AND u.is_deleted = true
+           )
+        """,
+        str(retention_days),
+    )
+    return int(result.split()[-1]) if result else 0

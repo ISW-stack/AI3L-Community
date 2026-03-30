@@ -24,8 +24,6 @@ function formatReason(reason: RecommendationReason): string {
       return `${reason.count} shared SIG${(reason.count ?? 0) > 1 ? 's' : ''}`
     case 'mutual_friends':
       return `${reason.count} mutual friend${(reason.count ?? 0) > 1 ? 's' : ''}`
-    case 'similar_keywords':
-      return 'Similar interests'
     case 'same_affiliation':
       return `Same affiliation: ${reason.affiliation}`
     case 'activity_recency':
@@ -57,11 +55,21 @@ async function handleAddFriend(userId: string) {
   sendingRequests.value.add(userId)
   try {
     await sendFriendRequest(userId)
-    // Remove from recommendations after successful request
     recommendations.value = recommendations.value.filter((r) => r.user_id !== userId)
     toast.show('Friend request sent', 'success')
   } catch (e: unknown) {
-    toast.show(getErrorMessage(e, 'Failed to send friend request'), 'error')
+    const isConflict =
+      e != null &&
+      typeof e === 'object' &&
+      'response' in e &&
+      (e as { response?: { status?: number } }).response?.status === 409
+    if (isConflict) {
+      // Already friends or request already sent — remove from list silently
+      recommendations.value = recommendations.value.filter((r) => r.user_id !== userId)
+      toast.show('Friend request already sent', 'info')
+    } else {
+      toast.show(getErrorMessage(e, 'Failed to send friend request'), 'error')
+    }
   } finally {
     sendingRequests.value.delete(userId)
   }

@@ -115,4 +115,9 @@ celery.conf.beat_schedule = {
         "schedule": 86400.0,  # daily
         "options": {"soft_time_limit": 300, "time_limit": 600, "expires": 86400},
     },
+    "cleanup-dismissed-recommendations": {
+        "task": "cleanup_dismissed_recommendations",
+        "schedule": 604800.0,  # weekly
+        "options": {"soft_time_limit": 60, "time_limit": 120, "expires": 604800},
+    },
 }

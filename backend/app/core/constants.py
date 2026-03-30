@@ -132,12 +132,12 @@ RECOMMENDATION_MIN_USERS = 10
 RECOMMENDATION_MAX_USERS = 2000  # Skip full CROSS JOIN if user count exceeds this
 RECOMMENDATION_BATCH_SIZE = 200  # Process users in batches to limit memory usage
 RECOMMENDATION_WEIGHTS = {
-    "common_sigs": 0.30,
-    "mutual_friends": 0.25,
-    "similar_keywords": 0.25,
-    "same_affiliation": 0.10,
+    "common_sigs": 0.40,
+    "mutual_friends": 0.35,
+    "same_affiliation": 0.15,
     "activity_recency": 0.10,
 }
+RECOMMENDATION_DISMISSED_RETENTION_DAYS = 90  # Auto-cleanup dismissed recommendations older than this
 
 # ── Feature 7: Q&A ──
 MAX_QA_INVITES_PER_QUESTION = 5

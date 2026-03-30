@@ -73,7 +73,7 @@ const fakeRecommendations = [
     avatar_url: null,
     affiliation: null,
     score: 0.75,
-    reasons: [{ type: 'similar_keywords' as const }],
+    reasons: [{ type: 'activity_recency' as const }],
     created_at: '2026-01-03T00:00:00Z',
   },
 ]
@@ -184,9 +184,9 @@ describe('FriendRecommendations', () => {
     expect(wrapper.text()).toContain('2 mutual friends')
   })
 
-  it('renders formatted reason for similar_keywords', async () => {
+  it('renders formatted reason for activity_recency', async () => {
     const { wrapper } = await mountRecommendations()
-    expect(wrapper.text()).toContain('Similar interests')
+    expect(wrapper.text()).toContain('Recently active')
   })
 
   it('sends friend request when add button clicked', async () => {
