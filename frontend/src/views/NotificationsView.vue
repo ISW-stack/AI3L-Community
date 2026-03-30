@@ -140,7 +140,7 @@ onMounted(fetchNotifications)
     />
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
       <h1 class="text-2xl font-bold text-foreground">{{ t('notifications.title') }}</h1>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 min-h-[36px]">
         <button
           v-if="notificationStore.unreadCount > 0"
           @click="markAllRead"
@@ -202,6 +202,7 @@ onMounted(fetchNotifications)
       id="panel-notifications"
       role="tabpanel"
       :aria-labelledby="filter === 'all' ? 'tab-all' : 'tab-unread'"
+      class="min-h-[400px]"
     >
       <SkeletonLoader v-if="loading" :lines="5" variant="list" />
 
