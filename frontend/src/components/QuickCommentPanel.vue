@@ -130,7 +130,7 @@ fetchRecentComments()
             >
               {{ comment.author.display_name }}
             </router-link>
-            <p class="text-sm text-foreground break-words">{{ comment.content }}</p>
+            <p class="text-sm text-foreground whitespace-pre-wrap break-words">{{ comment.content }}</p>
           </div>
           <span class="text-[10px] text-muted ml-3">{{
             formatCommentTime(comment.created_at)
