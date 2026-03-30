@@ -343,6 +343,51 @@ class TestLogoutEndpoint:
         finally:
             app.dependency_overrides.pop(get_current_user, None)
 
+    @patch(f"{_EP}.emit", new_callable=AsyncMock)
+    @patch(f"{_EP}.decrement_guest_ip_counter", new_callable=AsyncMock)
+    @patch(f"{_EP}.decrement_guest_counter", new_callable=AsyncMock)
+    @patch(f"{_EP}.destroy_session", new_callable=AsyncMock)
+    async def test_guest_logout_skips_audit_log(
+        self, mock_destroy, mock_dec_global, mock_dec_ip, mock_emit, client: AsyncClient
+    ):
+        """Guest logout must NOT emit audit.action (guest has no users table row → FK violation)."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        payload = {"sub": str(uuid.uuid4()), "role": "GUEST", "jti": "jti-g2"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post(
+                "/api/v1/auth/logout", headers={"Authorization": "Bearer fake"}
+            )
+            assert resp.status_code == 200
+            mock_emit.assert_not_called()
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
+    @patch(f"{_EP}.emit", new_callable=AsyncMock)
+    @patch(f"{_EP}.destroy_session", new_callable=AsyncMock)
+    async def test_member_logout_emits_audit_log(
+        self, mock_destroy, mock_emit, client: AsyncClient
+    ):
+        """Non-guest logout SHOULD emit audit.action."""
+        from app.core.deps import get_current_user
+        from app.main import app
+
+        user_id = str(uuid.uuid4())
+        payload = {"sub": user_id, "role": "MEMBER", "jti": "jti-m2"}
+        app.dependency_overrides[get_current_user] = lambda: payload
+        try:
+            resp = await client.post(
+                "/api/v1/auth/logout", headers={"Authorization": "Bearer fake"}
+            )
+            assert resp.status_code == 200
+            mock_emit.assert_called_once()
+            call_kwargs = mock_emit.call_args
+            assert call_kwargs[1]["action"] == "LOGOUT" or call_kwargs[0][1] == "LOGOUT"
+        finally:
+            app.dependency_overrides.pop(get_current_user, None)
+
     @patch(f"{_EP}.decrement_guest_ip_counter", new_callable=AsyncMock)
     @patch(f"{_EP}.decrement_guest_counter", new_callable=AsyncMock)
     @patch(f"{_EP}.destroy_session", new_callable=AsyncMock)

@@ -217,8 +217,9 @@ async def logout(
 
     _clear_auth_cookies(response)
 
-    # Audit log (best-effort, via event bus)
-    await emit("audit.action", user_id=current_user["sub"], action="LOGOUT", ip_address=ip)
+    # Audit log (best-effort, via event bus) — skip for GUEST (no users table row)
+    if current_user["role"] != "GUEST":
+        await emit("audit.action", user_id=current_user["sub"], action="LOGOUT", ip_address=ip)
 
     return MessageResponse(message="Logged out successfully.")
 
