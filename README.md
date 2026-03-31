@@ -364,8 +364,8 @@ _Last updated: 2026-03-31 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +330,379 |
-| Total lines removed (all commits) | -57,792 |
+| Total lines added (all commits) | +330,403 |
+| Total lines removed (all commits) | -57,816 |
 | Backend source lines (excl. tests) | 31,154 |
 | Frontend source lines (excl. tests) | 65,785 |
 
@@ -415,8 +415,8 @@ Test-to-source ratio: **1.45** (140,444 lines of tests for every 96,939 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 522 | +326,803 | -55,167 |
-| github-actions[bot] | 90 | +1,060 | -1,060 |
+| Isaries | 524 | +326,810 | -55,174 |
+| github-actions[bot] | 91 | +1,077 | -1,077 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
