@@ -137,29 +137,29 @@ onUnmounted(() => {
             >{{ t('nav.forum') }}</router-link
           >
           <router-link
-            to="/qa"
-            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >{{ t('nav.qa') }}</router-link
-          >
-          <router-link
             to="/sigs"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.sigs') }}</router-link
           >
+          <router-link
+            to="/events"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.events') }}</router-link
+          >          
           <router-link
             to="/albums"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.albums') }}</router-link
           >
           <router-link
+            to="/qa"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.qa') }}</router-link
+          >
+          <router-link
             to="/forms"
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.forms') }}</router-link
-          >
-          <router-link
-            to="/events"
-            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
-            >{{ t('nav.events') }}</router-link
           >
 
           <template v-if="auth.isAuthenticated && !auth.isGuest">
