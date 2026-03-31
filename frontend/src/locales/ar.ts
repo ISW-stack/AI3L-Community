@@ -742,6 +742,8 @@ export default {
       maxRespondentsPlaceholder: 'غير محدود',
       allowNonMembers: 'السماح لغير أعضاء المجموعة بتقديم هذا النموذج',
       allowNonMembersHint: 'عند التفعيل، يمكن لأي مستخدم مصادق عليه ملء هذا النموذج.',
+      allowGuests: 'السماح للزوار بتقديم هذا النموذج',
+      allowGuestsHint: 'عند التفعيل، يمكن للزوار (غير المسجلين كأعضاء) ملء هذا النموذج.',
       questionsTitle: 'الأسئلة',
       addQuestionBtn: '+ إضافة سؤال',
       schemaLockedWarning:

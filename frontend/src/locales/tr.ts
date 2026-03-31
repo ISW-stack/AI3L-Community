@@ -750,6 +750,9 @@ export default {
       allowNonMembers: 'SIG üyesi olmayanların bu formu göndermesine izin ver',
       allowNonMembersHint:
         'Etkinleştirildiğinde, kimliği doğrulanmış herhangi bir kullanıcı bu formu doldurabilir.',
+      allowGuests: 'Misafirlerin bu formu göndermesine izin ver',
+      allowGuestsHint:
+        'Etkinleştirildiğinde, misafir kullanıcılar (üye olarak giriş yapmamış) bu formu doldurabilir.',
       questionsTitle: 'Sorular',
       addQuestionBtn: '+ Soru Ekle',
       schemaLockedWarning:

@@ -734,6 +734,8 @@ export default {
       maxRespondentsPlaceholder: '無限制',
       allowNonMembers: '允許非 SIG 成員填這份表單',
       allowNonMembersHint: '開啟後，任何登入ê使用者攏ē-tàng填這份表單。',
+      allowGuests: '允許訪客填這份表單',
+      allowGuestsHint: '開啟後，訪客（無會員登入ê使用者）ē-tàng填這份表單。',
       questionsTitle: '題目',
       addQuestionBtn: '＋ 新增題目',
       schemaLockedWarning: '因為已有人回覆，題目已鎖定。你猶ē-tàng編輯標題、說明 kah 截止日期。',

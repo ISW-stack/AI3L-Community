@@ -753,6 +753,9 @@ export default {
       allowNonMembers: 'Permitir que personas que no sean miembros del GIE envíen este formulario',
       allowNonMembersHint:
         'Cuando esté habilitado, cualquier usuario autenticado podrá completar este formulario.',
+      allowGuests: 'Permitir que los invitados envíen este formulario',
+      allowGuestsHint:
+        'Cuando esté habilitado, los usuarios invitados (no registrados como miembros) podrán completar este formulario.',
       questionsTitle: 'Preguntas',
       addQuestionBtn: '+ Agregar pregunta',
       schemaLockedWarning:

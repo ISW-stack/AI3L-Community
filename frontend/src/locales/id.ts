@@ -752,6 +752,9 @@ export default {
       allowNonMembers: 'Izinkan non-anggota SIG untuk mengisi formulir ini',
       allowNonMembersHint:
         'Jika diaktifkan, semua pengguna yang terautentikasi dapat mengisi formulir ini.',
+      allowGuests: 'Izinkan tamu untuk mengisi formulir ini',
+      allowGuestsHint:
+        'Jika diaktifkan, pengguna tamu (belum masuk sebagai anggota) dapat mengisi formulir ini.',
       questionsTitle: 'Pertanyaan',
       addQuestionBtn: '+ Tambah Pertanyaan',
       schemaLockedWarning:

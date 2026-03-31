@@ -15,6 +15,7 @@ export async function createStandaloneForm(payload: {
   deadline: string | null
   max_respondents: number | null
   questions: unknown[]
+  allow_guests?: boolean
 }) {
   const { data } = await api.post('/forms', payload)
   return data as FormData
@@ -35,6 +36,7 @@ export async function createForm(
     max_respondents: number | null
     questions: unknown[]
     allow_non_members?: boolean
+    allow_guests?: boolean
   },
 ) {
   const { data } = await api.post(`/sigs/${sigId}/forms`, payload)
@@ -51,6 +53,7 @@ export async function updateForm(
     max_respondents?: number | null
     questions?: unknown[]
     allow_non_members?: boolean
+    allow_guests?: boolean
   },
 ) {
   const { data } = await api.put(`/forms/${formId}`, payload)

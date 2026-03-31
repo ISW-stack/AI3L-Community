@@ -170,6 +170,7 @@ _ALLOWED_FORM_FIELDS = frozenset(
         "max_respondents",
         "questions",
         "allow_non_members",
+        "allow_guests",
         "status",
         "is_deleted",
         "updated_at",
@@ -254,13 +255,15 @@ async def insert_in_conn(
     max_respondents: int | None,
     questions: list[dict],
     allow_non_members: bool = False,
+    allow_guests: bool = False,
 ) -> dict:
     """Insert a form using an existing connection (for transactional use)."""
     row = await conn.fetchrow(
         """
         INSERT INTO forms (id, sig_id, created_by, title, description, banner_url,
-                           deadline, max_respondents, questions, allow_non_members)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+                           deadline, max_respondents, questions, allow_non_members,
+                           allow_guests)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11)
         RETURNING *
         """,
         form_id,
@@ -273,6 +276,7 @@ async def insert_in_conn(
         max_respondents,
         json.dumps(questions),
         allow_non_members,
+        allow_guests,
     )
     creator = await conn.fetchrow("SELECT display_name FROM users WHERE id = $1", user_id)
     result = dict(row)

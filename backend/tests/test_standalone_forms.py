@@ -402,15 +402,18 @@ class TestStandaloneFormServiceLayer:
                 deadline=None,
                 max_respondents=None,
                 questions=[{"id": "q1", "type": "text", "label": "Name"}],
-                allow_non_members=False,  # Should be forced to True
+                allow_non_members=False,
             )
-            # Verify insert_in_conn was called with allow_non_members=True
+            # Standalone forms no longer force allow_non_members=True.
+            # Instead, guest access is controlled by the separate allow_guests flag.
             # Signature: insert_in_conn(conn, form_id, sig_id, user_id, title,
             #                           description, banner_url, deadline,
-            #                           max_respondents, questions, allow_non_members)
+            #                           max_respondents, questions, allow_non_members,
+            #                           allow_guests)
             call_args = mock_insert.call_args
             assert call_args[0][2] is None  # sig_id (index 2) is None
-            assert call_args[0][10] is True  # allow_non_members (index 10) forced True
+            assert call_args[0][10] is False  # allow_non_members passed through as-is
+            assert call_args[0][11] is False  # allow_guests defaults to False
 
     @pytest.mark.anyio
     async def test_submit_response_standalone_skips_sig_check(self):

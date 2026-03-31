@@ -745,6 +745,8 @@ export default {
       maxRespondentsPlaceholder: 'असीमित',
       allowNonMembers: 'गैर-SIG सदस्यों को यह फ़ॉर्म जमा करने दें',
       allowNonMembersHint: 'सक्षम होने पर, कोई भी प्रमाणित उपयोगकर्ता यह फ़ॉर्म भर सकता है।',
+      allowGuests: 'अतिथियों को यह फ़ॉर्म जमा करने दें',
+      allowGuestsHint: 'सक्षम होने पर, अतिथि उपयोगकर्ता (सदस्य के रूप में लॉगिन नहीं किए हुए) यह फ़ॉर्म भर सकते हैं।',
       questionsTitle: 'प्रश्न',
       addQuestionBtn: '+ प्रश्न जोड़ें',
       schemaLockedWarning:

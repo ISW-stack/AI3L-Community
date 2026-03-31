@@ -707,6 +707,8 @@ export default {
       maxRespondentsPlaceholder: '不限',
       allowNonMembers: '允許非 SIG 成員提交此表單',
       allowNonMembersHint: '啟用後，任何已登入使用者都可以填寫此表單。',
+      allowGuests: '允許訪客填寫此表單',
+      allowGuestsHint: '啟用後，訪客（未以會員身分登入的使用者）可以填寫此表單。',
       questionsTitle: '問題',
       addQuestionBtn: '+ 新增問題',
       schemaLockedWarning: '由於已有回覆提交，問題已鎖定。您仍可編輯標題、描述和截止日期。',

@@ -29,6 +29,7 @@ export interface SigForm {
   max_respondents: number | null
   response_count: number
   allow_non_members: boolean
+  allow_guests: boolean
   is_active: boolean
   created_by: string
   created_by_name: string

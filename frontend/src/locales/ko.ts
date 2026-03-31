@@ -742,6 +742,8 @@ export default {
       maxRespondentsPlaceholder: '무제한',
       allowNonMembers: 'SIG 비회원도 이 양식을 제출할 수 있도록 허용',
       allowNonMembersHint: '활성화하면 인증된 모든 사용자가 이 양식을 작성할 수 있습니다.',
+      allowGuests: '게스트가 이 양식을 제출할 수 있도록 허용',
+      allowGuestsHint: '활성화하면 게스트 사용자(회원으로 로그인하지 않은 사용자)가 이 양식을 작성할 수 있습니다.',
       questionsTitle: '질문',
       addQuestionBtn: '+ 질문 추가',
       schemaLockedWarning:

@@ -755,6 +755,9 @@ export default {
       allowNonMembers: 'Autoriser les non-membres du GIS à soumettre ce formulaire',
       allowNonMembersHint:
         'Lorsque cette option est activée, tout utilisateur authentifié peut remplir ce formulaire.',
+      allowGuests: 'Autoriser les invités à soumettre ce formulaire',
+      allowGuestsHint:
+        'Lorsque cette option est activée, les utilisateurs invités (non connectés en tant que membres) peuvent remplir ce formulaire.',
       questionsTitle: 'Questions',
       addQuestionBtn: '+ Ajouter une question',
       schemaLockedWarning:

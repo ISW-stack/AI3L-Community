@@ -27,6 +27,7 @@ def row_to_form(row: dict, response_count: int = 0) -> dict:
         "questions": safe_json_parse(row.get("questions")),
         "is_schema_locked": row.get("is_schema_locked", False),
         "allow_non_members": row.get("allow_non_members", False),
+        "allow_guests": row.get("allow_guests", False),
         "response_count": response_count,
         "is_active": is_active,
         "created_by": str(row["created_by"]),

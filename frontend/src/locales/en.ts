@@ -748,6 +748,8 @@ export default {
       maxRespondentsPlaceholder: 'Unlimited',
       allowNonMembers: 'Allow non-SIG members to submit this form',
       allowNonMembersHint: 'When enabled, any authenticated user can fill out this form.',
+      allowGuests: 'Allow guests to submit this form',
+      allowGuestsHint: 'When enabled, guest users (not logged in as members) can fill out this form.',
       questionsTitle: 'Questions',
       addQuestionBtn: '+ Add Question',
       schemaLockedWarning:

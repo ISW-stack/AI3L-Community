@@ -103,14 +103,12 @@ export function useFormSubmit(options: UseFormSubmitOptions) {
   })
 
   const showForm = computed(() => {
-    return (
-      !submitted.value &&
-      !previousResponse.value &&
-      form.value?.is_active &&
-      !isDeadlinePassed.value &&
-      auth.isAuthenticated &&
-      !auth.isGuest
-    )
+    if (submitted.value || previousResponse.value) return false
+    if (!form.value?.is_active || isDeadlinePassed.value) return false
+    if (!auth.isAuthenticated) return false
+    // Guests can only see the form if allow_guests is enabled
+    if (auth.isGuest && !form.value.allow_guests) return false
+    return true
   })
 
   // ── Validation helpers ──

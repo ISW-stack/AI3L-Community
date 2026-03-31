@@ -750,6 +750,9 @@ export default {
       allowNonMembers: 'Разрешить участие не-членам SIG',
       allowNonMembersHint:
         'При включении любой аутентифицированный пользователь может заполнить эту форму.',
+      allowGuests: 'Разрешить гостям отправлять эту форму',
+      allowGuestsHint:
+        'При включении гостевые пользователи (не вошедшие как участники) могут заполнить эту форму.',
       questionsTitle: 'Вопросы',
       addQuestionBtn: '+ Добавить вопрос',
       schemaLockedWarning:

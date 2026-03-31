@@ -27,6 +27,7 @@ const {
   questions,
   isSchemaLocked,
   allowNonMembers,
+  allowGuests,
   loading,
   saving,
   message,
@@ -210,6 +211,7 @@ const {
               type="checkbox"
               name="allow-non-members"
               v-model="allowNonMembers"
+              :disabled="allowGuests"
               class="rounded"
             />
             {{ t('forms.builder.allowNonMembers') }}
@@ -218,6 +220,18 @@ const {
             {{ t('forms.builder.allowNonMembersHint') }}
           </p>
         </template>
+        <label class="flex items-center gap-2 text-sm text-foreground mt-4">
+          <input
+            type="checkbox"
+            name="allow-guests"
+            v-model="allowGuests"
+            class="rounded"
+          />
+          {{ t('forms.builder.allowGuests') }}
+        </label>
+        <p class="text-xs text-muted mt-1">
+          {{ t('forms.builder.allowGuestsHint') }}
+        </p>
       </BaseCard>
 
       <div class="mb-6">

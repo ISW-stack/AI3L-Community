@@ -25,6 +25,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   const questions = ref<Question[]>([])
   const isSchemaLocked = ref(false)
   const allowNonMembers = ref(false)
+  const allowGuests = ref(false)
   const loading = ref(false)
   const saving = ref(false)
   const message = ref('')
@@ -62,6 +63,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   let autoSaveTimer: ReturnType<typeof setInterval> | null = null
   let isDirty = false
   let stopDirtyWatch: WatchStopHandle | null = null // L-24: explicit cleanup handle
+  let stopGuestLinkWatch: WatchStopHandle | null = null
 
   // ── Computed ──
   const hasInvalidRating = computed(() =>
@@ -322,6 +324,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
       deadline: deadline.value,
       maxRespondents: maxRespondents.value,
       allowNonMembers: allowNonMembers.value,
+      allowGuests: allowGuests.value,
       questions: questions.value,
     }
   }
@@ -339,6 +342,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     deadline.value = data.deadline
     maxRespondents.value = data.maxRespondents
     allowNonMembers.value = data.allowNonMembers
+    allowGuests.value = data.allowGuests ?? false
     questions.value = data.questions
     showDraftBanner.value = false
     history.pushState(questions.value)
@@ -444,6 +448,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
       maxRespondents.value = data.max_respondents
       isSchemaLocked.value = data.is_schema_locked
       allowNonMembers.value = data.allow_non_members ?? false
+      allowGuests.value = data.allow_guests ?? false
       questions.value = data.questions.map((q: Question) => ({
         id: q.id,
         type: q.type,
@@ -519,6 +524,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
         deadline: string | null
         max_respondents: number | null
         allow_non_members: boolean
+        allow_guests: boolean
         questions?: unknown[]
       } = {
         title: title.value.trim(),
@@ -527,6 +533,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
         deadline: deadline.value ? new Date(deadline.value).toISOString() : null,
         max_respondents: maxRespondents.value || null,
         allow_non_members: allowNonMembers.value,
+        allow_guests: allowGuests.value,
       }
       if (isEdit.value) {
         if (!isSchemaLocked.value) payload.questions = questions.value.map(serializeQuestion)
@@ -576,9 +583,15 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     }
     document.addEventListener('keydown', handleKeyboardShortcut)
     startAutoSave()
+    // Linkage: allowGuests=true → auto-check allowNonMembers (SIG forms only)
+    stopGuestLinkWatch = watch(allowGuests, (val) => {
+      if (val && !isStandalone.value) {
+        allowNonMembers.value = true
+      }
+    })
     // L-24: Store stop handle for explicit cleanup in onUnmounted
     stopDirtyWatch = watch(
-      [title, description, bannerUrl, deadline, maxRespondents, allowNonMembers],
+      [title, description, bannerUrl, deadline, maxRespondents, allowNonMembers, allowGuests],
       () => {
         isDirty = true
       },
@@ -588,10 +601,14 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
   onUnmounted(() => {
     document.removeEventListener('keydown', handleKeyboardShortcut)
     stopAutoSave()
-    // L-24: Explicitly stop the watcher created in onMounted
+    // L-24: Explicitly stop the watchers created in onMounted
     if (stopDirtyWatch) {
       stopDirtyWatch()
       stopDirtyWatch = null
+    }
+    if (stopGuestLinkWatch) {
+      stopGuestLinkWatch()
+      stopGuestLinkWatch = null
     }
   })
 
@@ -605,6 +622,7 @@ export function useFormBuilder({ sigId, formId, router, t }: FormBuilderOptions)
     questions,
     isSchemaLocked,
     allowNonMembers,
+    allowGuests,
     loading,
     saving,
     message,

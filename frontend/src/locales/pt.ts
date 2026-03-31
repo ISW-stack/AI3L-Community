@@ -748,6 +748,9 @@ export default {
       allowNonMembers: 'Permitir que não membros do SIG enviem este formulário',
       allowNonMembersHint:
         'Quando habilitado, qualquer usuário autenticado pode preencher este formulário.',
+      allowGuests: 'Permitir que convidados enviem este formulário',
+      allowGuestsHint:
+        'Quando habilitado, usuários convidados (não registrados como membros) podem preencher este formulário.',
       questionsTitle: 'Perguntas',
       addQuestionBtn: '+ Adicionar Pergunta',
       schemaLockedWarning:

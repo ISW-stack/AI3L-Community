@@ -83,11 +83,16 @@ async def create_form(
     max_respondents: int | None,
     questions: list[dict],
     allow_non_members: bool = False,
+    allow_guests: bool = False,
 ) -> dict:
     validate_question_schema(questions)
 
     if deadline and deadline < datetime.now(timezone.utc):
         raise FormDeadlineError()
+
+    # Enforce linkage: allow_guests implies allow_non_members for SIG forms
+    if allow_guests and sig_id is not None:
+        allow_non_members = True
 
     form_id = uuid.uuid4()
     pool = get_pool()
@@ -104,8 +109,6 @@ async def create_form(
                         f"Maximum active standalone forms per user "
                         f"({MAX_ACTIVE_STANDALONE_FORMS_PER_USER}) reached."
                     )
-                # Standalone forms are always open to all authenticated users
-                allow_non_members = True
             else:
                 active_count = await form_repo.count_active_in_conn(conn, uuid.UUID(sig_id))
                 if active_count >= MAX_ACTIVE_FORMS_PER_SIG:
@@ -125,6 +128,7 @@ async def create_form(
                 max_respondents,
                 questions,
                 allow_non_members,
+                allow_guests,
             )
     return row_to_form(result, 0)
 
@@ -373,6 +377,7 @@ async def update_form(
     max_respondents: int | None = None,
     questions: list[dict] | None = None,
     allow_non_members: bool | None = None,
+    allow_guests: bool | None = None,
     provided_fields: set[str] | None = None,
 ) -> dict | None:
     pool = get_pool()
@@ -408,6 +413,17 @@ async def update_form(
                     ErrorCode.FORM_001, 400, "Cannot modify questions: form schema is locked."
                 )
 
+            # Enforce linkage: allow_guests implies allow_non_members for SIG forms.
+            # Check both the incoming value and the DB value to prevent
+            # inconsistent state via partial updates (e.g. setting
+            # allow_non_members=false while allow_guests is already true).
+            if current.get("sig_id"):
+                effective_guests = (
+                    allow_guests if allow_guests is not None else current.get("allow_guests", False)
+                )
+                if effective_guests:
+                    allow_non_members = True
+
             updates: dict = {}
 
             for field_name, value in [
@@ -417,6 +433,7 @@ async def update_form(
                 ("deadline", deadline),
                 ("max_respondents", max_respondents),
                 ("allow_non_members", allow_non_members),
+                ("allow_guests", allow_guests),
             ]:
                 if value is not None:
                     updates[field_name] = value
@@ -545,18 +562,24 @@ async def submit_response(
             if not form:
                 raise ValueError("Form not found.")
 
-            # Guests can only submit forms that explicitly allow non-members
-            if is_guest and not form.get("allow_non_members", False):
+            # Guests can only submit forms that explicitly allow guests
+            if is_guest and not form.get("allow_guests", False):
                 raise PermissionError("Guests cannot submit this form.")
 
-            if form.get("sig_id") and not form.get("allow_non_members", False):
-                from app.repositories import sig_repo
-
-                role = await sig_repo.get_member_role_in_conn(
-                    form["sig_id"], uuid.UUID(user_id), conn
+            # For SIG forms, check non-member access (allow_guests implies allow_non_members)
+            if form.get("sig_id") and not is_guest:
+                effective_allow_non_members = (
+                    form.get("allow_non_members", False)
+                    or form.get("allow_guests", False)
                 )
-                if role is None:
-                    raise PermissionError("Only SIG members can submit this form.")
+                if not effective_allow_non_members:
+                    from app.repositories import sig_repo
+
+                    role = await sig_repo.get_member_role_in_conn(
+                        form["sig_id"], uuid.UUID(user_id), conn
+                    )
+                    if role is None:
+                        raise PermissionError("Only SIG members can submit this form.")
 
             if form.get("is_closed"):
                 raise AppError(ErrorCode.FORM_001, 400, "This form is closed.")
@@ -596,7 +619,7 @@ async def submit_response(
                 answers,
                 conn,
                 max_respondents=form["max_respondents"],
-                guest_allowed=form.get("allow_non_members", False),
+                guest_allowed=form.get("allow_guests", False),
             )
             if not inserted:
                 raise ValueError("This form has reached its maximum number of responses.")

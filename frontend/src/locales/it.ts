@@ -750,6 +750,9 @@ export default {
       allowNonMembers: 'Consenti ai non membri del SIG di inviare questo modulo',
       allowNonMembersHint:
         'Se abilitato, qualsiasi utente autenticato può compilare questo modulo.',
+      allowGuests: 'Consenti agli ospiti di inviare questo modulo',
+      allowGuestsHint:
+        'Se abilitato, gli utenti ospiti (non registrati come membri) possono compilare questo modulo.',
       questionsTitle: 'Domande',
       addQuestionBtn: '+ Aggiungi domanda',
       schemaLockedWarning:

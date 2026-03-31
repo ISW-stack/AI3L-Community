@@ -9,6 +9,7 @@ export interface FormDraftData {
   deadline: string
   maxRespondents: number | null
   allowNonMembers: boolean
+  allowGuests: boolean
   questions: Question[]
   savedAt: string
 }
@@ -56,6 +57,7 @@ export function useFormDraft(sigId?: StringOrGetter, formId?: StringOrGetter): F
     deadline: '',
     maxRespondents: null,
     allowNonMembers: false,
+    allowGuests: false,
     questions: [],
     savedAt: '',
   }

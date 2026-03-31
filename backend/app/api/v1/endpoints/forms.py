@@ -77,6 +77,7 @@ async def create_new_form(
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions],
             allow_non_members=req.allow_non_members,
+            allow_guests=req.allow_guests,
         )
     except ValueError as e:
         raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid form data."))
@@ -124,7 +125,7 @@ async def create_standalone_form(
             deadline=req.deadline,
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions],
-            allow_non_members=True,
+            allow_guests=req.allow_guests,
         )
     except ValueError as e:
         raise AppError(ErrorCode.SYS_422, 422, safe_error_detail(e, "Invalid form data."))
@@ -158,7 +159,8 @@ async def get_my_response(
         raise AppError(ErrorCode.SYS_404, status.HTTP_404_NOT_FOUND, "Form not found.")
     # If form restricts access to SIG members only, verify membership
     # Standalone forms (sig_id is None) skip this check
-    if form.get("sig_id") and not form.get("allow_non_members", False):
+    form_open = form.get("allow_non_members", False) or form.get("allow_guests", False)
+    if form.get("sig_id") and not form_open:
         is_admin = await _is_sig_admin(
             uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
@@ -223,8 +225,11 @@ async def get_form(
         is_admin = await _is_sig_admin(
             uuid.UUID(form["sig_id"]), current_user["sub"], current_user["role"]
         )
-        # If form restricts access to SIG members only, verify membership
-        if not form.get("allow_non_members", False) and not is_admin:
+        # If form restricts access to SIG members only, verify membership.
+        # allow_guests implies allow_non_members (enforced at create/update),
+        # but check both for defense-in-depth.
+        form_open = form.get("allow_non_members", False) or form.get("allow_guests", False)
+        if not form_open and not is_admin:
             member_role = await sig_repo.get_member_role(
                 uuid.UUID(form["sig_id"]), uuid.UUID(current_user["sub"])
             )
@@ -282,6 +287,7 @@ async def update_existing_form(
             max_respondents=req.max_respondents,
             questions=[q.model_dump() for q in req.questions] if req.questions else None,
             allow_non_members=req.allow_non_members,
+            allow_guests=req.allow_guests,
             provided_fields=req.model_fields_set,
         )
     except PermissionError as e:

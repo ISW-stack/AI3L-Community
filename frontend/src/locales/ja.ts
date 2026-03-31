@@ -744,6 +744,8 @@ export default {
       maxRespondentsPlaceholder: '無制限',
       allowNonMembers: 'SIG 非メンバーのフォーム送信を許可',
       allowNonMembersHint: '有効にすると、認証済みのすべてのユーザーがこのフォームに回答できます。',
+      allowGuests: 'ゲストによるフォーム送信を許可',
+      allowGuestsHint: '有効にすると、ゲストユーザー（メンバーとしてログインしていないユーザー）がこのフォームに回答できます。',
       questionsTitle: '質問',
       addQuestionBtn: '+ 質問を追加',
       schemaLockedWarning:

@@ -756,6 +756,9 @@ export default {
       allowNonMembers: 'Nicht-SIG-Mitgliedern die Einreichung erlauben',
       allowNonMembersHint:
         'Wenn aktiviert, kann jeder authentifizierte Benutzer dieses Formular ausfüllen.',
+      allowGuests: 'Gästen die Einreichung erlauben',
+      allowGuestsHint:
+        'Wenn aktiviert, können Gastbenutzer (nicht als Mitglieder angemeldet) dieses Formular ausfüllen.',
       questionsTitle: 'Fragen',
       addQuestionBtn: '+ Frage hinzufügen',
       schemaLockedWarning:

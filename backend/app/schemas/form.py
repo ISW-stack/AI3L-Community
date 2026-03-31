@@ -80,6 +80,7 @@ class FormCreateRequest(BaseModel):
     max_respondents: int | None = Field(None, gt=0)
     questions: list[QuestionSchema] = Field(..., min_length=1, max_length=100)
     allow_non_members: bool = False
+    allow_guests: bool = False
 
     @field_validator("deadline")
     @classmethod
@@ -111,6 +112,7 @@ class FormUpdateRequest(BaseModel):
     max_respondents: int | None = Field(None, gt=0)
     questions: list[QuestionSchema] | None = Field(None, max_length=100)
     allow_non_members: bool | None = None
+    allow_guests: bool | None = None
 
     @field_validator("deadline")
     @classmethod
@@ -145,6 +147,7 @@ class FormResponseSchema(BaseModel):
     questions: list[dict[str, Any]]
     is_schema_locked: bool
     allow_non_members: bool = False
+    allow_guests: bool = False
     response_count: int
     has_responded: bool = False
     is_active: bool

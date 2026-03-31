@@ -747,6 +747,9 @@ export default {
       allowNonMembers: 'Cho phép người dùng không phải thành viên SIG gửi biểu mẫu này',
       allowNonMembersHint:
         'Khi được bật, bất kỳ người dùng đã xác thực nào cũng có thể điền biểu mẫu này.',
+      allowGuests: 'Cho phép khách điền biểu mẫu này',
+      allowGuestsHint:
+        'Khi được bật, người dùng khách (chưa đăng nhập với tư cách thành viên) có thể điền biểu mẫu này.',
       questionsTitle: 'Câu hỏi',
       addQuestionBtn: '+ Thêm câu hỏi',
       schemaLockedWarning:

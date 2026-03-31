@@ -36,6 +36,7 @@ export interface FormData {
   questions: Question[]
   is_schema_locked: boolean
   allow_non_members: boolean
+  allow_guests: boolean
   response_count: number
   has_responded?: boolean
   is_active: boolean
