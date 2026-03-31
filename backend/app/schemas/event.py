@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 
 _UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-_VALID_VISIBILITY = {"GUEST", "MEMBER", "ADMIN", "SUPER_ADMIN"}
+_VALID_VISIBILITY = {"GUEST", "MEMBER", "ADMIN"}
 
 
 class EventCreateRequest(BaseModel):

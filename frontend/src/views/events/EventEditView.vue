@@ -19,7 +19,6 @@ const VISIBILITY_OPTIONS = [
   { value: 'GUEST', label: 'events.roleGuest' },
   { value: 'MEMBER', label: 'events.roleMember' },
   { value: 'ADMIN', label: 'events.roleAdmin' },
-  { value: 'SUPER_ADMIN', label: 'events.roleSuperAdmin' },
 ]
 
 const { t } = useI18n()

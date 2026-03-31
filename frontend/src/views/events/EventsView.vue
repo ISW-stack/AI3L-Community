@@ -59,7 +59,6 @@ function visibilityLabel(role: string): string {
     GUEST: t('events.roleGuest'),
     MEMBER: t('events.roleMember'),
     ADMIN: t('events.roleAdmin'),
-    SUPER_ADMIN: t('events.roleSuperAdmin'),
   }
   return map[role] || role
 }
