@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePostList } from '@/composables/usePostList'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
@@ -61,8 +61,33 @@ const sortOptions = [
   { value: 'most_comments', label: t('forum.sort.mostDiscussed') },
 ]
 
-onMounted(init)
-onUnmounted(cleanup)
+const showLogoLightbox = ref(false)
+
+function openLogoLightbox() {
+  showLogoLightbox.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+function closeLogoLightbox() {
+  showLogoLightbox.value = false
+  document.body.style.overflow = ''
+}
+
+function handleLightboxKey(e: KeyboardEvent) {
+  if (showLogoLightbox.value && e.key === 'Escape') {
+    closeLogoLightbox()
+  }
+}
+
+onMounted(() => {
+  init()
+  document.addEventListener('keydown', handleLightboxKey)
+})
+onUnmounted(() => {
+  cleanup()
+  document.removeEventListener('keydown', handleLightboxKey)
+  document.body.style.overflow = ''
+})
 
 defineExpose({ loadMore })
 </script>
@@ -78,7 +103,18 @@ defineExpose({ loadMore })
       <div
         class="bg-gradient-to-r from-brand-900 to-brand-700 rounded-lg px-6 py-5 mb-6 flex items-center gap-5"
       >
-        <img src="/images/logo.png" alt="AI3L" class="h-16 sm:h-20 w-auto drop-shadow-lg" />
+        <button
+          type="button"
+          class="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded"
+          aria-label="Enlarge AI3L logo"
+          @click="openLogoLightbox"
+        >
+          <img
+            src="/images/logo.png"
+            alt="AI3L"
+            class="h-16 sm:h-20 w-auto drop-shadow-lg cursor-zoom-in hover:opacity-90 transition-opacity"
+          />
+        </button>
         <div>
           <h1 class="text-xl sm:text-2xl font-bold text-white">{{ t('forum.title') }}</h1>
           <p class="text-brand-200 text-sm mt-1">{{ t('home.tagline') }}</p>
@@ -225,4 +261,53 @@ defineExpose({ loadMore })
       <FloatingCreateButton to="/forum/create" />
     </div>
   </div>
+
+  <!-- Logo Lightbox -->
+  <Teleport to="body">
+    <Transition name="lightbox">
+      <div
+        v-if="showLogoLightbox"
+        class="fixed inset-0 z-50 bg-black/85 flex items-center justify-center"
+        role="dialog"
+        aria-modal="true"
+        aria-label="AI3L logo enlarged view"
+        @click="closeLogoLightbox"
+      >
+        <button
+          type="button"
+          class="absolute top-6 right-4 sm:top-4 text-white/80 hover:text-white p-3 rounded-full bg-black/30 hover:bg-black/50 transition"
+          aria-label="Close"
+          @click.stop="closeLogoLightbox"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <img
+          src="/images/logo.png"
+          alt="AI3L"
+          class="max-w-[90vw] max-h-[85vh] object-contain drop-shadow-2xl"
+          @click.stop
+        />
+      </div>
+    </Transition>
+  </Teleport>
 </template>
+
+<style scoped>
+.lightbox-enter-active,
+.lightbox-leave-active {
+  transition: opacity 0.2s ease;
+}
+.lightbox-enter-from,
+.lightbox-leave-to {
+  opacity: 0;
+}
+</style>
