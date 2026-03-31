@@ -10,7 +10,7 @@ defineProps<{
 
 <template>
   <BaseCard hoverable class="h-full !p-0 overflow-hidden">
-    <div class="h-36 relative">
+    <div class="aspect-video relative">
       <img
         v-if="album.cover_photo_url"
         :src="album.cover_photo_url"

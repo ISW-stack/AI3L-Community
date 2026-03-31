@@ -212,7 +212,7 @@ const currentRouteName = computed(() => route.name)
           <!-- Cover image -->
           <div
             v-if="album.cover_photo_url || canEditAlbum"
-            class="relative -mx-6 -mt-6 mb-4 h-48 bg-surface-alt rounded-t-xl overflow-hidden"
+            class="relative -mx-6 -mt-6 mb-4 aspect-video sm:aspect-[5/2] lg:aspect-[3/1] max-h-64 bg-surface-alt rounded-t-xl overflow-hidden"
           >
             <img
               v-if="album.cover_photo_url"
