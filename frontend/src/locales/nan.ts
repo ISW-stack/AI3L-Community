@@ -66,6 +66,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: '裁切圖片',
+    zoomIn: '放大',
+    zoomOut: '縮小',
+    rotate: '旋轉',
+    reset: '重設',
+    confirm: '套用',
+    hint: '拖曳移動位置，用滾輪抑是按鈕縮放。',
+  },
+
   // ── Language ──
   language: {
     label: '語言',
@@ -976,6 +986,8 @@ export default {
     description:
       'AI3L Community 是一个專注於 AI 語言學習 kah 素養ê小型學術交流平台，由國立台灣師範大學藍玉如教授主持。這个社群驅動ê專案旨在集合對 AI 支援語言教育 kah 素養發展有興趣ê研究者 kah 實務工作者。',
     introduction: '簡介',
+    chair: '主席',
+    coChair: '副主席',
     introEmpty: '猶未有簡介。',
     contributors: {
       title: '貢獻者',
@@ -1310,6 +1322,8 @@ export default {
     siteSettings: {
       title: '站點設定',
       aboutIntro: '關於頁面ê簡介',
+      chairIntro: '主席',
+      coChairIntro: '副主席',
       photoLabel: '相片',
       bioLabel: '自我介紹',
       bioPlaceholder: '輸入簡介文字...',

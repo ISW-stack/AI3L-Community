@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@/composables/api'
 import { getAboutIntro } from '@/api/about'
+import type { AboutIntroData } from '@/api/about'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import { User } from 'lucide-vue-next'
 
@@ -16,7 +17,12 @@ interface Contributor {
 const { t } = useI18n()
 const contributors = ref<Contributor[]>([])
 const loading = ref(true)
-const intro = ref<{ photo_url: string; bio: string }>({ photo_url: '', bio: '' })
+const intro = ref<AboutIntroData>({
+  photo_url: '',
+  bio: '',
+  chair_photo_url: '',
+  chair_bio: '',
+})
 const introLoading = ref(true)
 
 function getInitial(name: string): string {
@@ -44,7 +50,7 @@ async function fetchIntro() {
   try {
     intro.value = await getAboutIntro()
   } catch {
-    intro.value = { photo_url: '', bio: '' }
+    intro.value = { photo_url: '', bio: '', chair_photo_url: '', chair_bio: '' }
   } finally {
     introLoading.value = false
   }
@@ -66,7 +72,7 @@ onMounted(() => {
       </p>
     </div>
 
-    <!-- Introduction Section (Professor photo + bio) -->
+    <!-- Introduction Section -->
     <div class="mb-10">
       <h2 class="text-2xl font-semibold text-foreground mb-6">{{ t('about.introduction') }}</h2>
 
@@ -74,32 +80,65 @@ onMounted(() => {
         <SkeletonLoader variant="list" :lines="4" />
       </div>
 
-      <div v-else class="flex flex-col sm:flex-row gap-6 items-start">
-        <!-- Photo -->
-        <div class="shrink-0 self-center sm:self-start">
-          <img
-            v-if="intro.photo_url"
-            :src="intro.photo_url"
-            :alt="t('about.introduction')"
-            class="w-48 h-48 rounded-lg object-cover border border-border shadow-sm"
-          />
-          <div
-            v-else
-            class="w-48 h-48 rounded-lg bg-surface border border-border flex items-center justify-center"
-          >
-            <User :size="64" class="text-muted/40" />
+      <div v-else class="space-y-8">
+        <!-- Chair -->
+        <div>
+          <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('about.chair') }}</h3>
+          <div class="flex flex-col sm:flex-row gap-6 items-start">
+            <div class="shrink-0 self-center sm:self-start">
+              <img
+                v-if="intro.chair_photo_url"
+                :src="intro.chair_photo_url"
+                :alt="t('about.chair')"
+                class="w-48 h-48 rounded-lg object-cover border border-border shadow-sm"
+              />
+              <div
+                v-else
+                class="w-48 h-48 rounded-lg bg-surface border border-border flex items-center justify-center"
+              >
+                <User :size="64" class="text-muted/40" />
+              </div>
+            </div>
+            <div
+              v-if="intro.chair_bio"
+              class="flex-1 text-sm text-foreground leading-relaxed whitespace-pre-line"
+            >
+              {{ intro.chair_bio }}
+            </div>
+            <div v-else class="flex-1 text-sm text-muted italic">
+              {{ t('about.introEmpty') }}
+            </div>
           </div>
         </div>
 
-        <!-- Bio -->
-        <div
-          v-if="intro.bio"
-          class="flex-1 text-sm text-foreground leading-relaxed whitespace-pre-line"
-        >
-          {{ intro.bio }}
-        </div>
-        <div v-else class="flex-1 text-sm text-muted italic">
-          {{ t('about.introEmpty') }}
+        <!-- Co-Chair -->
+        <div>
+          <h3 class="text-lg font-semibold text-foreground mb-4">{{ t('about.coChair') }}</h3>
+          <div class="flex flex-col sm:flex-row gap-6 items-start">
+            <div class="shrink-0 self-center sm:self-start">
+              <img
+                v-if="intro.photo_url"
+                :src="intro.photo_url"
+                :alt="t('about.coChair')"
+                class="w-48 h-48 rounded-lg object-cover border border-border shadow-sm"
+              />
+              <div
+                v-else
+                class="w-48 h-48 rounded-lg bg-surface border border-border flex items-center justify-center"
+              >
+                <User :size="64" class="text-muted/40" />
+              </div>
+            </div>
+            <div
+              v-if="intro.bio"
+              class="flex-1 text-sm text-foreground leading-relaxed whitespace-pre-line"
+            >
+              {{ intro.bio }}
+            </div>
+            <div v-else class="flex-1 text-sm text-muted italic">
+              {{ t('about.introEmpty') }}
+            </div>
+          </div>
         </div>
       </div>
     </div>

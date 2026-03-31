@@ -67,6 +67,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: 'छवि क्रॉप करें',
+    zoomIn: 'ज़ूम इन',
+    zoomOut: 'ज़ूम आउट',
+    rotate: 'घुमाएं',
+    reset: 'रीसेट',
+    confirm: 'लागू करें',
+    hint: 'पुनः स्थान के लिए खींचें। ज़ूम के लिए स्क्रॉल व्हील या बटन का उपयोग करें।',
+  },
+
   // ── Language ──
   language: {
     label: 'भाषा',
@@ -991,6 +1001,8 @@ export default {
     description:
       'AI3L Community भाषा शिक्षण और साक्षरता में AI के लिए एक छोटा शैक्षणिक आदान-प्रदान प्लेटफ़ॉर्म है। इसका आयोजन और संचालन National Taiwan Normal University (NTNU) की प्रोफेसर यु-जु लान द्वारा किया जाता है। यह समुदाय-संचालित परियोजना उन शोधकर्ताओं और व्यवसायियों को एकजुट करना चाहती है जो भाषा शिक्षा और साक्षरता विकास में AI की भूमिका की खोज में रुचि रखते हैं।',
     introduction: 'परिचय',
+    chair: 'अध्यक्ष',
+    coChair: 'सह-अध्यक्ष',
     introEmpty: 'अभी कोई परिचय उपलब्ध नहीं है।',
     contributors: {
       title: 'योगदानकर्ता',
@@ -1326,6 +1338,8 @@ export default {
     siteSettings: {
       title: 'साइट सेटिंग्स',
       aboutIntro: 'परिचय पृष्ठ परिचय',
+      chairIntro: 'अध्यक्ष',
+      coChairIntro: 'सह-अध्यक्ष',
       photoLabel: 'फ़ोटो',
       bioLabel: 'परिचय',
       bioPlaceholder: 'परिचय पाठ दर्ज करें...',

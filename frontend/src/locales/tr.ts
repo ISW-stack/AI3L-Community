@@ -67,6 +67,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: 'Resmi Kırp',
+    zoomIn: 'Yakınlaştır',
+    zoomOut: 'Uzaklaştır',
+    rotate: 'Döndür',
+    reset: 'Sıfırla',
+    confirm: 'Uygula',
+    hint: 'Yeniden konumlandırmak için sürükleyin. Yakınlaştırmak için kaydırma tekerini veya düğmeleri kullanın.',
+  },
+
   // ── Language ──
   language: {
     label: 'Dil',
@@ -996,6 +1006,8 @@ export default {
     description:
       'AI3L Community, Dil Öğrenme ve Okuryazarlıkta Yapay Zeka için küçük bir akademik değişim platformudur. NTNU (Ulusal Tayvan Normal Üniversitesi) bünyesinde Prof. Yu-Ju Lan tarafından organize edilmektedir. Bu topluluk odaklı proje, yapay zekanın dil eğitimi ve okuryazarlık gelişimini nasıl destekleyebileceğini araştırmaya ilgi duyan araştırmacı ve uygulayıcıları bir araya getirmeyi amaçlamaktadır.',
     introduction: 'Giriş',
+    chair: 'Başkan',
+    coChair: 'Eş Başkan',
     introEmpty: 'Henüz giriş metni mevcut değil.',
     contributors: {
       title: 'Katkıda Bulunanlar',
@@ -1331,6 +1343,8 @@ export default {
     siteSettings: {
       title: 'Site Ayarları',
       aboutIntro: 'Hakkında Sayfası Tanıtımı',
+      chairIntro: 'Başkan',
+      coChairIntro: 'Eş Başkan',
       photoLabel: 'Fotoğraf',
       bioLabel: 'Biyografi',
       bioPlaceholder: 'Tanıtım metnini girin...',

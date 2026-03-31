@@ -62,6 +62,17 @@ export default {
       guest: '访客',
     },
   },
+
+  imageCropper: {
+    title: '裁剪图片',
+    zoomIn: '放大',
+    zoomOut: '缩小',
+    rotate: '旋转',
+    reset: '重置',
+    confirm: '应用',
+    hint: '拖动以重新定位。使用滚轮或按钮缩放。',
+  },
+
   language: {
     label: '语言',
     region: {
@@ -941,6 +952,8 @@ export default {
     description:
       'AI3L 社区是一个小型学术交流平台，专注于 AI 语言学习与读写。由国立台湾师范大学（NTNU）篮玉如教授组织召集。此社区驱动项目旨在汇聚对 AI 如何支持语言教育和读写发展有共同兴趣的研究者和实践者。',
     introduction: '简介',
+    chair: '主席',
+    coChair: '联席主席',
     introEmpty: '暂无简介。',
     contributors: {
       title: '贡献者',
@@ -1274,6 +1287,8 @@ export default {
     siteSettings: {
       title: '站点设置',
       aboutIntro: '关于页面简介',
+      chairIntro: '主席',
+      coChairIntro: '联席主席',
       photoLabel: '照片',
       bioLabel: '简介',
       bioPlaceholder: '输入简介文字...',

@@ -67,6 +67,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: 'Cắt ảnh',
+    zoomIn: 'Phóng to',
+    zoomOut: 'Thu nhỏ',
+    rotate: 'Xoay',
+    reset: 'Đặt lại',
+    confirm: 'Áp dụng',
+    hint: 'Kéo để định vị lại. Dùng con lăn chuột hoặc nút để thu phóng.',
+  },
+
   // ── Language ──
   language: {
     label: 'Ngôn ngữ',
@@ -992,6 +1002,8 @@ export default {
     description:
       'AI3L Community là một nền tảng trao đổi học thuật nhỏ về AI trong Học Ngôn Ngữ và Văn Chương. Nền tảng được tổ chức và điều phối bởi Giáo sư Yu-Ju Lan từ Đại học Sư phạm Quốc gia Đài Loan (NTNU). Dự án do cộng đồng dẫn dắt này nhằm mục đích tập hợp các nhà nghiên cứu và nhà thực hành có chung mối quan tâm trong việc khám phá cách AI có thể hỗ trợ giáo dục ngôn ngữ và phát triển văn chương.',
     introduction: 'Giới thiệu',
+    chair: 'Chủ tịch',
+    coChair: 'Đồng chủ tịch',
     introEmpty: 'Chưa có nội dung giới thiệu.',
     contributors: {
       title: 'Người đóng góp',
@@ -1327,6 +1339,8 @@ export default {
     siteSettings: {
       title: 'Cài đặt trang web',
       aboutIntro: 'Nội dung giới thiệu trang Về chúng tôi',
+      chairIntro: 'Chủ tịch',
+      coChairIntro: 'Đồng chủ tịch',
       photoLabel: 'Ảnh',
       bioLabel: 'Giới thiệu',
       bioPlaceholder: 'Nhập nội dung giới thiệu...',

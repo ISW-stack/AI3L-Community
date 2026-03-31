@@ -67,6 +67,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: 'Ritaglia immagine',
+    zoomIn: 'Ingrandisci',
+    zoomOut: 'Rimpicciolisci',
+    rotate: 'Ruota',
+    reset: 'Reimposta',
+    confirm: 'Applica',
+    hint: 'Trascina per riposizionare. Usa la rotellina del mouse o i pulsanti per lo zoom.',
+  },
+
   // ── Language ──
   language: {
     label: 'Lingua',
@@ -997,6 +1007,8 @@ export default {
     description:
       "AI3L Community è una piccola piattaforma di scambio accademico dedicata all'IA nell'apprendimento linguistico e nella literacy. È organizzata e coordinata dalla Professoressa Yu-Ju Lan della National Taiwan Normal University (NTNU). Questo progetto a guida comunitaria mira a riunire ricercatori e professionisti che condividono l'interesse per l'esplorazione di come l'IA possa supportare l'educazione linguistica e lo sviluppo della literacy.",
     introduction: 'Introduzione',
+    chair: 'Presidente',
+    coChair: 'Vicepresidente',
     introEmpty: 'Nessuna introduzione disponibile.',
     contributors: {
       title: 'Contributori',
@@ -1333,6 +1345,8 @@ export default {
     siteSettings: {
       title: 'Impostazioni del Sito',
       aboutIntro: 'Introduzione Pagina Chi Siamo',
+      chairIntro: 'Presidente',
+      coChairIntro: 'Vicepresidente',
       photoLabel: 'Foto',
       bioLabel: 'Bio',
       bioPlaceholder: 'Inserisci il testo introduttivo...',

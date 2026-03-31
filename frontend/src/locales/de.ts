@@ -67,6 +67,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: 'Bild zuschneiden',
+    zoomIn: 'Vergrößern',
+    zoomOut: 'Verkleinern',
+    rotate: 'Drehen',
+    reset: 'Zurücksetzen',
+    confirm: 'Anwenden',
+    hint: 'Ziehen zum Verschieben. Mausrad oder Schaltflächen zum Zoomen verwenden.',
+  },
+
   // ── Language ──
   language: {
     label: 'Sprache',
@@ -1004,6 +1014,8 @@ export default {
     description:
       'AI3L Community ist eine kleine akademische Austauschplattform für den Bereich Künstliche Intelligenz im Sprachenlernen und in der Alphabetisierung. Sie wird von Professorin Yu-Ju Lan von der National Taiwan Normal University (NTNU) organisiert und geleitet. Dieses gemeinschaftlich getragene Projekt hat das Ziel, Forschende und Praktikerinnen und Praktiker zusammenzubringen, die ein gemeinsames Interesse daran teilen, zu erkunden, wie KI die Sprachbildung und die Entwicklung von Lesekompetenz unterstützen kann.',
     introduction: 'Einführung',
+    chair: 'Vorsitzende(r)',
+    coChair: 'Stellv. Vorsitzende(r)',
     introEmpty: 'Noch keine Einführung verfügbar.',
     contributors: {
       title: 'Mitwirkende',
@@ -1341,6 +1353,8 @@ export default {
     siteSettings: {
       title: 'Website-Einstellungen',
       aboutIntro: 'Einführungstext der Über-uns-Seite',
+      chairIntro: 'Vorsitzende(r)',
+      coChairIntro: 'Stellv. Vorsitzende(r)',
       photoLabel: 'Foto',
       bioLabel: 'Biografie',
       bioPlaceholder: 'Einführungstext eingeben...',

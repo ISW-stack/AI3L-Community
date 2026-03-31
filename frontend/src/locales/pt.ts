@@ -67,6 +67,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: 'Recortar imagem',
+    zoomIn: 'Ampliar',
+    zoomOut: 'Reduzir',
+    rotate: 'Girar',
+    reset: 'Redefinir',
+    confirm: 'Aplicar',
+    hint: 'Arraste para reposicionar. Use a roda do mouse ou os botões para zoom.',
+  },
+
   // ── Language ──
   language: {
     label: 'Idioma',
@@ -995,6 +1005,8 @@ export default {
     description:
       'A AI3L Community é uma pequena plataforma de intercâmbio acadêmico voltada para IA no Aprendizado e Letramento em Línguas. Ela é organizada e coordenada pela Professora Yu-Ju Lan da Universidade Nacional Normal de Taiwan (NTNU). Este projeto comunitário tem como objetivo reunir pesquisadores e profissionais que compartilham o interesse em explorar como a IA pode apoiar o ensino de línguas e o desenvolvimento do letramento.',
     introduction: 'Introdução',
+    chair: 'Presidente',
+    coChair: 'Vice-presidente',
     introEmpty: 'Nenhuma introdução disponível ainda.',
     contributors: {
       title: 'Colaboradores',
@@ -1330,6 +1342,8 @@ export default {
     siteSettings: {
       title: 'Configurações do Site',
       aboutIntro: 'Introdução da Página Sobre',
+      chairIntro: 'Presidente',
+      coChairIntro: 'Vice-presidente',
       photoLabel: 'Foto',
       bioLabel: 'Bio',
       bioPlaceholder: 'Digite o texto de introdução...',

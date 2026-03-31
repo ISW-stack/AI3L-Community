@@ -67,6 +67,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: 'Potong Gambar',
+    zoomIn: 'Perbesar',
+    zoomOut: 'Perkecil',
+    rotate: 'Putar',
+    reset: 'Atur Ulang',
+    confirm: 'Terapkan',
+    hint: 'Seret untuk memposisikan ulang. Gunakan roda gulir atau tombol untuk zoom.',
+  },
+
   // ── Language ──
   language: {
     label: 'Bahasa',
@@ -998,6 +1008,8 @@ export default {
     description:
       'AI3L Community adalah platform pertukaran akademik kecil untuk AI dalam Pembelajaran Bahasa dan Literasi. Platform ini diorganisasi dan dipimpin oleh Profesor Yu-Ju Lan dari National Taiwan Normal University (NTNU). Proyek berbasis komunitas ini bertujuan untuk menyatukan para peneliti dan praktisi yang memiliki minat dalam mengeksplorasi bagaimana AI dapat mendukung pendidikan bahasa dan pengembangan literasi.',
     introduction: 'Pengantar',
+    chair: 'Ketua',
+    coChair: 'Wakil Ketua',
     introEmpty: 'Belum ada pengantar.',
     contributors: {
       title: 'Kontributor',
@@ -1333,6 +1345,8 @@ export default {
     siteSettings: {
       title: 'Pengaturan Situs',
       aboutIntro: 'Pengantar Halaman Tentang',
+      chairIntro: 'Ketua',
+      coChairIntro: 'Wakil Ketua',
       photoLabel: 'Foto',
       bioLabel: 'Bio',
       bioPlaceholder: 'Masukkan teks pengantar...',

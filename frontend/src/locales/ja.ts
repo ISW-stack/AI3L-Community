@@ -66,6 +66,16 @@ export default {
     },
   },
 
+  imageCropper: {
+    title: '画像をトリミング',
+    zoomIn: '拡大',
+    zoomOut: '縮小',
+    rotate: '回転',
+    reset: 'リセット',
+    confirm: '適用',
+    hint: 'ドラッグして位置を調整。スクロールホイールまたはボタンでズーム。',
+  },
+
   // ── Language ──
   language: {
     label: '言語',
@@ -988,6 +998,8 @@ export default {
     description:
       'AI3L Community は、言語学習とリテラシーにおける AI をテーマとした小規模な学術交流プラットフォームです。台湾師範大学（NTNU）の藍玉珠教授が主催・運営しています。このコミュニティ主導のプロジェクトは、AI が語学教育とリテラシー向上をどのように支援できるかを探求することに関心を持つ研究者および実践者を結集することを目的としています。',
     introduction: '紹介',
+    chair: '代表',
+    coChair: '副代表',
     introEmpty: 'まだ紹介文はありません。',
     contributors: {
       title: 'コントリビューター',
@@ -1324,6 +1336,8 @@ export default {
     siteSettings: {
       title: 'サイト設定',
       aboutIntro: '概要ページの紹介文',
+      chairIntro: '代表',
+      coChairIntro: '副代表',
       photoLabel: '写真',
       bioLabel: '自己紹介',
       bioPlaceholder: '紹介文を入力...',

@@ -62,6 +62,17 @@ export default {
       guest: '訪客',
     },
   },
+
+  imageCropper: {
+    title: '裁剪圖片',
+    zoomIn: '放大',
+    zoomOut: '縮小',
+    rotate: '旋轉',
+    reset: '重設',
+    confirm: '套用',
+    hint: '拖曳移動位置，使用滾輪或按鈕縮放。',
+  },
+
   language: {
     label: '語言',
     region: {
@@ -941,6 +952,8 @@ export default {
     description:
       'AI3L 社群是一個小型學術交流平台，專注於 AI 語言學習與識讀。由國立臺灣師範大學（NTNU）籃玉如教授組織召集。此社群驅動專案旨在匯聚對 AI 如何支持語言教育和識讀發展有共同興趣的研究者和實踐者。',
     introduction: '簡介',
+    chair: '主持人',
+    coChair: '共同主持人',
     introEmpty: '暫無簡介。',
     contributors: {
       title: '貢獻者',
@@ -1274,6 +1287,8 @@ export default {
     siteSettings: {
       title: '站點設定',
       aboutIntro: '關於頁面簡介',
+      chairIntro: '主持人',
+      coChairIntro: '共同主持人',
       photoLabel: '照片',
       bioLabel: '簡介',
       bioPlaceholder: '輸入簡介文字...',

@@ -288,14 +288,25 @@ async def update_my_org_chart_bio(
 async def get_about_intro(
     _current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
 ) -> dict[str, str]:
-    """Return the about introduction photo URL and bio text."""
+    """Return Chair and Co-Chair photo URLs and bio text."""
     data = await site_settings_service.get_about_intro()
+
+    from app.core.storage import generate_presigned_url
+
     photo_url = ""
     if data["photo_key"]:
-        from app.core.storage import generate_presigned_url
-
         photo_url = generate_presigned_url(data["photo_key"])
-    return {"photo_url": photo_url, "bio": data["bio"]}
+
+    chair_photo_url = ""
+    if data["chair_photo_key"]:
+        chair_photo_url = generate_presigned_url(data["chair_photo_key"])
+
+    return {
+        "photo_url": photo_url,
+        "bio": data["bio"],
+        "chair_photo_url": chair_photo_url,
+        "chair_bio": data["chair_bio"],
+    }
 
 
 _MAX_INTRO_PHOTO_BYTES = 5 * 1024 * 1024  # 5 MB
@@ -376,8 +387,60 @@ async def update_about_intro_bio(
     body: _BioUpdateRequest,
     _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
 ) -> dict[str, str]:
-    """Update the about introduction bio text. SUPER_ADMIN only."""
+    """Update the about co-chair bio text. SUPER_ADMIN only."""
     await site_settings_service.update_about_intro_bio(body.bio)
+    return {"status": "ok"}
+
+
+@router.put("/admin/chair/photo")
+async def update_chair_photo(
+    file: UploadFile,
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Upload or replace the Chair photo. SUPER_ADMIN only."""
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise AppError(ErrorCode.SYS_422, 422, "Only JPEG, PNG, or WebP images are allowed.")
+
+    data = await file.read(_MAX_INTRO_PHOTO_BYTES + 1)
+    if len(data) > _MAX_INTRO_PHOTO_BYTES:
+        raise AppError(
+            ErrorCode.FILE_001,
+            413,
+            f"File too large (max {_MAX_INTRO_PHOTO_BYTES // (1024*1024)} MB).",
+        )
+
+    ext = _detect_image_ext(data)
+    if ext is None:
+        raise AppError(ErrorCode.SYS_422, 422, "File content is not a valid image.")
+
+    key = f"site/about-chair-{uuid.uuid4()}.{ext}"
+
+    from app.core.storage import delete_file, generate_presigned_url, upload_file
+
+    old_data = await site_settings_service.get_about_intro()
+    old_key = old_data["chair_photo_key"]
+
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, upload_file, data, key, file.content_type or "image/jpeg")
+    await site_settings_service.update_chair_photo(key)
+
+    if old_key:
+        try:
+            await loop.run_in_executor(None, delete_file, old_key)
+        except Exception:
+            pass
+
+    photo_url = await loop.run_in_executor(None, generate_presigned_url, key)
+    return {"photo_url": photo_url}
+
+
+@router.put("/admin/chair/bio")
+async def update_chair_bio(
+    body: _BioUpdateRequest,
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Update the Chair bio text. SUPER_ADMIN only."""
+    await site_settings_service.update_chair_bio(body.bio)
     return {"status": "ok"}
 
 
