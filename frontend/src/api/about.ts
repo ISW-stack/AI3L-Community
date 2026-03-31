@@ -80,3 +80,31 @@ export async function updateChairPhoto(file: File): Promise<{ photo_url: string 
 export async function updateChairBio(bio: string): Promise<void> {
   await api.put('/about/admin/chair/bio', { bio })
 }
+
+export interface LeadershipUser {
+  user_id: string
+  display_name: string
+  avatar_url: string | null
+}
+
+export interface LeadershipData {
+  chair: LeadershipUser | null
+  co_chairs: LeadershipUser[]
+}
+
+export async function getLeadership(): Promise<LeadershipData> {
+  const res = await api.get('/about/leadership')
+  return res.data
+}
+
+export async function setLeadershipChair(userId: string): Promise<void> {
+  await api.put('/about/admin/leadership/chair', { user_id: userId })
+}
+
+export async function removeLeadershipChair(): Promise<void> {
+  await api.delete('/about/admin/leadership/chair')
+}
+
+export async function setLeadershipCoChairs(userIds: string[]): Promise<void> {
+  await api.put('/about/admin/leadership/co-chairs', { user_ids: userIds })
+}

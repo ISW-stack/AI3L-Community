@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { useAuthStore } from '@/stores/auth'
-import { getOrgChart, updateOverride, updateSigDescription, updateMemberBio } from '@/api/about'
+import { getOrgChart, updateOverride, updateSigDescription, updateMemberBio, getLeadership } from '@/api/about'
+import type { LeadershipData } from '@/api/about'
 import type {
   OrgChartResponse,
   OrgChartSig,
@@ -34,6 +35,9 @@ const editingBio = ref<{ sigId: string } | null>(null)
 const bioForm = ref('')
 const saving = ref(false)
 
+const leadership = ref<LeadershipData | null>(null)
+const failedLeaderAvatars = ref<Set<string>>(new Set())
+
 const expandedSigs = ref<Set<string>>(new Set())
 const failedAvatars = ref<Set<string>>(new Set())
 const showAllMembers = ref<Set<string>>(new Set())
@@ -50,6 +54,11 @@ async function fetchData() {
   failedAvatars.value.clear()
   try {
     data.value = await getOrgChart()
+    try {
+      leadership.value = await getLeadership()
+    } catch {
+      leadership.value = null
+    }
   } catch (e: unknown) {
     error.value = getErrorMessage(e, t('common.unknownError'))
   } finally {
@@ -170,6 +179,10 @@ function handleAvatarError(userId: string) {
   failedAvatars.value.add(userId)
 }
 
+function handleLeaderAvatarError(userId: string) {
+  failedLeaderAvatars.value.add(userId)
+}
+
 onMounted(fetchData)
 </script>
 
@@ -187,11 +200,60 @@ onMounted(fetchData)
     <template v-else-if="data">
       <!-- SIGs Section -->
       <section class="mb-16">
-        <h2 class="text-2xl font-semibold text-foreground mb-6">{{ t('orgChart.sigs') }}</h2>
-
         <!-- Root node -->
         <div class="flex flex-col items-center mt-6">
           <div class="root-node">AI3L Community</div>
+
+          <!-- Chair tier -->
+          <div v-if="leadership?.chair" class="leadership-connector" aria-hidden="true"></div>
+          <div v-if="leadership?.chair" class="leadership-tier">
+            <router-link :to="`/users/${leadership.chair.user_id}`" class="leader-card">
+              <img
+                v-if="leadership.chair.avatar_url && !failedLeaderAvatars.has(leadership.chair.user_id)"
+                :src="leadership.chair.avatar_url"
+                :alt="leadership.chair.display_name"
+                class="leader-avatar"
+                @error="handleLeaderAvatarError(leadership.chair.user_id)"
+              />
+              <div v-else class="leader-avatar-placeholder">
+                {{ leadership.chair.display_name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="leader-info">
+                <span class="leader-name">{{ leadership.chair.display_name }}</span>
+                <span class="leader-role-badge chair-badge">Chair</span>
+              </div>
+            </router-link>
+          </div>
+
+          <!-- Co-Chairs tier -->
+          <div v-if="leadership && leadership.co_chairs.length > 0" class="leadership-connector" aria-hidden="true"></div>
+          <div v-if="leadership && leadership.co_chairs.length > 0" class="leadership-tier">
+            <router-link
+              v-for="coChair in leadership.co_chairs"
+              :key="coChair.user_id"
+              :to="`/users/${coChair.user_id}`"
+              class="leader-card"
+            >
+              <img
+                v-if="coChair.avatar_url && !failedLeaderAvatars.has(coChair.user_id)"
+                :src="coChair.avatar_url"
+                :alt="coChair.display_name"
+                class="leader-avatar"
+                @error="handleLeaderAvatarError(coChair.user_id)"
+              />
+              <div v-else class="leader-avatar-placeholder">
+                {{ coChair.display_name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="leader-info">
+                <span class="leader-name">{{ coChair.display_name }}</span>
+                <span class="leader-role-badge co-chair-badge">Co-Chair</span>
+              </div>
+            </router-link>
+          </div>
+
+          <!-- Executive Committee label -->
+          <div class="leadership-connector" aria-hidden="true"></div>
+          <div class="exec-committee-node">Executive Committee</div>
 
           <!-- Tree row: connector lines drawn by CSS -->
           <div v-if="data.sigs.length > 0" class="tree-row">
@@ -851,6 +913,100 @@ onMounted(fetchData)
   transform: translateY(-6px);
 }
 
+/* ── Leadership tiers ────────────────────────────── */
+.leadership-connector {
+  width: 2px;
+  height: 1.5rem;
+  background-color: var(--color-border);
+}
+
+.leadership-tier {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.leader-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.leader-card:hover {
+  border-color: var(--color-brand-400);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-600) 10%, transparent);
+}
+
+.leader-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.leader-avatar-placeholder {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-brand-100);
+  color: var(--color-brand-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.leader-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.leader-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.leader-role-badge {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.chair-badge {
+  background-color: var(--color-brand-100);
+  color: var(--color-brand-700);
+}
+
+.co-chair-badge {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Executive Committee node */
+.exec-committee-node {
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-brand-400);
+  color: var(--color-foreground);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.75rem;
+}
+
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 767px) {
   .tree-row {
@@ -875,6 +1031,11 @@ onMounted(fetchData)
 
   .member-panel {
     width: 100%;
+  }
+
+  .leadership-tier {
+    flex-direction: column;
+    align-items: center;
   }
 }
 </style>

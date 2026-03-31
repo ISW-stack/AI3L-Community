@@ -7,7 +7,13 @@ import {
   updateAboutIntroBio,
   updateChairPhoto,
   updateChairBio,
+  setLeadershipChair,
+  removeLeadershipChair,
+  setLeadershipCoChairs,
+  getLeadership,
 } from '@/api/about'
+import type { LeadershipData } from '@/api/about'
+import api from '@/composables/api'
 import { useToastStore } from '@/stores/toast'
 import { getErrorMessage } from '@/utils/error'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -133,7 +139,116 @@ async function handleSaveCoChairBio() {
   }
 }
 
-onMounted(fetchIntro)
+// Leadership state
+const leadershipData = ref<LeadershipData | null>(null)
+const leadershipLoading = ref(true)
+const chairSearchQuery = ref('')
+const coChairSearchQuery = ref('')
+const chairSearchResults = ref<Array<{ id: string; display_name: string; avatar_url: string | null }>>([])
+const coChairSearchResults = ref<Array<{ id: string; display_name: string; avatar_url: string | null }>>([])
+const chairSearching = ref(false)
+const coChairSearching = ref(false)
+
+async function fetchLeadership() {
+  leadershipLoading.value = true
+  try {
+    leadershipData.value = await getLeadership()
+  } catch {
+    leadershipData.value = null
+  } finally {
+    leadershipLoading.value = false
+  }
+}
+
+let chairSearchTimer: ReturnType<typeof setTimeout> | null = null
+function onChairSearchInput() {
+  if (chairSearchTimer) clearTimeout(chairSearchTimer)
+  if (!chairSearchQuery.value.trim()) {
+    chairSearchResults.value = []
+    return
+  }
+  chairSearchTimer = setTimeout(async () => {
+    chairSearching.value = true
+    try {
+      const res = await api.get('/users/search', { params: { q: chairSearchQuery.value.trim(), limit: 5 } })
+      chairSearchResults.value = res.data
+    } catch {
+      chairSearchResults.value = []
+    } finally {
+      chairSearching.value = false
+    }
+  }, 300)
+}
+
+async function selectChair(user: { id: string; display_name: string }) {
+  try {
+    await setLeadershipChair(user.id)
+    chairSearchQuery.value = ''
+    chairSearchResults.value = []
+    await fetchLeadership()
+  } catch {
+    // silent
+  }
+}
+
+async function removeChair() {
+  try {
+    await removeLeadershipChair()
+    await fetchLeadership()
+  } catch {
+    // silent
+  }
+}
+
+let coChairSearchTimer: ReturnType<typeof setTimeout> | null = null
+function onCoChairSearchInput() {
+  if (coChairSearchTimer) clearTimeout(coChairSearchTimer)
+  if (!coChairSearchQuery.value.trim()) {
+    coChairSearchResults.value = []
+    return
+  }
+  coChairSearchTimer = setTimeout(async () => {
+    coChairSearching.value = true
+    try {
+      const res = await api.get('/users/search', { params: { q: coChairSearchQuery.value.trim(), limit: 5 } })
+      coChairSearchResults.value = res.data
+    } catch {
+      coChairSearchResults.value = []
+    } finally {
+      coChairSearching.value = false
+    }
+  }, 300)
+}
+
+async function addCoChair(user: { id: string }) {
+  if (!leadershipData.value) return
+  const currentIds = leadershipData.value.co_chairs.map((c) => c.user_id)
+  if (currentIds.includes(user.id)) return
+  try {
+    await setLeadershipCoChairs([...currentIds, user.id])
+    coChairSearchQuery.value = ''
+    coChairSearchResults.value = []
+    await fetchLeadership()
+  } catch {
+    // silent
+  }
+}
+
+async function removeCoChair(userId: string) {
+  if (!leadershipData.value) return
+  const newIds = leadershipData.value.co_chairs.filter((c) => c.user_id !== userId).map((c) => c.user_id)
+  try {
+    await setLeadershipCoChairs(newIds)
+    await fetchLeadership()
+  } catch {
+    // silent
+  }
+}
+
+onMounted(() => {
+  fetchIntro()
+  fetchLeadership()
+})
 </script>
 
 <template>
@@ -149,6 +264,125 @@ onMounted(fetchIntro)
     <SkeletonLoader v-if="loading" :lines="6" variant="list" />
 
     <div v-else class="space-y-8 max-w-2xl">
+      <!-- Leadership Assignment -->
+      <section class="bg-surface border border-border rounded-xl p-6 mb-8">
+        <h2 class="text-xl font-semibold text-foreground mb-6">
+          {{ t('admin.siteSettings.leadership') || 'Leadership Assignment' }}
+        </h2>
+
+        <div v-if="leadershipLoading" class="text-muted text-sm">Loading...</div>
+
+        <div v-else class="space-y-6">
+          <!-- Chair -->
+          <div>
+            <h3 class="text-base font-medium text-foreground mb-3">Chair</h3>
+            <div v-if="leadershipData?.chair" class="flex items-center gap-3 mb-3 p-3 bg-surface-alt rounded-lg">
+              <img
+                v-if="leadershipData.chair.avatar_url"
+                :src="leadershipData.chair.avatar_url"
+                :alt="leadershipData.chair.display_name"
+                class="w-10 h-10 rounded-full object-cover border border-border"
+              />
+              <div v-else class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-semibold">
+                {{ leadershipData.chair.display_name.charAt(0).toUpperCase() }}
+              </div>
+              <span class="text-sm font-medium text-foreground">{{ leadershipData.chair.display_name }}</span>
+              <button
+                class="ml-auto text-xs text-danger-600 hover:text-danger-700"
+                @click="removeChair"
+              >
+                {{ t('common.remove') || 'Remove' }}
+              </button>
+            </div>
+            <div class="relative">
+              <input
+                v-model="chairSearchQuery"
+                type="text"
+                :placeholder="t('admin.siteSettings.searchUser') || 'Search user...'"
+                class="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface text-foreground"
+                @input="onChairSearchInput"
+              />
+              <div v-if="chairSearchResults.length > 0" class="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-auto">
+                <button
+                  v-for="user in chairSearchResults"
+                  :key="user.id"
+                  class="w-full flex items-center gap-3 px-3 py-2 text-left text-sm hover:bg-surface-alt transition"
+                  @click="selectChair(user)"
+                >
+                  <img
+                    v-if="user.avatar_url"
+                    :src="user.avatar_url"
+                    :alt="user.display_name"
+                    class="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div v-else class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-semibold">
+                    {{ user.display_name.charAt(0).toUpperCase() }}
+                  </div>
+                  <span>{{ user.display_name }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Co-Chairs -->
+          <div>
+            <h3 class="text-base font-medium text-foreground mb-3">Co-Chairs</h3>
+            <div v-if="leadershipData && leadershipData.co_chairs.length > 0" class="space-y-2 mb-3">
+              <div
+                v-for="coChair in leadershipData.co_chairs"
+                :key="coChair.user_id"
+                class="flex items-center gap-3 p-3 bg-surface-alt rounded-lg"
+              >
+                <img
+                  v-if="coChair.avatar_url"
+                  :src="coChair.avatar_url"
+                  :alt="coChair.display_name"
+                  class="w-10 h-10 rounded-full object-cover border border-border"
+                />
+                <div v-else class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-semibold">
+                  {{ coChair.display_name.charAt(0).toUpperCase() }}
+                </div>
+                <span class="text-sm font-medium text-foreground">{{ coChair.display_name }}</span>
+                <button
+                  class="ml-auto text-xs text-danger-600 hover:text-danger-700"
+                  @click="removeCoChair(coChair.user_id)"
+                >
+                  {{ t('common.remove') || 'Remove' }}
+                </button>
+              </div>
+            </div>
+            <div class="relative">
+              <input
+                v-model="coChairSearchQuery"
+                type="text"
+                :placeholder="t('admin.siteSettings.searchUser') || 'Search user...'"
+                class="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface text-foreground"
+                @input="onCoChairSearchInput"
+              />
+              <div v-if="coChairSearchResults.length > 0" class="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-auto">
+                <button
+                  v-for="user in coChairSearchResults"
+                  :key="user.id"
+                  class="w-full flex items-center gap-3 px-3 py-2 text-left text-sm hover:bg-surface-alt transition"
+                  @click="addCoChair(user)"
+                >
+                  <img
+                    v-if="user.avatar_url"
+                    :src="user.avatar_url"
+                    :alt="user.display_name"
+                    class="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div v-else class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-semibold">
+                    {{ user.display_name.charAt(0).toUpperCase() }}
+                  </div>
+                  <span>{{ user.display_name }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Chair Section -->
       <section class="bg-surface rounded-lg shadow border border-border p-6">
         <h2 class="text-lg font-semibold text-foreground mb-4">

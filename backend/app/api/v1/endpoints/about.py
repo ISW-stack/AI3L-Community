@@ -337,6 +337,25 @@ class _BioUpdateRequest(BaseModel):
     bio: str = Field(default="", max_length=5000)
 
 
+class LeadershipUserResponse(BaseModel):
+    user_id: str
+    display_name: str
+    avatar_url: str | None = None
+
+
+class LeadershipResponse(BaseModel):
+    chair: LeadershipUserResponse | None = None
+    co_chairs: list[LeadershipUserResponse] = []
+
+
+class SetChairRequest(BaseModel):
+    user_id: uuid.UUID
+
+
+class SetCoChairsRequest(BaseModel):
+    user_ids: list[uuid.UUID] = Field(default_factory=list, max_length=20)
+
+
 @router.put("/admin/intro/photo")
 async def update_about_intro_photo(
     file: UploadFile,
@@ -441,6 +460,94 @@ async def update_chair_bio(
 ) -> dict[str, str]:
     """Update the Chair bio text. SUPER_ADMIN only."""
     await site_settings_service.update_chair_bio(body.bio)
+    return {"status": "ok"}
+
+
+# ── Leadership (Chair / Co-Chairs) ────────────────────────────────────
+
+
+@router.get("/leadership", response_model=LeadershipResponse)
+async def get_leadership(
+    _current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> LeadershipResponse:
+    """Return Chair and Co-Chair user info for org chart display."""
+    from app.converters.user_converter import resolve_avatar_url
+    from app.repositories import user_repo
+
+    chair_id_str = await site_settings_service.get_leadership_chair()
+    co_chair_id_strs = await site_settings_service.get_leadership_co_chairs()
+
+    chair = None
+    if chair_id_str:
+        try:
+            user = await user_repo.find_by_id(uuid.UUID(chair_id_str))
+            if user and not user.get("is_deleted") and not user.get("is_banned"):
+                chair = LeadershipUserResponse(
+                    user_id=str(user["id"]),
+                    display_name=user["display_name"],
+                    avatar_url=resolve_avatar_url(user.get("avatar_url")),
+                )
+        except ValueError:
+            pass
+
+    co_chairs = []
+    for uid_str in co_chair_id_strs:
+        try:
+            user = await user_repo.find_by_id(uuid.UUID(uid_str))
+            if user and not user.get("is_deleted") and not user.get("is_banned"):
+                co_chairs.append(
+                    LeadershipUserResponse(
+                        user_id=str(user["id"]),
+                        display_name=user["display_name"],
+                        avatar_url=resolve_avatar_url(user.get("avatar_url")),
+                    )
+                )
+        except ValueError:
+            continue
+
+    return LeadershipResponse(chair=chair, co_chairs=co_chairs)
+
+
+@router.put("/admin/leadership/chair")
+async def set_leadership_chair(
+    body: SetChairRequest,
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Assign a platform user as Chair. SUPER_ADMIN only."""
+    from app.repositories import user_repo
+
+    user = await user_repo.find_by_id(body.user_id)
+    if not user or user.get("is_deleted"):
+        raise AppError(ErrorCode.SYS_404, 404, "User not found.")
+
+    await site_settings_service.set_leadership_chair(str(body.user_id))
+    return {"status": "ok"}
+
+
+@router.delete("/admin/leadership/chair")
+async def remove_leadership_chair(
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Remove the Chair assignment. SUPER_ADMIN only."""
+    await site_settings_service.remove_leadership_chair()
+    return {"status": "ok"}
+
+
+@router.put("/admin/leadership/co-chairs")
+async def set_leadership_co_chairs(
+    body: SetCoChairsRequest,
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Assign platform users as Co-Chairs. SUPER_ADMIN only."""
+    from app.repositories import user_repo
+
+    valid_ids: list[str] = []
+    for uid in body.user_ids:
+        user = await user_repo.find_by_id(uid)
+        if user and not user.get("is_deleted"):
+            valid_ids.append(str(uid))
+
+    await site_settings_service.set_leadership_co_chairs(valid_ids)
     return {"status": "ok"}
 
 
