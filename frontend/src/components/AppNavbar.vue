@@ -122,10 +122,10 @@ onUnmounted(() => {
     :aria-label="t('nav.ariaLabel')"
   >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16 items-center">
+      <div class="flex justify-between h-16 sm:h-20 items-center">
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2" @click="mobileMenuOpen = false">
-          <img src="/images/logo.png" alt="AI3L" class="h-12 w-auto" />
+          <img src="/images/logo.png" alt="AI3L" class="h-10 w-auto sm:h-16" />
           <span class="text-lg font-bold text-brand-700">AI3L</span>
         </router-link>
 
