@@ -364,18 +364,18 @@ _Last updated: 2026-03-31 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +330,500 |
-| Total lines removed (all commits) | -57,919 |
-| Backend source lines (excl. tests) | 31,154 |
-| Frontend source lines (excl. tests) | 65,779 |
+| Total lines added (all commits) | +331,892 |
+| Total lines removed (all commits) | -58,009 |
+| Backend source lines (excl. tests) | 31,375 |
+| Frontend source lines (excl. tests) | 66,852 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
-    "Python" : 119898
-    "TypeScript" : 94651
-    "Vue" : 26146
+    "Python" : 120119
+    "TypeScript" : 94940
+    "Vue" : 26930
     "CSS" : 134
 ```
 
@@ -387,17 +387,17 @@ pie title Lines of Code by Language
 
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
-| Backend (pytest) | 3,686 | 31,154 | 85,426 |
-| Frontend (Vitest) | 3,068 | 65,779 | 55,018 |
-| **Total** | **6,754** | **96,933** | **140,444** |
+| Backend (pytest) | 3,686 | 31,375 | 85,426 |
+| Frontend (Vitest) | 3,068 | 66,852 | 55,018 |
+| **Total** | **6,754** | **98,227** | **140,444** |
 
-Test-to-source ratio: **1.45** (140,444 lines of tests for every 96,933 lines of source)
+Test-to-source ratio: **1.43** (140,444 lines of tests for every 98,227 lines of source)
 
 ### Additional Metrics
 
 | Metric | Value |
 | --- | ---: |
-| REST API endpoints | 195 |
+| REST API endpoints | 201 |
 | Database migrations | 56 |
 | Longest commit streak | 32 days |
 
@@ -406,17 +406,17 @@ Test-to-source ratio: **1.45** (140,444 lines of tests for every 96,933 lines of
 | File | Lines |
 | --- | ---: |
 | `backend/app/services/album.py` | 1,181 |
+| `frontend/src/views/about/OrgChartView.vue` | 1,041 |
 | `frontend/src/composables/usePostDetail.ts` | 907 |
 | `backend/app/services/form.py` | 900 |
-| `frontend/src/views/about/OrgChartView.vue` | 880 |
 | `frontend/src/views/forms/FormView.vue` | 875 |
 
 ### Contributions by Author
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 528 | +326,891 | -55,261 |
-| github-actions[bot] | 93 | +1,093 | -1,093 |
+| Isaries | 531 | +328,273 | -55,341 |
+| github-actions[bot] | 94 | +1,103 | -1,103 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
