@@ -4,16 +4,16 @@ The original constraint (content IS NOT NULL OR attachment_key IS NOT NULL) bloc
 the recall operation which sets both fields to NULL. The corrected constraint exempts
 recalled messages: (is_recalled OR content IS NOT NULL OR attachment_key IS NOT NULL).
 
-Revision ID: a8b9c0d1e2f3
-Revises: z7a8b9c0d1e2
+Revision ID: dm_recall_fix_001
+Revises: a8b9c0d1e2f3
 Create Date: 2026-03-27
 
 """
 
 from alembic import op
 
-revision = "a8b9c0d1e2f3"
-down_revision = "z7a8b9c0d1e2"
+revision = "dm_recall_fix_001"
+down_revision = "a8b9c0d1e2f3"
 branch_labels = None
 depends_on = None
 
