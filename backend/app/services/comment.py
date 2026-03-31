@@ -17,11 +17,12 @@ MAX_MENTIONS_PER_COMMENT = 10
 
 
 async def create_comment(
-    post_id: uuid.UUID,
+    post_id: uuid.UUID | None,
     user_id: str,
     content: str,
     parent_id: str | None = None,
     mentions: list[str] | None = None,
+    event_id: uuid.UUID | None = None,
 ) -> dict:
     if len(content) > MAX_COMMENT_LENGTH:
         raise ValueError(f"Comment exceeds maximum length of {MAX_COMMENT_LENGTH} characters.")
@@ -30,19 +31,19 @@ async def create_comment(
     if mentions and len(mentions) > MAX_MENTIONS_PER_COMMENT:
         raise ValueError(f"Too many mentions (max {MAX_MENTIONS_PER_COMMENT}).")
 
-    # Block check: cannot comment if blocked by or blocking the post author
-    # Pre-check owner for block validation (soft check — re-fetched in transaction)
-    from app.repositories import post_repo
+    # Block check: cannot comment if blocked by or blocking the post/event author
+    if post_id:
+        from app.repositories import post_repo
 
-    pre_check_owner_id = await post_repo.find_owner_id(post_id)
-    if pre_check_owner_id and pre_check_owner_id != user_id:
-        redis = get_redis()
-        blocked_ids = await get_blocked_user_ids(redis, user_id)
-        if pre_check_owner_id in blocked_ids:
-            raise ValueError("Cannot comment on this post.")
-        owner_blocked_ids = await get_blocked_user_ids(redis, pre_check_owner_id)
-        if user_id in owner_blocked_ids:
-            raise ValueError("Cannot comment on this post.")
+        pre_check_owner_id = await post_repo.find_owner_id(post_id)
+        if pre_check_owner_id and pre_check_owner_id != user_id:
+            redis = get_redis()
+            blocked_ids = await get_blocked_user_ids(redis, user_id)
+            if pre_check_owner_id in blocked_ids:
+                raise ValueError("Cannot comment on this post.")
+            owner_blocked_ids = await get_blocked_user_ids(redis, pre_check_owner_id)
+            if user_id in owner_blocked_ids:
+                raise ValueError("Cannot comment on this post.")
 
     pool = get_pool()
     comment_id = uuid.uuid4()
@@ -50,35 +51,71 @@ async def create_comment(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            post = await comment_repo.find_post_for_comment(post_id, conn)
-            if not post:
-                raise ValueError("Post not found.")
-            # H-03: Derive post_owner_id from transaction-consistent data
-            post_owner_id = str(post["user_id"])
-            if not post["allow_comments"]:
-                raise ValueError("Comments are disabled for this post.")
-            if post["comment_count"] >= MAX_COMMENTS_PER_POST:
-                raise ValueError(f"Comment limit ({MAX_COMMENTS_PER_POST}) reached for this post.")
+            owner_id: str = ""
+            target_id_str: str = ""
+
+            if post_id:
+                post = await comment_repo.find_post_for_comment(post_id, conn)
+                if not post:
+                    raise ValueError("Post not found.")
+                owner_id = str(post["user_id"])
+                if not post["allow_comments"]:
+                    raise ValueError("Comments are disabled for this post.")
+                if post["comment_count"] >= MAX_COMMENTS_PER_POST:
+                    raise ValueError(
+                        f"Comment limit ({MAX_COMMENTS_PER_POST}) reached for this post."
+                    )
+                target_id_str = str(post_id)
+            elif event_id:
+                from app.repositories import event_repo
+
+                ev = await event_repo.find_event_for_comment(event_id, conn)
+                if not ev:
+                    raise ValueError("Event not found.")
+                owner_id = str(ev["user_id"])
+                if not ev["allow_comments"]:
+                    raise ValueError("Comments are disabled for this event.")
+                if ev["comment_count"] >= MAX_COMMENTS_PER_POST:
+                    raise ValueError(
+                        f"Comment limit ({MAX_COMMENTS_PER_POST}) reached for this event."
+                    )
+                target_id_str = str(event_id)
 
             if parent_uuid:
-                parent = await comment_repo.find_parent(parent_uuid, post_id, conn)
+                parent = await comment_repo.find_parent(
+                    parent_uuid, post_id=post_id, conn=conn, event_id=event_id
+                )
                 if not parent:
                     raise ValueError("Parent comment not found.")
 
             row = await comment_repo.insert(
-                comment_id, post_id, uuid.UUID(user_id), parent_uuid, content, mentions, conn
-            )
-
-            await conn.execute(
-                "UPDATE posts SET comment_count = comment_count + 1, last_comment_at = NOW() WHERE id = $1",  # noqa: E501
+                comment_id,
                 post_id,
+                uuid.UUID(user_id),
+                parent_uuid,
+                content,
+                mentions,
+                conn,
+                event_id=event_id,
             )
 
-            # Increment answer_count for top-level comments on Q&A posts
-            if not parent_uuid and post.get("type") == "question":
+            if post_id:
                 await conn.execute(
-                    "UPDATE posts SET answer_count = answer_count + 1 WHERE id = $1",
+                    "UPDATE posts SET comment_count = comment_count + 1, "
+                    "last_comment_at = NOW() WHERE id = $1",
                     post_id,
+                )
+                if not parent_uuid and (await conn.fetchval(
+                    "SELECT type FROM posts WHERE id = $1", post_id
+                )) == "question":
+                    await conn.execute(
+                        "UPDATE posts SET answer_count = answer_count + 1 WHERE id = $1",
+                        post_id,
+                    )
+            elif event_id:
+                await conn.execute(
+                    "UPDATE events SET comment_count = comment_count + 1 WHERE id = $1",
+                    event_id,
                 )
 
             comment_dict = await async_row_to_comment(row)
@@ -94,20 +131,20 @@ async def create_comment(
                 for mrow in mentioned_rows:
                     target_uid = str(mrow["id"])
                     if target_uid != user_id:
-                        mention_targets.append((target_uid, str(post_id)))
+                        mention_targets.append((target_uid, target_id_str))
 
             if parent_uuid:
                 parent_user_id = await comment_repo.find_parent_user_id(parent_uuid, conn)
                 if parent_user_id and parent_user_id != user_id:
-                    reply_target = (parent_user_id, str(post_id))
+                    reply_target = (parent_user_id, target_id_str)
 
     # Fire notifications via event bus (outside the transaction so handlers see committed data)
     try:
         await emit(
             "comment.created",
             user_id=user_id,
-            post_owner_id=post_owner_id,
-            post_id=str(post_id),
+            post_owner_id=owner_id,
+            post_id=target_id_str,
             commenter_name=commenter_name,
             mention_targets=mention_targets,
             reply_target=reply_target,
@@ -115,7 +152,10 @@ async def create_comment(
     except Exception:
         logger.error("Failed to emit comment.created event", exc_info=True)
 
-    logger.info("Comment created", extra={"comment_id": str(comment_id), "post_id": str(post_id)})
+    logger.info(
+        "Comment created",
+        extra={"comment_id": str(comment_id), "target_id": target_id_str},
+    )
     return comment_dict
 
 
@@ -134,12 +174,13 @@ async def update_comment(
 
 
 async def list_comments(
-    post_id: uuid.UUID,
+    post_id: uuid.UUID | None = None,
     page: int = 1,
     page_size: int = 50,
     viewer_id: str | None = None,
     root_only: bool = False,
     sort: str = "asc",
+    event_id: uuid.UUID | None = None,
 ) -> tuple[list[dict], int]:
     exclude: list[uuid.UUID] | None = None
     if viewer_id:
@@ -149,8 +190,13 @@ async def list_comments(
             exclude = [uuid.UUID(uid) for uid in blocked_ids]
     offset = (page - 1) * page_size
     rows, total = await comment_repo.find_many(
-        post_id, offset, page_size, exclude_user_ids=exclude, root_only=root_only,
+        post_id=post_id,
+        offset=offset,
+        limit=page_size,
+        exclude_user_ids=exclude,
+        root_only=root_only,
         sort=sort,
+        event_id=event_id,
     )
     comments = list(await asyncio.gather(*[async_row_to_comment(r) for r in rows]))
     return comments, total
@@ -158,16 +204,18 @@ async def list_comments(
 
 async def soft_delete_comment(
     comment_id: uuid.UUID,
-    post_id: uuid.UUID,
-    user_id: str,
+    post_id: uuid.UUID | None = None,
+    user_id: str = "",
     is_admin: bool = False,
+    event_id: uuid.UUID | None = None,
 ) -> bool:
-    """Soft-delete a comment and decrement the post's comment_count."""
+    """Soft-delete a comment and decrement the post/event comment_count."""
     result = await comment_repo.soft_delete(
         comment_id,
         post_id=post_id,
-        user_id=uuid.UUID(user_id) if not is_admin else None,
+        user_id=uuid.UUID(user_id) if (not is_admin and user_id) else None,
         is_admin=is_admin,
+        event_id=event_id,
     )
     if result is None:
         return False

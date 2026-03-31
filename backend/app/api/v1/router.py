@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     co_authors,
     comments,
     dm,
+    events,
     export,
     files,
     forms,
@@ -55,5 +56,6 @@ api_v1_router.include_router(co_authors.router)
 api_v1_router.include_router(citations.router)
 api_v1_router.include_router(notifications.router)
 api_v1_router.include_router(tasks.router)
+api_v1_router.include_router(events.router)
 api_v1_router.include_router(dm.router)
 api_v1_router.include_router(ws.router)

@@ -165,6 +165,31 @@ const router = createRouter({
       component: () => import('@/views/forms/FormBuilderView.vue'),
       meta: { requiresAuth: true, requiresMember: true },
     },
+    // Events
+    {
+      path: '/events',
+      name: 'events',
+      component: () => import('@/views/events/EventsView.vue'),
+      meta: { requiresAuth: true, fullWidth: true },
+    },
+    {
+      path: '/events/create',
+      name: 'event-create',
+      component: () => import('@/views/events/EventCreateView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/events/:id',
+      name: 'event-detail',
+      component: () => import('@/views/events/EventDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/events/:id/edit',
+      name: 'event-edit',
+      component: () => import('@/views/events/EventEditView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
     // Albums
     {
       path: '/albums',

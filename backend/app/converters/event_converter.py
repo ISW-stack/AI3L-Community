@@ -6,42 +6,44 @@ from app.converters.shared import (
 )
 
 
-async def async_row_to_comment(row: dict) -> dict:
-    """Async version of row_to_comment — does not block the event loop."""
+async def async_row_to_event(row: dict) -> dict:
+    """Async version of row_to_event — does not block the event loop."""
     raw_reactions = safe_json_parse(row.get("reactions"))
     return {
         "id": str(row["id"]),
-        "post_id": str(row["post_id"]) if row.get("post_id") else None,
-        "event_id": str(row["event_id"]) if row.get("event_id") else None,
+        "title": row["title"],
         "content": row["content"],
         "author": await async_build_author(row),
-        "parent_id": str(row["parent_id"]) if row.get("parent_id") else None,
-        "mentions": row.get("mentions"),
+        "sig_id": str(row["sig_id"]) if row.get("sig_id") else None,
+        "sig_name": row.get("sig_name"),
+        "visibility": row["visibility"],
+        "allow_comments": row["allow_comments"],
+        "comment_count": row.get("comment_count", 0),
         "reaction_counts": reactions_to_counts(row.get("reactions")),
         "user_reactions": None,
         "_raw_reactions": raw_reactions,
-        "vote_score": row.get("vote_score", 0),
-        "is_best_answer": row.get("is_best_answer", False),
+        "version": row["version"],
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }
 
 
-def row_to_comment(row: dict) -> dict:
+def row_to_event(row: dict) -> dict:
     raw_reactions = safe_json_parse(row.get("reactions"))
     return {
         "id": str(row["id"]),
-        "post_id": str(row["post_id"]) if row.get("post_id") else None,
-        "event_id": str(row["event_id"]) if row.get("event_id") else None,
+        "title": row["title"],
         "content": row["content"],
         "author": build_author(row),
-        "parent_id": str(row["parent_id"]) if row.get("parent_id") else None,
-        "mentions": row.get("mentions"),
+        "sig_id": str(row["sig_id"]) if row.get("sig_id") else None,
+        "sig_name": row.get("sig_name"),
+        "visibility": row["visibility"],
+        "allow_comments": row["allow_comments"],
+        "comment_count": row.get("comment_count", 0),
         "reaction_counts": reactions_to_counts(row.get("reactions")),
         "user_reactions": None,
         "_raw_reactions": raw_reactions,
-        "vote_score": row.get("vote_score", 0),
-        "is_best_answer": row.get("is_best_answer", False),
+        "version": row["version"],
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }

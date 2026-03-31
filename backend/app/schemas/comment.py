@@ -27,7 +27,8 @@ class CommentAuthorResponse(BaseModel):
 
 class CommentResponse(BaseModel):
     id: str
-    post_id: str
+    post_id: str | None = None
+    event_id: str | None = None
     content: str
     author: CommentAuthorResponse
     parent_id: str | None = None

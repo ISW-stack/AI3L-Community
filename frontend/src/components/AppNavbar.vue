@@ -156,6 +156,11 @@ onUnmounted(() => {
             class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
             >{{ t('nav.forms') }}</router-link
           >
+          <router-link
+            to="/events"
+            class="nav-link-desktop text-sm text-muted hover:text-foreground transition"
+            >{{ t('nav.events') }}</router-link
+          >
 
           <template v-if="auth.isAuthenticated && !auth.isGuest">
             <!-- About dropdown -->
@@ -498,6 +503,13 @@ onUnmounted(() => {
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.forms') }}
+          </router-link>
+          <router-link
+            to="/events"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.events') }}
           </router-link>
 
           <template v-if="auth.isAuthenticated">

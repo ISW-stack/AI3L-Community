@@ -2,7 +2,8 @@ import type { Author } from './user'
 
 export interface Comment {
   id: string
-  post_id: string
+  post_id: string | null
+  event_id: string | null
   content: string
   author: Author
   parent_id: string | null

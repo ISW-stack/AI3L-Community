@@ -176,3 +176,9 @@ EXPORT_LOCK_TTL_SECONDS = 10800  # 3 hours (> hard time limit)
 EXPORT_CLEANUP_DAYS = 7  # auto-delete exports older than 7 days
 EXPORT_DB_BATCH_SIZE = 1000
 EXPORT_S3_BATCH_LOG_INTERVAL = 500  # log progress every N files
+
+# ── Feature 10: Events ──
+RATE_LIMIT_EVENT_CREATE = _rate_limit("EVENT_CREATE", 10, 3600)
+RATE_LIMIT_EVENT_REACTION = _rate_limit("EVENT_REACTION", 30, 60)
+DEFAULT_PAGE_SIZE_EVENTS = 20
+MAX_EVENTS_PER_DAY = 10
