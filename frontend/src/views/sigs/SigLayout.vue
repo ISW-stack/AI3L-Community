@@ -173,8 +173,8 @@ watch(
 )
 
 const navItems = [
-  { key: 'sigs.detail.navPosts', route: 'sig-posts' },
   { key: 'sigs.detail.navMembers', route: 'sig-members' },
+  { key: 'sigs.detail.navPosts', route: 'sig-posts' },
   { key: 'sigs.detail.navForms', route: 'sig-forms' },
 ]
 
