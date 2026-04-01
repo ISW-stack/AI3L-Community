@@ -364,18 +364,18 @@ _Last updated: 2026-04-01 — auto-generated on every push to `main`_
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +333,502 |
-| Total lines removed (all commits) | -58,441 |
+| Total lines added (all commits) | +333,560 |
+| Total lines removed (all commits) | -58,605 |
 | Backend source lines (excl. tests) | 31,748 |
-| Frontend source lines (excl. tests) | 67,599 |
+| Frontend source lines (excl. tests) | 67,549 |
 
 ### Language Breakdown
 
 ```mermaid
 pie title Lines of Code by Language
     "Python" : 120549
-    "TypeScript" : 95368
-    "Vue" : 27249
+    "TypeScript" : 95346
+    "Vue" : 27165
     "CSS" : 134
 ```
 
@@ -388,10 +388,10 @@ pie title Lines of Code by Language
 | Suite | Test cases | Source lines | Test lines |
 | --- | ---: | ---: | ---: |
 | Backend (pytest) | 3,686 | 31,748 | 85,426 |
-| Frontend (Vitest) | 3,068 | 67,599 | 55,018 |
-| **Total** | **6,754** | **99,347** | **140,444** |
+| Frontend (Vitest) | 3,066 | 67,549 | 54,962 |
+| **Total** | **6,752** | **99,297** | **140,388** |
 
-Test-to-source ratio: **1.41** (140,444 lines of tests for every 99,347 lines of source)
+Test-to-source ratio: **1.41** (140,388 lines of tests for every 99,297 lines of source)
 
 ### Additional Metrics
 
@@ -406,7 +406,7 @@ Test-to-source ratio: **1.41** (140,444 lines of tests for every 99,347 lines of
 | File | Lines |
 | --- | ---: |
 | `backend/app/services/album.py` | 1,181 |
-| `frontend/src/views/about/OrgChartView.vue` | 1,041 |
+| `frontend/src/views/about/OrgChartView.vue` | 957 |
 | `frontend/src/composables/usePostDetail.ts` | 907 |
 | `backend/app/services/form.py` | 900 |
 | `frontend/src/views/forms/FormView.vue` | 875 |
@@ -415,8 +415,8 @@ Test-to-source ratio: **1.41** (140,444 lines of tests for every 99,347 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 550 | +329,784 | -55,675 |
-| github-actions[bot] | 103 | +1,202 | -1,201 |
+| Isaries | 551 | +329,837 | -55,834 |
+| github-actions[bot] | 104 | +1,207 | -1,206 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
