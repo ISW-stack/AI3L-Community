@@ -545,6 +545,7 @@ export default {
       errorFailed: 'Не удалось создать запись.',
       fetchCategoriesError: 'Не удалось загрузить категории.',
       fetchSigsError: 'Не удалось загрузить список SIG.',
+      unsavedChangesWarning: 'У вас есть несохранённые изменения. Вы уверены, что хотите покинуть страницу?',
     },
   },
 
@@ -984,6 +985,9 @@ export default {
     coAuthoredEmptyMessage: 'Этот пользователь ещё не создавал публикаций в соавторстве.',
     fetchError: 'Не удалось загрузить профиль пользователя.',
     fetchPostsError: 'Не удалось загрузить записи пользователя.',
+    message: 'Сообщение',
+    sendMessage: 'Отправить сообщение',
+    dmRestricted: 'Этот пользователь ограничил личные сообщения',
   },
 
   // ── Notifications ──

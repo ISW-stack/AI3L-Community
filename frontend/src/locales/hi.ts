@@ -541,6 +541,7 @@ export default {
       errorFailed: 'पोस्ट बनाने में विफल।',
       fetchCategoriesError: 'श्रेणियां लोड करने में विफल।',
       fetchSigsError: 'SIG सूची लोड करने में विफल।',
+      unsavedChangesWarning: 'आपके पास सहेजे नहीं गए परिवर्तन हैं। क्या आप वाकई बाहर जाना चाहते हैं?',
     },
   },
 
@@ -979,6 +980,9 @@ export default {
     coAuthoredEmptyMessage: 'इस उपयोगकर्ता ने अभी तक कोई पोस्ट सह-लेखन नहीं की है।',
     fetchError: 'उपयोगकर्ता प्रोफ़ाइल लोड करने में विफल।',
     fetchPostsError: 'उपयोगकर्ता पोस्ट लोड करने में विफल।',
+    message: 'संदेश',
+    sendMessage: 'संदेश भेजें',
+    dmRestricted: 'इस उपयोगकर्ता ने सीधे संदेशों को प्रतिबंधित किया है',
   },
 
   // ── Notifications ──

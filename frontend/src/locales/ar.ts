@@ -539,6 +539,7 @@ export default {
       errorFailed: 'فشل إنشاء المشاركة.',
       fetchCategoriesError: 'فشل في تحميل الفئات.',
       fetchSigsError: 'فشل في تحميل قائمة SIG.',
+      unsavedChangesWarning: 'لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟',
     },
   },
 
@@ -974,6 +975,9 @@ export default {
     coAuthoredEmptyMessage: 'لم يشارك هذا المستخدم في كتابة أي مقال بعد.',
     fetchError: 'فشل في تحميل الملف الشخصي للمستخدم.',
     fetchPostsError: 'فشل في تحميل منشورات المستخدم.',
+    message: 'رسالة',
+    sendMessage: 'إرسال رسالة',
+    dmRestricted: 'هذا المستخدم قيّد الرسائل المباشرة',
   },
 
   // ── Notifications ──

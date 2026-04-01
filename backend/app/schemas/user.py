@@ -49,6 +49,7 @@ class PublicUserResponse(BaseModel):
     orcid: str | None = None
     profile_view_count_unique: int = 0
     profile_view_count_total: int = 0
+    can_dm: bool = True
     created_at: str
 
 

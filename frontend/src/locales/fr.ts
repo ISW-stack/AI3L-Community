@@ -549,6 +549,7 @@ export default {
       errorFailed: 'Échec de la création de la publication.',
       fetchCategoriesError: 'Échec du chargement des catégories.',
       fetchSigsError: 'Échec du chargement de la liste des GIS.',
+      unsavedChangesWarning: 'Vous avez des modifications non enregistrées. Voulez-vous vraiment quitter ?',
     },
   },
 
@@ -992,6 +993,9 @@ export default {
     coAuthoredEmptyMessage: "Cet utilisateur n'a pas encore co-écrit d'articles.",
     fetchError: 'Échec du chargement du profil utilisateur.',
     fetchPostsError: "Échec du chargement des publications de l'utilisateur.",
+    message: 'Message',
+    sendMessage: 'Envoyer un message',
+    dmRestricted: 'Cet utilisateur a restreint les messages directs',
   },
 
   // ── Notifications ──

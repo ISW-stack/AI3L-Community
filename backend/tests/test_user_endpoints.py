@@ -2,7 +2,8 @@
 delete account, list users admin, list users forbidden, admin create, change role."""
 
 import uuid
-from unittest.mock import AsyncMock, patch
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -781,5 +782,156 @@ class TestUpdateProfileClearFields:
                 assert call_kwargs["bio"] is None
                 # Omitted fields should not be in kwargs
                 assert "affiliation" not in call_kwargs
+        finally:
+            _clear_overrides()
+
+
+class TestGetMeGuestRejected:
+    """M-04: GET /users/me should reject GUEST (no DB record exists)."""
+
+    @pytest.mark.anyio
+    async def test_guest_cannot_access_me(self, client):
+        try:
+            _override_auth("GUEST")
+            resp = await client.get(
+                "/api/v1/users/me",
+                headers={"Authorization": "Bearer fake"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_overrides()
+
+
+class TestPublicProfileCanDm:
+    """M-01: GET /users/{id} includes computed can_dm field."""
+
+    def _make_public_response(self, user):
+        from app.schemas.user import PublicUserResponse
+
+        return PublicUserResponse(
+            id=str(user["id"]),
+            username=user["username"],
+            display_name=user["display_name"],
+            role=user["role"],
+            created_at=user["created_at"].isoformat(),
+        )
+
+    @pytest.mark.anyio
+    async def test_can_dm_true_when_no_restriction(self, client):
+        """dm_friends_only=False → can_dm=True (default)."""
+        user_id = str(uuid.uuid4())
+        user = make_user_dict(user_id=user_id, username="bob")
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_user_by_id", new_callable=AsyncMock, return_value=user),
+                patch(
+                    f"{_EP}.async_user_to_public_response",
+                    new_callable=AsyncMock,
+                    return_value=self._make_public_response(user),
+                ),
+                patch(
+                    "app.services.preferences.get_user_preferences",
+                    new_callable=AsyncMock,
+                    return_value={"dm_friends_only": False},
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/users/{user_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["can_dm"] is True
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_can_dm_false_when_restricted_and_not_friends(self, client):
+        """dm_friends_only=True + not friends → can_dm=False."""
+        user_id = str(uuid.uuid4())
+        user = make_user_dict(user_id=user_id, username="carol")
+
+        mock_conn = MagicMock()
+        mock_pool = MagicMock()
+
+        @asynccontextmanager
+        async def mock_acquire():
+            yield mock_conn
+
+        mock_pool.acquire = mock_acquire
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_user_by_id", new_callable=AsyncMock, return_value=user),
+                patch(
+                    f"{_EP}.async_user_to_public_response",
+                    new_callable=AsyncMock,
+                    return_value=self._make_public_response(user),
+                ),
+                patch(
+                    "app.services.preferences.get_user_preferences",
+                    new_callable=AsyncMock,
+                    return_value={"dm_friends_only": True},
+                ),
+                patch("app.core.database.get_pool", return_value=mock_pool),
+                patch(
+                    "app.repositories.social_repo.find_friendship_between",
+                    new_callable=AsyncMock,
+                    return_value=None,
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/users/{user_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["can_dm"] is False
+        finally:
+            _clear_overrides()
+
+    @pytest.mark.anyio
+    async def test_can_dm_true_when_restricted_but_friends(self, client):
+        """dm_friends_only=True + accepted friend → can_dm=True."""
+        user_id = str(uuid.uuid4())
+        user = make_user_dict(user_id=user_id, username="dave")
+
+        mock_conn = MagicMock()
+        mock_pool = MagicMock()
+
+        @asynccontextmanager
+        async def mock_acquire():
+            yield mock_conn
+
+        mock_pool.acquire = mock_acquire
+
+        try:
+            _override_auth("MEMBER")
+            with (
+                patch(f"{_EP}.get_user_by_id", new_callable=AsyncMock, return_value=user),
+                patch(
+                    f"{_EP}.async_user_to_public_response",
+                    new_callable=AsyncMock,
+                    return_value=self._make_public_response(user),
+                ),
+                patch(
+                    "app.services.preferences.get_user_preferences",
+                    new_callable=AsyncMock,
+                    return_value={"dm_friends_only": True},
+                ),
+                patch("app.core.database.get_pool", return_value=mock_pool),
+                patch(
+                    "app.repositories.social_repo.find_friendship_between",
+                    new_callable=AsyncMock,
+                    return_value={"status": "ACCEPTED", "id": uuid.uuid4()},
+                ),
+            ):
+                resp = await client.get(
+                    f"/api/v1/users/{user_id}",
+                    headers={"Authorization": "Bearer fake"},
+                )
+                assert resp.status_code == 200
+                assert resp.json()["can_dm"] is True
         finally:
             _clear_overrides()

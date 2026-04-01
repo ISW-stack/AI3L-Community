@@ -536,6 +536,7 @@ export default {
       errorFailed: '建立貼文失敗。',
       fetchCategoriesError: '載入分類失敗。',
       fetchSigsError: '載入 SIG 清單失敗。',
+      unsavedChangesWarning: '你有未儲存的變更。確定欲離開？',
     },
   },
 
@@ -964,6 +965,9 @@ export default {
     coAuthoredEmptyMessage: '這个使用者猶未有任何共同作者ê貼文。',
     fetchError: '載入使用者資料失敗。',
     fetchPostsError: '載入使用者貼文失敗。',
+    message: '訊息',
+    sendMessage: '傳送訊息',
+    dmRestricted: '此使用者已限制私訊',
   },
 
   // ── Notifications ──

@@ -199,24 +199,25 @@ onMounted(() => {
                 :user-id="userId"
               />
               <router-link
-                v-if="!isOwnProfile && auth.isAuthenticated && !auth.isGuest"
+                v-if="!isOwnProfile && auth.isAuthenticated && !auth.isGuest && user?.can_dm !== false"
                 :to="`/messages/${userId}`"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border text-foreground hover:bg-surface-alt transition"
-                :title="
-                  user?.dm_friends_only
-                    ? 'This user only accepts messages from friends'
-                    : 'Send message'
-                "
+                :title="t('userProfile.sendMessage')"
                 data-testid="message-btn"
               >
                 <MessageSquare class="w-4 h-4" aria-hidden="true" />
-                Message
-                <Lock
-                  v-if="user?.dm_friends_only"
-                  class="w-3 h-3 text-muted"
-                  aria-label="Friends only"
-                />
+                {{ t('userProfile.message') }}
               </router-link>
+              <span
+                v-else-if="!isOwnProfile && auth.isAuthenticated && !auth.isGuest"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border/50 text-muted cursor-not-allowed opacity-60"
+                :title="t('userProfile.dmRestricted')"
+                data-testid="message-btn"
+              >
+                <MessageSquare class="w-4 h-4" aria-hidden="true" />
+                {{ t('userProfile.message') }}
+                <Lock class="w-3 h-3" :aria-label="t('userProfile.dmRestricted')" />
+              </span>
             </div>
           </div>
 

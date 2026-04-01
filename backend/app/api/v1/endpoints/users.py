@@ -58,7 +58,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserResponse)
 async def get_my_profile(
-    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER", "GUEST")),
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "MEMBER")),
 ) -> UserResponse:
     user = await get_user_by_id(uuid.UUID(current_user["sub"]))
     if user is None:
@@ -458,7 +458,32 @@ async def get_public_profile(
             "Failed to record profile view for user %s", user_id, exc_info=True
         )
 
-    return await async_user_to_public_response(user)
+    resp = await async_user_to_public_response(user)
+
+    # Compute can_dm: whether the viewer can send DMs to this user.
+    # Defaults to True; set to False if recipient has dm_friends_only
+    # enabled and viewer is not an accepted friend.
+    try:
+        from app.repositories import social_repo
+        from app.services.preferences import get_user_preferences
+
+        prefs = await get_user_preferences(user_id)
+        if prefs.get("dm_friends_only", False):
+            from app.core.database import get_pool
+
+            pool = get_pool()
+            async with pool.acquire() as conn:
+                friendship = await social_repo.find_friendship_between(
+                    conn,
+                    uuid.UUID(current_user["sub"]),
+                    user_id,
+                )
+            if not friendship or friendship["status"] != "ACCEPTED":
+                resp.can_dm = False
+    except Exception:
+        pass  # Failure → default True (optimistic)
+
+    return resp
 
 
 # --- Admin endpoints ---

@@ -206,10 +206,16 @@ def strip_exif_metadata(data: bytes, content_type: str) -> bytes:
         img = Image.open(BytesIO(data))
         # Create a new image without EXIF data
         clean = Image.new(img.mode, img.size)
-        clean.putdata(list(img.get_flattened_data()))
+        clean.putdata(list(img.getdata()))
+        # Preserve palette for P-mode images (e.g., palette PNG)
+        if img.mode == "P":
+            clean.putpalette(img.getpalette())
         buf = BytesIO()
         fmt = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WEBP"}[content_type]
-        clean.save(buf, format=fmt, quality=95 if fmt == "JPEG" else None)
+        save_kwargs: dict = {"format": fmt}
+        if fmt == "JPEG":
+            save_kwargs["quality"] = 95
+        clean.save(buf, **save_kwargs)
         return buf.getvalue()
     except Exception:
         return data  # Best-effort: return original on failure

@@ -44,6 +44,8 @@ class TestGuestLoginConsumesInviteCode:
         assert resp.status_code == 200
         mock_consume.assert_called_once_with("INV-TEST")
 
+    @patch(f"{_EP}.destroy_session", new_callable=AsyncMock)
+    @patch(f"{_EP}.decrement_guest_counter", new_callable=AsyncMock)
     @patch(f"{_EP}.decrement_guest_ip_counter", new_callable=AsyncMock)
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock)
@@ -51,12 +53,15 @@ class TestGuestLoginConsumesInviteCode:
     @patch(f"{_EP}.guest_login", new_callable=AsyncMock, return_value=("tok", "jti", 2700))
     @patch(f"{_EP}.increment_guest_ip_counter", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.consume_invite_code", new_callable=AsyncMock, return_value=False)
+    @patch("app.core.security.decode_access_token", return_value={"sub": "guest-uuid"})
     async def test_guest_login_fails_when_consume_fails(
-        self, mock_consume, mock_ip_incr, mock_guest, mock_captcha, mock_invite,
-        mock_rl, mock_dec_ip, client: AsyncClient
+        self, mock_decode, mock_consume, mock_ip_incr, mock_guest, mock_captcha,
+        mock_invite, mock_rl, mock_dec_ip, mock_dec_guest, mock_destroy,
+        client: AsyncClient,
     ):
         """Guest login returns 400 if invite code was consumed
-        between validation and consumption (F-60: consume now after capacity checks)."""
+        between validation and consumption (F-60: consume now after capacity checks).
+        H-02: must also rollback global guest counter and destroy orphan session."""
         mock_invite.return_value = {"code": "INV-RACE", "id": uuid.uuid4()}
 
         resp = await client.post(
@@ -65,8 +70,10 @@ class TestGuestLoginConsumesInviteCode:
         )
         assert resp.status_code == 400
         assert "invite code" in resp.json()["detail"]["message"].lower()
-        # IP counter should be decremented on consume failure
+        # H-02: All three rollback actions must be called
         mock_dec_ip.assert_called_once()
+        mock_dec_guest.assert_called_once()
+        mock_destroy.assert_called_once_with(user_id="guest-uuid", role="GUEST", jti="jti")
 
     @patch(f"{_EP}.check_rate_limit", new_callable=AsyncMock, return_value=True)
     @patch(f"{_EP}.get_invite_code", new_callable=AsyncMock, return_value=None)

@@ -546,6 +546,7 @@ export default {
       errorFailed: 'Gagal membuat postingan.',
       fetchCategoriesError: 'Gagal memuat kategori.',
       fetchSigsError: 'Gagal memuat daftar SIG.',
+      unsavedChangesWarning: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin meninggalkan halaman?',
     },
   },
 
@@ -986,6 +987,9 @@ export default {
     coAuthoredEmptyMessage: 'Pengguna ini belum memiliki postingan bersama.',
     fetchError: 'Gagal memuat profil pengguna.',
     fetchPostsError: 'Gagal memuat postingan pengguna.',
+    message: 'Pesan',
+    sendMessage: 'Kirim pesan',
+    dmRestricted: 'Pengguna ini telah membatasi pesan langsung',
   },
 
   // ── Notifications ──

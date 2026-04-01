@@ -518,6 +518,7 @@ export default {
       errorFailed: '文章创建失败。',
       fetchCategoriesError: '加载分类失败。',
       fetchSigsError: '加载 SIG 列表失败。',
+      unsavedChangesWarning: '您有未保存的更改。确定要离开吗？',
     },
   },
   share: {
@@ -934,6 +935,9 @@ export default {
     coAuthoredEmptyMessage: '此用户尚未共同撰写任何文章。',
     fetchError: '加载用户个人资料失败。',
     fetchPostsError: '加载用户帖子失败。',
+    message: '消息',
+    sendMessage: '发送消息',
+    dmRestricted: '此用户已限制私信',
   },
   notifications: {
     title: '通知',

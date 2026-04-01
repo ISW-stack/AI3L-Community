@@ -546,6 +546,7 @@ export default {
       errorFailed: 'Failed to create post.',
       fetchCategoriesError: 'Failed to load categories.',
       fetchSigsError: 'Failed to load SIG list.',
+      unsavedChangesWarning: 'You have unsaved changes. Are you sure you want to leave?',
     },
   },
 
@@ -982,6 +983,9 @@ export default {
     coAuthoredEmptyMessage: 'This user has not co-authored any posts yet.',
     fetchError: 'Failed to load user profile.',
     fetchPostsError: 'Failed to load user posts.',
+    message: 'Message',
+    sendMessage: 'Send message',
+    dmRestricted: 'This user has restricted direct messages',
   },
 
   // ── Notifications ──

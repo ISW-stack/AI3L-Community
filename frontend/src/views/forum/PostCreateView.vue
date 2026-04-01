@@ -206,7 +206,7 @@ function goBack() {
 onBeforeRouteLeave(() => {
   if (submitted.value) return true
   if (title.value?.trim() || content.value?.trim()) {
-    return window.confirm('You have unsaved changes. Are you sure you want to leave?')
+    return window.confirm(t('post.create.unsavedChangesWarning'))
   }
 })
 </script>

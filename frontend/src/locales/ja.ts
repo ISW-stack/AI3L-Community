@@ -541,6 +541,7 @@ export default {
       errorFailed: '投稿の作成に失敗しました。',
       fetchCategoriesError: 'カテゴリーの読み込みに失敗しました。',
       fetchSigsError: 'SIGリストの読み込みに失敗しました。',
+      unsavedChangesWarning: '保存されていない変更があります。このページを離れますか？',
     },
   },
 
@@ -976,6 +977,9 @@ export default {
     coAuthoredEmptyMessage: 'このユーザーはまだ共著投稿をしていません。',
     fetchError: 'ユーザープロフィールの読み込みに失敗しました。',
     fetchPostsError: 'ユーザーの投稿の読み込みに失敗しました。',
+    message: 'メッセージ',
+    sendMessage: 'メッセージを送る',
+    dmRestricted: 'このユーザーはダイレクトメッセージを制限しています',
   },
 
   // ── Notifications ──

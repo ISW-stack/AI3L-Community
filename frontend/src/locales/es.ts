@@ -547,6 +547,7 @@ export default {
       errorFailed: 'Error al crear la publicación.',
       fetchCategoriesError: 'Error al cargar las categorías.',
       fetchSigsError: 'Error al cargar la lista de SIG.',
+      unsavedChangesWarning: 'Tiene cambios sin guardar. ¿Está seguro de que desea salir?',
     },
   },
 
@@ -988,6 +989,9 @@ export default {
     coAuthoredEmptyMessage: 'Este usuario aún no ha co-escrito ninguna publicación.',
     fetchError: 'Error al cargar el perfil de usuario.',
     fetchPostsError: 'Error al cargar las publicaciones del usuario.',
+    message: 'Mensaje',
+    sendMessage: 'Enviar mensaje',
+    dmRestricted: 'Este usuario ha restringido los mensajes directos',
   },
 
   // ── Notifications ──

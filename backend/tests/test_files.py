@@ -1497,3 +1497,66 @@ class TestCleanupTaskImport:
         assert hasattr(cleanup_mod, "_get_referenced_keys")
         assert hasattr(cleanup_mod, "_iter_editor_files")
         assert hasattr(cleanup_mod, "_delete_orphans")
+
+
+class TestFormFileAccess:
+    """M-03: Form upload files accessible to form creators and SIG admins."""
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_form_creator_can_access_form_upload(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        headers, user_id, _ = auth_headers("MEMBER")
+        form_id = str(uuid.uuid4())
+        file_key = f"forms/uploads/{form_id}/abc123.pdf"
+        form = {"created_by": user_id, "sig_id": None}
+
+        with (
+            patch(
+                "app.repositories.form_repo.find_by_id",
+                new_callable=AsyncMock,
+                return_value=(form, 5),
+            ),
+            patch(
+                "app.api.v1.endpoints.files.file_scan_repo.find_by_key",
+                new_callable=AsyncMock,
+                return_value={"status": "clean", "positives": 0, "total": 60},
+            ),
+            patch(
+                "app.api.v1.endpoints.files.async_download_metadata",
+                new_callable=AsyncMock,
+                return_value=(
+                    MagicMock(read=MagicMock(side_effect=[b"PDF data", b""]), close=MagicMock()),
+                    "application/pdf",
+                    8,
+                ),
+            ),
+        ):
+            resp = await client.get(f"/api/v1/files/content/{file_key}", headers=headers)
+
+        assert resp.status_code == 200
+
+    @patch(
+        "app.core.deps.get_user_by_id", new_callable=AsyncMock, return_value={"is_banned": False}
+    )
+    @patch("app.core.deps.validate_session", new_callable=AsyncMock, return_value=True)
+    async def test_non_owner_non_admin_rejected_for_form_upload(
+        self, mock_session, mock_user, client: AsyncClient, auth_headers
+    ):
+        headers, user_id, _ = auth_headers("MEMBER")
+        form_id = str(uuid.uuid4())
+        other_user = str(uuid.uuid4())
+        file_key = f"forms/uploads/{form_id}/abc123.pdf"
+        form = {"created_by": other_user, "sig_id": None}
+
+        with patch(
+            "app.repositories.form_repo.find_by_id",
+            new_callable=AsyncMock,
+            return_value=(form, 3),
+        ):
+            resp = await client.get(f"/api/v1/files/content/{file_key}", headers=headers)
+
+        assert resp.status_code == 403

@@ -270,6 +270,37 @@ async def delete_editor_file(
     return {"detail": "File deleted.", "key": key, "freed_bytes": file_size}
 
 
+async def _check_form_file_access(key: str, current_user: dict) -> bool:
+    """Check if user is form creator or SIG admin for a forms/uploads/{form_id}/... key."""
+    parts = key.split("/")
+    if len(parts) < 3:
+        return False
+    form_id_str = parts[2]  # forms/uploads/{form_id}/...
+    try:
+        form_id = uuid.UUID(form_id_str)
+    except ValueError:
+        return False
+    try:
+        from app.repositories import form_repo, sig_repo
+
+        form, _ = await form_repo.find_by_id(form_id)
+        if not form:
+            return False
+        # Form creator can access
+        if str(form["created_by"]) == current_user["sub"]:
+            return True
+        # SIG admin can access
+        if form.get("sig_id"):
+            member_role = await sig_repo.get_member_role(
+                uuid.UUID(str(form["sig_id"])), uuid.UUID(current_user["sub"])
+            )
+            if member_role in ("ADMIN", "SUB_ADMIN"):
+                return True
+    except Exception:
+        logger.warning("Form file access check failed for key=%s", key, exc_info=True)
+    return False
+
+
 @router.get("/content/{key:path}")
 async def serve_file(
     key: str,
@@ -289,6 +320,9 @@ async def serve_file(
     # Editor files are readable by any authenticated member (they're embedded in public posts)
     if not is_editor_file and not is_admin:
         owns_file = key.startswith(f"avatars/{current_user['sub']}")
+        # Form upload files: allow form creator and SIG admins to access
+        if not owns_file and key.startswith("forms/uploads/"):
+            owns_file = await _check_form_file_access(key, current_user)
         if not owns_file:
             raise AppError(
                 ErrorCode.SYS_403,

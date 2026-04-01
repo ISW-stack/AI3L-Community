@@ -540,6 +540,7 @@ export default {
       errorFailed: '게시물 작성에 실패했습니다.',
       fetchCategoriesError: '카테고리를 불러오지 못했습니다.',
       fetchSigsError: 'SIG 목록을 불러오지 못했습니다.',
+      unsavedChangesWarning: '저장하지 않은 변경 사항이 있습니다. 페이지를 떠나시겠습니까?',
     },
   },
 
@@ -974,6 +975,9 @@ export default {
     coAuthoredEmptyMessage: '이 사용자는 아직 공동으로 작성한 게시물이 없습니다.',
     fetchError: '사용자 프로필을 불러오지 못했습니다.',
     fetchPostsError: '사용자 게시물을 불러오지 못했습니다.',
+    message: '메시지',
+    sendMessage: '메시지 보내기',
+    dmRestricted: '이 사용자는 쪽지를 제한하고 있습니다',
   },
 
   // ── Notifications ──

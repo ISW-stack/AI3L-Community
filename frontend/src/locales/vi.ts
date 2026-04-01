@@ -542,6 +542,7 @@ export default {
       errorFailed: 'Tạo bài viết thất bại.',
       fetchCategoriesError: 'Không tải được danh mục.',
       fetchSigsError: 'Không tải được danh sách SIG.',
+      unsavedChangesWarning: 'Bạn có thay đổi chưa lưu. Bạn có chắc chắn muốn rời đi không?',
     },
   },
 
@@ -980,6 +981,9 @@ export default {
     coAuthoredEmptyMessage: 'Người dùng này chưa có bài viết đồng tác giả nào.',
     fetchError: 'Không tải được hồ sơ người dùng.',
     fetchPostsError: 'Không tải được bài đăng của người dùng.',
+    message: 'Tin nhắn',
+    sendMessage: 'Gửi tin nhắn',
+    dmRestricted: 'Người dùng này đã hạn chế tin nhắn trực tiếp',
   },
 
   // ── Notifications ──

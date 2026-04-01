@@ -33,5 +33,5 @@ export interface PublicUser {
   profile_view_count_unique: number
   profile_view_count_total: number
   created_at: string
-  dm_friends_only: boolean
+  can_dm: boolean
 }

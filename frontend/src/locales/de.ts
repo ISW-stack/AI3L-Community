@@ -550,6 +550,7 @@ export default {
       errorFailed: 'Beitrag konnte nicht erstellt werden.',
       fetchCategoriesError: 'Kategorien konnten nicht geladen werden.',
       fetchSigsError: 'SIG-Liste konnte nicht geladen werden.',
+      unsavedChangesWarning: 'Sie haben ungespeicherte Änderungen. Möchten Sie die Seite wirklich verlassen?',
     },
   },
 
@@ -992,6 +993,9 @@ export default {
     coAuthoredEmptyMessage: 'Dieser Benutzer hat noch keine Beiträge gemeinsam verfasst.',
     fetchError: 'Benutzerprofil konnte nicht geladen werden.',
     fetchPostsError: 'Benutzerbeiträge konnten nicht geladen werden.',
+    message: 'Nachricht',
+    sendMessage: 'Nachricht senden',
+    dmRestricted: 'Dieser Benutzer hat Direktnachrichten eingeschränkt',
   },
 
   // ── Notifications ──

@@ -179,16 +179,46 @@ async def login_as_guest(
         await decrement_guest_ip_counter(ip)
         raise AppError(ErrorCode.AUTH_003, 429, "Guest capacity reached. Please try again later.")
 
+    token, jti, expires_in = result
+
     # Consume invite code AFTER capacity checks pass (guest has no DB user, so consumed_by stays NULL)
     consumed = await consume_invite_code(invite_code)
     if not consumed:
-        # Undo both the per-IP increment and guest login
-        await decrement_guest_ip_counter(ip)
+        # H-02: Rollback all resources created by guest_login() + increment_guest_ip_counter().
+        # Each step is independent — one failure must not prevent the others.
+        from app.core.security import decode_access_token
+
+        payload = decode_access_token(token)
+        guest_id = payload["sub"] if payload else None
+
+        try:
+            await decrement_guest_ip_counter(ip)
+        except Exception:
+            logger.warning("Failed to decrement guest IP counter during rollback", extra={"ip": ip})
+        try:
+            await decrement_guest_counter()
+        except Exception:
+            logger.warning("Failed to decrement guest counter during rollback")
+        if guest_id:
+            try:
+                await destroy_session(user_id=guest_id, role="GUEST", jti=jti)
+            except Exception:
+                logger.warning("Failed to destroy orphan guest session during rollback")
+            try:
+                from app.core.redis import get_redis
+
+                redis = get_redis()
+                await redis.delete(f"guest:display_name:{guest_id}")
+            except Exception:
+                pass  # display_name key has TTL, will expire naturally
+        else:
+            logger.error(
+                "Could not decode guest JWT during rollback — orphan session will expire via TTL",
+                extra={"jti": jti},
+            )
         raise AppError(
             ErrorCode.AUTH_006, status.HTTP_400_BAD_REQUEST, "Invalid or expired invite code."
         )
-
-    token, jti, expires_in = result
 
     # Set cookies — CSRF token bound to session JTI
     csrf_token = generate_csrf_token(jti)

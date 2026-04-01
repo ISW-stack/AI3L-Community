@@ -545,6 +545,7 @@ export default {
       errorFailed: 'Gönderi oluşturulamadı.',
       fetchCategoriesError: 'Kategoriler yüklenemedi.',
       fetchSigsError: 'SIG listesi yüklenemedi.',
+      unsavedChangesWarning: 'Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılmak istediğinize emin misiniz?',
     },
   },
 
@@ -984,6 +985,9 @@ export default {
     coAuthoredEmptyMessage: 'Bu kullanıcı henüz ortak yazılan herhangi bir gönderi oluşturmadı.',
     fetchError: 'Kullanıcı profili yüklenemedi.',
     fetchPostsError: 'Kullanıcı gönderileri yüklenemedi.',
+    message: 'Mesaj',
+    sendMessage: 'Mesaj gönder',
+    dmRestricted: 'Bu kullanıcı doğrudan mesajları kısıtlamıştır',
   },
 
   // ── Notifications ──

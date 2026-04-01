@@ -545,6 +545,7 @@ export default {
       errorFailed: 'Creazione del post non riuscita.',
       fetchCategoriesError: 'Impossibile caricare le categorie.',
       fetchSigsError: 'Impossibile caricare la lista SIG.',
+      unsavedChangesWarning: 'Hai modifiche non salvate. Sei sicuro di voler uscire?',
     },
   },
 
@@ -985,6 +986,9 @@ export default {
     coAuthoredEmptyMessage: 'Questo utente non ha ancora co-scritto nessun post.',
     fetchError: 'Impossibile caricare il profilo utente.',
     fetchPostsError: "Impossibile caricare i post dell'utente.",
+    message: 'Messaggio',
+    sendMessage: 'Invia messaggio',
+    dmRestricted: 'Questo utente ha limitato i messaggi diretti',
   },
 
   // ── Notifications ──
