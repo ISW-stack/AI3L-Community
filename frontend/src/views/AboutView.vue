@@ -74,7 +74,10 @@ onMounted(() => {
 
     <!-- Introduction Section -->
     <div class="mb-10">
-      <h2 class="text-2xl font-semibold text-foreground mb-6">{{ t('about.introduction') }}</h2>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1 h-7 rounded-full bg-primary shrink-0"></div>
+        <h2 class="text-2xl font-semibold text-foreground">{{ t('about.introduction') }}</h2>
+      </div>
 
       <div v-if="introLoading">
         <SkeletonLoader variant="list" :lines="4" />
@@ -143,11 +146,17 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Contributors Section (smaller) -->
+    <!-- Divider -->
+    <hr class="border-border my-10" />
+
+    <!-- Contributors Section -->
     <div>
-      <h3 class="text-lg font-semibold text-foreground mb-4">
-        {{ t('about.contributors.title') }}
-      </h3>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1 h-7 rounded-full bg-primary shrink-0"></div>
+        <h2 class="text-2xl font-semibold text-foreground">
+          {{ t('about.contributors.title') }}
+        </h2>
+      </div>
 
       <div v-if="loading">
         <SkeletonLoader variant="list" :lines="3" />
@@ -157,11 +166,11 @@ onMounted(() => {
         {{ t('about.contributors.empty') }}
       </div>
 
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div
           v-for="contributor in contributors"
           :key="contributor.id"
-          class="flex items-center gap-3"
+          class="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3"
         >
           <!-- Avatar -->
           <div class="shrink-0">
