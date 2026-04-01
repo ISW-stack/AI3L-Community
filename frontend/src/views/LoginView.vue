@@ -120,7 +120,10 @@ onMounted(() => {
       ></div>
 
       <div class="text-center text-white relative z-10">
-        <img src="/images/logo.png" alt="AI3L" class="w-72 mx-auto mb-6 drop-shadow-lg" />
+        <picture>
+          <source srcset="/images/logo.webp" type="image/webp" />
+          <img src="/images/logo-sm.png" alt="AI3L" class="w-72 mx-auto mb-6 drop-shadow-lg" />
+        </picture>
         <h2 class="text-3xl font-bold mb-3">{{ t('branding.title') }}</h2>
         <p class="text-brand-200 text-lg">{{ t('branding.tagline') }}</p>
         <p class="text-brand-300 mt-4 text-sm max-w-sm mx-auto leading-relaxed">

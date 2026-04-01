@@ -109,11 +109,14 @@ defineExpose({ loadMore })
           aria-label="Enlarge AI3L logo"
           @click="openLogoLightbox"
         >
-          <img
-            src="/images/logo.png"
-            alt="AI3L"
-            class="h-16 sm:h-20 w-auto drop-shadow-lg cursor-zoom-in hover:opacity-90 transition-opacity"
-          />
+          <picture>
+            <source srcset="/images/logo-sm.webp" type="image/webp" />
+            <img
+              src="/images/logo-sm.png"
+              alt="AI3L"
+              class="h-16 sm:h-20 w-auto drop-shadow-lg cursor-zoom-in hover:opacity-90 transition-opacity"
+            />
+          </picture>
         </button>
         <div>
           <h1 class="text-xl sm:text-2xl font-bold text-white">{{ t('forum.title') }}</h1>
@@ -290,12 +293,14 @@ defineExpose({ loadMore })
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <img
-          src="/images/logo.png"
-          alt="AI3L"
-          class="max-w-[90vw] max-h-[85vh] object-contain drop-shadow-2xl"
-          @click.stop
-        />
+        <picture @click.stop>
+          <source srcset="/images/logo.webp" type="image/webp" />
+          <img
+            src="/images/logo.png"
+            alt="AI3L"
+            class="max-w-[90vw] max-h-[85vh] object-contain drop-shadow-2xl"
+          />
+        </picture>
       </div>
     </Transition>
   </Teleport>

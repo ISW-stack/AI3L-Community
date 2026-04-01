@@ -458,7 +458,10 @@ onMounted(() => {
         <div class="absolute top-1/4 right-[15%] w-24 h-24 rounded-full bg-white/5 blur-xl"></div>
         <!-- Content -->
         <div class="relative p-8 sm:p-12 text-white text-center">
-          <img src="/images/logo.png" alt="AI3L" class="w-48 sm:w-64 mx-auto mb-6 drop-shadow-lg" />
+          <picture>
+            <source srcset="/images/logo.webp" type="image/webp" />
+            <img src="/images/logo-sm.png" alt="AI3L" class="w-48 sm:w-64 mx-auto mb-6 drop-shadow-lg" />
+          </picture>
           <h1 class="text-3xl sm:text-4xl font-bold mb-3">
             {{ t('home.unauthenticated.title') }}
           </h1>
