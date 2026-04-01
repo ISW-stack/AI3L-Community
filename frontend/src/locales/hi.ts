@@ -1347,6 +1347,8 @@ export default {
     },
     siteSettings: {
       title: 'साइट सेटिंग्स',
+      leadership: 'नेतृत्व नियुक्ति',
+      searchUser: 'उपयोगकर्ता खोजें...',
       aboutIntro: 'परिचय पृष्ठ परिचय',
       chairIntro: 'अध्यक्ष',
       coChairIntro: 'सह-अध्यक्ष',

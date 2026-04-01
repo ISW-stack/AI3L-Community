@@ -1342,6 +1342,8 @@ export default {
     },
     siteSettings: {
       title: '사이트 설정',
+      leadership: '리더십 배정',
+      searchUser: '사용자 검색...',
       aboutIntro: '소개 페이지 소개글',
       chairIntro: '의장',
       coChairIntro: '공동 의장',

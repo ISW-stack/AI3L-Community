@@ -1354,6 +1354,8 @@ export default {
     },
     siteSettings: {
       title: 'Impostazioni del Sito',
+      leadership: 'Assegnazione dirigenza',
+      searchUser: 'Cerca utente...',
       aboutIntro: 'Introduzione Pagina Chi Siamo',
       chairIntro: 'Presidente',
       coChairIntro: 'Vicepresidente',

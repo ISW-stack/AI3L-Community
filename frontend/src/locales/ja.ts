@@ -1345,6 +1345,8 @@ export default {
     },
     siteSettings: {
       title: 'サイト設定',
+      leadership: 'リーダーシップ割り当て',
+      searchUser: 'ユーザーを検索...',
       aboutIntro: '概要ページの紹介文',
       chairIntro: '代表',
       coChairIntro: '副代表',

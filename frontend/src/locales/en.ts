@@ -1350,6 +1350,8 @@ export default {
     },
     siteSettings: {
       title: 'Site Settings',
+      leadership: 'Leadership Assignment',
+      searchUser: 'Search user...',
       aboutIntro: 'About Page Introduction',
       chairIntro: 'Chair',
       coChairIntro: 'Co-Chair',

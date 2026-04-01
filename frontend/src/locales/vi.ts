@@ -1348,6 +1348,8 @@ export default {
     },
     siteSettings: {
       title: 'Cài đặt trang web',
+      leadership: 'Phân công lãnh đạo',
+      searchUser: 'Tìm người dùng...',
       aboutIntro: 'Nội dung giới thiệu trang Về chúng tôi',
       chairIntro: 'Chủ tịch',
       coChairIntro: 'Đồng chủ tịch',

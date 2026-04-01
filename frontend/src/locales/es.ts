@@ -1358,6 +1358,8 @@ export default {
     },
     siteSettings: {
       title: 'Configuración del sitio',
+      leadership: 'Asignación de liderazgo',
+      searchUser: 'Buscar usuario...',
       aboutIntro: 'Introducción de la página Acerca de',
       chairIntro: 'Presidente/a',
       coChairIntro: 'Copresidente/a',

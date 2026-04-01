@@ -1354,6 +1354,8 @@ export default {
     },
     siteSettings: {
       title: 'Pengaturan Situs',
+      leadership: 'Penugasan Kepemimpinan',
+      searchUser: 'Cari pengguna...',
       aboutIntro: 'Pengantar Halaman Tentang',
       chairIntro: 'Ketua',
       coChairIntro: 'Wakil Ketua',

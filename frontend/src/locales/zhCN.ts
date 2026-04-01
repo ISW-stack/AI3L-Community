@@ -1296,6 +1296,8 @@ export default {
     },
     siteSettings: {
       title: '站点设置',
+      leadership: '领导层指派',
+      searchUser: '搜索用户...',
       aboutIntro: '关于页面简介',
       chairIntro: '主席',
       coChairIntro: '联席主席',

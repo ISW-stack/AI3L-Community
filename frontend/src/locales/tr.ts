@@ -1352,6 +1352,8 @@ export default {
     },
     siteSettings: {
       title: 'Site Ayarları',
+      leadership: 'Liderlik Ataması',
+      searchUser: 'Kullanıcı ara...',
       aboutIntro: 'Hakkında Sayfası Tanıtımı',
       chairIntro: 'Başkan',
       coChairIntro: 'Eş Başkan',

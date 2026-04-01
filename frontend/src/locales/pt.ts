@@ -1351,6 +1351,8 @@ export default {
     },
     siteSettings: {
       title: 'Configurações do Site',
+      leadership: 'Atribuição de liderança',
+      searchUser: 'Pesquisar usuário...',
       aboutIntro: 'Introdução da Página Sobre',
       chairIntro: 'Presidente',
       coChairIntro: 'Vice-presidente',

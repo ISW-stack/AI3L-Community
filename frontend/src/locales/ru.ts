@@ -1352,6 +1352,8 @@ export default {
     },
     siteSettings: {
       title: 'Настройки сайта',
+      leadership: 'Назначение руководства',
+      searchUser: 'Поиск пользователя...',
       aboutIntro: 'Введение на странице «О нас»',
       chairIntro: 'Председатель',
       coChairIntro: 'Сопредседатель',

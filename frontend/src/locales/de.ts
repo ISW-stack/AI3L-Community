@@ -1362,6 +1362,8 @@ export default {
     },
     siteSettings: {
       title: 'Website-Einstellungen',
+      leadership: 'Leitungszuweisung',
+      searchUser: 'Benutzer suchen...',
       aboutIntro: 'Einführungstext der Über-uns-Seite',
       chairIntro: 'Vorsitzende(r)',
       coChairIntro: 'Stellv. Vorsitzende(r)',
