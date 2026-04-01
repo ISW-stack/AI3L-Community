@@ -13,19 +13,19 @@
 <rect width="640" height="160" class="bg" rx="8"/>
 <text x="320" y="17" text-anchor="middle" font-size="12" font-weight="600" class="t ttl">Commit Activity — Last 12 Months</text>
 <line x1="12" y1="132" x2="628" y2="132" class="axis" stroke-width="1"/>
-<text x="37.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Apr</text>
-<text x="89.0" y="148" text-anchor="middle" font-size="10" class="t lbl">May</text>
-<text x="140.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Jun</text>
-<text x="191.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Jul</text>
-<text x="243.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Aug</text>
-<text x="294.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Sep</text>
-<text x="345.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Oct</text>
-<text x="397.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Nov</text>
-<text x="448.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Dec</text>
-<text x="499.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Jan'26</text>
-<rect x="534.3" y="128.6" width="33.4" height="3.4" class="bar" rx="1.7"/>
-<text x="551.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Feb</text>
-<rect x="585.7" y="25.0" width="33.4" height="107.0" class="bar" rx="3.0"/>
-<text x="602.3" y="37.0" text-anchor="middle" font-size="9" class="t cnt">623</text>
-<text x="602.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Mar</text>
+<text x="37.7" y="148" text-anchor="middle" font-size="10" class="t lbl">May</text>
+<text x="89.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Jun</text>
+<text x="140.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Jul</text>
+<text x="191.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Aug</text>
+<text x="243.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Sep</text>
+<text x="294.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Oct</text>
+<text x="345.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Nov</text>
+<text x="397.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Dec</text>
+<text x="448.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Jan'26</text>
+<rect x="483.0" y="128.6" width="33.4" height="3.4" class="bar" rx="1.7"/>
+<text x="499.7" y="148" text-anchor="middle" font-size="10" class="t lbl">Feb</text>
+<rect x="534.3" y="25.0" width="33.4" height="107.0" class="bar" rx="3.0"/>
+<text x="551.0" y="37.0" text-anchor="middle" font-size="9" class="t cnt">625</text>
+<text x="551.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Mar</text>
+<text x="602.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Apr</text>
 </svg>
