@@ -16,6 +16,7 @@ import {
   Ban,
   Settings,
   HardDriveDownload,
+  UserCog,
 } from 'lucide-vue-next'
 
 const { t } = useI18n()
@@ -43,6 +44,12 @@ const navItems: NavItem[] = [
     labelKey: 'nav.siteSettings',
     to: '/admin/site-settings',
     icon: Settings,
+    superAdminOnly: true,
+  },
+  {
+    labelKey: 'nav.memberClassification',
+    to: '/admin/member-classification',
+    icon: UserCog,
     superAdminOnly: true,
   },
   {

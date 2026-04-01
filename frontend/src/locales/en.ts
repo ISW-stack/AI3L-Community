@@ -38,6 +38,9 @@ export default {
     rejected: 'Rejected',
     copied: 'Copied!',
     copyFailed: 'Failed to copy.',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    remove: 'Remove',
     required: 'Required',
     optional: 'Optional',
     noData: 'No data',
@@ -199,6 +202,7 @@ export default {
     siteSettings: 'Site Settings',
     dataExport: 'Data Export',
     contributors: 'Contributors',
+    memberClassification: 'Member Classification',
     profile: 'Profile',
     logOut: 'Log Out',
     logIn: 'Log In',
@@ -1012,6 +1016,12 @@ export default {
       loading: 'Loading contributors...',
       empty: 'No contributor information available.',
     },
+    membersSection: {
+      title: 'Members',
+      empty: 'No member classifications have been set up yet.',
+      categorySubtitle: '{count} member(s) in this category',
+      categoryEmpty: 'No members in this category.',
+    },
   },
 
   // ── Org Chart ──
@@ -1390,6 +1400,15 @@ export default {
         deleted: 'Export deleted.',
         deleteFailed: 'Failed to delete export.',
       },
+    },
+    memberClassification: {
+      title: 'Member Classification',
+      subtitle: 'Assign community members to organizational categories displayed on the About page.',
+      searchPlaceholder: 'Search users to add...',
+      noMembers: 'No members assigned to this category.',
+      assigned: 'Member classification updated.',
+      removed: 'Member classification removed.',
+      alreadyClassified: '{name} is already classified under {category}.',
     },
   },
 

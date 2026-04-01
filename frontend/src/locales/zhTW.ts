@@ -34,6 +34,9 @@ export default {
     rejected: '已拒絕',
     copied: '已複製！',
     copyFailed: '複製失敗。',
+    moveUp: '上移',
+    moveDown: '下移',
+    remove: '移除',
     required: '必填',
     optional: '選填',
     noData: '暫無資料',
@@ -184,6 +187,7 @@ export default {
     siteSettings: '網站設定',
     dataExport: '資料匯出',
     contributors: '貢獻者',
+    memberClassification: '成員分類',
     profile: '個人檔案',
     logOut: '登出',
     logIn: '登入',
@@ -960,6 +964,12 @@ export default {
       loading: '載入貢獻者中...',
       empty: '沒有可用的貢獻者資訊。',
     },
+    membersSection: {
+      title: '成員',
+      empty: '尚未設定成員分類。',
+      categorySubtitle: '此分類共 {count} 位成員',
+      categoryEmpty: '此分類目前沒有成員。',
+    },
   },
 
   // -- Org Chart --
@@ -1300,6 +1310,15 @@ export default {
       photoFailed: '照片上傳失敗。',
       bioFailed: '簡介儲存失敗。',
       photoHint: 'JPEG、PNG 或 WebP。最大 5 MB。',
+    },
+    memberClassification: {
+      title: '成員分類',
+      subtitle: '將社群成員分配到「關於」頁面上顯示的組織分類。',
+      searchPlaceholder: '搜尋使用者以新增...',
+      noMembers: '此分類尚未指定成員。',
+      assigned: '成員分類已更新。',
+      removed: '已移除成員分類。',
+      alreadyClassified: '{name} 已被分類至 {category}。',
     },
     dataExport: {
       title: '資料匯出',

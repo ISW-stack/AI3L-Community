@@ -38,6 +38,9 @@ export default {
     rejected: 'Rejeitado',
     copied: 'Copiado!',
     copyFailed: 'Falha ao copiar.',
+    moveUp: 'Mover para cima',
+    moveDown: 'Mover para baixo',
+    remove: 'Remover',
     required: 'Obrigatório',
     optional: 'Opcional',
     noData: 'Sem dados',
@@ -1013,6 +1016,12 @@ export default {
       loading: 'Carregando colaboradores...',
       empty: 'Nenhuma informação de colaborador disponível.',
     },
+    membersSection: {
+      title: 'Membros',
+      empty: 'Ainda nao foram configuradas classificacoes de membros.',
+      categorySubtitle: '{count} membro(s) nesta categoria',
+      categoryEmpty: 'Nao ha membros nesta categoria.',
+    },
   },
 
   // ── Org Chart ──
@@ -1356,6 +1365,15 @@ export default {
       bioFailed: 'Falha ao salvar bio.',
       photoHint: 'JPEG, PNG ou WebP. Máx. 5 MB.',
     },
+    memberClassification: {
+      title: 'Classificacao de membros',
+      subtitle: 'Atribua membros da comunidade a categorias organizacionais exibidas na pagina Sobre.',
+      searchPlaceholder: 'Pesquisar usuarios para adicionar...',
+      noMembers: 'Nenhum membro atribuido a esta categoria.',
+      assigned: 'Classificacao de membro atualizada.',
+      removed: 'Classificacao de membro removida.',
+      alreadyClassified: '{name} ja esta classificado em {category}.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1414,6 +1432,7 @@ export default {
     contributors: 'Contribuidores',
     auditLogs: 'Logs de auditoria',
     siteSettings: 'Configurações do Site',
+    memberClassification: 'Classificacao de membros',
     dataExport: 'Data Export',
     friends: 'Amigos',
     following: 'A seguir',

@@ -56,3 +56,29 @@ export interface MembersListResponse {
   members: MemberCard[]
   total: number
 }
+
+// ── Member Classifications ──
+
+export interface ClassifiedMember {
+  user_id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
+}
+
+export interface MemberCategory {
+  key: string
+  label: string
+  count: number
+  members: ClassifiedMember[]
+}
+
+export interface ClassifiedMembersResponse {
+  categories: MemberCategory[]
+}
+
+export interface CategoryDetailResponse {
+  key: string
+  label: string
+  members: ClassifiedMember[]
+}

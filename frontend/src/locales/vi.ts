@@ -38,6 +38,9 @@ export default {
     rejected: 'Đã từ chối',
     copied: 'Đã sao chép!',
     copyFailed: 'Sao chép thất bại.',
+    moveUp: 'Di chuyển lên',
+    moveDown: 'Di chuyển xuống',
+    remove: 'Xóa',
     required: 'Bắt buộc',
     optional: 'Tùy chọn',
     noData: 'Không có dữ liệu',
@@ -1010,6 +1013,12 @@ export default {
       loading: 'Đang tải danh sách người đóng góp...',
       empty: 'Không có thông tin người đóng góp.',
     },
+    membersSection: {
+      title: 'Thành viên',
+      empty: 'Chưa có phân loại thành viên nào được thiết lập.',
+      categorySubtitle: '{count} thành viên trong danh mục này',
+      categoryEmpty: 'Không có thành viên trong danh mục này.',
+    },
   },
 
   // ── Org Chart ──
@@ -1353,6 +1362,15 @@ export default {
       bioFailed: 'Lưu giới thiệu thất bại.',
       photoHint: 'JPEG, PNG hoặc WebP. Tối đa 5 MB.',
     },
+    memberClassification: {
+      title: 'Phân loại thành viên',
+      subtitle: 'Phân công thành viên cộng đồng vào các danh mục tổ chức hiển thị trên trang Giới thiệu.',
+      searchPlaceholder: 'Tìm người dùng để thêm...',
+      noMembers: 'Không có thành viên nào được gán vào danh mục này.',
+      assigned: 'Phân loại thành viên đã được cập nhật.',
+      removed: 'Phân loại thành viên đã được xóa.',
+      alreadyClassified: '{name} đã được phân loại vào {category}.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1411,6 +1429,7 @@ export default {
     contributors: 'Người đóng góp',
     auditLogs: 'Nhật ký kiểm toán',
     siteSettings: 'Cài đặt trang web',
+    memberClassification: 'Phân loại thành viên',
     dataExport: 'Data Export',
     friends: 'Bạn bè',
     following: 'Đang theo dõi',

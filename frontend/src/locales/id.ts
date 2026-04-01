@@ -38,6 +38,9 @@ export default {
     rejected: 'Ditolak',
     copied: 'Disalin!',
     copyFailed: 'Gagal menyalin.',
+    moveUp: 'Naik',
+    moveDown: 'Turun',
+    remove: 'Hapus',
     required: 'Wajib diisi',
     optional: 'Opsional',
     noData: 'Tidak ada data',
@@ -1016,6 +1019,12 @@ export default {
       loading: 'Memuat kontributor...',
       empty: 'Tidak ada informasi kontributor tersedia.',
     },
+    membersSection: {
+      title: 'Anggota',
+      empty: 'Belum ada klasifikasi anggota yang disiapkan.',
+      categorySubtitle: '{count} anggota dalam kategori ini',
+      categoryEmpty: 'Tidak ada anggota dalam kategori ini.',
+    },
   },
 
   // ── Org Chart ──
@@ -1359,6 +1368,15 @@ export default {
       bioFailed: 'Gagal menyimpan bio.',
       photoHint: 'JPEG, PNG, atau WebP. Maks. 5 MB.',
     },
+    memberClassification: {
+      title: 'Klasifikasi Anggota',
+      subtitle: 'Tetapkan anggota komunitas ke kategori organisasi yang ditampilkan di halaman Tentang.',
+      searchPlaceholder: 'Cari pengguna untuk ditambahkan...',
+      noMembers: 'Tidak ada anggota yang ditugaskan ke kategori ini.',
+      assigned: 'Klasifikasi anggota diperbarui.',
+      removed: 'Klasifikasi anggota dihapus.',
+      alreadyClassified: '{name} sudah diklasifikasikan dalam {category}.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1417,6 +1435,7 @@ export default {
     contributors: 'Kontributor',
     auditLogs: 'Log Audit',
     siteSettings: 'Pengaturan Situs',
+    memberClassification: 'Klasifikasi Anggota',
     dataExport: 'Data Export',
     friends: 'Teman',
     following: 'Diikuti',

@@ -37,6 +37,9 @@ export default {
     rejected: 'مرفوض',
     copied: 'تم النسخ!',
     copyFailed: 'فشل النسخ.',
+    moveUp: 'تحريك لأعلى',
+    moveDown: 'تحريك لأسفل',
+    remove: 'إزالة',
     required: 'مطلوب',
     optional: 'اختياري',
     noData: 'لا توجد بيانات',
@@ -1004,6 +1007,12 @@ export default {
       loading: 'جارٍ تحميل المساهمين...',
       empty: 'لا تتوفر معلومات عن المساهمين.',
     },
+    membersSection: {
+      title: 'الأعضاء',
+      empty: 'لم يتم إعداد تصنيفات الأعضاء بعد.',
+      categorySubtitle: '{count} عضو في هذه الفئة',
+      categoryEmpty: 'لا يوجد أعضاء في هذه الفئة.',
+    },
   },
 
   // ── Org Chart ──
@@ -1346,6 +1355,15 @@ export default {
       bioFailed: 'فشل حفظ السيرة الذاتية.',
       photoHint: 'JPEG أو PNG أو WebP. الحد الأقصى 5 ميغابايت.',
     },
+    memberClassification: {
+      title: 'تصنيف الأعضاء',
+      subtitle: 'قم بتعيين أعضاء المجتمع إلى الفئات التنظيمية المعروضة في صفحة حول.',
+      searchPlaceholder: 'ابحث عن مستخدمين لإضافتهم...',
+      noMembers: 'لا يوجد أعضاء مخصصون لهذه الفئة.',
+      assigned: 'تم تحديث تصنيف العضو.',
+      removed: 'تمت إزالة تصنيف العضو.',
+      alreadyClassified: 'تم تصنيف {name} بالفعل ضمن {category}.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1404,6 +1422,7 @@ export default {
     contributors: 'المساهمون',
     auditLogs: 'سجلات التدقيق',
     siteSettings: 'إعدادات الموقع',
+    memberClassification: 'تصنيف الأعضاء',
     dataExport: 'Data Export',
     friends: 'الأصدقاء',
     following: 'المتابَعون',

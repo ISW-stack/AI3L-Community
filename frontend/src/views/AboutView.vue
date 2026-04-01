@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import api from '@/composables/api'
-import { getAboutIntro } from '@/api/about'
+import { getAboutIntro, getClassifiedMembers } from '@/api/about'
 import type { AboutIntroData } from '@/api/about'
+import type { MemberCategory } from '@/types/orgchart'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
-import { User } from 'lucide-vue-next'
+import { User, ChevronRight, Users } from 'lucide-vue-next'
 
 interface Contributor {
   id: number
@@ -15,6 +17,7 @@ interface Contributor {
 }
 
 const { t } = useI18n()
+const router = useRouter()
 const contributors = ref<Contributor[]>([])
 const loading = ref(true)
 const intro = ref<AboutIntroData>({
@@ -24,6 +27,8 @@ const intro = ref<AboutIntroData>({
   chair_bio: '',
 })
 const introLoading = ref(true)
+const memberCategories = ref<MemberCategory[]>([])
+const membersLoading = ref(true)
 
 function getInitial(name: string): string {
   return name.charAt(0).toUpperCase()
@@ -33,6 +38,10 @@ const failedAvatars = ref<Set<number>>(new Set())
 
 function handleAvatarError(id: number) {
   failedAvatars.value.add(id)
+}
+
+function navigateToCategory(key: string) {
+  router.push(`/about/members/${key}`)
 }
 
 async function fetchContributors() {
@@ -56,9 +65,21 @@ async function fetchIntro() {
   }
 }
 
+async function fetchClassifiedMembers() {
+  try {
+    const data = await getClassifiedMembers()
+    memberCategories.value = data.categories
+  } catch {
+    memberCategories.value = []
+  } finally {
+    membersLoading.value = false
+  }
+}
+
 onMounted(() => {
   fetchContributors()
   fetchIntro()
+  fetchClassifiedMembers()
 })
 </script>
 
@@ -140,6 +161,41 @@ onMounted(() => {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Members Classification Section -->
+    <div class="mb-10">
+      <h2 class="text-2xl font-semibold text-foreground mb-6 flex items-center gap-2">
+        <Users :size="24" class="text-brand-600" />
+        {{ t('about.membersSection.title') }}
+      </h2>
+
+      <div v-if="membersLoading">
+        <SkeletonLoader variant="list" :lines="6" />
+      </div>
+
+      <div v-else-if="memberCategories.length === 0" class="text-muted text-sm">
+        {{ t('about.membersSection.empty') }}
+      </div>
+
+      <div v-else class="space-y-2">
+        <button
+          v-for="cat in memberCategories"
+          :key="cat.key"
+          class="w-full flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-lg hover:bg-surface-alt hover:shadow-sm transition cursor-pointer text-left"
+          @click="navigateToCategory(cat.key)"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-medium text-foreground">{{ cat.label }}</span>
+            <span
+              class="inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 text-xs font-semibold rounded-full bg-brand-100 text-brand-700"
+            >
+              {{ cat.count }}
+            </span>
+          </div>
+          <ChevronRight :size="16" class="text-muted" />
+        </button>
       </div>
     </div>
 

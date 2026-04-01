@@ -1,5 +1,10 @@
 import api from '@/composables/api'
-import type { OrgChartResponse, MembersListResponse } from '@/types/orgchart'
+import type {
+  OrgChartResponse,
+  MembersListResponse,
+  ClassifiedMembersResponse,
+  CategoryDetailResponse,
+} from '@/types/orgchart'
 
 export async function getOrgChart(): Promise<OrgChartResponse> {
   const res = await api.get('/about/org-chart')
@@ -107,4 +112,32 @@ export async function removeLeadershipChair(): Promise<void> {
 
 export async function setLeadershipCoChairs(userIds: string[]): Promise<void> {
   await api.put('/about/admin/leadership/co-chairs', { user_ids: userIds })
+}
+
+// ── Member Classifications ──
+
+export async function getClassifiedMembers(): Promise<ClassifiedMembersResponse> {
+  const res = await api.get('/about/classified-members')
+  return res.data
+}
+
+export async function getCategoryMembers(category: string): Promise<CategoryDetailResponse> {
+  const res = await api.get(`/about/classified-members/${category}`)
+  return res.data
+}
+
+export async function assignClassification(
+  userId: string,
+  category: string,
+  displayOrder: number = 0,
+): Promise<void> {
+  await api.put('/about/admin/classifications', {
+    user_id: userId,
+    category,
+    display_order: displayOrder,
+  })
+}
+
+export async function removeClassification(userId: string): Promise<void> {
+  await api.delete(`/about/admin/classifications/${userId}`)
 }

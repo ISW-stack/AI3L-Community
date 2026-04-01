@@ -38,6 +38,9 @@ export default {
     rejected: 'Отклонено',
     copied: 'Скопировано!',
     copyFailed: 'Не удалось скопировать.',
+    moveUp: 'Переместить вверх',
+    moveDown: 'Переместить вниз',
+    remove: 'Удалить',
     required: 'Обязательно',
     optional: 'Необязательно',
     noData: 'Нет данных',
@@ -1014,6 +1017,12 @@ export default {
       loading: 'Загрузка участников...',
       empty: 'Информация об участниках недоступна.',
     },
+    membersSection: {
+      title: 'Участники',
+      empty: 'Классификация участников ещё не настроена.',
+      categorySubtitle: '{count} участник(ов) в этой категории',
+      categoryEmpty: 'В этой категории нет участников.',
+    },
   },
 
   // ── Org Chart ──
@@ -1357,6 +1366,15 @@ export default {
       bioFailed: 'Не удалось сохранить биографию.',
       photoHint: 'JPEG, PNG или WebP. Макс. 5 МБ.',
     },
+    memberClassification: {
+      title: 'Классификация участников',
+      subtitle: 'Назначайте участников сообщества в организационные категории, отображаемые на странице «О нас».',
+      searchPlaceholder: 'Поиск пользователей для добавления...',
+      noMembers: 'В этой категории нет назначенных участников.',
+      assigned: 'Классификация участника обновлена.',
+      removed: 'Классификация участника удалена.',
+      alreadyClassified: '{name} уже классифицирован в категории {category}.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1415,6 +1433,7 @@ export default {
     contributors: 'Участники проекта',
     auditLogs: 'Журнал аудита',
     siteSettings: 'Настройки сайта',
+    memberClassification: 'Классификация участников',
     dataExport: 'Data Export',
     friends: 'Друзья',
     following: 'Подписки',

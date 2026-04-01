@@ -23,6 +23,13 @@ from app.schemas.about import (
     ContributorsListResponse,
     ContributorUpdateRequest,
 )
+from app.schemas.member_classification import (
+    CategoryDetailResponse,
+    CategoryResponse,
+    ClassificationAssignRequest,
+    ClassifiedMemberResponse,
+    ClassifiedMembersResponse,
+)
 from app.schemas.org_chart import (
     MemberCardResponse,
     MemberOrgChartBioUpdateRequest,
@@ -33,8 +40,10 @@ from app.schemas.org_chart import (
     SigOrgChartDescriptionUpdateRequest,
 )
 from app.services import contributor as contributor_service
+from app.services import member_classification as mc_service
 from app.services import org_chart as org_chart_service
 from app.services import site_settings as site_settings_service
+from app.services.member_classification import CATEGORY_LABELS
 
 router = APIRouter(prefix="/about", tags=["about"])
 
@@ -199,6 +208,65 @@ async def list_members(
         offset=offset, limit=page_size, search=search or None
     )
     return MembersListResponse(members=[MemberCardResponse(**m) for m in members], total=total)
+
+
+# ── Member Classifications (About > Members hierarchy) ──────────────────
+
+
+@router.get("/classified-members", response_model=ClassifiedMembersResponse)
+async def get_classified_members(
+    _current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> ClassifiedMembersResponse:
+    """Return all 6 categories with member counts and member lists."""
+    categories = await mc_service.get_classified_members()
+    return ClassifiedMembersResponse(
+        categories=[CategoryResponse(**c) for c in categories]
+    )
+
+
+@router.get("/classified-members/{category}", response_model=CategoryDetailResponse)
+async def get_category_detail(
+    category: str,
+    _current_user: dict[str, Any] = Depends(require_role("MEMBER", "ADMIN", "SUPER_ADMIN")),
+) -> CategoryDetailResponse:
+    """Return members in a single classification category."""
+    members = await mc_service.get_category_members(category)
+    return CategoryDetailResponse(
+        key=category,
+        label=CATEGORY_LABELS.get(category, category),
+        members=[ClassifiedMemberResponse(**m) for m in members],
+    )
+
+
+@router.put("/admin/classifications")
+async def assign_classification(
+    body: ClassificationAssignRequest,
+    current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Assign a user to a classification category. SUPER_ADMIN only."""
+    try:
+        uid = uuid.UUID(body.user_id)
+    except ValueError:
+        raise AppError(ErrorCode.SYS_422, 422, "Invalid user_id format.")
+    await mc_service.assign_classification(
+        user_id=uid,
+        category=body.category,
+        display_order=body.display_order,
+        assigned_by=current_user["id"],
+    )
+    return {"status": "ok"}
+
+
+@router.delete("/admin/classifications/{user_id}")
+async def remove_classification(
+    user_id: uuid.UUID,
+    _current_user: dict[str, Any] = Depends(require_role("SUPER_ADMIN")),
+) -> dict[str, str]:
+    """Remove a user's classification. SUPER_ADMIN only."""
+    deleted = await mc_service.remove_classification(user_id)
+    if not deleted:
+        raise AppError(ErrorCode.NOT_FOUND, 404, "Classification not found.")
+    return {"status": "ok"}
 
 
 @router.put("/org-chart/override/{entity_type}/{entity_id}")

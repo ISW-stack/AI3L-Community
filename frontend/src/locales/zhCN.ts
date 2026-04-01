@@ -34,6 +34,9 @@ export default {
     rejected: '已拒绝',
     copied: '已复制！',
     copyFailed: '复制失败。',
+    moveUp: '上移',
+    moveDown: '下移',
+    remove: '移除',
     required: '必填',
     optional: '选填',
     noData: '暂无数据',
@@ -960,6 +963,12 @@ export default {
       loading: '加载贡献者中...',
       empty: '没有可用的贡献者信息。',
     },
+    membersSection: {
+      title: '成员',
+      empty: '尚未设置成员分类。',
+      categorySubtitle: '此分类共 {count} 位成员',
+      categoryEmpty: '此分类目前没有成员。',
+    },
   },
 
   // -- Org Chart --
@@ -1301,6 +1310,15 @@ export default {
       bioFailed: '简介保存失败。',
       photoHint: 'JPEG、PNG 或 WebP。最大 5 MB。',
     },
+    memberClassification: {
+      title: '成员分类',
+      subtitle: '将社区成员分配到「关于」页面上显示的组织分类。',
+      searchPlaceholder: '搜索用户以添加...',
+      noMembers: '此分类尚未指定成员。',
+      assigned: '成员分类已更新。',
+      removed: '已移除成员分类。',
+      alreadyClassified: '{name} 已被分类至 {category}。',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1357,6 +1375,7 @@ export default {
     contributors: '贡献者',
     auditLogs: '审计日志',
     siteSettings: '站点设置',
+    memberClassification: '成员分类',
     dataExport: 'Data Export',
     friends: '好友',
     following: '关注中',

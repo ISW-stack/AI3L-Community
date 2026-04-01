@@ -38,6 +38,9 @@ export default {
     rejected: 'Abgelehnt',
     copied: 'Kopiert!',
     copyFailed: 'Kopieren fehlgeschlagen.',
+    moveUp: 'Nach oben',
+    moveDown: 'Nach unten',
+    remove: 'Entfernen',
     required: 'Pflichtfeld',
     optional: 'Optional',
     noData: 'Keine Daten',
@@ -1022,6 +1025,12 @@ export default {
       loading: 'Mitwirkende werden geladen...',
       empty: 'Keine Informationen zu Mitwirkenden verfügbar.',
     },
+    membersSection: {
+      title: 'Mitglieder',
+      empty: 'Es wurden noch keine Mitgliederklassifizierungen eingerichtet.',
+      categorySubtitle: '{count} Mitglied(er) in dieser Kategorie',
+      categoryEmpty: 'Keine Mitglieder in dieser Kategorie.',
+    },
   },
 
   // ── Org Chart ──
@@ -1367,6 +1376,15 @@ export default {
       bioFailed: 'Biografie konnte nicht gespeichert werden.',
       photoHint: 'JPEG, PNG oder WebP. Max. 5 MB.',
     },
+    memberClassification: {
+      title: 'Mitgliederklassifizierung',
+      subtitle: 'Weisen Sie Community-Mitgliedern Organisationskategorien zu, die auf der Ueber-Seite angezeigt werden.',
+      searchPlaceholder: 'Benutzer suchen und hinzufuegen...',
+      noMembers: 'Dieser Kategorie sind keine Mitglieder zugewiesen.',
+      assigned: 'Mitgliederklassifizierung aktualisiert.',
+      removed: 'Mitgliederklassifizierung entfernt.',
+      alreadyClassified: '{name} ist bereits in der Kategorie {category} klassifiziert.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1425,6 +1443,7 @@ export default {
     contributors: 'Mitwirkende',
     auditLogs: 'Audit-Protokolle',
     siteSettings: 'Website-Einstellungen',
+    memberClassification: 'Mitgliederklassifizierung',
     dataExport: 'Data Export',
     friends: 'Freunde',
     following: 'Abonniert',

@@ -38,6 +38,9 @@ export default {
     rejected: 'Reddedildi',
     copied: 'Kopyalandı!',
     copyFailed: 'Kopyalama başarısız.',
+    moveUp: 'Yukarı taşı',
+    moveDown: 'Aşağı taşı',
+    remove: 'Kaldır',
     required: 'Zorunlu',
     optional: 'İsteğe bağlı',
     noData: 'Veri yok',
@@ -1014,6 +1017,12 @@ export default {
       loading: 'Katkıda bulunanlar yükleniyor...',
       empty: 'Katkıda bulunan bilgisi mevcut değil.',
     },
+    membersSection: {
+      title: 'Üyeler',
+      empty: 'Henüz üye sınıflandırması ayarlanmamış.',
+      categorySubtitle: 'Bu kategoride {count} üye var',
+      categoryEmpty: 'Bu kategoride üye yok.',
+    },
   },
 
   // ── Org Chart ──
@@ -1357,6 +1366,15 @@ export default {
       bioFailed: 'Biyografi kaydedilemedi.',
       photoHint: 'JPEG, PNG veya WebP. Maks. 5 MB.',
     },
+    memberClassification: {
+      title: 'Üye Sınıflandırması',
+      subtitle: 'Topluluk üyelerini Hakkında sayfasında gösterilen organizasyon kategorilerine atayın.',
+      searchPlaceholder: 'Eklemek için kullanıcı ara...',
+      noMembers: 'Bu kategoriye atanmış üye yok.',
+      assigned: 'Üye sınıflandırması güncellendi.',
+      removed: 'Üye sınıflandırması kaldırıldı.',
+      alreadyClassified: '{name} zaten {category} kategorisinde sınıflandırılmış.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1415,6 +1433,7 @@ export default {
     contributors: 'Katkıda Bulunanlar',
     auditLogs: 'Denetim Kayıtları',
     siteSettings: 'Site Ayarları',
+    memberClassification: 'Üye Sınıflandırması',
     dataExport: 'Data Export',
     friends: 'Arkadaşlar',
     following: 'Takip Edilenler',

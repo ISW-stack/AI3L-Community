@@ -37,6 +37,9 @@ export default {
     rejected: '拒否済み',
     copied: 'コピーしました！',
     copyFailed: 'コピーに失敗しました。',
+    moveUp: '上へ移動',
+    moveDown: '下へ移動',
+    remove: '削除',
     required: '必須',
     optional: '任意',
     noData: 'データなし',
@@ -1006,6 +1009,12 @@ export default {
       loading: 'コントリビューターを読み込み中...',
       empty: 'コントリビューター情報はありません。',
     },
+    membersSection: {
+      title: 'メンバー',
+      empty: 'メンバー分類がまだ設定されていません。',
+      categorySubtitle: 'このカテゴリには{count}名のメンバーがいます',
+      categoryEmpty: 'このカテゴリにメンバーはいません。',
+    },
   },
 
   // ── Org Chart ──
@@ -1350,6 +1359,15 @@ export default {
       bioFailed: '自己紹介の保存に失敗しました。',
       photoHint: 'JPEG、PNG、またはWebP。最大5 MB。',
     },
+    memberClassification: {
+      title: 'メンバー分類',
+      subtitle: 'コミュニティメンバーをAboutページに表示される組織カテゴリに割り当てます。',
+      searchPlaceholder: '追加するユーザーを検索...',
+      noMembers: 'このカテゴリに割り当てられたメンバーはいません。',
+      assigned: 'メンバー分類を更新しました。',
+      removed: 'メンバー分類を削除しました。',
+      alreadyClassified: '{name}はすでに{category}に分類されています。',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1408,6 +1426,7 @@ export default {
     contributors: 'コントリビューター',
     auditLogs: '監査ログ',
     siteSettings: 'サイト設定',
+    memberClassification: 'メンバー分類',
     dataExport: 'Data Export',
     friends: '友達',
     following: 'フォロー中',

@@ -37,6 +37,9 @@ export default {
     rejected: '거절됨',
     copied: '복사됨!',
     copyFailed: '복사에 실패했습니다.',
+    moveUp: '위로 이동',
+    moveDown: '아래로 이동',
+    remove: '제거',
     required: '필수',
     optional: '선택',
     noData: '데이터 없음',
@@ -1004,6 +1007,12 @@ export default {
       loading: '기여자 정보를 불러오는 중...',
       empty: '기여자 정보가 없습니다.',
     },
+    membersSection: {
+      title: '구성원',
+      empty: '아직 구성원 분류가 설정되지 않았습니다.',
+      categorySubtitle: '이 카테고리에 {count}명',
+      categoryEmpty: '이 카테고리에 구성원이 없습니다.',
+    },
   },
 
   // ── Org Chart ──
@@ -1347,6 +1356,15 @@ export default {
       bioFailed: '소개 저장에 실패했습니다.',
       photoHint: 'JPEG, PNG 또는 WebP. 최대 5 MB.',
     },
+    memberClassification: {
+      title: '구성원 분류',
+      subtitle: '커뮤니티 구성원을 소개 페이지에 표시되는 조직 카테고리에 할당합니다.',
+      searchPlaceholder: '추가할 사용자 검색...',
+      noMembers: '이 카테고리에 할당된 구성원이 없습니다.',
+      assigned: '구성원 분류가 업데이트되었습니다.',
+      removed: '구성원 분류가 제거되었습니다.',
+      alreadyClassified: '{name}은(는) 이미 {category}에 분류되어 있습니다.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1405,6 +1423,7 @@ export default {
     contributors: '기여자',
     auditLogs: '감사 로그',
     siteSettings: '사이트 설정',
+    memberClassification: '구성원 분류',
     dataExport: 'Data Export',
     friends: '친구',
     following: '팔로잉',

@@ -38,6 +38,9 @@ export default {
     rejected: 'Rejeté',
     copied: 'Copié !',
     copyFailed: 'Échec de la copie.',
+    moveUp: 'Monter',
+    moveDown: 'Descendre',
+    remove: 'Supprimer',
     required: 'Obligatoire',
     optional: 'Facultatif',
     noData: 'Aucune donnée',
@@ -306,7 +309,7 @@ export default {
         'Parlez-nous un peu de vous et de la raison pour laquelle vous souhaitez rejoindre la communauté.',
       placeholder: 'Décrivez votre parcours et vos intérêts de recherche...',
       submitBtn: 'Soumettre la candidature',
-      success: 'Merci pour votre candidature ! Nous l\'examinerons dans les plus brefs délais. Vous serez notifié(e) dès qu\'une décision sera prise.',
+      success: "Merci pour votre candidature ! Nous l'examinerons dans les plus brefs délais. Vous serez notifié(e) dès qu'une décision sera prise.",
       error: 'Échec de la soumission de la candidature.',
       reasonLabel: 'Pourquoi souhaitez-vous nous rejoindre ?',
       usernamePlaceholder: "Choisissez un nom d'utilisateur",
@@ -1022,6 +1025,12 @@ export default {
       loading: 'Chargement des contributeurs...',
       empty: 'Aucune information sur les contributeurs disponible.',
     },
+    membersSection: {
+      title: 'Membres',
+      empty: "Aucune classification de membres n'a encore été configurée.",
+      categorySubtitle: '{count} membre(s) dans cette categorie',
+      categoryEmpty: 'Aucun membre dans cette categorie.',
+    },
   },
 
   // ── Org Chart ──
@@ -1367,6 +1376,15 @@ export default {
       bioFailed: "Échec de l'enregistrement de la biographie.",
       photoHint: 'JPEG, PNG ou WebP. Max 5 Mo.',
     },
+    memberClassification: {
+      title: 'Classification des membres',
+      subtitle: 'Attribuez des membres de la communaute aux categories organisationnelles affichees sur la page A propos.',
+      searchPlaceholder: 'Rechercher des utilisateurs a ajouter...',
+      noMembers: 'Aucun membre assigne a cette categorie.',
+      assigned: 'Classification du membre mise a jour.',
+      removed: 'Classification du membre supprimee.',
+      alreadyClassified: '{name} est deja classifie dans {category}.',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1425,6 +1443,7 @@ export default {
     contributors: 'Contributeurs',
     auditLogs: "Journaux d'audit",
     siteSettings: 'Paramètres du site',
+    memberClassification: 'Classification des membres',
     dataExport: 'Data Export',
     friends: 'Amis',
     following: 'Abonnements',

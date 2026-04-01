@@ -32,6 +32,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresMember: true },
     },
     {
+      path: '/about/members/:category',
+      name: 'about-member-category',
+      component: () => import('@/views/about/MemberCategoryView.vue'),
+      meta: { requiresAuth: true, requiresMember: true },
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
@@ -142,6 +148,12 @@ const router = createRouter({
           path: 'site-settings',
           name: 'admin-site-settings',
           component: () => import('@/views/admin/SiteSettingsView.vue'),
+          meta: { requiresSuperAdmin: true },
+        },
+        {
+          path: 'member-classification',
+          name: 'admin-member-classification',
+          component: () => import('@/views/admin/MemberClassificationView.vue'),
           meta: { requiresSuperAdmin: true },
         },
         {

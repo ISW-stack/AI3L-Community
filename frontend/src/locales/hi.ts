@@ -38,6 +38,9 @@ export default {
     rejected: 'अस्वीकृत',
     copied: 'कॉपी हो गया!',
     copyFailed: 'कॉपी करने में विफल।',
+    moveUp: 'ऊपर ले जाएं',
+    moveDown: 'नीचे ले जाएं',
+    remove: 'हटाएं',
     required: 'आवश्यक',
     optional: 'वैकल्पिक',
     noData: 'कोई डेटा नहीं',
@@ -1009,6 +1012,12 @@ export default {
       loading: 'योगदानकर्ता लोड हो रहे हैं...',
       empty: 'कोई योगदानकर्ता जानकारी उपलब्ध नहीं।',
     },
+    membersSection: {
+      title: 'सदस्य',
+      empty: 'अभी तक कोई सदस्य वर्गीकरण स्थापित नहीं किया गया है।',
+      categorySubtitle: 'इस श्रेणी में {count} सदस्य',
+      categoryEmpty: 'इस श्रेणी में कोई सदस्य नहीं है।',
+    },
   },
 
   // ── Org Chart ──
@@ -1352,6 +1361,15 @@ export default {
       bioFailed: 'परिचय सहेजने में विफल।',
       photoHint: 'JPEG, PNG, या WebP. अधिकतम 5 MB.',
     },
+    memberClassification: {
+      title: 'सदस्य वर्गीकरण',
+      subtitle: 'समुदाय के सदस्यों को About पृष्ठ पर प्रदर्शित संगठनात्मक श्रेणियों में असाइन करें।',
+      searchPlaceholder: 'जोड़ने के लिए उपयोगकर्ता खोजें...',
+      noMembers: 'इस श्रेणी में कोई सदस्य नियुक्त नहीं है।',
+      assigned: 'सदस्य वर्गीकरण अपडेट किया गया।',
+      removed: 'सदस्य वर्गीकरण हटाया गया।',
+      alreadyClassified: '{name} पहले से ही {category} में वर्गीकृत है।',
+    },
     dataExport: {
       title: 'Data Export',
       securityWarning:
@@ -1410,6 +1428,7 @@ export default {
     contributors: 'योगदानकर्ता',
     auditLogs: 'ऑडिट लॉग',
     siteSettings: 'साइट सेटिंग्स',
+    memberClassification: 'सदस्य वर्गीकरण',
     dataExport: 'Data Export',
     friends: 'मित्र',
     following: 'फ़ॉलो कर रहे हैं',
