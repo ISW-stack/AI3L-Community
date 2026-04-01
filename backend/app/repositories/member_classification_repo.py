@@ -3,7 +3,7 @@ import uuid
 from app.core.database import get_pool
 
 # Valid categories in display order
-CATEGORIES = ("chair", "co_chair", "ec_member", "sig_chair", "member", "sre")
+CATEGORIES = ("chair", "co_chair", "sig_chair", "ec_member", "member", "sre")
 
 
 async def find_all_grouped() -> list[dict]:
@@ -21,8 +21,8 @@ async def find_all_grouped() -> list[dict]:
                 CASE mc.category
                     WHEN 'chair' THEN 0
                     WHEN 'co_chair' THEN 1
-                    WHEN 'ec_member' THEN 2
-                    WHEN 'sig_chair' THEN 3
+                    WHEN 'sig_chair' THEN 2
+                    WHEN 'ec_member' THEN 3
                     WHEN 'member' THEN 4
                     WHEN 'sre' THEN 5
                 END,
