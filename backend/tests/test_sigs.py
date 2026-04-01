@@ -1111,8 +1111,8 @@ class TestGetMySigMembership:
             _clear_overrides()
 
     @pytest.mark.anyio
-    async def test_get_my_membership_not_member_returns_404(self, client):
-        """GET /sigs/{id}/members/me → 404 when not a member."""
+    async def test_get_my_membership_not_member_returns_null_role(self, client):
+        """GET /sigs/{id}/members/me → 200 with role=null when not a member."""
         sig_id = uuid.uuid4()
 
         try:
@@ -1126,6 +1126,7 @@ class TestGetMySigMembership:
                     f"/api/v1/sigs/{sig_id}/members/me",
                     headers={"Authorization": "Bearer fake"},
                 )
-                assert resp.status_code == 404
+                assert resp.status_code == 200
+                assert resp.json()["role"] is None
         finally:
             _clear_overrides()

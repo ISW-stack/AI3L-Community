@@ -149,8 +149,6 @@ async def get_my_sig_membership(
 ) -> SigMyRoleResponse:
     """Return the current user's membership role in this SIG."""
     role = await get_member_role(sig_id, current_user["sub"])
-    if role is None:
-        raise AppError(ErrorCode.SYS_404, 404, "Not a member of this SIG.")
     return SigMyRoleResponse(role=role)
 
 

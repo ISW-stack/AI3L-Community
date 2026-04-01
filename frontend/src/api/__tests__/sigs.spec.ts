@@ -172,8 +172,8 @@ describe('sigs API', () => {
       expect(result).toBe('MEMBER')
     })
 
-    it('returns null when the request fails (user is not a member)', async () => {
-      mockGet.mockRejectedValue(new Error('Not found'))
+    it('returns null when the user is not a member', async () => {
+      mockGet.mockResolvedValue({ data: { role: null } })
 
       const result = await getMySigRole('sig-no-member')
 

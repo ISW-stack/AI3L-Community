@@ -77,12 +77,8 @@ export async function getSigForms(sigId: string, params?: { page?: number; page_
 }
 
 export async function getMySigRole(sigId: string): Promise<string | null> {
-  try {
-    const { data } = await api.get(`/sigs/${sigId}/members/me`)
-    return (data as { role: string }).role
-  } catch {
-    return null
-  }
+  const { data } = await api.get(`/sigs/${sigId}/members/me`)
+  return (data as { role: string | null }).role
 }
 
 export async function leaveSig(sigId: string) {

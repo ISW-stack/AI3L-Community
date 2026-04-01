@@ -64,4 +64,4 @@ class SubAdminAssignRequest(BaseModel):
 
 
 class SigMyRoleResponse(BaseModel):
-    role: str
+    role: str | None

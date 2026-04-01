@@ -77,7 +77,11 @@ async function fetchSigData() {
     const sigData = await getSig(sigId.value)
     sig.value = sigData
     if (auth.isAuthenticated && !auth.isGuest) {
-      userSigRole.value = await getMySigRole(sigId.value)
+      try {
+        userSigRole.value = await getMySigRole(sigId.value)
+      } catch {
+        userSigRole.value = null
+      }
     } else {
       userSigRole.value = null
     }
