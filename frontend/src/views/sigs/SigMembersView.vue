@@ -57,6 +57,12 @@ const memberRoleBadge: Record<string, 'orange' | 'purple' | 'brand'> = {
   MEMBER: 'brand',
 }
 
+const memberRoleLabel: Record<string, string> = {
+  ADMIN: 'Chair',
+  SUB_ADMIN: 'Sub Admin',
+  MEMBER: 'Member',
+}
+
 async function fetchMembers() {
   loading.value = true
   try {
@@ -233,7 +239,7 @@ watch(userSigRole, () => {
               <td class="px-6 py-4 whitespace-nowrap text-muted">@{{ m.username }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <BaseBadge :variant="memberRoleBadge[m.role] || 'brand'" size="sm">
-                  {{ m.role.replace('_', ' ') }}
+                  {{ memberRoleLabel[m.role] || m.role.replace('_', ' ') }}
                 </BaseBadge>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-xs text-muted">
@@ -284,7 +290,7 @@ watch(userSigRole, () => {
               </div>
             </div>
             <BaseBadge :variant="memberRoleBadge[m.role] || 'brand'" size="sm">
-              {{ m.role.replace('_', ' ') }}
+              {{ memberRoleLabel[m.role] || m.role.replace('_', ' ') }}
             </BaseBadge>
           </div>
 

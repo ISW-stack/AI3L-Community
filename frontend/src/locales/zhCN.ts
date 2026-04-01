@@ -1,7 +1,7 @@
 export default {
   branding: {
     title: 'AI3L 社区',
-    tagline: 'AI 语言学习与读写',
+    tagline: '语言学习及素养',
     description: '与推动 AI 语言学习未来的研究者和教育者交流。',
   },
   common: {
@@ -271,7 +271,7 @@ export default {
   },
   footer: {
     copyright: '© 2026 AI3L 社区。保留所有权利。',
-    tagline: 'AI 语言学习与读写',
+    tagline: '语言学习及素养',
   },
   home: {
     welcome: {
@@ -353,7 +353,7 @@ export default {
     },
     unauthenticated: {
       title: 'AI3L 社区',
-      subtitle: 'AI 语言学习与读写 — 学术交流平台',
+      subtitle: '语言学习及素养 — 学术交流平台',
       tagline: '加入推动 AI 语言学习的研究者和教育者。',
       getStartedBtn: '立即开始',
       browseGuestBtn: '以访客身份浏览',
@@ -393,7 +393,7 @@ export default {
     noMorePosts: '没有更多文章了',
     sidebar: {
       aboutTitle: '关于',
-      aboutDescription: '一个为探索 AI 语言学习与读写的研究者和教育者打造的社区。',
+      aboutDescription: '一个为探索 语言学习及素养的研究者和教育者打造的社区。',
       categoriesTitle: '分类',
       allPosts: '所有文章',
       trendingTitle: '热门 (7天)',

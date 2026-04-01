@@ -1,7 +1,7 @@
 export default {
   branding: {
     title: 'AI3L 社群',
-    tagline: 'AI 語言學習與識讀',
+    tagline: 'AI 語言學習及素養',
     description: '與推動 AI 語言學習未來的研究者和教育者交流。',
   },
   common: {
@@ -271,7 +271,7 @@ export default {
   },
   footer: {
     copyright: '© 2026 AI3L 社群。保留所有權利。',
-    tagline: 'AI 語言學習與識讀',
+    tagline: 'AI 語言學習及素養',
   },
   home: {
     welcome: {
@@ -353,7 +353,7 @@ export default {
     },
     unauthenticated: {
       title: 'AI3L 社群',
-      subtitle: 'AI 語言學習與識讀 — 學術交流平台',
+      subtitle: 'AI 語言學習及素養 — 學術交流平台',
       tagline: '加入推動 AI 語言學習的研究者和教育者。',
       getStartedBtn: '立即開始',
       browseGuestBtn: '以訪客身分瀏覽',
@@ -393,7 +393,7 @@ export default {
     noMorePosts: '沒有更多文章了',
     sidebar: {
       aboutTitle: '關於',
-      aboutDescription: '一個為探索 AI 語言學習與識讀的研究者和教育者打造的社群。',
+      aboutDescription: '一個為探索 AI 語言學習及素養的研究者和教育者打造的社群。',
       categoriesTitle: '分類',
       allPosts: '所有文章',
       trendingTitle: '熱門 (7天)',
