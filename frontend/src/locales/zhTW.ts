@@ -356,6 +356,7 @@ export default {
       subtitle: 'AI 語言學習及素養 — 學術交流平台',
       tagline: '加入推動 AI 語言學習的研究者和教育者',
       getStartedBtn: '立即開始',
+      loginBtn: '登入',
       browseGuestBtn: '以訪客身分瀏覽',
       features: {
         forum: {

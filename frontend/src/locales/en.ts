@@ -379,6 +379,7 @@ export default {
       subtitle: 'AI in Language Learning and Literacy — Academic Exchange Platform',
       tagline: 'Join researchers and educators advancing AI-powered language learning.',
       getStartedBtn: 'Get Started',
+      loginBtn: 'Log In',
       browseGuestBtn: 'Browse as Guest',
       features: {
         forum: {

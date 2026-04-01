@@ -374,6 +374,7 @@ export default {
       subtitle: 'AI trong Học Ngôn Ngữ và Văn Chương — Nền tảng Trao đổi Học thuật',
       tagline: 'Tham gia cùng các nhà nghiên cứu và nhà giáo dục thúc đẩy học ngôn ngữ bằng AI.',
       getStartedBtn: 'Bắt đầu ngay',
+      loginBtn: 'Đăng nhập',
       browseGuestBtn: 'Duyệt với tư cách Khách',
       features: {
         forum: {

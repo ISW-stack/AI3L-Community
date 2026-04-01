@@ -370,6 +370,7 @@ export default {
       subtitle: 'AI 語言學習 kah 素養 — 學術交流平台',
       tagline: '佮研究者 kah 教育工作者相連結，共同推動 AI 語言學習。',
       getStartedBtn: '開始使用',
+      loginBtn: '登入',
       browseGuestBtn: '以訪客瀏覽',
       features: {
         forum: {

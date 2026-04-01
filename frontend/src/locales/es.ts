@@ -375,6 +375,7 @@ export default {
       subtitle: 'AI in Language Learning and Literacy — Plataforma de intercambio académico',
       tagline: 'Únase a investigadores y educadores que impulsan el aprendizaje de idiomas con IA.',
       getStartedBtn: 'Comenzar',
+      loginBtn: 'Iniciar sesión',
       browseGuestBtn: 'Explorar como invitado',
       features: {
         forum: {

@@ -356,6 +356,7 @@ export default {
       subtitle: '语言学习及素养 — 学术交流平台',
       tagline: '加入推动 AI 语言学习的研究者和教育者。',
       getStartedBtn: '立即开始',
+      loginBtn: '登录',
       browseGuestBtn: '以访客身份浏览',
       features: {
         forum: {

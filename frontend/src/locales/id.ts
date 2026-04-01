@@ -376,6 +376,7 @@ export default {
       tagline:
         'Bergabunglah dengan peneliti dan pendidik yang memajukan pembelajaran bahasa berbasis AI.',
       getStartedBtn: 'Mulai',
+      loginBtn: 'Masuk',
       browseGuestBtn: 'Jelajahi sebagai Tamu',
       features: {
         forum: {

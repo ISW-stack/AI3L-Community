@@ -374,6 +374,7 @@ export default {
       subtitle: 'AI in Language Learning and Literacy — 学術交流プラットフォーム',
       tagline: 'AI を活用した言語学習を推進する研究者・教育者に参加しましょう。',
       getStartedBtn: '始める',
+      loginBtn: 'ログイン',
       browseGuestBtn: 'ゲストとして閲覧',
       features: {
         forum: {

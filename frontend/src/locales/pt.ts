@@ -374,6 +374,7 @@ export default {
       subtitle: 'AI no Aprendizado e Letramento em Línguas — Plataforma de Intercâmbio Acadêmico',
       tagline: 'Junte-se a pesquisadores e educadores que avançam o aprendizado de línguas com IA.',
       getStartedBtn: 'Começar',
+      loginBtn: 'Entrar',
       browseGuestBtn: 'Navegar como Visitante',
       features: {
         forum: {

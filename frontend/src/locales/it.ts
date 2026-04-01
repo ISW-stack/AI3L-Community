@@ -376,6 +376,7 @@ export default {
       tagline:
         "Unisciti a ricercatori ed educatori che fanno avanzare l'apprendimento linguistico con l'IA.",
       getStartedBtn: 'Inizia',
+      loginBtn: 'Accedi',
       browseGuestBtn: 'Naviga come ospite',
       features: {
         forum: {

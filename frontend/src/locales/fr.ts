@@ -377,6 +377,7 @@ export default {
       tagline:
         "Rejoignez des chercheurs et des éducateurs qui font avancer l'apprentissage des langues assisté par l'IA.",
       getStartedBtn: 'Commencer',
+      loginBtn: 'Se connecter',
       browseGuestBtn: "Naviguer en tant qu'invité",
       features: {
         forum: {

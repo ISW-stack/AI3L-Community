@@ -373,6 +373,7 @@ export default {
       subtitle: 'AI in Language Learning and Literacy — 학술 교류 플랫폼',
       tagline: 'AI 기반 언어 학습을 선도하는 연구자 및 교육자들과 함께하세요.',
       getStartedBtn: '시작하기',
+      loginBtn: '로그인',
       browseGuestBtn: '게스트로 탐색',
       features: {
         forum: {

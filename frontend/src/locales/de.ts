@@ -379,6 +379,7 @@ export default {
       tagline:
         'Verbinden Sie sich mit Forschenden und Lehrenden im Bereich KI-gestütztes Sprachenlernen.',
       getStartedBtn: 'Jetzt starten',
+      loginBtn: 'Anmelden',
       browseGuestBtn: 'Als Gast durchsuchen',
       features: {
         forum: {

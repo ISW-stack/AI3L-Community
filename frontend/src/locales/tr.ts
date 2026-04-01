@@ -376,6 +376,7 @@ export default {
       tagline:
         'Yapay zeka destekli dil öğrenimini ilerletmek için araştırmacı ve eğitimcilere katılın.',
       getStartedBtn: 'Başlayın',
+      loginBtn: 'Giriş Yap',
       browseGuestBtn: 'Misafir Olarak Gözat',
       features: {
         forum: {
