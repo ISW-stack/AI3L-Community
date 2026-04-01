@@ -1012,7 +1012,7 @@ export default {
   about: {
     title: 'Acerca de AI3L Community',
     description:
-      'AI3L Community es una pequeña plataforma de intercambio académico dedicada a la inteligencia artificial en el aprendizaje de idiomas y la alfabetización. Está organizada y dirigida por la profesora Yu-Ju Lan de la Universidad Normal Nacional de Taiwán (NTNU). Este proyecto impulsado por la comunidad tiene como objetivo reunir a investigadores y profesionales que comparten un interés en explorar cómo la IA puede apoyar la educación lingüística y el desarrollo de la alfabetización.',
+      'coming soon',
     introduction: 'Introducción',
     chair: 'Presidente/a',
     coChair: 'Copresidente/a',

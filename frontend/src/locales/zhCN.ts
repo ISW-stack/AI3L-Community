@@ -954,7 +954,7 @@ export default {
   about: {
     title: '关于 AI3L 社区',
     description:
-      'AI3L 社区是一个小型学术交流平台，专注于 AI 语言学习与读写。由国立台湾师范大学（NTNU）篮玉如教授组织召集。此社区驱动项目旨在汇聚对 AI 如何支持语言教育和读写发展有共同兴趣的研究者和实践者。',
+      'coming soon',
     introduction: '简介',
     chair: '主席',
     coChair: '联席主席',

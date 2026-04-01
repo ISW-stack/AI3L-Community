@@ -988,7 +988,7 @@ export default {
   about: {
     title: '關於 AI3L Community',
     description:
-      'AI3L Community 是一个專注於 AI 語言學習 kah 素養ê小型學術交流平台，由國立台灣師範大學藍玉如教授主持。這个社群驅動ê專案旨在集合對 AI 支援語言教育 kah 素養發展有興趣ê研究者 kah 實務工作者。',
+      'coming soon',
     introduction: '簡介',
     chair: '主席',
     coChair: '副主席',

@@ -998,7 +998,7 @@ export default {
   about: {
     title: 'AI3L Community 소개',
     description:
-      'AI3L Community는 AI in Language Learning and Literacy를 위한 소규모 학술 교류 플랫폼입니다. 국립 대만 사범대학교(NTNU)의 Yü-Ju Lan 교수가 주관 및 운영합니다. 이 커뮤니티 기반 프로젝트는 AI가 어떻게 언어 교육과 리터러시 개발을 지원할 수 있는지에 관심 있는 연구자 및 실무자들을 한데 모으는 것을 목표로 합니다.',
+      'coming soon',
     introduction: '소개',
     chair: '의장',
     coChair: '공동 의장',

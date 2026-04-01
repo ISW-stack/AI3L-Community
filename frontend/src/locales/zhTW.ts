@@ -954,7 +954,7 @@ export default {
   about: {
     title: '關於 AI3L 社群',
     description:
-      'AI3L 社群是一個小型學術交流平台，專注於 AI 語言學習與識讀。由國立臺灣師範大學（NTNU）籃玉如教授組織召集。此社群驅動專案旨在匯聚對 AI 如何支持語言教育和識讀發展有共同興趣的研究者和實踐者。',
+      'coming soon',
     introduction: '簡介',
     chair: '主持人',
     coChair: '共同主持人',

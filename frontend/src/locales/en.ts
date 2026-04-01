@@ -1006,7 +1006,7 @@ export default {
   about: {
     title: 'About AI3L Community',
     description:
-      'AI3L Community is a small academic exchange platform for AI in Language Learning and Literacy. It is organized and convened by Professor Yu-Ju Lan from the National Taiwan Normal University (NTNU). This community-driven project aims to bring together researchers and practitioners who share an interest in exploring how AI can support language education and literacy development.',
+      'coming soon',
     introduction: 'Introduction',
     chair: 'Chair',
     coChair: 'Co-Chair',

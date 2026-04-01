@@ -1004,7 +1004,7 @@ export default {
   about: {
     title: 'Giới thiệu AI3L Community',
     description:
-      'AI3L Community là một nền tảng trao đổi học thuật nhỏ về AI trong Học Ngôn Ngữ và Văn Chương. Nền tảng được tổ chức và điều phối bởi Giáo sư Yu-Ju Lan từ Đại học Sư phạm Quốc gia Đài Loan (NTNU). Dự án do cộng đồng dẫn dắt này nhằm mục đích tập hợp các nhà nghiên cứu và nhà thực hành có chung mối quan tâm trong việc khám phá cách AI có thể hỗ trợ giáo dục ngôn ngữ và phát triển văn chương.',
+      'coming soon',
     introduction: 'Giới thiệu',
     chair: 'Chủ tịch',
     coChair: 'Đồng chủ tịch',
