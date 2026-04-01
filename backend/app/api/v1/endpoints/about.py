@@ -252,7 +252,7 @@ async def assign_classification(
         user_id=uid,
         category=body.category,
         display_order=body.display_order,
-        assigned_by=current_user["id"],
+        assigned_by=uuid.UUID(current_user["sub"]),
     )
     return {"status": "ok"}
 
