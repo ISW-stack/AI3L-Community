@@ -118,6 +118,8 @@ async function confirmClearAll() {
   try {
     await bulkDeleteNotifications()
     notifications.value = []
+    setPage(1)
+    updateFromResponse(0)
     await notificationStore.fetchUnreadCount()
     toast.show(t('notifications.deleteSuccess'), 'success')
   } catch {

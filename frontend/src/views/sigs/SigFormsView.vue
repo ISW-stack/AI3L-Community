@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePagination } from '@/composables/usePagination'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -65,9 +65,19 @@ watch(sigId, () => {
   fetchForms()
 })
 
+onMounted(fetchForms)
+
 // Re-fetch when the current user's SIG role changes (e.g. promotion via WebSocket)
 // so that user_is_sig_admin flags on form cards are up-to-date.
+// If role is null on mount (SigLayout hasn't resolved it yet), skip the first
+// watch trigger to avoid a duplicate request from the initial resolution.
+// If role is already set (tab navigation within SigLayout), treat all triggers as real.
+let initialRoleResolved = userSigRole.value != null
 watch(userSigRole, () => {
+  if (!initialRoleResolved) {
+    initialRoleResolved = true
+    return
+  }
   fetchForms()
 })
 
@@ -221,8 +231,6 @@ function handleStartExport(formId: string) {
 }
 
 const exporting = computed(() => formExport.exportStatus.value === 'pending')
-
-onMounted(fetchForms)
 </script>
 
 <template>

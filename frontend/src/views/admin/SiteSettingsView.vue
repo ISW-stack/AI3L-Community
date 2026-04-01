@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   getAboutIntro,
@@ -144,8 +144,12 @@ const leadershipData = ref<LeadershipData | null>(null)
 const leadershipLoading = ref(true)
 const chairSearchQuery = ref('')
 const coChairSearchQuery = ref('')
-const chairSearchResults = ref<Array<{ id: string; display_name: string; avatar_url: string | null }>>([])
-const coChairSearchResults = ref<Array<{ id: string; display_name: string; avatar_url: string | null }>>([])
+const chairSearchResults = ref<
+  Array<{ id: string; display_name: string; avatar_url: string | null }>
+>([])
+const coChairSearchResults = ref<
+  Array<{ id: string; display_name: string; avatar_url: string | null }>
+>([])
 const chairSearching = ref(false)
 const coChairSearching = ref(false)
 
@@ -170,7 +174,9 @@ function onChairSearchInput() {
   chairSearchTimer = setTimeout(async () => {
     chairSearching.value = true
     try {
-      const res = await api.get('/users/search', { params: { q: chairSearchQuery.value.trim(), limit: 5 } })
+      const res = await api.get('/users/search', {
+        params: { q: chairSearchQuery.value.trim(), limit: 5 },
+      })
       chairSearchResults.value = res.data
     } catch {
       chairSearchResults.value = []
@@ -210,7 +216,9 @@ function onCoChairSearchInput() {
   coChairSearchTimer = setTimeout(async () => {
     coChairSearching.value = true
     try {
-      const res = await api.get('/users/search', { params: { q: coChairSearchQuery.value.trim(), limit: 5 } })
+      const res = await api.get('/users/search', {
+        params: { q: coChairSearchQuery.value.trim(), limit: 5 },
+      })
       coChairSearchResults.value = res.data
     } catch {
       coChairSearchResults.value = []
@@ -236,7 +244,9 @@ async function addCoChair(user: { id: string }) {
 
 async function removeCoChair(userId: string) {
   if (!leadershipData.value) return
-  const newIds = leadershipData.value.co_chairs.filter((c) => c.user_id !== userId).map((c) => c.user_id)
+  const newIds = leadershipData.value.co_chairs
+    .filter((c) => c.user_id !== userId)
+    .map((c) => c.user_id)
   try {
     await setLeadershipCoChairs(newIds)
     await fetchLeadership()
@@ -248,6 +258,11 @@ async function removeCoChair(userId: string) {
 onMounted(() => {
   fetchIntro()
   fetchLeadership()
+})
+
+onUnmounted(() => {
+  if (chairSearchTimer) clearTimeout(chairSearchTimer)
+  if (coChairSearchTimer) clearTimeout(coChairSearchTimer)
 })
 </script>
 
@@ -276,17 +291,25 @@ onMounted(() => {
           <!-- Chair -->
           <div>
             <h3 class="text-base font-medium text-foreground mb-3">Chair</h3>
-            <div v-if="leadershipData?.chair" class="flex items-center gap-3 mb-3 p-3 bg-surface-alt rounded-lg">
+            <div
+              v-if="leadershipData?.chair"
+              class="flex items-center gap-3 mb-3 p-3 bg-surface-alt rounded-lg"
+            >
               <img
                 v-if="leadershipData.chair.avatar_url"
                 :src="leadershipData.chair.avatar_url"
                 :alt="leadershipData.chair.display_name"
                 class="w-10 h-10 rounded-full object-cover border border-border"
               />
-              <div v-else class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-semibold">
+              <div
+                v-else
+                class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-semibold"
+              >
                 {{ leadershipData.chair.display_name.charAt(0).toUpperCase() }}
               </div>
-              <span class="text-sm font-medium text-foreground">{{ leadershipData.chair.display_name }}</span>
+              <span class="text-sm font-medium text-foreground">{{
+                leadershipData.chair.display_name
+              }}</span>
               <button
                 class="ml-auto text-xs text-danger-600 hover:text-danger-700"
                 @click="removeChair"
@@ -302,7 +325,10 @@ onMounted(() => {
                 class="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface text-foreground"
                 @input="onChairSearchInput"
               />
-              <div v-if="chairSearchResults.length > 0" class="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-auto">
+              <div
+                v-if="chairSearchResults.length > 0"
+                class="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-auto"
+              >
                 <button
                   v-for="user in chairSearchResults"
                   :key="user.id"
@@ -315,7 +341,10 @@ onMounted(() => {
                     :alt="user.display_name"
                     class="w-8 h-8 rounded-full object-cover"
                   />
-                  <div v-else class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-semibold">
+                  <div
+                    v-else
+                    class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-semibold"
+                  >
                     {{ user.display_name.charAt(0).toUpperCase() }}
                   </div>
                   <span>{{ user.display_name }}</span>
@@ -327,7 +356,10 @@ onMounted(() => {
           <!-- Co-Chairs -->
           <div>
             <h3 class="text-base font-medium text-foreground mb-3">Co-Chairs</h3>
-            <div v-if="leadershipData && leadershipData.co_chairs.length > 0" class="space-y-2 mb-3">
+            <div
+              v-if="leadershipData && leadershipData.co_chairs.length > 0"
+              class="space-y-2 mb-3"
+            >
               <div
                 v-for="coChair in leadershipData.co_chairs"
                 :key="coChair.user_id"
@@ -339,7 +371,10 @@ onMounted(() => {
                   :alt="coChair.display_name"
                   class="w-10 h-10 rounded-full object-cover border border-border"
                 />
-                <div v-else class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-semibold">
+                <div
+                  v-else
+                  class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-semibold"
+                >
                   {{ coChair.display_name.charAt(0).toUpperCase() }}
                 </div>
                 <span class="text-sm font-medium text-foreground">{{ coChair.display_name }}</span>
@@ -359,7 +394,10 @@ onMounted(() => {
                 class="w-full px-3 py-2 text-sm border border-border rounded-lg bg-surface text-foreground"
                 @input="onCoChairSearchInput"
               />
-              <div v-if="coChairSearchResults.length > 0" class="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-auto">
+              <div
+                v-if="coChairSearchResults.length > 0"
+                class="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-auto"
+              >
                 <button
                   v-for="user in coChairSearchResults"
                   :key="user.id"
@@ -372,7 +410,10 @@ onMounted(() => {
                     :alt="user.display_name"
                     class="w-8 h-8 rounded-full object-cover"
                   />
-                  <div v-else class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-semibold">
+                  <div
+                    v-else
+                    class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-semibold"
+                  >
                     {{ user.display_name.charAt(0).toUpperCase() }}
                   </div>
                   <span>{{ user.display_name }}</span>

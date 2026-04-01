@@ -265,11 +265,12 @@ describe('SigMembersView permission checks', () => {
   })
 
   describe('canEdit (Actions column visibility)', () => {
-    it('hides Actions column for SUB_ADMIN users', async () => {
+    it('shows Actions column for SUB_ADMIN users', async () => {
+      // SUB_ADMIN is included in canEdit (isSigSubAdmin), so they see the Actions column
       const { wrapper } = await mountView({ role: 'SUB_ADMIN' })
       const headers = wrapper.findAll('th')
       const hasActions = headers.some((h) => h.text().toLowerCase().includes('actions'))
-      expect(hasActions).toBe(false)
+      expect(hasActions).toBe(true)
     })
 
     it('shows Actions column for SIG ADMIN users', async () => {

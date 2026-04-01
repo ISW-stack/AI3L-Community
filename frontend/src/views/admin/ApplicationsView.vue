@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date'
 import type { Application } from '@/types'
 import { listApplications, reviewApplication } from '@/api/admin'
 import { getErrorMessage } from '@/utils/error'
@@ -12,7 +13,7 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const applications = ref<Application[]>([])
 const total = ref(0)
 const loading = ref(false)
@@ -66,12 +67,8 @@ function setStatusFilter(s: string) {
   fetchApplications()
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+function formatDateLocalized(iso: string): string {
+  return formatDate(iso, locale.value)
 }
 
 onMounted(fetchApplications)
@@ -124,7 +121,7 @@ onMounted(fetchApplications)
               }}</BaseBadge>
             </div>
             <p class="text-sm text-muted mb-1">{{ app.description }}</p>
-            <p class="text-xs text-muted">{{ formatDate(app.created_at) }}</p>
+            <p class="text-xs text-muted">{{ formatDateLocalized(app.created_at) }}</p>
           </div>
 
           <div v-if="app.status === 'PENDING'" class="flex gap-2 shrink-0">

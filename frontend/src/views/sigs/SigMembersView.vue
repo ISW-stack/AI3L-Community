@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatDate } from '@/utils/date'
 import { useI18n } from 'vue-i18n'
@@ -155,8 +155,17 @@ async function handleAssignSubAdmin(userId: string) {
 
 onMounted(fetchMembers)
 
-// Re-fetch when the current user's SIG role changes so action buttons and badges stay in sync.
+// Re-fetch when the current user's SIG role changes (e.g. WebSocket promotion)
+// so action buttons and badges stay in sync.
+// If role is null on mount (SigLayout hasn't resolved it yet), skip the first
+// watch trigger to avoid a duplicate request from the initial resolution.
+// If role is already set (tab navigation within SigLayout), treat all triggers as real.
+let initialRoleResolved = userSigRole.value != null
 watch(userSigRole, () => {
+  if (!initialRoleResolved) {
+    initialRoleResolved = true
+    return
+  }
   fetchMembers()
 })
 </script>

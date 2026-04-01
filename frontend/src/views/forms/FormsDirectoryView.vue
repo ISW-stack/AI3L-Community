@@ -41,8 +41,13 @@ function handleSearchInput(value: string) {
   searchQuery.value = value
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    setPage(1)
-    fetchForms()
+    // If page is already 1, watch(page) won't fire — call fetchForms directly.
+    // Otherwise setPage(1) triggers watch(page) which calls fetchForms.
+    if (page.value === 1) {
+      fetchForms()
+    } else {
+      setPage(1)
+    }
   }, 300)
 }
 
@@ -239,9 +244,20 @@ watch(page, fetchForms)
         <BaseButton>{{ t('formsDirectory.createForm') }}</BaseButton>
       </router-link>
     </div>
-    <div class="flex items-center gap-2.5 bg-amber-50 border border-amber-200 px-4 py-3 rounded-lg mb-6">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-        <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3A5.25 5.25 0 0 0 12 1.5Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z" clip-rule="evenodd" />
+    <div
+      class="flex items-center gap-2.5 bg-amber-50 border border-amber-200 px-4 py-3 rounded-lg mb-6"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5 text-amber-500 shrink-0"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3A5.25 5.25 0 0 0 12 1.5Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+          clip-rule="evenodd"
+        />
       </svg>
       <p class="text-sm font-medium text-amber-800">{{ t('formsDirectory.privateNotice') }}</p>
     </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date'
 import type { AuditLog } from '@/types'
 import { getAuditLogs } from '@/api/admin'
 import { useFetchPaginated } from '@/composables/useFetchPaginated'
@@ -10,7 +11,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import BaseBreadcrumb from '@/components/base/BaseBreadcrumb.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const showFilters = ref(false)
 const filterDateFrom = ref('')
@@ -87,12 +88,8 @@ function nextPage() {
     fetchLogs()
   }
 }
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+function formatDateLocalized(iso: string): string {
+  return formatDate(iso, locale.value)
 }
 
 onMounted(fetchLogs)
@@ -196,7 +193,7 @@ onMounted(fetchLogs)
         >
           <div class="flex items-center justify-between">
             <BaseBadge variant="neutral" class="font-mono text-xs">{{ log.action }}</BaseBadge>
-            <span class="text-xs text-muted">{{ formatDate(log.created_at) }}</span>
+            <span class="text-xs text-muted">{{ formatDateLocalized(log.created_at) }}</span>
           </div>
           <div class="text-sm text-foreground">
             <span v-if="log.display_name">{{ log.display_name }}</span>
@@ -245,7 +242,7 @@ onMounted(fetchLogs)
                 class="border-b border-border last:border-0 hover:bg-surface-alt transition"
               >
                 <td class="px-4 py-3 text-muted whitespace-nowrap">
-                  {{ formatDate(log.created_at) }}
+                  {{ formatDateLocalized(log.created_at) }}
                 </td>
                 <td class="px-4 py-3 text-foreground">
                   <span v-if="log.display_name">{{ log.display_name }}</span>
