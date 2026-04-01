@@ -414,7 +414,8 @@ onMounted(fetchData)
                           :to="`/users/${m.user_id}`"
                           class="text-sm font-medium text-foreground hover:text-brand-600 transition truncate block"
                         >
-                          {{ t('orgChart.sigChairPrefix') }} {{ m.display_name }}
+                          <span class="block text-xs text-muted font-normal">{{ t('orgChart.sigChairPrefix') }}</span>
+                          {{ m.display_name }}
                         </router-link>
                         <p
                           v-if="m.org_chart_bio"
