@@ -108,6 +108,37 @@ async def delete_by_user_id(user_id: uuid.UUID) -> bool:
         return bool(result == "DELETE 1")
 
 
+async def find_unclassified_members() -> list[dict]:
+    """Return active non-guest users who have no classification at all."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT u.id AS user_id, u.username, u.display_name, u.avatar_url
+            FROM users u
+            WHERE u.is_deleted = false
+              AND u.role != 'GUEST'
+              AND u.id NOT IN (SELECT mc.user_id FROM member_classifications mc)
+            ORDER BY u.display_name ASC
+            """
+        )
+        return [dict(r) for r in rows]
+
+
+async def count_unclassified_members() -> int:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        val = await conn.fetchval(
+            """
+            SELECT COUNT(*) FROM users u
+            WHERE u.is_deleted = false
+              AND u.role != 'GUEST'
+              AND u.id NOT IN (SELECT mc.user_id FROM member_classifications mc)
+            """
+        )
+        return int(val)
+
+
 async def count_in_category(category: str) -> int:
     pool = get_pool()
     async with pool.acquire() as conn:

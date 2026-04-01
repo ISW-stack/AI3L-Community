@@ -67,6 +67,8 @@ function onSearchInput(categoryKey: string) {
 
 function isUserAlreadyClassified(userId: string): string | null {
   for (const cat of categories.value) {
+    // Skip 'member' — those users are auto-populated (unclassified) and can be freely reassigned
+    if (cat.key === 'member') continue
     if (cat.members.some((m) => m.user_id === userId)) {
       return cat.label
     }

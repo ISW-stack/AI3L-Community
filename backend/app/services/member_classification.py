@@ -19,29 +19,42 @@ CATEGORY_LABELS: dict[str, str] = {
 }
 
 
+def _to_member_dict(r: dict) -> dict:
+    return {
+        "user_id": str(r["user_id"]),
+        "username": r["username"],
+        "display_name": r["display_name"],
+        "avatar_url": resolve_avatar_url(r["avatar_url"]),
+    }
+
+
 async def get_classified_members() -> list[dict]:
-    """Return all categories with their members (for the About > Members page)."""
+    """Return all categories with their members (for the About > Members page).
+
+    The 'member' category automatically includes all active non-guest users
+    who are not assigned to any other category.
+    """
     rows = await mc_repo.find_all_grouped()
     counts = await mc_repo.count_by_category()
+    unclassified = await mc_repo.find_unclassified_members()
+    unclassified_count = len(unclassified)
 
     categories = []
     for cat_key in CATEGORIES:
-        members = []
-        for r in rows:
-            if r["category"] == cat_key:
-                members.append(
-                    {
-                        "user_id": str(r["user_id"]),
-                        "username": r["username"],
-                        "display_name": r["display_name"],
-                        "avatar_url": resolve_avatar_url(r["avatar_url"]),
-                    }
-                )
+        members = [_to_member_dict(r) for r in rows if r["category"] == cat_key]
+
+        if cat_key == "member":
+            # Append unclassified users after manually classified ones
+            members.extend(_to_member_dict(r) for r in unclassified)
+            count = counts.get(cat_key, 0) + unclassified_count
+        else:
+            count = counts.get(cat_key, 0)
+
         categories.append(
             {
                 "key": cat_key,
                 "label": CATEGORY_LABELS[cat_key],
-                "count": counts.get(cat_key, 0),
+                "count": count,
                 "members": members,
             }
         )
@@ -49,19 +62,21 @@ async def get_classified_members() -> list[dict]:
 
 
 async def get_category_members(category: str) -> list[dict]:
-    """Return members in a single category."""
+    """Return members in a single category.
+
+    For 'member', also includes unclassified active non-guest users.
+    """
     if category not in CATEGORIES:
         raise ValidationError(f"Invalid category: {category}")
+
     rows = await mc_repo.find_by_category(category)
-    return [
-        {
-            "user_id": str(r["user_id"]),
-            "username": r["username"],
-            "display_name": r["display_name"],
-            "avatar_url": resolve_avatar_url(r["avatar_url"]),
-        }
-        for r in rows
-    ]
+    members = [_to_member_dict(r) for r in rows]
+
+    if category == "member":
+        unclassified = await mc_repo.find_unclassified_members()
+        members.extend(_to_member_dict(r) for r in unclassified)
+
+    return members
 
 
 async def assign_classification(
