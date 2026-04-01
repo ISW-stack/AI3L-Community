@@ -260,7 +260,7 @@ describe('OrgChartView', () => {
 
   // ── Leads vs regular members ─────────────────────────────────────────
 
-  it('shows leads with avatar and role badge', async () => {
+  it('shows only ADMIN leads as "Chair XXX" without role badge', async () => {
     mockGetOrgChart.mockResolvedValue({
       sigs: [fakeSigMany],
       categories: [],
@@ -273,17 +273,17 @@ describe('OrgChartView', () => {
     await flushPromises()
 
     const leadRows = wrapper.findAll('.lead-member-row')
-    expect(leadRows.length).toBe(2)
-    expect(leadRows[0].text()).toContain('Lead One')
-    expect(leadRows[1].text()).toContain('Lead Two')
+    // Only ADMIN (Lead One) should appear, not SUB_ADMIN (Lead Two)
+    expect(leadRows.length).toBe(1)
+    expect(leadRows[0].text()).toContain('Chair Lead One')
 
-    // Leads should have role badges
+    // No role badges inside member panel
     const badges = wrapper.find('.member-panel').findAll('.badge')
     const adminBadge = badges.filter((b) => b.text().includes('ADMIN'))
-    expect(adminBadge.length).toBeGreaterThan(0)
+    expect(adminBadge.length).toBe(0)
   })
 
-  it('shows regular members without avatar', async () => {
+  it('does not show SUB_ADMIN or regular members', async () => {
     mockGetOrgChart.mockResolvedValue({
       sigs: [fakeSigMany],
       categories: [],
@@ -294,71 +294,15 @@ describe('OrgChartView', () => {
     await wrapper.find('.sig-expand-btn').trigger('click')
     await flushPromises()
 
-    const regularRows = wrapper.findAll('.regular-member-row')
-    // Default truncation: only first 10 shown
-    expect(regularRows.length).toBe(10)
-    expect(regularRows[0].text()).toContain('Regular Member 0')
-  })
-
-  // ── Member truncation ────────────────────────────────────────────────
-
-  it('truncates regular members at 10 with +N more button', async () => {
-    mockGetOrgChart.mockResolvedValue({
-      sigs: [fakeSigMany],
-      categories: [],
-    })
-    const wrapper = mountView()
-    await flushPromises()
-
-    await wrapper.find('.sig-expand-btn').trigger('click')
-    await flushPromises()
-
-    const regularRows = wrapper.findAll('.regular-member-row')
-    expect(regularRows.length).toBe(10)
-
-    // Should show "+5 more" button (15 total - 10 shown = 5 hidden)
-    const panelText = wrapper.find('.member-panel').text()
-    expect(panelText).toContain('+5 more')
-  })
-
-  it('toggles show more/less for regular members', async () => {
-    mockGetOrgChart.mockResolvedValue({
-      sigs: [fakeSigMany],
-      categories: [],
-    })
-    const wrapper = mountView()
-    await flushPromises()
-
-    await wrapper.find('.sig-expand-btn').trigger('click')
-    await flushPromises()
-
-    // Initially 10 members shown
-    expect(wrapper.findAll('.regular-member-row').length).toBe(10)
-
-    // Click "+5 more" to show all
-    const moreButtons = wrapper.findAll('.member-panel button')
-    const showMoreBtn = moreButtons.filter((b) => b.text().includes('more'))
-    expect(showMoreBtn.length).toBe(1)
-    await showMoreBtn[0].trigger('click')
-    await flushPromises()
-
-    // Now all 15 regular members shown
-    expect(wrapper.findAll('.regular-member-row').length).toBe(15)
-    expect(wrapper.find('.member-panel').text()).toContain('Show less')
-
-    // Click "Show less" to truncate again
-    const lessButtons = wrapper.findAll('.member-panel button')
-    const showLessBtn = lessButtons.filter((b) => b.text().includes('Show less'))
-    expect(showLessBtn.length).toBe(1)
-    await showLessBtn[0].trigger('click')
-    await flushPromises()
-
-    expect(wrapper.findAll('.regular-member-row').length).toBe(10)
+    // SUB_ADMIN should not appear
+    expect(wrapper.text()).not.toContain('Lead Two')
+    // Regular members should not appear
+    expect(wrapper.text()).not.toContain('Regular Member 0')
   })
 
   // ── Empty SIG ────────────────────────────────────────────────────────
 
-  it('shows "No members" for empty SIG', async () => {
+  it('shows "No chairs assigned" for empty SIG', async () => {
     mockGetOrgChart.mockResolvedValue({
       sigs: [fakeSigEmpty],
       categories: [],
@@ -370,7 +314,7 @@ describe('OrgChartView', () => {
     await flushPromises()
 
     expect(wrapper.find('.member-panel').exists()).toBe(true)
-    expect(wrapper.find('.member-panel').text()).toContain('No members')
+    expect(wrapper.find('.member-panel').text()).toContain('No chairs assigned')
   })
 
   // ── Hidden SIG ───────────────────────────────────────────────────────

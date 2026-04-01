@@ -1036,6 +1036,8 @@ export default {
     sigDescription: '組織図の説明',
     myBio: '自己紹介（この SIG 用）',
     hidden: '非表示',
+    sigChairPrefix: '委員長',
+    noChairsAssigned: '委員長が未割り当てです',
   },
 
   // ── Members ──

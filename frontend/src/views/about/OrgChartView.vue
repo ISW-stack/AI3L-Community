@@ -40,14 +40,6 @@ const failedLeaderAvatars = ref<Set<string>>(new Set())
 
 const expandedSigs = ref<Set<string>>(new Set())
 const failedAvatars = ref<Set<string>>(new Set())
-const showAllMembers = ref<Set<string>>(new Set())
-const MEMBER_PREVIEW_COUNT = 10
-
-const roleBadgeVariant: Record<string, 'danger' | 'orange' | 'brand' | 'neutral' | 'purple'> = {
-  ADMIN: 'danger',
-  SUB_ADMIN: 'orange',
-  MEMBER: 'brand',
-}
 
 async function fetchData() {
   loading.value = true
@@ -152,27 +144,10 @@ function toggleSig(sigId: string) {
   else expandedSigs.value.add(sigId)
 }
 
-function toggleShowAll(sigId: string) {
-  if (showAllMembers.value.has(sigId)) showAllMembers.value.delete(sigId)
-  else showAllMembers.value.add(sigId)
-}
-
 function groupMembers(members: OrgChartMember[]) {
   return {
-    leads: members.filter((m) => m.role === 'ADMIN' || m.role === 'SUB_ADMIN'),
-    regular: members.filter((m) => m.role === 'MEMBER'),
+    leads: members.filter((m) => m.role === 'ADMIN'),
   }
-}
-
-function visibleRegularMembers(sig: OrgChartSig) {
-  const regular = groupMembers(sig.members).regular
-  if (showAllMembers.value.has(sig.id)) return regular
-  return regular.slice(0, MEMBER_PREVIEW_COUNT)
-}
-
-function hiddenMemberCount(sig: OrgChartSig) {
-  const total = groupMembers(sig.members).regular.length
-  return Math.max(0, total - MEMBER_PREVIEW_COUNT)
 }
 
 function handleAvatarError(userId: string) {
@@ -187,7 +162,7 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="max-w-6xl mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold text-foreground mb-2">{{ t('orgChart.title') }}</h1>
     <p class="text-muted mb-8">{{ t('orgChart.subtitle') }}</p>
 
@@ -408,7 +383,7 @@ onMounted(fetchData)
                     {{ sig.org_chart_description || sig.description }}
                   </p>
 
-                  <!-- Leads: ADMIN + SUB_ADMIN with avatar -->
+                  <!-- SIG Chairs (ADMIN only) -->
                   <div v-if="groupMembers(sig.members).leads.length > 0" class="member-section">
                     <div
                       v-for="m in groupMembers(sig.members).leads"
@@ -439,13 +414,8 @@ onMounted(fetchData)
                           :to="`/users/${m.user_id}`"
                           class="text-sm font-medium text-foreground hover:text-brand-600 transition truncate block"
                         >
-                          {{ m.display_name }}
+                          {{ t('orgChart.sigChairPrefix') }} {{ m.display_name }}
                         </router-link>
-                        <div class="flex items-center gap-1.5 mt-0.5">
-                          <BaseBadge :variant="roleBadgeVariant[m.role] || 'neutral'" size="sm">
-                            {{ m.role.replace('_', ' ') }}
-                          </BaseBadge>
-                        </div>
                         <p
                           v-if="m.org_chart_bio"
                           class="text-xs text-muted mt-0.5 line-clamp-1"
@@ -465,55 +435,9 @@ onMounted(fetchData)
                     </div>
                   </div>
 
-                  <!-- Divider (only if both leads and regular exist) -->
-                  <div
-                    v-if="
-                      groupMembers(sig.members).leads.length > 0 &&
-                      groupMembers(sig.members).regular.length > 0
-                    "
-                    class="border-t border-border my-2"
-                  ></div>
-
-                  <!-- Regular members: name only, no avatar -->
-                  <div v-if="groupMembers(sig.members).regular.length > 0" class="member-section">
-                    <div
-                      v-for="m in visibleRegularMembers(sig)"
-                      :key="m.user_id"
-                      class="regular-member-row"
-                    >
-                      <span class="text-muted text-xs mr-1">•</span>
-                      <router-link
-                        :to="`/users/${m.user_id}`"
-                        class="text-sm text-foreground hover:text-brand-600 transition truncate"
-                      >
-                        {{ m.display_name }}
-                      </router-link>
-                      <!-- Edit bio button -->
-                      <button
-                        v-if="canEditMyBio(sig) && m.user_id === auth.user?.id"
-                        class="p-1 text-muted hover:text-foreground transition shrink-0 ml-auto"
-                        :title="t('orgChart.editBio')"
-                        @click.stop="startEditBio(sig.id, m.org_chart_bio)"
-                      >
-                        <Pencil class="w-3 h-3" />
-                      </button>
-                    </div>
-                    <!-- Show more / less -->
-                    <button
-                      v-if="hiddenMemberCount(sig) > 0 || showAllMembers.has(sig.id)"
-                      class="text-xs text-brand-600 hover:text-brand-700 mt-1 transition"
-                      @click.stop="toggleShowAll(sig.id)"
-                    >
-                      <span v-if="!showAllMembers.has(sig.id)"
-                        >+{{ hiddenMemberCount(sig) }} more</span
-                      >
-                      <span v-else>Show less</span>
-                    </button>
-                  </div>
-
                   <!-- Empty state -->
-                  <p v-if="sig.members.length === 0" class="text-xs text-muted text-center py-2">
-                    No members
+                  <p v-if="groupMembers(sig.members).leads.length === 0" class="text-xs text-muted text-center py-2">
+                    {{ t('orgChart.noChairsAssigned') }}
                   </p>
 
                   <!-- Inline bio edit form -->
@@ -879,14 +803,6 @@ onMounted(fetchData)
   display: flex;
   align-items: flex-start;
   gap: 0.625rem;
-}
-
-/* Regular member row (no avatar) */
-.regular-member-row {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
 }
 
 /* ── Inline edit forms ────────────────────────────── */

@@ -1053,6 +1053,8 @@ export default {
     sigDescription: 'Organigramm-Beschreibung',
     myBio: 'Meine Biografie (für diese SIG)',
     hidden: 'Ausgeblendet',
+    sigChairPrefix: 'Vorsitz',
+    noChairsAssigned: 'Kein Vorsitzender zugewiesen',
   },
 
   // ── Members ──

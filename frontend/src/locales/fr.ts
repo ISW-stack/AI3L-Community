@@ -1053,6 +1053,8 @@ export default {
     sigDescription: "Description dans l'organigramme",
     myBio: 'Ma biographie (pour ce GIS)',
     hidden: 'Masqué',
+    sigChairPrefix: 'Président',
+    noChairsAssigned: 'Aucun président assigné',
   },
 
   // ── Members ──

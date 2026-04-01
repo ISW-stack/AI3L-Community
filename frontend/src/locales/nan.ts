@@ -1024,6 +1024,8 @@ export default {
     sigDescription: '組織架構圖說明',
     myBio: '我ê簡介（用佇這个 SIG）',
     hidden: '隱藏',
+    sigChairPrefix: '主席',
+    noChairsAssigned: '猶未指派主席',
   },
 
   // ── Members ──

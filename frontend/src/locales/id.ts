@@ -1046,6 +1046,8 @@ export default {
     sigDescription: 'Deskripsi Bagan Organisasi',
     myBio: 'Bio Saya (untuk SIG ini)',
     hidden: 'Tersembunyi',
+    sigChairPrefix: 'Ketua',
+    noChairsAssigned: 'Belum ada ketua yang ditunjuk',
   },
 
   // ── Members ──

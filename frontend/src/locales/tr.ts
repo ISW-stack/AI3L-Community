@@ -1044,6 +1044,8 @@ export default {
     sigDescription: 'Organizasyon Şeması Açıklaması',
     myBio: 'Biyografim (bu SIG için)',
     hidden: 'Gizli',
+    sigChairPrefix: 'Başkan',
+    noChairsAssigned: 'Başkan atanmadı',
   },
 
   // ── Members ──

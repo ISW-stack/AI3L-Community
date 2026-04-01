@@ -1034,6 +1034,8 @@ export default {
     sigDescription: 'وصف المخطط التنظيمي',
     myBio: 'سيرتي الذاتية (لهذه المجموعة)',
     hidden: 'مخفي',
+    sigChairPrefix: 'رئيس',
+    noChairsAssigned: 'لم يتم تعيين رئيس بعد',
   },
 
   // ── Members ──

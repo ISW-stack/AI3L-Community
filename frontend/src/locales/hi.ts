@@ -1039,6 +1039,8 @@ export default {
     sigDescription: 'संगठन चार्ट विवरण',
     myBio: 'मेरा परिचय (इस SIG के लिए)',
     hidden: 'छिपा हुआ',
+    sigChairPrefix: 'अध्यक्ष',
+    noChairsAssigned: 'कोई अध्यक्ष नियुक्त नहीं',
   },
 
   // ── Members ──

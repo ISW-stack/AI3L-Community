@@ -1034,6 +1034,8 @@ export default {
     sigDescription: '조직도 설명',
     myBio: '내 소개 (이 SIG용)',
     hidden: '숨김',
+    sigChairPrefix: '위원장',
+    noChairsAssigned: '위원장이 배정되지 않았습니다',
   },
 
   // ── Members ──

@@ -1040,6 +1040,8 @@ export default {
     sigDescription: 'Mô tả sơ đồ tổ chức',
     myBio: 'Giới thiệu của tôi (cho SIG này)',
     hidden: 'Ẩn',
+    sigChairPrefix: 'Chủ tịch',
+    noChairsAssigned: 'Chưa có chủ tịch được chỉ định',
   },
 
   // ── Members ──

@@ -990,6 +990,8 @@ export default {
     sigDescription: '組織架構描述',
     myBio: '我的簡介（用於此 SIG）',
     hidden: '隱藏',
+    sigChairPrefix: '主席',
+    noChairsAssigned: '尚未指派主席',
   },
 
   // -- Members --

@@ -1043,6 +1043,8 @@ export default {
     sigDescription: 'Org Chart Description',
     myBio: 'My Bio (for this SIG)',
     hidden: 'Hidden',
+    sigChairPrefix: 'Chair',
+    noChairsAssigned: 'No chairs assigned',
   },
 
   // ── Members ──

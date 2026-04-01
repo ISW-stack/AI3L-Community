@@ -1044,6 +1044,8 @@ export default {
     sigDescription: 'Описание для орг. схемы',
     myBio: 'Моя биография (для этой SIG)',
     hidden: 'Скрыто',
+    sigChairPrefix: 'Председатель',
+    noChairsAssigned: 'Председатель не назначен',
   },
 
   // ── Members ──

@@ -1049,6 +1049,8 @@ export default {
     sigDescription: 'Descripción en el organigrama',
     myBio: 'Mi biografía (para este GIE)',
     hidden: 'Oculto',
+    sigChairPrefix: 'Presidente',
+    noChairsAssigned: 'Sin presidente asignado',
   },
 
   // ── Members ──
