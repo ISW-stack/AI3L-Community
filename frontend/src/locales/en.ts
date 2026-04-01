@@ -288,7 +288,7 @@ export default {
 
   // ── Footer ──
   footer: {
-    copyright: '© 2025 AI3L Community. All rights reserved.',
+    copyright: '© 2026 AI3L Community. All rights reserved.',
     tagline: 'AI in Language Learning and Literacy',
   },
 

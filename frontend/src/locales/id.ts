@@ -286,7 +286,7 @@ export default {
     unreadMessages: '{count} pesan belum dibaca',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. Semua hak dilindungi.',
+    copyright: '© 2026 AI3L Community. Semua hak dilindungi.',
     tagline: 'AI dalam Pembelajaran Bahasa dan Literasi',
   },
 

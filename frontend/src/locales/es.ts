@@ -286,7 +286,7 @@ export default {
     unreadMessages: '{count} mensaje sin leer | {count} mensajes sin leer',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. Todos los derechos reservados.',
+    copyright: '© 2026 AI3L Community. Todos los derechos reservados.',
     tagline: 'IA en el aprendizaje de idiomas y alfabetización',
   },
 

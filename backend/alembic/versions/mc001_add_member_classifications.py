@@ -5,7 +5,7 @@ Categories: chair, co_chair, ec_member, sig_chair, sre, member.
 Each user can only appear in one category (UNIQUE on user_id).
 
 Revision ID: mc001
-Revises: merge320005
+Revises: b1c2d3e4f5g6
 Create Date: 2026-04-01
 """
 

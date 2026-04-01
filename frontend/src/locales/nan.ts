@@ -282,7 +282,7 @@ export default {
     unreadMessages: '{count} 條未讀訊息',
   },
   footer: {
-    copyright: '© 2025 AI3L Community。版權所有。',
+    copyright: '© 2026 AI3L Community。版權所有。',
     tagline: 'AI 語言學習 kah 素養',
   },
 

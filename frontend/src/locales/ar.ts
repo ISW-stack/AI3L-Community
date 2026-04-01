@@ -284,7 +284,7 @@ export default {
     unreadMessages: '{count} رسالة غير مقروءة | {count} رسائل غير مقروءة',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. جميع الحقوق محفوظة.',
+    copyright: '© 2026 AI3L Community. جميع الحقوق محفوظة.',
     tagline: 'الذكاء الاصطناعي في تعلم اللغة والقراءة والكتابة',
   },
 

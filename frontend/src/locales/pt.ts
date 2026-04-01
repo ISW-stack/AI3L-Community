@@ -286,7 +286,7 @@ export default {
     unreadMessages: '{count} mensagem não lida | {count} mensagens não lidas',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. Todos os direitos reservados.',
+    copyright: '© 2026 AI3L Community. Todos os direitos reservados.',
     tagline: 'AI no Aprendizado e Letramento em Línguas',
   },
 

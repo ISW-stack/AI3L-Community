@@ -286,7 +286,7 @@ export default {
     unreadMessages: '未読メッセージ {count} 件',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. 全著作権所有。',
+    copyright: '© 2026 AI3L Community. 全著作権所有。',
     tagline: 'AIと言語学習・リテラシー',
   },
 

@@ -286,7 +286,7 @@ export default {
     unreadMessages: '{count} tin nhắn chưa đọc',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. Bảo lưu mọi quyền.',
+    copyright: '© 2026 AI3L Community. Bảo lưu mọi quyền.',
     tagline: 'AI trong Học Ngôn Ngữ và Văn Chương',
   },
 

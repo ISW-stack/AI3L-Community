@@ -265,7 +265,7 @@ async def remove_classification(
     """Remove a user's classification. SUPER_ADMIN only."""
     deleted = await mc_service.remove_classification(user_id)
     if not deleted:
-        raise AppError(ErrorCode.NOT_FOUND, 404, "Classification not found.")
+        raise AppError(ErrorCode.SYS_404, 404, "Classification not found.")
     return {"status": "ok"}
 
 

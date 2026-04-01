@@ -287,7 +287,7 @@ export default {
       '{count} непрочитанное сообщение | {count} непрочитанных сообщения | {count} непрочитанных сообщений',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. Все права защищены.',
+    copyright: '© 2026 AI3L Community. Все права защищены.',
     tagline: 'AI в обучении языкам и грамотности',
   },
 

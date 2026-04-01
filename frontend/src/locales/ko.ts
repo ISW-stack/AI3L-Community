@@ -285,7 +285,7 @@ export default {
     unreadMessages: '읽지 않은 메시지 {count}개',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. All rights reserved.',
+    copyright: '© 2026 AI3L Community. All rights reserved.',
     tagline: '언어 학습과 리터러시를 위한 AI',
   },
 

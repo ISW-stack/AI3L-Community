@@ -61,10 +61,10 @@ onMounted(fetchMembers)
     <!-- Back link -->
     <button
       class="flex items-center gap-1 text-sm text-muted hover:text-foreground transition mb-6"
-      @click="router.push('/about')"
+      @click="router.push('/about/members')"
     >
       <ArrowLeft :size="16" />
-      {{ t('about.title') }}
+      {{ t('members.title') }}
     </button>
 
     <h1 class="text-2xl sm:text-3xl font-bold text-foreground mb-2">{{ categoryLabel }}</h1>

@@ -477,18 +477,18 @@ onUnmounted(() => {
             {{ t('nav.forum') }}
           </router-link>
           <router-link
-            to="/qa"
-            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-            @click="mobileMenuOpen = false"
-          >
-            {{ t('nav.qa') }}
-          </router-link>
-          <router-link
             to="/sigs"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.sigs') }}
+          </router-link>
+          <router-link
+            to="/events"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.events') }}
           </router-link>
           <router-link
             to="/albums"
@@ -498,21 +498,60 @@ onUnmounted(() => {
             {{ t('nav.albums') }}
           </router-link>
           <router-link
+            to="/qa"
+            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+            @click="mobileMenuOpen = false"
+          >
+            {{ t('nav.qa') }}
+          </router-link>
+          <router-link
             to="/forms"
             class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
             @click="mobileMenuOpen = false"
           >
             {{ t('nav.forms') }}
           </router-link>
-          <router-link
-            to="/events"
-            class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-            @click="mobileMenuOpen = false"
-          >
-            {{ t('nav.events') }}
-          </router-link>
 
           <template v-if="auth.isAuthenticated">
+            <!-- About accordion (mobile) -->
+            <template v-if="!auth.isGuest">
+              <button
+                type="button"
+                @click="mobileAboutOpen = !mobileAboutOpen"
+                class="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted uppercase tracking-wider hover:bg-surface-alt rounded-lg transition"
+                :aria-expanded="mobileAboutOpen"
+              >
+                {{ t('nav.about') }}
+                <ChevronDown
+                  class="w-4 h-4 transition-transform"
+                  :class="{ 'rotate-180': mobileAboutOpen }"
+                  aria-hidden="true"
+                />
+              </button>
+              <Transition name="mobile-admin">
+                <div v-if="mobileAboutOpen" class="space-y-1">
+                  <router-link
+                    to="/about"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.introduction') }}</router-link
+                  >
+                  <router-link
+                    to="/about/org-chart"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.orgChart') }}</router-link
+                  >
+                  <router-link
+                    to="/about/members"
+                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
+                    @click="mobileMenuOpen = false"
+                    >{{ t('nav.members') }}</router-link
+                  >
+                </div>
+              </Transition>
+            </template>
+            <!-- Admin (mobile) -->
             <template v-if="auth.isAdmin">
               <button
                 type="button"
@@ -571,45 +610,6 @@ onUnmounted(() => {
                     class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition border-t border-border"
                     @click="mobileMenuOpen = false"
                     >{{ t('nav.auditLogs') }}</router-link
-                  >
-                </div>
-              </Transition>
-            </template>
-
-            <!-- About accordion (mobile) -->
-            <template v-if="!auth.isGuest">
-              <button
-                type="button"
-                @click="mobileAboutOpen = !mobileAboutOpen"
-                class="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-muted uppercase tracking-wider hover:bg-surface-alt rounded-lg transition"
-                :aria-expanded="mobileAboutOpen"
-              >
-                {{ t('nav.about') }}
-                <ChevronDown
-                  class="w-4 h-4 transition-transform"
-                  :class="{ 'rotate-180': mobileAboutOpen }"
-                  aria-hidden="true"
-                />
-              </button>
-              <Transition name="mobile-admin">
-                <div v-if="mobileAboutOpen" class="space-y-1">
-                  <router-link
-                    to="/about"
-                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                    @click="mobileMenuOpen = false"
-                    >{{ t('nav.introduction') }}</router-link
-                  >
-                  <router-link
-                    to="/about/org-chart"
-                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                    @click="mobileMenuOpen = false"
-                    >{{ t('nav.orgChart') }}</router-link
-                  >
-                  <router-link
-                    to="/about/members"
-                    class="nav-link-mobile block px-3 py-2 text-sm text-foreground hover:bg-surface-alt rounded-lg transition"
-                    @click="mobileMenuOpen = false"
-                    >{{ t('nav.members') }}</router-link
                   >
                 </div>
               </Transition>

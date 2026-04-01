@@ -288,7 +288,7 @@ export default {
     unreadMessages: '{count} ungelesene Nachricht | {count} ungelesene Nachrichten',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. Alle Rechte vorbehalten.',
+    copyright: '© 2026 AI3L Community. Alle Rechte vorbehalten.',
     tagline: 'KI im Sprachlernen und der Alphabetisierung',
   },
 

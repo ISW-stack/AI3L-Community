@@ -287,7 +287,7 @@ export default {
     unreadMessages: '{count} okunmamış mesaj',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. Tüm hakları saklıdır.',
+    copyright: '© 2026 AI3L Community. Tüm hakları saklıdır.',
     tagline: 'Dil Öğrenme ve Okuryazarlıkta Yapay Zeka',
   },
 

@@ -270,7 +270,7 @@ export default {
     unreadMessages: '{count} 則未讀訊息',
   },
   footer: {
-    copyright: '© 2025 AI3L 社群。保留所有權利。',
+    copyright: '© 2026 AI3L 社群。保留所有權利。',
     tagline: 'AI 語言學習與識讀',
   },
   home: {

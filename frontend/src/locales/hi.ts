@@ -285,7 +285,7 @@ export default {
     unreadMessages: '{count} अपठित संदेश',
   },
   footer: {
-    copyright: '© 2025 AI3L Community. सर्वाधिकार सुरक्षित।',
+    copyright: '© 2026 AI3L Community. सर्वाधिकार सुरक्षित।',
     tagline: 'भाषा शिक्षण और साक्षरता में AI',
   },
 
