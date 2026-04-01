@@ -2,7 +2,7 @@ export default {
   branding: {
     title: 'AI3L 社区',
     tagline: '语言学习及素养',
-    description: '与推动 AI 语言学习未来的研究者和教育者交流。',
+    description: '与推动 AI 语言学习未来的研究者和教育者交流',
   },
   common: {
     save: '保存',
