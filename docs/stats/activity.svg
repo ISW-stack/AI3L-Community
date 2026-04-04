@@ -27,6 +27,6 @@
 <rect x="534.3" y="25.0" width="33.4" height="107.0" class="bar" rx="3.0"/>
 <text x="551.0" y="37.0" text-anchor="middle" font-size="9" class="t cnt">625</text>
 <text x="551.0" y="148" text-anchor="middle" font-size="10" class="t lbl">Mar</text>
-<rect x="585.7" y="120.0" width="33.4" height="12.0" class="bar" rx="3.0"/>
+<rect x="585.7" y="119.7" width="33.4" height="12.3" class="bar" rx="3.0"/>
 <text x="602.3" y="148" text-anchor="middle" font-size="10" class="t lbl">Apr</text>
 </svg>
