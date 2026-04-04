@@ -653,7 +653,7 @@ async def find_expired_file_messages(cutoff: object, limit: int = 1000) -> list[
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT id, conversation_id, attachment_key, attachment_size, sender_id
+            SELECT id, conversation_id, attachment_key, attachment_size, sender_id, content
             FROM dm_messages
             WHERE attachment_expires_at IS NOT NULL
               AND attachment_expires_at < $1
@@ -684,27 +684,42 @@ async def clear_message_attachment(message_id: uuid.UUID) -> None:
         )
 
 
-async def clear_message_attachment_if_present(message_id: uuid.UUID) -> bool:
+async def clear_message_attachment_if_present(message_id: uuid.UUID, *, has_content: bool = True) -> bool:
     """CAS-style clear: NULL out attachment fields only if attachment_key is not already NULL.
 
-    Returns True if fields were actually cleared, False if already NULL (idempotent).
+    If the message has no text content (attachment-only), deletes the entire row instead
+    of clearing the attachment fields, to avoid violating the CHECK constraint that
+    requires at least one of content or attachment_key to be non-NULL.
+
+    Returns True if fields were actually cleared (or row deleted), False if already NULL (idempotent).
     """
     pool = get_pool()
     async with pool.acquire() as conn:
-        result = await conn.execute(
-            """
-            UPDATE dm_messages
-            SET attachment_key = NULL,
-                attachment_name = NULL,
-                attachment_size = NULL,
-                attachment_expires_at = NULL
-            WHERE id = $1
-              AND attachment_key IS NOT NULL
-            """,
-            message_id,
-        )
-        # asyncpg returns e.g. "UPDATE 1" or "UPDATE 0"
-        return cast(bool, result == "UPDATE 1")
+        if has_content:
+            result = await conn.execute(
+                """
+                UPDATE dm_messages
+                SET attachment_key = NULL,
+                    attachment_name = NULL,
+                    attachment_size = NULL,
+                    attachment_expires_at = NULL
+                WHERE id = $1
+                  AND attachment_key IS NOT NULL
+                """,
+                message_id,
+            )
+            return cast(bool, result == "UPDATE 1")
+        else:
+            # Attachment-only message: delete the row to satisfy the CHECK constraint
+            result = await conn.execute(
+                """
+                DELETE FROM dm_messages
+                WHERE id = $1
+                  AND attachment_key IS NOT NULL
+                """,
+                message_id,
+            )
+            return cast(bool, result == "DELETE 1")
 
 
 async def find_expired_text_messages(cutoff: object, limit: int = 1000) -> list[dict]:

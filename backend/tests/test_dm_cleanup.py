@@ -129,6 +129,7 @@ class TestCleanupDmExpiredFiles:
                 "attachment_key": "dm/test/file.pdf",
                 "attachment_size": 1024,
                 "sender_id": sender_id,
+                "content": "some text",
             }
         ]
 
@@ -155,7 +156,48 @@ class TestCleanupDmExpiredFiles:
         mock_pool.assert_awaited_once()
         mock_delete_file.assert_awaited_once_with("dm/test/file.pdf")
         mock_decrement.assert_awaited_once_with(sender_id, 1024)
-        mock_clear_if_present.assert_awaited_once_with(msg_id)
+        mock_clear_if_present.assert_awaited_once_with(msg_id, has_content=True)
+        assert result == {"deleted": 1, "errors": 0}
+
+    @pytest.mark.anyio
+    async def test_cleanup_files_attachment_only_deletes_row(self):
+        """Attachment-only messages (content=NULL) are deleted instead of just cleared."""
+        msg_id = uuid.uuid4()
+        sender_id = uuid.uuid4()
+        expired_msgs = [
+            {
+                "id": msg_id,
+                "attachment_key": "dm/test/file.pdf",
+                "attachment_size": 2048,
+                "sender_id": sender_id,
+                "content": None,
+            }
+        ]
+
+        mock_find = AsyncMock(return_value=expired_msgs)
+        mock_clear_if_present = AsyncMock(return_value=True)
+        mock_decrement = AsyncMock()
+        mock_delete_file = AsyncMock()
+
+        with (
+            patch("app.tasks.cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.tasks.dm_cleanup._ensure_pool", new_callable=AsyncMock),
+            patch("app.repositories.dm_repo.find_expired_file_messages", mock_find),
+            patch(
+                "app.repositories.dm_repo.clear_message_attachment_if_present",
+                mock_clear_if_present,
+            ),
+            patch("app.repositories.user_repo.decrement_storage_used", mock_decrement),
+            patch("app.core.async_storage.delete_file", mock_delete_file),
+        ):
+            from app.tasks.dm_cleanup import _cleanup_files
+
+            result = await _cleanup_files()
+
+        # has_content=False triggers DELETE instead of UPDATE
+        mock_clear_if_present.assert_awaited_once_with(msg_id, has_content=False)
+        mock_delete_file.assert_awaited_once_with("dm/test/file.pdf")
+        mock_decrement.assert_awaited_once_with(sender_id, 2048)
         assert result == {"deleted": 1, "errors": 0}
 
     @pytest.mark.anyio

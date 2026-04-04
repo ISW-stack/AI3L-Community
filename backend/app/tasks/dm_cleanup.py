@@ -43,7 +43,9 @@ async def _cleanup_files() -> dict:
                 attachment_size = msg.get("attachment_size")
                 sender_id = msg.get("sender_id")
 
-                cleared = await dm_repo.clear_message_attachment_if_present(msg["id"])
+                cleared = await dm_repo.clear_message_attachment_if_present(
+                    msg["id"], has_content=msg.get("content") is not None
+                )
                 if not cleared:
                     continue
 
