@@ -36,7 +36,7 @@ const {
 // Create ban modal
 const showCreateModal = ref(false)
 const newIp = ref('')
-const newReason = ref('')
+const newReason = ref('BAD REQUEST')
 const newExpiresAt = ref('')
 const creating = ref(false)
 
@@ -52,7 +52,7 @@ async function handleCreate() {
     await createIpBan(payload)
     showCreateModal.value = false
     newIp.value = ''
-    newReason.value = ''
+    newReason.value = 'BAD REQUEST'
     newExpiresAt.value = ''
     toast.show(t('admin.ipBans.message.created'), 'success')
     await fetchBans()
