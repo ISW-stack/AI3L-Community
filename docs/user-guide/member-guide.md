@@ -376,7 +376,7 @@ The left panel shows all your conversations:
 
 | Content Type | Retention Period |
 |---|---|
-| Text messages | **30 days** (automatically deleted by a scheduled cleanup task) |
+| Text messages | **7 days** (automatically deleted by a scheduled cleanup task) |
 | File attachments | **3 days** (automatically deleted by a scheduled cleanup task) |
 
 ### Conversation Limits

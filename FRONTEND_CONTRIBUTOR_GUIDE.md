@@ -300,7 +300,7 @@ frontend/src/
 │   ├── useWebSocket.ts    WebSocket connection, PING/PONG, auto-reconnect
 │   └── __tests__/         Composable unit tests
 ├── router/        Route definitions and navigation guards (index.ts)
-├── stores/        Pinia global state (auth.ts, notifications.ts, toast.ts)
+├── stores/        Pinia global state (auth.ts, notifications.ts, dm.ts, toast.ts)
 │   └── __tests__/ Store unit tests
 ├── types/         TypeScript interfaces for all data models
 ├── utils/         Utility functions (datetime, html including renderMentions)
@@ -337,7 +337,7 @@ re-add it, as it causes a dark background on OS-level dark mode systems.
 ### Running Tests
 
 ```bash
-# Frontend unit tests (1,163 tests across 86 files)
+# Frontend unit tests (~3,080+ tests across 178 files)
 cd frontend && npx vitest run
 
 # TypeScript type checking

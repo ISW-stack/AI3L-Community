@@ -43,7 +43,7 @@ Each guide covers the features available to that role. Higher roles should read 
 | Create SIGs / albums | — | — | Yes | Yes |
 | Admin Panel (dashboard, users, reports) | — | — | Yes | Yes |
 | Pin posts | — | — | Yes | Yes |
-| Bulk-delete posts *(coming soon)* | — | — | Yes | Yes |
+| Bulk-delete posts | — | — | Yes | Yes |
 | Manage categories / invite codes | — | — | Yes | Yes |
 | Audit logs | — | — | — | Yes |
 | IP ban management | — | — | — | Yes |
@@ -66,7 +66,7 @@ Each guide covers the features available to that role. Higher roles should read 
 - Each user has a **1 GB storage quota** for uploaded files.
 - Individual file uploads are limited to **50 MB**.
 - Uploaded files may undergo **virus scanning** (VirusTotal integration); files pending scan return a 202 status and cannot be downloaded until cleared.
-- DM file attachments expire after **3 days**; DM text messages expire after **30 days**.
+- DM file attachments expire after **3 days**; DM text messages expire after **7 days**.
 
 ### Language Support
 - The platform supports **17 languages** via the language switcher in the navbar.

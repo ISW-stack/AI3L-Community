@@ -64,12 +64,12 @@ backend/app/
 | 4.1 | VirusTotal integration (DB + endpoint) | ✅ Done |
 | 4.2 | Bulk operations endpoints | ✅ Done |
 | 4.3 | Reports endpoint pagination | ✅ Done |
-| 4.4 | Audit log date range filtering | ⬜ Pending |
+| 4.4 | Audit log date range filtering | ✅ Done |
 | 4.5 | Invite code revocation | ✅ Done |
 | 4.6 | Single category GET endpoint | ✅ Done |
 | 5.1 | Celery cross-platform async | ✅ Done |
 | 5.2 | Rate limits via environment variables | ✅ Done |
-| 5.3 | Event bus periodic retry (Celery Beat) | ⬜ Pending |
+| 5.3 | Event bus periodic retry (Celery Beat) | ✅ Done |
 | 5.4 | WebSocket guest timeout on activity | ✅ Done |
 | 5.5 | WebSocket Redis Pub/Sub reconnection | ✅ Done |
 | 6.1 | Invite code race condition (atomic UPDATE) | ✅ Done |
@@ -244,22 +244,19 @@ response body.
 
 ---
 
-### 4.4 Audit Log Date Filtering
+### 4.4 Audit Log Date Filtering — ✅ DONE
 
-**Difficulty: Beginner**
-**Files:** `app/services/audit.py`, `app/api/v1/endpoints/audit.py`
+**Files:** `app/services/audit.py`, `app/repositories/audit_repo.py`,
+`app/api/v1/endpoints/users.py`
 
-**Problem:**
-`list_audit_logs()` has no date range filtering. Admins cannot query logs
-for a specific time period without scrolling through all entries.
-
-**Fix:**
-Add optional `date_from` and `date_to` query parameters. In the repo
-query, add:
+Done. `GET /admin/audit-logs` accepts optional `date_from` and `date_to`
+query parameters (`DateType`). The repo query appends:
 ```sql
 AND created_at >= $X::timestamptz  -- if date_from provided
 AND created_at <= $Y::timestamptz  -- if date_to provided
 ```
+The endpoint validates `date_from <= date_to` and returns HTTP 422
+otherwise.
 
 ---
 
@@ -308,22 +305,17 @@ invite codes, reactions, and more. See `docs/environment.md` for the full list.
 
 ---
 
-### 5.3 Event Bus Periodic Retry (Celery Beat)
+### 5.3 Event Bus Periodic Retry (Celery Beat) — ✅ DONE
 
-**Difficulty: Intermediate**
-**Files:** `app/core/event_bus.py`, `app/celery_app.py`
+**Files:** `app/tasks/event_retry.py`, `app/celery_app.py`
 
-**Background:**
-Failed events are persisted to a Redis list with `retry_count`. However,
-there is no background task to retry them. They accumulate indefinitely.
-
-**Fix:**
-Create a periodic Celery Beat task (e.g., every 5 minutes) that:
-1. Reads failed events from the Redis list.
-2. Re-dispatches events where `retry_count < MAX_RETRIES` (e.g., 3).
-3. Increments `retry_count` on each attempt.
-4. Logs at ERROR and removes events that have exceeded `MAX_RETRIES`.
-5. Apply a Redis key TTL (24h) as a safety net.
+Done. `retry_failed_events` is a Celery Beat task (every 5 min) defined
+in `app/tasks/event_retry.py`. It reads failed events from `event_bus:failed`
+in Redis, re-dispatches events where `retry_count < MAX_RETRIES`, increments
+the counter on each attempt, logs at ERROR and removes events that exceed
+`MAX_RETRIES`. A per-event dedup key (`event_bus:dedup:{hash}`) prevents
+duplicate execution within the same run. Events are evicted after 24 h via
+Redis TTL as a safety net.
 
 ---
 
@@ -402,7 +394,7 @@ user receive HTTP 429.
 ### Running Tests
 
 ```bash
-# Unit tests (608 tests)
+# Unit tests (~3,750+ tests)
 cd backend && python -m pytest tests/ -v
 
 # Integration tests (requires Docker — PostgreSQL + Redis)
@@ -438,7 +430,7 @@ Rate-limited endpoints require `check_rate_limit` to be mocked as well.
 | Setting | Location | Current value |
 |---|---|---|
 | DB pool | `app/core/database.py` | min=10, max=30, timeout=60s |
-| Rate limits | `app/core/constants.py` | Hardcoded (pending 5.2) |
+| Rate limits | `app/core/constants.py` | Configurable via `RATE_LIMIT_*` env vars |
 | CSRF | `app/core/csrf.py` | Double-submit cookie pattern |
 | Auth | `app/core/deps.py` | HttpOnly cookie + Bearer fallback |
 | Event bus | `app/core/event_bus.py` | In-process async, MAX_RETRIES=2, Redis persistence |

@@ -20,7 +20,7 @@ All SQL resides in `app/repositories/`, with services handling business logic, e
 WebSocket connections use ticket-based authentication (30-second TTL, single-use) to avoid mixing session cookies with the WebSocket upgrade. Server-to-client push leverages Redis Pub/Sub for fan-out across multiple Uvicorn workers without requiring sticky sessions.
 
 **Comprehensive test coverage.**
-2,900+ backend unit tests with fully mocked asyncpg and Redis (no running database required), plus integration tests against the real database layer. 2,700+ frontend Vitest tests across 135+ files. All suites run in CI on every pull request.
+3,750+ backend unit tests with fully mocked asyncpg and Redis (no running database required), plus integration tests against the real database layer. 3,000+ frontend Vitest tests across 175+ files. All suites run in CI on every pull request.
 
 **Production-oriented infrastructure.**
 Docker Compose setup, Nginx TLS termination, automatic Alembic migrations on startup, Celery workers with memory-leak guards, Redis with eviction policy, and support for PostgreSQL backups, certificate renewal, GDPR compliance, and optional monitoring (Datadog/Sentry).
@@ -345,12 +345,12 @@ Ensure your Docker Desktop has ≥8 GB allocated. Check individual service limit
 # Backend — no running database required (asyncpg and Redis are fully mocked)
 cd backend
 pytest tests/ -v
-# ~2,900 unit tests + integration tests (set INTEGRATION_TEST=1 for integration)
+# ~3,750 unit tests + integration tests (set INTEGRATION_TEST=1 for integration)
 
 # Frontend
 cd frontend
 npx vitest run
-# ~2,700 tests across 135+ files
+# ~3,080 tests across 175+ files
 ```
 
 ---
