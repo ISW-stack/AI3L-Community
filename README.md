@@ -358,14 +358,14 @@ npx vitest run
 ## Project Stats
 
 <!-- STATS:START -->
-_Last updated: 2026-04-04 — auto-generated on every push to `main`_
+_Last updated: 2026-04-10 — auto-generated on every push to `main`_
 
 ### Code Volume
 
 | Metric | Value |
 | --- | ---: |
-| Total lines added (all commits) | +334,714 |
-| Total lines removed (all commits) | -58,958 |
+| Total lines added (all commits) | +334,727 |
+| Total lines removed (all commits) | -58,971 |
 | Backend source lines (excl. tests) | 31,859 |
 | Frontend source lines (excl. tests) | 67,745 |
 
@@ -415,8 +415,8 @@ Test-to-source ratio: **1.41** (140,654 lines of tests for every 99,604 lines of
 
 | Author | Commits | Lines added | Lines removed |
 | --- | ---: | ---: | ---: |
-| Isaries | 577 | +330,845 | -56,041 |
-| github-actions[bot] | 122 | +1,353 | -1,352 |
+| Isaries | 578 | +330,847 | -56,043 |
+| github-actions[bot] | 123 | +1,364 | -1,363 |
 | SW9526 | 29 | +6,191 | -2,058 |
 | dependabot[bot] | 2 | +73 | -6 |
 | AI3L Community | 2 | +240 | -150 |
