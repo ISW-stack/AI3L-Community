@@ -855,10 +855,10 @@ sequenceDiagram
     participant API as FastAPI
     participant DB as Postgres
 
-    U->>API: POST /forms/{id}/responses {answers}
-    API->>API: validate question schema (server-side)
-    API->>DB: BEGIN; pg_advisory_xact_lock(hashtext(form_id))
-    API->>DB: SELECT count + max_respondents (in tx)
+    U->>API: POST /forms/{id}/responses with answers
+    API->>API: validate question schema [server-side]
+    API->>DB: BEGIN then pg_advisory_xact_lock on hashtext of form_id
+    API->>DB: SELECT count + max_respondents [in tx]
     alt under quota
         API->>DB: INSERT form_responses
         API->>DB: COMMIT
