@@ -125,6 +125,8 @@ Celery workers process on-demand tasks (VirusTotal scanning, CSV export, thumbna
 
 ## Architecture
 
+> For a detailed system architecture — C4 diagrams, layered module maps, ER model, Redis topology, sequence diagrams for key request lifecycles, and the production deployment view — see [`docs/architecture.md`](docs/architecture.md).
+
 ```
 Browser
   |
@@ -430,6 +432,7 @@ Test-to-source ratio: **1.41** (140,654 lines of tests for every 99,604 lines of
 ### Core Documentation
 | Document | Purpose |
 |---|---|
+| [`docs/architecture.md`](docs/architecture.md) | Full system architecture with C4 diagrams, layered backend/frontend maps, ER model, Redis topology, request lifecycles, and deployment view (Mermaid) |
 | [`docs/security.md`](docs/security.md) | Security architecture, threat model, controls, and design rationale |
 | [`docs/authentication.md`](docs/authentication.md) | Session flow, token TTLs, CSRF, guest sessions, password policy |
 | [`docs/api-reference.md`](docs/api-reference.md) | Complete REST and WebSocket API listing with auth requirements |
