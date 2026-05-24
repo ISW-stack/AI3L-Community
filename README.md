@@ -492,3 +492,37 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 All core features are implemented and tested. The platform is in production hardening phase — ongoing work focuses on performance optimization, security audits, and UI/UX polish.
 
 See the [Project Stats](#project-stats) section for up-to-date metrics (auto-generated on every push to `main`).
+
+---
+
+## License
+
+```
+Copyright (C) 2026 Isaries <leolove3very@gmail.com>
+                   SW9526   <shaniawang06@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+```
+
+This project is licensed under the **GNU Affero General Public License v3.0** ??see the [`LICENSE`](LICENSE) file for the full text.
+
+### What this means
+
+- **You may** use, study, modify, and redistribute this software freely.
+- **You must** release your modifications under the same AGPL-3.0 license.
+- **If you run a modified version as a network service** (e.g. host it as SaaS), you must make the complete source code of your modified version available to its users. This is the key difference between AGPL and GPL.
+
+### Contributing
+
+By submitting a pull request, you agree that your contribution will be licensed under the AGPL-3.0. For substantial contributions, the maintainers may ask you to sign a Contributor License Agreement (CLA) to preserve the project's flexibility for future dual-licensing.
